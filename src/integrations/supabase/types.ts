@@ -214,18 +214,30 @@ export type Database = {
         Row: {
           id: string
           logged_at: string
+          meals: Json | null
+          meals_count: number | null
+          sleep: number | null
+          stress: number | null
           user_id: string
           value: number
         }
         Insert: {
           id?: string
           logged_at?: string
+          meals?: Json | null
+          meals_count?: number | null
+          sleep?: number | null
+          stress?: number | null
           user_id: string
           value: number
         }
         Update: {
           id?: string
           logged_at?: string
+          meals?: Json | null
+          meals_count?: number | null
+          sleep?: number | null
+          stress?: number | null
           user_id?: string
           value?: number
         }

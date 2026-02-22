@@ -4,6 +4,7 @@ import { Target, Clock, ArrowUpRight, Plus, X, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import RadialSlider from "@/components/RadialSlider";
 
 interface Decision {
   id: string;
@@ -26,7 +27,7 @@ export default function DecisionLog() {
   const { toast } = useToast();
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", priority: 3, responsibility: 5 });
+  const [form, setForm] = useState({ name: "", priority: 3.0, responsibility: 5.0 });
 
   useEffect(() => {
     if (user) loadDecisions();
@@ -48,8 +49,8 @@ export default function DecisionLog() {
     const { error } = await supabase.from("decisions" as any).insert({
       user_id: user.id,
       name: form.name,
-      priority: form.priority,
-      responsibility: form.responsibility,
+      priority: Math.round(form.priority),
+      responsibility: Math.round(form.responsibility),
     } as any);
 
     if (error) {
@@ -57,7 +58,7 @@ export default function DecisionLog() {
     } else {
       toast({ title: "Decision Logged" });
       setShowForm(false);
-      setForm({ name: "", priority: 3, responsibility: 5 });
+      setForm({ name: "", priority: 3.0, responsibility: 5.0 });
       loadDecisions();
     }
   };
@@ -65,7 +66,6 @@ export default function DecisionLog() {
   const updateStatus = async (id: string, status: string) => {
     const updates: any = { status };
     if (status === "decided") updates.decided_at = new Date().toISOString();
-
     await supabase.from("decisions" as any).update(updates).eq("id", id);
     loadDecisions();
   };
@@ -90,7 +90,7 @@ export default function DecisionLog() {
         </button>
       </div>
 
-      {/* Form */}
+      {/* Form with radial sliders */}
       {showForm && (
         <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleCreate} className="ethereal-glass p-8 space-y-5">
           <div>
@@ -98,17 +98,29 @@ export default function DecisionLog() {
             <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Q3 Hiring Strategy"
               className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
           </div>
-          <div className="grid grid-cols-2 gap-5">
-            <div>
-              <label className="text-neural-label block mb-2">Priority ({form.priority}/5)</label>
-              <input type="range" min={1} max={5} value={form.priority} onChange={(e) => setForm({ ...form, priority: parseInt(e.target.value) })} className="w-full" />
-            </div>
-            <div>
-              <label className="text-neural-label block mb-2">Responsibility ({form.responsibility}/10)</label>
-              <input type="range" min={1} max={10} value={form.responsibility} onChange={(e) => setForm({ ...form, responsibility: parseInt(e.target.value) })} className="w-full" />
-            </div>
+          <div className="flex justify-center gap-12">
+            <RadialSlider
+              value={form.priority}
+              onChange={(v) => setForm({ ...form, priority: v })}
+              min={0}
+              max={5}
+              step={0.1}
+              size={120}
+              label="Priority"
+              color="hsl(var(--neural-warm))"
+            />
+            <RadialSlider
+              value={form.responsibility}
+              onChange={(v) => setForm({ ...form, responsibility: v })}
+              min={0}
+              max={10}
+              step={0.1}
+              size={120}
+              label="Weight"
+              color="hsl(var(--primary))"
+            />
           </div>
-          <button type="submit" className="btn-neural"><Save size={14} /> Log Decision</button>
+          <button type="submit" className="btn-neural mx-auto"><Save size={14} /> Log Decision</button>
         </motion.form>
       )}
 
