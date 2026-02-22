@@ -23,6 +23,7 @@ import CompanyManagement from "./pages/admin/CompanyManagement";
 import Analytics from "./pages/Analytics";
 import Journal from "./pages/Journal";
 import Profile from "./pages/Profile";
+import CalendarView from "./pages/CalendarView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ const App = () => (
                       <Route path="/people" element={<PeopleBoard />} />
                       <Route path="/analytics" element={<Analytics />} />
                       <Route path="/profile" element={<Profile />} />
+                      <Route path="/calendar" element={<CalendarView />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </AppLayout>
