@@ -5,7 +5,7 @@ import { useSessionTracking } from "@/hooks/use-session-tracking";
 import { useHesitationTracking } from "@/hooks/use-hesitation-tracking";
 import {
   LayoutDashboard, Brain, Target, ListChecks, Headphones, Users,
-  ChevronLeft, ChevronRight, Zap, LogOut, Shield, BarChart3, BookOpen,
+  ChevronLeft, ChevronRight, Zap, LogOut, Shield, BarChart3, BookOpen, UserCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
@@ -21,6 +21,7 @@ const navItems = [
   { to: "/toolbox", icon: Headphones, label: "Boîte à outils" },
   { to: "/people", icon: Users, label: "Relations" },
   { to: "/analytics", icon: BarChart3, label: "Analytiques" },
+  { to: "/profile", icon: UserCircle, label: "Profil" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
