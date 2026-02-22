@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ScoreCard from "@/components/ScoreCard";
 import AIInsights from "@/components/AIInsights";
+import { checkAndAwardBadges } from "@/lib/badge-engine";
 
 const dailyActionsList = [
   "Revoir les 3 priorités du jour",
@@ -35,6 +36,8 @@ export default function Dashboard() {
       loadStats();
       loadActions();
       loadDigest();
+      // Auto-check badges on dashboard load
+      checkAndAwardBadges(user.id);
     }
   }, [user]);
 
