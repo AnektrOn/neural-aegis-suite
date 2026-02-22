@@ -4,6 +4,8 @@ import { Users, Search, Shield, ShieldCheck, Headphones, Eye, Ban, CheckCircle, 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
+import CSVImport from "@/components/admin/CSVImport";
 
 interface UserData {
   id: string;
@@ -27,6 +29,7 @@ interface Company {
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [users, setUsers] = useState<UserData[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [search, setSearch] = useState("");
@@ -67,35 +70,35 @@ export default function UserManagement() {
 
   const toggleAdmin = async (userId: string, isCurrentlyAdmin: boolean) => {
     if (userId === currentUser?.id) {
-      toast({ title: "Impossible", description: "Vous ne pouvez pas modifier votre propre rôle.", variant: "destructive" });
+      toast({ title: t("toast.impossible"), description: t("toast.cantModifyOwnRole"), variant: "destructive" });
       return;
     }
     if (isCurrentlyAdmin) {
       const { error } = await supabase.from("user_roles" as any).delete().eq("user_id", userId).eq("role", "admin");
-      if (!error) { toast({ title: "Rôle mis à jour", description: "Rôle admin retiré." }); loadUsers(); }
+      if (!error) { toast({ title: t("toast.roleUpdated"), description: t("toast.adminRemoved") }); loadUsers(); }
     } else {
       const { error } = await supabase.from("user_roles" as any).insert({ user_id: userId, role: "admin" } as any);
-      if (!error) { toast({ title: "Rôle mis à jour", description: "Rôle admin accordé." }); loadUsers(); }
+      if (!error) { toast({ title: t("toast.roleUpdated"), description: t("toast.adminGranted") }); loadUsers(); }
     }
   };
 
   const assignToolbox = async (userId: string, contentType: string, title: string, duration: string) => {
     if (!currentUser) return;
     const { error } = await supabase.from("toolbox_assignments" as any).insert({ user_id: userId, content_type: contentType, title, duration, assigned_by: currentUser.id } as any);
-    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "Contenu assigné", description: `"${title}" assigné à l'utilisateur.` }); loadUsers(); }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
+    else { toast({ title: t("toast.contentAssigned"), description: `"${title}" ${t("toast.assignedTo")}` }); loadUsers(); }
   };
 
   const toggleDisabled = async (userId: string, isCurrentlyDisabled: boolean) => {
     const { error } = await supabase.from("profiles").update({ is_disabled: !isCurrentlyDisabled } as any).eq("id", userId);
-    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
-    else { toast({ title: isCurrentlyDisabled ? "Utilisateur activé" : "Utilisateur désactivé" }); loadUsers(); }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
+    else { toast({ title: isCurrentlyDisabled ? t("toast.userActivated") : t("toast.userDisabled") }); loadUsers(); }
   };
 
   const assignCompany = async (userId: string, companyId: string | null) => {
     const { error } = await supabase.from("profiles").update({ company_id: companyId } as any).eq("id", userId);
-    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "Entreprise mise à jour" }); loadUsers(); }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
+    else { toast({ title: t("toast.companyUpdated") }); loadUsers(); }
   };
 
   const filtered = users.filter((u) => (u.display_name || "").toLowerCase().includes(search.toLowerCase()));
@@ -104,15 +107,17 @@ export default function UserManagement() {
   return (
     <div className="space-y-8 max-w-6xl">
       <div>
-        <p className="text-neural-label mb-3 text-neural-accent/60">Administration</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Gestion des Utilisateurs</h1>
+        <p className="text-neural-label mb-3 text-neural-accent/60">{t("users.administration")}</p>
+        <h1 className="text-neural-title text-3xl text-foreground">{t("users.title")}</h1>
       </div>
+
+      <CSVImport />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Total Leaders", value: users.length, icon: Users },
-          { label: "Admins", value: users.filter((u) => u.isAdmin).length, icon: ShieldCheck },
-          { label: "Audités", value: users.filter((u) => u.auditCount > 0).length, icon: Eye },
+          { label: t("users.total"), value: users.length, icon: Users },
+          { label: t("users.admins"), value: users.filter((u) => u.isAdmin).length, icon: ShieldCheck },
+          { label: t("users.audited"), value: users.filter((u) => u.auditCount > 0).length, icon: Eye },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="ethereal-glass p-6">
             <stat.icon size={16} strokeWidth={1.5} className="text-neural-accent mb-3" />
@@ -124,7 +129,7 @@ export default function UserManagement() {
 
       <div className="relative">
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un utilisateur..."
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("users.search")}
           className="w-full bg-secondary/20 border border-border/20 rounded-xl pl-12 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/30 transition-colors" />
       </div>
 
@@ -135,7 +140,7 @@ export default function UserManagement() {
         {!loading && filtered.length === 0 && (
           <div className="ethereal-glass p-12 text-center">
             <Users size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-            <p className="text-muted-foreground text-sm">Aucun utilisateur trouvé.</p>
+            <p className="text-muted-foreground text-sm">{t("users.none")}</p>
           </div>
         )}
         {filtered.map((userData, i) => (
@@ -149,47 +154,47 @@ export default function UserManagement() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-foreground truncate">{userData.display_name || "Sans nom"}</p>
+                  <p className="text-sm font-medium text-foreground truncate">{userData.display_name || t("users.noName")}</p>
                   {userData.isAdmin && (
                     <span className="text-[8px] uppercase tracking-[0.3em] px-2 py-0.5 rounded-full bg-neural-accent/10 text-neural-accent border border-neural-accent/20">Admin</span>
                   )}
                   {userData.is_disabled && (
-                    <span className="text-[8px] uppercase tracking-[0.3em] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">Désactivé</span>
+                    <span className="text-[8px] uppercase tracking-[0.3em] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">{t("users.disabled")}</span>
                   )}
                 </div>
                 <p className="text-neural-label mt-0.5">
-                  {getCompanyName(userData.company_id) || "Aucune entreprise"} · {userData.country || "—"} · Inscrit le {new Date(userData.created_at).toLocaleDateString("fr-FR")}
+                  {getCompanyName(userData.company_id) || t("users.noCompany")} · {userData.country || "—"} · {t("users.registeredOn")} {new Date(userData.created_at).toLocaleDateString("fr-FR")}
                 </p>
               </div>
 
               <div className="hidden sm:flex gap-4">
                 <div className="text-center">
                   <p className="text-sm font-cinzel text-foreground">{userData.auditCount}</p>
-                  <p className="text-neural-label">Audits</p>
+                  <p className="text-neural-label">{t("users.audits")}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-cinzel text-foreground">{userData.habitCount}</p>
-                  <p className="text-neural-label">Habitudes</p>
+                  <p className="text-neural-label">{t("users.habits")}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-cinzel text-foreground">{userData.toolboxCount}</p>
-                  <p className="text-neural-label">Outils</p>
+                  <p className="text-neural-label">{t("users.tools")}</p>
                 </div>
               </div>
 
               <div className="flex gap-2">
                 <button onClick={() => toggleAdmin(userData.id, userData.isAdmin)}
                   className={`p-2 rounded-lg border transition-all ${userData.isAdmin ? "border-neural-accent/30 text-neural-accent" : "border-border/30 text-muted-foreground hover:border-neural-accent/30 hover:text-neural-accent"}`}
-                  title={userData.isAdmin ? "Retirer admin" : "Rendre admin"}>
+                  title={userData.isAdmin ? t("users.removeAdmin") : t("users.makeAdmin")}>
                   {userData.isAdmin ? <ShieldCheck size={14} /> : <Shield size={14} />}
                 </button>
                 <button onClick={() => toggleDisabled(userData.id, userData.is_disabled)}
                   className={`p-2 rounded-lg border transition-all ${userData.is_disabled ? "border-destructive/30 text-destructive" : "border-border/30 text-muted-foreground hover:border-destructive/30 hover:text-destructive"}`}
-                  title={userData.is_disabled ? "Activer" : "Désactiver"}>
+                  title={userData.is_disabled ? t("users.activate") : t("users.deactivate")}>
                   {userData.is_disabled ? <CheckCircle size={14} /> : <Ban size={14} />}
                 </button>
                 <button onClick={() => setExpandedUser(expandedUser === userData.id ? null : userData.id)}
-                  className="p-2 rounded-lg border border-border/30 text-muted-foreground hover:border-primary/30 hover:text-primary transition-colors" title="Assigner du contenu">
+                  className="p-2 rounded-lg border border-border/30 text-muted-foreground hover:border-primary/30 hover:text-primary transition-colors" title={t("users.assignContent")}>
                   <Headphones size={14} />
                 </button>
               </div>
@@ -198,15 +203,15 @@ export default function UserManagement() {
             {expandedUser === userData.id && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 pt-4 border-t border-border/10 space-y-4">
                 <div>
-                  <p className="text-neural-label mb-2">Entreprise</p>
+                  <p className="text-neural-label mb-2">{t("users.company")}</p>
                   <select value={userData.company_id || ""} onChange={(e) => assignCompany(userData.id, e.target.value || null)}
                     className="bg-secondary/20 border border-border/20 rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:border-neural-accent/30">
-                    <option value="">Aucune entreprise</option>
+                    <option value="">{t("users.noCompany")}</option>
                     {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
 
-                <p className="text-neural-label mb-3">Assignation rapide de contenu</p>
+                <p className="text-neural-label mb-3">{t("users.quickAssign")}</p>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { type: "meditation", title: "Présence Exécutive", duration: "12 min" },

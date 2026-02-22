@@ -3,20 +3,23 @@ import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Phone, Factory, Users, ChevronLeft, ChevronRight, Zap, LogOut, ArrowLeft, BarChart3, Building2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Link } from "react-router-dom";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
-const adminNavItems = [
-  { to: "/admin", icon: Phone, label: "Audit Appels" },
-  { to: "/admin/habits", icon: Factory, label: "Habitudes" },
-  { to: "/admin/users", icon: Users, label: "Utilisateurs" },
-  { to: "/admin/analytics", icon: BarChart3, label: "Analytiques" },
-  { to: "/admin/companies", icon: Building2, label: "Entreprises" },
+const adminNavKeys = [
+  { to: "/admin", icon: Phone, key: "admin.nav.calls" as const },
+  { to: "/admin/habits", icon: Factory, key: "admin.nav.habits" as const },
+  { to: "/admin/users", icon: Users, key: "admin.nav.users" as const },
+  { to: "/admin/analytics", icon: BarChart3, key: "admin.nav.analytics" as const },
+  { to: "/admin/companies", icon: Building2, key: "admin.nav.companies" as const },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { signOut } = useAuth();
+  const { t } = useLanguage();
 
   return (
     <div className="flex min-h-screen w-full relative z-10">
@@ -44,14 +47,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <AnimatePresence>
             {!collapsed && (
               <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[9px] uppercase tracking-[0.3em]">
-                Tableau de bord
+                {t("admin.nav.dashboard")}
               </motion.span>
             )}
           </AnimatePresence>
         </Link>
 
         <nav className="flex-1 flex flex-col gap-1 px-3">
-          {adminNavItems.map((item) => {
+          {adminNavKeys.map((item) => {
             const isActive = location.pathname === item.to;
             return (
               <NavLink key={item.to} to={item.to}
@@ -65,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <AnimatePresence>
                   {!collapsed && (
                     <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xs font-medium tracking-widest uppercase relative z-10">
-                      {item.label}
+                      {t(item.key)}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -74,9 +77,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        <button onClick={signOut} className="mx-3 p-3 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors" title="Se déconnecter">
+        <button onClick={signOut} className="mx-3 p-3 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors" title={t("nav.logout")}>
           <LogOut size={16} />
         </button>
+        <LanguageSwitcher collapsed={collapsed} />
         <button onClick={() => setCollapsed(!collapsed)} className="mx-3 mt-2 p-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors">
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
