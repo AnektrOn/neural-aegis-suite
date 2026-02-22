@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSessionTracking } from "@/hooks/use-session-tracking";
+import { useHesitationTracking } from "@/hooks/use-hesitation-tracking";
 import {
   LayoutDashboard,
   Brain,
@@ -34,6 +36,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { signOut } = useAuth();
   const { isAdmin } = useAdmin();
+  useSessionTracking();
+  useHesitationTracking();
 
   return (
     <div className="flex min-h-screen w-full relative z-10">
