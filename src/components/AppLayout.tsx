@@ -9,20 +9,22 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
+import { useLanguage } from "@/i18n/LanguageContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
-const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Tableau de bord" },
-  { to: "/mood", icon: Brain, label: "Humeur" },
-  { to: "/decisions", icon: Target, label: "Décisions" },
-  { to: "/habits", icon: ListChecks, label: "Habitudes" },
-  { to: "/journal", icon: BookOpen, label: "Journal" },
-  { to: "/toolbox", icon: Headphones, label: "Boîte à outils" },
-  { to: "/people", icon: Users, label: "Relations" },
-  { to: "/analytics", icon: BarChart3, label: "Analytiques" },
-  { to: "/calendar", icon: CalendarDays, label: "Calendrier" },
-  { to: "/profile", icon: UserCircle, label: "Profil" },
+const navKeys = [
+  { to: "/", icon: LayoutDashboard, key: "nav.dashboard" as const },
+  { to: "/mood", icon: Brain, key: "nav.mood" as const },
+  { to: "/decisions", icon: Target, key: "nav.decisions" as const },
+  { to: "/habits", icon: ListChecks, key: "nav.habits" as const },
+  { to: "/journal", icon: BookOpen, key: "nav.journal" as const },
+  { to: "/toolbox", icon: Headphones, key: "nav.toolbox" as const },
+  { to: "/people", icon: Users, key: "nav.people" as const },
+  { to: "/analytics", icon: BarChart3, key: "nav.analytics" as const },
+  { to: "/calendar", icon: CalendarDays, key: "nav.calendar" as const },
+  { to: "/profile", icon: UserCircle, key: "nav.profile" as const },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -30,6 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { signOut } = useAuth();
   const { isAdmin } = useAdmin();
+  const { t } = useLanguage();
   useSessionTracking();
   useHesitationTracking();
 
@@ -54,7 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 flex flex-col gap-1 px-3">
-          {navItems.map((item) => {
+          {navKeys.map((item) => {
             const isActive = location.pathname === item.to;
             return (
               <NavLink key={item.to} to={item.to}
@@ -68,7 +71,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <AnimatePresence>
                   {!collapsed && (
                     <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xs font-medium tracking-widest uppercase relative z-10">
-                      {item.label}
+                      {t(item.key)}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -78,12 +81,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {isAdmin && (
-          <Link to="/admin" className="mx-3 mb-2 flex items-center gap-3 px-3 py-3 rounded-xl text-neural-accent/60 hover:text-neural-accent hover:bg-neural-accent/5 transition-all">
+          <Link to="/admin" className="mx-3 mb-2 flex items-center gap-3 px-3 py-3 rounded-xl text-accent/60 hover:text-accent hover:bg-accent/5 transition-all">
             <Shield size={18} strokeWidth={1.5} className="shrink-0" />
             <AnimatePresence>
               {!collapsed && (
                 <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xs font-medium tracking-widest uppercase">
-                  Admin
+                  {t("nav.admin")}
                 </motion.span>
               )}
             </AnimatePresence>
@@ -94,7 +97,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <NotificationBell />
         </div>
         <ThemeToggle collapsed={collapsed} />
-        <button onClick={signOut} className="mx-3 p-3 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors" title="Se déconnecter">
+        <LanguageSwitcher collapsed={collapsed} />
+        <button onClick={signOut} className="mx-3 p-3 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors" title={t("nav.logout")}>
           <LogOut size={16} />
         </button>
         <button onClick={() => setCollapsed(!collapsed)} className="mx-3 mt-2 p-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors">
