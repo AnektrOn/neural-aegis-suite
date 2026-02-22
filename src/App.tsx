@@ -18,6 +18,7 @@ import AuthPage from "./pages/AuthPage";
 import CallAuditDashboard from "./pages/admin/CallAuditDashboard";
 import HabitFactory from "./pages/admin/HabitFactory";
 import UserManagement from "./pages/admin/UserManagement";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const App = () => (
                       <Route path="/habits" element={<HabitTracker />} />
                       <Route path="/toolbox" element={<Toolbox />} />
                       <Route path="/people" element={<PeopleBoard />} />
+                      <Route path="/analytics" element={<Analytics />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </AppLayout>
