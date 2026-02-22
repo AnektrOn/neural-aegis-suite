@@ -4,6 +4,7 @@ import { Zap, Brain, Target, TrendingUp, TrendingDown, Minus, Activity, Check, C
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ScoreCard from "@/components/ScoreCard";
+import AIInsights from "@/components/AIInsights";
 
 const dailyActionsList = [
   "Revoir les 3 priorités du jour",
@@ -257,6 +258,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      <AIInsights />
       <ScoreCard />
     </div>
   );
