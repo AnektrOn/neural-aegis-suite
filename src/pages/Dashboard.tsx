@@ -5,11 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const dailyActionsList = [
-  "Review top 3 priorities for the day",
-  "15-min strategic thinking block",
-  "One high-stakes decision before noon",
-  "Check in with a direct report",
-  "Evening reflection & journaling",
+  "Revoir les 3 priorités du jour",
+  "Bloc de 15 min de réflexion stratégique",
+  "Prendre une décision à fort enjeu avant midi",
+  "Faire un point avec un collaborateur direct",
+  "Réflexion et journaling du soir",
 ];
 
 export default function Dashboard() {
@@ -70,20 +70,19 @@ export default function Dashboard() {
   };
 
   const statCards = [
-    { label: "Mood (7d avg)", value: stats.moodAvg, icon: Brain, change: "" },
-    { label: "Open Decisions", value: stats.openDecisions, icon: Target, change: "" },
-    { label: "Habits Today", value: stats.habitsDone, icon: TrendingUp, change: "" },
-    { label: "Network Size", value: stats.contacts, icon: Zap, change: "" },
+    { label: "Humeur (moy. 7j)", value: stats.moodAvg, icon: Brain, change: "" },
+    { label: "Décisions ouvertes", value: stats.openDecisions, icon: Target, change: "" },
+    { label: "Habitudes aujourd'hui", value: stats.habitsDone, icon: TrendingUp, change: "" },
+    { label: "Taille du réseau", value: stats.contacts, icon: Zap, change: "" },
   ];
 
   return (
     <div className="space-y-10 max-w-6xl">
       <div>
-        <p className="text-neural-label mb-3">Welcome Back</p>
-        <h1 className="text-neural-title text-3xl md:text-4xl text-foreground">Your Neural State</h1>
+        <p className="text-neural-label mb-3">Bon retour</p>
+        <h1 className="text-neural-title text-3xl md:text-4xl text-foreground">Votre État Neural</h1>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1, duration: 0.5 }} className="ethereal-glass p-6 group cursor-default">
@@ -96,11 +95,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Two column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Neural Progress */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.5 }} className="lg:col-span-3 ethereal-glass p-8">
-          <p className="text-neural-label mb-4">Neural Progress</p>
+          <p className="text-neural-label mb-4">Progression Neurale</p>
           <div className="relative h-48 flex items-center justify-center">
             <svg viewBox="0 0 400 200" className="w-full h-full">
               <line x1="200" y1="100" x2="80" y2="40" stroke="hsl(180 70% 50% / 0.3)" strokeWidth="1" />
@@ -114,9 +111,9 @@ export default function Dashboard() {
               <circle cx="200" cy="100" r="4" fill="hsl(180 70% 50%)" />
               {[
                 { cx: 80, cy: 40, label: "Focus" },
-                { cx: 320, cy: 50, label: "Clarity" },
-                { cx: 100, cy: 160, label: "Empathy" },
-                { cx: 340, cy: 150, label: "Drive" },
+                { cx: 320, cy: 50, label: "Clarté" },
+                { cx: 100, cy: 160, label: "Empathie" },
+                { cx: 340, cy: 150, label: "Motivation" },
                 { cx: 160, cy: 30, label: "Vision" },
               ].map((node, idx) => (
                 <g key={idx}>
@@ -131,11 +128,10 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Daily Actions */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }} className="lg:col-span-2 ethereal-glass p-8">
           <div className="flex items-center gap-2 mb-6">
             <Activity size={14} strokeWidth={1.5} className="text-primary" />
-            <p className="text-neural-label">Daily Actions</p>
+            <p className="text-neural-label">Actions du jour</p>
           </div>
           <div className="space-y-3">
             {dailyActionsList.map((action, i) => {

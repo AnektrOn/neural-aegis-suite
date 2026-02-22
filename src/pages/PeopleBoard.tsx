@@ -34,11 +34,7 @@ export default function PeopleBoard() {
 
   const loadPeople = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("people_contacts" as any)
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false });
+    const { data } = await supabase.from("people_contacts" as any).select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
     if (data) setPeople(data as any);
     setLoading(false);
   };
@@ -46,23 +42,9 @@ export default function PeopleBoard() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
-    const { error } = await supabase.from("people_contacts" as any).insert({
-      user_id: user.id,
-      name: form.name,
-      role: form.role || null,
-      quality: form.quality,
-      insight: form.insight || null,
-    } as any);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Contact Added" });
-      setShowForm(false);
-      setForm({ name: "", role: "", quality: 7, insight: "" });
-      loadPeople();
-    }
+    const { error } = await supabase.from("people_contacts" as any).insert({ user_id: user.id, name: form.name, role: form.role || null, quality: form.quality, insight: form.insight || null } as any);
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
+    else { toast({ title: "Contact ajouté" }); setShowForm(false); setForm({ name: "", role: "", quality: 7, insight: "" }); loadPeople(); }
   };
 
   const handleDelete = async (id: string) => {
@@ -79,12 +61,12 @@ export default function PeopleBoard() {
     <div className="space-y-10 max-w-6xl">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-neural-label mb-3">Relational Intelligence</p>
-          <h1 className="text-neural-title text-3xl text-foreground">People Board</h1>
+          <p className="text-neural-label mb-3">Intelligence Relationnelle</p>
+          <h1 className="text-neural-title text-3xl text-foreground">Tableau des Relations</h1>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowForm(!showForm)} className="btn-neural">
-            {showForm ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add</>}
+            {showForm ? <><X size={14} /> Annuler</> : <><Plus size={14} /> Ajouter</>}
           </button>
           <button onClick={() => setView("neural")} className={`p-2.5 rounded-xl border transition-all ${view === "neural" ? "border-primary/30 bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>
             <Network size={16} strokeWidth={1.5} />
@@ -95,42 +77,39 @@ export default function PeopleBoard() {
         </div>
       </div>
 
-      {/* Add Form */}
       {showForm && (
         <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleCreate} className="ethereal-glass p-8 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="text-neural-label block mb-2">Name</label>
+              <label className="text-neural-label block mb-2">Nom</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Sarah Chen"
                 className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
             </div>
             <div>
-              <label className="text-neural-label block mb-2">Role</label>
-              <input type="text" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="COO"
+              <label className="text-neural-label block mb-2">Poste</label>
+              <input type="text" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="Directeur des opérations"
                 className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
             </div>
           </div>
           <div>
-            <label className="text-neural-label block mb-2">Relationship Quality ({form.quality}/10)</label>
+            <label className="text-neural-label block mb-2">Qualité de la relation ({form.quality}/10)</label>
             <input type="range" min={1} max={10} value={form.quality} onChange={(e) => setForm({ ...form, quality: parseInt(e.target.value) })} className="w-full" />
           </div>
           <div>
-            <label className="text-neural-label block mb-2">Insight</label>
-            <input type="text" value={form.insight} onChange={(e) => setForm({ ...form, insight: e.target.value })} placeholder="Key observations about the relationship..."
+            <label className="text-neural-label block mb-2">Observation</label>
+            <input type="text" value={form.insight} onChange={(e) => setForm({ ...form, insight: e.target.value })} placeholder="Observations clés sur la relation..."
               className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
           </div>
-          <button type="submit" className="btn-neural"><Save size={14} /> Add Contact</button>
+          <button type="submit" className="btn-neural"><Save size={14} /> Ajouter le contact</button>
         </motion.form>
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-        </div>
+        <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
       ) : people.length === 0 ? (
         <div className="ethereal-glass p-12 text-center">
           <Users size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-muted-foreground text-sm">No contacts yet. Add key people in your network.</p>
+          <p className="text-muted-foreground text-sm">Aucun contact. Ajoutez les personnes clés de votre réseau.</p>
         </div>
       ) : view === "neural" ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ethereal-glass p-8">
@@ -139,7 +118,7 @@ export default function PeopleBoard() {
               <animate attributeName="r" values="16;20;16" dur="4s" repeatCount="indefinite" />
             </circle>
             <circle cx="300" cy="200" r="6" fill="hsl(180 70% 50%)" />
-            <text x="300" y="235" textAnchor="middle" fill="hsl(220 10% 45%)" fontSize="9" fontFamily="Cinzel" letterSpacing="0.3em">YOU</text>
+            <text x="300" y="235" textAnchor="middle" fill="hsl(220 10% 45%)" fontSize="9" fontFamily="Cinzel" letterSpacing="0.3em">VOUS</text>
             {people.map((person, idx) => {
               const angle = (idx / people.length) * Math.PI * 2 - Math.PI / 2;
               const radius = 140;
@@ -181,7 +160,7 @@ export default function PeopleBoard() {
               </div>
               <div className="mb-3">
                 <div className="flex justify-between mb-1">
-                  <span className="text-neural-label">Relationship</span>
+                  <span className="text-neural-label">Relation</span>
                   <span className="text-xs font-cinzel" style={{ color: qualityColor(person.quality) }}>{person.quality}/10</span>
                 </div>
                 <input type="range" min={1} max={10} value={person.quality} onChange={(e) => updateQuality(person.id, parseInt(e.target.value))} className="w-full h-1 appearance-none rounded-full cursor-pointer" />
