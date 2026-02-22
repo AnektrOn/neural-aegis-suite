@@ -10,6 +10,8 @@ import {
   Zap,
   LogOut,
   ArrowLeft,
+  BarChart3,
+  Building2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -18,6 +20,8 @@ const adminNavItems = [
   { to: "/admin", icon: Phone, label: "Call Audit" },
   { to: "/admin/habits", icon: Factory, label: "Habit Factory" },
   { to: "/admin/users", icon: Users, label: "Users" },
+  { to: "/admin/analytics", icon: BarChart3, label: "Analytics" },
+  { to: "/admin/companies", icon: Building2, label: "Companies" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

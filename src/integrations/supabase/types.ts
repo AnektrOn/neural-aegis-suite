@@ -91,6 +91,27 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          country: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       daily_actions: {
         Row: {
           action_index: number
@@ -210,6 +231,33 @@ export type Database = {
         }
         Relationships: []
       }
+      input_hesitations: {
+        Row: {
+          created_at: string
+          hesitation_ms: number
+          id: string
+          input_name: string
+          page: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hesitation_ms: number
+          id?: string
+          input_name: string
+          page: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hesitation_ms?: number
+          id?: string
+          input_name?: string
+          page?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mood_entries: {
         Row: {
           id: string
@@ -279,26 +327,43 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          company_id: string | null
+          country: string | null
           created_at: string
           display_name: string | null
           id: string
+          is_disabled: boolean
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          company_id?: string | null
+          country?: string | null
           created_at?: string
           display_name?: string | null
           id: string
+          is_disabled?: boolean
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          company_id?: string | null
+          country?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          is_disabled?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       toolbox_assignments: {
         Row: {
@@ -347,6 +412,36 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          last_heartbeat: string
+          page: string | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          last_heartbeat?: string
+          page?: string | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          last_heartbeat?: string
+          page?: string | null
+          started_at?: string
           user_id?: string
         }
         Relationships: []
