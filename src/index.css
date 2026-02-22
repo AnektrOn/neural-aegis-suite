@@ -5,7 +5,55 @@
 @tailwind utilities;
 
 @layer base {
+  /* ===== LIGHT MODE (default) ===== */
   :root {
+    --background: 220 20% 97%;
+    --foreground: 220 20% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 12%;
+
+    --primary: 180 70% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 220 20% 30%;
+
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 10% 42%;
+
+    --accent: 270 50% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 180 70% 38%;
+
+    --radius: 1rem;
+
+    --sidebar-background: 220 20% 98%;
+    --sidebar-foreground: 220 15% 35%;
+    --sidebar-primary: 180 70% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 94%;
+    --sidebar-accent-foreground: 220 20% 12%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 180 70% 38%;
+
+    --neural-glow: 180 70% 38%;
+    --neural-accent: 270 50% 50%;
+    --neural-warm: 35 80% 50%;
+    --void: 220 20% 97%;
+  }
+
+  /* ===== DARK MODE ===== */
+  .dark {
     --background: 216 67% 1.2%;
     --foreground: 210 20% 88%;
 
@@ -34,8 +82,6 @@
     --input: 220 20% 12%;
     --ring: 180 70% 50%;
 
-    --radius: 1rem;
-
     --sidebar-background: 220 30% 4%;
     --sidebar-foreground: 210 20% 70%;
     --sidebar-primary: 180 70% 50%;
@@ -45,7 +91,6 @@
     --sidebar-border: 220 20% 10%;
     --sidebar-ring: 180 70% 50%;
 
-    /* Custom neural tokens */
     --neural-glow: 180 70% 50%;
     --neural-accent: 270 50% 55%;
     --neural-warm: 35 80% 55%;
@@ -62,8 +107,8 @@
     overflow-x: hidden;
   }
 
-  /* Ethereal grain texture */
-  body::before {
+  /* Ethereal grain texture (dark mode only) */
+  .dark body::before {
     content: '';
     position: fixed;
     inset: 0;
@@ -84,14 +129,26 @@
   /* Ethereal Glass Surfaces */
   .ethereal-glass {
     @apply backdrop-blur-3xl border transition-all duration-700;
+    background-color: hsla(var(--card) / 0.6);
+    border-color: hsla(var(--border) / 0.5);
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark .ethereal-glass {
     background-color: hsla(var(--card) / 0.03);
     border-color: hsla(var(--border) / 0.15);
-    border-radius: 1.5rem;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5),
                 inset 0 0 80px hsla(var(--primary) / 0.01);
   }
 
   .ethereal-glass:hover {
+    background-color: hsla(var(--card) / 0.8);
+    border-color: hsla(var(--primary) / 0.3);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark .ethereal-glass:hover {
     background-color: hsla(var(--card) / 0.06);
     border-color: hsla(var(--primary) / 0.2);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
@@ -136,6 +193,10 @@
     font-family: 'Cinzel', serif;
     @apply uppercase font-light;
     letter-spacing: 0.4em;
+    text-shadow: 0 0 20px hsla(var(--foreground) / 0.05);
+  }
+
+  .dark .text-neural-title {
     text-shadow: 0 0 20px hsla(var(--foreground) / 0.15);
   }
 
@@ -148,12 +209,21 @@
   /* Ghost sidebar */
   .ghost-sidebar {
     @apply backdrop-blur-2xl border-r transition-all duration-500;
+    background-color: hsla(var(--sidebar-background) / 0.85);
+    border-color: hsla(var(--border) / 0.3);
+  }
+
+  .dark .ghost-sidebar {
     background-color: hsla(var(--sidebar-background) / 0.4);
     border-color: hsla(var(--border) / 0.08);
   }
 
   /* Glow node */
   .glow-node {
+    box-shadow: 0 0 12px hsla(var(--primary) / 0.15);
+  }
+
+  .dark .glow-node {
     box-shadow: 0 0 20px hsla(var(--primary) / 0.3),
                 0 0 60px hsla(var(--primary) / 0.1);
   }

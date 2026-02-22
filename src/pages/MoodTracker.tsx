@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Brain } from "lucide-react";
+import { Brain, Moon, Flame, UtensilsCrossed, Plus, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import RadialSlider from "@/components/RadialSlider";
 
 const frequencies = [
   { value: 1, label: "Depleted", color: "hsl(0 70% 50%)" },
@@ -18,12 +19,19 @@ const frequencies = [
   { value: 10, label: "Transcendent", color: "hsl(270 50% 55%)" },
 ];
 
+const mealSizes = ["snack", "demi", "normal"] as const;
+type MealSize = typeof mealSizes[number];
+const mealSizeLabels: Record<MealSize, string> = { snack: "Snack", demi: "Demi", normal: "Normal" };
+
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function MoodTracker() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [currentMood, setCurrentMood] = useState(7);
+  const [currentMood, setCurrentMood] = useState(7.0);
+  const [sleep, setSleep] = useState(7.0);
+  const [stress, setStress] = useState(3.0);
+  const [meals, setMeals] = useState<MealSize[]>([]);
   const [weekHistory, setWeekHistory] = useState<{ day: string; value: number }[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +42,6 @@ export default function MoodTracker() {
   const loadHistory = async () => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-
     const { data } = await supabase
       .from("mood_entries" as any)
       .select("value, logged_at")
@@ -42,21 +49,17 @@ export default function MoodTracker() {
       .gte("logged_at", sevenDaysAgo.toISOString())
       .order("logged_at", { ascending: true });
 
-    // Group by day, take latest per day
     const byDay = new Map<string, number>();
     (data || []).forEach((entry: any) => {
       const d = new Date(entry.logged_at);
-      const key = dayNames[d.getDay()];
-      byDay.set(key, entry.value);
+      byDay.set(dayNames[d.getDay()], entry.value);
     });
 
-    // Build last 7 days
     const result: { day: string; value: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const key = dayNames[d.getDay()];
-      result.push({ day: key, value: byDay.get(key) || 0 });
+      result.push({ day: dayNames[d.getDay()], value: byDay.get(dayNames[d.getDay()]) || 0 });
     }
     setWeekHistory(result);
   };
@@ -66,53 +69,130 @@ export default function MoodTracker() {
     setLoading(true);
     const { error } = await supabase.from("mood_entries" as any).insert({
       user_id: user.id,
-      value: currentMood,
+      value: Math.round(currentMood),
+      sleep,
+      stress,
+      meals_count: meals.length,
+      meals: meals.map((size) => ({ size })),
     } as any);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Logged", description: `Frequency ${currentMood} — ${frequencies[currentMood - 1].label}` });
+      const moodIdx = Math.min(Math.max(Math.round(currentMood) - 1, 0), 9);
+      toast({ title: "Logged", description: `Frequency ${currentMood.toFixed(1)} — ${frequencies[moodIdx].label}` });
       loadHistory();
     }
     setLoading(false);
   };
 
-  const selectedFreq = frequencies[currentMood - 1];
+  const addMeal = (size: MealSize) => setMeals((prev) => [...prev, size]);
+  const removeMeal = (index: number) => setMeals((prev) => prev.filter((_, i) => i !== index));
+
+  const moodIdx = Math.min(Math.max(Math.round(currentMood) - 1, 0), 9);
+  const selectedFreq = frequencies[moodIdx];
 
   return (
-    <div className="space-y-10 max-w-4xl">
+    <div className="space-y-10 max-w-5xl">
       <div>
         <p className="text-neural-label mb-3">Emotional Intelligence</p>
         <h1 className="text-neural-title text-3xl text-foreground">Mood Frequency</h1>
       </div>
 
-      {/* Current State */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-10 text-center">
-        <div className="mb-8">
-          <Brain size={32} strokeWidth={1} className="mx-auto mb-4" style={{ color: selectedFreq.color }} />
-          <motion.p key={currentMood} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-5xl font-cinzel font-light mb-2" style={{ color: selectedFreq.color }}>
-            {currentMood}
-          </motion.p>
-          <motion.p key={selectedFreq.label} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-neural-label" style={{ color: selectedFreq.color }}>
-            {selectedFreq.label}
-          </motion.p>
+      {/* Main radial sliders */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 items-center justify-items-center">
+          {/* Mood */}
+          <div className="flex flex-col items-center">
+            <Brain size={20} strokeWidth={1} className="mb-3" style={{ color: selectedFreq.color }} />
+            <RadialSlider
+              value={currentMood}
+              onChange={setCurrentMood}
+              min={0}
+              max={10}
+              step={0.1}
+              size={160}
+              label="Mood"
+              color={selectedFreq.color}
+            />
+            <motion.p key={selectedFreq.label} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-neural-label mt-2" style={{ color: selectedFreq.color }}>
+              {selectedFreq.label}
+            </motion.p>
+          </div>
+
+          {/* Sleep */}
+          <div className="flex flex-col items-center">
+            <Moon size={20} strokeWidth={1} className="mb-3 text-blue-400" />
+            <RadialSlider
+              value={sleep}
+              onChange={setSleep}
+              min={0}
+              max={10}
+              step={0.1}
+              size={160}
+              label="Sleep"
+              color="hsl(220 70% 60%)"
+              formatValue={(v) => `${v.toFixed(1)}h`}
+            />
+          </div>
+
+          {/* Stress */}
+          <div className="flex flex-col items-center">
+            <Flame size={20} strokeWidth={1} className="mb-3 text-red-400" />
+            <RadialSlider
+              value={stress}
+              onChange={setStress}
+              min={0}
+              max={10}
+              step={0.1}
+              size={160}
+              label="Stress"
+              color="hsl(0 70% 55%)"
+            />
+          </div>
         </div>
 
-        <div className="relative px-4">
-          <input type="range" min={1} max={10} value={currentMood} onChange={(e) => setCurrentMood(parseInt(e.target.value))}
-            className="w-full h-1 appearance-none rounded-full cursor-pointer"
-            style={{ background: `linear-gradient(to right, hsl(0 70% 50%), hsl(180 70% 50%), hsl(270 50% 55%))` }}
-          />
-          <div className="flex justify-between mt-3">
-            {frequencies.map((f) => (
-              <div key={f.value} className="w-1.5 h-1.5 rounded-full transition-all" style={{ backgroundColor: currentMood >= f.value ? f.color : "hsl(220 15% 15%)" }} />
+        {/* Meals section */}
+        <div className="mt-10 border-t border-border/30 pt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <UtensilsCrossed size={16} strokeWidth={1.5} className="text-neural-warm" />
+            <p className="text-neural-label">Meals — {meals.length} today</p>
+          </div>
+
+          {/* Current meals */}
+          <div className="flex flex-wrap gap-2 mb-4 min-h-[40px]">
+            {meals.map((m, i) => (
+              <motion.button
+                key={i}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                onClick={() => removeMeal(i)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 bg-secondary/30 text-xs text-foreground hover:border-destructive/40 hover:bg-destructive/5 transition-all group"
+              >
+                <span>{mealSizeLabels[m]}</span>
+                <Minus size={10} className="text-muted-foreground group-hover:text-destructive" />
+              </motion.button>
+            ))}
+            {meals.length === 0 && <p className="text-muted-foreground text-xs">Aucun repas ajouté</p>}
+          </div>
+
+          {/* Add meal buttons */}
+          <div className="flex gap-2">
+            {mealSizes.map((size) => (
+              <button
+                key={size}
+                onClick={() => addMeal(size)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border/30 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
+              >
+                <Plus size={12} />
+                {mealSizeLabels[size]}
+              </button>
             ))}
           </div>
         </div>
 
         <button onClick={logMood} disabled={loading} className="btn-neural mt-8 mx-auto">
-          {loading ? "Logging..." : "Log Frequency"}
+          {loading ? "Logging..." : "Log Entry"}
         </button>
       </motion.div>
 
@@ -129,11 +209,11 @@ export default function MoodTracker() {
                   transition={{ delay: i * 0.08, duration: 0.5 }}
                   className="w-full rounded-xl relative overflow-hidden"
                   style={{
-                    backgroundColor: frequencies[entry.value - 1].color + "20",
-                    border: `1px solid ${frequencies[entry.value - 1].color}30`,
+                    backgroundColor: frequencies[Math.min(entry.value - 1, 9)].color + "20",
+                    border: `1px solid ${frequencies[Math.min(entry.value - 1, 9)].color}30`,
                   }}
                 >
-                  <div className="absolute bottom-0 w-full h-1/3" style={{ background: `linear-gradient(to top, ${frequencies[entry.value - 1].color}15, transparent)` }} />
+                  <div className="absolute bottom-0 w-full h-1/3" style={{ background: `linear-gradient(to top, ${frequencies[Math.min(entry.value - 1, 9)].color}15, transparent)` }} />
                 </motion.div>
               ) : (
                 <div className="w-full h-2 rounded-xl bg-secondary/20" />
