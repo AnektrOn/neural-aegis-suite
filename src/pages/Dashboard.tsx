@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Zap, Brain, Target, TrendingUp, Activity, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import ScoreCard from "@/components/ScoreCard";
 
 const dailyActionsList = [
   "Revoir les 3 priorités du jour",
@@ -152,6 +153,8 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </div>
+
+      <ScoreCard />
     </div>
   );
 }

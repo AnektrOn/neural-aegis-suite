@@ -258,6 +258,39 @@ export type Database = {
         }
         Relationships: []
       }
+      journal_entries: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          mood_score: number | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          mood_score?: number | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          mood_score?: number | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mood_entries: {
         Row: {
           id: string
@@ -288,6 +321,39 @@ export type Database = {
           stress?: number | null
           user_id?: string
           value?: number
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message: string
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -394,6 +460,33 @@ export type Database = {
           duration?: string | null
           id?: string
           title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_name: string
+          badge_type: string
+          description: string | null
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_name: string
+          badge_type: string
+          description?: string | null
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_name?: string
+          badge_type?: string
+          description?: string | null
+          earned_at?: string
+          id?: string
           user_id?: string
         }
         Relationships: []
