@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { BarChart3 } from "lucide-react";
+import ExportPDFButton from "@/components/ExportPDFButton";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   BarChart, Bar, RadialBarChart, RadialBar, PieChart, Pie, Cell, Legend,
@@ -15,6 +16,7 @@ const COLORS = [
 
 export default function Analytics() {
   const { user } = useAuth();
+  const reportRef = useRef<HTMLDivElement>(null);
   const [moodData, setMoodData] = useState<any[]>([]);
   const [sleepStressData, setSleepStressData] = useState<any[]>([]);
   const [habitData, setHabitData] = useState<any[]>([]);
@@ -97,10 +99,15 @@ export default function Analytics() {
 
   return (
     <div className="space-y-10 max-w-6xl">
-      <div>
-        <p className="text-neural-label mb-3">Centre d'Intelligence</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Analytiques</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-neural-label mb-3">Centre d'Intelligence</p>
+          <h1 className="text-neural-title text-3xl text-foreground">Analytiques</h1>
+        </div>
+        <ExportPDFButton targetRef={reportRef as React.RefObject<HTMLDivElement>} filename="rapport-analytiques" />
       </div>
+
+      <div ref={reportRef} className="space-y-10">
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-8">
         <p className="text-neural-label mb-6">Humeur sur 30 jours</p>
@@ -206,6 +213,7 @@ export default function Analytics() {
             <p className="text-lg font-cinzel text-foreground">{decisionData.avgPriority}/5</p>
           </div>
         </motion.div>
+      </div>
       </div>
     </div>
   );
