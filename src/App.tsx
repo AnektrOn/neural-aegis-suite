@@ -20,6 +20,7 @@ import CallAuditDashboard from "./pages/admin/CallAuditDashboard";
 import HabitFactory from "./pages/admin/HabitFactory";
 import UserManagement from "./pages/admin/UserManagement";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import ExecutiveDashboard from "./pages/admin/ExecutiveDashboard";
 import CompanyManagement from "./pages/admin/CompanyManagement";
 import Analytics from "./pages/Analytics";
 import Journal from "./pages/Journal";
@@ -50,6 +51,7 @@ const App = () => (
                         <Route path="/habits" element={<HabitFactory />} />
                         <Route path="/users" element={<UserManagement />} />
                         <Route path="/analytics" element={<AdminAnalytics />} />
+                        <Route path="/executive" element={<ExecutiveDashboard />} />
                         <Route path="/companies" element={<CompanyManagement />} />
                       </Routes>
                     </AdminLayout>

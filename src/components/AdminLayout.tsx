@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, Factory, Users, ChevronLeft, ChevronRight, Zap, LogOut, ArrowLeft, BarChart3, Building2 } from "lucide-react";
+import { Phone, Factory, Users, ChevronLeft, ChevronRight, Zap, LogOut, ArrowLeft, BarChart3, Building2, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Link } from "react-router-dom";
@@ -12,6 +12,7 @@ const adminNavKeys = [
   { to: "/admin/habits", icon: Factory, key: "admin.nav.habits" as const },
   { to: "/admin/users", icon: Users, key: "admin.nav.users" as const },
   { to: "/admin/analytics", icon: BarChart3, key: "admin.nav.analytics" as const },
+  { to: "/admin/executive", icon: LayoutDashboard, key: "admin.nav.executive" as const },
   { to: "/admin/companies", icon: Building2, key: "admin.nav.companies" as const },
 ];
 
