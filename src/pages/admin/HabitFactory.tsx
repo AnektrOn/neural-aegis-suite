@@ -113,12 +113,12 @@ export default function HabitFactory() {
 
   return (
     <div className="space-y-8 max-w-6xl">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <p className="text-neural-label mb-3 text-neural-accent/60">Administration</p>
-          <h1 className="text-neural-title text-3xl text-foreground">Habit Factory</h1>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Habit Factory</h1>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-neural">
+        <button onClick={() => setShowForm(!showForm)} className="btn-neural shrink-0">
           {showForm ? <><X size={14} /> Cancel</> : <><Plus size={14} /> New Habit</>}
         </button>
       </div>

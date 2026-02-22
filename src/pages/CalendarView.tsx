@@ -91,7 +91,7 @@ export default function CalendarView() {
         <h1 className="text-neural-title text-3xl text-foreground">Calendrier</h1>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-8">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-3 sm:p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button onClick={prevMonth} className="p-2 rounded-xl hover:bg-secondary/30 transition-colors text-muted-foreground hover:text-foreground">
@@ -152,7 +152,7 @@ export default function CalendarView() {
         </div>
 
         {/* Legend */}
-        <div className="flex gap-4 mt-6 justify-center">
+        <div className="flex flex-wrap gap-3 sm:gap-4 mt-6 justify-center">
           {[
             { color: "bg-primary", label: "Humeur" },
             { color: "bg-emerald-500", label: "Habitudes" },
