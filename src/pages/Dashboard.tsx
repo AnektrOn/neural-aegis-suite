@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Zap, Brain, Target, TrendingUp, Activity, Check } from "lucide-react";
+import { Zap, Brain, Target, TrendingUp, TrendingDown, Minus, Activity, Check, Calendar, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ScoreCard from "@/components/ScoreCard";
@@ -13,16 +13,27 @@ const dailyActionsList = [
   "Réflexion et journaling du soir",
 ];
 
+interface WeeklyDigest {
+  moodTrend: "up" | "down" | "stable";
+  moodDelta: number;
+  habitRate: number;
+  decisionsResolved: number;
+  journalCount: number;
+  streakDays: number;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ moodAvg: "—", openDecisions: "—", habitsDone: "—", contacts: "—" });
   const [completedActions, setCompletedActions] = useState<Set<number>>(new Set());
+  const [digest, setDigest] = useState<WeeklyDigest | null>(null);
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     if (user) {
       loadStats();
       loadActions();
+      loadDigest();
     }
   }, [user]);
 
@@ -57,6 +68,55 @@ export default function Dashboard() {
     setCompletedActions(new Set((data as any[] || []).map((d) => d.action_index)));
   };
 
+  const loadDigest = async () => {
+    const now = new Date();
+    const thisWeekStart = new Date(now);
+    thisWeekStart.setDate(now.getDate() - 7);
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+    const [thisWeekMood, lastWeekMood, habitsRes, decisionsRes, journalRes, dailyActionsRes] = await Promise.all([
+      supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", thisWeekStart.toISOString()),
+      supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", lastWeekStart.toISOString()).lt("logged_at", thisWeekStart.toISOString()),
+      supabase.from("habit_completions" as any).select("completed_date").eq("user_id", user!.id).gte("completed_date", thisWeekStart.toISOString().split("T")[0]),
+      supabase.from("decisions" as any).select("status").eq("user_id", user!.id).eq("status", "decided").gte("decided_at", thisWeekStart.toISOString()),
+      supabase.from("journal_entries").select("id").eq("user_id", user!.id).gte("created_at", thisWeekStart.toISOString()),
+      supabase.from("daily_actions" as any).select("completed_date").eq("user_id", user!.id).gte("completed_date", thisWeekStart.toISOString().split("T")[0]),
+    ]);
+
+    const thisAvg = (thisWeekMood.data as any[] || []).length > 0
+      ? (thisWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (thisWeekMood.data as any[]).length
+      : 0;
+    const lastAvg = (lastWeekMood.data as any[] || []).length > 0
+      ? (lastWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (lastWeekMood.data as any[]).length
+      : 0;
+
+    const delta = +(thisAvg - lastAvg).toFixed(1);
+
+    // Calculate streak from daily actions
+    const actionDates = new Set((dailyActionsRes.data as any[] || []).map((d) => d.completed_date));
+    let streak = 0;
+    for (let i = 0; i < 30; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      if (actionDates.has(d.toISOString().split("T")[0])) {
+        streak++;
+      } else if (i > 0) break;
+    }
+
+    // Habit completion rate
+    const habitDays = new Set((habitsRes.data as any[] || []).map((h) => h.completed_date));
+
+    setDigest({
+      moodTrend: delta > 0.3 ? "up" : delta < -0.3 ? "down" : "stable",
+      moodDelta: Math.abs(delta),
+      habitRate: Math.round((habitDays.size / 7) * 100),
+      decisionsResolved: (decisionsRes.data || []).length,
+      journalCount: (journalRes.data || []).length,
+      streakDays: streak,
+    });
+  };
+
   const toggleAction = async (index: number) => {
     if (!user) return;
     const isCompleted = completedActions.has(index);
@@ -68,6 +128,12 @@ export default function Dashboard() {
       await supabase.from("daily_actions" as any).insert({ user_id: user.id, action_index: index, completed_date: today } as any);
       setCompletedActions((prev) => new Set(prev).add(index));
     }
+  };
+
+  const TrendIcon = ({ trend }: { trend: "up" | "down" | "stable" }) => {
+    if (trend === "up") return <TrendingUp size={14} className="text-emerald-500" />;
+    if (trend === "down") return <TrendingDown size={14} className="text-red-400" />;
+    return <Minus size={14} className="text-muted-foreground" />;
   };
 
   const statCards = [
@@ -83,6 +149,43 @@ export default function Dashboard() {
         <p className="text-neural-label mb-3">Bon retour</p>
         <h1 className="text-neural-title text-3xl md:text-4xl text-foreground">Votre État Neural</h1>
       </div>
+
+      {/* Executive Weekly Digest */}
+      {digest && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Calendar size={14} strokeWidth={1.5} className="text-primary" />
+            <p className="text-neural-label">Résumé hebdomadaire</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div className="bg-secondary/20 rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <TrendIcon trend={digest.moodTrend} />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                  {digest.moodTrend === "up" ? `+${digest.moodDelta}` : digest.moodTrend === "down" ? `-${digest.moodDelta}` : "stable"}
+                </span>
+              </div>
+              <p className="text-neural-label mt-1">Tendance humeur</p>
+            </div>
+            <div className="bg-secondary/20 rounded-xl p-4 text-center">
+              <p className="text-xl font-cinzel text-foreground">{digest.habitRate}%</p>
+              <p className="text-neural-label mt-1">Taux habitudes</p>
+            </div>
+            <div className="bg-secondary/20 rounded-xl p-4 text-center">
+              <p className="text-xl font-cinzel text-foreground">{digest.decisionsResolved}</p>
+              <p className="text-neural-label mt-1">Décisions résolues</p>
+            </div>
+            <div className="bg-secondary/20 rounded-xl p-4 text-center">
+              <p className="text-xl font-cinzel text-foreground">{digest.journalCount}</p>
+              <p className="text-neural-label mt-1">Entrées journal</p>
+            </div>
+            <div className="bg-secondary/20 rounded-xl p-4 text-center">
+              <p className="text-xl font-cinzel text-foreground">{digest.streakDays}j</p>
+              <p className="text-neural-label mt-1">Série en cours</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, i) => (
