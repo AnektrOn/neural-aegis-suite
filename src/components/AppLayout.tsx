@@ -13,9 +13,11 @@ import {
   Zap,
   LogOut,
   Shield,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -24,6 +26,7 @@ const navItems = [
   { to: "/habits", icon: ListChecks, label: "Habits" },
   { to: "/toolbox", icon: Headphones, label: "Toolbox" },
   { to: "/people", icon: Users, label: "People" },
+  { to: "/analytics", icon: BarChart3, label: "Analytics" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -114,6 +117,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </AnimatePresence>
           </Link>
         )}
+
+        {/* Theme toggle */}
+        <ThemeToggle collapsed={collapsed} />
 
         {/* Sign out */}
         <button
