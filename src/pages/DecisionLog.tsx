@@ -64,12 +64,12 @@ export default function DecisionLog() {
 
   return (
     <div className="space-y-10 max-w-5xl">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <p className="text-neural-label mb-3">Architecture Cognitive</p>
-          <h1 className="text-neural-title text-3xl text-foreground">Journal de Décisions</h1>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Journal de Décisions</h1>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-neural">
+        <button onClick={() => setShowForm(!showForm)} className="btn-neural shrink-0">
           {showForm ? <><X size={14} /> Annuler</> : <><Plus size={14} /> Nouvelle Décision</>}
         </button>
       </div>
@@ -81,7 +81,7 @@ export default function DecisionLog() {
             <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Stratégie de recrutement T3"
               className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
           </div>
-          <div className="flex justify-center gap-12">
+          <div className="flex justify-center gap-6 sm:gap-12">
             <RadialSlider value={form.priority} onChange={(v) => setForm({ ...form, priority: v })} min={0} max={5} step={0.1} size={120} label="Priorité" color="hsl(var(--neural-warm))" />
             <RadialSlider value={form.responsibility} onChange={(v) => setForm({ ...form, responsibility: v })} min={0} max={10} step={0.1} size={120} label="Poids" color="hsl(var(--primary))" />
           </div>
@@ -111,24 +111,42 @@ export default function DecisionLog() {
           </div>
         )}
         {decisions.map((d, i) => (
-          <motion.div key={d.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }} className="ethereal-glass p-6 flex items-center gap-6">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
-              <p className="text-neural-label mt-1">{new Date(d.created_at).toLocaleDateString("fr-FR")}</p>
+          <motion.div key={d.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }} className="ethereal-glass p-4 sm:p-6">
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
+                <p className="text-neural-label mt-1">{new Date(d.created_at).toLocaleDateString("fr-FR")}</p>
+              </div>
+              <div className="hidden sm:flex gap-4 sm:gap-6">
+                <div className="text-center">
+                  <p className={`text-sm font-cinzel ${priorityColor(d.priority)}`}>P{d.priority}</p>
+                  <p className="text-neural-label">Priorité</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-cinzel text-foreground">{d.time_to_decide || "—"}</p>
+                  <p className="text-neural-label">Vitesse</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
+                  <p className="text-neural-label">Poids</p>
+                </div>
+              </div>
             </div>
-            <div className="text-center">
-              <p className={`text-sm font-cinzel ${priorityColor(d.priority)}`}>P{d.priority}</p>
-              <p className="text-neural-label">Priorité</p>
+            <div className="flex sm:hidden gap-3 mt-3">
+              <div className="text-center flex-1">
+                <p className={`text-sm font-cinzel ${priorityColor(d.priority)}`}>P{d.priority}</p>
+                <p className="text-neural-label">Priorité</p>
+              </div>
+              <div className="text-center flex-1">
+                <p className="text-sm font-cinzel text-foreground">{d.time_to_decide || "—"}</p>
+                <p className="text-neural-label">Vitesse</p>
+              </div>
+              <div className="text-center flex-1">
+                <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
+                <p className="text-neural-label">Poids</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm font-cinzel text-foreground">{d.time_to_decide || "—"}</p>
-              <p className="text-neural-label">Vitesse</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
-              <p className="text-neural-label">Poids</p>
-            </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 mt-3 flex-wrap">
               {(["pending", "decided", "deferred"] as const).map((s) => (
                 <button key={s} onClick={() => updateStatus(d.id, s)}
                   className={`text-[8px] uppercase tracking-[0.2em] px-2 py-1 rounded-full border transition-all ${
