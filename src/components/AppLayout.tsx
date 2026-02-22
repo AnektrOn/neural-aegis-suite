@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -12,8 +12,10 @@ import {
   ChevronRight,
   Zap,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -28,6 +30,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { signOut } = useAuth();
+  const { isAdmin } = useAdmin();
 
   return (
     <div className="flex min-h-screen w-full relative z-10">
@@ -94,6 +97,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+
+        {/* Admin link */}
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className="mx-3 mb-2 flex items-center gap-3 px-3 py-3 rounded-xl text-neural-accent/60 hover:text-neural-accent hover:bg-neural-accent/5 transition-all"
+          >
+            <Shield size={18} strokeWidth={1.5} className="shrink-0" />
+            <AnimatePresence>
+              {!collapsed && (
+                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xs font-medium tracking-widest uppercase">
+                  Admin
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </Link>
+        )}
 
         {/* Sign out */}
         <button

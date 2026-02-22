@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      assigned_habits: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          habit_template_id: string
+          id: string
+          is_active: boolean
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          habit_template_id: string
+          id?: string
+          is_active?: boolean
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          habit_template_id?: string
+          id?: string
+          is_active?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assigned_habits_habit_template_id_fkey"
+            columns: ["habit_template_id"]
+            isOneToOne: false
+            referencedRelation: "habit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_calls: {
+        Row: {
+          call_date: string
+          conducted_by: string
+          created_at: string
+          decision_style: string | null
+          emotional_baseline: number | null
+          goals: string | null
+          id: string
+          key_challenges: string | null
+          leadership_score: number | null
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          call_date?: string
+          conducted_by: string
+          created_at?: string
+          decision_style?: string | null
+          emotional_baseline?: number | null
+          goals?: string | null
+          id?: string
+          key_challenges?: string | null
+          leadership_score?: number | null
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          call_date?: string
+          conducted_by?: string
+          created_at?: string
+          decision_style?: string | null
+          emotional_baseline?: number | null
+          goals?: string | null
+          id?: string
+          key_challenges?: string | null
+          leadership_score?: number | null
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      habit_templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -38,15 +142,72 @@ export type Database = {
         }
         Relationships: []
       }
+      toolbox_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          content_type: string
+          description: string | null
+          duration: string | null
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          content_type: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          content_type?: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -173,6 +334,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
