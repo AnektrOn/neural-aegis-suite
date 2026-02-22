@@ -99,12 +99,12 @@ export default function Journal() {
 
   return (
     <div className="space-y-8 max-w-4xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <p className="text-neural-label mb-1">Introspection</p>
-          <h1 className="text-neural-title text-3xl text-foreground">Journal</h1>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Journal</h1>
         </div>
-        <button onClick={() => { resetForm(); setShowNew(true); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm">
+        <button onClick={() => { resetForm(); setShowNew(true); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm shrink-0 self-start sm:self-auto">
           <Plus size={16} /> Nouvelle entrée
         </button>
       </div>

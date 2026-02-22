@@ -102,17 +102,17 @@ export default function ExecutiveDashboard() {
 
   return (
     <div className="space-y-8 max-w-7xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <p className="text-neural-label mb-3 text-neural-accent/60">Administration</p>
-          <h1 className="text-neural-title text-3xl text-foreground">Tableau Exécutif</h1>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Tableau Exécutif</h1>
         </div>
         <ExportPDFButton targetRef={reportRef as React.RefObject<HTMLDivElement>} filename="rapport-executif" />
       </div>
 
       <div ref={reportRef} className="space-y-8">
         {/* KPI Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           {kpis.map((kpi, i) => (
             <motion.div key={kpi.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="ethereal-glass p-5">
               <kpi.icon size={14} strokeWidth={1.5} className="text-primary mb-3" />

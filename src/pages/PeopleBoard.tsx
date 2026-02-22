@@ -59,13 +59,13 @@ export default function PeopleBoard() {
 
   return (
     <div className="space-y-10 max-w-6xl">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <p className="text-neural-label mb-3">Intelligence Relationnelle</p>
-          <h1 className="text-neural-title text-3xl text-foreground">Tableau des Relations</h1>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Tableau des Relations</h1>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowForm(!showForm)} className="btn-neural">
+          <button onClick={() => setShowForm(!showForm)} className="btn-neural shrink-0">
             {showForm ? <><X size={14} /> Annuler</> : <><Plus size={14} /> Ajouter</>}
           </button>
           <button onClick={() => setView("neural")} className={`p-2.5 rounded-xl border transition-all ${view === "neural" ? "border-primary/30 bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>

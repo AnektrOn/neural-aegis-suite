@@ -289,7 +289,7 @@ export default function AdminAnalytics() {
       {(viewMode === "global") && (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3">
             {[
               { label: "Utilisateurs", value: filteredProfiles.length, icon: Users },
               { label: "Entreprises", value: companies.length, icon: Building2 },
