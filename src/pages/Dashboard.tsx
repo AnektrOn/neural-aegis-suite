@@ -151,7 +151,7 @@ export default function Dashboard() {
     <div className="space-y-10 max-w-6xl">
       <div>
         <p className="text-neural-label mb-3">Bon retour</p>
-        <h1 className="text-neural-title text-3xl md:text-4xl text-foreground">Votre État Neural</h1>
+        <h1 className="text-neural-title text-2xl sm:text-3xl md:text-4xl text-foreground">Votre État Neural</h1>
       </div>
 
       {/* Executive Weekly Digest */}
@@ -161,7 +161,7 @@ export default function Dashboard() {
             <Calendar size={14} strokeWidth={1.5} className="text-primary" />
             <p className="text-neural-label">Résumé hebdomadaire</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <div className="bg-secondary/20 rounded-xl p-4 text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
                 <TrendIcon trend={digest.moodTrend} />

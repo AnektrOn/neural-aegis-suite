@@ -99,8 +99,8 @@ export default function MoodTracker() {
         <h1 className="text-neural-title text-3xl text-foreground">Fréquence d'Humeur</h1>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-10">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 items-center justify-items-center">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-4 sm:p-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 items-center justify-items-center">
           <div className="flex flex-col items-center">
             <Brain size={20} strokeWidth={1} className="mb-3" style={{ color: selectedFreq.color }} />
             <RadialSlider value={currentMood} onChange={setCurrentMood} min={0} max={10} step={0.1} size={160} label="Humeur" color={selectedFreq.color} />

@@ -99,19 +99,19 @@ export default function Analytics() {
 
   return (
     <div className="space-y-10 max-w-6xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <p className="text-neural-label mb-3">Centre d'Intelligence</p>
-          <h1 className="text-neural-title text-3xl text-foreground">Analytiques</h1>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Analytiques</h1>
         </div>
         <ExportPDFButton targetRef={reportRef as React.RefObject<HTMLDivElement>} filename="rapport-analytiques" />
       </div>
 
       <div ref={reportRef} className="space-y-10">
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-8">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-4 sm:p-8">
         <p className="text-neural-label mb-6">Humeur sur 30 jours</p>
-        <div className="h-64">
+        <div className="h-48 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={moodData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
