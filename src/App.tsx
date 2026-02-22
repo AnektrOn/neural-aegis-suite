@@ -21,6 +21,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import CompanyManagement from "./pages/admin/CompanyManagement";
 import Analytics from "./pages/Analytics";
+import Journal from "./pages/Journal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
                       <Route path="/mood" element={<MoodTracker />} />
                       <Route path="/decisions" element={<DecisionLog />} />
                       <Route path="/habits" element={<HabitTracker />} />
+                      <Route path="/journal" element={<Journal />} />
                       <Route path="/toolbox" element={<Toolbox />} />
                       <Route path="/people" element={<PeopleBoard />} />
                       <Route path="/analytics" element={<Analytics />} />
