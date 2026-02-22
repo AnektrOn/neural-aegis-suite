@@ -2,32 +2,15 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BarChart3 } from "lucide-react";
 import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  BarChart,
-  Bar,
-  RadialBarChart,
-  RadialBar,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+  BarChart, Bar, RadialBarChart, RadialBar, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const COLORS = [
-  "hsl(180, 70%, 50%)",
-  "hsl(270, 50%, 55%)",
-  "hsl(35, 80%, 55%)",
-  "hsl(120, 40%, 50%)",
-  "hsl(0, 70%, 50%)",
-  "hsl(220, 70%, 60%)",
+  "hsl(180, 70%, 50%)", "hsl(270, 50%, 55%)", "hsl(35, 80%, 55%)",
+  "hsl(120, 40%, 50%)", "hsl(0, 70%, 50%)", "hsl(220, 70%, 60%)",
 ];
 
 export default function Analytics() {
@@ -46,29 +29,12 @@ export default function Analytics() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const [moodRes, decRes, habitRes, completionRes] = await Promise.all([
-      supabase
-        .from("mood_entries" as any)
-        .select("value, sleep, stress, meals_count, logged_at")
-        .eq("user_id", user!.id)
-        .gte("logged_at", thirtyDaysAgo.toISOString())
-        .order("logged_at", { ascending: true }),
-      supabase
-        .from("decisions" as any)
-        .select("status, priority")
-        .eq("user_id", user!.id),
-      supabase
-        .from("assigned_habits" as any)
-        .select("id, habit_template_id, is_active")
-        .eq("user_id", user!.id)
-        .eq("is_active", true),
-      supabase
-        .from("habit_completions" as any)
-        .select("completed_date, assigned_habit_id")
-        .eq("user_id", user!.id)
-        .gte("completed_date", thirtyDaysAgo.toISOString().split("T")[0]),
+      supabase.from("mood_entries" as any).select("value, sleep, stress, meals_count, logged_at").eq("user_id", user!.id).gte("logged_at", thirtyDaysAgo.toISOString()).order("logged_at", { ascending: true }),
+      supabase.from("decisions" as any).select("status, priority").eq("user_id", user!.id),
+      supabase.from("assigned_habits" as any).select("id, habit_template_id, is_active").eq("user_id", user!.id).eq("is_active", true),
+      supabase.from("habit_completions" as any).select("completed_date, assigned_habit_id").eq("user_id", user!.id).gte("completed_date", thirtyDaysAgo.toISOString().split("T")[0]),
     ]);
 
-    // Mood + Sleep + Stress over time (group by day)
     const dayMap = new Map<string, { mood: number[]; sleep: number[]; stress: number[]; meals: number[] }>();
     ((moodRes.data as any[]) || []).forEach((e) => {
       const day = new Date(e.logged_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
@@ -84,18 +50,12 @@ export default function Analytics() {
     const sleepStressChartData: any[] = [];
     dayMap.forEach((v, day) => {
       const avg = (arr: number[]) => arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : null;
-      moodChartData.push({ day, mood: avg(v.mood) });
-      sleepStressChartData.push({
-        day,
-        sleep: avg(v.sleep),
-        stress: avg(v.stress),
-        meals: avg(v.meals),
-      });
+      moodChartData.push({ day, humeur: avg(v.mood) });
+      sleepStressChartData.push({ day, sommeil: avg(v.sleep), stress: avg(v.stress), repas: avg(v.meals) });
     });
     setMoodData(moodChartData);
     setSleepStressData(sleepStressChartData);
 
-    // Decision stats
     const decisions = (decRes.data as any[]) || [];
     const pending = decisions.filter((d) => d.status === "pending").length;
     const decided = decisions.filter((d) => d.status === "decided").length;
@@ -103,7 +63,6 @@ export default function Analytics() {
     const avgPriority = decisions.length ? +(decisions.reduce((s, d) => s + d.priority, 0) / decisions.length).toFixed(1) : 0;
     setDecisionData({ pending, decided, deferred, avgPriority });
 
-    // Habit completions over last 7 days
     const habitCompletions = (completionRes.data as any[]) || [];
     const totalHabits = ((habitRes.data as any[]) || []).length || 1;
     const last7 = new Map<string, number>();
@@ -113,64 +72,62 @@ export default function Analytics() {
       last7.set(d.toISOString().split("T")[0], 0);
     }
     habitCompletions.forEach((c) => {
-      if (last7.has(c.completed_date)) {
-        last7.set(c.completed_date, (last7.get(c.completed_date) || 0) + 1);
-      }
+      if (last7.has(c.completed_date)) last7.set(c.completed_date, (last7.get(c.completed_date) || 0) + 1);
     });
     const habitChartData = Array.from(last7.entries()).map(([date, count]) => ({
-      day: new Date(date).toLocaleDateString("fr-FR", { weekday: "short" }),
-      completed: count,
+      jour: new Date(date).toLocaleDateString("fr-FR", { weekday: "short" }),
+      complétées: count,
       total: totalHabits,
-      rate: Math.round((count / totalHabits) * 100),
+      taux: Math.round((count / totalHabits) * 100),
     }));
     setHabitData(habitChartData);
   };
 
   const decisionPieData = [
-    { name: "Pending", value: decisionData.pending },
-    { name: "Decided", value: decisionData.decided },
-    { name: "Deferred", value: decisionData.deferred },
+    { name: "En attente", value: decisionData.pending },
+    { name: "Décidée", value: decisionData.decided },
+    { name: "Reportée", value: decisionData.deferred },
   ].filter((d) => d.value > 0);
 
   const habitRadialData = habitData.length > 0
-    ? [{ name: "Avg", rate: Math.round(habitData.reduce((s, d) => s + d.rate, 0) / habitData.length), fill: COLORS[0] }]
+    ? [{ name: "Moy", taux: Math.round(habitData.reduce((s, d) => s + d.taux, 0) / habitData.length), fill: COLORS[0] }]
     : [];
+
+  const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px", color: "hsl(var(--foreground))" };
 
   return (
     <div className="space-y-10 max-w-6xl">
       <div>
-        <p className="text-neural-label mb-3">Intelligence Hub</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Analytics</h1>
+        <p className="text-neural-label mb-3">Centre d'Intelligence</p>
+        <h1 className="text-neural-title text-3xl text-foreground">Analytiques</h1>
       </div>
 
-      {/* Mood over time */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-8">
-        <p className="text-neural-label mb-6">Mood Over Time (30d)</p>
+        <p className="text-neural-label mb-6">Humeur sur 30 jours</p>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={moodData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
               <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px", color: "hsl(var(--foreground))" }} />
-              <Line type="monotone" dataKey="mood" stroke={COLORS[0]} strokeWidth={2} dot={{ fill: COLORS[0], r: 3 }} name="Mood" />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Line type="monotone" dataKey="humeur" stroke={COLORS[0]} strokeWidth={2} dot={{ fill: COLORS[0], r: 3 }} name="Humeur" />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </motion.div>
 
-      {/* Sleep & Stress */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ethereal-glass p-8">
-          <p className="text-neural-label mb-6">Sleep & Stress Trends</p>
+          <p className="text-neural-label mb-6">Tendances Sommeil & Stress</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sleepStressData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px", color: "hsl(var(--foreground))" }} />
-                <Line type="monotone" dataKey="sleep" stroke={COLORS[5]} strokeWidth={2} dot={{ r: 2 }} name="Sleep" />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Line type="monotone" dataKey="sommeil" stroke={COLORS[5]} strokeWidth={2} dot={{ r: 2 }} name="Sommeil" />
                 <Line type="monotone" dataKey="stress" stroke={COLORS[4]} strokeWidth={2} dot={{ r: 2 }} name="Stress" />
                 <Legend />
               </LineChart>
@@ -178,59 +135,54 @@ export default function Analytics() {
           </div>
         </motion.div>
 
-        {/* Meals bar chart */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="ethereal-glass p-8">
-          <p className="text-neural-label mb-6">Meals Per Day</p>
+          <p className="text-neural-label mb-6">Repas par jour</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={sleepStressData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px", color: "hsl(var(--foreground))" }} />
-                <Bar dataKey="meals" fill={COLORS[2]} radius={[6, 6, 0, 0]} name="Meals" />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="repas" fill={COLORS[2]} radius={[6, 6, 0, 0]} name="Repas" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
       </div>
 
-      {/* Habits & Decisions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Habit completion bar */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-1 ethereal-glass p-8">
-          <p className="text-neural-label mb-6">Habit Completion (7d)</p>
+          <p className="text-neural-label mb-6">Complétion habitudes (7j)</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={habitData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+                <XAxis dataKey="jour" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px", color: "hsl(var(--foreground))" }} />
-                <Bar dataKey="completed" fill={COLORS[3]} radius={[6, 6, 0, 0]} name="Completed" />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="complétées" fill={COLORS[3]} radius={[6, 6, 0, 0]} name="Complétées" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
-        {/* Habit radial */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="ethereal-glass p-8 flex flex-col items-center justify-center">
-          <p className="text-neural-label mb-6">Avg Completion Rate</p>
+          <p className="text-neural-label mb-6">Taux de complétion moyen</p>
           <div className="h-48 w-48">
             <ResponsiveContainer width="100%" height="100%">
               <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={habitRadialData} startAngle={90} endAngle={-270}>
-                <RadialBar background dataKey="rate" cornerRadius={10} fill={COLORS[0]} />
+                <RadialBar background dataKey="taux" cornerRadius={10} fill={COLORS[0]} />
               </RadialBarChart>
             </ResponsiveContainer>
           </div>
           <p className="text-2xl font-cinzel text-foreground mt-2">
-            {habitRadialData.length > 0 ? `${habitRadialData[0].rate}%` : "—"}
+            {habitRadialData.length > 0 ? `${habitRadialData[0].taux}%` : "—"}
           </p>
         </motion.div>
 
-        {/* Decision pie */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="ethereal-glass p-8">
-          <p className="text-neural-label mb-6">Decisions Overview</p>
+          <p className="text-neural-label mb-6">Aperçu des décisions</p>
           {decisionPieData.length > 0 ? (
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
@@ -246,11 +198,11 @@ export default function Analytics() {
             </div>
           ) : (
             <div className="h-48 flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">No decisions yet</p>
+              <p className="text-muted-foreground text-sm">Aucune décision pour le moment</p>
             </div>
           )}
           <div className="text-center mt-2">
-            <p className="text-neural-label">Avg Priority</p>
+            <p className="text-neural-label">Priorité moyenne</p>
             <p className="text-lg font-cinzel text-foreground">{decisionData.avgPriority}/5</p>
           </div>
         </motion.div>
