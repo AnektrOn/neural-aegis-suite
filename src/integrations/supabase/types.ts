@@ -91,6 +91,98 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_actions: {
+        Row: {
+          action_index: number
+          completed_date: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action_index: number
+          completed_date?: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action_index?: number
+          completed_date?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      decisions: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          id: string
+          name: string
+          priority: number
+          responsibility: number
+          status: string
+          time_to_decide: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          name: string
+          priority: number
+          responsibility: number
+          status?: string
+          time_to_decide?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          name?: string
+          priority?: number
+          responsibility?: number
+          status?: string
+          time_to_decide?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      habit_completions: {
+        Row: {
+          assigned_habit_id: string
+          completed_date: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_habit_id: string
+          completed_date?: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assigned_habit_id?: string
+          completed_date?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_completions_assigned_habit_id_fkey"
+            columns: ["assigned_habit_id"]
+            isOneToOne: false
+            referencedRelation: "assigned_habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       habit_templates: {
         Row: {
           category: string
@@ -115,6 +207,60 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      mood_entries: {
+        Row: {
+          id: string
+          logged_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          id?: string
+          logged_at?: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          id?: string
+          logged_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      people_contacts: {
+        Row: {
+          created_at: string
+          id: string
+          insight: string | null
+          name: string
+          quality: number
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insight?: string | null
+          name: string
+          quality?: number
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insight?: string | null
+          name?: string
+          quality?: number
+          role?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
