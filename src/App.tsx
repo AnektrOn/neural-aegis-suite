@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "./components/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import MoodTracker from "./pages/MoodTracker";
@@ -10,6 +12,7 @@ import DecisionLog from "./pages/DecisionLog";
 import HabitTracker from "./pages/HabitTracker";
 import Toolbox from "./pages/Toolbox";
 import PeopleBoard from "./pages/PeopleBoard";
+import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,17 +23,29 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppLayout>
+        <AuthProvider>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/mood" element={<MoodTracker />} />
-            <Route path="/decisions" element={<DecisionLog />} />
-            <Route path="/habits" element={<HabitTracker />} />
-            <Route path="/toolbox" element={<Toolbox />} />
-            <Route path="/people" element={<PeopleBoard />} />
-            <Route path="*" element={<NotFound />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/mood" element={<MoodTracker />} />
+                      <Route path="/decisions" element={<DecisionLog />} />
+                      <Route path="/habits" element={<HabitTracker />} />
+                      <Route path="/toolbox" element={<Toolbox />} />
+                      <Route path="/people" element={<PeopleBoard />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
           </Routes>
-        </AppLayout>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
