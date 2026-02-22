@@ -5,17 +5,19 @@ import { useSessionTracking } from "@/hooks/use-session-tracking";
 import { useHesitationTracking } from "@/hooks/use-hesitation-tracking";
 import {
   LayoutDashboard, Brain, Target, ListChecks, Headphones, Users,
-  ChevronLeft, ChevronRight, Zap, LogOut, Shield, BarChart3,
+  ChevronLeft, ChevronRight, Zap, LogOut, Shield, BarChart3, BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import ThemeToggle from "@/components/ThemeToggle";
+import NotificationBell from "@/components/NotificationBell";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Tableau de bord" },
   { to: "/mood", icon: Brain, label: "Humeur" },
   { to: "/decisions", icon: Target, label: "Décisions" },
   { to: "/habits", icon: ListChecks, label: "Habitudes" },
+  { to: "/journal", icon: BookOpen, label: "Journal" },
   { to: "/toolbox", icon: Headphones, label: "Boîte à outils" },
   { to: "/people", icon: Users, label: "Relations" },
   { to: "/analytics", icon: BarChart3, label: "Analytiques" },
@@ -86,6 +88,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
         )}
 
+        <div className="mx-3 mb-1">
+          <NotificationBell />
+        </div>
         <ThemeToggle collapsed={collapsed} />
         <button onClick={signOut} className="mx-3 p-3 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors" title="Se déconnecter">
           <LogOut size={16} />
