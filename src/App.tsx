@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import AppLayout from "./components/AppLayout";
+import AdminLayout from "./components/AdminLayout";
 import Dashboard from "./pages/Dashboard";
 import MoodTracker from "./pages/MoodTracker";
 import DecisionLog from "./pages/DecisionLog";
@@ -13,6 +15,9 @@ import HabitTracker from "./pages/HabitTracker";
 import Toolbox from "./pages/Toolbox";
 import PeopleBoard from "./pages/PeopleBoard";
 import AuthPage from "./pages/AuthPage";
+import CallAuditDashboard from "./pages/admin/CallAuditDashboard";
+import HabitFactory from "./pages/admin/HabitFactory";
+import UserManagement from "./pages/admin/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +31,22 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route
+              path="/admin/*"
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AdminLayout>
+                      <Routes>
+                        <Route path="/" element={<CallAuditDashboard />} />
+                        <Route path="/habits" element={<HabitFactory />} />
+                        <Route path="/users" element={<UserManagement />} />
+                      </Routes>
+                    </AdminLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/*"
               element={
