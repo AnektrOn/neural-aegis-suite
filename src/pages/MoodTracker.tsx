@@ -7,23 +7,23 @@ import { useToast } from "@/hooks/use-toast";
 import RadialSlider from "@/components/RadialSlider";
 
 const frequencies = [
-  { value: 1, label: "Depleted", color: "hsl(0 70% 50%)" },
-  { value: 2, label: "Low", color: "hsl(20 70% 50%)" },
-  { value: 3, label: "Restless", color: "hsl(35 80% 55%)" },
-  { value: 4, label: "Neutral", color: "hsl(50 60% 50%)" },
-  { value: 5, label: "Balanced", color: "hsl(120 40% 50%)" },
-  { value: 6, label: "Focused", color: "hsl(160 50% 50%)" },
-  { value: 7, label: "Elevated", color: "hsl(180 60% 50%)" },
+  { value: 1, label: "Épuisé", color: "hsl(0 70% 50%)" },
+  { value: 2, label: "Bas", color: "hsl(20 70% 50%)" },
+  { value: 3, label: "Agité", color: "hsl(35 80% 55%)" },
+  { value: 4, label: "Neutre", color: "hsl(50 60% 50%)" },
+  { value: 5, label: "Équilibré", color: "hsl(120 40% 50%)" },
+  { value: 6, label: "Concentré", color: "hsl(160 50% 50%)" },
+  { value: 7, label: "Élevé", color: "hsl(180 60% 50%)" },
   { value: 8, label: "Flow", color: "hsl(180 70% 50%)" },
-  { value: 9, label: "Peak", color: "hsl(200 70% 55%)" },
-  { value: 10, label: "Transcendent", color: "hsl(270 50% 55%)" },
+  { value: 9, label: "Optimal", color: "hsl(200 70% 55%)" },
+  { value: 10, label: "Transcendant", color: "hsl(270 50% 55%)" },
 ];
 
 const mealSizes = ["snack", "demi", "normal"] as const;
 type MealSize = typeof mealSizes[number];
 const mealSizeLabels: Record<MealSize, string> = { snack: "Snack", demi: "Demi", normal: "Normal" };
 
-const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const dayNames = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
 export default function MoodTracker() {
   const { user } = useAuth();
@@ -77,10 +77,10 @@ export default function MoodTracker() {
     } as any);
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } else {
       const moodIdx = Math.min(Math.max(Math.round(currentMood) - 1, 0), 9);
-      toast({ title: "Logged", description: `Frequency ${currentMood.toFixed(1)} — ${frequencies[moodIdx].label}` });
+      toast({ title: "Enregistré", description: `Fréquence ${currentMood.toFixed(1)} — ${frequencies[moodIdx].label}` });
       loadHistory();
     }
     setLoading(false);
@@ -95,95 +95,48 @@ export default function MoodTracker() {
   return (
     <div className="space-y-10 max-w-5xl">
       <div>
-        <p className="text-neural-label mb-3">Emotional Intelligence</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Mood Frequency</h1>
+        <p className="text-neural-label mb-3">Intelligence Émotionnelle</p>
+        <h1 className="text-neural-title text-3xl text-foreground">Fréquence d'Humeur</h1>
       </div>
 
-      {/* Main radial sliders */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-10">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 items-center justify-items-center">
-          {/* Mood */}
           <div className="flex flex-col items-center">
             <Brain size={20} strokeWidth={1} className="mb-3" style={{ color: selectedFreq.color }} />
-            <RadialSlider
-              value={currentMood}
-              onChange={setCurrentMood}
-              min={0}
-              max={10}
-              step={0.1}
-              size={160}
-              label="Mood"
-              color={selectedFreq.color}
-            />
+            <RadialSlider value={currentMood} onChange={setCurrentMood} min={0} max={10} step={0.1} size={160} label="Humeur" color={selectedFreq.color} />
             <motion.p key={selectedFreq.label} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-neural-label mt-2" style={{ color: selectedFreq.color }}>
               {selectedFreq.label}
             </motion.p>
           </div>
-
-          {/* Sleep */}
           <div className="flex flex-col items-center">
             <Moon size={20} strokeWidth={1} className="mb-3 text-blue-400" />
-            <RadialSlider
-              value={sleep}
-              onChange={setSleep}
-              min={0}
-              max={10}
-              step={0.1}
-              size={160}
-              label="Sleep"
-              color="hsl(220 70% 60%)"
-              formatValue={(v) => `${v.toFixed(1)}h`}
-            />
+            <RadialSlider value={sleep} onChange={setSleep} min={0} max={10} step={0.1} size={160} label="Sommeil" color="hsl(220 70% 60%)" formatValue={(v) => `${v.toFixed(1)}h`} />
           </div>
-
-          {/* Stress */}
           <div className="flex flex-col items-center">
             <Flame size={20} strokeWidth={1} className="mb-3 text-red-400" />
-            <RadialSlider
-              value={stress}
-              onChange={setStress}
-              min={0}
-              max={10}
-              step={0.1}
-              size={160}
-              label="Stress"
-              color="hsl(0 70% 55%)"
-            />
+            <RadialSlider value={stress} onChange={setStress} min={0} max={10} step={0.1} size={160} label="Stress" color="hsl(0 70% 55%)" />
           </div>
         </div>
 
-        {/* Meals section */}
         <div className="mt-10 border-t border-border/30 pt-8">
           <div className="flex items-center gap-2 mb-4">
             <UtensilsCrossed size={16} strokeWidth={1.5} className="text-neural-warm" />
-            <p className="text-neural-label">Meals — {meals.length} today</p>
+            <p className="text-neural-label">Repas — {meals.length} aujourd'hui</p>
           </div>
-
-          {/* Current meals */}
           <div className="flex flex-wrap gap-2 mb-4 min-h-[40px]">
             {meals.map((m, i) => (
-              <motion.button
-                key={i}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                onClick={() => removeMeal(i)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 bg-secondary/30 text-xs text-foreground hover:border-destructive/40 hover:bg-destructive/5 transition-all group"
-              >
+              <motion.button key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} onClick={() => removeMeal(i)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 bg-secondary/30 text-xs text-foreground hover:border-destructive/40 hover:bg-destructive/5 transition-all group">
                 <span>{mealSizeLabels[m]}</span>
                 <Minus size={10} className="text-muted-foreground group-hover:text-destructive" />
               </motion.button>
             ))}
             {meals.length === 0 && <p className="text-muted-foreground text-xs">Aucun repas ajouté</p>}
           </div>
-
-          {/* Add meal buttons */}
           <div className="flex gap-2">
             {mealSizes.map((size) => (
-              <button
-                key={size}
-                onClick={() => addMeal(size)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border/30 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
-              >
+              <button key={size} onClick={() => addMeal(size)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border/30 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all">
                 <Plus size={12} />
                 {mealSizeLabels[size]}
               </button>
@@ -192,27 +145,19 @@ export default function MoodTracker() {
         </div>
 
         <button onClick={logMood} disabled={loading} className="btn-neural mt-8 mx-auto">
-          {loading ? "Logging..." : "Log Entry"}
+          {loading ? "Enregistrement..." : "Enregistrer"}
         </button>
       </motion.div>
 
-      {/* Weekly chart */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="ethereal-glass p-8">
-        <p className="text-neural-label mb-6">Weekly Frequency Map</p>
+        <p className="text-neural-label mb-6">Carte de fréquence hebdomadaire</p>
         <div className="flex items-end justify-between gap-3 h-40">
           {weekHistory.map((entry, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-2">
               {entry.value > 0 ? (
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${(entry.value / 10) * 100}%` }}
-                  transition={{ delay: i * 0.08, duration: 0.5 }}
+                <motion.div initial={{ height: 0 }} animate={{ height: `${(entry.value / 10) * 100}%` }} transition={{ delay: i * 0.08, duration: 0.5 }}
                   className="w-full rounded-xl relative overflow-hidden"
-                  style={{
-                    backgroundColor: frequencies[Math.min(entry.value - 1, 9)].color + "20",
-                    border: `1px solid ${frequencies[Math.min(entry.value - 1, 9)].color}30`,
-                  }}
-                >
+                  style={{ backgroundColor: frequencies[Math.min(entry.value - 1, 9)].color + "20", border: `1px solid ${frequencies[Math.min(entry.value - 1, 9)].color}30` }}>
                   <div className="absolute bottom-0 w-full h-1/3" style={{ background: `linear-gradient(to top, ${frequencies[Math.min(entry.value - 1, 9)].color}15, transparent)` }} />
                 </motion.div>
               ) : (
