@@ -29,42 +29,32 @@ export default function Toolbox() {
   }, [user]);
 
   const loadItems = async () => {
-    const { data } = await supabase
-      .from("toolbox_assignments" as any)
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("assigned_at", { ascending: false });
+    const { data } = await supabase.from("toolbox_assignments" as any).select("*").eq("user_id", user!.id).order("assigned_at", { ascending: false });
     if (data) setItems(data as any);
   };
 
   const filtered = filter === "all" ? items : items.filter((i) => i.content_type === filter);
+  const typeLabels: Record<string, string> = { all: "Tout", meditation: "Méditation", visualization: "Visualisation", course: "Formation" };
   const types = ["all", ...new Set(items.map((i) => i.content_type))];
 
   return (
     <div className="space-y-10 max-w-5xl">
       <div>
-        <p className="text-neural-label mb-3">Neural Library</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Toolbox</h1>
+        <p className="text-neural-label mb-3">Bibliothèque Neurale</p>
+        <h1 className="text-neural-title text-3xl text-foreground">Boîte à Outils</h1>
       </div>
 
-      {/* Filter */}
       <div className="flex gap-2 flex-wrap">
         {types.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
+          <button key={f} onClick={() => setFilter(f)}
             className={`text-[9px] uppercase tracking-[0.3em] px-4 py-2 rounded-full border transition-all ${
-              filter === f
-                ? "text-primary border-primary/30 bg-primary/5"
-                : "text-muted-foreground border-border hover:border-muted-foreground/30"
-            }`}
-          >
-            {f}
+              filter === f ? "text-primary border-primary/30 bg-primary/5" : "text-muted-foreground border-border hover:border-muted-foreground/30"
+            }`}>
+            {typeLabels[f] || f}
           </button>
         ))}
       </div>
 
-      {/* Player */}
       {playing && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6 flex items-center gap-6">
           <button onClick={() => setPlaying(null)} className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center glow-node">
@@ -80,11 +70,10 @@ export default function Toolbox() {
         </motion.div>
       )}
 
-      {/* Grid */}
       {filtered.length === 0 ? (
         <div className="ethereal-glass p-12 text-center">
           <Headphones size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-muted-foreground text-sm">No content assigned yet. Your coach will assign tools from the admin panel.</p>
+          <p className="text-muted-foreground text-sm">Aucun contenu assigné. Votre coach vous assignera des outils depuis le panneau admin.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -99,7 +88,7 @@ export default function Toolbox() {
                 <p className="text-sm font-medium text-foreground mb-2">{item.title}</p>
                 <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || ""}</p>
                 <button onClick={() => setPlaying(item.id)} className="mt-4 flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
-                  <Play size={12} /> Play
+                  <Play size={12} /> Lancer
                 </button>
               </motion.div>
             );

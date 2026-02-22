@@ -34,33 +34,16 @@ export default function DecisionLog() {
   }, [user]);
 
   const loadDecisions = async () => {
-    const { data } = await supabase
-      .from("decisions" as any)
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false });
+    const { data } = await supabase.from("decisions" as any).select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
     if (data) setDecisions(data as any);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
-    const { error } = await supabase.from("decisions" as any).insert({
-      user_id: user.id,
-      name: form.name,
-      priority: Math.round(form.priority),
-      responsibility: Math.round(form.responsibility),
-    } as any);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Decision Logged" });
-      setShowForm(false);
-      setForm({ name: "", priority: 3.0, responsibility: 5.0 });
-      loadDecisions();
-    }
+    const { error } = await supabase.from("decisions" as any).insert({ user_id: user.id, name: form.name, priority: Math.round(form.priority), responsibility: Math.round(form.responsibility) } as any);
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
+    else { toast({ title: "Décision enregistrée" }); setShowForm(false); setForm({ name: "", priority: 3.0, responsibility: 5.0 }); loadDecisions(); }
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -73,63 +56,44 @@ export default function DecisionLog() {
   const openCount = decisions.filter((d) => d.status === "pending").length;
   const decidedThisWeek = decisions.filter((d) => {
     if (d.status !== "decided") return false;
-    const week = new Date();
-    week.setDate(week.getDate() - 7);
+    const week = new Date(); week.setDate(week.getDate() - 7);
     return new Date(d.created_at) > week;
   }).length;
+
+  const statusLabels: Record<string, string> = { pending: "En attente", decided: "Décidée", deferred: "Reportée" };
 
   return (
     <div className="space-y-10 max-w-5xl">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-neural-label mb-3">Cognitive Architecture</p>
-          <h1 className="text-neural-title text-3xl text-foreground">Decision Log</h1>
+          <p className="text-neural-label mb-3">Architecture Cognitive</p>
+          <h1 className="text-neural-title text-3xl text-foreground">Journal de Décisions</h1>
         </div>
         <button onClick={() => setShowForm(!showForm)} className="btn-neural">
-          {showForm ? <><X size={14} /> Cancel</> : <><Plus size={14} /> New Decision</>}
+          {showForm ? <><X size={14} /> Annuler</> : <><Plus size={14} /> Nouvelle Décision</>}
         </button>
       </div>
 
-      {/* Form with radial sliders */}
       {showForm && (
         <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleCreate} className="ethereal-glass p-8 space-y-5">
           <div>
-            <label className="text-neural-label block mb-2">Decision Name</label>
-            <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Q3 Hiring Strategy"
+            <label className="text-neural-label block mb-2">Nom de la décision</label>
+            <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Stratégie de recrutement T3"
               className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
           </div>
           <div className="flex justify-center gap-12">
-            <RadialSlider
-              value={form.priority}
-              onChange={(v) => setForm({ ...form, priority: v })}
-              min={0}
-              max={5}
-              step={0.1}
-              size={120}
-              label="Priority"
-              color="hsl(var(--neural-warm))"
-            />
-            <RadialSlider
-              value={form.responsibility}
-              onChange={(v) => setForm({ ...form, responsibility: v })}
-              min={0}
-              max={10}
-              step={0.1}
-              size={120}
-              label="Weight"
-              color="hsl(var(--primary))"
-            />
+            <RadialSlider value={form.priority} onChange={(v) => setForm({ ...form, priority: v })} min={0} max={5} step={0.1} size={120} label="Priorité" color="hsl(var(--neural-warm))" />
+            <RadialSlider value={form.responsibility} onChange={(v) => setForm({ ...form, responsibility: v })} min={0} max={10} step={0.1} size={120} label="Poids" color="hsl(var(--primary))" />
           </div>
-          <button type="submit" className="btn-neural mx-auto"><Save size={14} /> Log Decision</button>
+          <button type="submit" className="btn-neural mx-auto"><Save size={14} /> Enregistrer</button>
         </motion.form>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Total Decisions", value: decisions.length, icon: Target },
-          { label: "Open Decisions", value: openCount, icon: Clock },
-          { label: "Decided This Week", value: decidedThisWeek, icon: ArrowUpRight },
+          { label: "Total décisions", value: decisions.length, icon: Target },
+          { label: "Décisions ouvertes", value: openCount, icon: Clock },
+          { label: "Décidées cette semaine", value: decidedThisWeek, icon: ArrowUpRight },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="ethereal-glass p-6">
             <stat.icon size={16} strokeWidth={1.5} className="text-primary mb-3" />
@@ -139,31 +103,30 @@ export default function DecisionLog() {
         ))}
       </div>
 
-      {/* List */}
       <div className="space-y-3">
         {decisions.length === 0 && (
           <div className="ethereal-glass p-12 text-center">
             <Target size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-            <p className="text-muted-foreground text-sm">No decisions logged yet.</p>
+            <p className="text-muted-foreground text-sm">Aucune décision enregistrée.</p>
           </div>
         )}
         {decisions.map((d, i) => (
           <motion.div key={d.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }} className="ethereal-glass p-6 flex items-center gap-6">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
-              <p className="text-neural-label mt-1">{new Date(d.created_at).toLocaleDateString()}</p>
+              <p className="text-neural-label mt-1">{new Date(d.created_at).toLocaleDateString("fr-FR")}</p>
             </div>
             <div className="text-center">
               <p className={`text-sm font-cinzel ${priorityColor(d.priority)}`}>P{d.priority}</p>
-              <p className="text-neural-label">Priority</p>
+              <p className="text-neural-label">Priorité</p>
             </div>
             <div className="text-center">
               <p className="text-sm font-cinzel text-foreground">{d.time_to_decide || "—"}</p>
-              <p className="text-neural-label">Speed</p>
+              <p className="text-neural-label">Vitesse</p>
             </div>
             <div className="text-center">
               <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
-              <p className="text-neural-label">Weight</p>
+              <p className="text-neural-label">Poids</p>
             </div>
             <div className="flex gap-1">
               {(["pending", "decided", "deferred"] as const).map((s) => (
@@ -175,7 +138,7 @@ export default function DecisionLog() {
                         : "text-muted-foreground border-border bg-muted/20"
                       : "text-muted-foreground/40 border-transparent hover:border-border/30"
                   }`}>
-                  {s}
+                  {statusLabels[s]}
                 </button>
               ))}
             </div>
