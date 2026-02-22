@@ -18,6 +18,8 @@ import AuthPage from "./pages/AuthPage";
 import CallAuditDashboard from "./pages/admin/CallAuditDashboard";
 import HabitFactory from "./pages/admin/HabitFactory";
 import UserManagement from "./pages/admin/UserManagement";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import CompanyManagement from "./pages/admin/CompanyManagement";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +44,8 @@ const App = () => (
                         <Route path="/" element={<CallAuditDashboard />} />
                         <Route path="/habits" element={<HabitFactory />} />
                         <Route path="/users" element={<UserManagement />} />
+                        <Route path="/analytics" element={<AdminAnalytics />} />
+                        <Route path="/companies" element={<CompanyManagement />} />
                       </Routes>
                     </AdminLayout>
                   </AdminRoute>
