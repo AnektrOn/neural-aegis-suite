@@ -34,8 +34,8 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
       {/* Top bar: language + theme */}
-      <div className="fixed top-4 right-4 flex items-center gap-1 z-50">
-        <LanguageSwitcher collapsed />
+      <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
+        <LanguageSwitcher />
         <ThemeToggle collapsed />
       </div>
 
@@ -45,7 +45,7 @@ export default function AuthPage() {
         transition={{ duration: 0.8 }}
         className="mb-10"
       >
-        <img src={aegisLogo} alt="Aegis" className="w-72 h-72 sm:w-80 sm:h-80 object-contain mx-auto" />
+        <img src={aegisLogo} alt="Aegis" className="w-[22rem] h-[22rem] sm:w-[28rem] sm:h-[28rem] object-contain mx-auto" />
       </motion.div>
 
       <motion.div
