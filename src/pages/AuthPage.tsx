@@ -5,6 +5,8 @@ import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -46,6 +48,12 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative z-10">
+      {/* Top bar: language + theme */}
+      <div className="fixed top-4 right-4 flex items-center gap-1 z-50">
+        <LanguageSwitcher collapsed />
+        <ThemeToggle collapsed />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -54,8 +62,7 @@ export default function AuthPage() {
       >
         {/* Logo */}
         <div className="text-center mb-12">
-          <img src={aegisLogo} alt="Aegis" className="w-20 h-20 object-contain mx-auto mb-6" />
-          <h1 className="text-neural-title text-2xl text-foreground mb-2">Aegis</h1>
+          <img src={aegisLogo} alt="Aegis" className="w-36 h-36 object-contain mx-auto mb-4" />
           <p className="text-neural-label">Performance Coaching Interface</p>
         </div>
 
