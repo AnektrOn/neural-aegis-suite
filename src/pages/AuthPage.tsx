@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { Zap, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import aegisLogo from "@/assets/aegis-logo.png";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -53,9 +54,7 @@ export default function AuthPage() {
       >
         {/* Logo */}
         <div className="text-center mb-12">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6 glow-node">
-            <Zap size={24} className="text-primary" />
-          </div>
+          <img src={aegisLogo} alt="Aegis" className="w-20 h-20 object-contain mx-auto mb-6" />
           <h1 className="text-neural-title text-2xl text-foreground mb-2">Aegis</h1>
           <p className="text-neural-label">Performance Coaching Interface</p>
         </div>
