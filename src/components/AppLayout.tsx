@@ -5,8 +5,9 @@ import { useSessionTracking } from "@/hooks/use-session-tracking";
 import { useHesitationTracking } from "@/hooks/use-hesitation-tracking";
 import {
   LayoutDashboard, Brain, Target, ListChecks, Headphones, Users,
-  ChevronLeft, ChevronRight, Zap, LogOut, Shield, BarChart3, BookOpen, UserCircle, CalendarDays, Menu,
+  ChevronLeft, ChevronRight, LogOut, Shield, BarChart3, BookOpen, UserCircle, CalendarDays, Menu,
 } from "lucide-react";
+import aegisLogo from "@/assets/aegis-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -38,9 +39,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   return (
     <>
       <div className="px-4 mb-10 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center glow-node">
-          <Zap size={16} className="text-primary" />
-        </div>
+        <img src={aegisLogo} alt="Aegis" className="w-8 h-8 rounded-lg object-contain" />
         {!collapsed && (
           <span className="text-neural-title text-[11px]">Aegis</span>
         )}
@@ -115,9 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
               </SheetContent>
             </Sheet>
-            <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center glow-node">
-              <Zap size={14} className="text-primary" />
-            </div>
+            <img src={aegisLogo} alt="Aegis" className="w-7 h-7 rounded-lg object-contain" />
             <span className="text-neural-title text-[10px]">Aegis</span>
           </div>
           <NotificationBell />
