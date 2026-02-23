@@ -62,7 +62,7 @@ export default function AuthPage() {
       >
         {/* Logo */}
         <div className="text-center mb-12">
-          <img src={aegisLogo} alt="Aegis" className="w-36 h-36 object-contain mx-auto mb-4" />
+          <img src={aegisLogo} alt="Aegis" className="w-52 h-52 object-contain mx-auto mb-4" />
           <p className="text-neural-label">Performance Coaching Interface</p>
         </div>
 
