@@ -74,6 +74,11 @@ export const translations = {
   "import.formatUsers": { fr: "Format : display_name, email, company_name, country", en: "Format: display_name, email, company_name, country" },
   "import.formatData": { fr: "Format : user_email, type (mood/journal), data (JSON)", en: "Format: user_email, type (mood/journal), data (JSON)" },
 
+  // Auth
+  "auth.email": { fr: "Courriel", en: "Email" },
+  "auth.password": { fr: "Mot de passe", en: "Password" },
+  "auth.signIn": { fr: "Se connecter", en: "Sign In" },
+
   // General
   "general.loading": { fr: "Chargement...", en: "Loading..." },
   "general.save": { fr: "Enregistrer", en: "Save" },
