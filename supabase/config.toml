@@ -2,3 +2,6 @@ project_id = "wjjugtdciljmuohxoqcj"
 
 [functions.ai-insights]
 verify_jwt = false
+
+[functions.send-email-notification]
+verify_jwt = false

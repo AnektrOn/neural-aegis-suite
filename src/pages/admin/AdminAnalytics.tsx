@@ -47,6 +47,8 @@ export default function AdminAnalytics() {
   const [habitCompletions, setHabitCompletions] = useState<any[]>([]);
   const [assignedHabits, setAssignedHabits] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [toolboxCompletions, setToolboxCompletions] = useState<any[]>([]);
+  const [toolboxAssignments, setToolboxAssignments] = useState<any[]>([]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("global");
   const [filterCompany, setFilterCompany] = useState("");
@@ -59,7 +61,7 @@ export default function AdminAnalytics() {
 
   const loadData = async () => {
     setLoading(true);
-    const [profRes, compRes, sessRes, hesRes, moodRes, decRes, habRes, assignRes, contactRes] = await Promise.all([
+    const [profRes, compRes, sessRes, hesRes, moodRes, decRes, habRes, assignRes, contactRes, tbCompRes, tbAssignRes] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("companies" as any).select("*"),
       supabase.from("user_sessions" as any).select("*").order("started_at", { ascending: false }).limit(1000),
@@ -69,6 +71,8 @@ export default function AdminAnalytics() {
       supabase.from("habit_completions" as any).select("user_id, completed_date, assigned_habit_id"),
       supabase.from("assigned_habits" as any).select("id, user_id, is_active"),
       supabase.from("people_contacts" as any).select("user_id, quality"),
+      supabase.from("toolbox_completions" as any).select("*"),
+      supabase.from("toolbox_assignments" as any).select("id, title, user_id"),
     ]);
 
     setProfiles((profRes.data || []) as any);
@@ -80,6 +84,8 @@ export default function AdminAnalytics() {
     setHabitCompletions((habRes.data || []) as any);
     setAssignedHabits((assignRes.data || []) as any);
     setContacts((contactRes.data || []) as any);
+    setToolboxCompletions((tbCompRes.data || []) as any);
+    setToolboxAssignments((tbAssignRes.data || []) as any);
     setLoading(false);
   };
 
@@ -214,6 +220,21 @@ export default function AdminAnalytics() {
   const getUserHabitCompletions = (userId: string) => habitCompletions.filter((h: any) => h.user_id === userId);
   const getUserContacts = (userId: string) => contacts.filter((c: any) => c.user_id === userId);
   const getUserHesitations = (userId: string) => hesitations.filter((h: any) => h.user_id === userId);
+  const getUserToolboxStats = (userId: string) => {
+    const comps = toolboxCompletions.filter((c: any) => c.user_id === userId);
+    const assigns = toolboxAssignments.filter((a: any) => a.user_id === userId);
+    const completed = comps.filter((c: any) => c.status === "completed").length;
+    const abandoned = comps.filter((c: any) => c.status === "abandoned").length;
+    const ignored = comps.filter((c: any) => c.status === "ignored").length;
+    const abandonedTools = comps.filter((c: any) => c.status === "abandoned").map((c: any) => {
+      const assign = toolboxAssignments.find((a: any) => a.id === c.assignment_id);
+      return { title: assign?.title || "?", count: 1, date: c.completed_at };
+    });
+    // Group abandoned by title
+    const abandonMap = new Map<string, number>();
+    abandonedTools.forEach(t => abandonMap.set(t.title, (abandonMap.get(t.title) || 0) + 1));
+    return { total: assigns.length, completed, abandoned, ignored, abandonDetails: Array.from(abandonMap.entries()) };
+  };
 
   const getSessionStats = (userId: string) => {
     const userSess = getUserSessions(userId);
@@ -458,6 +479,7 @@ export default function AdminAnalytics() {
             const userHab = getUserHabitCompletions(profile.id);
             const userContacts = getUserContacts(profile.id);
             const userHes = getUserHesitations(profile.id);
+            const userTbStats = getUserToolboxStats(profile.id);
 
             const avgMood = userMood.length ? +(userMood.reduce((s, m: any) => s + m.value, 0) / userMood.length).toFixed(1) : 0;
 
@@ -586,6 +608,36 @@ export default function AdminAnalytics() {
                             );
                           })() : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>}
                         </div>
+                      </div>
+
+                      {/* Toolbox stats */}
+                      <div className="ethereal-glass p-5 lg:col-span-2">
+                        <p className="text-neural-label mb-3">Boîte à outils</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                          {[
+                            { label: "Assignés", value: userTbStats.total, color: "text-foreground" },
+                            { label: "Complétés", value: userTbStats.completed, color: "text-primary" },
+                            { label: "Abandonnés", value: userTbStats.abandoned, color: "text-destructive" },
+                            { label: "Ignorés", value: userTbStats.ignored, color: "text-muted-foreground" },
+                          ].map(s => (
+                            <div key={s.label} className="bg-secondary/20 rounded-xl p-3 text-center">
+                              <p className={`text-lg font-cinzel ${s.color}`}>{s.value}</p>
+                              <p className="text-neural-label text-[10px] mt-1">{s.label}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {userTbStats.abandonDetails.length > 0 && (
+                          <div className="space-y-1.5">
+                            <p className="text-[10px] uppercase tracking-[0.3em] text-destructive/60 mb-2">Outils abandonnés</p>
+                            {userTbStats.abandonDetails.map(([title, count]) => (
+                              <div key={title} className="flex items-center gap-2 text-xs">
+                                <span className="w-5 h-5 rounded-md bg-destructive/10 text-destructive flex items-center justify-center text-[10px] font-bold">{count}</span>
+                                <span className="text-foreground">{title}</span>
+                                {count > 1 && <span className="text-[9px] text-destructive/60">({count}x abandonné)</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
