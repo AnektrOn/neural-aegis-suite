@@ -9,6 +9,7 @@ export default function Profile() {
   const { user } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [country, setCountry] = useState("");
+  const [timezone, setTimezone] = useState("Europe/Paris");
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -17,16 +18,17 @@ export default function Profile() {
   }, [user]);
 
   const loadProfile = async () => {
-    const { data } = await supabase.from("profiles").select("display_name, country").eq("id", user!.id).single();
+    const { data } = await supabase.from("profiles").select("display_name, country, timezone").eq("id", user!.id).single();
     if (data) {
       setDisplayName(data.display_name || "");
       setCountry(data.country || "");
+      setTimezone((data as any).timezone || "Europe/Paris");
     }
   };
 
   const saveProfile = async () => {
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ display_name: displayName, country }).eq("id", user!.id);
+    const { error } = await supabase.from("profiles").update({ display_name: displayName, country, timezone } as any).eq("id", user!.id);
     setSaving(false);
     if (error) {
       toast({ title: "Erreur", description: "Impossible de sauvegarder.", variant: "destructive" });
@@ -150,6 +152,18 @@ export default function Profile() {
               className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 transition-colors"
               placeholder="France"
             />
+          </div>
+          <div>
+            <label className="text-neural-label block mb-2">Fuseau horaire</label>
+            <select
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/30 transition-colors"
+            >
+              {["Europe/Paris", "Europe/London", "Europe/Berlin", "Europe/Madrid", "Europe/Rome", "Europe/Brussels", "Europe/Zurich", "Europe/Amsterdam", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Toronto", "America/Montreal", "Asia/Tokyo", "Asia/Shanghai", "Asia/Dubai", "Africa/Casablanca", "Africa/Tunis", "Pacific/Noumea"].map(tz => (
+                <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
+              ))}
+            </select>
           </div>
         </div>
 
