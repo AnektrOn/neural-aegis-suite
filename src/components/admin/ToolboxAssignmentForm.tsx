@@ -106,14 +106,16 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         break;
       case "journal_prompt":
         if (!jpPrompt.trim()) { toast({ title: "Erreur", description: "Le prompt est requis", variant: "destructive" }); setSubmitting(false); return; }
-        // Insert into journal_prompts table instead
+        // Insert into journal_prompts table
         const { error: jpError } = await supabase.from("journal_prompts" as any).insert({
           user_id: userId, assigned_by: user.id, prompt_text: jpPrompt,
         } as any);
-        if (jpError) { toast({ title: "Erreur", description: jpError.message, variant: "destructive" }); }
-        else { toast({ title: "Prompt journal assigné" }); onAssigned(); }
-        setSubmitting(false);
-        return;
+        if (jpError) { toast({ title: "Erreur", description: jpError.message, variant: "destructive" }); setSubmitting(false); return; }
+        // Also create toolbox assignment for tracking
+        title = `Journal Prompt`;
+        duration = "10 min";
+        widgetConfig = { prompt: jpPrompt };
+        break;
       case "external_link":
         if (!elTitle.trim() || !elUrl.trim()) { toast({ title: "Erreur", description: "Titre et URL requis", variant: "destructive" }); setSubmitting(false); return; }
         title = elTitle;
