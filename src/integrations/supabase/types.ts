@@ -532,6 +532,41 @@ export type Database = {
         }
         Relationships: []
       }
+      toolbox_completions: {
+        Row: {
+          assignment_id: string
+          completed_at: string
+          feedback: string | null
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          assignment_id: string
+          completed_at?: string
+          feedback?: string | null
+          id?: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          assignment_id?: string
+          completed_at?: string
+          feedback?: string | null
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toolbox_completions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "toolbox_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           badge_name: string
