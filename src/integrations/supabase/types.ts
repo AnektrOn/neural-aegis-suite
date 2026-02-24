@@ -166,6 +166,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_scoreboards: {
+        Row: {
+          breakdown: Json
+          created_at: string
+          id: string
+          max_score: number
+          score_date: string
+          total_score: number
+          user_id: string
+        }
+        Insert: {
+          breakdown?: Json
+          created_at?: string
+          id?: string
+          max_score?: number
+          score_date: string
+          total_score?: number
+          user_id: string
+        }
+        Update: {
+          breakdown?: Json
+          created_at?: string
+          id?: string
+          max_score?: number
+          score_date?: string
+          total_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       decisions: {
         Row: {
           created_at: string
@@ -459,6 +489,7 @@ export type Database = {
           display_name: string | null
           id: string
           is_disabled: boolean
+          timezone: string | null
           updated_at: string
         }
         Insert: {
@@ -469,6 +500,7 @@ export type Database = {
           display_name?: string | null
           id: string
           is_disabled?: boolean
+          timezone?: string | null
           updated_at?: string
         }
         Update: {
@@ -479,6 +511,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_disabled?: boolean
+          timezone?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -525,6 +558,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      scoreboard_criteria: {
+        Row: {
+          created_at: string
+          created_by: string
+          criteria_label: string
+          criteria_type: string
+          id: string
+          is_active: boolean
+          points: number
+          target_value: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          criteria_label: string
+          criteria_type: string
+          id?: string
+          is_active?: boolean
+          points?: number
+          target_value?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          criteria_label?: string
+          criteria_type?: string
+          id?: string
+          is_active?: boolean
+          points?: number
+          target_value?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       toolbox_assignments: {
         Row: {

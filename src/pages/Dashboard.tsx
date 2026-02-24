@@ -7,6 +7,7 @@ import ScoreCard from "@/components/ScoreCard";
 import AIInsights from "@/components/AIInsights";
 import { checkAndAwardBadges } from "@/lib/badge-engine";
 import NeuralMap from "@/components/NeuralMap";
+import ScoreboardWidget from "@/components/ScoreboardWidget";
 
 const dailyActionsList = [
   "Revoir les 3 priorités du jour",
@@ -238,6 +239,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      <ScoreboardWidget />
       <AIInsights />
       <ScoreCard />
     </div>

@@ -26,6 +26,7 @@ export const translations = {
   "admin.nav.toolbox": { fr: "Boîte à Outils", en: "Toolbox" },
   "admin.nav.decisions": { fr: "Décisions", en: "Decisions" },
   "admin.nav.messages": { fr: "Messagerie", en: "Messages" },
+  "admin.nav.scoreboard": { fr: "Scoreboard", en: "Scoreboard" },
 
   // User Management
   "users.title": { fr: "Gestion des Utilisateurs", en: "User Management" },
