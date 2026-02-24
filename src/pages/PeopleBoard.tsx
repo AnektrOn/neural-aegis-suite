@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Users, Network, LayoutGrid, Plus, X, Save, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Users, Network, LayoutGrid, Plus, X, Save, Trash2, TrendingUp, Calendar, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 
 interface Person {
   id: string;
@@ -13,11 +17,20 @@ interface Person {
   insight: string | null;
 }
 
+interface QualityHistory {
+  id: string;
+  contact_id: string;
+  quality: number;
+  recorded_at: string;
+}
+
 const qualityColor = (q: number) => {
-  if (q >= 8) return "hsl(180 70% 50%)";
+  if (q >= 8) return "hsl(176 70% 48%)";
   if (q >= 6) return "hsl(35 80% 55%)";
   return "hsl(0 70% 50%)";
 };
+
+type Period = "7d" | "30d" | "90d";
 
 export default function PeopleBoard() {
   const { user } = useAuth();
@@ -27,6 +40,9 @@ export default function PeopleBoard() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", role: "", quality: 7, insight: "" });
   const [loading, setLoading] = useState(true);
+  const [historyDialog, setHistoryDialog] = useState<{ open: boolean; person: Person | null }>({ open: false, person: null });
+  const [history, setHistory] = useState<QualityHistory[]>([]);
+  const [period, setPeriod] = useState<Period>("30d");
 
   useEffect(() => {
     if (user) loadPeople();
@@ -34,7 +50,7 @@ export default function PeopleBoard() {
 
   const loadPeople = async () => {
     setLoading(true);
-    const { data } = await supabase.from("people_contacts" as any).select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("people_contacts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
     if (data) setPeople(data as any);
     setLoading(false);
   };
@@ -42,20 +58,59 @@ export default function PeopleBoard() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const { error } = await supabase.from("people_contacts" as any).insert({ user_id: user.id, name: form.name, role: form.role || null, quality: form.quality, insight: form.insight || null } as any);
+    const { error } = await supabase.from("people_contacts").insert({ user_id: user.id, name: form.name, role: form.role || null, quality: form.quality, insight: form.insight || null } as any);
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
     else { toast({ title: "Contact ajouté" }); setShowForm(false); setForm({ name: "", role: "", quality: 7, insight: "" }); loadPeople(); }
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("people_contacts" as any).delete().eq("id", id);
+    await supabase.from("people_contacts").delete().eq("id", id);
     loadPeople();
   };
 
   const updateQuality = async (id: string, quality: number) => {
-    await supabase.from("people_contacts" as any).update({ quality } as any).eq("id", id);
+    if (!user) return;
+    await supabase.from("people_contacts").update({ quality } as any).eq("id", id);
+    // Record history
+    await supabase.from("relation_quality_history").insert({
+      contact_id: id,
+      user_id: user.id,
+      quality,
+    } as any);
     setPeople((prev) => prev.map((p) => (p.id === id ? { ...p, quality } : p)));
   };
+
+  const openHistory = async (person: Person) => {
+    setHistoryDialog({ open: true, person });
+    loadHistory(person.id);
+  };
+
+  const loadHistory = async (contactId: string) => {
+    const daysMap: Record<Period, number> = { "7d": 7, "30d": 30, "90d": 90 };
+    const since = new Date();
+    since.setDate(since.getDate() - daysMap[period]);
+    const { data } = await supabase
+      .from("relation_quality_history")
+      .select("*")
+      .eq("contact_id", contactId)
+      .gte("recorded_at", since.toISOString())
+      .order("recorded_at", { ascending: true });
+    if (data) setHistory(data as any);
+  };
+
+  useEffect(() => {
+    if (historyDialog.person) loadHistory(historyDialog.person.id);
+  }, [period]);
+
+  const chartData = history.map(h => ({
+    date: new Date(h.recorded_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
+    quality: h.quality,
+  }));
+
+  // Global average quality
+  const avgQuality = people.length > 0 ? (people.reduce((s, p) => s + p.quality, 0) / people.length).toFixed(1) : "—";
+  const highCount = people.filter(p => p.quality >= 8).length;
+  const lowCount = people.filter(p => p.quality < 5).length;
 
   return (
     <div className="space-y-10 max-w-6xl">
@@ -76,6 +131,24 @@ export default function PeopleBoard() {
           </button>
         </div>
       </div>
+
+      {/* Stats */}
+      {people.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="ethereal-glass p-4 text-center">
+            <p className="text-xl font-cinzel text-foreground">{avgQuality}</p>
+            <p className="text-neural-label mt-0.5">Moyenne</p>
+          </div>
+          <div className="ethereal-glass p-4 text-center">
+            <p className="text-xl font-cinzel text-primary">{highCount}</p>
+            <p className="text-neural-label mt-0.5">Excellentes (≥8)</p>
+          </div>
+          <div className="ethereal-glass p-4 text-center">
+            <p className="text-xl font-cinzel text-destructive">{lowCount}</p>
+            <p className="text-neural-label mt-0.5">À surveiller (&lt;5)</p>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleCreate} className="ethereal-glass p-8 space-y-5">
@@ -114,21 +187,22 @@ export default function PeopleBoard() {
       ) : view === "neural" ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ethereal-glass p-8">
           <svg viewBox="0 0 600 400" className="w-full h-auto max-h-[500px]">
-            <circle cx="300" cy="200" r="18" fill="hsl(180 70% 50% / 0.15)" stroke="hsl(180 70% 50% / 0.4)" strokeWidth="1">
+            <circle cx="300" cy="200" r="18" fill="hsl(176 70% 48% / 0.15)" stroke="hsl(176 70% 48% / 0.4)" strokeWidth="1">
               <animate attributeName="r" values="16;20;16" dur="4s" repeatCount="indefinite" />
             </circle>
-            <circle cx="300" cy="200" r="6" fill="hsl(180 70% 50%)" />
+            <circle cx="300" cy="200" r="6" fill="hsl(176 70% 48%)" />
             <text x="300" y="235" textAnchor="middle" fill="hsl(220 10% 45%)" fontSize="9" fontFamily="Cinzel" letterSpacing="0.3em">VOUS</text>
             {people.map((person, idx) => {
               const angle = (idx / people.length) * Math.PI * 2 - Math.PI / 2;
-              const radius = 140;
+              const radius = 100 + (person.quality / 10) * 60; // distance = quality
               const cx = 300 + Math.cos(angle) * radius;
               const cy = 200 + Math.sin(angle) * radius;
               const color = qualityColor(person.quality);
+              const strokeW = Math.max(0.5, person.quality / 5); // line thickness = quality
               return (
-                <g key={person.id}>
-                  <line x1="300" y1="200" x2={cx} y2={cy} stroke={color} strokeWidth="0.8" opacity="0.3" />
-                  <circle cx={cx} cy={cy} r="10" fill={`${color}20`} stroke={`${color}50`} strokeWidth="0.8">
+                <g key={person.id} className="cursor-pointer" onClick={() => openHistory(person)}>
+                  <line x1="300" y1="200" x2={cx} y2={cy} stroke={color} strokeWidth={strokeW} opacity="0.4" />
+                  <circle cx={cx} cy={cy} r={8 + person.quality * 0.5} fill={`${color}15`} stroke={`${color}50`} strokeWidth="0.8">
                     <animate attributeName="opacity" values="0.6;1;0.6" dur={`${3 + idx * 0.5}s`} repeatCount="indefinite" />
                   </circle>
                   <circle cx={cx} cy={cy} r="3" fill={color} />
@@ -154,9 +228,14 @@ export default function PeopleBoard() {
                     <p className="text-neural-label">{person.role || "—"}</p>
                   </div>
                 </div>
-                <button onClick={() => handleDelete(person.id)} className="text-muted-foreground/30 hover:text-destructive transition-colors">
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => openHistory(person)} className="text-muted-foreground/40 hover:text-primary transition-colors p-1" title="Historique">
+                    <TrendingUp size={14} />
+                  </button>
+                  <button onClick={() => handleDelete(person.id)} className="text-muted-foreground/30 hover:text-destructive transition-colors p-1">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <div className="mb-3">
                 <div className="flex justify-between mb-1">
@@ -170,6 +249,67 @@ export default function PeopleBoard() {
           ))}
         </div>
       )}
+
+      {/* History Dialog */}
+      <Dialog open={historyDialog.open} onOpenChange={(open) => { if (!open) setHistoryDialog({ open: false, person: null }); }}>
+        <DialogContent className="ethereal-glass border-border/30 sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <TrendingUp size={18} className="text-primary" />
+              Évolution — {historyDialog.person?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Qualité de la relation au fil du temps
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Period filter */}
+          <div className="flex gap-2">
+            {(["7d", "30d", "90d"] as Period[]).map((p) => (
+              <button key={p} onClick={() => setPeriod(p)}
+                className={`text-[9px] uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg border transition-all ${
+                  period === p ? "border-primary/40 bg-primary/5 text-primary" : "border-border/30 text-muted-foreground hover:border-primary/30"
+                }`}>
+                {p === "7d" ? "7 jours" : p === "30d" ? "30 jours" : "90 jours"}
+              </button>
+            ))}
+          </div>
+
+          {/* Chart */}
+          <div className="h-48 mt-2">
+            {chartData.length > 1 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 20%)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(220 10% 45%)" }} />
+                  <YAxis domain={[0, 10]} tick={{ fontSize: 10, fill: "hsl(220 10% 45%)" }} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(220 20% 12%)", border: "1px solid hsl(220 10% 20%)", borderRadius: "12px", fontSize: "12px" }}
+                    labelStyle={{ color: "hsl(220 10% 60%)" }}
+                  />
+                  <Line type="monotone" dataKey="quality" stroke="hsl(176 70% 48%)" strokeWidth={2} dot={{ r: 3, fill: "hsl(176 70% 48%)" }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground text-sm text-center">
+                  {chartData.length === 1 ? "Un seul point de donnée. Ajustez la qualité pour voir l'évolution." : "Aucune donnée sur cette période. Ajustez la qualité du contact pour commencer le suivi."}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Current quality */}
+          {historyDialog.person && (
+            <div className="flex items-center justify-between pt-2 border-t border-border/20">
+              <span className="text-neural-label">Qualité actuelle</span>
+              <span className="text-lg font-cinzel" style={{ color: qualityColor(historyDialog.person.quality) }}>
+                {historyDialog.person.quality}/10
+              </span>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
