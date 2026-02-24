@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.send-email-notification]
 verify_jwt = false
+
+[functions.compute-daily-scoreboard]
+verify_jwt = false
