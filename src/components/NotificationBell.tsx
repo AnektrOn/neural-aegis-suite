@@ -82,14 +82,7 @@ export default function NotificationBell() {
             initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            className="fixed 
-    /* Mobile: centré */
-    left-1/2 -translate-x-1/2 top-14 
-    /* Desktop (md): à droite */
-    md:left-auto md:right-4 md:translate-x-0 
-    /* Largeur adaptative */
-    w-[calc(100%-2rem)] md:w-80 
-    max-h-[70vh] overflow-y-auto rounded-xl bg-card border border-border shadow-xl z-[100]"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-sm max-h-[70vh] overflow-y-auto rounded-xl bg-card border border-border shadow-xl z-[100]"
           >
             <div className="p-3 border-b border-border flex justify-between items-center">
               <h3 className="text-xs font-medium text-foreground uppercase tracking-wider">Notifications</h3>

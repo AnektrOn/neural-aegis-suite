@@ -88,7 +88,8 @@ export default function NeuralMap({ people, compact = false, onPersonClick, show
 
   const getNeuralThickness = (personId: string, currentQuality: number) => {
     const avg = neuralAverages[personId] ?? currentQuality;
-    return Math.max(1, (avg / 10) * 8);
+    // Exponential scaling: 1→0.5, 5→5, 8→14, 10→20
+    return Math.max(0.5, (avg / 10) ** 1.8 * 20);
   };
 
   const svgPointFromEvent = useCallback((e: React.MouseEvent | React.TouchEvent) => {
