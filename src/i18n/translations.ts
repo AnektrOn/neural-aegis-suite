@@ -24,6 +24,7 @@ export const translations = {
   "admin.nav.executive": { fr: "Tableau Exécutif", en: "Executive Board" },
   "admin.nav.dashboard": { fr: "Tableau de bord", en: "Dashboard" },
   "admin.nav.toolbox": { fr: "Boîte à Outils", en: "Toolbox" },
+  "admin.nav.decisions": { fr: "Décisions", en: "Decisions" },
 
   // User Management
   "users.title": { fr: "Gestion des Utilisateurs", en: "User Management" },
