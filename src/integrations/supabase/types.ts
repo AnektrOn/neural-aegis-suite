@@ -200,6 +200,7 @@ export type Database = {
         Row: {
           created_at: string
           decided_at: string | null
+          deferred_until: string | null
           id: string
           name: string
           priority: number
@@ -211,6 +212,7 @@ export type Database = {
         Insert: {
           created_at?: string
           decided_at?: string | null
+          deferred_until?: string | null
           id?: string
           name: string
           priority: number
@@ -222,6 +224,7 @@ export type Database = {
         Update: {
           created_at?: string
           decided_at?: string | null
+          deferred_until?: string | null
           id?: string
           name?: string
           priority?: number

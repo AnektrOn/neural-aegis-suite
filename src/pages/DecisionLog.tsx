@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Target, Clock, ArrowUpRight, Plus, X, Save } from "lucide-react";
+import { Target, Clock, ArrowUpRight, Plus, X, Save, AlertTriangle, CheckCircle2, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import RadialSlider from "@/components/RadialSlider";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 
 interface Decision {
   id: string;
@@ -14,12 +17,24 @@ interface Decision {
   responsibility: number;
   status: string;
   created_at: string;
+  decided_at: string | null;
+  deferred_until: string | null;
 }
 
 const priorityColor = (p: number) => {
   if (p >= 5) return "text-primary";
   if (p >= 3) return "text-neural-warm";
   return "text-muted-foreground";
+};
+
+const formatDuration = (createdAt: string, decidedAt: string) => {
+  const diff = new Date(decidedAt).getTime() - new Date(createdAt).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}j ${hours % 24}h`;
+  if (hours > 0) return `${hours}h`;
+  const minutes = Math.floor(diff / (1000 * 60));
+  return `${minutes}min`;
 };
 
 export default function DecisionLog() {
@@ -29,27 +44,69 @@ export default function DecisionLog() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", priority: 3.0, responsibility: 5.0 });
 
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    decisionId: string | null;
+    decisionName: string;
+    targetStatus: string;
+    deferredUntil: string;
+    createdAt: string;
+  }>({ open: false, decisionId: null, decisionName: "", targetStatus: "", deferredUntil: "", createdAt: "" });
+
   useEffect(() => {
     if (user) loadDecisions();
   }, [user]);
 
   const loadDecisions = async () => {
-    const { data } = await supabase.from("decisions" as any).select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("decisions").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
     if (data) setDecisions(data as any);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const { error } = await supabase.from("decisions" as any).insert({ user_id: user.id, name: form.name, priority: Math.round(form.priority), responsibility: Math.round(form.responsibility) } as any);
+    const { error } = await supabase.from("decisions").insert({ user_id: user.id, name: form.name, priority: Math.round(form.priority), responsibility: Math.round(form.responsibility) } as any);
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
     else { toast({ title: "Décision enregistrée" }); setShowForm(false); setForm({ name: "", priority: 3.0, responsibility: 5.0 }); loadDecisions(); }
   };
 
-  const updateStatus = async (id: string, status: string) => {
-    const updates: any = { status };
-    if (status === "decided") updates.decided_at = new Date().toISOString();
-    await supabase.from("decisions" as any).update(updates).eq("id", id);
+  // Step 1: open confirmation modal
+  const requestStatusChange = (d: Decision, status: string) => {
+    if (d.status === status) return;
+    setConfirmModal({
+      open: true,
+      decisionId: d.id,
+      decisionName: d.name,
+      targetStatus: status,
+      deferredUntil: "",
+      createdAt: d.created_at,
+    });
+  };
+
+  // Step 2: confirm and execute
+  const confirmStatusChange = async () => {
+    if (!confirmModal.decisionId) return;
+    const updates: any = { status: confirmModal.targetStatus };
+
+    if (confirmModal.targetStatus === "decided") {
+      const now = new Date().toISOString();
+      updates.decided_at = now;
+      updates.time_to_decide = formatDuration(confirmModal.createdAt, now);
+    }
+
+    if (confirmModal.targetStatus === "deferred" && confirmModal.deferredUntil) {
+      updates.deferred_until = new Date(confirmModal.deferredUntil).toISOString();
+    }
+
+    const { error } = await supabase.from("decisions").update(updates).eq("id", confirmModal.decisionId);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } else {
+      const labels: Record<string, string> = { pending: "En attente", decided: "Décidée", deferred: "Reportée" };
+      toast({ title: `Statut mis à jour: ${labels[confirmModal.targetStatus]}` });
+    }
+    setConfirmModal({ open: false, decisionId: null, decisionName: "", targetStatus: "", deferredUntil: "", createdAt: "" });
     loadDecisions();
   };
 
@@ -116,6 +173,18 @@ export default function DecisionLog() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
                 <p className="text-neural-label mt-1">{new Date(d.created_at).toLocaleDateString("fr-FR")}</p>
+                {/* Show reflection time for decided */}
+                {d.status === "decided" && d.time_to_decide && (
+                  <p className="text-[10px] text-primary mt-1 flex items-center gap-1">
+                    <CheckCircle2 size={10} /> Temps de réflexion : {d.time_to_decide}
+                  </p>
+                )}
+                {/* Show defer date */}
+                {d.status === "deferred" && (d as any).deferred_until && (
+                  <p className="text-[10px] text-neural-warm mt-1 flex items-center gap-1">
+                    <CalendarClock size={10} /> Report au : {new Date((d as any).deferred_until).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                )}
               </div>
               <div className="hidden sm:flex gap-4 sm:gap-6">
                 <div className="text-center">
@@ -148,7 +217,7 @@ export default function DecisionLog() {
             </div>
             <div className="flex gap-1 mt-3 flex-wrap">
               {(["pending", "decided", "deferred"] as const).map((s) => (
-                <button key={s} onClick={() => updateStatus(d.id, s)}
+                <button key={s} onClick={() => requestStatusChange(d, s)}
                   className={`text-[8px] uppercase tracking-[0.2em] px-2 py-1 rounded-full border transition-all ${
                     d.status === s
                       ? s === "decided" ? "text-primary border-primary/20 bg-primary/5"
@@ -163,6 +232,69 @@ export default function DecisionLog() {
           </motion.div>
         ))}
       </div>
+
+      {/* Confirmation Modal */}
+      <Dialog open={confirmModal.open} onOpenChange={(open) => { if (!open) setConfirmModal(m => ({ ...m, open: false })); }}>
+        <DialogContent className="ethereal-glass border-border/30 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              {confirmModal.targetStatus === "decided" ? (
+                <><CheckCircle2 size={18} className="text-primary" /> Confirmer la décision</>
+              ) : confirmModal.targetStatus === "deferred" ? (
+                <><CalendarClock size={18} className="text-neural-warm" /> Reporter la décision</>
+              ) : (
+                <><AlertTriangle size={18} className="text-neural-warm" /> Remettre en attente</>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmModal.decisionName}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {confirmModal.targetStatus === "decided" && (
+              <div className="ethereal-glass p-4 text-center">
+                <p className="text-neural-label mb-1">Temps de réflexion</p>
+                <p className="text-xl font-cinzel text-primary">
+                  {formatDuration(confirmModal.createdAt, new Date().toISOString())}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Depuis le {new Date(confirmModal.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                </p>
+              </div>
+            )}
+
+            {confirmModal.targetStatus === "deferred" && (
+              <div>
+                <label className="text-neural-label block mb-2">Date de report (optionnel)</label>
+                <input
+                  type="date"
+                  value={confirmModal.deferredUntil}
+                  onChange={(e) => setConfirmModal(m => ({ ...m, deferredUntil: e.target.value }))}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/40 transition-colors"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">La décision reviendra dans votre dashboard à cette date.</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmModal(m => ({ ...m, open: false }))}
+                className="text-[9px] uppercase tracking-[0.2em] px-4 py-2 rounded-full border border-border text-muted-foreground hover:text-foreground transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmStatusChange}
+                className="btn-neural"
+              >
+                {confirmModal.targetStatus === "decided" ? "Confirmer" : confirmModal.targetStatus === "deferred" ? "Reporter" : "Confirmer"}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
