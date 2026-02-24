@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import CSVImport from "@/components/admin/CSVImport";
+import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
 
 interface UserData {
   id: string;
@@ -211,22 +212,7 @@ export default function UserManagement() {
                   </select>
                 </div>
 
-                <p className="text-neural-label mb-3">{t("users.quickAssign")}</p>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { type: "meditation", title: "Présence Exécutive", duration: "12 min" },
-                    { type: "meditation", title: "Amorçage Neural Matinal", duration: "15 min" },
-                    { type: "visualization", title: "Protocole Clarté Décisionnelle", duration: "8 min" },
-                    { type: "visualization", title: "Champ de Résonance d'Équipe", duration: "10 min" },
-                    { type: "course", title: "Le Leader Souverain", duration: "45 min" },
-                    { type: "course", title: "Communication à Haut Enjeu", duration: "30 min" },
-                  ].map((item) => (
-                    <button key={item.title} onClick={() => assignToolbox(userData.id, item.type, item.title, item.duration)}
-                      className="text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-lg border border-border/30 text-muted-foreground hover:border-primary/30 hover:text-primary transition-all">
-                      {item.title}
-                    </button>
-                  ))}
-                </div>
+                <ToolboxAssignmentForm userId={userData.id} onAssigned={loadUsers} />
               </motion.div>
             )}
           </motion.div>
