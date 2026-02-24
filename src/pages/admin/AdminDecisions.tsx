@@ -35,7 +35,8 @@ export default function AdminDecisions() {
 
   const loadDecisions = async () => {
     setLoading(true);
-    const { data: decs } = await supabase.from("decisions").select("*").order("created_at", { ascending: false });
+    const { data: decs, error } = await supabase.from("decisions").select("*").order("created_at", { ascending: false });
+    if (error) { console.error("decisions load error", error); setLoading(false); return; }
     if (!decs) { setLoading(false); return; }
 
     // Get user names

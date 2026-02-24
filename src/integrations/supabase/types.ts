@@ -465,6 +465,7 @@ export type Database = {
         Row: {
           contact_id: string
           id: string
+          note: string | null
           quality: number
           recorded_at: string
           user_id: string
@@ -472,6 +473,7 @@ export type Database = {
         Insert: {
           contact_id: string
           id?: string
+          note?: string | null
           quality: number
           recorded_at?: string
           user_id: string
@@ -479,6 +481,7 @@ export type Database = {
         Update: {
           contact_id?: string
           id?: string
+          note?: string | null
           quality?: number
           recorded_at?: string
           user_id?: string
