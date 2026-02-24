@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Users, Network, LayoutGrid, Plus, X, Save, Trash2, TrendingUp, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +8,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import NeuralMap from "@/components/NeuralMap";
 
 interface Person {
   id: string;
@@ -30,15 +31,14 @@ const qualityColor = (q: number) => {
   return "hsl(0 70% 50%)";
 };
 
-type Period = "7d" | "30d" | "90d" | "quarter" | "semester" | "year";
-type NeuralPeriod = "7d" | "30d" | "90d" | "quarter" | "semester" | "year";
+type Period = "1d" | "7d" | "30d" | "90d" | "quarter" | "semester" | "year";
 
 const periodDays: Record<Period, number> = {
-  "7d": 7, "30d": 30, "90d": 90, quarter: 90, semester: 180, year: 365,
+  "1d": 1, "7d": 7, "30d": 30, "90d": 90, quarter: 90, semester: 180, year: 365,
 };
 
 const periodLabels: Record<Period, string> = {
-  "7d": "7 jours", "30d": "30 jours", "90d": "90 jours",
+  "1d": "Jour", "7d": "7 jours", "30d": "30 jours", "90d": "90 jours",
   quarter: "Trimestre", semester: "Semestre", year: "Année",
 };
 
@@ -54,56 +54,21 @@ export default function PeopleBoard() {
   const [history, setHistory] = useState<QualityHistory[]>([]);
   const [period, setPeriod] = useState<Period>("30d");
 
-  // Local edits for card view — not saved until user clicks "Envoyer"
   const [localQualities, setLocalQualities] = useState<Record<string, number>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Neural map period filter for line thickness
-  const [neuralPeriod, setNeuralPeriod] = useState<NeuralPeriod>("30d");
-  const [neuralAverages, setNeuralAverages] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    if (user) loadPeople();
-  }, [user]);
-
-  useEffect(() => {
-    if (user && people.length > 0 && view === "neural") loadNeuralAverages();
-  }, [neuralPeriod, people, view]);
+  useEffect(() => { if (user) loadPeople(); }, [user]);
 
   const loadPeople = async () => {
     setLoading(true);
     const { data } = await supabase.from("people_contacts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
     if (data) {
       setPeople(data as any);
-      // Init local qualities from DB
       const quals: Record<string, number> = {};
       (data as any[]).forEach((p: Person) => { quals[p.id] = p.quality; });
       setLocalQualities(quals);
     }
     setLoading(false);
-  };
-
-  const loadNeuralAverages = async () => {
-    const since = new Date();
-    since.setDate(since.getDate() - periodDays[neuralPeriod]);
-    const { data } = await supabase
-      .from("relation_quality_history")
-      .select("contact_id, quality")
-      .eq("user_id", user!.id)
-      .gte("recorded_at", since.toISOString());
-
-    if (data) {
-      const grouped: Record<string, number[]> = {};
-      (data as any[]).forEach((h: { contact_id: string; quality: number }) => {
-        if (!grouped[h.contact_id]) grouped[h.contact_id] = [];
-        grouped[h.contact_id].push(h.quality);
-      });
-      const avgs: Record<string, number> = {};
-      for (const [id, vals] of Object.entries(grouped)) {
-        avgs[id] = vals.reduce((a, b) => a + b, 0) / vals.length;
-      }
-      setNeuralAverages(avgs);
-    }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -119,35 +84,24 @@ export default function PeopleBoard() {
     loadPeople();
   };
 
-  // Local quality change — NO auto-save
   const handleLocalQualityChange = (id: string, quality: number) => {
     setLocalQualities(prev => ({ ...prev, [id]: quality }));
     setHasUnsavedChanges(true);
   };
 
-  // Save all pending quality changes
   const saveAllChanges = async () => {
     if (!user) return;
     const updates: Promise<any>[] = [];
     for (const person of people) {
       const newQ = localQualities[person.id];
       if (newQ !== undefined && newQ !== person.quality) {
-        updates.push(
-          (async () => {
-            await supabase.from("people_contacts").update({ quality: newQ } as any).eq("id", person.id);
-            await supabase.from("relation_quality_history").insert({
-              contact_id: person.id,
-              user_id: user.id,
-              quality: newQ,
-            } as any);
-          })()
-        );
+        updates.push((async () => {
+          await supabase.from("people_contacts").update({ quality: newQ } as any).eq("id", person.id);
+          await supabase.from("relation_quality_history").insert({ contact_id: person.id, user_id: user.id, quality: newQ } as any);
+        })());
       }
     }
-    if (updates.length === 0) {
-      toast({ title: "Aucun changement à enregistrer" });
-      return;
-    }
+    if (updates.length === 0) { toast({ title: "Aucun changement à enregistrer" }); return; }
     await Promise.all(updates);
     toast({ title: `${updates.length} relation(s) mise(s) à jour` });
     setHasUnsavedChanges(false);
@@ -162,18 +116,11 @@ export default function PeopleBoard() {
   const loadHistory = async (contactId: string) => {
     const since = new Date();
     since.setDate(since.getDate() - periodDays[period]);
-    const { data } = await supabase
-      .from("relation_quality_history")
-      .select("*")
-      .eq("contact_id", contactId)
-      .gte("recorded_at", since.toISOString())
-      .order("recorded_at", { ascending: true });
+    const { data } = await supabase.from("relation_quality_history").select("*").eq("contact_id", contactId).gte("recorded_at", since.toISOString()).order("recorded_at", { ascending: true });
     if (data) setHistory(data as any);
   };
 
-  useEffect(() => {
-    if (historyDialog.person) loadHistory(historyDialog.person.id);
-  }, [period]);
+  useEffect(() => { if (historyDialog.person) loadHistory(historyDialog.person.id); }, [period]);
 
   const chartData = history.map(h => ({
     date: new Date(h.recorded_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
@@ -183,13 +130,6 @@ export default function PeopleBoard() {
   const avgQuality = people.length > 0 ? (people.reduce((s, p) => s + p.quality, 0) / people.length).toFixed(1) : "—";
   const highCount = people.filter(p => p.quality >= 8).length;
   const lowCount = people.filter(p => p.quality < 5).length;
-
-  // Neural map: get thickness from average over selected period
-  const getNeuralThickness = (personId: string, currentQuality: number) => {
-    const avg = neuralAverages[personId] ?? currentQuality;
-    // Scale: 1-10 → 1-8px thickness (more pronounced)
-    return Math.max(1, (avg / 10) * 8);
-  };
 
   return (
     <div className="space-y-10 max-w-6xl">
@@ -216,7 +156,6 @@ export default function PeopleBoard() {
         </div>
       </div>
 
-      {/* Stats */}
       {people.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <div className="ethereal-glass p-4 text-center">
@@ -269,49 +208,7 @@ export default function PeopleBoard() {
           <p className="text-muted-foreground text-sm">Aucun contact. Ajoutez les personnes clés de votre réseau.</p>
         </div>
       ) : view === "neural" ? (
-        <div>
-          {/* Neural period filter */}
-          <div className="flex gap-2 flex-wrap mb-4">
-            {(Object.keys(periodLabels) as NeuralPeriod[]).map((p) => (
-              <button key={p} onClick={() => setNeuralPeriod(p)}
-                className={`text-[9px] uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg border transition-all ${
-                  neuralPeriod === p ? "border-primary/40 bg-primary/5 text-primary" : "border-border/30 text-muted-foreground hover:border-primary/30"
-                }`}>
-                {periodLabels[p]}
-              </button>
-            ))}
-          </div>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ethereal-glass p-8">
-            <svg viewBox="0 0 600 400" className="w-full h-auto max-h-[500px]">
-              <circle cx="300" cy="200" r="18" fill="hsl(176 70% 48% / 0.15)" stroke="hsl(176 70% 48% / 0.4)" strokeWidth="1">
-                <animate attributeName="r" values="16;20;16" dur="4s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="300" cy="200" r="6" fill="hsl(176 70% 48%)" />
-              <text x="300" y="235" textAnchor="middle" fill="hsl(220 10% 45%)" fontSize="9" fontFamily="Cinzel" letterSpacing="0.3em">VOUS</text>
-              {people.map((person, idx) => {
-                const angle = (idx / people.length) * Math.PI * 2 - Math.PI / 2;
-                const avgQ = neuralAverages[person.id] ?? person.quality;
-                // Distance inversely proportional: high quality = closer
-                const radius = 180 - (avgQ / 10) * 100;
-                const cx = 300 + Math.cos(angle) * radius;
-                const cy = 200 + Math.sin(angle) * radius;
-                const color = qualityColor(avgQ);
-                const strokeW = getNeuralThickness(person.id, person.quality);
-                return (
-                  <g key={person.id} className="cursor-pointer" onClick={() => openHistory(person)}>
-                    <line x1="300" y1="200" x2={cx} y2={cy} stroke={color} strokeWidth={strokeW} opacity="0.5" strokeLinecap="round" />
-                    <circle cx={cx} cy={cy} r={8 + avgQ * 0.8} fill={`${color}15`} stroke={`${color}50`} strokeWidth="0.8">
-                      <animate attributeName="opacity" values="0.6;1;0.6" dur={`${3 + idx * 0.5}s`} repeatCount="indefinite" />
-                    </circle>
-                    <circle cx={cx} cy={cy} r="3" fill={color} />
-                    <text x={cx} y={cy + 22} textAnchor="middle" fill="hsl(210 20% 88%)" fontSize="8" fontFamily="Space Grotesk" fontWeight="500">{person.name.split(" ")[0]}</text>
-                    <text x={cx} y={cy + 33} textAnchor="middle" fill="hsl(220 10% 45%)" fontSize="7" fontFamily="Space Grotesk">{avgQ.toFixed?.(1) ?? avgQ}/10</text>
-                  </g>
-                );
-              })}
-            </svg>
-          </motion.div>
-        </div>
+        <NeuralMap people={people} onPersonClick={openHistory} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {people.map((person, i) => {
@@ -364,9 +261,7 @@ export default function PeopleBoard() {
               <TrendingUp size={18} className="text-primary" />
               Évolution — {historyDialog.person?.name}
             </DialogTitle>
-            <DialogDescription>
-              Qualité de la relation au fil du temps
-            </DialogDescription>
+            <DialogDescription>Qualité de la relation au fil du temps</DialogDescription>
           </DialogHeader>
 
           <div className="flex gap-2 flex-wrap">
@@ -387,17 +282,14 @@ export default function PeopleBoard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 20%)" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(220 10% 45%)" }} />
                   <YAxis domain={[0, 10]} tick={{ fontSize: 10, fill: "hsl(220 10% 45%)" }} />
-                  <Tooltip
-                    contentStyle={{ background: "hsl(220 20% 12%)", border: "1px solid hsl(220 10% 20%)", borderRadius: "12px", fontSize: "12px" }}
-                    labelStyle={{ color: "hsl(220 10% 60%)" }}
-                  />
+                  <Tooltip contentStyle={{ background: "hsl(220 20% 12%)", border: "1px solid hsl(220 10% 20%)", borderRadius: "12px", fontSize: "12px" }} labelStyle={{ color: "hsl(220 10% 60%)" }} />
                   <Line type="monotone" dataKey="quality" stroke="hsl(176 70% 48%)" strokeWidth={2} dot={{ r: 3, fill: "hsl(176 70% 48%)" }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-full">
                 <p className="text-muted-foreground text-sm text-center">
-                  {chartData.length === 1 ? "Un seul point de donnée. Ajustez la qualité pour voir l'évolution." : "Aucune donnée sur cette période. Ajustez la qualité du contact pour commencer le suivi."}
+                  {chartData.length === 1 ? "Un seul point de donnée." : "Aucune donnée sur cette période."}
                 </p>
               </div>
             )}
@@ -406,9 +298,7 @@ export default function PeopleBoard() {
           {historyDialog.person && (
             <div className="flex items-center justify-between pt-2 border-t border-border/20">
               <span className="text-neural-label">Qualité actuelle</span>
-              <span className="text-lg font-cinzel" style={{ color: qualityColor(historyDialog.person.quality) }}>
-                {historyDialog.person.quality}/10
-              </span>
+              <span className="text-lg font-cinzel" style={{ color: qualityColor(historyDialog.person.quality) }}>{historyDialog.person.quality}/10</span>
             </div>
           )}
         </DialogContent>
