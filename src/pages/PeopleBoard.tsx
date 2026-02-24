@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Users, Network, LayoutGrid, Plus, X, Save, Trash2, TrendingUp, Send } from "lucide-react";
+import { Users, Network, LayoutGrid, Plus, X, Save, Trash2, TrendingUp, Send, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,7 @@ interface QualityHistory {
   contact_id: string;
   quality: number;
   recorded_at: string;
+  note: string | null;
 }
 
 const qualityColor = (q: number) => {
@@ -54,7 +55,9 @@ export default function PeopleBoard() {
   const [history, setHistory] = useState<QualityHistory[]>([]);
   const [period, setPeriod] = useState<Period>("30d");
 
+  // Local edits — quality + note per person
   const [localQualities, setLocalQualities] = useState<Record<string, number>>({});
+  const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => { if (user) loadPeople(); }, [user]);
@@ -67,6 +70,7 @@ export default function PeopleBoard() {
       const quals: Record<string, number> = {};
       (data as any[]).forEach((p: Person) => { quals[p.id] = p.quality; });
       setLocalQualities(quals);
+      setLocalNotes({});
     }
     setLoading(false);
   };
@@ -89,15 +93,31 @@ export default function PeopleBoard() {
     setHasUnsavedChanges(true);
   };
 
+  const handleLocalNoteChange = (id: string, note: string) => {
+    setLocalNotes(prev => ({ ...prev, [id]: note }));
+    setHasUnsavedChanges(true);
+  };
+
   const saveAllChanges = async () => {
     if (!user) return;
     const updates: Promise<any>[] = [];
     for (const person of people) {
       const newQ = localQualities[person.id];
-      if (newQ !== undefined && newQ !== person.quality) {
+      const note = localNotes[person.id];
+      const qualityChanged = newQ !== undefined && newQ !== person.quality;
+      const hasNote = note && note.trim().length > 0;
+
+      if (qualityChanged || hasNote) {
         updates.push((async () => {
-          await supabase.from("people_contacts").update({ quality: newQ } as any).eq("id", person.id);
-          await supabase.from("relation_quality_history").insert({ contact_id: person.id, user_id: user.id, quality: newQ } as any);
+          if (qualityChanged) {
+            await supabase.from("people_contacts").update({ quality: newQ } as any).eq("id", person.id);
+          }
+          await supabase.from("relation_quality_history").insert({
+            contact_id: person.id,
+            user_id: user.id,
+            quality: qualityChanged ? newQ : person.quality,
+            note: hasNote ? note!.trim() : null,
+          } as any);
         })());
       }
     }
@@ -105,6 +125,7 @@ export default function PeopleBoard() {
     await Promise.all(updates);
     toast({ title: `${updates.length} relation(s) mise(s) à jour` });
     setHasUnsavedChanges(false);
+    setLocalNotes({});
     loadPeople();
   };
 
@@ -125,11 +146,25 @@ export default function PeopleBoard() {
   const chartData = history.map(h => ({
     date: new Date(h.recorded_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
     quality: h.quality,
+    note: h.note,
   }));
 
   const avgQuality = people.length > 0 ? (people.reduce((s, p) => s + p.quality, 0) / people.length).toFixed(1) : "—";
   const highCount = people.filter(p => p.quality >= 8).length;
   const lowCount = people.filter(p => p.quality < 5).length;
+
+  // Custom tooltip for chart
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const data = payload[0].payload;
+    return (
+      <div className="bg-card border border-border rounded-xl p-3 shadow-lg max-w-[200px]">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm font-cinzel" style={{ color: qualityColor(data.quality) }}>{data.quality}/10</p>
+        {data.note && <p className="text-xs text-foreground mt-1 italic">"{data.note}"</p>}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-10 max-w-6xl">
@@ -214,9 +249,11 @@ export default function PeopleBoard() {
           {people.map((person, i) => {
             const localQ = localQualities[person.id] ?? person.quality;
             const changed = localQ !== person.quality;
+            const localNote = localNotes[person.id] ?? "";
+            const hasChanges = changed || localNote.trim().length > 0;
             return (
               <motion.div key={person.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                className={`ethereal-glass p-6 ${changed ? "ring-1 ring-primary/30" : ""}`}>
+                className={`ethereal-glass p-6 ${hasChanges ? "ring-1 ring-primary/30" : ""}`}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-cinzel"
@@ -246,7 +283,21 @@ export default function PeopleBoard() {
                     onChange={(e) => handleLocalQualityChange(person.id, parseInt(e.target.value))}
                     className="w-full h-1 appearance-none rounded-full cursor-pointer" />
                 </div>
-                {person.insight && <p className="text-xs text-muted-foreground leading-relaxed">{person.insight}</p>}
+                {/* Note input */}
+                <div className="mt-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <MessageSquare size={10} className="text-muted-foreground" />
+                    <span className="text-neural-label">Note</span>
+                  </div>
+                  <textarea
+                    value={localNote}
+                    onChange={(e) => handleLocalNoteChange(person.id, e.target.value)}
+                    placeholder="Ex: Bon moment partagé autour d'un café..."
+                    rows={2}
+                    className="w-full bg-secondary/20 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-primary/30 transition-colors resize-none"
+                  />
+                </div>
+                {person.insight && <p className="text-xs text-muted-foreground leading-relaxed mt-2">{person.insight}</p>}
               </motion.div>
             );
           })}
@@ -255,7 +306,7 @@ export default function PeopleBoard() {
 
       {/* History Dialog */}
       <Dialog open={historyDialog.open} onOpenChange={(open) => { if (!open) setHistoryDialog({ open: false, person: null }); }}>
-        <DialogContent className="ethereal-glass border-border/30 sm:max-w-lg">
+        <DialogContent className="ethereal-glass border-border/30 sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
               <TrendingUp size={18} className="text-primary" />
@@ -282,7 +333,7 @@ export default function PeopleBoard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 20%)" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(220 10% 45%)" }} />
                   <YAxis domain={[0, 10]} tick={{ fontSize: 10, fill: "hsl(220 10% 45%)" }} />
-                  <Tooltip contentStyle={{ background: "hsl(220 20% 12%)", border: "1px solid hsl(220 10% 20%)", borderRadius: "12px", fontSize: "12px" }} labelStyle={{ color: "hsl(220 10% 60%)" }} />
+                  <Tooltip content={<CustomTooltip />} />
                   <Line type="monotone" dataKey="quality" stroke="hsl(176 70% 48%)" strokeWidth={2} dot={{ r: 3, fill: "hsl(176 70% 48%)" }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -294,6 +345,29 @@ export default function PeopleBoard() {
               </div>
             )}
           </div>
+
+          {/* History entries with notes */}
+          {history.length > 0 && (
+            <div className="space-y-2 mt-2 max-h-48 overflow-y-auto">
+              <p className="text-neural-label mb-1">Journal des changements</p>
+              {[...history].reverse().map((h) => (
+                <div key={h.id} className="flex items-start gap-3 py-2 border-b border-border/10 last:border-0">
+                  <div className="shrink-0 mt-0.5">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: qualityColor(h.quality) }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-cinzel" style={{ color: qualityColor(h.quality) }}>{h.quality}/10</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(h.recorded_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    {h.note && <p className="text-xs text-foreground/80 mt-0.5 italic">"{h.note}"</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {historyDialog.person && (
             <div className="flex items-center justify-between pt-2 border-t border-border/20">
