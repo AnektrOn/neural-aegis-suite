@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ScoreCard from "@/components/ScoreCard";
 import AIInsights from "@/components/AIInsights";
 import { checkAndAwardBadges } from "@/lib/badge-engine";
+import NeuralMap from "@/components/NeuralMap";
 
 const dailyActionsList = [
   "Revoir les 3 priorités du jour",
@@ -24,11 +25,20 @@ interface WeeklyDigest {
   streakDays: number;
 }
 
+interface Person {
+  id: string;
+  name: string;
+  role: string | null;
+  quality: number;
+  insight: string | null;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({ moodAvg: "—", openDecisions: "—", habitsDone: "—", contacts: "—" });
   const [completedActions, setCompletedActions] = useState<Set<number>>(new Set());
   const [digest, setDigest] = useState<WeeklyDigest | null>(null);
+  const [people, setPeople] = useState<Person[]>([]);
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
@@ -36,10 +46,15 @@ export default function Dashboard() {
       loadStats();
       loadActions();
       loadDigest();
-      // Auto-check badges on dashboard load
+      loadPeople();
       checkAndAwardBadges(user.id);
     }
   }, [user]);
+
+  const loadPeople = async () => {
+    const { data } = await supabase.from("people_contacts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+    if (data) setPeople(data as any);
+  };
 
   const loadStats = async () => {
     const sevenDaysAgo = new Date();
@@ -89,26 +104,17 @@ export default function Dashboard() {
     ]);
 
     const thisAvg = (thisWeekMood.data as any[] || []).length > 0
-      ? (thisWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (thisWeekMood.data as any[]).length
-      : 0;
+      ? (thisWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (thisWeekMood.data as any[]).length : 0;
     const lastAvg = (lastWeekMood.data as any[] || []).length > 0
-      ? (lastWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (lastWeekMood.data as any[]).length
-      : 0;
-
+      ? (lastWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (lastWeekMood.data as any[]).length : 0;
     const delta = +(thisAvg - lastAvg).toFixed(1);
 
-    // Calculate streak from daily actions
     const actionDates = new Set((dailyActionsRes.data as any[] || []).map((d) => d.completed_date));
     let streak = 0;
     for (let i = 0; i < 30; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      if (actionDates.has(d.toISOString().split("T")[0])) {
-        streak++;
-      } else if (i > 0) break;
+      const d = new Date(); d.setDate(d.getDate() - i);
+      if (actionDates.has(d.toISOString().split("T")[0])) { streak++; } else if (i > 0) break;
     }
-
-    // Habit completion rate
     const habitDays = new Set((habitsRes.data as any[] || []).map((h) => h.completed_date));
 
     setDigest({
@@ -124,7 +130,6 @@ export default function Dashboard() {
   const toggleAction = async (index: number) => {
     if (!user) return;
     const isCompleted = completedActions.has(index);
-
     if (isCompleted) {
       await supabase.from("daily_actions" as any).delete().eq("user_id", user.id).eq("action_index", index).eq("completed_date", today);
       setCompletedActions((prev) => { const s = new Set(prev); s.delete(index); return s; });
@@ -154,7 +159,6 @@ export default function Dashboard() {
         <h1 className="text-neural-title text-2xl sm:text-3xl md:text-4xl text-foreground">Votre État Neural</h1>
       </div>
 
-      {/* Executive Weekly Digest */}
       {digest && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
           <div className="flex items-center gap-2 mb-5">
@@ -204,36 +208,9 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.5 }} className="lg:col-span-3 ethereal-glass p-8">
-          <p className="text-neural-label mb-4">Progression Neurale</p>
-          <div className="relative h-48 flex items-center justify-center">
-            <svg viewBox="0 0 400 200" className="w-full h-full">
-              <line x1="200" y1="100" x2="80" y2="40" stroke="hsl(180 70% 50% / 0.3)" strokeWidth="1" />
-              <line x1="200" y1="100" x2="320" y2="50" stroke="hsl(180 70% 50% / 0.2)" strokeWidth="1" />
-              <line x1="200" y1="100" x2="100" y2="160" stroke="hsl(270 50% 55% / 0.2)" strokeWidth="1" />
-              <line x1="200" y1="100" x2="340" y2="150" stroke="hsl(180 70% 50% / 0.15)" strokeWidth="1" />
-              <line x1="200" y1="100" x2="160" y2="30" stroke="hsl(270 50% 55% / 0.15)" strokeWidth="1" />
-              <circle cx="200" cy="100" r="12" fill="hsl(180 70% 50% / 0.2)" stroke="hsl(180 70% 50% / 0.5)" strokeWidth="1">
-                <animate attributeName="r" values="10;14;10" dur="3s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="200" cy="100" r="4" fill="hsl(180 70% 50%)" />
-              {[
-                { cx: 80, cy: 40, label: "Focus" },
-                { cx: 320, cy: 50, label: "Clarté" },
-                { cx: 100, cy: 160, label: "Empathie" },
-                { cx: 340, cy: 150, label: "Motivation" },
-                { cx: 160, cy: 30, label: "Vision" },
-              ].map((node, idx) => (
-                <g key={idx}>
-                  <circle cx={node.cx} cy={node.cy} r="6" fill="hsl(180 70% 50% / 0.15)" stroke="hsl(180 70% 50% / 0.3)" strokeWidth="0.5">
-                    <animate attributeName="opacity" values="0.5;1;0.5" dur={`${3 + idx}s`} repeatCount="indefinite" />
-                  </circle>
-                  <circle cx={node.cx} cy={node.cy} r="2" fill="hsl(180 70% 50% / 0.6)" />
-                  <text x={node.cx} y={node.cy + 18} textAnchor="middle" fill="hsl(220 10% 45%)" fontSize="8" fontFamily="Space Grotesk" letterSpacing="0.15em">{node.label.toUpperCase()}</text>
-                </g>
-              ))}
-            </svg>
-          </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.5 }} className="lg:col-span-3">
+          <p className="text-neural-label mb-4">Carte Neurale Relationnelle</p>
+          <NeuralMap people={people} compact showFilters={false} />
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }} className="lg:col-span-2 ethereal-glass p-8">
