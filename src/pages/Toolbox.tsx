@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, Headphones, Eye, BookOpen } from "lucide-react";
+import { Play, Pause, Headphones, Eye, BookOpen, Wind, Sparkles, Heart, Brain, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import BreathworkWidget from "@/components/widgets/BreathworkWidget";
+import FocusIntrospectifWidget from "@/components/widgets/FocusIntrospectifWidget";
 
 interface ToolboxItem {
   id: string;
@@ -10,18 +12,26 @@ interface ToolboxItem {
   content_type: string;
   duration: string | null;
   description: string | null;
+  external_url: string | null;
+  widget_config: any;
 }
 
-const typeConfig: Record<string, { icon: typeof Headphones; color: string }> = {
-  meditation: { icon: Headphones, color: "text-primary" },
-  visualization: { icon: Eye, color: "text-neural-accent" },
-  course: { icon: BookOpen, color: "text-neural-warm" },
+const typeConfig: Record<string, { icon: typeof Headphones; color: string; label: string }> = {
+  meditation: { icon: Headphones, color: "text-primary", label: "Méditation" },
+  visualization: { icon: Eye, color: "text-neural-accent", label: "Visualisation" },
+  course: { icon: BookOpen, color: "text-neural-warm", label: "Formation" },
+  breathwork: { icon: Wind, color: "text-primary", label: "Breathwork" },
+  focus_introspectif: { icon: Eye, color: "text-neural-accent", label: "Focus Introspectif" },
+  body_scan: { icon: Brain, color: "text-neural-warm", label: "Body Scan" },
+  affirmations: { icon: Sparkles, color: "text-primary", label: "Affirmations" },
+  gratitude: { icon: Heart, color: "text-destructive", label: "Gratitude" },
+  external_link: { icon: LinkIcon, color: "text-muted-foreground", label: "Lien Externe" },
 };
 
 export default function Toolbox() {
   const { user } = useAuth();
   const [items, setItems] = useState<ToolboxItem[]>([]);
-  const [playing, setPlaying] = useState<string | null>(null);
+  const [activeWidget, setActiveWidget] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
 
   useEffect(() => {
@@ -34,8 +44,26 @@ export default function Toolbox() {
   };
 
   const filtered = filter === "all" ? items : items.filter((i) => i.content_type === filter);
-  const typeLabels: Record<string, string> = { all: "Tout", meditation: "Méditation", visualization: "Visualisation", course: "Formation" };
   const types = ["all", ...new Set(items.map((i) => i.content_type))];
+
+  const getTypeLabel = (t: string) => {
+    if (t === "all") return "Tout";
+    return typeConfig[t]?.label || t;
+  };
+
+  const renderWidget = (item: ToolboxItem) => {
+    const config = item.widget_config;
+    if (!config) return null;
+
+    switch (item.content_type) {
+      case "breathwork":
+        return <BreathworkWidget config={config} title={item.title} />;
+      case "focus_introspectif":
+        return <FocusIntrospectifWidget config={config} title={item.title} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="space-y-10 max-w-5xl">
@@ -50,25 +78,27 @@ export default function Toolbox() {
             className={`text-[9px] uppercase tracking-[0.3em] px-4 py-2 rounded-full border transition-all ${
               filter === f ? "text-primary border-primary/30 bg-primary/5" : "text-muted-foreground border-border hover:border-muted-foreground/30"
             }`}>
-            {typeLabels[f] || f}
+            {getTypeLabel(f)}
           </button>
         ))}
       </div>
 
-      {playing && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6 flex items-center gap-6">
-          <button onClick={() => setPlaying(null)} className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center glow-node">
-            <Pause size={18} className="text-primary" />
-          </button>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">{items.find((i) => i.id === playing)?.title}</p>
-            <div className="mt-2 h-1 rounded-full bg-secondary overflow-hidden">
-              <motion.div className="h-full bg-primary/60 rounded-full" initial={{ width: "0%" }} animate={{ width: "35%" }} transition={{ duration: 2 }} />
+      {/* Active widget overlay */}
+      {activeWidget && (() => {
+        const item = items.find(i => i.id === activeWidget);
+        if (!item) return null;
+        const widget = renderWidget(item);
+        if (!widget) return null;
+        return (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-neural-label">{getTypeLabel(item.content_type)}</span>
+              <button onClick={() => setActiveWidget(null)} className="text-muted-foreground hover:text-foreground text-xs">Fermer ✕</button>
             </div>
-          </div>
-          <span className="text-neural-label">2:14 / 12:00</span>
-        </motion.div>
-      )}
+            {widget}
+          </motion.div>
+        );
+      })()}
 
       {filtered.length === 0 ? (
         <div className="ethereal-glass p-12 text-center">
@@ -78,18 +108,35 @@ export default function Toolbox() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((item, i) => {
-            const config = typeConfig[item.content_type] || typeConfig.course;
+            const cfg = typeConfig[item.content_type] || typeConfig.course;
+            const hasWidget = ["breathwork", "focus_introspectif"].includes(item.content_type);
+            const isExternal = item.content_type === "external_link" && item.external_url;
+
             return (
               <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className="ethereal-glass p-6 flex flex-col">
                 <div className="flex items-start justify-between mb-4">
-                  <config.icon size={18} strokeWidth={1.5} className={config.color} />
+                  <cfg.icon size={18} strokeWidth={1.5} className={cfg.color} />
                   <span className="text-neural-label">{item.duration || "—"}</span>
                 </div>
                 <p className="text-sm font-medium text-foreground mb-2">{item.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || ""}</p>
-                <button onClick={() => setPlaying(item.id)} className="mt-4 flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
-                  <Play size={12} /> Lancer
-                </button>
+                <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || cfg.label}</p>
+
+                {hasWidget ? (
+                  <button onClick={() => setActiveWidget(activeWidget === item.id ? null : item.id)}
+                    className="mt-4 flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                    <Play size={12} /> {activeWidget === item.id ? "En cours" : "Lancer"}
+                  </button>
+                ) : isExternal ? (
+                  <a href={item.external_url!} target="_blank" rel="noopener noreferrer"
+                    className="mt-4 flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                    <ExternalLink size={12} /> Ouvrir
+                  </a>
+                ) : (
+                  <button onClick={() => setActiveWidget(item.id)}
+                    className="mt-4 flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                    <Play size={12} /> Lancer
+                  </button>
+                )}
               </motion.div>
             );
           })}
