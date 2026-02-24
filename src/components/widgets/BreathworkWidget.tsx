@@ -13,6 +13,8 @@ interface BreathworkConfig {
 interface Props {
   config: BreathworkConfig;
   title: string;
+  onComplete?: () => void;
+  onAbandon?: () => void;
 }
 
 type Phase = "breath_in" | "pause1" | "breath_out" | "pause2";
@@ -31,12 +33,13 @@ const PHASE_COLORS: Record<Phase, string> = {
   pause2: "hsl(270 50% 60%)",
 };
 
-export default function BreathworkWidget({ config, title }: Props) {
+export default function BreathworkWidget({ config, title, onComplete, onAbandon }: Props) {
   const [isRunning, setIsRunning] = useState(false);
   const [currentCycle, setCurrentCycle] = useState(0);
   const [currentPhase, setCurrentPhase] = useState<Phase>("breath_in");
   const [phaseProgress, setPhaseProgress] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const hasStartedRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const phases: { phase: Phase; duration: number }[] = ([
@@ -54,12 +57,29 @@ export default function BreathworkWidget({ config, title }: Props) {
     phases.slice(0, phases.findIndex(p => p.phase === currentPhase)).reduce((s, p) => s + p.duration, 0) +
     phaseProgress * currentPhaseDuration;
 
+  // Track that user started the exercise
+  useEffect(() => {
+    if (isRunning && !hasStartedRef.current) {
+      hasStartedRef.current = true;
+    }
+  }, [isRunning]);
+
+  // Notify parent on abandon (unmount while started but not completed)
+  useEffect(() => {
+    return () => {
+      if (hasStartedRef.current && !completed) {
+        onAbandon?.();
+      }
+    };
+  }, []); // intentionally empty — cleanup only
+
   const reset = useCallback(() => {
     setIsRunning(false);
     setCurrentCycle(0);
     setCurrentPhase("breath_in");
     setPhaseProgress(0);
     setCompleted(false);
+    hasStartedRef.current = false;
     if (intervalRef.current) clearInterval(intervalRef.current);
   }, []);
 
@@ -74,17 +94,16 @@ export default function BreathworkWidget({ config, title }: Props) {
       setPhaseProgress(prev => {
         const next = prev + tickMs / (currentPhaseDuration * 1000);
         if (next >= 1) {
-          // Move to next phase
           const currentIdx = phases.findIndex(p => p.phase === currentPhase);
           const nextIdx = currentIdx + 1;
           if (nextIdx < phases.length) {
             setCurrentPhase(phases[nextIdx].phase);
           } else {
-            // End of cycle
             const nextCycle = currentCycle + 1;
             if (nextCycle >= config.cycles) {
               setIsRunning(false);
               setCompleted(true);
+              onComplete?.();
               return 1;
             }
             setCurrentCycle(nextCycle);
@@ -99,7 +118,6 @@ export default function BreathworkWidget({ config, title }: Props) {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isRunning, currentPhase, currentCycle, currentPhaseDuration, config.cycles, phases]);
 
-  // Breathing circle scale: expand on inhale, contract on exhale
   const getScale = () => {
     if (!isRunning && !completed) return 1;
     switch (currentPhase) {
@@ -120,19 +138,13 @@ export default function BreathworkWidget({ config, title }: Props) {
         <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
       </div>
 
-      {/* Breathing circle */}
       <div className="relative w-48 h-48 flex items-center justify-center">
-        {/* Outer glow ring */}
         <motion.div
           className="absolute inset-0 rounded-full"
-          style={{
-            background: `radial-gradient(circle, ${PHASE_COLORS[currentPhase]}15 0%, transparent 70%)`,
-          }}
+          style={{ background: `radial-gradient(circle, ${PHASE_COLORS[currentPhase]}15 0%, transparent 70%)` }}
           animate={{ scale: getScale() }}
           transition={{ duration: 0.05, ease: "linear" }}
         />
-
-        {/* Main circle */}
         <motion.div
           className="w-32 h-32 rounded-full border-2 flex items-center justify-center"
           style={{
@@ -160,7 +172,6 @@ export default function BreathworkWidget({ config, title }: Props) {
           </div>
         </motion.div>
 
-        {/* Phase dots around the circle */}
         {phases.map((p, i) => {
           const angle = (i / phases.length) * Math.PI * 2 - Math.PI / 2;
           const cx = 96 + Math.cos(angle) * 88;
@@ -177,7 +188,6 @@ export default function BreathworkWidget({ config, title }: Props) {
         })}
       </div>
 
-      {/* Progress info */}
       <div className="text-center space-y-1">
         <p className="text-sm text-foreground font-medium">
           Cycle {Math.min(currentCycle + 1, config.cycles)} / {config.cycles}
@@ -185,14 +195,12 @@ export default function BreathworkWidget({ config, title }: Props) {
         <p className="text-neural-label">{formatTime(elapsed)} / {formatTime(totalTime)}</p>
       </div>
 
-      {/* Progress bar */}
       <div className="w-full max-w-xs h-1 rounded-full bg-secondary overflow-hidden">
         <motion.div className="h-full rounded-full" style={{ backgroundColor: PHASE_COLORS[currentPhase] }}
           animate={{ width: `${Math.min((elapsed / totalTime) * 100, 100)}%` }}
           transition={{ duration: 0.1 }} />
       </div>
 
-      {/* Controls */}
       <div className="flex gap-3">
         <button onClick={() => setIsRunning(!isRunning)}
           className="w-12 h-12 rounded-2xl border border-primary/30 bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors glow-node"
@@ -205,7 +213,6 @@ export default function BreathworkWidget({ config, title }: Props) {
         </button>
       </div>
 
-      {/* Cycle pattern legend */}
       <div className="flex items-center gap-3 text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
         <span>In {config.breath_in_sec}s</span>
         {config.pause1_sec > 0 && <span>Hold {config.pause1_sec}s</span>}
