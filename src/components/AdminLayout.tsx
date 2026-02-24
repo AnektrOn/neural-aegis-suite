@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Phone, Factory, Users, ChevronLeft, ChevronRight, Zap, LogOut, ArrowLeft, BarChart3, Building2, LayoutDashboard, Menu, Package, Target } from "lucide-react";
+import { Phone, Factory, Users, ChevronLeft, ChevronRight, Zap, LogOut, ArrowLeft, BarChart3, Building2, LayoutDashboard, Menu, Package, Target, MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -17,6 +17,7 @@ const adminNavKeys = [
   { to: "/admin/companies", icon: Building2, key: "admin.nav.companies" as const },
   { to: "/admin/toolbox", icon: Package, key: "admin.nav.toolbox" as const },
   { to: "/admin/decisions", icon: Target, key: "admin.nav.decisions" as const },
+  { to: "/admin/messages", icon: MessageSquare, key: "admin.nav.messages" as const },
 ];
 
 function AdminSidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
