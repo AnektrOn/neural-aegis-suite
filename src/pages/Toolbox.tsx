@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, Headphones, Eye, BookOpen, Wind, Sparkles, Heart, Brain, Link as LinkIcon, ExternalLink, CheckCircle2, XCircle, EyeOff } from "lucide-react";
+import { Play, Headphones, Eye, BookOpen, Wind, Sparkles, Heart, Brain, Link as LinkIcon, ExternalLink, CheckCircle2, XCircle, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import BreathworkWidget from "@/components/widgets/BreathworkWidget";
 import FocusIntrospectifWidget from "@/components/widgets/FocusIntrospectifWidget";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 
 interface ToolboxItem {
@@ -18,6 +18,7 @@ interface ToolboxItem {
   description: string | null;
   external_url: string | null;
   widget_config: any;
+  assigned_at: string;
 }
 
 interface CompletionRecord {
@@ -44,8 +45,7 @@ export default function Toolbox() {
   const [completions, setCompletions] = useState<CompletionRecord[]>([]);
   const [activeWidget, setActiveWidget] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
-  const [completionModal, setCompletionModal] = useState<{ open: boolean; itemId: string | null }>({ open: false, itemId: null });
-  const [feedback, setFeedback] = useState("");
+  const [completionDialog, setCompletionDialog] = useState<{ open: boolean; itemId: string | null; status: string }>({ open: false, itemId: null, status: "" });
 
   useEffect(() => {
     if (user) loadData();
@@ -54,32 +54,66 @@ export default function Toolbox() {
   const loadData = async () => {
     const [itemsRes, compRes] = await Promise.all([
       supabase.from("toolbox_assignments").select("*").eq("user_id", user!.id).order("assigned_at", { ascending: false }),
-      supabase.from("toolbox_completions").select("assignment_id, status").eq("user_id", user!.id),
+      supabase.from("toolbox_completions" as any).select("assignment_id, status").eq("user_id", user!.id),
     ]);
     if (itemsRes.data) setItems(itemsRes.data as any);
-    if (compRes.data) setCompletions(compRes.data as any);
+    const comps = (compRes.data || []) as unknown as CompletionRecord[];
+    setCompletions(comps);
+
+    // Auto-detect ignored items (assigned >24h ago, never opened, no completion)
+    if (itemsRes.data && user) {
+      const now = Date.now();
+      const completedIds = new Set(comps.map(c => c.assignment_id));
+      const ignoredCandidates = (itemsRes.data as ToolboxItem[]).filter(item => {
+        if (completedIds.has(item.id)) return false;
+        const assignedAge = now - new Date(item.assigned_at).getTime();
+        return assignedAge > 24 * 60 * 60 * 1000;
+      });
+      for (const item of ignoredCandidates) {
+        await supabase.from("toolbox_completions" as any).insert({
+          assignment_id: item.id,
+          user_id: user.id,
+          status: "ignored",
+        } as any);
+      }
+      if (ignoredCandidates.length > 0) {
+        // Reload completions
+        const { data: freshComps } = await supabase.from("toolbox_completions" as any).select("assignment_id, status").eq("user_id", user!.id);
+        if (freshComps) setCompletions(freshComps as unknown as CompletionRecord[]);
+      }
+    }
   };
 
   const getCompletion = (assignmentId: string) => completions.find(c => c.assignment_id === assignmentId);
 
-  const submitCompletion = async (status: "completed" | "abandoned" | "ignored") => {
-    if (!completionModal.itemId || !user) return;
-    const { error } = await supabase.from("toolbox_completions").insert({
-      assignment_id: completionModal.itemId,
+  const recordCompletion = useCallback(async (assignmentId: string, status: "completed" | "abandoned") => {
+    if (!user) return;
+    // Check not already recorded
+    const existing = completions.find(c => c.assignment_id === assignmentId);
+    if (existing) return;
+
+    const { error } = await supabase.from("toolbox_completions" as any).insert({
+      assignment_id: assignmentId,
       user_id: user.id,
       status,
-      feedback: feedback || null,
     } as any);
-    if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    } else {
-      const labels: Record<string, string> = { completed: "Terminé ✓", abandoned: "Abandonné", ignored: "Ignoré" };
+
+    if (!error) {
+      const labels: Record<string, string> = { completed: "Exercice terminé ✦", abandoned: "Exercice abandonné" };
+      setCompletionDialog({ open: true, itemId: assignmentId, status });
       toast({ title: labels[status] });
-      setCompletionModal({ open: false, itemId: null });
-      setFeedback("");
       loadData();
     }
-  };
+  }, [user, completions]);
+
+  const handleCloseWidget = useCallback((itemId: string) => {
+    // Closing widget = abandon if not already completed
+    const completion = completions.find(c => c.assignment_id === itemId);
+    if (!completion) {
+      // The widget's onAbandon will handle this
+    }
+    setActiveWidget(null);
+  }, [completions]);
 
   const filtered = filter === "all" ? items : items.filter((i) => i.content_type === filter);
   const types = ["all", ...new Set(items.map((i) => i.content_type))];
@@ -101,15 +135,29 @@ export default function Toolbox() {
     if (!config) return null;
     switch (item.content_type) {
       case "breathwork":
-        return <BreathworkWidget config={config} title={item.title} />;
+        return (
+          <BreathworkWidget
+            config={config}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
       case "focus_introspectif":
-        return <FocusIntrospectifWidget config={config} title={item.title} />;
+        return (
+          <FocusIntrospectifWidget
+            config={config}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
       default:
         return null;
     }
   };
 
-  const modalItem = items.find(i => i.id === completionModal.itemId);
+  const dialogItem = items.find(i => i.id === completionDialog.itemId);
 
   return (
     <div className="space-y-10 max-w-5xl">
@@ -157,7 +205,7 @@ export default function Toolbox() {
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
             <div className="flex justify-between items-start mb-4">
               <span className="text-neural-label">{getTypeLabel(item.content_type)}</span>
-              <button onClick={() => setActiveWidget(null)} className="text-muted-foreground hover:text-foreground text-xs">Fermer ✕</button>
+              <button onClick={() => handleCloseWidget(item.id)} className="text-muted-foreground hover:text-foreground text-xs">Fermer ✕</button>
             </div>
             {widget}
           </motion.div>
@@ -179,7 +227,7 @@ export default function Toolbox() {
 
             return (
               <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                className={`ethereal-glass p-6 flex flex-col ${completion ? "opacity-70" : ""}`}>
+                className={`ethereal-glass p-6 flex flex-col ${completion ? "opacity-60" : ""}`}>
                 <div className="flex items-start justify-between mb-4">
                   <cfg.icon size={18} strokeWidth={1.5} className={cfg.color} />
                   <div className="flex items-center gap-2">
@@ -199,7 +247,7 @@ export default function Toolbox() {
                 <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || cfg.label}</p>
 
                 <div className="mt-4 flex items-center gap-3">
-                  {hasWidget ? (
+                  {hasWidget && !completion ? (
                     <button onClick={() => setActiveWidget(activeWidget === item.id ? null : item.id)}
                       className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
                       <Play size={12} /> {activeWidget === item.id ? "En cours" : "Lancer"}
@@ -209,19 +257,12 @@ export default function Toolbox() {
                       className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
                       <ExternalLink size={12} /> Ouvrir
                     </a>
-                  ) : (
+                  ) : !hasWidget && !completion ? (
                     <button onClick={() => setActiveWidget(item.id)}
                       className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
                       <Play size={12} /> Lancer
                     </button>
-                  )}
-
-                  {!completion && (
-                    <button onClick={() => { setCompletionModal({ open: true, itemId: item.id }); setFeedback(""); }}
-                      className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground transition-colors ml-auto">
-                      <CheckCircle2 size={12} /> Statut
-                    </button>
-                  )}
+                  ) : null}
                 </div>
               </motion.div>
             );
@@ -229,37 +270,48 @@ export default function Toolbox() {
         </div>
       )}
 
-      {/* Completion modal */}
-      <Dialog open={completionModal.open} onOpenChange={(open) => setCompletionModal({ open, itemId: open ? completionModal.itemId : null })}>
-        <DialogContent className="ethereal-glass border-border/30 sm:max-w-md">
+      {/* Completion confirmation dialog */}
+      <Dialog open={completionDialog.open} onOpenChange={(open) => { if (!open) setCompletionDialog({ open: false, itemId: null, status: "" }); }}>
+        <DialogContent className="ethereal-glass border-border/30 sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Marquer l'outil</DialogTitle>
-            <DialogDescription>{modalItem?.title}</DialogDescription>
+            <DialogTitle className="text-foreground text-center">
+              {completionDialog.status === "completed" ? (
+                <span className="flex items-center justify-center gap-2">
+                  <CheckCircle2 size={20} className="text-primary" /> Exercice terminé
+                </span>
+              ) : completionDialog.status === "abandoned" ? (
+                <span className="flex items-center justify-center gap-2">
+                  <XCircle size={20} className="text-destructive" /> Exercice abandonné
+                </span>
+              ) : (
+                "Statut mis à jour"
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {dialogItem?.title}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <textarea
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Feedback optionnel…"
-              className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 transition-colors resize-none h-20"
-            />
-            <div className="grid grid-cols-3 gap-2">
-              <button onClick={() => submitCompletion("completed")}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-primary/20 hover:border-primary/50 hover:bg-primary/5 transition-all">
-                <CheckCircle2 size={20} className="text-primary" />
-                <span className="text-[9px] uppercase tracking-[0.2em] text-primary">Terminé</span>
-              </button>
-              <button onClick={() => submitCompletion("abandoned")}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-destructive/20 hover:border-destructive/50 hover:bg-destructive/5 transition-all">
-                <XCircle size={20} className="text-destructive" />
-                <span className="text-[9px] uppercase tracking-[0.2em] text-destructive">Abandonné</span>
-              </button>
-              <button onClick={() => submitCompletion("ignored")}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border/30 hover:border-muted-foreground/50 hover:bg-secondary/20 transition-all">
-                <EyeOff size={20} className="text-muted-foreground" />
-                <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Ignoré</span>
-              </button>
+          <div className="text-center py-4 space-y-3">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-lg font-cinzel text-primary">{stats.completed}</p>
+                <p className="text-neural-label">Terminés</p>
+              </div>
+              <div>
+                <p className="text-lg font-cinzel text-destructive">{stats.abandoned}</p>
+                <p className="text-neural-label">Abandonnés</p>
+              </div>
+              <div>
+                <p className="text-lg font-cinzel text-muted-foreground">{stats.ignored}</p>
+                <p className="text-neural-label">Ignorés</p>
+              </div>
             </div>
+            <button
+              onClick={() => setCompletionDialog({ open: false, itemId: null, status: "" })}
+              className="mt-4 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors"
+            >
+              Fermer
+            </button>
           </div>
         </DialogContent>
       </Dialog>
