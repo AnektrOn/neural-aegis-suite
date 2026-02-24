@@ -39,26 +39,35 @@ export default function NotificationBell() {
       .eq("user_id", user!.id)
       .order("created_at", { ascending: false })
       .limit(20);
-    setNotifications((data as any[] || []) as Notification[]);
+    setNotifications(((data as any[]) || []) as Notification[]);
   };
 
   const markRead = async (id: string) => {
-    await supabase.from("notifications").update({ is_read: true } as any).eq("id", id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    await supabase
+      .from("notifications")
+      .update({ is_read: true } as any)
+      .eq("id", id);
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
   };
 
   const markAllRead = async () => {
-    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
     if (unreadIds.length === 0) return;
-    await supabase.from("notifications").update({ is_read: true } as any).in("id", unreadIds);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    await supabase
+      .from("notifications")
+      .update({ is_read: true } as any)
+      .in("id", unreadIds);
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(!open)} className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors">
+      <button
+        onClick={() => setOpen(!open)}
+        className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors"
+      >
         <Bell size={16} />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-[9px] text-primary-foreground flex items-center justify-center font-medium">
@@ -69,24 +78,49 @@ export default function NotificationBell() {
 
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.95 }} className="fixed right-4 top-14 w-80 max-h-[70vh] overflow-y-auto rounded-xl bg-card border border-border shadow-xl z-[100]">
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            className="fixed 
+    /* Mobile: centré */
+    left-1/2 -translate-x-1/2 top-14 
+    /* Desktop (md): à droite */
+    md:left-auto md:right-4 md:translate-x-0 
+    /* Largeur adaptative */
+    w-[calc(100%-2rem)] md:w-80 
+    max-h-[70vh] overflow-y-auto rounded-xl bg-card border border-border shadow-xl z-[100]"
+          >
             <div className="p-3 border-b border-border flex justify-between items-center">
               <h3 className="text-xs font-medium text-foreground uppercase tracking-wider">Notifications</h3>
               {unreadCount > 0 && (
-                <button onClick={markAllRead} className="text-[10px] text-primary hover:underline">Tout marquer comme lu</button>
+                <button onClick={markAllRead} className="text-[10px] text-primary hover:underline">
+                  Tout marquer comme lu
+                </button>
               )}
             </div>
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-muted-foreground text-xs">Aucune notification</div>
             ) : (
-              notifications.map(n => (
-                <button key={n.id} onClick={() => markRead(n.id)} className={`w-full text-left p-3 border-b border-border/50 hover:bg-secondary/20 transition-colors ${!n.is_read ? "bg-primary/5" : ""}`}>
+              notifications.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => markRead(n.id)}
+                  className={`w-full text-left p-3 border-b border-border/50 hover:bg-secondary/20 transition-colors ${!n.is_read ? "bg-primary/5" : ""}`}
+                >
                   <div className="flex items-start gap-2">
                     {!n.is_read && <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />}
                     <div className={!n.is_read ? "" : "ml-3.5"}>
                       <p className="text-xs font-medium text-foreground">{n.title}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">{n.message}</p>
-                      <p className="text-[9px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                      <p className="text-[9px] text-muted-foreground mt-1">
+                        {new Date(n.created_at).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
                     </div>
                   </div>
                 </button>
