@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Play, Headphones, Eye, BookOpen, Wind, Sparkles, Heart, Brain, Link as LinkIcon, ExternalLink, CheckCircle2, XCircle, EyeOff } from "lucide-react";
+import { Play, Headphones, Eye, BookOpen, Wind, Sparkles, Heart, Brain, Link as LinkIcon, ExternalLink, CheckCircle2, XCircle, EyeOff, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -77,20 +77,28 @@ export default function Toolbox() {
         } as any);
       }
       if (ignoredCandidates.length > 0) {
-        // Reload completions
         const { data: freshComps } = await supabase.from("toolbox_completions" as any).select("assignment_id, status").eq("user_id", user!.id);
         if (freshComps) setCompletions(freshComps as unknown as CompletionRecord[]);
       }
     }
   };
 
-  const getCompletion = (assignmentId: string) => completions.find(c => c.assignment_id === assignmentId);
+  // Get the latest completion for an item
+  const getLatestCompletion = (assignmentId: string) => {
+    const matches = completions.filter(c => c.assignment_id === assignmentId);
+    return matches.length > 0 ? matches[matches.length - 1] : undefined;
+  };
+
+  // Count all completions (not just unique)
+  const allCompletionStats = {
+    completed: completions.filter(c => c.status === "completed").length,
+    abandoned: completions.filter(c => c.status === "abandoned").length,
+    ignored: completions.filter(c => c.status === "ignored").length,
+    total: items.length,
+  };
 
   const recordCompletion = useCallback(async (assignmentId: string, status: "completed" | "abandoned") => {
     if (!user) return;
-    // Check not already recorded
-    const existing = completions.find(c => c.assignment_id === assignmentId);
-    if (existing) return;
 
     const { error } = await supabase.from("toolbox_completions" as any).insert({
       assignment_id: assignmentId,
@@ -104,26 +112,22 @@ export default function Toolbox() {
       toast({ title: labels[status] });
       loadData();
     }
-  }, [user, completions]);
+  }, [user]);
+
+  // Reload an abandoned tool = clear the "reloaded" flag so user can retry
+  // We DON'T delete the old completion — we just allow a new attempt
+  const handleReload = (itemId: string) => {
+    // Mark this item as "retrying" by setting it as active widget
+    setActiveWidget(itemId);
+    toast({ title: "Outil rechargé", description: "Vous pouvez réessayer cet exercice." });
+  };
 
   const handleCloseWidget = useCallback((itemId: string) => {
-    // Closing widget = abandon if not already completed
-    const completion = completions.find(c => c.assignment_id === itemId);
-    if (!completion) {
-      // The widget's onAbandon will handle this
-    }
     setActiveWidget(null);
-  }, [completions]);
+  }, []);
 
   const filtered = filter === "all" ? items : items.filter((i) => i.content_type === filter);
   const types = ["all", ...new Set(items.map((i) => i.content_type))];
-
-  const stats = {
-    completed: completions.filter(c => c.status === "completed").length,
-    abandoned: completions.filter(c => c.status === "abandoned").length,
-    ignored: completions.filter(c => c.status === "ignored").length,
-    total: items.length,
-  };
 
   const getTypeLabel = (t: string) => {
     if (t === "all") return "Tout";
@@ -170,10 +174,10 @@ export default function Toolbox() {
       {items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total", value: stats.total, icon: Headphones, color: "text-muted-foreground" },
-            { label: "Terminés", value: stats.completed, icon: CheckCircle2, color: "text-primary" },
-            { label: "Abandonnés", value: stats.abandoned, icon: XCircle, color: "text-destructive" },
-            { label: "Ignorés", value: stats.ignored, icon: EyeOff, color: "text-muted-foreground" },
+            { label: "Total", value: allCompletionStats.total, icon: Headphones, color: "text-muted-foreground" },
+            { label: "Terminés", value: allCompletionStats.completed, icon: CheckCircle2, color: "text-primary" },
+            { label: "Abandonnés", value: allCompletionStats.abandoned, icon: XCircle, color: "text-destructive" },
+            { label: "Ignorés", value: allCompletionStats.ignored, icon: EyeOff, color: "text-muted-foreground" },
           ].map((s) => (
             <div key={s.label} className="ethereal-glass p-4 text-center">
               <s.icon size={16} strokeWidth={1.5} className={`${s.color} mx-auto mb-2`} />
@@ -223,21 +227,25 @@ export default function Toolbox() {
             const cfg = typeConfig[item.content_type] || typeConfig.course;
             const hasWidget = ["breathwork", "focus_introspectif"].includes(item.content_type);
             const isExternal = item.content_type === "external_link" && item.external_url;
-            const completion = getCompletion(item.id);
+            const latestCompletion = getLatestCompletion(item.id);
+            const isAbandoned = latestCompletion?.status === "abandoned";
+            const isIgnored = latestCompletion?.status === "ignored";
+            const isCompleted = latestCompletion?.status === "completed";
+            const isActive = activeWidget === item.id;
 
             return (
               <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                className={`ethereal-glass p-6 flex flex-col ${completion ? "opacity-60" : ""}`}>
+                className={`ethereal-glass p-6 flex flex-col ${latestCompletion && !isActive ? "opacity-60" : ""}`}>
                 <div className="flex items-start justify-between mb-4">
                   <cfg.icon size={18} strokeWidth={1.5} className={cfg.color} />
                   <div className="flex items-center gap-2">
-                    {completion && (
+                    {latestCompletion && (
                       <span className={`text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border ${
-                        completion.status === "completed" ? "text-primary border-primary/30 bg-primary/5" :
-                        completion.status === "abandoned" ? "text-destructive border-destructive/30 bg-destructive/5" :
+                        isCompleted ? "text-primary border-primary/30 bg-primary/5" :
+                        isAbandoned ? "text-destructive border-destructive/30 bg-destructive/5" :
                         "text-muted-foreground border-border bg-secondary/20"
                       }`}>
-                        {completion.status === "completed" ? "Terminé" : completion.status === "abandoned" ? "Abandonné" : "Ignoré"}
+                        {isCompleted ? "Terminé" : isAbandoned ? "Abandonné" : "Ignoré"}
                       </span>
                     )}
                     <span className="text-neural-label">{item.duration || "—"}</span>
@@ -247,22 +255,33 @@ export default function Toolbox() {
                 <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || cfg.label}</p>
 
                 <div className="mt-4 flex items-center gap-3">
-                  {hasWidget && !completion ? (
-                    <button onClick={() => setActiveWidget(activeWidget === item.id ? null : item.id)}
-                      className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
-                      <Play size={12} /> {activeWidget === item.id ? "En cours" : "Lancer"}
-                    </button>
-                  ) : isExternal ? (
-                    <a href={item.external_url!} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
-                      <ExternalLink size={12} /> Ouvrir
-                    </a>
-                  ) : !hasWidget && !completion ? (
-                    <button onClick={() => setActiveWidget(item.id)}
-                      className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
-                      <Play size={12} /> Lancer
-                    </button>
+                  {/* Not yet attempted or currently active */}
+                  {(!latestCompletion || isActive) && !isIgnored ? (
+                    hasWidget ? (
+                      <button onClick={() => setActiveWidget(isActive ? null : item.id)}
+                        className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                        <Play size={12} /> {isActive ? "En cours" : "Lancer"}
+                      </button>
+                    ) : isExternal ? (
+                      <a href={item.external_url!} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                        <ExternalLink size={12} /> Ouvrir
+                      </a>
+                    ) : (
+                      <button onClick={() => setActiveWidget(item.id)}
+                        className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                        <Play size={12} /> Lancer
+                      </button>
+                    )
                   ) : null}
+
+                  {/* Reload button for abandoned items only (not ignored) */}
+                  {isAbandoned && !isActive && (
+                    <button onClick={() => handleReload(item.id)}
+                      className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent hover:text-foreground transition-colors">
+                      <RotateCcw size={12} /> Recharger
+                    </button>
+                  )}
                 </div>
               </motion.div>
             );
@@ -294,15 +313,15 @@ export default function Toolbox() {
           <div className="text-center py-4 space-y-3">
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
-                <p className="text-lg font-cinzel text-primary">{stats.completed}</p>
+                <p className="text-lg font-cinzel text-primary">{allCompletionStats.completed}</p>
                 <p className="text-neural-label">Terminés</p>
               </div>
               <div>
-                <p className="text-lg font-cinzel text-destructive">{stats.abandoned}</p>
+                <p className="text-lg font-cinzel text-destructive">{allCompletionStats.abandoned}</p>
                 <p className="text-neural-label">Abandonnés</p>
               </div>
               <div>
-                <p className="text-lg font-cinzel text-muted-foreground">{stats.ignored}</p>
+                <p className="text-lg font-cinzel text-muted-foreground">{allCompletionStats.ignored}</p>
                 <p className="text-neural-label">Ignorés</p>
               </div>
             </div>
