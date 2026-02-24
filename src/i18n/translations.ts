@@ -23,6 +23,7 @@ export const translations = {
   "admin.nav.companies": { fr: "Entreprises", en: "Companies" },
   "admin.nav.executive": { fr: "Tableau Exécutif", en: "Executive Board" },
   "admin.nav.dashboard": { fr: "Tableau de bord", en: "Dashboard" },
+  "admin.nav.toolbox": { fr: "Boîte à Outils", en: "Toolbox" },
 
   // User Management
   "users.title": { fr: "Gestion des Utilisateurs", en: "User Management" },

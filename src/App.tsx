@@ -22,6 +22,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import ExecutiveDashboard from "./pages/admin/ExecutiveDashboard";
 import CompanyManagement from "./pages/admin/CompanyManagement";
+import ToolboxManagement from "./pages/admin/ToolboxManagement";
 import Analytics from "./pages/Analytics";
 import Journal from "./pages/Journal";
 import Profile from "./pages/Profile";
@@ -53,6 +54,7 @@ const App = () => (
                         <Route path="/analytics" element={<AdminAnalytics />} />
                         <Route path="/executive" element={<ExecutiveDashboard />} />
                         <Route path="/companies" element={<CompanyManagement />} />
+                        <Route path="/toolbox" element={<ToolboxManagement />} />
                       </Routes>
                     </AdminLayout>
                   </AdminRoute>
