@@ -291,6 +291,36 @@ export type Database = {
         }
         Relationships: []
       }
+      journal_prompts: {
+        Row: {
+          assigned_by: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_completed: boolean
+          prompt_text: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          prompt_text: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          prompt_text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mood_entries: {
         Row: {
           id: string
@@ -431,6 +461,38 @@ export type Database = {
           },
         ]
       }
+      relation_quality_history: {
+        Row: {
+          contact_id: string
+          id: string
+          quality: number
+          recorded_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          id?: string
+          quality: number
+          recorded_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          id?: string
+          quality?: number
+          recorded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relation_quality_history_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "people_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       toolbox_assignments: {
         Row: {
           assigned_at: string
@@ -438,9 +500,11 @@ export type Database = {
           content_type: string
           description: string | null
           duration: string | null
+          external_url: string | null
           id: string
           title: string
           user_id: string
+          widget_config: Json | null
         }
         Insert: {
           assigned_at?: string
@@ -448,9 +512,11 @@ export type Database = {
           content_type: string
           description?: string | null
           duration?: string | null
+          external_url?: string | null
           id?: string
           title: string
           user_id: string
+          widget_config?: Json | null
         }
         Update: {
           assigned_at?: string
@@ -458,9 +524,11 @@ export type Database = {
           content_type?: string
           description?: string | null
           duration?: string | null
+          external_url?: string | null
           id?: string
           title?: string
           user_id?: string
+          widget_config?: Json | null
         }
         Relationships: []
       }
