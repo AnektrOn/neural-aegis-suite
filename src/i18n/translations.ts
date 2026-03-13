@@ -50,6 +50,12 @@ export const translations = {
   "users.activate": { fr: "Activer", en: "Activate" },
   "users.deactivate": { fr: "Désactiver", en: "Deactivate" },
   "users.assignContent": { fr: "Assigner du contenu", en: "Assign content" },
+  "users.addUser": { fr: "Ajouter un utilisateur", en: "Add user" },
+  "users.createNew": { fr: "Créer un nouvel utilisateur", en: "Create new user" },
+  "users.createUser": { fr: "Créer l'utilisateur", en: "Create user" },
+  "users.userCreated": { fr: "Utilisateur créé", en: "User created" },
+  "users.displayName": { fr: "Nom affiché", en: "Display name" },
+  "users.country": { fr: "Pays", en: "Country" },
 
   // Toasts
   "toast.impossible": { fr: "Impossible", en: "Impossible" },
