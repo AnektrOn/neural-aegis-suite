@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import CSVImport from "@/components/admin/CSVImport";
+import CreateUserForm from "@/components/admin/CreateUserForm";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
 
 interface UserData {
