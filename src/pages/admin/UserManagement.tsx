@@ -113,7 +113,10 @@ export default function UserManagement() {
         <h1 className="text-neural-title text-3xl text-foreground">{t("users.title")}</h1>
       </div>
 
-      <CSVImport />
+      <div className="flex flex-wrap gap-4 items-start">
+        <CSVImport />
+        <CreateUserForm companies={companies} onUserCreated={loadUsers} />
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
