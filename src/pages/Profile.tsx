@@ -4,9 +4,11 @@ import { User, Save, Download, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function Profile() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [displayName, setDisplayName] = useState("");
   const [country, setCountry] = useState("");
   const [timezone, setTimezone] = useState("Europe/Paris");
@@ -31,9 +33,9 @@ export default function Profile() {
     const { error } = await supabase.from("profiles").update({ display_name: displayName, country, timezone } as any).eq("id", user!.id);
     setSaving(false);
     if (error) {
-      toast({ title: "Erreur", description: "Impossible de sauvegarder.", variant: "destructive" });
+      toast({ title: t("toast.error"), description: t("profile.saveError"), variant: "destructive" });
     } else {
-      toast({ title: "Profil mis à jour", description: "Vos modifications ont été enregistrées." });
+      toast({ title: t("profile.profileUpdated"), description: t("profile.profileUpdatedDesc") });
     }
   };
 
@@ -111,14 +113,14 @@ export default function Profile() {
     URL.revokeObjectURL(url);
 
     setExporting(false);
-    toast({ title: "Export terminé", description: "Votre fichier CSV a été téléchargé." });
+    toast({ title: t("profile.exportDone"), description: t("profile.exportDoneDesc") });
   };
 
   return (
     <div className="space-y-10 max-w-3xl">
       <div>
-        <p className="text-neural-label mb-3">Paramètres</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Mon Profil</h1>
+        <p className="text-neural-label mb-3">{t("profile.settings")}</p>
+        <h1 className="text-neural-title text-3xl text-foreground">{t("profile.myProfile")}</h1>
       </div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-8 space-y-6">
@@ -128,33 +130,33 @@ export default function Profile() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
-            <p className="text-neural-label mt-1">Membre depuis {user?.created_at ? new Date(user.created_at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "—"}</p>
+            <p className="text-neural-label mt-1">{t("profile.memberSince", { date: user?.created_at ? new Date(user.created_at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "—" })}</p>
           </div>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="text-neural-label block mb-2">Nom d'affichage</label>
+            <label className="text-neural-label block mb-2">{t("profile.displayName")}</label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 transition-colors"
-              placeholder="Votre nom"
+              placeholder={t("profile.yourName")}
             />
           </div>
           <div>
-            <label className="text-neural-label block mb-2">Pays</label>
+            <label className="text-neural-label block mb-2">{t("profile.country")}</label>
             <input
               type="text"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
               className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 transition-colors"
-              placeholder="France"
+              placeholder={t("profile.placeholderCountry")}
             />
           </div>
           <div>
-            <label className="text-neural-label block mb-2">Fuseau horaire</label>
+            <label className="text-neural-label block mb-2">{t("profile.timezone")}</label>
             <select
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
@@ -169,21 +171,21 @@ export default function Profile() {
 
         <button onClick={saveProfile} disabled={saving} className="btn-neural w-full">
           <Save size={14} />
-          {saving ? "Enregistrement..." : "Enregistrer"}
+          {saving ? t("profile.savingProfile") : t("profile.saveProfile")}
         </button>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ethereal-glass p-8">
         <div className="flex items-center gap-3 mb-4">
           <FileText size={18} strokeWidth={1.5} className="text-primary" />
-          <p className="text-neural-label">Export de données</p>
+          <p className="text-neural-label">{t("profile.dataExport")}</p>
         </div>
         <p className="text-sm text-muted-foreground mb-6">
-          Téléchargez toutes vos données (humeur, décisions, habitudes, journal, contacts) au format CSV.
+          {t("profile.exportDescription")}
         </p>
         <button onClick={exportData} disabled={exporting} className="btn-neural w-full">
           <Download size={14} />
-          {exporting ? "Export en cours..." : "Exporter mes données (CSV)"}
+          {exporting ? t("profile.exporting") : t("profile.exportButton")}
         </button>
       </motion.div>
     </div>

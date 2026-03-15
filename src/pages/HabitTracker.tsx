@@ -4,6 +4,7 @@ import { Check, Flame, ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface AssignedHabit {
   id: string;
@@ -16,6 +17,7 @@ interface AssignedHabit {
 export default function HabitTracker() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [habits, setHabits] = useState<AssignedHabit[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -35,8 +37,8 @@ export default function HabitTracker() {
     const templateMap = new Map((templates as any[] || []).map((t) => [t.id, t]));
 
     const habitsData: AssignedHabit[] = (assigned as any[]).map((a) => {
-      const t = templateMap.get(a.habit_template_id);
-      return { id: a.id, habit_template_id: a.habit_template_id, is_active: a.is_active, template_name: t?.name || "Inconnu", template_category: t?.category || "Général" };
+      const template = templateMap.get(a.habit_template_id);
+      return { id: a.id, habit_template_id: a.habit_template_id, is_active: a.is_active, template_name: template?.name || t("habits.unknown"), template_category: template?.category || t("habits.categoryGeneral") };
     });
     setHabits(habitsData);
 
@@ -53,7 +55,7 @@ export default function HabitTracker() {
       setCompletedIds((prev) => { const s = new Set(prev); s.delete(habitId); return s; });
     } else {
       const { error } = await supabase.from("habit_completions" as any).insert({ user_id: user.id, assigned_habit_id: habitId, completed_date: today } as any);
-      if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+      if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); return; }
       setCompletedIds((prev) => new Set(prev).add(habitId));
     }
   };
@@ -67,31 +69,31 @@ export default function HabitTracker() {
   return (
     <div className="space-y-10 max-w-4xl">
       <div>
-        <p className="text-neural-label mb-3">Architecture de Performance</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Suivi des Habitudes</h1>
+        <p className="text-neural-label mb-3">{t("habits.performanceArchitecture")}</p>
+        <h1 className="text-neural-title text-3xl text-foreground">{t("habits.trackingTitle")}</h1>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
           <ListChecks size={16} strokeWidth={1.5} className="text-primary mb-3" />
           <p className="text-2xl font-cinzel text-foreground">{completedCount}/{habits.length}</p>
-          <p className="text-neural-label mt-1">Complétées aujourd'hui</p>
+          <p className="text-neural-label mt-1">{t("habits.completedToday")}</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ethereal-glass p-6">
           <Flame size={16} strokeWidth={1.5} className="text-neural-warm mb-3" />
           <p className="text-2xl font-cinzel text-foreground">{habits.length}</p>
-          <p className="text-neural-label mt-1">Habitudes assignées</p>
+          <p className="text-neural-label mt-1">{t("habits.assignedHabits")}</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="ethereal-glass p-6">
           <p className="text-2xl font-cinzel text-primary">{habits.length > 0 ? Math.round((completedCount / habits.length) * 100) : 0}%</p>
-          <p className="text-neural-label mt-1">Score du jour</p>
+          <p className="text-neural-label mt-1">{t("habits.dailyScore")}</p>
         </motion.div>
       </div>
 
       {habits.length === 0 ? (
         <div className="ethereal-glass p-12 text-center">
           <ListChecks size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-muted-foreground text-sm">Aucune habitude assignée. Votre coach vous assignera des habitudes depuis le panneau admin.</p>
+          <p className="text-muted-foreground text-sm">{t("habits.noHabitsAssigned")}</p>
         </div>
       ) : (
         <div className="space-y-3">

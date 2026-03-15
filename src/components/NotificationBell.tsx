@@ -3,6 +3,7 @@ import { Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Notification {
   id: string;
@@ -16,6 +17,7 @@ interface Notification {
 
 export default function NotificationBell() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -85,15 +87,15 @@ export default function NotificationBell() {
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-sm max-h-[70vh] overflow-y-auto rounded-xl bg-card border border-border shadow-xl z-[100]"
           >
             <div className="p-3 border-b border-border flex justify-between items-center">
-              <h3 className="text-xs font-medium text-foreground uppercase tracking-wider">Notifications</h3>
+              <h3 className="text-xs font-medium text-foreground uppercase tracking-wider">{t("notifications.title")}</h3>
               {unreadCount > 0 && (
                 <button onClick={markAllRead} className="text-[10px] text-primary hover:underline">
-                  Tout marquer comme lu
+                  {t("notifications.markAllRead")}
                 </button>
               )}
             </div>
             {notifications.length === 0 ? (
-              <div className="p-6 text-center text-muted-foreground text-xs">Aucune notification</div>
+              <div className="p-6 text-center text-muted-foreground text-xs">{t("notifications.none")}</div>
             ) : (
               notifications.map((n) => (
                 <button

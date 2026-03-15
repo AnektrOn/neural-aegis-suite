@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Minus, Users, Brain, Target, ListChecks, Cloc
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import ExportPDFButton from "@/components/ExportPDFButton";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const COLORS = ["hsl(180, 70%, 50%)", "hsl(270, 50%, 55%)", "hsl(35, 80%, 55%)"];
 const tooltipStyle = {
@@ -19,6 +20,7 @@ interface KPI {
 }
 
 export default function ExecutiveDashboard() {
+  const { t } = useLanguage();
   const reportRef = useRef<HTMLDivElement>(null);
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [weeklyTrend, setWeeklyTrend] = useState<any[]>([]);
@@ -168,7 +170,7 @@ export default function ExecutiveDashboard() {
                   <span className="text-xs text-muted-foreground font-cinzel">{u.actions}</span>
                 </div>
               ))}
-              {topUsers.length === 0 && <p className="text-sm text-muted-foreground">Aucune activité cette semaine</p>}
+              {topUsers.length === 0 && <p className="text-sm text-muted-foreground">{t("common.noActivityThisWeek")}</p>}
             </div>
           </motion.div>
         </div>

@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const COLORS = [
   "hsl(180, 70%, 50%)", "hsl(270, 50%, 55%)", "hsl(35, 80%, 55%)",
@@ -16,6 +17,7 @@ const COLORS = [
 
 export default function Analytics() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const reportRef = useRef<HTMLDivElement>(null);
   const [moodData, setMoodData] = useState<any[]>([]);
   const [sleepStressData, setSleepStressData] = useState<any[]>([]);
@@ -205,7 +207,7 @@ export default function Analytics() {
             </div>
           ) : (
             <div className="h-48 flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">Aucune décision pour le moment</p>
+              <p className="text-muted-foreground text-sm">{t("common.noDecisionYet")}</p>
             </div>
           )}
           <div className="text-center mt-2">

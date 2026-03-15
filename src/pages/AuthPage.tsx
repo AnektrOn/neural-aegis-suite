@@ -27,7 +27,7 @@ export default function AuthPage() {
       if (error) throw error;
       navigate("/");
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("toast.error"), description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }

@@ -68,7 +68,7 @@ export default function ToolboxManagement() {
 
   const deleteAssignment = async (id: string) => {
     const { error } = await supabase.from("toolbox_assignments").delete().eq("id", id);
-    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    if (error) toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
     else { toast({ title: "Outil retiré" }); loadData(); }
   };
 
@@ -129,7 +129,7 @@ export default function ToolboxManagement() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher par nom ou outil…"
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.searchByNameOrTool")}
             className="w-full bg-secondary/20 border border-border/20 rounded-xl pl-12 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/30 transition-colors" />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -154,7 +154,7 @@ export default function ToolboxManagement() {
         {!loading && filtered.length === 0 && (
           <div className="ethereal-glass p-12 text-center">
             <Package size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-            <p className="text-muted-foreground text-sm">Aucun outil assigné</p>
+            <p className="text-muted-foreground text-sm">{t("common.noToolsAssigned")}</p>
           </div>
         )}
         {filtered.map((item, i) => {

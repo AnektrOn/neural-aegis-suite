@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Circle, CheckCircle2, Brain, Target, BookOpen, ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface DayData {
   mood: number | null;
@@ -13,6 +14,7 @@ interface DayData {
 
 export default function CalendarView() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [monthData, setMonthData] = useState<Map<string, DayData>>(new Map());
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -197,7 +199,7 @@ export default function CalendarView() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">Aucune activité ce jour.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("common.noActivityToday")}</p>
           )}
         </motion.div>
       )}
