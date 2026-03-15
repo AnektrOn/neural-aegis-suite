@@ -36,6 +36,7 @@ export default function DecisionsMiniCard({ userId, onAddNew }: DecisionsMiniCar
           .from("decisions" as any)
           .select("id, name, priority, status")
           .eq("user_id", userId)
+          .eq("status", "pending")
           .order("priority", { ascending: false })
           .limit(3);
         if (data) setDecisions(data as Decision[]);

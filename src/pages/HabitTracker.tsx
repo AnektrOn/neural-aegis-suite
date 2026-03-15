@@ -101,14 +101,20 @@ export default function HabitTracker() {
             const completed = completedIds.has(habit.id);
             return (
               <motion.div key={habit.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.05 }}
-                className={`ethereal-glass p-5 flex items-center gap-4 transition-all ${completed ? "opacity-50" : ""}`}>
-                <button onClick={() => toggleComplete(habit.id)}
-                  className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 transition-all duration-300 ${completed ? "bg-primary/20 border-primary/40" : "border-border hover:border-primary/30"}`}>
+                className={`ethereal-glass px-4 flex items-center gap-4 min-h-[56px] transition-all ${completed ? "opacity-50" : ""}`}>
+                <button
+                  onClick={() => toggleComplete(habit.id)}
+                  className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 transition-all duration-300 ${completed ? "bg-primary/20 border-primary/40" : "border-border hover:border-primary/30"}`}
+                  style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+                >
                   {completed && <Check size={14} className="text-primary" />}
                 </button>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 py-3">
                   <p className={`text-sm font-medium transition-colors ${completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{habit.template_name}</p>
-                  <p className="text-neural-label mt-0.5">{habit.template_category}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="w-1 h-1 rounded-full bg-primary/40" />
+                    <p className="text-neural-label text-[9px]">{habit.template_category}</p>
+                  </div>
                 </div>
               </motion.div>
             );

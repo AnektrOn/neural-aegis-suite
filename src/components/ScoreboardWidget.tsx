@@ -4,6 +4,7 @@ import { Trophy, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BreakdownItem {
   criteria_id: string;
@@ -16,6 +17,8 @@ interface BreakdownItem {
 export default function ScoreboardWidget() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
+  if (isMobile) return null;
   const [score, setScore] = useState<{ total: number; max: number; breakdown: BreakdownItem[] } | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
