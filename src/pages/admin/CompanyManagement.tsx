@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Building2, Plus, Trash2, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Company {
   id: string;
@@ -13,6 +14,7 @@ interface Company {
 
 export default function CompanyManagement() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
@@ -30,14 +32,14 @@ export default function CompanyManagement() {
   const addCompany = async () => {
     if (!newName.trim()) return;
     const { error } = await supabase.from("companies" as any).insert({ name: newName.trim(), country: newCountry.trim() || null } as any);
-    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "Entreprise ajoutée" }); setNewName(""); setNewCountry(""); loadCompanies(); }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
+    else { toast({ title: t("toast.companyAdded") }); setNewName(""); setNewCountry(""); loadCompanies(); }
   };
 
   const deleteCompany = async (id: string) => {
     const { error } = await supabase.from("companies" as any).delete().eq("id", id);
-    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "Entreprise supprimée" }); loadCompanies(); }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
+    else { toast({ title: t("toast.companyDeleted") }); loadCompanies(); }
   };
 
   return (
@@ -48,7 +50,7 @@ export default function CompanyManagement() {
       </div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
-        <p className="text-neural-label mb-4">Ajouter une entreprise</p>
+        <p className="text-neural-label mb-4">{t("common.addCompany")}</p>
         <div className="flex flex-wrap gap-3">
           <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nom de l'entreprise"
             className="flex-1 min-w-[200px] bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/30" />
@@ -67,7 +69,7 @@ export default function CompanyManagement() {
         {!loading && companies.length === 0 && (
           <div className="ethereal-glass p-12 text-center">
             <Building2 size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-            <p className="text-muted-foreground text-sm">Aucune entreprise pour le moment.</p>
+            <p className="text-muted-foreground text-sm">{t("common.noCompanyYet")}</p>
           </div>
         )}
         {companies.map((c, i) => (

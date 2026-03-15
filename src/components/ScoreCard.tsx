@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Trophy, Flame, Star, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Badge {
   id: string;
@@ -14,6 +15,7 @@ interface Badge {
 
 export default function ScoreCard() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -69,35 +71,35 @@ export default function ScoreCard() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5 }} className="ethereal-glass p-6">
       <div className="flex items-center gap-2 mb-4">
         <Trophy size={14} strokeWidth={1.5} className="text-primary" />
-        <p className="text-neural-label">Score & Progression</p>
+        <p className="text-neural-label">{t("scoreCard.title")}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="text-center">
           <div className="text-2xl font-light text-foreground font-cinzel">{score}</div>
-          <p className="text-[10px] text-muted-foreground mt-1">Points (7j)</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{t("scoreCard.points7d")}</p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1">
             <Flame size={16} className="text-orange-400" />
             <span className="text-2xl font-light text-foreground font-cinzel">{streak}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Jours consécutifs</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{t("scoreCard.consecutiveDays")}</p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1">
             <Star size={16} className="text-yellow-400" />
             <span className="text-2xl font-light text-foreground font-cinzel">{level}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Niveau</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{t("scoreCard.level")}</p>
         </div>
       </div>
 
       {/* Progress bar to next level */}
       <div className="mb-4">
         <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-          <span>Niv. {level}</span>
-          <span>Niv. {level + 1}</span>
+          <span>{t("scoreCard.levelShort")} {level}</span>
+          <span>{t("scoreCard.levelShort")} {level + 1}</span>
         </div>
         <div className="h-1.5 bg-secondary/30 rounded-full overflow-hidden">
           <motion.div initial={{ width: 0 }} animate={{ width: `${(score % 50) * 2}%` }} transition={{ duration: 1, delay: 0.5 }} className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full" />
@@ -107,7 +109,7 @@ export default function ScoreCard() {
       {/* Recent badges */}
       {badges.length > 0 && (
         <div>
-          <p className="text-[10px] text-muted-foreground mb-2">Derniers badges</p>
+          <p className="text-[10px] text-muted-foreground mb-2">{t("scoreCard.recentBadges")}</p>
           <div className="flex flex-wrap gap-2">
             {badges.map(b => (
               <div key={b.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/10 text-primary text-[10px]" title={b.description || ""}>

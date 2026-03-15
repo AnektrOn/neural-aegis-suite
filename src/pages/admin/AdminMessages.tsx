@@ -4,6 +4,7 @@ import { Send, Mail, Search, CheckCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Profile {
   id: string;
@@ -22,6 +23,7 @@ interface Message {
 
 export default function AdminMessages() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
@@ -69,7 +71,7 @@ export default function AdminMessages() {
       setSelectedUser("");
       loadData();
     } else {
-      toast.error("Erreur d'envoi");
+      toast.error(t("common.sendError"));
     }
     setSending(false);
   };
@@ -123,7 +125,7 @@ export default function AdminMessages() {
           <p className="text-neural-label flex-1">Messages envoyés ({messages.length})</p>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t("common.search")}
               className="bg-secondary/20 border border-border/20 rounded-xl pl-9 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 w-48" />
           </div>
         </div>
@@ -131,7 +133,7 @@ export default function AdminMessages() {
         {filteredMessages.length === 0 ? (
           <div className="ethereal-glass p-12 text-center">
             <Mail size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-            <p className="text-muted-foreground text-sm">Aucun message envoyé.</p>
+            <p className="text-muted-foreground text-sm">{t("common.noMessagesSent")}</p>
           </div>
         ) : (
           filteredMessages.map((msg, i) => (

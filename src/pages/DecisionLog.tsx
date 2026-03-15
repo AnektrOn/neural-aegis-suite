@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import RadialSlider from "@/components/RadialSlider";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -40,6 +41,7 @@ const formatDuration = (createdAt: string, decidedAt: string) => {
 export default function DecisionLog() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", priority: 3.0, responsibility: 5.0 });
@@ -67,8 +69,8 @@ export default function DecisionLog() {
     e.preventDefault();
     if (!user) return;
     const { error } = await supabase.from("decisions").insert({ user_id: user.id, name: form.name, priority: Math.round(form.priority), responsibility: Math.round(form.responsibility) } as any);
-    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "Décision enregistrée" }); setShowForm(false); setForm({ name: "", priority: 3.0, responsibility: 5.0 }); loadDecisions(); }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
+    else { toast({ title: t("decisions.decisionRecorded") }); setShowForm(false); setForm({ name: "", priority: 3.0, responsibility: 5.0 }); loadDecisions(); }
   };
 
   // Step 1: open confirmation modal
@@ -101,10 +103,10 @@ export default function DecisionLog() {
 
     const { error } = await supabase.from("decisions").update(updates).eq("id", confirmModal.decisionId);
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
     } else {
-      const labels: Record<string, string> = { pending: "En attente", decided: "Décidée", deferred: "Reportée" };
-      toast({ title: `Statut mis à jour: ${labels[confirmModal.targetStatus]}` });
+      const statusKey = { pending: "decisions.statusPending", decided: "decisions.statusDecided", deferred: "decisions.statusDeferred" } as const;
+      toast({ title: `${t("decisions.statusUpdated")}: ${t(statusKey[confirmModal.targetStatus as keyof typeof statusKey])}` });
     }
     setConfirmModal({ open: false, decisionId: null, decisionName: "", targetStatus: "", deferredUntil: "", createdAt: "" });
     loadDecisions();
@@ -117,40 +119,44 @@ export default function DecisionLog() {
     return new Date(d.created_at) > week;
   }).length;
 
-  const statusLabels: Record<string, string> = { pending: "En attente", decided: "Décidée", deferred: "Reportée" };
+  const statusLabels: Record<string, string> = {
+    pending: t("decisions.statusPending"),
+    decided: t("decisions.statusDecided"),
+    deferred: t("decisions.statusDeferred"),
+  };
 
   return (
     <div className="space-y-10 max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <p className="text-neural-label mb-3">Architecture Cognitive</p>
-          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Journal de Décisions</h1>
+          <p className="text-neural-label mb-3">{t("decisions.cognitiveArchitecture")}</p>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">{t("decisions.journalTitle")}</h1>
         </div>
         <button onClick={() => setShowForm(!showForm)} className="btn-neural shrink-0">
-          {showForm ? <><X size={14} /> Annuler</> : <><Plus size={14} /> Nouvelle Décision</>}
+          {showForm ? <><X size={14} /> {t("general.cancel")}</> : <><Plus size={14} /> {t("decisions.newDecision")}</>}
         </button>
       </div>
 
       {showForm && (
         <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleCreate} className="ethereal-glass p-8 space-y-5">
           <div>
-            <label className="text-neural-label block mb-2">Nom de la décision</label>
-            <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Stratégie de recrutement T3"
+            <label className="text-neural-label block mb-2">{t("decisions.decisionName")}</label>
+            <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder={t("decisions.placeholder")}
               className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
           </div>
           <div className="flex justify-center gap-6 sm:gap-12">
-            <RadialSlider value={form.priority} onChange={(v) => setForm({ ...form, priority: v })} min={0} max={5} step={0.1} size={120} label="Priorité" color="hsl(var(--neural-warm))" />
-            <RadialSlider value={form.responsibility} onChange={(v) => setForm({ ...form, responsibility: v })} min={0} max={10} step={0.1} size={120} label="Poids" color="hsl(var(--primary))" />
+            <RadialSlider value={form.priority} onChange={(v) => setForm({ ...form, priority: v })} min={0} max={5} step={0.1} size={120} label={t("decisions.priority")} color="hsl(var(--neural-warm))" />
+            <RadialSlider value={form.responsibility} onChange={(v) => setForm({ ...form, responsibility: v })} min={0} max={10} step={0.1} size={120} label={t("decisions.weight")} color="hsl(var(--primary))" />
           </div>
-          <button type="submit" className="btn-neural mx-auto"><Save size={14} /> Enregistrer</button>
+          <button type="submit" className="btn-neural mx-auto"><Save size={14} /> {t("general.save")}</button>
         </motion.form>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Total décisions", value: decisions.length, icon: Target },
-          { label: "Décisions ouvertes", value: openCount, icon: Clock },
-          { label: "Décidées cette semaine", value: decidedThisWeek, icon: ArrowUpRight },
+          { label: t("decisions.totalDecisions"), value: decisions.length, icon: Target },
+          { label: t("decisions.openDecisions"), value: openCount, icon: Clock },
+          { label: t("decisions.decidedThisWeek"), value: decidedThisWeek, icon: ArrowUpRight },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="ethereal-glass p-6">
             <stat.icon size={16} strokeWidth={1.5} className="text-primary mb-3" />
@@ -164,7 +170,7 @@ export default function DecisionLog() {
         {decisions.length === 0 && (
           <div className="ethereal-glass p-12 text-center">
             <Target size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-            <p className="text-muted-foreground text-sm">Aucune décision enregistrée.</p>
+            <p className="text-muted-foreground text-sm">{t("decisions.noDecisions")}</p>
           </div>
         )}
         {decisions.map((d, i) => (
@@ -173,46 +179,44 @@ export default function DecisionLog() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
                 <p className="text-neural-label mt-1">{new Date(d.created_at).toLocaleDateString("fr-FR")}</p>
-                {/* Show reflection time for decided */}
                 {d.status === "decided" && d.time_to_decide && (
                   <p className="text-[10px] text-primary mt-1 flex items-center gap-1">
-                    <CheckCircle2 size={10} /> Temps de réflexion : {d.time_to_decide}
+                    <CheckCircle2 size={10} /> {t("decisions.reflectionTimeLabel", { duration: d.time_to_decide })}
                   </p>
                 )}
-                {/* Show defer date */}
                 {d.status === "deferred" && (d as any).deferred_until && (
                   <p className="text-[10px] text-neural-warm mt-1 flex items-center gap-1">
-                    <CalendarClock size={10} /> Report au : {new Date((d as any).deferred_until).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                    <CalendarClock size={10} /> {t("decisions.deferredUntil", { date: new Date((d as any).deferred_until).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) })}
                   </p>
                 )}
               </div>
               <div className="hidden sm:flex gap-4 sm:gap-6">
                 <div className="text-center">
                   <p className={`text-sm font-cinzel ${priorityColor(d.priority)}`}>P{d.priority}</p>
-                  <p className="text-neural-label">Priorité</p>
+                  <p className="text-neural-label">{t("decisions.priority")}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-cinzel text-foreground">{d.time_to_decide || "—"}</p>
-                  <p className="text-neural-label">Vitesse</p>
+                  <p className="text-neural-label">{t("decisions.speed")}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
-                  <p className="text-neural-label">Poids</p>
+                  <p className="text-neural-label">{t("decisions.weight")}</p>
                 </div>
               </div>
             </div>
             <div className="flex sm:hidden gap-3 mt-3">
               <div className="text-center flex-1">
                 <p className={`text-sm font-cinzel ${priorityColor(d.priority)}`}>P{d.priority}</p>
-                <p className="text-neural-label">Priorité</p>
+                <p className="text-neural-label">{t("decisions.priority")}</p>
               </div>
               <div className="text-center flex-1">
                 <p className="text-sm font-cinzel text-foreground">{d.time_to_decide || "—"}</p>
-                <p className="text-neural-label">Vitesse</p>
+                <p className="text-neural-label">{t("decisions.speed")}</p>
               </div>
               <div className="text-center flex-1">
                 <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
-                <p className="text-neural-label">Poids</p>
+                <p className="text-neural-label">{t("decisions.weight")}</p>
               </div>
             </div>
             <div className="flex gap-1 mt-3 flex-wrap">
@@ -239,11 +243,11 @@ export default function DecisionLog() {
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
               {confirmModal.targetStatus === "decided" ? (
-                <><CheckCircle2 size={18} className="text-primary" /> Confirmer la décision</>
+                <><CheckCircle2 size={18} className="text-primary" /> {t("decisions.confirmDecision")}</>
               ) : confirmModal.targetStatus === "deferred" ? (
-                <><CalendarClock size={18} className="text-neural-warm" /> Reporter la décision</>
+                <><CalendarClock size={18} className="text-neural-warm" /> {t("decisions.deferDecision")}</>
               ) : (
-                <><AlertTriangle size={18} className="text-neural-warm" /> Remettre en attente</>
+                <><AlertTriangle size={18} className="text-neural-warm" /> {t("decisions.putBackPending")}</>
               )}
             </DialogTitle>
             <DialogDescription>
@@ -254,19 +258,19 @@ export default function DecisionLog() {
           <div className="space-y-4 py-2">
             {confirmModal.targetStatus === "decided" && (
               <div className="ethereal-glass p-4 text-center">
-                <p className="text-neural-label mb-1">Temps de réflexion</p>
+                <p className="text-neural-label mb-1">{t("decisions.reflectionTime")}</p>
                 <p className="text-xl font-cinzel text-primary">
                   {formatDuration(confirmModal.createdAt, new Date().toISOString())}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Depuis le {new Date(confirmModal.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                  {t("decisions.sinceDate", { date: new Date(confirmModal.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) })}
                 </p>
               </div>
             )}
 
             {confirmModal.targetStatus === "deferred" && (
               <div>
-                <label className="text-neural-label block mb-2">Date de report (optionnel)</label>
+                <label className="text-neural-label block mb-2">{t("decisions.deferDateOptional")}</label>
                 <input
                   type="date"
                   value={confirmModal.deferredUntil}
@@ -274,7 +278,7 @@ export default function DecisionLog() {
                   min={new Date().toISOString().split("T")[0]}
                   className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/40 transition-colors"
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">La décision reviendra dans votre dashboard à cette date.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{t("decisions.deferHint")}</p>
               </div>
             )}
 
@@ -283,13 +287,13 @@ export default function DecisionLog() {
                 onClick={() => setConfirmModal(m => ({ ...m, open: false }))}
                 className="text-[9px] uppercase tracking-[0.2em] px-4 py-2 rounded-full border border-border text-muted-foreground hover:text-foreground transition-all"
               >
-                Annuler
+                {t("general.cancel")}
               </button>
               <button
                 onClick={confirmStatusChange}
                 className="btn-neural"
               >
-                {confirmModal.targetStatus === "decided" ? "Confirmer" : confirmModal.targetStatus === "deferred" ? "Reporter" : "Confirmer"}
+                {confirmModal.targetStatus === "decided" ? t("general.confirm") : confirmModal.targetStatus === "deferred" ? t("decisions.defer") : t("general.confirm")}
               </button>
             </div>
           </div>

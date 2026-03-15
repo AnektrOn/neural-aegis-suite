@@ -73,7 +73,7 @@ export default function ExportPDFButton({ targetRef, filename = "rapport" }: Exp
     >
       <FileDown size={14} strokeWidth={1.5} />
       <span className="text-[9px] uppercase tracking-[0.3em] font-medium">
-        Export PDF
+        {t("general.exportPdf")}
       </span>
     </motion.button>
   );

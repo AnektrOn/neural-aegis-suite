@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Target, Clock, ArrowUpRight, Search, Filter, User, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface AdminDecision {
   id: string;
@@ -26,6 +27,7 @@ const statusColors: Record<string, string> = {
 
 export default function AdminDecisions() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [decisions, setDecisions] = useState<AdminDecision[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -63,7 +65,7 @@ export default function AdminDecisions() {
       }
     }
     const { error } = await supabase.from("decisions").update(updates).eq("id", id);
-    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); return; }
     toast({ title: `Statut mis à jour: ${statusLabels[status]}` });
     loadDecisions();
   };
@@ -111,7 +113,7 @@ export default function AdminDecisions() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher décision ou utilisateur..."
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("common.searchDecisionUser")}
             className="w-full pl-9 pr-4 py-2.5 bg-secondary/30 border border-border/30 rounded-xl text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40" />
         </div>
         <div className="flex gap-2">
@@ -132,7 +134,7 @@ export default function AdminDecisions() {
       ) : filtered.length === 0 ? (
         <div className="ethereal-glass p-12 text-center">
           <Target size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-muted-foreground text-sm">Aucune décision trouvée.</p>
+          <p className="text-muted-foreground text-sm">{t("common.noDecisionsFound")}</p>
         </div>
       ) : (
         <div className="space-y-3">

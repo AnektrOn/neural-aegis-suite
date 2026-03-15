@@ -4,6 +4,7 @@ import { BookOpen, Plus, Search, Tag, Trash2, Edit3, Save, X } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface JournalEntry {
   id: string;
@@ -16,11 +17,12 @@ interface JournalEntry {
 }
 
 const MOOD_EMOJIS = ["😔", "😕", "😐", "🙂", "😊"];
-const SUGGESTED_TAGS = ["réflexion", "gratitude", "défi", "victoire", "apprentissage", "idée", "stress", "énergie"];
 
 export default function Journal() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const suggestedTags = t("journal.suggestedTags").split(",").map((s) => s.trim());
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [search, setSearch] = useState("");
   const [filterTag, setFilterTag] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export default function Journal() {
         tags: form.tags,
         mood_score: form.mood_score,
       } as any).eq("id", editing);
-      toast({ title: "Entrée modifiée" });
+      toast({ title: t("journal.entryModified") });
     } else {
       await supabase.from("journal_entries").insert({
         user_id: user!.id,
@@ -59,7 +61,7 @@ export default function Journal() {
         tags: form.tags,
         mood_score: form.mood_score,
       } as any);
-      toast({ title: "Entrée ajoutée" });
+      toast({ title: t("journal.entryAdded") });
     }
     resetForm();
     loadEntries();
@@ -67,7 +69,7 @@ export default function Journal() {
 
   const deleteEntry = async (id: string) => {
     await supabase.from("journal_entries").delete().eq("id", id);
-    toast({ title: "Entrée supprimée" });
+    toast({ title: t("journal.entryDeleted") });
     loadEntries();
   };
 
@@ -101,11 +103,11 @@ export default function Journal() {
     <div className="space-y-8 max-w-4xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <p className="text-neural-label mb-1">Introspection</p>
-          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Journal</h1>
+          <p className="text-neural-label mb-1">{t("journal.introspection")}</p>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">{t("journal.title")}</h1>
         </div>
         <button onClick={() => { resetForm(); setShowNew(true); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm shrink-0 self-start sm:self-auto">
-          <Plus size={16} /> Nouvelle entrée
+          <Plus size={16} /> {t("journal.newEntry")}
         </button>
       </div>
 
@@ -113,7 +115,7 @@ export default function Journal() {
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..." className="w-full pl-9 pr-3 py-2 rounded-xl bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("journal.search")} className="w-full pl-9 pr-3 py-2 rounded-xl bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30" />
         </div>
         <div className="flex gap-1 flex-wrap">
           {allTags.map(tag => (
@@ -129,13 +131,13 @@ export default function Journal() {
         {showNew && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="ethereal-glass p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium text-foreground">{editing ? "Modifier l'entrée" : "Nouvelle entrée"}</h3>
+              <h3 className="text-sm font-medium text-foreground">{editing ? t("journal.editEntry") : t("journal.newEntryTitle")}</h3>
               <button onClick={resetForm} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
             </div>
-            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Titre (optionnel)" className="w-full px-3 py-2 rounded-lg bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30" />
-            <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Écrivez vos pensées..." rows={5} className="w-full px-3 py-2 rounded-lg bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none" />
+            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder={t("journal.titleOptional")} className="w-full px-3 py-2 rounded-lg bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30" />
+            <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder={t("journal.writeThoughts")} rows={5} className="w-full px-3 py-2 rounded-lg bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none" />
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Humeur associée</p>
+              <p className="text-xs text-muted-foreground mb-2">{t("journal.associatedMood")}</p>
               <div className="flex gap-2">
                 {MOOD_EMOJIS.map((emoji, i) => (
                   <button key={i} onClick={() => setForm(f => ({ ...f, mood_score: f.mood_score === i + 1 ? null : i + 1 }))} className={`text-xl p-1 rounded-lg transition-all ${form.mood_score === i + 1 ? "bg-primary/20 scale-110" : "opacity-50 hover:opacity-100"}`}>
@@ -145,9 +147,9 @@ export default function Journal() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Tags</p>
+              <p className="text-xs text-muted-foreground mb-2">{t("journal.tags")}</p>
               <div className="flex gap-1 flex-wrap">
-                {SUGGESTED_TAGS.map(tag => (
+                {suggestedTags.map(tag => (
                   <button key={tag} onClick={() => toggleTag(tag)} className={`px-2 py-1 rounded-lg text-xs transition-colors ${form.tags.includes(tag) ? "bg-primary/20 text-primary" : "bg-secondary/30 text-muted-foreground hover:text-foreground"}`}>
                     #{tag}
                   </button>
@@ -155,7 +157,7 @@ export default function Journal() {
               </div>
             </div>
             <button onClick={saveEntry} disabled={!form.content.trim()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm disabled:opacity-50">
-              <Save size={14} /> Enregistrer
+              <Save size={14} /> {t("general.save")}
             </button>
           </motion.div>
         )}
@@ -166,7 +168,7 @@ export default function Journal() {
         {filtered.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Aucune entrée trouvée</p>
+            <p className="text-sm">{t("journal.noEntries")}</p>
           </div>
         )}
         {filtered.map((entry, i) => (
@@ -174,7 +176,7 @@ export default function Journal() {
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-2">
                 {entry.mood_score && <span className="text-lg">{MOOD_EMOJIS[entry.mood_score - 1]}</span>}
-                <h3 className="text-sm font-medium text-foreground">{entry.title || "Sans titre"}</h3>
+                <h3 className="text-sm font-medium text-foreground">{entry.title || t("journal.noTitle")}</h3>
               </div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => startEdit(entry)} className="p-1.5 rounded-lg hover:bg-secondary/50 text-muted-foreground"><Edit3 size={13} /></button>

@@ -4,7 +4,7 @@ import { translations, Locale, TranslationKey } from "./translations";
 interface LanguageContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: TranslationKey) => string;
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | null>(null);
@@ -20,8 +20,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("app-locale", l);
   }, []);
 
-  const t = useCallback((key: TranslationKey): string => {
-    return translations[key]?.[locale] || key;
+  const t = useCallback((key: TranslationKey, params?: Record<string, string | number>): string => {
+    let str = translations[key]?.[locale] || key;
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+      });
+    }
+    return str;
   }, [locale]);
 
   return (

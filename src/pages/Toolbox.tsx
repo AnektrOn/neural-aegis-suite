@@ -4,6 +4,7 @@ import { Play, Headphones, Eye, BookOpen, Wind, Sparkles, Heart, Brain, Link as 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 import BreathworkWidget from "@/components/widgets/BreathworkWidget";
 import FocusIntrospectifWidget from "@/components/widgets/FocusIntrospectifWidget";
 import {
@@ -26,21 +27,22 @@ interface CompletionRecord {
   status: string;
 }
 
-const typeConfig: Record<string, { icon: typeof Headphones; color: string; label: string }> = {
-  meditation: { icon: Headphones, color: "text-primary", label: "Méditation" },
-  visualization: { icon: Eye, color: "text-neural-accent", label: "Visualisation" },
-  course: { icon: BookOpen, color: "text-neural-warm", label: "Formation" },
-  breathwork: { icon: Wind, color: "text-primary", label: "Breathwork" },
-  focus_introspectif: { icon: Eye, color: "text-neural-accent", label: "Focus Introspectif" },
-  body_scan: { icon: Brain, color: "text-neural-warm", label: "Body Scan" },
-  affirmations: { icon: Sparkles, color: "text-primary", label: "Affirmations" },
-  gratitude: { icon: Heart, color: "text-destructive", label: "Gratitude" },
-  external_link: { icon: LinkIcon, color: "text-muted-foreground", label: "Lien Externe" },
+const typeConfigKeys: Record<string, { icon: typeof Headphones; color: string; labelKey: TranslationKey }> = {
+  meditation: { icon: Headphones, color: "text-primary", labelKey: "toolbox.typeMeditation" },
+  visualization: { icon: Eye, color: "text-neural-accent", labelKey: "toolbox.typeVisualization" },
+  course: { icon: BookOpen, color: "text-neural-warm", labelKey: "toolbox.typeCourse" },
+  breathwork: { icon: Wind, color: "text-primary", labelKey: "toolbox.typeBreathwork" },
+  focus_introspectif: { icon: Eye, color: "text-neural-accent", labelKey: "toolbox.typeFocusIntrospectif" },
+  body_scan: { icon: Brain, color: "text-neural-warm", labelKey: "toolbox.typeBodyScan" },
+  affirmations: { icon: Sparkles, color: "text-primary", labelKey: "toolbox.typeAffirmations" },
+  gratitude: { icon: Heart, color: "text-destructive", labelKey: "toolbox.typeGratitude" },
+  external_link: { icon: LinkIcon, color: "text-muted-foreground", labelKey: "toolbox.typeExternalLink" },
 };
 
 export default function Toolbox() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [items, setItems] = useState<ToolboxItem[]>([]);
   const [completions, setCompletions] = useState<CompletionRecord[]>([]);
   const [activeWidget, setActiveWidget] = useState<string | null>(null);
@@ -107,19 +109,18 @@ export default function Toolbox() {
     } as any);
 
     if (!error) {
-      const labels: Record<string, string> = { completed: "Exercice terminé ✦", abandoned: "Exercice abandonné" };
+      const labels: Record<string, string> = { completed: t("toolbox.exerciseCompleted"), abandoned: t("toolbox.exerciseAbandoned") };
       setCompletionDialog({ open: true, itemId: assignmentId, status });
       toast({ title: labels[status] });
       loadData();
     }
-  }, [user]);
+  }, [user, t]);
 
   // Reload an abandoned tool = clear the "reloaded" flag so user can retry
   // We DON'T delete the old completion — we just allow a new attempt
   const handleReload = (itemId: string) => {
-    // Mark this item as "retrying" by setting it as active widget
     setActiveWidget(itemId);
-    toast({ title: "Outil rechargé", description: "Vous pouvez réessayer cet exercice." });
+    toast({ title: t("toolbox.toolReloaded"), description: t("toolbox.reloadHint") });
   };
 
   const handleCloseWidget = useCallback((itemId: string) => {
@@ -129,9 +130,9 @@ export default function Toolbox() {
   const filtered = filter === "all" ? items : items.filter((i) => i.content_type === filter);
   const types = ["all", ...new Set(items.map((i) => i.content_type))];
 
-  const getTypeLabel = (t: string) => {
-    if (t === "all") return "Tout";
-    return typeConfig[t]?.label || t;
+  const getTypeLabel = (type: string) => {
+    if (type === "all") return t("toolbox.filterAll");
+    return typeConfigKeys[type] ? t(typeConfigKeys[type].labelKey) : type;
   };
 
   const renderWidget = (item: ToolboxItem) => {
@@ -166,18 +167,18 @@ export default function Toolbox() {
   return (
     <div className="space-y-10 max-w-5xl">
       <div>
-        <p className="text-neural-label mb-3">Bibliothèque Neurale</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Boîte à Outils</h1>
+        <p className="text-neural-label mb-3">{t("toolbox.neuralLibrary")}</p>
+        <h1 className="text-neural-title text-3xl text-foreground">{t("toolbox.title")}</h1>
       </div>
 
       {/* Stats bar */}
       {items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total", value: allCompletionStats.total, icon: Headphones, color: "text-muted-foreground" },
-            { label: "Terminés", value: allCompletionStats.completed, icon: CheckCircle2, color: "text-primary" },
-            { label: "Abandonnés", value: allCompletionStats.abandoned, icon: XCircle, color: "text-destructive" },
-            { label: "Ignorés", value: allCompletionStats.ignored, icon: EyeOff, color: "text-muted-foreground" },
+            { label: t("toolbox.total"), value: allCompletionStats.total, icon: Headphones, color: "text-muted-foreground" },
+            { label: t("toolbox.completed"), value: allCompletionStats.completed, icon: CheckCircle2, color: "text-primary" },
+            { label: t("toolbox.abandoned"), value: allCompletionStats.abandoned, icon: XCircle, color: "text-destructive" },
+            { label: t("toolbox.ignored"), value: allCompletionStats.ignored, icon: EyeOff, color: "text-muted-foreground" },
           ].map((s) => (
             <div key={s.label} className="ethereal-glass p-4 text-center">
               <s.icon size={16} strokeWidth={1.5} className={`${s.color} mx-auto mb-2`} />
@@ -209,7 +210,7 @@ export default function Toolbox() {
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
             <div className="flex justify-between items-start mb-4">
               <span className="text-neural-label">{getTypeLabel(item.content_type)}</span>
-              <button onClick={() => handleCloseWidget(item.id)} className="text-muted-foreground hover:text-foreground text-xs">Fermer ✕</button>
+              <button onClick={() => handleCloseWidget(item.id)} className="text-muted-foreground hover:text-foreground text-xs">{t("toolbox.close")}</button>
             </div>
             {widget}
           </motion.div>
@@ -219,12 +220,12 @@ export default function Toolbox() {
       {filtered.length === 0 ? (
         <div className="ethereal-glass p-12 text-center">
           <Headphones size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-muted-foreground text-sm">Aucun contenu assigné. Votre coach vous assignera des outils depuis le panneau admin.</p>
+          <p className="text-muted-foreground text-sm">{t("toolbox.noContentAssigned")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((item, i) => {
-            const cfg = typeConfig[item.content_type] || typeConfig.course;
+            const cfg = typeConfigKeys[item.content_type] || typeConfigKeys.course;
             const hasWidget = ["breathwork", "focus_introspectif"].includes(item.content_type);
             const isExternal = item.content_type === "external_link" && item.external_url;
             const latestCompletion = getLatestCompletion(item.id);
@@ -245,41 +246,39 @@ export default function Toolbox() {
                         isAbandoned ? "text-destructive border-destructive/30 bg-destructive/5" :
                         "text-muted-foreground border-border bg-secondary/20"
                       }`}>
-                        {isCompleted ? "Terminé" : isAbandoned ? "Abandonné" : "Ignoré"}
+                        {isCompleted ? t("toolbox.completed") : isAbandoned ? t("toolbox.abandoned") : t("toolbox.ignored")}
                       </span>
                     )}
                     <span className="text-neural-label">{item.duration || "—"}</span>
                   </div>
                 </div>
                 <p className="text-sm font-medium text-foreground mb-2">{item.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || cfg.label}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || (typeConfigKeys[item.content_type] ? t(typeConfigKeys[item.content_type].labelKey) : "")}</p>
 
                 <div className="mt-4 flex items-center gap-3">
-                  {/* Not yet attempted or currently active */}
                   {(!latestCompletion || isActive) && !isIgnored ? (
                     hasWidget ? (
                       <button onClick={() => setActiveWidget(isActive ? null : item.id)}
                         className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
-                        <Play size={12} /> {isActive ? "En cours" : "Lancer"}
+                        <Play size={12} /> {isActive ? t("toolbox.inProgress") : t("toolbox.launch")}
                       </button>
                     ) : isExternal ? (
                       <a href={item.external_url!} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
-                        <ExternalLink size={12} /> Ouvrir
+                        <ExternalLink size={12} /> {t("toolbox.openLink")}
                       </a>
                     ) : (
                       <button onClick={() => setActiveWidget(item.id)}
                         className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
-                        <Play size={12} /> Lancer
+                        <Play size={12} /> {t("toolbox.launch")}
                       </button>
                     )
                   ) : null}
 
-                  {/* Reload button for abandoned items only (not ignored) */}
                   {isAbandoned && !isActive && (
                     <button onClick={() => handleReload(item.id)}
                       className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent hover:text-foreground transition-colors">
-                      <RotateCcw size={12} /> Recharger
+                      <RotateCcw size={12} /> {t("toolbox.reload")}
                     </button>
                   )}
                 </div>
@@ -296,14 +295,14 @@ export default function Toolbox() {
             <DialogTitle className="text-foreground text-center">
               {completionDialog.status === "completed" ? (
                 <span className="flex items-center justify-center gap-2">
-                  <CheckCircle2 size={20} className="text-primary" /> Exercice terminé
+                  <CheckCircle2 size={20} className="text-primary" /> {t("toolbox.exerciseCompleted")}
                 </span>
               ) : completionDialog.status === "abandoned" ? (
                 <span className="flex items-center justify-center gap-2">
-                  <XCircle size={20} className="text-destructive" /> Exercice abandonné
+                  <XCircle size={20} className="text-destructive" /> {t("toolbox.exerciseAbandoned")}
                 </span>
               ) : (
-                "Statut mis à jour"
+                t("toolbox.statusUpdated")
               )}
             </DialogTitle>
             <DialogDescription className="text-center">
@@ -314,22 +313,22 @@ export default function Toolbox() {
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
                 <p className="text-lg font-cinzel text-primary">{allCompletionStats.completed}</p>
-                <p className="text-neural-label">Terminés</p>
+                <p className="text-neural-label">{t("toolbox.completed")}</p>
               </div>
               <div>
                 <p className="text-lg font-cinzel text-destructive">{allCompletionStats.abandoned}</p>
-                <p className="text-neural-label">Abandonnés</p>
+                <p className="text-neural-label">{t("toolbox.abandoned")}</p>
               </div>
               <div>
                 <p className="text-lg font-cinzel text-muted-foreground">{allCompletionStats.ignored}</p>
-                <p className="text-neural-label">Ignorés</p>
+                <p className="text-neural-label">{t("toolbox.ignored")}</p>
               </div>
             </div>
             <button
               onClick={() => setCompletionDialog({ open: false, itemId: null, status: "" })}
               className="mt-4 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors"
             >
-              Fermer
+              {t("general.close")}
             </button>
           </div>
         </DialogContent>

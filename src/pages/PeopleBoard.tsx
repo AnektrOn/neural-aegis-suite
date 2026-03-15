@@ -9,6 +9,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import NeuralMap from "@/components/NeuralMap";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Person {
   id: string;
@@ -38,14 +39,14 @@ const periodDays: Record<Period, number> = {
   "1d": 1, "7d": 7, "30d": 30, "90d": 90, quarter: 90, semester: 180, year: 365,
 };
 
-const periodLabels: Record<Period, string> = {
-  "1d": "Jour", "7d": "7 jours", "30d": "30 jours", "90d": "90 jours",
-  quarter: "Trimestre", semester: "Semestre", year: "Année",
-};
-
 export default function PeopleBoard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const periodLabels: Record<Period, string> = {
+    "1d": t("people.periodDay"), "7d": t("people.period7d"), "30d": t("people.period30d"), "90d": t("people.period90d"),
+    quarter: t("people.periodQuarter"), semester: t("people.periodSemester"), year: t("people.periodYear"),
+  };
   const [view, setView] = useState<"neural" | "card">("card");
   const [people, setPeople] = useState<Person[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -79,8 +80,8 @@ export default function PeopleBoard() {
     e.preventDefault();
     if (!user) return;
     const { error } = await supabase.from("people_contacts").insert({ user_id: user.id, name: form.name, role: form.role || null, quality: form.quality, insight: form.insight || null } as any);
-    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "Contact ajouté" }); setShowForm(false); setForm({ name: "", role: "", quality: 7, insight: "" }); loadPeople(); }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
+    else { toast({ title: t("people.contactAdded") }); setShowForm(false); setForm({ name: "", role: "", quality: 7, insight: "" }); loadPeople(); }
   };
 
   const handleDelete = async (id: string) => {
@@ -121,9 +122,9 @@ export default function PeopleBoard() {
         })());
       }
     }
-    if (updates.length === 0) { toast({ title: "Aucun changement à enregistrer" }); return; }
+    if (updates.length === 0) { toast({ title: t("common.noChangesToSave") }); return; }
     await Promise.all(updates);
-    toast({ title: `${updates.length} relation(s) mise(s) à jour` });
+    toast({ title: t("people.relationsUpdated", { count: updates.length }) });
     setHasUnsavedChanges(false);
     setLocalNotes({});
     loadPeople();
@@ -170,17 +171,17 @@ export default function PeopleBoard() {
     <div className="space-y-10 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <p className="text-neural-label mb-3">Intelligence Relationnelle</p>
-          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Tableau des Relations</h1>
+          <p className="text-neural-label mb-3">{t("people.relationalIntelligence")}</p>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">{t("people.boardTitle")}</h1>
         </div>
         <div className="flex gap-2 items-center">
           {hasUnsavedChanges && (
             <button onClick={saveAllChanges} className="btn-neural shrink-0 animate-pulse">
-              <Send size={14} /> Envoyer
+              <Send size={14} /> {t("people.send")}
             </button>
           )}
           <button onClick={() => setShowForm(!showForm)} className="btn-neural shrink-0">
-            {showForm ? <><X size={14} /> Annuler</> : <><Plus size={14} /> Ajouter</>}
+            {showForm ? <><X size={14} /> {t("general.cancel")}</> : <><Plus size={14} /> {t("common.add")}</>}
           </button>
           <button onClick={() => setView("neural")} className={`p-2.5 rounded-xl border transition-all ${view === "neural" ? "border-primary/30 bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>
             <Network size={16} strokeWidth={1.5} />
@@ -195,15 +196,15 @@ export default function PeopleBoard() {
         <div className="grid grid-cols-3 gap-3">
           <div className="ethereal-glass p-4 text-center">
             <p className="text-xl font-cinzel text-foreground">{avgQuality}</p>
-            <p className="text-neural-label mt-0.5">Moyenne</p>
+            <p className="text-neural-label mt-0.5">{t("people.average")}</p>
           </div>
           <div className="ethereal-glass p-4 text-center">
             <p className="text-xl font-cinzel text-primary">{highCount}</p>
-            <p className="text-neural-label mt-0.5">Excellentes (≥8)</p>
+            <p className="text-neural-label mt-0.5">{t("people.excellent")}</p>
           </div>
           <div className="ethereal-glass p-4 text-center">
             <p className="text-xl font-cinzel text-destructive">{lowCount}</p>
-            <p className="text-neural-label mt-0.5">À surveiller (&lt;5)</p>
+            <p className="text-neural-label mt-0.5">{t("people.watch")}</p>
           </div>
         </div>
       )}
@@ -212,26 +213,26 @@ export default function PeopleBoard() {
         <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleCreate} className="ethereal-glass p-8 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="text-neural-label block mb-2">Nom</label>
+              <label className="text-neural-label block mb-2">{t("people.name")}</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Sarah Chen"
                 className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
             </div>
             <div>
-              <label className="text-neural-label block mb-2">Poste</label>
+              <label className="text-neural-label block mb-2">{t("people.role")}</label>
               <input type="text" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="Directeur des opérations"
                 className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
             </div>
           </div>
           <div>
-            <label className="text-neural-label block mb-2">Qualité de la relation ({form.quality}/10)</label>
+            <label className="text-neural-label block mb-2">{t("people.qualityLabel", { value: form.quality })}</label>
             <input type="range" min={1} max={10} value={form.quality} onChange={(e) => setForm({ ...form, quality: parseInt(e.target.value) })} className="w-full" />
           </div>
           <div>
-            <label className="text-neural-label block mb-2">Observation</label>
+            <label className="text-neural-label block mb-2">{t("people.observation")}</label>
             <input type="text" value={form.insight} onChange={(e) => setForm({ ...form, insight: e.target.value })} placeholder="Observations clés sur la relation..."
               className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
           </div>
-          <button type="submit" className="btn-neural"><Save size={14} /> Ajouter le contact</button>
+          <button type="submit" className="btn-neural"><Save size={14} /> {t("common.addContact")}</button>
         </motion.form>
       )}
 
@@ -240,7 +241,7 @@ export default function PeopleBoard() {
       ) : people.length === 0 ? (
         <div className="ethereal-glass p-12 text-center">
           <Users size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-muted-foreground text-sm">Aucun contact. Ajoutez les personnes clés de votre réseau.</p>
+          <p className="text-muted-foreground text-sm">{t("common.noContactsHint")}</p>
         </div>
       ) : view === "neural" ? (
         <NeuralMap people={people} onPersonClick={openHistory} />
@@ -340,7 +341,7 @@ export default function PeopleBoard() {
             ) : (
               <div className="flex items-center justify-center h-full">
                 <p className="text-muted-foreground text-sm text-center">
-                  {chartData.length === 1 ? "Un seul point de donnée." : "Aucune donnée sur cette période."}
+                  {chartData.length === 1 ? t("common.singleDataPoint") : t("common.noDataForPeriod")}
                 </p>
               </div>
             )}

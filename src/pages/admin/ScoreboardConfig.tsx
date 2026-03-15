@@ -108,7 +108,7 @@ export default function ScoreboardConfig() {
     if (inserts.length > 0) {
       const { error } = await supabase.from("scoreboard_criteria" as any).insert(inserts as any);
       if (error) {
-        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+        toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
         setSaving(false);
         return;
       }
@@ -221,7 +221,7 @@ export default function ScoreboardConfig() {
 
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
         <button onClick={addCriteria} className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors">
-          <Plus size={14} /> Ajouter un critère
+          <Plus size={14} /> {t("common.addCriterion")}
         </button>
         <div className="flex items-center gap-4">
           <span className="text-neural-label">Score max: <strong className="text-foreground">{totalPoints} pts</strong></span>

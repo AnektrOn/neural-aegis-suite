@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Trophy, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface BreakdownItem {
   criteria_id: string;
@@ -14,6 +15,7 @@ interface BreakdownItem {
 
 export default function ScoreboardWidget() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [score, setScore] = useState<{ total: number; max: number; breakdown: BreakdownItem[] } | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -63,9 +65,9 @@ export default function ScoreboardWidget() {
         <div className="flex items-center gap-3">
           <Trophy size={18} className="text-primary" />
           <div>
-            <p className="text-neural-label text-left">Scoreboard d'hier</p>
+            <p className="text-neural-label text-left">{t("scoreboard.yesterday")}</p>
             <p className={`text-2xl font-cinzel ${color}`}>
-              {score.total}/{score.max} <span className="text-sm text-muted-foreground">pts</span>
+              {score.total}/{score.max} <span className="text-sm text-muted-foreground">{t("scoreboard.pts")}</span>
             </p>
           </div>
         </div>
@@ -104,7 +106,7 @@ export default function ScoreboardWidget() {
                 <span className="text-sm text-foreground">{item.label}</span>
               </div>
               <span className={`text-xs font-cinzel ${item.met ? "text-emerald-500" : "text-muted-foreground"}`}>
-                {item.earned}/{item.max} pts
+                {item.earned}/{item.max} {t("scoreboard.pts")}
               </span>
             </div>
           ))}
