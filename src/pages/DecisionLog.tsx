@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import RadialSlider from "@/components/RadialSlider";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -42,6 +43,7 @@ export default function DecisionLog() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", priority: 3.0, responsibility: 5.0 });
@@ -125,111 +127,165 @@ export default function DecisionLog() {
     deferred: t("decisions.statusDeferred"),
   };
 
+  // Mobile: compact status pill labels
+  const mobileStatusLabels: Record<string, string> = {
+    pending: "En attente",
+    decided: "✓ Décidée",
+    deferred: "Reporter",
+  };
+
+  const mobileStatusStyle = (s: string, isActive: boolean) => {
+    if (!isActive) return "text-muted-foreground/30 border-transparent hover:border-border/20";
+    if (s === "decided") return "text-primary border-primary/20 bg-primary/5";
+    if (s === "pending") return "text-amber-400 border-amber-400/20 bg-amber-400/5";
+    return "text-muted-foreground border-border bg-muted/20";
+  };
+
   return (
-    <div className="space-y-10 max-w-5xl">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <p className="text-neural-label mb-3">{t("decisions.cognitiveArchitecture")}</p>
-          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">{t("decisions.journalTitle")}</h1>
-        </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-neural shrink-0">
+    <div className={isMobile ? "space-y-3 max-w-full pb-6 pt-2" : "space-y-10 max-w-5xl"}>
+      {/* Header */}
+      <div className={`flex ${isMobile ? "items-center" : "flex-col sm:flex-row sm:items-start"} justify-between gap-3`}>
+        {!isMobile && (
+          <div>
+            <p className="text-neural-label mb-3">{t("decisions.cognitiveArchitecture")}</p>
+            <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">{t("decisions.journalTitle")}</h1>
+          </div>
+        )}
+        {isMobile && (
+          <div>
+            <p className="text-[8px] text-muted-foreground/40 tracking-[0.2em] uppercase mb-0.5">{t("decisions.cognitiveArchitecture")}</p>
+            <h1 className="text-neural-title text-xl text-foreground">{t("decisions.journalTitle")}</h1>
+          </div>
+        )}
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className={isMobile
+            ? "w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-accent/30 text-accent/70 text-xs tracking-widest uppercase hover:bg-accent/5 transition-colors"
+            : "btn-neural shrink-0"
+          }
+        >
           {showForm ? <><X size={14} /> {t("general.cancel")}</> : <><Plus size={14} /> {t("decisions.newDecision")}</>}
         </button>
       </div>
 
       {showForm && (
-        <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleCreate} className="ethereal-glass p-8 space-y-5">
+        <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleCreate} className="ethereal-glass p-5 sm:p-8 space-y-5">
           <div>
             <label className="text-neural-label block mb-2">{t("decisions.decisionName")}</label>
             <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder={t("decisions.placeholder")}
               className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
           </div>
           <div className="flex justify-center gap-6 sm:gap-12">
-            <RadialSlider value={form.priority} onChange={(v) => setForm({ ...form, priority: v })} min={0} max={5} step={0.1} size={120} label={t("decisions.priority")} color="hsl(var(--neural-warm))" />
-            <RadialSlider value={form.responsibility} onChange={(v) => setForm({ ...form, responsibility: v })} min={0} max={10} step={0.1} size={120} label={t("decisions.weight")} color="hsl(var(--primary))" />
+            <RadialSlider value={form.priority} onChange={(v) => setForm({ ...form, priority: v })} min={0} max={5} step={0.1} size={isMobile ? 100 : 120} label={t("decisions.priority")} color="hsl(var(--neural-warm))" />
+            <RadialSlider value={form.responsibility} onChange={(v) => setForm({ ...form, responsibility: v })} min={0} max={10} step={0.1} size={isMobile ? 100 : 120} label={t("decisions.weight")} color="hsl(var(--primary))" />
           </div>
           <button type="submit" className="btn-neural mx-auto"><Save size={14} /> {t("general.save")}</button>
         </motion.form>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: t("decisions.totalDecisions"), value: decisions.length, icon: Target },
-          { label: t("decisions.openDecisions"), value: openCount, icon: Clock },
-          { label: t("decisions.decidedThisWeek"), value: decidedThisWeek, icon: ArrowUpRight },
-        ].map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="ethereal-glass p-6">
-            <stat.icon size={16} strokeWidth={1.5} className="text-primary mb-3" />
-            <p className="text-2xl font-cinzel font-light text-foreground">{stat.value}</p>
-            <p className="text-neural-label mt-1">{stat.label}</p>
-          </motion.div>
-        ))}
-      </div>
+      {/* Stats row — hidden on mobile to save space */}
+      {!isMobile && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { label: t("decisions.totalDecisions"), value: decisions.length, icon: Target },
+            { label: t("decisions.openDecisions"), value: openCount, icon: Clock },
+            { label: t("decisions.decidedThisWeek"), value: decidedThisWeek, icon: ArrowUpRight },
+          ].map((stat, i) => (
+            <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="ethereal-glass p-6">
+              <stat.icon size={16} strokeWidth={1.5} className="text-primary mb-3" />
+              <p className="text-2xl font-cinzel font-light text-foreground">{stat.value}</p>
+              <p className="text-neural-label mt-1">{stat.label}</p>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
-      <div className="space-y-3">
+      {/* Mobile mini stats */}
+      {isMobile && (
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: "Total", value: decisions.length },
+            { label: "Ouvertes", value: openCount },
+            { label: "Cette semaine", value: decidedThisWeek },
+          ].map((s) => (
+            <div key={s.label} className="ethereal-glass p-2.5 text-center">
+              <p className="text-base font-cinzel text-foreground">{s.value}</p>
+              <p className="text-[8px] text-muted-foreground/50 uppercase tracking-widest mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Decision list */}
+      <div className="space-y-2">
         {decisions.length === 0 && (
-          <div className="ethereal-glass p-12 text-center">
-            <Target size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
+          <div className={`ethereal-glass ${isMobile ? "p-8" : "p-12"} text-center`}>
+            <Target size={isMobile ? 24 : 32} strokeWidth={1} className="mx-auto mb-3 text-muted-foreground/30" />
             <p className="text-muted-foreground text-sm">{t("decisions.noDecisions")}</p>
           </div>
         )}
         {decisions.map((d, i) => (
-          <motion.div key={d.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }} className="ethereal-glass p-4 sm:p-6">
-            <div className="flex items-center gap-4 sm:gap-6">
+          <motion.div
+            key={d.id}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.04 }}
+            className="ethereal-glass p-3 sm:p-6"
+          >
+            {/* Name row */}
+            <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
-                <p className="text-neural-label mt-1">{new Date(d.created_at).toLocaleDateString("fr-FR")}</p>
-                {d.status === "decided" && d.time_to_decide && (
-                  <p className="text-[10px] text-primary mt-1 flex items-center gap-1">
-                    <CheckCircle2 size={10} /> {t("decisions.reflectionTimeLabel", { duration: d.time_to_decide })}
-                  </p>
-                )}
-                {d.status === "deferred" && (d as any).deferred_until && (
-                  <p className="text-[10px] text-neural-warm mt-1 flex items-center gap-1">
-                    <CalendarClock size={10} /> {t("decisions.deferredUntil", { date: new Date((d as any).deferred_until).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) })}
-                  </p>
-                )}
-              </div>
-              <div className="hidden sm:flex gap-4 sm:gap-6">
-                <div className="text-center">
-                  <p className={`text-sm font-cinzel ${priorityColor(d.priority)}`}>P{d.priority}</p>
-                  <p className="text-neural-label">{t("decisions.priority")}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-cinzel text-foreground">{d.time_to_decide || "—"}</p>
-                  <p className="text-neural-label">{t("decisions.speed")}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
-                  <p className="text-neural-label">{t("decisions.weight")}</p>
+                <p className={`text-sm font-medium truncate ${d.status === "decided" ? "line-through text-muted-foreground/40" : "text-foreground"}`}>
+                  {d.name}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <p className="text-[9px] text-muted-foreground/40">{new Date(d.created_at).toLocaleDateString("fr-FR")}</p>
+                  <span className={`text-[9px] font-medium ${priorityColor(d.priority)}`}>P{d.priority}</span>
+                  {d.status === "decided" && d.time_to_decide && (
+                    <p className="text-[9px] text-primary flex items-center gap-1">
+                      <CheckCircle2 size={9} /> {d.time_to_decide}
+                    </p>
+                  )}
+                  {d.status === "deferred" && (d as any).deferred_until && (
+                    <p className="text-[9px] text-neural-warm flex items-center gap-1">
+                      <CalendarClock size={9} /> {new Date((d as any).deferred_until).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    </p>
+                  )}
                 </div>
               </div>
+              {/* Desktop meta */}
+              {!isMobile && (
+                <div className="hidden sm:flex gap-6">
+                  <div className="text-center">
+                    <p className="text-sm font-cinzel text-foreground">{d.time_to_decide || "—"}</p>
+                    <p className="text-neural-label">{t("decisions.speed")}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
+                    <p className="text-neural-label">{t("decisions.weight")}</p>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="flex sm:hidden gap-3 mt-3">
-              <div className="text-center flex-1">
-                <p className={`text-sm font-cinzel ${priorityColor(d.priority)}`}>P{d.priority}</p>
-                <p className="text-neural-label">{t("decisions.priority")}</p>
-              </div>
-              <div className="text-center flex-1">
-                <p className="text-sm font-cinzel text-foreground">{d.time_to_decide || "—"}</p>
-                <p className="text-neural-label">{t("decisions.speed")}</p>
-              </div>
-              <div className="text-center flex-1">
-                <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
-                <p className="text-neural-label">{t("decisions.weight")}</p>
-              </div>
-            </div>
-            <div className="flex gap-1 mt-3 flex-wrap">
+
+            {/* Status pills */}
+            <div className="flex gap-1 mt-2.5 flex-wrap">
               {(["pending", "decided", "deferred"] as const).map((s) => (
-                <button key={s} onClick={() => requestStatusChange(d, s)}
-                  className={`text-[8px] uppercase tracking-[0.2em] px-2 py-1 rounded-full border transition-all ${
-                    d.status === s
-                      ? s === "decided" ? "text-primary border-primary/20 bg-primary/5"
-                        : s === "pending" ? "text-neural-warm border-neural-warm/20 bg-neural-warm/5"
-                        : "text-muted-foreground border-border bg-muted/20"
-                      : "text-muted-foreground/40 border-transparent hover:border-border/30"
-                  }`}>
-                  {statusLabels[s]}
+                <button
+                  key={s}
+                  onClick={() => requestStatusChange(d, s)}
+                  aria-label={`Marquer comme ${statusLabels[s]}`}
+                  className={`text-[8px] uppercase tracking-[0.18em] px-2 py-1 rounded-full border transition-all ${
+                    isMobile
+                      ? mobileStatusStyle(s, d.status === s)
+                      : d.status === s
+                        ? s === "decided" ? "text-primary border-primary/20 bg-primary/5"
+                          : s === "pending" ? "text-neural-warm border-neural-warm/20 bg-neural-warm/5"
+                          : "text-muted-foreground border-border bg-muted/20"
+                        : "text-muted-foreground/40 border-transparent hover:border-border/30"
+                  }`}
+                >
+                  {isMobile ? mobileStatusLabels[s] : statusLabels[s]}
                 </button>
               ))}
             </div>
