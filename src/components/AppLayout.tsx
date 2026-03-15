@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSessionTracking } from "@/hooks/use-session-tracking";
@@ -103,61 +103,163 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
   useSessionTracking();
   useHesitationTracking();
 
   if (isMobile) {
     const avatarInitial = (user?.email ?? "?")[0].toUpperCase();
-    const dateStr = new Date().toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+    const dateStr = new Date().toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
+
+    const sheetRoutes = [
+      { to: "/people", icon: Users, label: "Réseau" },
+      { to: "/analytics", icon: BarChart3, label: "Analytics" },
+      { to: "/calendar", icon: CalendarDays, label: "Calendrier" },
+      { to: "/toolbox", icon: Headphones, label: "Toolbox" },
+      { to: "/mood", icon: Brain, label: "Humeur" },
+      { to: "/profile", icon: UserCircle, label: "Profil" },
+      ...(isAdmin ? [{ to: "/admin", icon: Shield, label: "Admin" }] : []),
+    ];
+
+    // Pull-to-refresh
+    const [refreshing, setRefreshing] = useState(false);
+    const touchStartY = useRef(0);
+    const handleTouchStart = (e: React.TouchEvent) => {
+      touchStartY.current = e.touches[0].clientY;
+    };
+    const handleTouchEnd = (e: React.TouchEvent) => {
+      const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+      const scrollTop = (e.currentTarget as HTMLElement).scrollTop;
+      if (deltaY > 80 && scrollTop <= 0 && !refreshing) {
+        setRefreshing(true);
+        window.dispatchEvent(new CustomEvent("aegis:refresh"));
+        setTimeout(() => setRefreshing(false), 1000);
+      }
+    };
 
     return (
-      <div className="min-h-screen w-full relative z-10">
-        {/* Minimal top bar */}
-        <div className="fixed top-0 left-0 right-0 z-50 ghost-sidebar flex items-center justify-between px-4 py-3">
-          <img src={aegisLogo} alt="Aegis" className="w-7 h-7 rounded-lg object-contain" />
-          <p className="text-[10px] text-muted-foreground/50 tracking-[0.2em] uppercase">{dateStr}</p>
+      <div className="min-h-screen w-full relative z-10 flex flex-col">
+        {/* ── TOP BAR ── */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50 ghost-sidebar flex items-center justify-between px-4"
+          style={{ paddingTop: "calc(0.75rem + var(--safe-top))", paddingBottom: "0.75rem" }}
+        >
+          {/* Logo only — date removed (shown in greeting in Dashboard) */}
+          <div className="flex items-center gap-2.5">
+            <img src={aegisLogo} alt="Aegis" className="w-8 h-8 rounded-lg object-contain" />
+          </div>
+          {/* Centered date */}
+          <span className="text-[10px] text-muted-foreground/50 tracking-[0.15em] uppercase absolute left-1/2 -translate-x-1/2">
+            {dateStr}
+          </span>
+          {/* Right: notif + avatar */}
           <div className="flex items-center gap-2">
             <NotificationBell />
-            <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <span className="text-[10px] text-primary font-medium">{avatarInitial}</span>
-            </div>
+            <Link
+              to="/profile"
+              className="w-8 h-8 rounded-full bg-primary/10 border border-primary/25
+                flex items-center justify-center text-primary text-[11px] font-medium
+                active:scale-95 transition-all"
+              style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+            >
+              {avatarInitial}
+            </Link>
           </div>
         </div>
 
-        <main className="pt-14 px-4 pb-24 min-h-screen">
-          <motion.div key={location.pathname} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        {/* ── CONTENT ── */}
+        <main
+          className="flex-1 px-4 overflow-y-auto scroll-fade-bottom"
+          style={{
+            paddingTop: "calc(3.25rem + var(--safe-top))",
+            paddingBottom: "calc(5rem + var(--safe-bottom))",
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          {refreshing && (
+            <div className="flex justify-center py-2">
+              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </div>
+          )}
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+          >
             {children}
           </motion.div>
         </main>
 
-        {/* Bottom navigation */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 ghost-sidebar border-t border-border/20">
-          <div className="flex items-center justify-around pt-2 pb-4">
+        {/* ── BOTTOM NAV ── */}
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 ghost-sidebar border-t border-border/30"
+          style={{ paddingBottom: "var(--safe-bottom)" }}
+        >
+          <div className="flex items-center justify-around px-2 pt-2 pb-1">
             {bottomNavTabs.map((tab) => {
               const isActive = location.pathname === tab.to;
               return (
                 <NavLink
                   key={tab.to}
                   to={tab.to}
-                  className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
-                    isActive ? "bg-primary/10 text-primary" : "text-muted-foreground/40"
+                  className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-[52px] ${
+                    isActive ? "bg-primary/10" : ""
                   }`}
                 >
-                  <tab.icon size={20} strokeWidth={1.5} />
-                  <span className="text-[9px] tracking-widest uppercase">{tab.label}</span>
+                  <tab.icon
+                    size={isActive ? 20 : 18}
+                    strokeWidth={isActive ? 2 : 1.5}
+                    className={`transition-all duration-200 ${isActive ? "text-primary" : "text-muted-foreground/40"}`}
+                  />
+                  <span className={`text-[10px] transition-colors duration-200 ${isActive ? "text-primary font-medium" : "text-muted-foreground/40"}`}>
+                    {tab.label}
+                  </span>
                 </NavLink>
               );
             })}
+
+            {/* "Plus" tab */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
-                <button className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-muted-foreground/40 transition-all">
-                  <MoreHorizontal size={20} strokeWidth={1.5} />
-                  <span className="text-[9px] tracking-widest uppercase">Plus</span>
+                <button className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl min-w-[52px]">
+                  <MoreHorizontal size={18} strokeWidth={1.5} className="text-muted-foreground/40" />
+                  <span className="text-[10px] text-muted-foreground/40">Plus</span>
                 </button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[260px] p-0 py-6 ghost-sidebar border-r-0">
-                <SidebarContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
+              <SheetContent
+                side="bottom"
+                className="rounded-t-3xl p-0 ghost-sidebar border-t border-primary/10"
+                style={{ paddingBottom: "calc(1.5rem + var(--safe-bottom))" }}
+              >
+                <div className="px-6 pt-3 pb-6">
+                  <div className="w-10 h-1 bg-border/50 rounded-full mx-auto mb-6" />
+                  <div className="grid grid-cols-3 gap-3">
+                    {sheetRoutes.map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setMobileOpen(false)}
+                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                      >
+                        <item.icon size={20} strokeWidth={1.5} className="text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground tracking-wider uppercase">{item.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/20">
+                    <ThemeToggle collapsed={false} />
+                    <button
+                      onClick={signOut}
+                      className="flex items-center gap-2 text-destructive/70 hover:text-destructive transition-colors"
+                    >
+                      <LogOut size={16} />
+                      <span className="text-xs">Déconnexion</span>
+                    </button>
+                  </div>
+                </div>
               </SheetContent>
             </Sheet>
           </div>

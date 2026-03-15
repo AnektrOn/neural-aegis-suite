@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Zap, Brain, Target, TrendingUp, TrendingDown, Minus,
-  Calendar, ChevronRight,
+  Calendar, ArrowUpRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,107 +35,231 @@ interface Person {
   insight: string | null;
 }
 
+interface MobileHabit {
+  id: string;
+  name: string;
+  category: string;
+  completed: boolean;
+}
+
+const priorityBadge = (p: number): { label: string; cls: string } => {
+  if (p >= 5) return { label: "P" + p, cls: "bg-red-500/10 text-red-400 border border-red-500/20" };
+  if (p >= 3) return { label: "P" + p, cls: "bg-amber-500/10 text-amber-400 border border-amber-500/20" };
+  return { label: "P" + p, cls: "bg-secondary/50 text-muted-foreground border border-border/30" };
+};
+
+const timeAgo = (dateStr: string): string => {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(h / 24);
+  if (d > 0) return `il y a ${d}j`;
+  if (h > 0) return `il y a ${h}h`;
+  return "à l'instant";
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ moodAvg: "—", openDecisions: "—", habitsDone: "—", contacts: "—" });
   const [digest, setDigest] = useState<WeeklyDigest | null>(null);
   const [people, setPeople] = useState<Person[]>([]);
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [totalHabits, setTotalHabits] = useState(0);
+  const [decisions, setDecisions] = useState<any[]>([]);
+  const [mobileHabits, setMobileHabits] = useState<MobileHabit[]>([]);
+  const [lastJournalEntry, setLastJournalEntry] = useState<{ content: string; created_at: string } | null>(null);
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     if (!user) return;
-    loadStats();
-    loadDigest();
-    loadPeople();
-    loadTotalHabits();
-    // Award badges once per session
+    if (isMobile) {
+      loadMobileData();
+    } else {
+      loadStats();
+      loadDigest();
+      loadPeople();
+      loadTotalHabits();
+    }
     const checked = sessionStorage.getItem("badges_checked");
     if (!checked) {
       checkAndAwardBadges(user.id);
       sessionStorage.setItem("badges_checked", "1");
     }
-  }, [user]);
+  }, [user, isMobile]);
+
+  // Listen for pull-to-refresh event
+  useEffect(() => {
+    if (!isMobile) return;
+    const handler = () => { if (user) loadMobileData(); };
+    window.addEventListener("aegis:refresh", handler);
+    return () => window.removeEventListener("aegis:refresh", handler);
+  }, [isMobile, user]);
 
   const loadPeople = async () => {
     const { data } = await supabase.from("people_contacts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
     if (data) setPeople(data as any);
   };
 
+  // ── MOBILE: single consolidated load ────────────────────────────────────────
+  const loadMobileData = async () => {
+    setLoading(true);
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const weekStart = sevenDaysAgo.toISOString();
+      const weekStartDate = sevenDaysAgo.toISOString().split("T")[0];
+
+      const [moodRes, decisionsRes, habitsAssignedRes, completionsRes, journalRes] = await Promise.all([
+        supabase.from("mood_entries" as any).select("value, logged_at").eq("user_id", user!.id).gte("logged_at", weekStart),
+        supabase.from("decisions" as any).select("id, name, priority, status").eq("user_id", user!.id).eq("status", "pending").order("priority", { ascending: false }).limit(3),
+        supabase.from("assigned_habits" as any).select("id, habit_template_id").eq("user_id", user!.id).eq("is_active", true).limit(5),
+        supabase.from("habit_completions" as any).select("assigned_habit_id, completed_date").eq("user_id", user!.id).gte("completed_date", weekStartDate),
+        supabase.from("journal_entries").select("content, created_at").eq("user_id", user!.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+
+      // Mood avg
+      const moods = (moodRes.data as any[] || []);
+      const avg = moods.length > 0
+        ? (moods.reduce((s: number, m: any) => s + m.value, 0) / moods.length).toFixed(1)
+        : "—";
+
+      // Habit completions today
+      const completedToday = (completionsRes.data as any[] || []).filter(
+        (c: any) => c.completed_date === today
+      );
+
+      // Streak from habit_completions
+      const completionDates = new Set((completionsRes.data as any[] || []).map((c: any) => c.completed_date));
+      let streak = 0;
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const ds = d.toISOString().split("T")[0];
+        if (completionDates.has(ds)) streak++;
+        else if (i > 0) break;
+      }
+
+      setStats({
+        moodAvg: avg,
+        openDecisions: String((decisionsRes.data || []).length),
+        habitsDone: String(completedToday.length),
+        contacts: "—",
+      });
+
+      setDecisions((decisionsRes.data as any[]) || []);
+
+      // Minimal digest for mobile (streak + habit rate)
+      const habitDays = new Set((completionsRes.data as any[] || []).map((c: any) => c.completed_date));
+      setDigest({
+        moodTrend: "stable",
+        moodDelta: 0,
+        habitRate: Math.round((habitDays.size / 7) * 100),
+        decisionsResolved: 0,
+        journalCount: 0,
+        streakDays: streak,
+      });
+
+      // Journal preview
+      if (journalRes.data) setLastJournalEntry(journalRes.data as any);
+
+      // Habits with template names
+      if (habitsAssignedRes.data && (habitsAssignedRes.data as any[]).length > 0) {
+        const templateIds = (habitsAssignedRes.data as any[]).map((a: any) => a.habit_template_id);
+        const completedTodaySet = new Set(completedToday.map((c: any) => c.assigned_habit_id));
+
+        const { data: templates } = await supabase
+          .from("habit_templates" as any)
+          .select("id, name, category")
+          .in("id", templateIds);
+
+        const tMap = new Map((templates as any[] || []).map((t: any) => [t.id, t]));
+        setMobileHabits(
+          (habitsAssignedRes.data as any[]).map((a: any) => ({
+            id: a.id,
+            name: tMap.get(a.habit_template_id)?.name ?? "Habitude",
+            category: tMap.get(a.habit_template_id)?.category ?? "",
+            completed: completedTodaySet.has(a.id),
+          }))
+        );
+        setTotalHabits((habitsAssignedRes.data as any[]).length);
+      }
+    } catch (e) {
+      console.error("Mobile dashboard load error:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── DESKTOP: separate loads ──────────────────────────────────────────────────
   const loadStats = async () => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const [moodRes, decRes, habitRes, contactRes] = await Promise.all([
-      supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", sevenDaysAgo.toISOString()),
-      supabase.from("decisions" as any).select("id").eq("user_id", user!.id).eq("status", "pending"),
-      supabase.from("habit_completions" as any).select("id").eq("user_id", user!.id).eq("completed_date", today),
-      supabase.from("people_contacts" as any).select("id").eq("user_id", user!.id),
-    ]);
-
-    const moods = (moodRes.data as any[] || []);
-    const avg = moods.length > 0
-      ? (moods.reduce((s, m) => s + m.value, 0) / moods.length).toFixed(1)
-      : "—";
-
-    setStats({
-      moodAvg: avg,
-      openDecisions: String((decRes.data || []).length),
-      habitsDone: String((habitRes.data || []).length),
-      contacts: String((contactRes.data || []).length),
-    });
+    try {
+      const [moodRes, decRes, habitRes, contactRes] = await Promise.all([
+        supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", sevenDaysAgo.toISOString()),
+        supabase.from("decisions" as any).select("id, name, priority, status").eq("user_id", user!.id).eq("status", "pending").order("priority", { ascending: false }).limit(3),
+        supabase.from("habit_completions" as any).select("id").eq("user_id", user!.id).eq("completed_date", today),
+        supabase.from("people_contacts" as any).select("id").eq("user_id", user!.id),
+      ]);
+      const moods = (moodRes.data as any[] || []);
+      const avg = moods.length > 0
+        ? (moods.reduce((s, m) => s + m.value, 0) / moods.length).toFixed(1) : "—";
+      setStats({
+        moodAvg: avg,
+        openDecisions: String((decRes.data || []).length),
+        habitsDone: String((habitRes.data || []).length),
+        contacts: String((contactRes.data || []).length),
+      });
+      if (decRes.data) setDecisions(decRes.data as any[]);
+    } catch (e) {
+      console.error("Dashboard loadStats error:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadTotalHabits = async () => {
     const { data } = await supabase
-      .from("assigned_habits" as any)
-      .select("id")
-      .eq("user_id", user!.id)
-      .eq("is_active", true);
+      .from("assigned_habits" as any).select("id").eq("user_id", user!.id).eq("is_active", true);
     setTotalHabits((data || []).length);
   };
 
   const loadDigest = async () => {
-    const now = new Date();
-    const thisWeekStart = new Date(now);
-    thisWeekStart.setDate(now.getDate() - 7);
-    const lastWeekStart = new Date(thisWeekStart);
-    lastWeekStart.setDate(thisWeekStart.getDate() - 7);
-
-    const [thisWeekMood, lastWeekMood, habitsRes, decisionsRes, journalRes] = await Promise.all([
-      supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", thisWeekStart.toISOString()),
-      supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", lastWeekStart.toISOString()).lt("logged_at", thisWeekStart.toISOString()),
-      supabase.from("habit_completions" as any).select("completed_date").eq("user_id", user!.id).gte("completed_date", thisWeekStart.toISOString().split("T")[0]),
-      supabase.from("decisions" as any).select("status").eq("user_id", user!.id).eq("status", "decided").gte("decided_at", thisWeekStart.toISOString()),
-      supabase.from("journal_entries").select("id").eq("user_id", user!.id).gte("created_at", thisWeekStart.toISOString()),
-    ]);
-
-    const thisAvg = (thisWeekMood.data as any[] || []).length > 0
-      ? (thisWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (thisWeekMood.data as any[]).length : 0;
-    const lastAvg = (lastWeekMood.data as any[] || []).length > 0
-      ? (lastWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (lastWeekMood.data as any[]).length : 0;
-    const delta = +(thisAvg - lastAvg).toFixed(1);
-
-    const habitDays = new Set((habitsRes.data as any[] || []).map((h) => h.completed_date));
-    let streak = 0;
-    for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      if (habitDays.has(d.toISOString().split("T")[0])) { streak++; } else if (i > 0) break;
+    try {
+      const now = new Date();
+      const thisWeekStart = new Date(now); thisWeekStart.setDate(now.getDate() - 7);
+      const lastWeekStart = new Date(thisWeekStart); lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+      const [thisWeekMood, lastWeekMood, habitsRes, decisionsRes, journalRes] = await Promise.all([
+        supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", thisWeekStart.toISOString()),
+        supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", lastWeekStart.toISOString()).lt("logged_at", thisWeekStart.toISOString()),
+        supabase.from("habit_completions" as any).select("completed_date").eq("user_id", user!.id).gte("completed_date", thisWeekStart.toISOString().split("T")[0]),
+        supabase.from("decisions" as any).select("status").eq("user_id", user!.id).eq("status", "decided").gte("decided_at", thisWeekStart.toISOString()),
+        supabase.from("journal_entries").select("id").eq("user_id", user!.id).gte("created_at", thisWeekStart.toISOString()),
+      ]);
+      const thisAvg = (thisWeekMood.data as any[] || []).length > 0
+        ? (thisWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (thisWeekMood.data as any[]).length : 0;
+      const lastAvg = (lastWeekMood.data as any[] || []).length > 0
+        ? (lastWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (lastWeekMood.data as any[]).length : 0;
+      const delta = +(thisAvg - lastAvg).toFixed(1);
+      const habitDays = new Set((habitsRes.data as any[] || []).map((h) => h.completed_date));
+      let streak = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        if (habitDays.has(d.toISOString().split("T")[0])) streak++; else if (i > 0) break;
+      }
+      setDigest({
+        moodTrend: delta > 0.3 ? "up" : delta < -0.3 ? "down" : "stable",
+        moodDelta: Math.abs(delta),
+        habitRate: Math.round((habitDays.size / 7) * 100),
+        decisionsResolved: (decisionsRes.data || []).length,
+        journalCount: (journalRes.data || []).length,
+        streakDays: streak,
+      });
+    } catch (e) {
+      console.error("Dashboard loadDigest error:", e);
     }
-
-    setDigest({
-      moodTrend: delta > 0.3 ? "up" : delta < -0.3 ? "down" : "stable",
-      moodDelta: Math.abs(delta),
-      habitRate: Math.round((habitDays.size / 7) * 100),
-      decisionsResolved: (decisionsRes.data || []).length,
-      journalCount: (journalRes.data || []).length,
-      streakDays: streak,
-    });
   };
 
   const TrendIcon = ({ trend }: { trend: "up" | "down" | "stable" }) => {
@@ -153,66 +277,226 @@ export default function Dashboard() {
 
   // ─── Mobile layout ─────────────────────────────────────────────────────────
   if (isMobile) {
-    const habitsDone = parseInt(stats.habitsDone) || 0;
-    const habitsLabel = totalHabits > 0 ? `${habitsDone}/${totalHabits}` : habitsDone.toString();
+    const completedHabits = mobileHabits.filter(h => h.completed).length;
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
+    const streakDays = digest?.streakDays ?? 0;
+    const habitsTotal = mobileHabits.length || totalHabits;
 
     return (
-      <div className="space-y-3 max-w-full pb-6 pt-2">
-        {/* Date + streak */}
+      <div className="space-y-3 max-w-full pt-2">
+
+        {/* Greeting + streak (no date — date is in top bar) */}
         <div className="flex items-center justify-between">
-          <p className="text-[8px] text-muted-foreground/40 tracking-[0.2em] uppercase">
-            {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
-          </p>
-          {digest && digest.streakDays > 0 && (
-            <span className="text-[9px] text-amber-400/70">{digest.streakDays}j 🔥</span>
+          <p className="text-[11px] text-muted-foreground/50 tracking-[0.2em] uppercase">{greeting}</p>
+          {streakDays > 0 && (
+            <motion.span
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-[11px] text-primary/70 font-medium"
+            >
+              🔥 {streakDays} jours
+            </motion.span>
           )}
         </div>
 
         {/* Quick Log CTA */}
-        <motion.button
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={() => setShowQuickLog(true)}
-          className="w-full flex items-center justify-between p-3 rounded-2xl
-                     bg-gradient-to-r from-primary/[0.06] to-accent/[0.06]
-                     border border-primary/[0.12] active:scale-[0.99] transition-transform"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <div className="w-2.5 h-2.5 rounded-full bg-primary/80" />
+        {loading ? (
+          <div className="skeleton h-[68px] rounded-2xl" />
+        ) : (
+          <button
+            onClick={() => setShowQuickLog(true)}
+            className="w-full flex items-center justify-between p-4 rounded-2xl
+              bg-primary/5 border border-primary/20
+              active:scale-[0.97] active:opacity-80 transition-all duration-150 select-none"
+            style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
+                <div className="quick-log-dot" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-foreground leading-tight">Logger maintenant</p>
+                <p className="text-[10px] text-muted-foreground tracking-[0.12em] mt-0.5">
+                  HUMEUR · STRESS · SOMMEIL
+                </p>
+              </div>
             </div>
-            <div className="text-left">
-              <p className="text-sm font-medium text-foreground">Logger maintenant</p>
-              <p className="text-[9px] text-muted-foreground/50 tracking-widest">HUMEUR · STRESS · SOMMEIL</p>
-            </div>
-          </div>
-          <ChevronRight size={14} className="text-primary/40 shrink-0" />
-        </motion.button>
+            <div className="text-primary/50 text-lg font-light">›</div>
+          </button>
+        )}
 
         {/* 3 stat pills */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.07 }}
-          className="grid grid-cols-3 gap-2"
-        >
-          {[
-            { value: stats.moodAvg, label: "Humeur moy.", cls: "text-primary" },
-            { value: habitsLabel, label: "Habitudes", cls: "text-accent" },
-            { value: stats.openDecisions, label: "Décisions", cls: "text-amber-400" },
-          ].map((pill) => (
-            <div key={pill.label} className="ethereal-glass p-3 text-center">
-              <p className={`text-base font-cinzel ${pill.cls}`}>{pill.value}</p>
-              <p className="text-[8px] text-muted-foreground/50 uppercase tracking-widest mt-1">{pill.label}</p>
+        {loading ? (
+          <div className="grid grid-cols-3 gap-2">
+            {[0, 1, 2].map((i) => <div key={i} className="skeleton h-[62px] rounded-xl" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="ethereal-glass p-3 text-center">
+              <p className="text-xl font-light text-primary font-cinzel leading-tight">{stats.moodAvg}</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1 tracking-wider uppercase">Humeur</p>
             </div>
-          ))}
-        </motion.div>
+            <div className="ethereal-glass p-3 text-center">
+              <p className="text-xl font-light text-accent font-cinzel leading-tight">
+                {habitsTotal > 0 ? `${completedHabits}/${habitsTotal}` : stats.habitsDone}
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1 tracking-wider uppercase">Habitudes</p>
+            </div>
+            <div className="ethereal-glass p-3 text-center">
+              <p className="text-xl font-light font-cinzel leading-tight" style={{ color: "hsl(var(--neural-warm))" }}>
+                {streakDays > 0 ? `${streakDays}j` : stats.openDecisions}
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1 tracking-wider uppercase">
+                {streakDays > 0 ? "Série 🔥" : "Décisions"}
+              </p>
+            </div>
+          </div>
+        )}
 
-        {/* Decisions — highlighted */}
-        <DecisionsMiniCard userId={user!.id} onAddNew={() => navigate("/decisions")} />
+        {/* Decisions card */}
+        {loading ? (
+          <div className="skeleton h-[110px] rounded-2xl" />
+        ) : (
+          <div className="ethereal-glass p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-neural-label">Décisions en cours</p>
+              <NavLink to="/decisions" className="text-muted-foreground/40 hover:text-primary transition-colors">
+                <ArrowUpRight size={13} />
+              </NavLink>
+            </div>
+            {decisions.length === 0 ? (
+              <div className="flex flex-col items-center py-4 gap-2">
+                <Target size={24} strokeWidth={1} className="text-muted-foreground/20" />
+                <p className="text-xs text-muted-foreground/40 text-center">Aucune décision en attente</p>
+                <NavLink
+                  to="/decisions"
+                  className="text-[10px] text-primary border border-primary/20 bg-primary/5 px-3 py-1.5 rounded-lg tracking-wider uppercase hover:bg-primary/10 transition-colors mt-1"
+                >
+                  + Nouvelle décision
+                </NavLink>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {decisions.map((d: any) => {
+                  const badge = priorityBadge(d.priority);
+                  return (
+                    <div key={d.id} className="flex items-center justify-between gap-2 min-h-[32px]">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+                        <span className="text-sm text-foreground/80 truncate">{d.name}</span>
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md flex-shrink-0 ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    </div>
+                  );
+                })}
+                <NavLink
+                  to="/decisions"
+                  className="flex items-center gap-1.5 mt-3 pt-2 border-t border-border/20
+                    text-[10px] text-primary/60 hover:text-primary tracking-wider uppercase transition-colors"
+                >
+                  <span className="text-base leading-none">+</span>
+                  <span>Nouvelle décision</span>
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Habits */}
-        <HabitsMiniCard userId={user!.id} />
+        {/* Habits card (inline from mobileHabits state) */}
+        {loading ? (
+          <div className="skeleton h-[130px] rounded-2xl" />
+        ) : mobileHabits.length > 0 ? (
+          <div className="ethereal-glass p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-neural-label">Habitudes du jour</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+                  {completedHabits}/{mobileHabits.length}
+                </span>
+                <NavLink to="/habits" className="text-muted-foreground/40 hover:text-primary transition-colors">
+                  <ArrowUpRight size={13} />
+                </NavLink>
+              </div>
+            </div>
+            <div className="space-y-1">
+              {mobileHabits.map((habit) => (
+                <div key={habit.id} className="flex items-center gap-3 min-h-[44px] py-1">
+                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all ${
+                    habit.completed ? "bg-primary/15 border-primary/30" : "border-border/50"
+                  }`}>
+                    {habit.completed && <div className="w-2 h-2 rounded-sm bg-primary" />}
+                  </div>
+                  <span className={`text-sm transition-colors ${
+                    habit.completed ? "line-through text-muted-foreground/40" : "text-foreground/80"
+                  }`}>
+                    {habit.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {/* Progress bar */}
+            <div className="h-[2px] bg-border/40 rounded-full mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: mobileHabits.length > 0 ? `${(completedHabits / mobileHabits.length) * 100}%` : "0%",
+                  background: "linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)))",
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <HabitsMiniCard userId={user!.id} />
+        )}
+
+        {/* Weekly digest (compact) */}
+        {!loading && digest && (
+          <div className="ethereal-glass p-4">
+            <p className="text-neural-label mb-3">Cette semaine</p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <TrendIcon trend={digest.moodTrend} />
+                  <span className="text-[10px] text-muted-foreground">
+                    {digest.moodTrend === "up" ? `+${digest.moodDelta}` : digest.moodTrend === "down" ? `-${digest.moodDelta}` : "stable"}
+                  </span>
+                </div>
+                <p className="text-[9px] text-muted-foreground/50 tracking-wider uppercase">Humeur</p>
+              </div>
+              <div>
+                <p className="text-sm font-light text-foreground font-cinzel">{digest.habitRate}%</p>
+                <p className="text-[9px] text-muted-foreground/50 tracking-wider uppercase">Habitudes</p>
+              </div>
+              <div>
+                <p className="text-sm font-light text-foreground font-cinzel">{streakDays}j</p>
+                <p className="text-[9px] text-muted-foreground/50 tracking-wider uppercase">Série</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Journal preview */}
+        {!loading && lastJournalEntry && (
+          <NavLink to="/journal" className="block">
+            <div
+              className="ethereal-glass p-4 active:scale-[0.98] transition-all duration-150"
+              style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-neural-label">Dernière entrée</p>
+                <span className="text-[9px] text-muted-foreground/40">
+                  {timeAgo(lastJournalEntry.created_at)}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground/70 italic line-clamp-2 leading-relaxed">
+                "{lastJournalEntry.content}"
+              </p>
+            </div>
+          </NavLink>
+        )}
 
         {/* Quick log modal */}
         <QuickLogModal open={showQuickLog} onClose={() => setShowQuickLog(false)} />

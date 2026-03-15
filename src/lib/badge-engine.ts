@@ -11,15 +11,21 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     type: "streak",
     name: "Flamme de 7 jours",
-    description: "7 jours consécutifs d'activité",
+    description: "7 jours consécutifs de log d'humeur",
     check: async (userId) => {
       const { data } = await supabase
-        .from("daily_actions")
-        .select("completed_date")
+        .from("mood_entries" as any)
+        .select("logged_at")
         .eq("user_id", userId)
-        .order("completed_date", { ascending: false })
+        .order("logged_at", { ascending: false })
         .limit(30);
-      const dates = [...new Set((data as any[] || []).map((d: any) => d.completed_date))].sort().reverse();
+      const dates = [
+        ...new Set(
+          (data as any[] || []).map((d: any) =>
+            new Date(d.logged_at).toISOString().split("T")[0]
+          )
+        ),
+      ].sort().reverse();
       let streak = 0;
       const today = new Date();
       for (let i = 0; i < dates.length; i++) {
@@ -34,15 +40,21 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     type: "streak",
     name: "Flamme de 30 jours",
-    description: "30 jours consécutifs d'activité",
+    description: "30 jours consécutifs de log d'humeur",
     check: async (userId) => {
       const { data } = await supabase
-        .from("daily_actions")
-        .select("completed_date")
+        .from("mood_entries" as any)
+        .select("logged_at")
         .eq("user_id", userId)
-        .order("completed_date", { ascending: false })
+        .order("logged_at", { ascending: false })
         .limit(60);
-      const dates = [...new Set((data as any[] || []).map((d: any) => d.completed_date))].sort().reverse();
+      const dates = [
+        ...new Set(
+          (data as any[] || []).map((d: any) =>
+            new Date(d.logged_at).toISOString().split("T")[0]
+          )
+        ),
+      ].sort().reverse();
       let streak = 0;
       const today = new Date();
       for (let i = 0; i < dates.length; i++) {
@@ -60,7 +72,7 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     description: "50 entrées d'humeur enregistrées",
     check: async (userId) => {
       const { count } = await supabase
-        .from("mood_entries")
+        .from("mood_entries" as any)
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
       return (count || 0) >= 50;
@@ -118,10 +130,10 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
     type: "first_steps",
     name: "Premier Pas",
-    description: "Première action quotidienne complétée",
+    description: "Premier log d'humeur enregistré",
     check: async (userId) => {
       const { count } = await supabase
-        .from("daily_actions")
+        .from("mood_entries" as any)
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
       return (count || 0) >= 1;
@@ -130,36 +142,45 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
 ];
 
 export async function checkAndAwardBadges(userId: string): Promise<string[]> {
-  // Get existing badges
+  // Throttle: run at most once per 24h per user
+  const throttleKey = `badge_check_${userId}`;
+  const lastCheck = localStorage.getItem(throttleKey);
+  if (lastCheck && Date.now() - parseInt(lastCheck) < 24 * 60 * 60 * 1000) {
+    return [];
+  }
+  localStorage.setItem(throttleKey, String(Date.now()));
+
   const { data: existingBadges } = await supabase
     .from("user_badges")
     .select("badge_name")
     .eq("user_id", userId);
 
   const existing = new Set((existingBadges || []).map((b: any) => b.badge_name));
+
+  // Run all badge checks in parallel (skip already-earned)
+  const results = await Promise.all(
+    BADGE_DEFINITIONS.map(async (badge) => ({
+      badge,
+      earned: existing.has(badge.name) ? false : await badge.check(userId),
+    }))
+  );
+
   const newBadges: string[] = [];
-
-  for (const badge of BADGE_DEFINITIONS) {
-    if (existing.has(badge.name)) continue;
-
-    const earned = await badge.check(userId);
-    if (earned) {
-      await supabase.from("user_badges").insert({
-        user_id: userId,
-        badge_type: badge.type,
-        badge_name: badge.name,
-        description: badge.description,
-      });
-      newBadges.push(badge.name);
-
-      // Create notification for new badge
-      await supabase.from("notifications").insert({
-        user_id: userId,
-        title: "🏆 Nouveau badge !",
-        message: `Vous avez débloqué "${badge.name}" — ${badge.description}`,
-        type: "badge",
-      });
-    }
+  for (const { badge, earned } of results) {
+    if (!earned) continue;
+    await supabase.from("user_badges").insert({
+      user_id: userId,
+      badge_type: badge.type,
+      badge_name: badge.name,
+      description: badge.description,
+    });
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      title: "🏆 Nouveau badge !",
+      message: `Vous avez débloqué "${badge.name}" — ${badge.description}`,
+      type: "badge",
+    });
+    newBadges.push(badge.name);
   }
 
   return newBadges;

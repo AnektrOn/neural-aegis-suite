@@ -4,6 +4,7 @@ import { Trophy, Flame, Star, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Badge {
   id: string;
@@ -16,6 +17,8 @@ interface Badge {
 export default function ScoreCard() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
+  if (isMobile) return null;
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [badges, setBadges] = useState<Badge[]>([]);

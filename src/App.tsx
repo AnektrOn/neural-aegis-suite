@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,30 +10,46 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import AppLayout from "./components/AppLayout";
 import AdminLayout from "./components/AdminLayout";
-import Dashboard from "./pages/Dashboard";
-import MoodTracker from "./pages/MoodTracker";
-import DecisionLog from "./pages/DecisionLog";
-import HabitTracker from "./pages/HabitTracker";
-import Toolbox from "./pages/Toolbox";
-import PeopleBoard from "./pages/PeopleBoard";
-import AuthPage from "./pages/AuthPage";
-import CallAuditDashboard from "./pages/admin/CallAuditDashboard";
-import HabitFactory from "./pages/admin/HabitFactory";
-import UserManagement from "./pages/admin/UserManagement";
-import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import ExecutiveDashboard from "./pages/admin/ExecutiveDashboard";
-import CompanyManagement from "./pages/admin/CompanyManagement";
-import ToolboxManagement from "./pages/admin/ToolboxManagement";
-import AdminDecisions from "./pages/admin/AdminDecisions";
-import AdminMessages from "./pages/admin/AdminMessages";
-import ScoreboardConfig from "./pages/admin/ScoreboardConfig";
-import Analytics from "./pages/Analytics";
-import Journal from "./pages/Journal";
-import Profile from "./pages/Profile";
-import CalendarView from "./pages/CalendarView";
-import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Lazy-loaded user pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const MoodTracker = lazy(() => import("./pages/MoodTracker"));
+const DecisionLog = lazy(() => import("./pages/DecisionLog"));
+const HabitTracker = lazy(() => import("./pages/HabitTracker"));
+const Toolbox = lazy(() => import("./pages/Toolbox"));
+const PeopleBoard = lazy(() => import("./pages/PeopleBoard"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Journal = lazy(() => import("./pages/Journal"));
+const Profile = lazy(() => import("./pages/Profile"));
+const CalendarView = lazy(() => import("./pages/CalendarView"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+
+// Admin pages
+const CallAuditDashboard = lazy(() => import("./pages/admin/CallAuditDashboard"));
+const HabitFactory = lazy(() => import("./pages/admin/HabitFactory"));
+const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const ExecutiveDashboard = lazy(() => import("./pages/admin/ExecutiveDashboard"));
+const CompanyManagement = lazy(() => import("./pages/admin/CompanyManagement"));
+const ToolboxManagement = lazy(() => import("./pages/admin/ToolboxManagement"));
+const AdminDecisions = lazy(() => import("./pages/admin/AdminDecisions"));
+const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
+const ScoreboardConfig = lazy(() => import("./pages/admin/ScoreboardConfig"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 60_000, retry: 1 },
+  },
+});
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-5 h-5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+    </div>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -41,56 +58,62 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <LanguageProvider>
-        <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route
-              path="/admin/*"
-              element={
-                <ProtectedRoute>
-                  <AdminRoute>
-                    <AdminLayout>
-                      <Routes>
-                        <Route path="/" element={<CallAuditDashboard />} />
-                        <Route path="/habits" element={<HabitFactory />} />
-                        <Route path="/users" element={<UserManagement />} />
-                        <Route path="/analytics" element={<AdminAnalytics />} />
-                        <Route path="/executive" element={<ExecutiveDashboard />} />
-                        <Route path="/companies" element={<CompanyManagement />} />
-                        <Route path="/toolbox" element={<ToolboxManagement />} />
-                        <Route path="/decisions" element={<AdminDecisions />} />
-                        <Route path="/messages" element={<AdminMessages />} />
-                        <Route path="/scoreboard" element={<ScoreboardConfig />} />
-                      </Routes>
-                    </AdminLayout>
-                  </AdminRoute>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/mood" element={<MoodTracker />} />
-                      <Route path="/decisions" element={<DecisionLog />} />
-                      <Route path="/habits" element={<HabitTracker />} />
-                      <Route path="/journal" element={<Journal />} />
-                      <Route path="/toolbox" element={<Toolbox />} />
-                      <Route path="/people" element={<PeopleBoard />} />
-                      <Route path="/analytics" element={<Analytics />} />
-                      <Route path="/profile" element={<Profile />} />
-                      <Route path="/calendar" element={<CalendarView />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </AuthProvider>
+          <AuthProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/auth" element={<AuthPage />} />
+                <Route
+                  path="/admin/*"
+                  element={
+                    <ProtectedRoute>
+                      <AdminRoute>
+                        <AdminLayout>
+                          <Suspense fallback={<PageLoader />}>
+                            <Routes>
+                              <Route path="/" element={<CallAuditDashboard />} />
+                              <Route path="/habits" element={<HabitFactory />} />
+                              <Route path="/users" element={<UserManagement />} />
+                              <Route path="/analytics" element={<AdminAnalytics />} />
+                              <Route path="/executive" element={<ExecutiveDashboard />} />
+                              <Route path="/companies" element={<CompanyManagement />} />
+                              <Route path="/toolbox" element={<ToolboxManagement />} />
+                              <Route path="/decisions" element={<AdminDecisions />} />
+                              <Route path="/messages" element={<AdminMessages />} />
+                              <Route path="/scoreboard" element={<ScoreboardConfig />} />
+                            </Routes>
+                          </Suspense>
+                        </AdminLayout>
+                      </AdminRoute>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Suspense fallback={<PageLoader />}>
+                          <Routes>
+                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/mood" element={<MoodTracker />} />
+                            <Route path="/decisions" element={<DecisionLog />} />
+                            <Route path="/habits" element={<HabitTracker />} />
+                            <Route path="/journal" element={<Journal />} />
+                            <Route path="/toolbox" element={<Toolbox />} />
+                            <Route path="/people" element={<PeopleBoard />} />
+                            <Route path="/analytics" element={<Analytics />} />
+                            <Route path="/profile" element={<Profile />} />
+                            <Route path="/calendar" element={<CalendarView />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </Suspense>
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </Suspense>
+          </AuthProvider>
         </LanguageProvider>
       </BrowserRouter>
     </TooltipProvider>
