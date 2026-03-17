@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Flame, ListChecks } from "lucide-react";
+import { Check, Flame, ListChecks, Dumbbell, Brain, Heart, BookOpen, Moon, Zap, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,17 @@ interface AssignedHabit {
   template_name: string;
   template_category: string;
 }
+
+const categoryIcon = (cat: string) => {
+  const c = cat?.toLowerCase() ?? "";
+  if (c.includes("sport") || c.includes("physique") || c.includes("exercise")) return Dumbbell;
+  if (c.includes("mind") || c.includes("médita") || c.includes("mental")) return Brain;
+  if (c.includes("santé") || c.includes("health") || c.includes("bien")) return Heart;
+  if (c.includes("lecture") || c.includes("learn") || c.includes("read")) return BookOpen;
+  if (c.includes("sommeil") || c.includes("sleep") || c.includes("repos")) return Moon;
+  if (c.includes("énergie") || c.includes("energy")) return Zap;
+  return Target;
+};
 
 export default function HabitTracker() {
   const { user } = useAuth();
@@ -112,8 +123,13 @@ export default function HabitTracker() {
                 <div className="flex-1 min-w-0 py-3">
                   <p className={`text-sm font-medium transition-colors ${completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{habit.template_name}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className="w-1 h-1 rounded-full bg-primary/40" />
-                    <p className="text-neural-label text-[9px]">{habit.template_category}</p>
+                    {(() => {
+                      const IconComp = categoryIcon(habit.template_category);
+                      return <IconComp size={10} strokeWidth={1.5} className="text-primary/40" />;
+                    })()}
+                    <p className="text-[9px] text-muted-foreground/40 tracking-wider uppercase">
+                      {habit.template_category}
+                    </p>
                   </div>
                 </div>
               </motion.div>

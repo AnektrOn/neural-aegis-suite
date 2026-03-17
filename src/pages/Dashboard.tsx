@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, NavLink } from "react-router-dom";
+import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Zap, Brain, Target, TrendingUp, TrendingDown, Minus,
@@ -57,11 +57,19 @@ const timeAgo = (dateStr: string): string => {
   return "à l'instant";
 };
 
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.18, delay, ease: "easeOut" as const },
+  style: { willChange: "transform" as const },
+});
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ moodAvg: "—", openDecisions: "—", habitsDone: "—", contacts: "—" });
   const [digest, setDigest] = useState<WeeklyDigest | null>(null);
@@ -98,6 +106,22 @@ export default function Dashboard() {
     return () => window.removeEventListener("aegis:refresh", handler);
   }, [isMobile, user]);
 
+  // Listen for open quick-log from MoodTracker (mobile) or same page
+  useEffect(() => {
+    const handler = () => setShowQuickLog(true);
+    window.addEventListener("aegis:open-quicklog", handler);
+    return () => window.removeEventListener("aegis:open-quicklog", handler);
+  }, []);
+
+  // Open quick-log when navigating from MoodTracker with state
+  useEffect(() => {
+    const state = location.state as { openQuickLog?: boolean } | null;
+    if (state?.openQuickLog) {
+      setShowQuickLog(true);
+      navigate(".", { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
   const loadPeople = async () => {
     const { data } = await supabase.from("people_contacts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
     if (data) setPeople(data as any);
@@ -114,7 +138,7 @@ export default function Dashboard() {
 
       const [moodRes, decisionsRes, habitsAssignedRes, completionsRes, journalRes] = await Promise.all([
         supabase.from("mood_entries" as any).select("value, logged_at").eq("user_id", user!.id).gte("logged_at", weekStart),
-        supabase.from("decisions" as any).select("id, name, priority, status").eq("user_id", user!.id).eq("status", "pending").order("priority", { ascending: false }).limit(3),
+        supabase.from("decisions" as any).select("id, name, priority, status, created_at").eq("user_id", user!.id).eq("status", "pending").order("priority", { ascending: false }).limit(3),
         supabase.from("assigned_habits" as any).select("id, habit_template_id").eq("user_id", user!.id).eq("is_active", true).limit(5),
         supabase.from("habit_completions" as any).select("assigned_habit_id, completed_date").eq("user_id", user!.id).gte("completed_date", weekStartDate),
         supabase.from("journal_entries").select("content, created_at").eq("user_id", user!.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -284,10 +308,10 @@ export default function Dashboard() {
     const habitsTotal = mobileHabits.length || totalHabits;
 
     return (
-      <div className="space-y-3 max-w-full pt-2">
+      <div className="mobile-section-gap max-w-full pt-2">
 
         {/* Greeting + streak (no date — date is in top bar) */}
-        <div className="flex items-center justify-between">
+        <motion.div {...fadeUp(0)} className="flex items-center justify-between">
           <p className="text-[11px] text-muted-foreground/50 tracking-[0.2em] uppercase">{greeting}</p>
           {streakDays > 0 && (
             <motion.span
@@ -298,15 +322,16 @@ export default function Dashboard() {
               🔥 {streakDays} jours
             </motion.span>
           )}
-        </div>
+        </motion.div>
 
         {/* Quick Log CTA */}
         {loading ? (
           <div className="skeleton h-[68px] rounded-2xl" />
         ) : (
+          <motion.div {...fadeUp(0.02)}>
           <button
             onClick={() => setShowQuickLog(true)}
-            className="w-full flex items-center justify-between p-4 rounded-2xl
+            className="card-interactive w-full flex items-center justify-between p-4 rounded-2xl
               bg-primary/5 border border-primary/20
               active:scale-[0.97] active:opacity-80 transition-all duration-150 select-none"
             style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
@@ -324,6 +349,7 @@ export default function Dashboard() {
             </div>
             <div className="text-primary/50 text-lg font-light">›</div>
           </button>
+          </motion.div>
         )}
 
         {/* 3 stat pills */}
@@ -332,33 +358,34 @@ export default function Dashboard() {
             {[0, 1, 2].map((i) => <div key={i} className="skeleton h-[62px] rounded-xl" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
-            <div className="ethereal-glass p-3 text-center">
-              <p className="text-xl font-light text-primary font-cinzel leading-tight">{stats.moodAvg}</p>
+          <motion.div {...fadeUp(0.03)} className="grid grid-cols-3 gap-2">
+            <div className="card-static ethereal-glass p-3 text-center">
+              <p className="text-xl stat-number-mobile text-primary leading-tight">{stats.moodAvg}</p>
               <p className="text-[10px] text-muted-foreground/60 mt-1 tracking-wider uppercase">Humeur</p>
             </div>
-            <div className="ethereal-glass p-3 text-center">
-              <p className="text-xl font-light text-accent font-cinzel leading-tight">
+            <div className="card-static ethereal-glass p-3 text-center">
+              <p className="text-xl stat-number-mobile text-accent leading-tight">
                 {habitsTotal > 0 ? `${completedHabits}/${habitsTotal}` : stats.habitsDone}
               </p>
               <p className="text-[10px] text-muted-foreground/60 mt-1 tracking-wider uppercase">Habitudes</p>
             </div>
-            <div className="ethereal-glass p-3 text-center">
-              <p className="text-xl font-light font-cinzel leading-tight" style={{ color: "hsl(var(--neural-warm))" }}>
+            <div className="card-static ethereal-glass p-3 text-center">
+              <p className="text-xl stat-number-mobile leading-tight" style={{ color: "hsl(var(--neural-warm))" }}>
                 {streakDays > 0 ? `${streakDays}j` : stats.openDecisions}
               </p>
               <p className="text-[10px] text-muted-foreground/60 mt-1 tracking-wider uppercase">
                 {streakDays > 0 ? "Série 🔥" : "Décisions"}
               </p>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Decisions card */}
         {loading ? (
           <div className="skeleton h-[110px] rounded-2xl" />
         ) : (
-          <div className="ethereal-glass p-4">
+          <motion.div {...fadeUp(0.04)}>
+          <div className="card-interactive ethereal-glass p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-neural-label">Décisions en cours</p>
               <NavLink to="/decisions" className="text-muted-foreground/40 hover:text-primary transition-colors">
@@ -381,14 +408,19 @@ export default function Dashboard() {
                 {decisions.map((d: any) => {
                   const badge = priorityBadge(d.priority);
                   return (
-                    <div key={d.id} className="flex items-center justify-between gap-2 min-h-[32px]">
+                    <div key={d.id} className="flex items-center justify-between gap-2 min-h-[36px]">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
                         <span className="text-sm text-foreground/80 truncate">{d.name}</span>
                       </div>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md flex-shrink-0 ${badge.cls}`}>
-                        {badge.label}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {d.created_at && (
+                          <span className="text-[9px] text-muted-foreground/40">{timeAgo(d.created_at)}</span>
+                        )}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${badge.cls}`}>
+                          {badge.label}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -403,20 +435,22 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+          </motion.div>
         )}
 
         {/* Habits card (inline from mobileHabits state) */}
         {loading ? (
           <div className="skeleton h-[130px] rounded-2xl" />
         ) : mobileHabits.length > 0 ? (
-          <div className="ethereal-glass p-4">
+          <motion.div {...fadeUp(0.05)}>
+          <div className="card-interactive ethereal-glass p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-neural-label">Habitudes du jour</p>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md">
                   {completedHabits}/{mobileHabits.length}
                 </span>
-                <NavLink to="/habits" className="text-muted-foreground/40 hover:text-primary transition-colors">
+                <NavLink to="/habits" className="p-1 text-muted-foreground/40 hover:text-primary transition-colors">
                   <ArrowUpRight size={13} />
                 </NavLink>
               </div>
@@ -424,8 +458,8 @@ export default function Dashboard() {
             <div className="space-y-1">
               {mobileHabits.map((habit) => (
                 <div key={habit.id} className="flex items-center gap-3 min-h-[44px] py-1">
-                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all ${
-                    habit.completed ? "bg-primary/15 border-primary/30" : "border-border/50"
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                    habit.completed ? "bg-primary/15 border-primary/40" : "border-border"
                   }`}>
                     {habit.completed && <div className="w-2 h-2 rounded-sm bg-primary" />}
                   </div>
@@ -448,13 +482,15 @@ export default function Dashboard() {
               />
             </div>
           </div>
+          </motion.div>
         ) : (
           <HabitsMiniCard userId={user!.id} />
         )}
 
         {/* Weekly digest (compact) */}
         {!loading && digest && (
-          <div className="ethereal-glass p-4">
+          <motion.div {...fadeUp(0.06)}>
+          <div className="card-static ethereal-glass p-4">
             <p className="text-neural-label mb-3">Cette semaine</p>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
@@ -476,13 +512,15 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+          </motion.div>
         )}
 
         {/* Journal preview */}
         {!loading && lastJournalEntry && (
+          <motion.div {...fadeUp(0.07)}>
           <NavLink to="/journal" className="block">
             <div
-              className="ethereal-glass p-4 active:scale-[0.98] transition-all duration-150"
+              className="card-interactive ethereal-glass p-4 active:scale-[0.98] transition-all duration-150"
               style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
             >
               <div className="flex items-center justify-between mb-2">
@@ -496,6 +534,7 @@ export default function Dashboard() {
               </p>
             </div>
           </NavLink>
+          </motion.div>
         )}
 
         {/* Quick log modal */}

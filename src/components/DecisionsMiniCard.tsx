@@ -15,12 +15,6 @@ interface DecisionsMiniCardProps {
   onAddNew: () => void;
 }
 
-const dotColor = (priority: number) => {
-  if (priority >= 4) return "bg-amber-400";
-  if (priority >= 2) return "bg-purple-400";
-  return "bg-muted-foreground/30";
-};
-
 const priorityTextColor = (priority: number) => {
   if (priority >= 4) return "text-amber-400";
   return "text-muted-foreground/50";
@@ -75,7 +69,7 @@ export default function DecisionsMiniCard({ userId, onAddNew }: DecisionsMiniCar
         <div className="space-y-1.5">
           {decisions.map((d) => (
             <div key={d.id} className="flex items-center gap-2 min-w-0">
-              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor(d.priority)}`} />
+              <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-primary/40" />
               <p
                 className={`flex-1 text-[11px] truncate leading-tight transition-colors ${
                   d.status === "decided"
