@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Brain, Moon, Flame, UtensilsCrossed, Plus, Minus, Zap } from "lucide-react";
+import { Brain, Moon, Flame, UtensilsCrossed, Plus, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import RadialSlider from "@/components/RadialSlider";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const frequencyKeys = [
   "mood.exhausted", "mood.low", "mood.agitated", "mood.neutral", "mood.balanced",
@@ -30,6 +30,7 @@ export default function MoodTracker() {
   const { toast } = useToast();
   const { t } = useLanguage();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const frequencies = frequencyKeys.map((key, i) => ({ value: i + 1, label: t(key), color: frequencyColors[i] }));
   const dayNames = dayKeys.map((k) => t(k));
   const [currentMood, setCurrentMood] = useState(7.0);
@@ -96,66 +97,61 @@ export default function MoodTracker() {
   const moodIdx = Math.min(Math.max(Math.round(currentMood) - 1, 0), 9);
   const selectedFreq = frequencies[moodIdx];
 
-  // ─── Mobile layout ────────────────────────────────────────────────────────────
+  // ─── Mobile layout (lightweight, redirect to Quick Log from Dashboard) ───────────
   if (isMobile) {
     return (
       <div className="space-y-6 max-w-full pt-2">
         <div>
-          <p className="text-neural-label mb-1">{t("mood.emotionalIntelligence")}</p>
-          <h1 className="text-neural-title text-xl text-foreground">{t("mood.frequency")}</h1>
+          <p className="text-neural-label mb-2">{t("mood.emotionalIntelligence")}</p>
+          <h1 className="text-neural-title text-2xl text-foreground">Historique</h1>
         </div>
 
-        {/* Quick log redirect banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="ethereal-glass p-4 flex items-center gap-3"
-        >
-          <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-            <Zap size={15} strokeWidth={1.5} className="text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-foreground/80">Log rapide depuis le Dashboard</p>
-            <p className="text-[10px] text-muted-foreground/50 mt-0.5">Humeur · Stress · Sommeil en 10 secondes</p>
-          </div>
-          <Link
-            to="/"
-            className="shrink-0 text-[9px] tracking-widest uppercase text-primary/60 hover:text-primary transition-colors border border-primary/20 rounded-lg px-2.5 py-1.5"
-          >
-            Ouvrir
-          </Link>
-        </motion.div>
+        {/* Redirection vers quick log */}
+        <div className="ethereal-glass p-4 text-center">
+          <p className="text-sm text-muted-foreground/70">
+            Pour logger rapidement, utilisez{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/", { state: { openQuickLog: true } })}
+              className="text-primary underline-offset-2 underline"
+            >
+              Logger maintenant
+            </button>{" "}
+            depuis le Dashboard.
+          </p>
+        </div>
 
-        {/* Weekly chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="ethereal-glass p-5"
-        >
-          <p className="text-neural-label mb-5">{t("mood.weeklyMap")}</p>
-          <div className="flex items-end justify-between gap-2 h-32">
-            {weekHistory.map((entry, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                {entry.value > 0 ? (
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${(entry.value / 10) * 100}%` }}
-                    transition={{ delay: i * 0.08, duration: 0.5 }}
-                    className="w-full rounded-lg relative overflow-hidden"
-                    style={{
-                      backgroundColor: frequencies[Math.min(entry.value - 1, 9)].color + "20",
-                      border: `1px solid ${frequencies[Math.min(entry.value - 1, 9)].color}30`,
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-1.5 rounded-lg bg-secondary/20" />
-                )}
-                <span className="text-[8px] text-muted-foreground/50">{entry.day}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        {/* Graphe hebdomadaire uniquement */}
+        {weekHistory.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="ethereal-glass p-5"
+          >
+            <p className="text-neural-label mb-5">Fréquence hebdomadaire</p>
+            <div className="flex items-end justify-between gap-2 h-28">
+              {weekHistory.map((entry, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                  {entry.value > 0 ? (
+                    <div
+                      className="w-full rounded-lg"
+                      style={{
+                        height: `${(entry.value / 10) * 100}%`,
+                        minHeight: "4px",
+                        background: `hsl(var(--primary) / 0.2)`,
+                        border: `1px solid hsl(var(--primary) / 0.3)`,
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-1 rounded-lg bg-secondary/30" />
+                  )}
+                  <span className="text-[9px] text-muted-foreground/50 uppercase">{entry.day}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
     );
   }

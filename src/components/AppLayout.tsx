@@ -99,8 +99,11 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  // ── TOUS LES HOOKS EN PREMIER — aucun return avant cette section ──
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const touchStartY = useRef(0);
   const location = useLocation();
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
@@ -108,8 +111,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useSessionTracking();
   useHesitationTracking();
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    const scrollTop = (e.currentTarget as HTMLElement).scrollTop;
+    if (deltaY > 80 && scrollTop <= 0 && !refreshing) {
+      setRefreshing(true);
+      window.dispatchEvent(new CustomEvent("aegis:refresh"));
+      setTimeout(() => setRefreshing(false), 1000);
+    }
+  };
+
   if (isMobile) {
-    const avatarInitial = (user?.email ?? "?")[0].toUpperCase();
+    const avatarInitial = user?.email ? user.email[0].toUpperCase() : "?";
     const dateStr = new Date().toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
 
     const sheetRoutes = [
@@ -122,22 +138,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       ...(isAdmin ? [{ to: "/admin", icon: Shield, label: "Admin" }] : []),
     ];
 
-    // Pull-to-refresh
-    const [refreshing, setRefreshing] = useState(false);
-    const touchStartY = useRef(0);
-    const handleTouchStart = (e: React.TouchEvent) => {
-      touchStartY.current = e.touches[0].clientY;
-    };
-    const handleTouchEnd = (e: React.TouchEvent) => {
-      const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-      const scrollTop = (e.currentTarget as HTMLElement).scrollTop;
-      if (deltaY > 80 && scrollTop <= 0 && !refreshing) {
-        setRefreshing(true);
-        window.dispatchEvent(new CustomEvent("aegis:refresh"));
-        setTimeout(() => setRefreshing(false), 1000);
-      }
-    };
-
     return (
       <div className="min-h-screen w-full relative z-10 flex flex-col">
         {/* ── TOP BAR ── */}
@@ -145,14 +145,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           className="fixed top-0 left-0 right-0 z-50 ghost-sidebar flex items-center justify-between px-4"
           style={{ paddingTop: "calc(0.75rem + var(--safe-top))", paddingBottom: "0.75rem" }}
         >
-          {/* Logo only — date removed (shown in greeting in Dashboard) */}
+          {/* Logo only — date hidden on Dashboard (/) to avoid duplicate with greeting */}
           <div className="flex items-center gap-2.5">
             <img src={aegisLogo} alt="Aegis" className="w-8 h-8 rounded-lg object-contain" />
           </div>
-          {/* Centered date */}
-          <span className="text-[10px] text-muted-foreground/50 tracking-[0.15em] uppercase absolute left-1/2 -translate-x-1/2">
-            {dateStr}
-          </span>
+          {/* Centered date — hidden on "/" */}
+          {location.pathname !== "/" && (
+            <span className="text-[10px] text-muted-foreground/50 tracking-[0.15em] uppercase absolute left-1/2 -translate-x-1/2 pointer-events-none">
+              {dateStr}
+            </span>
+          )}
           {/* Right: notif + avatar */}
           <div className="flex items-center gap-2">
             <NotificationBell />
@@ -160,7 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               to="/profile"
               className="w-8 h-8 rounded-full bg-primary/10 border border-primary/25
                 flex items-center justify-center text-primary text-[11px] font-medium
-                active:scale-95 transition-all"
+                active:scale-95 transition-all duration-150"
               style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
             >
               {avatarInitial}

@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Bell } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Drawer } from "vaul";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,19 +109,28 @@ export default function NotificationBell() {
     </>
   );
 
-  const BellButton = () => (
-    <button
-      onClick={() => setOpen(!open)}
-      className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors"
-    >
-      <Bell size={16} />
-      {unreadCount > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent text-[9px] text-accent-foreground flex items-center justify-center font-medium">
-          {unreadCount > 9 ? "9+" : unreadCount}
-        </span>
-      )}
-    </button>
+  const BellButton = React.forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<"button">>(
+    ({ className, onClick, ...rest }, ref) => (
+      <button
+        ref={ref}
+        type="button"
+        {...rest}
+        onClick={(e) => {
+          setOpen((o) => !o);
+          onClick?.(e);
+        }}
+        className={cn("relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors", className)}
+      >
+        <Bell size={16} />
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent text-[9px] text-accent-foreground flex items-center justify-center font-medium">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+      </button>
+    )
   );
+  BellButton.displayName = "BellButton";
 
   // ── Mobile: Vaul bottom drawer ──────────────────────────────────────────────
   if (isMobile) {
