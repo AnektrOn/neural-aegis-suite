@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Check, ListChecks, ArrowUpRight } from "lucide-react";
+import { Check, ArrowUpRight } from "lucide-react";
+import { NeuralCard } from "@/components/ui/neural-card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -94,62 +95,53 @@ export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
   const progress = habits.length > 0 ? (doneCount / habits.length) * 100 : 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.24 }}
-      className="ethereal-glass p-3 space-y-2.5"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ListChecks size={13} strokeWidth={1.5} className="text-primary" />
-          <p className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60">Habitudes du jour</p>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.25 }}>
+      <NeuralCard glow="none" className="space-y-2.5 p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-3 rounded-full bg-accent-primary shrink-0" />
+            <p className="font-display text-[10px] tracking-[0.15em] uppercase text-text-tertiary">Habitudes du jour</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-text-tertiary tabular-nums font-display">{doneCount}/{habits.length}</span>
+            <Link to="/habits" className="text-accent-primary/50 hover:text-accent-primary transition-colors" aria-label="Voir les habitudes">
+              <ArrowUpRight size={11} strokeWidth={1.5} />
+            </Link>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] text-muted-foreground/40 tabular-nums">{doneCount}/{habits.length}</span>
-          <Link to="/habits" className="text-primary/30 hover:text-primary transition-colors" aria-label="Voir les habitudes">
-            <ArrowUpRight size={11} />
-          </Link>
+
+        <div className="space-y-0">
+          {habits.map((h) => {
+            const done = completedIds.has(h.id);
+            return (
+              <button
+                key={h.id}
+                type="button"
+                onClick={() => toggle(h.id)}
+                className="flex items-center gap-3 py-2.5 border-b border-border-subtle/40 group w-full text-left active:scale-[0.99] transition-transform"
+              >
+                <div
+                  className={`w-4 h-4 rounded border transition-all flex items-center justify-center shrink-0 ${
+                    done ? "bg-accent-positive border-accent-positive" : "border-border-active group-hover:border-accent-primary/50"
+                  }`}
+                >
+                  {done && <Check size={10} className="text-bg-base" strokeWidth={3} />}
+                </div>
+                <span className={`text-xs truncate ${done ? "text-text-tertiary line-through" : "text-text-primary"}`}>{h.name}</span>
+              </button>
+            );
+          })}
         </div>
-      </div>
 
-      {/* Habit list */}
-      <div className="space-y-1.5">
-        {habits.map((h) => {
-          const done = completedIds.has(h.id);
-          return (
-            <button
-              key={h.id}
-              onClick={() => toggle(h.id)}
-              className="flex items-center gap-2 w-full text-left active:scale-[0.99] transition-transform"
-            >
-              <div
-                className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-all ${
-                  done ? "bg-primary/20 border-primary/40" : "border-border/40"
-                }`}
-              >
-                {done && <Check size={9} className="text-primary" />}
-              </div>
-              <span
-                className={`text-[11px] truncate leading-tight transition-colors ${
-                  done ? "line-through text-muted-foreground/30" : "text-foreground/70"
-                }`}
-              >
-                {h.name}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-0.5 bg-secondary/20 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-primary/40 rounded-full transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+        <div className="pt-1">
+          <div className="h-0.5 bg-border-subtle/60 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-accent-primary/50 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      </NeuralCard>
     </motion.div>
   );
 }

@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -37,6 +38,8 @@ const AdminDecisions = lazy(() => import("./pages/admin/AdminDecisions"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const ScoreboardConfig = lazy(() => import("./pages/admin/ScoreboardConfig"));
 
+const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 60_000, retry: 1 },
@@ -56,7 +59,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <Router>
         <LanguageProvider>
           <AuthProvider>
             <Suspense fallback={<PageLoader />}>
@@ -115,7 +118,7 @@ const App = () => (
             </Suspense>
           </AuthProvider>
         </LanguageProvider>
-      </BrowserRouter>
+      </Router>
     </TooltipProvider>
   </QueryClientProvider>
 );

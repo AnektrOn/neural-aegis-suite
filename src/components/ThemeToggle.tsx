@@ -13,13 +13,14 @@ export default function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.classList.toggle("light", !dark);
     localStorage.setItem("theme", dark ? "dark" : "light");
   }, [dark]);
 
   return (
     <button
       onClick={() => setDark(!dark)}
-      className="mx-3 p-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors flex items-center gap-3"
+      className="mx-3 p-3 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors duration-200 flex items-center gap-3"
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
     >
       <motion.div key={dark ? "moon" : "sun"} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} transition={{ duration: 0.3 }}>

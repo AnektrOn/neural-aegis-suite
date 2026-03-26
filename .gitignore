@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Env & signing (mobile / production)
+.env
+.env.production
+android/keystore.properties
+android/keystore/*.keystore
+android/keystore/*.jks
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

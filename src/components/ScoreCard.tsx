@@ -71,28 +71,33 @@ export default function ScoreCard() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5 }} className="ethereal-glass p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.06, duration: 0.3 }}
+      className="rounded-xl border border-border-subtle bg-bg-surface p-6 shadow-card"
+    >
       <div className="flex items-center gap-2 mb-4">
-        <Trophy size={14} strokeWidth={1.5} className="text-primary" />
+        <Trophy size={14} strokeWidth={1.5} className="text-accent-primary" />
         <p className="text-neural-label">{t("scoreCard.title")}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="text-center">
-          <div className="text-2xl font-light text-foreground font-cinzel">{score}</div>
+          <div className="text-2xl font-light text-text-primary font-display">{score}</div>
           <p className="text-[10px] text-muted-foreground mt-1">{t("scoreCard.points7d")}</p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1">
             <Flame size={16} className="text-orange-400" />
-            <span className="text-2xl font-light text-foreground font-cinzel">{streak}</span>
+            <span className="text-2xl font-light text-text-primary font-display">{streak}</span>
           </div>
           <p className="text-[10px] text-muted-foreground mt-1">{t("scoreCard.consecutiveDays")}</p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1">
             <Star size={16} className="text-yellow-400" />
-            <span className="text-2xl font-light text-foreground font-cinzel">{level}</span>
+            <span className="text-2xl font-light text-text-primary font-display">{level}</span>
           </div>
           <p className="text-[10px] text-muted-foreground mt-1">{t("scoreCard.level")}</p>
         </div>

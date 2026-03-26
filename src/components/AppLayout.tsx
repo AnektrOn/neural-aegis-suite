@@ -4,8 +4,20 @@ import { motion } from "framer-motion";
 import { useSessionTracking } from "@/hooks/use-session-tracking";
 import { useHesitationTracking } from "@/hooks/use-hesitation-tracking";
 import {
-  LayoutDashboard, Brain, Target, ListChecks, Headphones, Users,
-  ChevronLeft, ChevronRight, LogOut, Shield, BarChart3, BookOpen, UserCircle, CalendarDays,
+  LayoutDashboard,
+  Brain,
+  Target,
+  ListChecks,
+  Headphones,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Shield,
+  BarChart3,
+  BookOpen,
+  UserCircle,
+  CalendarDays,
   MoreHorizontal,
 } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
@@ -17,6 +29,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { PageWrapper } from "@/components/PageWrapper";
+import { useNetwork } from "@/hooks/use-network";
 
 const bottomNavTabs = [
   { to: "/", icon: LayoutDashboard, label: "Board" },
@@ -46,29 +60,37 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
 
   return (
     <>
-      <div className="px-4 mb-10 flex items-center gap-3">
-        <img src={aegisLogo} alt="Aegis" className="w-8 h-8 rounded-lg object-contain" />
+      <div className="h-14 flex items-center px-4 border-b border-border-subtle shrink-0">
+        <img src={aegisLogo} alt="Aegis" className="w-7 h-7 rounded-lg object-contain" />
         {!collapsed && (
-          <span className="text-neural-title text-[11px]">Aegis</span>
+          <span className="ml-3 font-display text-[10px] tracking-[0.2em] uppercase text-text-secondary">
+            Neural Aegis
+          </span>
         )}
       </div>
 
-      <nav className="flex-1 flex flex-col gap-1 px-3 overflow-y-auto">
+      <nav className="flex-1 flex flex-col gap-0.5 py-3 px-0 overflow-y-auto">
         {navKeys.map((item) => {
           const isActive = location.pathname === item.to;
           return (
-            <NavLink key={item.to} to={item.to} onClick={onNavigate}
-              className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group relative ${
-                isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
-              }`}>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              className={`relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg mx-2 transition-all duration-200 border border-transparent ${
+                isActive ? "text-accent-primary" : "text-text-tertiary hover:text-text-primary hover:bg-bg-elevated"
+              }`}
+            >
               {isActive && (
-                <motion.div layoutId="sidebar-active" className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/20" transition={{ duration: 0.3 }} />
+                <motion.div
+                  layoutId="sidebar-active"
+                  className="absolute inset-0 rounded-lg bg-accent-primary/10 border border-accent-primary/20 pointer-events-none"
+                  transition={{ duration: 0.25 }}
+                />
               )}
-              <item.icon size={18} strokeWidth={1.5} className="relative z-10 shrink-0" />
+              <item.icon size={16} strokeWidth={1.5} className="relative z-10 shrink-0" />
               {!collapsed && (
-                <span className="text-xs font-medium tracking-widest uppercase relative z-10">
-                  {t(item.key)}
-                </span>
+                <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.key)}</span>
               )}
             </NavLink>
           );
@@ -76,12 +98,14 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
       </nav>
 
       {isAdmin && (
-        <Link to="/admin" onClick={onNavigate} className="mx-3 mb-2 flex items-center gap-3 px-3 py-3 rounded-xl text-accent/60 hover:text-accent hover:bg-accent/5 transition-all">
-          <Shield size={18} strokeWidth={1.5} className="shrink-0" />
+        <Link
+          to="/admin"
+          onClick={onNavigate}
+          className="mx-2 mb-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-accent-warning/80 hover:text-accent-warning hover:bg-accent-warning/5 border border-transparent hover:border-accent-warning/15 transition-all"
+        >
+          <Shield size={16} strokeWidth={1.5} className="shrink-0" />
           {!collapsed && (
-            <span className="text-xs font-medium tracking-widest uppercase">
-              {t("nav.admin")}
-            </span>
+            <span className="text-[11px] font-medium tracking-[0.1em] uppercase">{t("nav.admin")}</span>
           )}
         </Link>
       )}
@@ -91,15 +115,18 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
       </div>
       <ThemeToggle collapsed={collapsed} />
       <LanguageSwitcher collapsed={collapsed} />
-      <button onClick={signOut} className="mx-3 p-3 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors" title={t("nav.logout")}>
-        <LogOut size={16} />
+      <button
+        onClick={signOut}
+        className="mx-3 p-3 rounded-lg text-text-secondary hover:text-accent-danger hover:bg-accent-danger/5 transition-colors duration-200"
+        title={t("nav.logout")}
+      >
+        <LogOut size={16} strokeWidth={1.5} />
       </button>
     </>
   );
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  // ── TOUS LES HOOKS EN PREMIER — aucun return avant cette section ──
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -110,6 +137,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAdmin } = useAdmin();
   useSessionTracking();
   useHesitationTracking();
+  const { online } = useNetwork();
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -138,43 +166,50 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       ...(isAdmin ? [{ to: "/admin", icon: Shield, label: "Admin" }] : []),
     ];
 
+    const mobileTopPadding = online
+      ? "calc(3.25rem + var(--safe-top))"
+      : "calc(5.25rem + var(--safe-top))";
+
     return (
-      <div className="min-h-screen w-full relative z-10 flex flex-col">
-        {/* ── TOP BAR ── */}
+      <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
         <div
-          className="fixed top-0 left-0 right-0 z-50 ghost-sidebar flex items-center justify-between px-4"
-          style={{ paddingTop: "calc(0.75rem + var(--safe-top))", paddingBottom: "0.75rem" }}
+          className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle"
+          style={{ paddingTop: "var(--safe-top)" }}
         >
-          {/* Logo only — date hidden on Dashboard (/) to avoid duplicate with greeting */}
-          <div className="flex items-center gap-2.5">
-            <img src={aegisLogo} alt="Aegis" className="w-8 h-8 rounded-lg object-contain" />
-          </div>
-          {/* Centered date — hidden on "/" */}
-          {location.pathname !== "/" && (
-            <span className="text-[10px] text-muted-foreground/50 tracking-[0.15em] uppercase absolute left-1/2 -translate-x-1/2 pointer-events-none">
-              {dateStr}
-            </span>
-          )}
-          {/* Right: notif + avatar */}
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-            <Link
-              to="/profile"
-              className="w-8 h-8 rounded-full bg-primary/10 border border-primary/25
-                flex items-center justify-center text-primary text-[11px] font-medium
-                active:scale-95 transition-all duration-150"
-              style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+          {!online && (
+            <div
+              className="bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2 shrink-0"
+              role="status"
             >
-              {avatarInitial}
-            </Link>
+              Hors ligne — reconnexion requise pour synchroniser les données
+            </div>
+          )}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <img src={aegisLogo} alt="Aegis" className="w-8 h-8 rounded-lg object-contain" />
+            </div>
+            {location.pathname !== "/" && (
+              <span className="text-[10px] text-text-tertiary tracking-[0.15em] uppercase absolute left-1/2 -translate-x-1/2 pointer-events-none font-display">
+                {dateStr}
+              </span>
+            )}
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <Link
+                to="/profile"
+                className="w-8 h-8 rounded-full bg-accent-primary/10 border border-accent-primary/25 flex items-center justify-center text-accent-primary text-[11px] font-medium font-display active:scale-95 transition-all duration-200"
+                style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+              >
+                {avatarInitial}
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* ── CONTENT ── */}
         <main
           className="flex-1 px-4 overflow-y-auto scroll-fade-bottom"
           style={{
-            paddingTop: "calc(3.25rem + var(--safe-top))",
+            paddingTop: mobileTopPadding,
             paddingBottom: "calc(5rem + var(--safe-bottom))",
           }}
           onTouchStart={handleTouchStart}
@@ -182,82 +217,66 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         >
           {refreshing && (
             <div className="flex justify-center py-2">
-              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
             </div>
           )}
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            {children}
-          </motion.div>
+          <PageWrapper key={location.pathname}>{children}</PageWrapper>
         </main>
 
-        {/* ── BOTTOM NAV ── */}
-        <div
-          className="fixed bottom-0 left-0 right-0 z-50 ghost-sidebar border-t border-border/30"
-          style={{ paddingBottom: "var(--safe-bottom)" }}
-        >
-          <div className="flex items-center justify-around px-2 pt-2 pb-1">
-            {bottomNavTabs.map((tab) => {
-              const isActive = location.pathname === tab.to;
-              return (
-                <NavLink
-                  key={tab.to}
-                  to={tab.to}
-                  className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-[52px] ${
-                    isActive ? "bg-primary/10" : ""
-                  }`}
-                >
-                  <tab.icon
-                    size={isActive ? 20 : 18}
-                    strokeWidth={isActive ? 2 : 1.5}
-                    className={`transition-all duration-200 ${isActive ? "text-primary" : "text-muted-foreground/40"}`}
-                  />
-                  <span className={`text-[10px] transition-colors duration-200 ${isActive ? "text-primary font-medium" : "text-muted-foreground/40"}`}>
-                    {tab.label}
-                  </span>
-                </NavLink>
-              );
-            })}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-bg-surface/90 backdrop-blur-xl border-t border-border-subtle pb-safe">
+          <div className="flex items-center justify-around h-14 px-2">
+            {bottomNavTabs.map((tab) => (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                className={({ isActive }) =>
+                  `flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-200 ${
+                    isActive ? "text-accent-primary" : "text-text-tertiary hover:text-text-secondary"
+                  }`
+                }
+              >
+                <tab.icon size={20} strokeWidth={1.5} />
+                <span className="text-[9px] tracking-[0.08em] uppercase font-medium">{tab.label}</span>
+              </NavLink>
+            ))}
 
-            {/* "Plus" tab */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
-                <button className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl min-w-[52px]">
-                  <MoreHorizontal size={18} strokeWidth={1.5} className="text-muted-foreground/40" />
-                  <span className="text-[10px] text-muted-foreground/40">Plus</span>
+                <button
+                  type="button"
+                  className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-text-tertiary hover:text-text-secondary transition-all duration-200"
+                >
+                  <MoreHorizontal size={20} strokeWidth={1.5} />
+                  <span className="text-[9px] tracking-[0.08em] uppercase font-medium">Plus</span>
                 </button>
               </SheetTrigger>
               <SheetContent
                 side="bottom"
-                className="rounded-t-3xl p-0 ghost-sidebar border-t border-primary/10"
+                className="rounded-t-3xl p-0 bg-bg-surface border-t border-border-subtle"
                 style={{ paddingBottom: "calc(1.5rem + var(--safe-bottom))" }}
               >
                 <div className="px-6 pt-3 pb-6">
-                  <div className="w-10 h-1 bg-border/50 rounded-full mx-auto mb-6" />
+                  <div className="w-10 h-1 bg-border-active/60 rounded-full mx-auto mb-6" />
                   <div className="grid grid-cols-3 gap-3">
                     {sheetRoutes.map((item) => (
                       <Link
                         key={item.to}
                         to={item.to}
                         onClick={() => setMobileOpen(false)}
-                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-bg-elevated border border-border-subtle hover:border-accent-primary/25 transition-all duration-200"
                       >
-                        <item.icon size={20} strokeWidth={1.5} className="text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground tracking-wider uppercase">{item.label}</span>
+                        <item.icon size={20} strokeWidth={1.5} className="text-text-secondary" />
+                        <span className="text-[10px] text-text-secondary tracking-wider uppercase font-medium">{item.label}</span>
                       </Link>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/20">
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border-subtle/60">
                     <ThemeToggle collapsed={false} />
                     <button
                       onClick={signOut}
-                      className="flex items-center gap-2 text-destructive/70 hover:text-destructive transition-colors"
+                      className="flex items-center gap-2 text-accent-danger/80 hover:text-accent-danger transition-colors duration-200"
                     >
-                      <LogOut size={16} />
+                      <LogOut size={16} strokeWidth={1.5} />
                       <span className="text-xs">Déconnexion</span>
                     </button>
                   </div>
@@ -265,29 +284,44 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </SheetContent>
             </Sheet>
           </div>
-        </div>
+        </nav>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full relative z-10">
-      <motion.aside
-        animate={{ width: collapsed ? 72 : 220 }}
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className="ghost-sidebar fixed top-0 left-0 h-screen z-50 flex flex-col py-6"
+    <div className="flex min-h-screen w-full relative z-10 bg-bg-base">
+      {!online && (
+        <div
+          className="fixed top-0 left-0 right-0 z-[60] bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2"
+          role="status"
+        >
+          Hors ligne — reconnexion requise pour synchroniser les données
+        </div>
+      )}
+      <aside
+        className={`fixed left-0 h-full z-30 flex flex-col bg-bg-surface border-r border-border-subtle transition-all duration-300 ease-in-out ${
+          collapsed ? "w-[60px]" : "w-[220px]"
+        } ${!online ? "top-7" : "top-0"}`}
       >
         <SidebarContent collapsed={collapsed} />
-        <button onClick={() => setCollapsed(!collapsed)} className="mx-3 mt-2 p-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors">
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-bg-elevated border border-border-active text-text-secondary hover:text-accent-primary hover:border-accent-primary/40 flex items-center justify-center transition-all duration-200 z-10 shadow-card"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronRight size={14} strokeWidth={1.5} /> : <ChevronLeft size={14} strokeWidth={1.5} />}
         </button>
-      </motion.aside>
+      </aside>
 
-      <motion.main animate={{ marginLeft: collapsed ? 72 : 220 }} transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }} className="flex-1 min-h-screen p-6 md:p-10">
-        <motion.div key={location.pathname} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          {children}
-        </motion.div>
-      </motion.main>
+      <main
+        className={`flex-1 min-h-screen p-6 md:p-10 transition-all duration-300 ease-in-out ${
+          collapsed ? "ml-[60px]" : "ml-[220px]"
+        } ${!online ? "mt-7" : ""}`}
+      >
+        <PageWrapper key={location.pathname}>{children}</PageWrapper>
+      </main>
     </div>
   );
 }

@@ -14,11 +14,32 @@ export default {
     },
     extend: {
       fontFamily: {
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ['"DM Mono"', "ui-monospace", "monospace"],
         cinzel: ["Cinzel", "serif"],
-        grotesk: ["Space Grotesk", "sans-serif"],
+        grotesk: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
-        border: "hsl(var(--border))",
+        bg: {
+          base: "hsl(var(--background))",
+          surface: "hsl(var(--card))",
+          elevated: "hsl(var(--popover))",
+        },
+        text: {
+          primary: "hsl(var(--foreground))",
+          secondary: "hsl(var(--muted-foreground))",
+          tertiary: "hsl(var(--muted-foreground))",
+        },
+        "accent-primary": "hsl(var(--primary))",
+        "accent-secondary": "hsl(var(--secondary))",
+        "accent-positive": "hsl(var(--success))",
+        "accent-warning": "hsl(var(--warning))",
+        "accent-danger": "hsl(var(--destructive))",
+        border: {
+          DEFAULT: "hsl(var(--border))",
+          subtle: "hsl(var(--border))",
+          active: "hsl(var(--border))",
+        },
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
@@ -95,6 +116,15 @@ export default {
           4: "hsl(var(--chart-4))",
           5: "hsl(var(--chart-5))",
         },
+      },
+      boxShadow: {
+        "glow-blue": "0 0 20px rgba(79, 142, 247, 0.15)",
+        "glow-purple": "0 0 20px rgba(124, 109, 250, 0.12)",
+        card: "0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
+      },
+      backgroundImage: {
+        "grid-subtle":
+          "linear-gradient(rgba(30,32,48,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(30,32,48,0.5) 1px, transparent 1px)",
       },
       borderRadius: {
         lg: "var(--radius)",

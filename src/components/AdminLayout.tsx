@@ -1,12 +1,31 @@
 import { useState } from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Phone, Factory, Users, ChevronLeft, ChevronRight, Zap, LogOut, ArrowLeft, BarChart3, Building2, LayoutDashboard, Menu, Package, Target, MessageSquare, Trophy } from "lucide-react";
+import {
+  Phone,
+  Factory,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  Zap,
+  LogOut,
+  ArrowLeft,
+  BarChart3,
+  Building2,
+  LayoutDashboard,
+  Menu,
+  Package,
+  Target,
+  MessageSquare,
+  Trophy,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { PageWrapper } from "@/components/PageWrapper";
+import { useNetwork } from "@/hooks/use-network";
 
 const adminNavKeys = [
   { to: "/admin", icon: Phone, key: "admin.nav.calls" as const },
@@ -28,48 +47,63 @@ function AdminSidebarContent({ collapsed, onNavigate }: { collapsed: boolean; on
 
   return (
     <>
-      <div className="px-4 mb-6 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-neural-accent/20 flex items-center justify-center" style={{ boxShadow: "0 0 20px hsla(270, 50%, 55%, 0.3)" }}>
-          <Zap size={16} className="text-neural-accent" />
+      <div className="h-14 flex items-center px-4 border-b border-border-subtle shrink-0 gap-2">
+        <div className="w-7 h-7 rounded-lg bg-accent-warning/15 border border-accent-warning/25 flex items-center justify-center shrink-0">
+          <Zap size={14} strokeWidth={1.5} className="text-accent-warning" />
         </div>
         {!collapsed && (
-          <span className="text-neural-title text-[11px] text-neural-accent">Admin</span>
+          <div className="flex flex-col min-w-0 gap-0.5">
+            <span className="font-display text-[10px] tracking-[0.2em] uppercase text-text-secondary truncate">Admin</span>
+            <span className="px-2 py-0.5 rounded text-[9px] tracking-widest uppercase w-fit bg-accent-warning/10 text-accent-warning border border-accent-warning/20 font-display">
+              Admin
+            </span>
+          </div>
         )}
       </div>
 
-      <Link to="/" onClick={onNavigate} className="mx-3 mb-4 flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-all">
+      <Link
+        to="/"
+        onClick={onNavigate}
+        className="mx-2 mt-3 mb-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg-elevated transition-all duration-200"
+      >
         <ArrowLeft size={16} strokeWidth={1.5} className="shrink-0" />
-        {!collapsed && (
-          <span className="text-[9px] uppercase tracking-[0.3em]">
-            {t("admin.nav.dashboard")}
-          </span>
-        )}
+        {!collapsed && <span className="text-[9px] uppercase tracking-[0.12em] font-medium">{t("admin.nav.dashboard")}</span>}
       </Link>
 
-      <nav className="flex-1 flex flex-col gap-1 px-3 overflow-y-auto">
+      <nav className="flex-1 flex flex-col gap-0.5 px-0 overflow-y-auto pb-2">
         {adminNavKeys.map((item) => {
           const isActive = location.pathname === item.to;
           return (
-            <NavLink key={item.to} to={item.to} onClick={onNavigate}
-              className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group relative ${
-                isActive ? "bg-neural-accent/10 text-neural-accent" : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
-              }`}>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              className={`relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg mx-2 transition-all duration-200 border border-transparent ${
+                isActive ? "text-accent-warning" : "text-text-tertiary hover:text-text-primary hover:bg-bg-elevated"
+              }`}
+            >
               {isActive && (
-                <motion.div layoutId="admin-sidebar-active" className="absolute inset-0 rounded-xl bg-neural-accent/10 border border-neural-accent/20" transition={{ duration: 0.3 }} />
+                <motion.div
+                  layoutId="admin-sidebar-active"
+                  className="absolute inset-0 rounded-lg bg-accent-warning/10 border border-accent-warning/25 pointer-events-none"
+                  transition={{ duration: 0.25 }}
+                />
               )}
-              <item.icon size={18} strokeWidth={1.5} className="relative z-10 shrink-0" />
+              <item.icon size={16} strokeWidth={1.5} className="relative z-10 shrink-0" />
               {!collapsed && (
-                <span className="text-xs font-medium tracking-widest uppercase relative z-10">
-                  {t(item.key)}
-                </span>
+                <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.key)}</span>
               )}
             </NavLink>
           );
         })}
       </nav>
 
-      <button onClick={signOut} className="mx-3 p-3 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors" title={t("nav.logout")}>
-        <LogOut size={16} />
+      <button
+        onClick={signOut}
+        className="mx-3 p-3 rounded-lg text-text-secondary hover:text-accent-danger hover:bg-accent-danger/5 transition-colors duration-200"
+        title={t("nav.logout")}
+      >
+        <LogOut size={16} strokeWidth={1.5} />
       </button>
       <LanguageSwitcher collapsed={collapsed} />
     </>
@@ -81,57 +115,87 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { online } = useNetwork();
 
   if (isMobile) {
+    const adminMobileTop = online ? "pt-16" : "pt-[5.25rem]";
+
     return (
-      <div className="min-h-screen w-full relative z-10">
-        <div className="fixed top-0 left-0 right-0 z-50 ghost-sidebar flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetTrigger asChild>
-                <button className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors">
-                  <Menu size={20} />
-                </button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[260px] p-0 py-6 ghost-sidebar border-r-0">
-                <AdminSidebarContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
-              </SheetContent>
-            </Sheet>
-            <div className="w-7 h-7 rounded-lg bg-neural-accent/20 flex items-center justify-center">
-              <Zap size={14} className="text-neural-accent" />
+      <div className="min-h-screen w-full relative z-10 bg-bg-base">
+        <div className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle">
+          {!online && (
+            <div
+              className="bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2 shrink-0"
+              role="status"
+            >
+              Hors ligne — reconnexion requise pour synchroniser les données
             </div>
-            <span className="text-neural-title text-[10px] text-neural-accent">Admin</span>
+          )}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                <SheetTrigger asChild>
+                  <button
+                    type="button"
+                    className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors duration-200"
+                  >
+                    <Menu size={20} strokeWidth={1.5} />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[260px] p-0 py-0 bg-bg-surface border-r border-border-subtle">
+                  <div className="py-4">
+                    <AdminSidebarContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
+                  </div>
+                </SheetContent>
+              </Sheet>
+              <div className="w-7 h-7 rounded-lg bg-accent-warning/15 border border-accent-warning/25 flex items-center justify-center">
+                <Zap size={14} strokeWidth={1.5} className="text-accent-warning" />
+              </div>
+              <span className="font-display text-[10px] tracking-[0.2em] uppercase text-accent-warning">Admin</span>
+            </div>
           </div>
         </div>
 
-        <main className="pt-16 px-4 pb-6 min-h-screen">
-          <motion.div key={location.pathname} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            {children}
-          </motion.div>
+        <main className={`${adminMobileTop} px-4 pb-6 min-h-screen`}>
+          <PageWrapper key={location.pathname}>{children}</PageWrapper>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full relative z-10">
-      <motion.aside
-        animate={{ width: collapsed ? 72 : 220 }}
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className="ghost-sidebar fixed top-0 left-0 h-screen z-50 flex flex-col py-6"
-        style={{ borderColor: "hsla(270, 50%, 55%, 0.08)" }}
+    <div className="flex min-h-screen w-full relative z-10 bg-bg-base">
+      {!online && (
+        <div
+          className="fixed top-0 left-0 right-0 z-[60] bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2"
+          role="status"
+        >
+          Hors ligne — reconnexion requise pour synchroniser les données
+        </div>
+      )}
+      <aside
+        className={`fixed left-0 h-full z-30 flex flex-col bg-bg-surface border-r border-border-subtle transition-all duration-300 ease-in-out ${
+          collapsed ? "w-[60px]" : "w-[220px]"
+        } ${!online ? "top-7" : "top-0"}`}
       >
         <AdminSidebarContent collapsed={collapsed} />
-        <button onClick={() => setCollapsed(!collapsed)} className="mx-3 mt-2 p-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors">
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-bg-elevated border border-border-active text-text-secondary hover:text-accent-warning hover:border-accent-warning/40 flex items-center justify-center transition-all duration-200 z-10 shadow-card"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronRight size={14} strokeWidth={1.5} /> : <ChevronLeft size={14} strokeWidth={1.5} />}
         </button>
-      </motion.aside>
+      </aside>
 
-      <motion.main animate={{ marginLeft: collapsed ? 72 : 220 }} transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }} className="flex-1 min-h-screen p-6 md:p-10">
-        <motion.div key={location.pathname} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          {children}
-        </motion.div>
-      </motion.main>
+      <main
+        className={`flex-1 min-h-screen p-6 md:p-10 transition-all duration-300 ease-in-out ${
+          collapsed ? "ml-[60px]" : "ml-[220px]"
+        } ${!online ? "mt-7" : ""}`}
+      >
+        <PageWrapper key={location.pathname}>{children}</PageWrapper>
+      </main>
     </div>
   );
 }
