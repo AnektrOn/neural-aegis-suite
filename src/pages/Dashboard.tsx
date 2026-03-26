@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  Zap, Brain, Target, TrendingUp, TrendingDown, Minus,
-  Calendar, ArrowUpRight,
-} from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { Zap, Brain, Target, TrendingUp, TrendingDown, Minus, Plus, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ScoreCard from "@/components/ScoreCard";
@@ -15,8 +14,8 @@ import ScoreboardWidget from "@/components/ScoreboardWidget";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import QuickLogModal from "@/components/QuickLogModal";
-import DecisionsMiniCard from "@/components/DecisionsMiniCard";
 import HabitsMiniCard from "@/components/HabitsMiniCard";
+import { NeuralCard } from "@/components/ui/neural-card";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
@@ -287,17 +286,19 @@ export default function Dashboard() {
   };
 
   const TrendIcon = ({ trend }: { trend: "up" | "down" | "stable" }) => {
-    if (trend === "up") return <TrendingUp size={14} className="text-emerald-500" />;
-    if (trend === "down") return <TrendingDown size={14} className="text-red-400" />;
-    return <Minus size={14} className="text-muted-foreground" />;
+    if (trend === "up") return <TrendingUp size={14} className="text-accent-positive" strokeWidth={1.5} />;
+    if (trend === "down") return <TrendingDown size={14} className="text-accent-danger" strokeWidth={1.5} />;
+    return <Minus size={14} className="text-text-tertiary" strokeWidth={1.5} />;
   };
 
-  const statCards = [
-    { label: t("dashboard.statMood"), value: stats.moodAvg, icon: Brain },
-    { label: t("dashboard.statOpenDecisions"), value: stats.openDecisions, icon: Target },
-    { label: t("dashboard.statHabitsToday"), value: stats.habitsDone, icon: TrendingUp },
-    { label: t("dashboard.statNetwork"), value: stats.contacts, icon: Zap },
-  ];
+  const kpiContainer = {
+    initial: {},
+    animate: { transition: { staggerChildren: 0.06 } },
+  };
+  const kpiItem = {
+    initial: { opacity: 0, y: 12 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  };
 
   // ─── Mobile layout ─────────────────────────────────────────────────────────
   if (isMobile) {
@@ -312,12 +313,12 @@ export default function Dashboard() {
 
         {/* Greeting + streak (no date — date is in top bar) */}
         <motion.div {...fadeUp(0)} className="flex items-center justify-between">
-          <p className="text-[11px] text-muted-foreground/50 tracking-[0.2em] uppercase">{greeting}</p>
+          <p className="text-[11px] text-text-tertiary tracking-[0.2em] uppercase font-display">{greeting}</p>
           {streakDays > 0 && (
             <motion.span
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-[11px] text-primary/70 font-medium"
+              className="text-[11px] text-accent-primary font-medium font-display"
             >
               🔥 {streakDays} jours
             </motion.span>
@@ -331,23 +332,23 @@ export default function Dashboard() {
           <motion.div {...fadeUp(0.02)}>
           <button
             onClick={() => setShowQuickLog(true)}
-            className="card-interactive w-full flex items-center justify-between p-4 rounded-2xl
-              bg-primary/5 border border-primary/20
-              active:scale-[0.97] active:opacity-80 transition-all duration-150 select-none"
+            className="card-interactive w-full flex items-center justify-between p-4 rounded-xl
+              bg-accent-primary/5 border border-accent-primary/25
+              active:scale-[0.97] active:opacity-80 transition-all duration-200 select-none"
             style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-accent-primary/15 border border-accent-primary/30 flex items-center justify-center flex-shrink-0">
                 <div className="quick-log-dot" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-medium text-foreground leading-tight">Logger maintenant</p>
-                <p className="text-[10px] text-muted-foreground tracking-[0.12em] mt-0.5">
+                <p className="text-sm font-medium text-text-primary leading-tight">Logger maintenant</p>
+                <p className="text-[10px] text-text-secondary tracking-[0.12em] mt-0.5 font-display uppercase">
                   HUMEUR · STRESS · SOMMEIL
                 </p>
               </div>
             </div>
-            <div className="text-primary/50 text-lg font-light">›</div>
+            <div className="text-accent-primary/50 text-lg font-light">›</div>
           </button>
           </motion.div>
         )}
@@ -360,20 +361,20 @@ export default function Dashboard() {
         ) : (
           <motion.div {...fadeUp(0.03)} className="grid grid-cols-3 gap-2">
             <div className="card-static ethereal-glass p-3 text-center">
-              <p className="text-xl stat-number-mobile text-primary leading-tight">{stats.moodAvg}</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1 tracking-wider uppercase">Humeur</p>
+              <p className="text-xl stat-number-mobile text-accent-primary leading-tight">{stats.moodAvg}</p>
+              <p className="text-[10px] text-text-tertiary mt-1 tracking-wider uppercase font-display">Humeur</p>
             </div>
             <div className="card-static ethereal-glass p-3 text-center">
-              <p className="text-xl stat-number-mobile text-accent leading-tight">
+              <p className="text-xl stat-number-mobile text-accent-secondary leading-tight">
                 {habitsTotal > 0 ? `${completedHabits}/${habitsTotal}` : stats.habitsDone}
               </p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1 tracking-wider uppercase">Habitudes</p>
+              <p className="text-[10px] text-text-tertiary mt-1 tracking-wider uppercase font-display">Habitudes</p>
             </div>
             <div className="card-static ethereal-glass p-3 text-center">
-              <p className="text-xl stat-number-mobile leading-tight" style={{ color: "hsl(var(--neural-warm))" }}>
+              <p className="text-xl stat-number-mobile leading-tight text-accent-warning">
                 {streakDays > 0 ? `${streakDays}j` : stats.openDecisions}
               </p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1 tracking-wider uppercase">
+              <p className="text-[10px] text-text-tertiary mt-1 tracking-wider uppercase font-display">
                 {streakDays > 0 ? "Série 🔥" : "Décisions"}
               </p>
             </div>
@@ -544,80 +545,130 @@ export default function Dashboard() {
   }
 
   // ─── Desktop layout ─────────────────────────────────────────────────────────
+  const moodTrendLabel =
+    digest?.moodTrend === "up"
+      ? `+${digest.moodDelta} vs semaine`
+      : digest?.moodTrend === "down"
+        ? `-${digest.moodDelta} vs semaine`
+        : t("dashboard.stable");
+
   return (
-    <div className="space-y-10 max-w-6xl">
-      <div>
-        <p className="text-neural-label mb-3">{t("dashboard.welcome")}</p>
-        <h1 className="text-neural-title text-2xl sm:text-3xl md:text-4xl text-foreground">{t("dashboard.neuralState")}</h1>
-      </div>
-
-      {digest && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <Calendar size={14} strokeWidth={1.5} className="text-primary" />
-            <p className="text-neural-label">{t("dashboard.weeklyDigest")}</p>
+    <div className="min-h-full -mx-6 -mt-6 px-6 pt-6 pb-10 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-[10px] tracking-[0.2em] uppercase text-text-tertiary font-display">
+              {format(new Date(), "EEEE d MMMM", { locale: fr })}
+            </p>
+            <h1 className="text-xl font-display text-text-primary mt-0.5 tracking-tight">Neural Dashboard</h1>
+            <p className="text-neural-label mt-2">{t("dashboard.welcome")}</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            <div className="bg-secondary/20 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <TrendIcon trend={digest.moodTrend} />
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                  {digest.moodTrend === "up" ? `+${digest.moodDelta}` : digest.moodTrend === "down" ? `-${digest.moodDelta}` : t("dashboard.stable")}
+          <button
+            type="button"
+            onClick={() => setShowQuickLog(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/15 transition-all duration-200 text-xs tracking-wide uppercase font-medium font-display shrink-0"
+          >
+            <Plus size={14} strokeWidth={1.5} /> Log rapide
+          </button>
+        </div>
+
+        <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-3" variants={kpiContainer} initial="initial" animate="animate">
+          <motion.div variants={kpiItem}>
+            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
+              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
+                {t("dashboard.statMood")}
+              </span>
+              <span className="text-2xl font-display text-accent-primary">{loading ? "—" : stats.moodAvg}</span>
+              {digest && (
+                <span
+                  className={`text-[10px] flex items-center gap-1 font-medium ${
+                    digest.moodTrend === "up"
+                      ? "text-accent-positive"
+                      : digest.moodTrend === "down"
+                        ? "text-accent-danger"
+                        : "text-text-tertiary"
+                  }`}
+                >
+                  <TrendIcon trend={digest.moodTrend} />
+                  {moodTrendLabel}
                 </span>
-              </div>
-              <p className="text-neural-label mt-1">{t("dashboard.moodTrend")}</p>
-            </div>
-            <div className="bg-secondary/20 rounded-xl p-4 text-center">
-              <p className="text-xl font-cinzel text-foreground">{digest.habitRate}%</p>
-              <p className="text-neural-label mt-1">{t("dashboard.habitRate")}</p>
-            </div>
-            <div className="bg-secondary/20 rounded-xl p-4 text-center">
-              <p className="text-xl font-cinzel text-foreground">{digest.decisionsResolved}</p>
-              <p className="text-neural-label mt-1">{t("dashboard.decisionsResolved")}</p>
-            </div>
-            <div className="bg-secondary/20 rounded-xl p-4 text-center">
-              <p className="text-xl font-cinzel text-foreground">{digest.journalCount}</p>
-              <p className="text-neural-label mt-1">{t("dashboard.journalEntries")}</p>
-            </div>
-            <div className="bg-secondary/20 rounded-xl p-4 text-center">
-              <p className="text-xl font-cinzel text-foreground">{digest.streakDays}j</p>
-              <p className="text-neural-label mt-1">{t("dashboard.streakDays")}</p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1, duration: 0.5 }} className="ethereal-glass p-6 group cursor-default">
-            <div className="flex items-start justify-between mb-4">
-              <stat.icon size={20} strokeWidth={1.5} className="text-primary animate-glow-pulse" />
-            </div>
-            <p className="text-2xl font-light text-foreground font-cinzel">{stat.value}</p>
-            <p className="text-neural-label mt-2">{stat.label}</p>
+              )}
+            </NeuralCard>
           </motion.div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.5 }} className="lg:col-span-3">
-          <p className="text-neural-label mb-4">{t("dashboard.neuralMap")}</p>
-          <NeuralMap people={people} compact showFilters={false} />
+          <motion.div variants={kpiItem}>
+            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
+              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
+                {t("dashboard.statOpenDecisions")}
+              </span>
+              <span className="text-2xl font-display text-accent-primary">{loading ? "—" : stats.openDecisions}</span>
+              <span className="text-[10px] text-text-tertiary flex items-center gap-1">
+                <Target size={10} strokeWidth={1.5} /> {t("nav.decisions")}
+              </span>
+            </NeuralCard>
+          </motion.div>
+          <motion.div variants={kpiItem}>
+            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
+              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
+                {t("dashboard.statHabitsToday")}
+              </span>
+              <span className="text-2xl font-display text-accent-secondary">
+                {loading ? "—" : `${stats.habitsDone}${totalHabits > 0 ? `/${totalHabits}` : ""}`}
+              </span>
+              {digest != null && (
+                <span className="text-[10px] text-accent-positive flex items-center gap-1">
+                  <TrendingUp size={10} strokeWidth={1.5} /> {digest.habitRate}% · {t("dashboard.habitRate")}
+                </span>
+              )}
+            </NeuralCard>
+          </motion.div>
+          <motion.div variants={kpiItem}>
+            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
+              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
+                {t("dashboard.statNetwork")}
+              </span>
+              <span className="text-2xl font-display text-text-primary">{loading ? "—" : stats.contacts}</span>
+              <span className="text-[10px] text-text-tertiary flex items-center gap-1">
+                <Zap size={10} strokeWidth={1.5} />
+                {t("nav.people")}
+              </span>
+            </NeuralCard>
+          </motion.div>
+          <motion.div variants={kpiItem} className="col-span-2 md:col-span-1">
+            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
+              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
+                {t("dashboard.streakDays")}
+              </span>
+              <span className="text-2xl font-display text-accent-warning">
+                {digest != null ? `${digest.streakDays}j` : "—"}
+              </span>
+              <span className="text-[10px] text-accent-positive flex items-center gap-1">
+                <Brain size={10} strokeWidth={1.5} /> {digest?.journalCount ?? 0} · {t("dashboard.journalEntries")}
+              </span>
+            </NeuralCard>
+          </motion.div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }} className="lg:col-span-2 ethereal-glass p-8">
-          <div className="flex items-center gap-2 mb-6">
-            <Target size={14} strokeWidth={1.5} className="text-primary" />
-            <p className="text-neural-label">{t("dashboard.statOpenDecisions")}</p>
-          </div>
-          <p className="text-4xl font-cinzel text-foreground">{stats.openDecisions}</p>
-          <p className="text-neural-label mt-3">{t("dashboard.statNetwork")} — {stats.contacts}</p>
-        </motion.div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <NeuralCard className="lg:col-span-2 p-4 md:p-5" glow="blue">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1.5 h-4 rounded-full bg-accent-primary shrink-0" />
+              <h2 className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary">{t("dashboard.neuralMap")}</h2>
+            </div>
+            <NeuralMap people={people} compact showFilters={false} />
+          </NeuralCard>
+          <NeuralCard glow="purple" className="p-4 md:p-5">
+            <AIInsights />
+          </NeuralCard>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+          <div>{user ? <HabitsMiniCard userId={user.id} /> : null}</div>
+          <ScoreboardWidget />
+          <ScoreCard />
+        </div>
       </div>
 
-      <ScoreboardWidget />
-      <AIInsights />
-      <ScoreCard />
+      <QuickLogModal open={showQuickLog} onClose={() => setShowQuickLog(false)} />
     </div>
   );
 }

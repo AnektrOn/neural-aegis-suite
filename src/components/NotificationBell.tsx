@@ -165,7 +165,7 @@ export default function NotificationBell() {
             initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            className="absolute right-0 top-full mt-2 w-80 max-h-[70vh] overflow-y-auto rounded-xl bg-card border border-border shadow-xl z-[100]"
+            className="fixed left-1/2 top-16 -translate-x-1/2 w-[min(20rem,calc(100vw-1.5rem))] max-h-[70vh] overflow-y-auto rounded-xl bg-card border border-border shadow-xl z-[100]"
           >
             <NotificationList />
           </motion.div>

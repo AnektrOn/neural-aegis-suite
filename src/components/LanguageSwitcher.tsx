@@ -9,7 +9,7 @@ export default function LanguageSwitcher({ collapsed = false }: { collapsed?: bo
   return (
     <button
       onClick={() => setLocale(nextLocale)}
-      className="mx-3 flex items-center gap-3 px-3 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-all duration-300 group"
+      className="mx-3 flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-all duration-200 group"
       title={locale === "fr" ? "Switch to English" : "Passer en français"}
     >
       <div className="relative shrink-0 w-4 h-4">
@@ -28,8 +28,8 @@ export default function LanguageSwitcher({ collapsed = false }: { collapsed?: bo
             <span className="text-[9px] uppercase tracking-[0.3em] font-medium">
               {locale === "fr" ? "FR" : "EN"}
             </span>
-            <span className="text-[8px] text-muted-foreground/40">→</span>
-            <span className="text-[9px] uppercase tracking-[0.3em] font-medium text-primary/60 group-hover:text-primary transition-colors">
+            <span className="text-[8px] text-text-tertiary">→</span>
+            <span className="text-[9px] uppercase tracking-[0.12em] font-medium text-accent-primary/60 group-hover:text-accent-primary transition-colors font-display">
               {nextLocale.toUpperCase()}
             </span>
           </motion.div>

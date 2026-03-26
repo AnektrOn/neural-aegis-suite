@@ -113,7 +113,7 @@ export default function RadialSlider({
         ref={svgRef}
         width={size}
         height={size}
-        className="cursor-pointer"
+        className="cursor-pointer text-foreground"
         onMouseDown={handlePointerDown}
         onTouchStart={handlePointerDown}
         onWheel={handleWheel}
@@ -125,7 +125,7 @@ export default function RadialSlider({
           cy={center}
           r={radius}
           fill="none"
-          stroke="hsl(var(--secondary))"
+          stroke="#2A2E45"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
@@ -150,7 +150,7 @@ export default function RadialSlider({
           cy={thumbY}
           r={dragging ? 10 : 8}
           fill={color}
-          stroke="hsl(var(--background))"
+          stroke="#08090D"
           strokeWidth={3}
           className="drop-shadow-md"
         />
@@ -160,10 +160,10 @@ export default function RadialSlider({
           y={center - 6}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="hsl(var(--foreground))"
+          fill="currentColor"
           fontSize={size * 0.18}
-          fontFamily="Cinzel, serif"
-          fontWeight="300"
+          fontFamily="DM Mono, monospace"
+          fontWeight="400"
         >
           {displayValue}
         </text>
@@ -173,10 +173,11 @@ export default function RadialSlider({
             y={center + size * 0.12}
             textAnchor="middle"
             dominantBaseline="middle"
-            fill="hsl(var(--muted-foreground))"
+            fill="currentColor"
             fontSize={7}
-            fontFamily="Space Grotesk, sans-serif"
-            letterSpacing="0.3em"
+            fontFamily="Inter, sans-serif"
+            letterSpacing="0.12em"
+            opacity={0.6}
             style={{ textTransform: "uppercase" }}
           >
             {label.toUpperCase()}

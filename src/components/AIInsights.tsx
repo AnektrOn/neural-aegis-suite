@@ -28,30 +28,31 @@ export default function AIInsights() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Sparkles size={16} strokeWidth={1.5} className="text-accent" />
-          <p className="text-neural-label">{t("aiInsights.title")}</p>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-1.5 h-4 rounded-full bg-accent-secondary shrink-0" />
+          <p className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary truncate">{t("aiInsights.title")}</p>
         </div>
         <button
+          type="button"
           onClick={fetchInsights}
           disabled={loading}
-          className="text-[9px] uppercase tracking-[0.3em] px-4 py-2 rounded-full border border-accent/20 text-accent hover:bg-accent/5 transition-all disabled:opacity-50"
+          className="text-[9px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-accent-secondary/30 text-accent-secondary hover:bg-accent-secondary/10 transition-all duration-200 disabled:opacity-50 shrink-0 font-display"
         >
-          {loading ? <RefreshCw size={12} className="animate-spin" /> : t("aiInsights.analyze")}
+          {loading ? <RefreshCw size={12} className="animate-spin" strokeWidth={1.5} /> : t("aiInsights.analyze")}
         </button>
       </div>
 
       {insights ? (
-        <div className="prose prose-sm dark:prose-invert max-w-none text-sm text-foreground/90 leading-relaxed">
+        <div className="prose prose-sm dark:prose-invert max-w-none text-sm text-text-primary/90 leading-relaxed">
           <ReactMarkdown>{insights}</ReactMarkdown>
         </div>
       ) : (
-        <div className="text-center py-8">
-          <Sparkles size={32} strokeWidth={1} className="mx-auto mb-4 text-accent/30" />
-          <p className="text-sm text-muted-foreground mb-2">{t("aiInsights.getInsights")}</p>
-          <p className="text-xs text-muted-foreground/60">{t("aiInsights.clickAnalyze")}</p>
+        <div className="text-center py-6">
+          <Sparkles size={28} strokeWidth={1} className="mx-auto mb-3 text-accent-secondary/40" />
+          <p className="text-sm text-text-secondary mb-1">{t("aiInsights.getInsights")}</p>
+          <p className="text-xs text-text-tertiary">{t("aiInsights.clickAnalyze")}</p>
         </div>
       )}
     </motion.div>

@@ -8,6 +8,12 @@ export function useAdmin() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (import.meta.env.VITE_MOCK_AUTH === "true") {
+      setIsAdmin(true);
+      setLoading(false);
+      return;
+    }
+
     if (!user) {
       setIsAdmin(false);
       setLoading(false);

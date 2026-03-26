@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Neural Aegis</string>
+    <string name="title_activity_main">Neural Aegis</string>
+    <string name="package_name">com.neuralaegis.app</string>
+    <string name="custom_url_scheme">com.neuralaegis.app</string>
+</resources>

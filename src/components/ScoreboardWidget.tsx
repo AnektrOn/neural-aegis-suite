@@ -59,7 +59,7 @@ export default function ScoreboardWidget() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="ethereal-glass p-6"
+      className="rounded-xl border border-border-subtle bg-bg-surface p-6 shadow-card"
     >
       <button
         onClick={() => setExpanded(!expanded)}
@@ -69,7 +69,7 @@ export default function ScoreboardWidget() {
           <Trophy size={18} className="text-primary" />
           <div>
             <p className="text-neural-label text-left">{t("scoreboard.yesterday")}</p>
-            <p className={`text-2xl font-cinzel ${color}`}>
+            <p className={`text-2xl font-display ${color}`}>
               {score.total}/{score.max} <span className="text-sm text-muted-foreground">{t("scoreboard.pts")}</span>
             </p>
           </div>
@@ -78,17 +78,17 @@ export default function ScoreboardWidget() {
           {/* Progress ring */}
           <div className="relative w-12 h-12">
             <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
-              <circle cx="24" cy="24" r="20" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+              <circle cx="24" cy="24" r="20" fill="none" stroke="#1E2030" strokeWidth="3" />
               <circle
                 cx="24" cy="24" r="20" fill="none"
-                stroke="hsl(var(--primary))" strokeWidth="3"
+                stroke="#4F8EF7" strokeWidth="3"
                 strokeDasharray={`${(pct / 100) * 125.6} 125.6`}
                 strokeLinecap="round"
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-xs font-cinzel text-foreground">{pct}%</span>
+            <span className="absolute inset-0 flex items-center justify-center text-xs font-display text-text-primary">{pct}%</span>
           </div>
-          {expanded ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
+          {expanded ? <ChevronUp size={14} className="text-text-tertiary" strokeWidth={1.5} /> : <ChevronDown size={14} className="text-text-tertiary" strokeWidth={1.5} />}
         </div>
       </button>
 
@@ -96,7 +96,7 @@ export default function ScoreboardWidget() {
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
-          className="mt-4 space-y-2 border-t border-border/20 pt-4"
+          className="mt-4 space-y-2 border-t border-border-subtle/60 pt-4"
         >
           {score.breakdown.map((item, i) => (
             <div key={i} className="flex items-center justify-between py-1.5">
@@ -106,9 +106,9 @@ export default function ScoreboardWidget() {
                 ) : (
                   <X size={12} className="text-red-400" />
                 )}
-                <span className="text-sm text-foreground">{item.label}</span>
+                <span className="text-sm text-text-primary">{item.label}</span>
               </div>
-              <span className={`text-xs font-cinzel ${item.met ? "text-emerald-500" : "text-muted-foreground"}`}>
+              <span className={`text-xs font-display ${item.met ? "text-accent-positive" : "text-text-secondary"}`}>
                 {item.earned}/{item.max} {t("scoreboard.pts")}
               </span>
             </div>
