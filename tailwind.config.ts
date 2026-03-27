@@ -18,6 +18,8 @@ export default {
         mono: ['"DM Mono"', "ui-monospace", "monospace"],
         cinzel: ["Cinzel", "serif"],
         grotesk: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        cormorant: ['"Cormorant Garamond"', "Georgia", "serif"],
+        barlow: ["Barlow", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         bg: {
