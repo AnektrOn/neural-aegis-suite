@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSessionTracking } from "@/hooks/use-session-tracking";
@@ -28,9 +28,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useNetwork } from "@/hooks/use-network";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const bottomNavTabs = [
   { to: "/", icon: LayoutDashboard, label: "Board" },
@@ -184,16 +184,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Hors ligne — reconnexion requise pour synchroniser les données
             </div>
           )}
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-2.5">
+          <div className="relative flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-2.5 shrink-0">
               <img src={aegisLogo} alt="Aegis" className="w-8 h-8 rounded-lg object-contain" />
             </div>
-            {location.pathname !== "/" && (
-              <span className="text-[10px] text-text-tertiary tracking-[0.15em] uppercase absolute left-1/2 -translate-x-1/2 pointer-events-none font-display">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none text-center max-w-[55%]">
+              <span className="font-barlow text-[10px] font-medium text-text-tertiary/80 tracking-[0.22em] uppercase leading-tight">
                 {dateStr}
               </span>
-            )}
-            <div className="flex items-center gap-2">
+              <span className="font-cormorant text-[13px] font-light tracking-[0.2em] text-primary/80 leading-tight mt-0.5">
+                AEGIS
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
               <NotificationBell />
               <Link
                 to="/profile"
@@ -207,7 +210,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <main
-          className="flex-1 px-4 overflow-y-auto scroll-fade-bottom"
+          className="flex-1 px-3 overflow-y-auto scroll-fade-bottom"
           style={{
             paddingTop: mobileTopPadding,
             paddingBottom: "calc(5rem + var(--safe-bottom))",

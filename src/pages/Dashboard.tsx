@@ -15,6 +15,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import QuickLogModal from "@/components/QuickLogModal";
 import HabitsMiniCard from "@/components/HabitsMiniCard";
+import DashboardHero from "@/components/DashboardHero";
 import { NeuralCard } from "@/components/ui/neural-card";
 
 interface WeeklyDigest {
@@ -42,9 +43,9 @@ interface MobileHabit {
 }
 
 const priorityBadge = (p: number): { label: string; cls: string } => {
-  if (p >= 5) return { label: "P" + p, cls: "bg-red-500/10 text-red-400 border border-red-500/20" };
-  if (p >= 3) return { label: "P" + p, cls: "bg-amber-500/10 text-amber-400 border border-amber-500/20" };
-  return { label: "P" + p, cls: "bg-secondary/50 text-muted-foreground border border-border/30" };
+  if (p >= 5) return { label: "P" + p, cls: "bg-destructive/10 text-destructive" };
+  if (p >= 3) return { label: "P" + p, cls: "bg-warning/10 text-warning" };
+  return { label: "P" + p, cls: "bg-transparent text-muted-foreground" };
 };
 
 const timeAgo = (dateStr: string): string => {
@@ -300,6 +301,15 @@ export default function Dashboard() {
     animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   };
 
+  const mobileKpiStagger = {
+    initial: {},
+    animate: { transition: { staggerChildren: 0.03 } },
+  };
+  const mobileKpiChild = {
+    initial: { opacity: 0, y: 12 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.28, ease: "easeOut" as const } },
+  };
+
   // ─── Mobile layout ─────────────────────────────────────────────────────────
   if (isMobile) {
     const completedHabits = mobileHabits.filter(h => h.completed).length;
@@ -307,77 +317,122 @@ export default function Dashboard() {
     const greeting = hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
     const streakDays = digest?.streakDays ?? 0;
     const habitsTotal = mobileHabits.length || totalHabits;
+    const sessionLabel =
+      hour < 12 ? "MATIN" : hour < 18 ? "APRÈS-MIDI" : "SOIRÉE";
+    const heroProgress = digest != null ? Math.min(100, Math.max(0, digest.habitRate)) : 75;
 
     return (
-      <div className="mobile-section-gap max-w-full pt-2">
+      <div className="mobile-section-gap max-w-full pt-1">
+        {/* Streak (date + AEGIS: header AppLayout) */}
+        {streakDays > 0 && (
+          <motion.div {...fadeUp(0)} className="flex justify-end items-center gap-1.5 min-h-[24px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+            <span className="font-barlow text-[11px] font-medium text-primary">{streakDays} jours</span>
+          </motion.div>
+        )}
 
-        {/* Greeting + streak (no date — date is in top bar) */}
-        <motion.div {...fadeUp(0)} className="flex items-center justify-between">
-          <p className="text-[11px] text-text-tertiary tracking-[0.2em] uppercase font-display">{greeting}</p>
-          {streakDays > 0 && (
-            <motion.span
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-[11px] text-accent-primary font-medium font-display"
-            >
-              🔥 {streakDays} jours
-            </motion.span>
-          )}
-        </motion.div>
+        {/* Hero — statique, pas d'animation mount */}
+        <div>
+          <DashboardHero
+            greeting={greeting}
+            sessionLabel={sessionLabel}
+            progress={heroProgress}
+          />
+        </div>
 
         {/* Quick Log CTA */}
         {loading ? (
           <div className="skeleton h-[68px] rounded-2xl" />
         ) : (
           <motion.div {...fadeUp(0.02)}>
-          <button
-            onClick={() => setShowQuickLog(true)}
-            className="card-interactive w-full flex items-center justify-between p-4 rounded-xl
-              bg-accent-primary/5 border border-accent-primary/25
-              active:scale-[0.97] active:opacity-80 transition-all duration-200 select-none"
-            style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-accent-primary/15 border border-accent-primary/30 flex items-center justify-center flex-shrink-0">
-                <div className="quick-log-dot" />
+            <button
+              type="button"
+              onClick={() => setShowQuickLog(true)}
+              className="w-full flex items-center justify-between px-4 py-3.5 rounded-[14px] border border-primary/25 bg-[hsl(var(--aegis-s1))] active:scale-[0.98] active:opacity-90 transition-all duration-200 select-none"
+              style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 shrink-0 rounded-[11px] flex items-center justify-center bg-primary/12 shadow-[inset_0_0_12px_hsl(var(--primary)/0.12)]">
+                  <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.45)]" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="font-barlow text-[13px] font-medium text-text-primary leading-tight">
+                    Logger maintenant
+                  </p>
+                  <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.22em] text-text-tertiary/75 mt-1">
+                    Humeur · stress · sommeil
+                  </p>
+                </div>
               </div>
-              <div className="text-left">
-                <p className="text-sm font-medium text-text-primary leading-tight">Logger maintenant</p>
-                <p className="text-[10px] text-text-secondary tracking-[0.12em] mt-0.5 font-display uppercase">
-                  HUMEUR · STRESS · SOMMEIL
-                </p>
-              </div>
-            </div>
-            <div className="text-accent-primary/50 text-lg font-light">›</div>
-          </button>
+              <span className="text-primary/40 text-xl font-light pl-2">›</span>
+            </button>
           </motion.div>
         )}
 
-        {/* 3 stat pills */}
+        {/* 3 KPI pills */}
         {loading ? (
           <div className="grid grid-cols-3 gap-2">
-            {[0, 1, 2].map((i) => <div key={i} className="skeleton h-[62px] rounded-xl" />)}
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="skeleton h-[72px] rounded-[14px]" />
+            ))}
           </div>
         ) : (
-          <motion.div {...fadeUp(0.03)} className="grid grid-cols-3 gap-2">
-            <div className="card-static ethereal-glass p-3 text-center">
-              <p className="text-xl stat-number-mobile text-accent-primary leading-tight">{stats.moodAvg}</p>
-              <p className="text-[10px] text-text-tertiary mt-1 tracking-wider uppercase font-display">Humeur</p>
-            </div>
-            <div className="card-static ethereal-glass p-3 text-center">
-              <p className="text-xl stat-number-mobile text-accent-secondary leading-tight">
+          <motion.div {...fadeUp(0.03)}>
+            <motion.div
+            variants={mobileKpiStagger}
+            initial="initial"
+            animate="animate"
+            className="grid grid-cols-3 gap-2"
+          >
+            <motion.div
+              variants={mobileKpiChild}
+              className="p-3 text-center rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]"
+            >
+              <p className="font-cormorant text-[22px] font-light leading-none text-primary">{stats.moodAvg}</p>
+              <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/70 mt-2">
+                Humeur
+              </p>
+              <p className="font-barlow text-[9px] text-primary/55 mt-0.5 tabular-nums">
+                {digest?.moodTrend === "up"
+                  ? `+${digest.moodDelta}`
+                  : digest?.moodTrend === "down"
+                    ? `−${digest.moodDelta}`
+                    : "—"}
+              </p>
+            </motion.div>
+            <motion.div
+              variants={mobileKpiChild}
+              className="p-3 text-center rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]"
+            >
+              <p className="font-cormorant text-[22px] font-light leading-none text-foreground">
                 {habitsTotal > 0 ? `${completedHabits}/${habitsTotal}` : stats.habitsDone}
               </p>
-              <p className="text-[10px] text-text-tertiary mt-1 tracking-wider uppercase font-display">Habitudes</p>
-            </div>
-            <div className="card-static ethereal-glass p-3 text-center">
-              <p className="text-xl stat-number-mobile leading-tight text-accent-warning">
+              <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/70 mt-2">
+                Habitudes
+              </p>
+              <p className="font-barlow text-[9px] text-primary/55 mt-0.5 tabular-nums">
+                {digest != null ? `${digest.habitRate}%` : "—"}
+              </p>
+            </motion.div>
+            <motion.div
+              variants={mobileKpiChild}
+              className="p-3 text-center rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]"
+            >
+              <p
+                className={`font-cormorant text-[22px] font-light leading-none ${
+                  streakDays > 0 ? "text-warning" : "text-muted-foreground"
+                }`}
+              >
                 {streakDays > 0 ? `${streakDays}j` : stats.openDecisions}
               </p>
-              <p className="text-[10px] text-text-tertiary mt-1 tracking-wider uppercase font-display">
-                {streakDays > 0 ? "Série 🔥" : "Décisions"}
+              <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/70 mt-2">
+                {streakDays > 0 ? "Série" : "Décisions"}
               </p>
-            </div>
+              <p className="font-barlow text-[9px] text-primary/55 mt-0.5 tabular-nums">
+                {streakDays > 0 ? "jours" : "ouvertes"}
+              </p>
+            </motion.div>
+          </motion.div>
           </motion.div>
         )}
 
@@ -386,56 +441,62 @@ export default function Dashboard() {
           <div className="skeleton h-[110px] rounded-2xl" />
         ) : (
           <motion.div {...fadeUp(0.04)}>
-          <div className="card-interactive ethereal-glass p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-neural-label">Décisions en cours</p>
-              <NavLink to="/decisions" className="text-muted-foreground/40 hover:text-primary transition-colors">
-                <ArrowUpRight size={13} />
-              </NavLink>
+            <div className="card-interactive ethereal-glass p-4 rounded-[14px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
+                  Décisions en cours
+                </p>
+                <NavLink
+                  to="/decisions"
+                  className="font-barlow text-[10px] text-primary/50 hover:text-primary/80 transition-colors tracking-wide"
+                >
+                  Tout voir →
+                </NavLink>
+              </div>
+              {decisions.length === 0 ? (
+                <div className="flex flex-col items-center py-4 gap-2">
+                  <Target size={24} strokeWidth={1} className="text-muted-foreground/20" />
+                  <p className="font-barlow text-xs text-muted-foreground/40 text-center">Aucune décision en attente</p>
+                  <NavLink
+                    to="/decisions"
+                    className="font-barlow text-[10px] text-primary border border-primary/20 bg-primary/5 px-3 py-1.5 rounded-lg tracking-wider uppercase hover:bg-primary/10 transition-colors mt-1"
+                  >
+                    + Nouvelle décision
+                  </NavLink>
+                </div>
+              ) : (
+                <>
+                  <div className="divide-y divide-border/40">
+                    {decisions.map((d: any) => {
+                      const badge = priorityBadge(d.priority);
+                      return (
+                        <div key={d.id} className="flex items-center justify-between gap-2 min-h-[40px] py-2.5 first:pt-0 last:pb-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-[5px] h-[5px] rounded-full bg-primary/85 flex-shrink-0" />
+                            <span className="font-barlow text-sm text-foreground/85 truncate">{d.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {d.created_at && (
+                              <span className="font-barlow text-[9px] text-muted-foreground/45">{timeAgo(d.created_at)}</span>
+                            )}
+                            <span className={`font-barlow text-[10px] px-1.5 py-0.5 rounded-md ${badge.cls}`}>
+                              {badge.label}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <NavLink
+                    to="/decisions"
+                    className="font-barlow flex items-center gap-1.5 mt-3 pt-3 border-t border-border/40 text-[10px] text-primary/60 hover:text-primary tracking-wider uppercase transition-colors"
+                  >
+                    <span className="text-base leading-none">+</span>
+                    <span>Nouvelle décision</span>
+                  </NavLink>
+                </>
+              )}
             </div>
-            {decisions.length === 0 ? (
-              <div className="flex flex-col items-center py-4 gap-2">
-                <Target size={24} strokeWidth={1} className="text-muted-foreground/20" />
-                <p className="text-xs text-muted-foreground/40 text-center">Aucune décision en attente</p>
-                <NavLink
-                  to="/decisions"
-                  className="text-[10px] text-primary border border-primary/20 bg-primary/5 px-3 py-1.5 rounded-lg tracking-wider uppercase hover:bg-primary/10 transition-colors mt-1"
-                >
-                  + Nouvelle décision
-                </NavLink>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {decisions.map((d: any) => {
-                  const badge = priorityBadge(d.priority);
-                  return (
-                    <div key={d.id} className="flex items-center justify-between gap-2 min-h-[36px]">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
-                        <span className="text-sm text-foreground/80 truncate">{d.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {d.created_at && (
-                          <span className="text-[9px] text-muted-foreground/40">{timeAgo(d.created_at)}</span>
-                        )}
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${badge.cls}`}>
-                          {badge.label}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-                <NavLink
-                  to="/decisions"
-                  className="flex items-center gap-1.5 mt-3 pt-2 border-t border-border/20
-                    text-[10px] text-primary/60 hover:text-primary tracking-wider uppercase transition-colors"
-                >
-                  <span className="text-base leading-none">+</span>
-                  <span>Nouvelle décision</span>
-                </NavLink>
-              </div>
-            )}
-          </div>
           </motion.div>
         )}
 
@@ -444,97 +505,141 @@ export default function Dashboard() {
           <div className="skeleton h-[130px] rounded-2xl" />
         ) : mobileHabits.length > 0 ? (
           <motion.div {...fadeUp(0.05)}>
-          <div className="card-interactive ethereal-glass p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-neural-label">Habitudes du jour</p>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md">
-                  {completedHabits}/{mobileHabits.length}
-                </span>
-                <NavLink to="/habits" className="p-1 text-muted-foreground/40 hover:text-primary transition-colors">
-                  <ArrowUpRight size={13} />
-                </NavLink>
+            <div className="card-interactive ethereal-glass p-4 rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border-ice))]">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
+                  Habitudes du jour
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="font-barlow text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+                    {completedHabits}/{mobileHabits.length}
+                  </span>
+                  <NavLink to="/habits" className="p-1 text-muted-foreground/40 hover:text-primary transition-colors">
+                    <ArrowUpRight size={13} />
+                  </NavLink>
+                </div>
+              </div>
+              <div className="space-y-1">
+                {mobileHabits.map((habit) => (
+                  <div key={habit.id} className="flex items-center gap-3 min-h-[44px] py-1">
+                    <div
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all ${
+                        habit.completed
+                          ? "border-primary/40 bg-primary/15 shadow-[inset_0_0_10px_hsl(var(--primary)/0.12)]"
+                          : "border-[hsl(var(--aegis-border))]"
+                      }`}
+                    >
+                      {habit.completed && (
+                        <svg
+                          className="w-2 h-2 text-primary"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden
+                        >
+                          <path d="M2 6l3 3 5-6" />
+                        </svg>
+                      )}
+                    </div>
+                    <span
+                      className={`font-barlow text-sm transition-colors ${
+                        habit.completed ? "line-through text-muted-foreground/45" : "text-foreground/85"
+                      }`}
+                    >
+                      {habit.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="h-[2px] rounded-full mt-3 overflow-hidden bg-border/50">
+                <div
+                  className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-primary/35 to-primary"
+                  style={{
+                    width: mobileHabits.length > 0 ? `${(completedHabits / mobileHabits.length) * 100}%` : "0%",
+                  }}
+                />
               </div>
             </div>
-            <div className="space-y-1">
-              {mobileHabits.map((habit) => (
-                <div key={habit.id} className="flex items-center gap-3 min-h-[44px] py-1">
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    habit.completed ? "bg-primary/15 border-primary/40" : "border-border"
-                  }`}>
-                    {habit.completed && <div className="w-2 h-2 rounded-sm bg-primary" />}
-                  </div>
-                  <span className={`text-sm transition-colors ${
-                    habit.completed ? "line-through text-muted-foreground/40" : "text-foreground/80"
-                  }`}>
-                    {habit.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {/* Progress bar */}
-            <div className="h-[2px] bg-border/40 rounded-full mt-3 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: mobileHabits.length > 0 ? `${(completedHabits / mobileHabits.length) * 100}%` : "0%",
-                  background: "linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)))",
-                }}
-              />
-            </div>
-          </div>
           </motion.div>
         ) : (
-          <HabitsMiniCard userId={user!.id} />
+          <motion.div {...fadeUp(0.05)}>
+            <div className="rounded-[14px] border-[0.5px] border-[hsl(var(--aegis-border-ice))] overflow-hidden">
+              <HabitsMiniCard userId={user!.id} />
+            </div>
+          </motion.div>
         )}
 
         {/* Weekly digest (compact) */}
         {!loading && digest && (
           <motion.div {...fadeUp(0.06)}>
-          <div className="card-static ethereal-glass p-4">
-            <p className="text-neural-label mb-3">Cette semaine</p>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div>
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <TrendIcon trend={digest.moodTrend} />
-                  <span className="text-[10px] text-muted-foreground">
-                    {digest.moodTrend === "up" ? `+${digest.moodDelta}` : digest.moodTrend === "down" ? `-${digest.moodDelta}` : "stable"}
-                  </span>
+            <div className="card-static ethereal-glass p-4 rounded-[14px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]">
+              <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80 mb-3">
+                Cette semaine
+              </p>
+              <div className="grid grid-cols-3 text-center">
+                <div className="px-1">
+                  <div className="flex items-center justify-center gap-1 mb-1 min-h-[22px]">
+                    {digest.moodTrend === "stable" ? (
+                      <span className="font-barlow text-[11px] text-muted-foreground/45">stable</span>
+                    ) : (
+                      <>
+                        <span
+                          className={`font-barlow text-sm ${
+                            digest.moodTrend === "up" ? "text-chart-4" : "text-destructive"
+                          }`}
+                          aria-hidden
+                        >
+                          {digest.moodTrend === "up" ? "↑" : "↓"}
+                        </span>
+                        <span className="font-barlow text-[10px] text-muted-foreground/70 tabular-nums">
+                          {digest.moodTrend === "up" ? `+${digest.moodDelta}` : `−${digest.moodDelta}`}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">Humeur</p>
                 </div>
-                <p className="text-[9px] text-muted-foreground/50 tracking-wider uppercase">Humeur</p>
-              </div>
-              <div>
-                <p className="text-sm font-light text-foreground font-cinzel">{digest.habitRate}%</p>
-                <p className="text-[9px] text-muted-foreground/50 tracking-wider uppercase">Habitudes</p>
-              </div>
-              <div>
-                <p className="text-sm font-light text-foreground font-cinzel">{streakDays}j</p>
-                <p className="text-[9px] text-muted-foreground/50 tracking-wider uppercase">Série</p>
+                <div className="border-l border-border/50 px-2">
+                  <p className="font-cormorant text-[18px] font-light text-text-primary leading-tight mb-1">
+                    {digest.habitRate}%
+                  </p>
+                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">Habitudes</p>
+                </div>
+                <div className="border-l border-border/50 pl-2">
+                  <p className="font-cormorant text-[18px] font-light text-text-primary leading-tight mb-1">
+                    {streakDays}j
+                  </p>
+                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">Série</p>
+                </div>
               </div>
             </div>
-          </div>
           </motion.div>
         )}
 
         {/* Journal preview */}
         {!loading && lastJournalEntry && (
           <motion.div {...fadeUp(0.07)}>
-          <NavLink to="/journal" className="block">
-            <div
-              className="card-interactive ethereal-glass p-4 active:scale-[0.98] transition-all duration-150"
-              style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-neural-label">Dernière entrée</p>
-                <span className="text-[9px] text-muted-foreground/40">
-                  {timeAgo(lastJournalEntry.created_at)}
-                </span>
+            <NavLink to="/journal" className="block">
+              <div
+                className="card-interactive ethereal-glass p-4 rounded-[14px] active:scale-[0.98] transition-all duration-150 bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]"
+                style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
+                    Dernière entrée
+                  </p>
+                  <span className="font-barlow text-[9px] text-muted-foreground/45">
+                    {timeAgo(lastJournalEntry.created_at)}
+                  </span>
+                </div>
+                <p className="font-cormorant text-[14px] font-light italic leading-snug line-clamp-2 text-muted-foreground">
+                  &ldquo;{lastJournalEntry.content}&rdquo;
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground/70 italic line-clamp-2 leading-relaxed">
-                "{lastJournalEntry.content}"
-              </p>
-            </div>
-          </NavLink>
+            </NavLink>
           </motion.div>
         )}
 
