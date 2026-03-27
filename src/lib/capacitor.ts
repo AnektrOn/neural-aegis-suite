@@ -17,9 +17,11 @@ export async function initNativeApp(): Promise<void> {
 
   try {
     await StatusBar.setStyle({ style: Style.Dark });
-    await StatusBar.setBackgroundColor({ color: "#08090D" });
+    if (platform === "android") {
+      await StatusBar.setBackgroundColor({ color: "#08090D" });
+    }
   } catch {
-    // iOS may not support background color on StatusBar
+    // Some platforms may not support all StatusBar options
   }
 
   App.addListener("backButton", ({ canGoBack }) => {

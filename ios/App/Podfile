@@ -1,3 +1,6 @@
+# Git specs repo (avoids cdn.cocoapods.org — some networks hit SSL/IPv6 issues there)
+source 'https://github.com/CocoaPods/Specs.git'
+
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
 platform :ios, '13.0'
