@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, Network, LayoutGrid, Plus, X, Save, Trash2, TrendingUp, Send, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,27 @@ import {
 } from "@/components/ui/dialog";
 import NeuralMap from "@/components/NeuralMap";
 import { useLanguage } from "@/i18n/LanguageContext";
+import {
+  CONTACT_PROXIMITY_LABELS,
+  CONTACT_PROXIMITY_VALUES,
+  DEFAULT_CONTACT_PROXIMITY,
+  type ContactProximity,
+  normalizeContactProximity,
+} from "@/lib/contactProximity";
+
+type MapPeriod = "1d" | "3d" | "7d" | "14d" | "1m" | "3m" | "6m" | "1y" | "all";
+
+const MAP_PERIOD_LABELS: Record<MapPeriod, string> = {
+  "1d": "1J",
+  "3d": "3J",
+  "7d": "1 Sem",
+  "14d": "2 Sem",
+  "1m": "1 Mois",
+  "3m": "Trim.",
+  "6m": "Sem.",
+  "1y": "Année",
+  all: "Lifetime",
+};
 
 interface Person {
   id: string;
@@ -17,6 +38,7 @@ interface Person {
   role: string | null;
   quality: number;
   insight: string | null;
+  proximity?: string | null;
 }
 
 interface QualityHistory {
@@ -50,7 +72,13 @@ export default function PeopleBoard() {
   const [view, setView] = useState<"neural" | "card">("card");
   const [people, setPeople] = useState<Person[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", role: "", quality: 7, insight: "" });
+  const [form, setForm] = useState({
+    name: "",
+    role: "",
+    quality: 7,
+    insight: "",
+    proximity: DEFAULT_CONTACT_PROXIMITY as ContactProximity,
+  });
   const [loading, setLoading] = useState(true);
   const [historyDialog, setHistoryDialog] = useState<{ open: boolean; person: Person | null }>({ open: false, person: null });
   const [history, setHistory] = useState<QualityHistory[]>([]);
@@ -58,8 +86,10 @@ export default function PeopleBoard() {
 
   // Local edits — quality + note per person
   const [localQualities, setLocalQualities] = useState<Record<string, number>>({});
+  const [localProximities, setLocalProximities] = useState<Record<string, ContactProximity>>({});
   const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [mapPeriod, setMapPeriod] = useState<MapPeriod>("all");
 
   useEffect(() => { if (user) loadPeople(); }, [user]);
 
@@ -69,8 +99,13 @@ export default function PeopleBoard() {
     if (data) {
       setPeople(data as any);
       const quals: Record<string, number> = {};
-      (data as any[]).forEach((p: Person) => { quals[p.id] = p.quality; });
+      const prox: Record<string, ContactProximity> = {};
+      (data as any[]).forEach((p: Person) => {
+        quals[p.id] = p.quality;
+        prox[p.id] = normalizeContactProximity(p.proximity);
+      });
       setLocalQualities(quals);
+      setLocalProximities(prox);
       setLocalNotes({});
     }
     setLoading(false);
@@ -79,9 +114,21 @@ export default function PeopleBoard() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const { error } = await supabase.from("people_contacts").insert({ user_id: user.id, name: form.name, role: form.role || null, quality: form.quality, insight: form.insight || null } as any);
+    const { error } = await supabase.from("people_contacts").insert({
+      user_id: user.id,
+      name: form.name,
+      role: form.role || null,
+      quality: form.quality,
+      insight: form.insight || null,
+      proximity: form.proximity,
+    } as any);
     if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
-    else { toast({ title: t("people.contactAdded") }); setShowForm(false); setForm({ name: "", role: "", quality: 7, insight: "" }); loadPeople(); }
+    else {
+      toast({ title: t("people.contactAdded") });
+      setShowForm(false);
+      setForm({ name: "", role: "", quality: 7, insight: "", proximity: DEFAULT_CONTACT_PROXIMITY });
+      loadPeople();
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -99,20 +146,33 @@ export default function PeopleBoard() {
     setHasUnsavedChanges(true);
   };
 
+  const handleLocalProximityChange = (id: string, proximity: ContactProximity) => {
+    setLocalProximities(prev => ({ ...prev, [id]: proximity }));
+    setHasUnsavedChanges(true);
+  };
+
   const saveAllChanges = async () => {
     if (!user) return;
     const updates: Promise<any>[] = [];
     for (const person of people) {
-      const newQ = localQualities[person.id];
+      const newQ = localQualities[person.id] ?? person.quality;
+      const newPx = localProximities[person.id] ?? normalizeContactProximity(person.proximity);
       const note = localNotes[person.id];
-      const qualityChanged = newQ !== undefined && newQ !== person.quality;
+      const qualityChanged = newQ !== person.quality;
+      const proximityChanged = newPx !== normalizeContactProximity(person.proximity);
       const hasNote = note && note.trim().length > 0;
+
+      if (qualityChanged || proximityChanged) {
+        updates.push((async () => {
+          const patch: { quality?: number; proximity?: string } = {};
+          if (qualityChanged) patch.quality = newQ;
+          if (proximityChanged) patch.proximity = newPx;
+          await supabase.from("people_contacts").update(patch as any).eq("id", person.id);
+        })());
+      }
 
       if (qualityChanged || hasNote) {
         updates.push((async () => {
-          if (qualityChanged) {
-            await supabase.from("people_contacts").update({ quality: newQ } as any).eq("id", person.id);
-          }
           await supabase.from("relation_quality_history").insert({
             contact_id: person.id,
             user_id: user.id,
@@ -193,19 +253,21 @@ export default function PeopleBoard() {
       </div>
 
       {people.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="ethereal-glass p-4 text-center">
-            <p className="text-xl font-cinzel text-foreground">{avgQuality}</p>
-            <p className="text-neural-label mt-0.5">{t("people.average")}</p>
-          </div>
-          <div className="ethereal-glass p-4 text-center">
-            <p className="text-xl font-cinzel text-primary">{highCount}</p>
-            <p className="text-neural-label mt-0.5">{t("people.excellent")}</p>
-          </div>
-          <div className="ethereal-glass p-4 text-center">
-            <p className="text-xl font-cinzel text-destructive">{lowCount}</p>
-            <p className="text-neural-label mt-0.5">{t("people.watch")}</p>
-          </div>
+        <div className="flex flex-wrap items-center gap-5 py-1">
+          <span className="text-[10px] uppercase tracking-[0.14em] text-white/20">
+            Moy.{" "}
+            <span className="ml-1 font-['Cormorant_Garamond'] text-[15px] text-white/50">{avgQuality}</span>
+          </span>
+          <span className="text-white/[0.08]">·</span>
+          <span className="text-[10px] uppercase tracking-[0.14em] text-white/20">
+            Excellents{" "}
+            <span className="ml-1 font-['Cormorant_Garamond'] text-[15px] text-white/50">{highCount}</span>
+          </span>
+          <span className="text-white/[0.08]">·</span>
+          <span className="text-[10px] uppercase tracking-[0.14em] text-white/20">
+            À relancer{" "}
+            <span className="ml-1 font-['Cormorant_Garamond'] text-[15px] text-white/50">{lowCount}</span>
+          </span>
         </div>
       )}
 
@@ -222,6 +284,21 @@ export default function PeopleBoard() {
               <input type="text" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="Directeur des opérations"
                 className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors" />
             </div>
+          </div>
+          <div>
+            <label className="text-neural-label block mb-2">Niveau de proximité</label>
+            <select
+              value={form.proximity}
+              onChange={(e) => setForm({ ...form, proximity: e.target.value as ContactProximity })}
+              className="w-full rounded-xl border border-border/30 bg-secondary/30 px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/40"
+            >
+              {CONTACT_PROXIMITY_VALUES.map((v) => (
+                <option key={v} value={v}>
+                  {CONTACT_PROXIMITY_LABELS[v]}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-[10px] text-muted-foreground/70">Détermine la distance au centre sur la carte relationnelle.</p>
           </div>
           <div>
             <label className="text-neural-label block mb-2">{t("people.qualityLabel", { value: form.quality })}</label>
@@ -244,14 +321,46 @@ export default function PeopleBoard() {
           <p className="text-muted-foreground text-sm">{t("common.noContactsHint")}</p>
         </div>
       ) : view === "neural" ? (
-        <NeuralMap people={people} onPersonClick={openHistory} />
+        <div>
+          <div
+            className="mb-0 flex overflow-x-auto border-b border-white/[0.06]"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {(Object.entries(MAP_PERIOD_LABELS) as [MapPeriod, string][]).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setMapPeriod(id)}
+                className={[
+                  "flex-shrink-0 whitespace-nowrap border-r border-white/[0.05] bg-transparent px-3 py-2 font-sans text-[9px] uppercase tracking-[0.14em] transition-colors",
+                  mapPeriod === id
+                    ? "border-b border-white/60 bg-white/[0.03] text-white/90"
+                    : "text-white/20 hover:text-white/45",
+                ].join(" ")}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <NeuralMap
+            people={people}
+            proximityById={localProximities}
+            qualityById={localQualities}
+            onPersonClick={openHistory}
+            showFilters={false}
+            period={mapPeriod}
+            onPeriodChange={setMapPeriod}
+          />
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {people.map((person, i) => {
             const localQ = localQualities[person.id] ?? person.quality;
+            const localPx = localProximities[person.id] ?? normalizeContactProximity(person.proximity);
             const changed = localQ !== person.quality;
+            const proxChanged = localPx !== normalizeContactProximity(person.proximity);
             const localNote = localNotes[person.id] ?? "";
-            const hasChanges = changed || localNote.trim().length > 0;
+            const hasChanges = changed || proxChanged || localNote.trim().length > 0;
             return (
               <motion.div key={person.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
                 className={`ethereal-glass p-6 ${hasChanges ? "ring-1 ring-primary/30" : ""}`}>
@@ -276,8 +385,20 @@ export default function PeopleBoard() {
                   </div>
                 </div>
                 <div className="mb-3">
+                  <label className="text-neural-label mb-1 block">Proximité</label>
+                  <select
+                    value={localPx}
+                    onChange={(e) => handleLocalProximityChange(person.id, e.target.value as ContactProximity)}
+                    className="mb-3 w-full rounded-lg border border-border/25 bg-secondary/20 px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary/30"
+                  >
+                    {CONTACT_PROXIMITY_VALUES.map((v) => (
+                      <option key={v} value={v}>
+                        {CONTACT_PROXIMITY_LABELS[v]}
+                      </option>
+                    ))}
+                  </select>
                   <div className="flex justify-between mb-1">
-                    <span className="text-neural-label">Relation</span>
+                    <span className="text-neural-label">Note de relation</span>
                     <span className="text-xs font-cinzel" style={{ color: qualityColor(localQ) }}>{localQ}/10</span>
                   </div>
                   <input type="range" min={1} max={10} value={localQ}
