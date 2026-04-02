@@ -25,15 +25,14 @@ export default function DashboardHero({ greeting, sessionLabel, progress }: Dash
         <div className="h-[14px] w-[4px] rounded-[1px] bg-foreground/25" />
       </div>
 
-      <div className="absolute top-3 right-3 w-[52px] h-[52px] text-primary">
+      <div className="absolute top-3 right-3 w-[52px] h-[52px]">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48" aria-hidden>
           <circle
             cx="24"
             cy="24"
             r={R}
             fill="none"
-            stroke="hsl(var(--border))"
-            strokeOpacity={0.65}
+            className="dashboard-hero-ring-track"
             strokeWidth="2.5"
           />
           <circle
@@ -41,7 +40,7 @@ export default function DashboardHero({ greeting, sessionLabel, progress }: Dash
             cy="24"
             r={R}
             fill="none"
-            className="stroke-current"
+            className="dashboard-hero-ring-progress"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeDasharray={`${dash} ${gap}`}

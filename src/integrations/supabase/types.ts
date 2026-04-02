@@ -456,6 +456,7 @@ export type Database = {
           id: string
           insight: string | null
           name: string
+          proximity: string
           quality: number
           role: string | null
           updated_at: string
@@ -466,6 +467,7 @@ export type Database = {
           id?: string
           insight?: string | null
           name: string
+          proximity?: string
           quality?: number
           role?: string | null
           updated_at?: string
@@ -476,6 +478,7 @@ export type Database = {
           id?: string
           insight?: string | null
           name?: string
+          proximity?: string
           quality?: number
           role?: string | null
           updated_at?: string

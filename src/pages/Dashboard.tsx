@@ -322,7 +322,7 @@ export default function Dashboard() {
     const heroProgress = digest != null ? Math.min(100, Math.max(0, digest.habitRate)) : 75;
 
     return (
-      <div className="mobile-section-gap max-w-full pt-1">
+      <div className="mobile-section-gap max-w-full pt-5">
         {/* Streak (date + AEGIS: header AppLayout) */}
         {streakDays > 0 && (
           <motion.div {...fadeUp(0)} className="flex justify-end items-center gap-1.5 min-h-[24px]">
