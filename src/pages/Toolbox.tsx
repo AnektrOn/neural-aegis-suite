@@ -132,7 +132,7 @@ export default function Toolbox() {
 
   const getTypeLabel = (type: string) => {
     if (type === "all") return t("toolbox.filterAll");
-    return typeConfigKeys[type] ? t(typeConfigKeys[type].labelKey) : type;
+    return typeConfigKeys[type] ? t(typeConfigKeys[type].labelKey as any) : type;
   };
 
   const renderWidget = (item: ToolboxItem) => {
