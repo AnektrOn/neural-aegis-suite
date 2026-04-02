@@ -253,7 +253,7 @@ export default function Toolbox() {
                   </div>
                 </div>
                 <p className="text-sm font-medium text-foreground mb-2">{item.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || (typeConfigKeys[item.content_type] ? t(typeConfigKeys[item.content_type].labelKey) : "")}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || (typeConfigKeys[item.content_type] ? t(typeConfigKeys[item.content_type].labelKey as any) : "")}</p>
 
                 <div className="mt-4 flex items-center gap-3">
                   {(!latestCompletion || isActive) && !isIgnored ? (
