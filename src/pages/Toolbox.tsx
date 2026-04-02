@@ -27,7 +27,7 @@ interface CompletionRecord {
   status: string;
 }
 
-const typeConfigKeys: Record<string, { icon: typeof Headphones; color: string; labelKey: TranslationKey }> = {
+const typeConfigKeys: Record<string, { icon: typeof Headphones; color: string; labelKey: string }> = {
   meditation: { icon: Headphones, color: "text-primary", labelKey: "toolbox.typeMeditation" },
   visualization: { icon: Eye, color: "text-neural-accent", labelKey: "toolbox.typeVisualization" },
   course: { icon: BookOpen, color: "text-neural-warm", labelKey: "toolbox.typeCourse" },

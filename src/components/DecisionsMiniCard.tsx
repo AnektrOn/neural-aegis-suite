@@ -33,7 +33,7 @@ export default function DecisionsMiniCard({ userId, onAddNew }: DecisionsMiniCar
           .eq("status", "pending")
           .order("priority", { ascending: false })
           .limit(3);
-        if (data) setDecisions(data as Decision[]);
+        if (data) setDecisions(data as unknown as Decision[]);
       } catch {
         // silent fail — card stays empty
       }
