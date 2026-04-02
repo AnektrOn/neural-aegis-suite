@@ -27,7 +27,7 @@ interface CompletionRecord {
   status: string;
 }
 
-const typeConfigKeys: Record<string, { icon: typeof Headphones; color: string; labelKey: TranslationKey }> = {
+const typeConfigKeys: Record<string, { icon: typeof Headphones; color: string; labelKey: string }> = {
   meditation: { icon: Headphones, color: "text-primary", labelKey: "toolbox.typeMeditation" },
   visualization: { icon: Eye, color: "text-neural-accent", labelKey: "toolbox.typeVisualization" },
   course: { icon: BookOpen, color: "text-neural-warm", labelKey: "toolbox.typeCourse" },
@@ -132,7 +132,7 @@ export default function Toolbox() {
 
   const getTypeLabel = (type: string) => {
     if (type === "all") return t("toolbox.filterAll");
-    return typeConfigKeys[type] ? t(typeConfigKeys[type].labelKey) : type;
+    return typeConfigKeys[type] ? t(typeConfigKeys[type].labelKey as any) : type;
   };
 
   const renderWidget = (item: ToolboxItem) => {
@@ -253,7 +253,7 @@ export default function Toolbox() {
                   </div>
                 </div>
                 <p className="text-sm font-medium text-foreground mb-2">{item.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || (typeConfigKeys[item.content_type] ? t(typeConfigKeys[item.content_type].labelKey) : "")}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || (typeConfigKeys[item.content_type] ? t(typeConfigKeys[item.content_type].labelKey as any) : "")}</p>
 
                 <div className="mt-4 flex items-center gap-3">
                   {(!latestCompletion || isActive) && !isIgnored ? (
