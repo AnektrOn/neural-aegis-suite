@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
-import { Network } from "lucide-react";
+import { Network, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -51,6 +51,8 @@ function getProximityLayout(proximity: string | null | undefined) {
   return PROXIMITY_LAYOUT[key];
 }
 
+export type NeuralMapViewControls = { resetView: () => void };
+
 interface NeuralMapProps {
   people: Person[];
   onPersonClick?: (person: Person) => void;
@@ -62,6 +64,8 @@ interface NeuralMapProps {
   proximityById?: Record<string, string>;
   /** Note affichée sur la carte (ex. slider local) */
   qualityById?: Record<string, number>;
+  /** Expose resetView() pour remettre zoom, pan et rotation par défaut */
+  viewControlsRef?: MutableRefObject<NeuralMapViewControls | null>;
 }
 
 function createGlowTexture(): THREE.CanvasTexture {
@@ -158,10 +162,12 @@ export default function NeuralMap({
   onPeriodChange,
   proximityById,
   qualityById,
+  viewControlsRef,
 }: NeuralMapProps) {
   const { user } = useAuth();
   const mountRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const resetViewFnRef = useRef<(() => void) | null>(null);
   const [periodQualities, setPeriodQualities] = useState<Record<string, number>>({});
   const periodQRef = useRef<Record<string, number>>({});
   const selectedIdRef = useRef<string | null>(null);
@@ -216,11 +222,20 @@ export default function NeuralMap({
     scene.fog = new THREE.FogExp2(0x000000, compact ? 0.01 : 0.014);
 
     const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 200);
-    camera.position.z = compact ? 20 : mobile ? 22 : 26;
+    let baseZ = compact ? 20 : mobile ? 22 : 26;
+    let zoomMul = 1;
+    const clampZoomMul = () => {
+      zoomMul = Math.min(2.4, Math.max(0.4, zoomMul));
+    };
+    const applyCameraZ = () => {
+      camera.position.z = baseZ * zoomMul;
+    };
+    applyCameraZ();
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(w, h);
+    renderer.domElement.style.touchAction = "none";
     el.appendChild(renderer.domElement);
 
     const BG_DUST = 250;
@@ -346,9 +361,15 @@ export default function NeuralMap({
     });
 
     let isDragging = false;
+    type DragMode = "rotate" | "pan";
+    let dragMode: DragMode | null = null;
     let prevX = 0;
     let prevY = 0;
     let dragMoved = false;
+    const panRight = new THREE.Vector3();
+    const panUp = new THREE.Vector3();
+    const panFwd = new THREE.Vector3();
+    const PAN_MAX = 36;
     const targetRotY = { v: 0 };
     const targetRotX = { v: 0 };
     let currentRotY = 0;
@@ -398,7 +419,26 @@ export default function NeuralMap({
       ttEl.style.display = "none";
     };
 
+    const applyPan = (dx: number, dy: number) => {
+      camera.updateMatrixWorld(true);
+      camera.matrixWorld.extractBasis(panRight, panUp, panFwd);
+      const k = 0.032 * (camera.position.z / 24);
+      interactiveRoot.position.addScaledVector(panRight, -dx * k);
+      interactiveRoot.position.addScaledVector(panUp, dy * k);
+      interactiveRoot.position.z = 0;
+      interactiveRoot.position.x = THREE.MathUtils.clamp(interactiveRoot.position.x, -PAN_MAX, PAN_MAX);
+      interactiveRoot.position.y = THREE.MathUtils.clamp(interactiveRoot.position.y, -PAN_MAX, PAN_MAX);
+    };
+
     const onDown = (e: MouseEvent) => {
+      const panButtons = e.button === 2 || e.button === 1 || (e.button === 0 && e.shiftKey);
+      if (panButtons) {
+        dragMode = "pan";
+      } else if (e.button === 0) {
+        dragMode = "rotate";
+      } else {
+        return;
+      }
       isDragging = true;
       dragMoved = false;
       prevX = e.clientX;
@@ -406,21 +446,30 @@ export default function NeuralMap({
     };
     const onUp = () => {
       isDragging = false;
+      dragMode = null;
     };
     const onLeave = () => {
       isDragging = false;
+      dragMode = null;
       hideNeuralTooltip(wrapRef.current);
     };
+    const onContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
     const onMove = (e: MouseEvent) => {
-      if (isDragging) {
+      if (isDragging && dragMode) {
         const dx = e.clientX - prevX;
         const dy = e.clientY - prevY;
         if (Math.abs(dx) + Math.abs(dy) > 3) dragMoved = true;
         prevX = e.clientX;
         prevY = e.clientY;
-        targetRotY.v += dx * 0.005;
-        targetRotX.v += dy * 0.005;
-        targetRotX.v = Math.max(-0.55, Math.min(0.55, targetRotX.v));
+        if (dragMode === "pan") {
+          applyPan(dx, dy);
+        } else {
+          targetRotY.v += dx * 0.005;
+          targetRotX.v += dy * 0.005;
+          targetRotX.v = Math.max(-0.55, Math.min(0.55, targetRotX.v));
+        }
         hideNeuralTooltip(wrapRef.current);
         return;
       }
@@ -448,15 +497,149 @@ export default function NeuralMap({
       const nh = mountRef.current.clientHeight || (compact ? 260 : m ? 420 : 520);
       camera.aspect = nw / nh;
       camera.updateProjectionMatrix();
-      camera.position.z = compact ? 20 : m ? 22 : 26;
+      baseZ = compact ? 20 : m ? 22 : 26;
+      clampZoomMul();
+      applyCameraZ();
       renderer.setSize(nw, nh);
     };
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      zoomMul *= Math.exp(e.deltaY * 0.0011);
+      clampZoomMul();
+      applyCameraZ();
+    };
+
+    const pinchDist = (e: TouchEvent) => {
+      const a = e.touches[0];
+      const b = e.touches[1];
+      return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+    };
+    let pinchStartDist = 0;
+    let pinchStartMul = 1;
+    /** 1 doigt : glisser = rotation (comme souris) ; appui long puis glisser = pan */
+    let touchPanId: number | null = null;
+    let touchPrevX = 0;
+    let touchPrevY = 0;
+    type TouchGesture = "none" | "rotate" | "pan";
+    let touchGesture: TouchGesture = "none";
+    let touchLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+    /** Distance cumulée depuis pose du doigt : dépasse un seuil → rotation (glisser), sinon appui long → pan */
+    let touchTravel = 0;
+    const LONG_PRESS_MS = 300;
+    const COMMIT_ROTATE_PX = 12;
+
+    const clearTouchLongPress = () => {
+      if (touchLongPressTimer !== null) {
+        clearTimeout(touchLongPressTimer);
+        touchLongPressTimer = null;
+      }
+    };
+
+    const beginSingleFingerTouch = (t: Touch) => {
+      touchPanId = t.identifier;
+      touchPrevX = t.clientX;
+      touchPrevY = t.clientY;
+      touchGesture = "none";
+      touchTravel = 0;
+      clearTouchLongPress();
+      touchLongPressTimer = setTimeout(() => {
+        if (touchGesture === "none") touchGesture = "pan";
+        touchLongPressTimer = null;
+      }, LONG_PRESS_MS);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        clearTouchLongPress();
+        touchPanId = null;
+        touchGesture = "none";
+        pinchStartDist = pinchDist(e);
+        pinchStartMul = zoomMul;
+        return;
+      }
+      if (e.touches.length === 1) {
+        pinchStartDist = 0;
+        beginSingleFingerTouch(e.touches[0]);
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinchStartDist > 10) {
+        clearTouchLongPress();
+        touchGesture = "none";
+        e.preventDefault();
+        const d = pinchDist(e);
+        zoomMul = pinchStartMul * (d / pinchStartDist);
+        clampZoomMul();
+        applyCameraZ();
+        hideNeuralTooltip(wrapRef.current);
+        return;
+      }
+      if (e.touches.length === 1 && touchPanId !== null) {
+        const t = e.touches[0];
+        if (t.identifier !== touchPanId) return;
+        const dx = t.clientX - touchPrevX;
+        const dy = t.clientY - touchPrevY;
+        touchPrevX = t.clientX;
+        touchPrevY = t.clientY;
+        const moved = Math.abs(dx) + Math.abs(dy);
+        if (touchGesture === "none") {
+          touchTravel += moved;
+          if (touchTravel >= COMMIT_ROTATE_PX) {
+            touchGesture = "rotate";
+            clearTouchLongPress();
+          } else {
+            return;
+          }
+        }
+        if (moved > 0.5) e.preventDefault();
+        hideNeuralTooltip(wrapRef.current);
+        if (touchGesture === "rotate") {
+          targetRotY.v += dx * 0.005;
+          targetRotX.v += dy * 0.005;
+          targetRotX.v = Math.max(-0.55, Math.min(0.55, targetRotX.v));
+        } else if (touchGesture === "pan") {
+          applyPan(dx, dy);
+        }
+      }
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      clearTouchLongPress();
+      if (e.touches.length < 2) pinchStartDist = 0;
+      if (e.touches.length === 0) {
+        touchPanId = null;
+        touchGesture = "none";
+        return;
+      }
+      if (e.touches.length === 1) {
+        beginSingleFingerTouch(e.touches[0]);
+      }
+    };
+
+    const resetView = () => {
+      zoomMul = 1;
+      clampZoomMul();
+      interactiveRoot.position.set(0, 0, 0);
+      targetRotY.v = 0;
+      targetRotX.v = 0;
+      currentRotY = 0;
+      currentRotX = 0;
+      applyCameraZ();
+    };
+    resetViewFnRef.current = resetView;
+    if (viewControlsRef) viewControlsRef.current = { resetView };
 
     renderer.domElement.addEventListener("mousedown", onDown);
     window.addEventListener("mouseup", onUp);
     renderer.domElement.addEventListener("mouseleave", onLeave);
     renderer.domElement.addEventListener("mousemove", onMove);
+    renderer.domElement.addEventListener("contextmenu", onContextMenu);
     renderer.domElement.addEventListener("click", onClick);
+    renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
+    renderer.domElement.addEventListener("touchstart", onTouchStart, { passive: true });
+    renderer.domElement.addEventListener("touchmove", onTouchMove, { passive: false });
+    renderer.domElement.addEventListener("touchend", onTouchEnd);
+    renderer.domElement.addEventListener("touchcancel", onTouchEnd);
     window.addEventListener("resize", onResize);
 
     let raf = 0;
@@ -479,7 +662,8 @@ export default function NeuralMap({
       const sel = selectedIdRef.current;
       for (const n of nodeEntries) {
         const isSel = n.person.id === sel;
-        const pq = periodQRef.current[n.person.id] ?? n.person.quality;
+        const pq =
+          periodQRef.current[n.person.id] ?? qualityById?.[n.person.id] ?? n.person.quality;
         const coreMat = n.core.material as THREE.SpriteMaterial;
         const outerMat = n.outer.material as THREE.SpriteMaterial;
         const lineMat = n.line.material as THREE.LineBasicMaterial;
@@ -514,7 +698,13 @@ export default function NeuralMap({
       window.removeEventListener("mouseup", onUp);
       renderer.domElement.removeEventListener("mouseleave", onLeave);
       renderer.domElement.removeEventListener("mousemove", onMove);
+      renderer.domElement.removeEventListener("contextmenu", onContextMenu);
       renderer.domElement.removeEventListener("click", onClick);
+      renderer.domElement.removeEventListener("wheel", onWheel);
+      renderer.domElement.removeEventListener("touchstart", onTouchStart);
+      renderer.domElement.removeEventListener("touchmove", onTouchMove);
+      renderer.domElement.removeEventListener("touchend", onTouchEnd);
+      renderer.domElement.removeEventListener("touchcancel", onTouchEnd);
       window.removeEventListener("resize", onResize);
       hideNeuralTooltip(wrapRef.current);
       glowTex.dispose();
@@ -531,8 +721,10 @@ export default function NeuralMap({
       }
       renderer.dispose();
       el.removeChild(renderer.domElement);
+      resetViewFnRef.current = null;
+      if (viewControlsRef) viewControlsRef.current = null;
     };
-  }, [people, periodQualities, compact, isMobile, proximityById, qualityById]);
+  }, [people, periodQualities, compact, isMobile, proximityById, qualityById, viewControlsRef]);
 
   if (people.length === 0) {
     return (
@@ -561,7 +753,25 @@ export default function NeuralMap({
           ))}
         </div>
       )}
-      <div ref={mountRef} className="w-full" style={{ height: heightPx }} />
+      <div
+        ref={mountRef}
+        className="w-full"
+        style={{ height: heightPx }}
+        title="Souris : glisser — rotation · Maj / clic droit / milieu — déplacer · molette — zoom · Tactile : 1 doigt glisser — rotation · appui long puis glisser — déplacer · 2 doigts — zoom"
+      />
+      {!compact && (
+        <div className="absolute right-2 top-2 z-[6] flex gap-1">
+          <button
+            type="button"
+            onClick={() => resetViewFnRef.current?.()}
+            className="pointer-events-auto flex items-center gap-1.5 rounded-lg border border-white/[0.12] bg-black/80 px-2.5 py-1.5 text-[9px] font-medium uppercase tracking-[0.1em] text-white/55 backdrop-blur-sm transition-colors hover:border-white/25 hover:text-white/85"
+            title="Réinitialiser zoom, position et rotation"
+          >
+            <RotateCcw size={12} strokeWidth={1.5} />
+            Vue
+          </button>
+        </div>
+      )}
       <div
         className="pointer-events-none absolute inset-0 z-[1] rounded-2xl"
         style={{
