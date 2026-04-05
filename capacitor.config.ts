@@ -10,10 +10,6 @@ const config: CapacitorConfig = {
   android: {
     webContentsDebuggingEnabled: false,
   },
-  ios: {
-    contentInset: "automatic",
-    scrollEnabled: true,
-  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
