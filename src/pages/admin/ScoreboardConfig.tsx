@@ -156,7 +156,7 @@ export default function ScoreboardConfig() {
                 is_active: c.is_active,
                 created_by: user.id,
               })) as any
-            ),
+            ) as any).then(() => {}),
           ]
         : []),
     ];
