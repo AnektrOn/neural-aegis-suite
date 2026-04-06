@@ -1,3 +1,7 @@
+// MIGRATION REQUIRED:
+// ALTER TABLE profiles ADD COLUMN IF NOT EXISTS
+//   last_badge_check timestamptz;
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface BadgeDefinition {
@@ -142,13 +146,22 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
 ];
 
 export async function checkAndAwardBadges(userId: string): Promise<string[]> {
-  // Throttle: run at most once per 24h per user
-  const throttleKey = `badge_check_${userId}`;
-  const lastCheck = localStorage.getItem(throttleKey);
-  if (lastCheck && Date.now() - parseInt(lastCheck) < 24 * 60 * 60 * 1000) {
-    return [];
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("last_badge_check")
+    .eq("id", userId)
+    .single();
+
+  const lastCheck = (profile as any)?.last_badge_check;
+  if (lastCheck) {
+    const hoursSince = (Date.now() - new Date(lastCheck).getTime()) /
+      (1000 * 60 * 60);
+    if (hoursSince < 24) return [];
   }
-  localStorage.setItem(throttleKey, String(Date.now()));
+
+  await supabase.from("profiles")
+    .update({ last_badge_check: new Date().toISOString() } as any)
+    .eq("id", userId);
 
   const { data: existingBadges } = await supabase
     .from("user_badges")

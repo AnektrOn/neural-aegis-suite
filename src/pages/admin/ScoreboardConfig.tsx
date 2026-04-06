@@ -1,6 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Trophy, Save } from "lucide-react";
+import { Plus, Trash2, Trophy, Save, Check, X } from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -32,13 +41,23 @@ interface UserProfile {
 }
 
 export default function ScoreboardConfig() {
+  const COLORS = [
+    "hsl(180, 70%, 50%)",
+    "hsl(270, 50%, 55%)",
+    "hsl(35, 80%, 55%)",
+    "hsl(120, 40%, 50%)",
+    "hsl(0, 70%, 50%)",
+    "hsl(220, 70%, 60%)",
+  ];
   const { user } = useAuth();
   const { t } = useLanguage();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [criteria, setCriteria] = useState<Criteria[]>([]);
+  const [scoreHistory, setScoreHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const removedIds = useRef<string[]>([]);
 
   useEffect(() => {
     loadUsers();
@@ -46,6 +65,20 @@ export default function ScoreboardConfig() {
 
   useEffect(() => {
     if (selectedUser) loadCriteria(selectedUser);
+  }, [selectedUser]);
+
+  useEffect(() => {
+    if (!selectedUser) return;
+    const loadScoreHistory = async () => {
+      const { data } = await supabase
+        .from("daily_scoreboards" as any)
+        .select("score_date, total_score, max_score, breakdown")
+        .eq("user_id", selectedUser)
+        .order("score_date", { ascending: false })
+        .limit(14);
+      setScoreHistory((data as any[]) || []);
+    };
+    loadScoreHistory();
   }, [selectedUser]);
 
   const loadUsers = async () => {
@@ -63,6 +96,7 @@ export default function ScoreboardConfig() {
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: true });
+    removedIds.current = [];
     setCriteria((data as any[]) || []);
   };
 
@@ -76,10 +110,10 @@ export default function ScoreboardConfig() {
     }]);
   };
 
-  const removeCriteria = async (index: number) => {
+  const removeCriteria = (index: number) => {
     const item = criteria[index];
     if (item.id) {
-      await supabase.from("scoreboard_criteria" as any).delete().eq("id", item.id);
+      removedIds.current.push(item.id);
     }
     setCriteria(prev => prev.filter((_, i) => i !== index));
   };
@@ -91,35 +125,59 @@ export default function ScoreboardConfig() {
   const saveCriteria = async () => {
     if (!user || !selectedUser) return;
     setSaving(true);
+    const existing = criteria.filter((c) => c.id);
+    const news = criteria.filter((c) => !c.id);
 
-    // Delete existing and re-insert for simplicity
-    await supabase.from("scoreboard_criteria" as any).delete().eq("user_id", selectedUser);
+    const ops: Promise<any>[] = [
+      ...(removedIds.current.length > 0
+        ? [supabase.from("scoreboard_criteria" as any).delete().in("id", removedIds.current)]
+        : []),
+      ...existing.map((c) =>
+        supabase
+          .from("scoreboard_criteria" as any)
+          .update({
+            criteria_type: c.criteria_type,
+            criteria_label: c.criteria_label,
+            target_value: c.target_value,
+            points: c.points,
+            is_active: c.is_active,
+          } as any)
+          .eq("id", c.id as string)
+      ),
+      ...(news.length > 0
+        ? [
+            supabase.from("scoreboard_criteria" as any).insert(
+              news.map((c) => ({
+                user_id: selectedUser,
+                criteria_type: c.criteria_type,
+                criteria_label: c.criteria_label,
+                target_value: c.target_value,
+                points: c.points,
+                is_active: c.is_active,
+                created_by: user.id,
+              })) as any
+            ),
+          ]
+        : []),
+    ];
 
-    const inserts = criteria.map(c => ({
-      user_id: selectedUser,
-      criteria_type: c.criteria_type,
-      criteria_label: c.criteria_label,
-      target_value: c.target_value,
-      points: c.points,
-      is_active: c.is_active,
-      created_by: user.id,
-    }));
-
-    if (inserts.length > 0) {
-      const { error } = await supabase.from("scoreboard_criteria" as any).insert(inserts as any);
-      if (error) {
-        toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
-        setSaving(false);
-        return;
-      }
+    const results = await Promise.all(ops);
+    const firstErr = results.find((r: any) => r?.error)?.error;
+    if (firstErr) {
+      toast({ title: t("toast.error"), description: firstErr.message, variant: "destructive" });
+      setSaving(false);
+      return;
     }
+    removedIds.current = [];
 
-    toast({ title: "Scoreboard sauvegardé", description: `${inserts.length} critères configurés pour cet utilisateur.` });
+    toast({ title: "Scoreboard sauvegardé", description: `${criteria.length} critères configurés pour cet utilisateur.` });
     setSaving(false);
     loadCriteria(selectedUser);
   };
 
   const totalPoints = criteria.filter(c => c.is_active).reduce((s, c) => s + c.points, 0);
+  const maxPreview = criteria.filter((c) => c.is_active).reduce((s, c) => s + c.points, 0);
+  const activeCount = criteria.filter((c) => c.is_active).length;
 
   if (loading) return <div className="flex items-center justify-center p-20"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
 
@@ -217,6 +275,106 @@ export default function ScoreboardConfig() {
             </div>
           </motion.div>
         ))}
+      </div>
+
+      <div className="ethereal-glass p-5">
+        <p className="text-neural-label mb-2">Aperçu du score maximum</p>
+        <p className="text-sm text-foreground">
+          Si tous les critères sont remplis aujourd&apos;hui :{" "}
+          <span className="font-cinzel text-primary">{maxPreview} pts</span>{" "}
+          <span className="text-muted-foreground">({activeCount} critères actifs)</span>
+        </p>
+        <div className="mt-3 h-2 rounded-full bg-secondary/20 overflow-hidden flex">
+          {criteria.filter((c) => c.is_active && c.points > 0).map((c, idx) => (
+            <div
+              key={`${c.id || idx}-${c.criteria_label}`}
+              className="h-full"
+              style={{
+                width: `${maxPreview > 0 ? (c.points / maxPreview) * 100 : 0}%`,
+                background: COLORS[idx % COLORS.length],
+              }}
+              title={`${c.criteria_label}: ${c.points} pts`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="ethereal-glass p-6">
+        <p className="text-neural-label mb-4">Résultats du scoreboard (hier)</p>
+        {scoreHistory.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun scoreboard calculé pour cet utilisateur.</p>
+        ) : (
+          <div className="space-y-5">
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={scoreHistory
+                    .slice()
+                    .reverse()
+                    .map((s: any) => ({
+                      date: new Date(s.score_date).toLocaleDateString("fr-FR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                      }),
+                      total: s.total_score,
+                      max: s.max_score,
+                      pct: s.max_score ? Math.round((s.total_score / s.max_score) * 100) : 0,
+                    }))}
+                >
+                  <defs>
+                    <linearGradient id="scorePctFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.45} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                  <YAxis domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                  <Tooltip
+                    formatter={(value: any, _name: any, payload: any) => {
+                      const p = payload?.payload;
+                      return `${p?.total}/${p?.max} pts (${value}%)`;
+                    }}
+                    labelFormatter={(label: any) => String(label)}
+                  />
+                  <Area type="monotone" dataKey="pct" stroke="hsl(var(--primary))" fill="url(#scorePctFill)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {(() => {
+              const latest = scoreHistory[0] as any;
+              const breakdown = Array.isArray(latest?.breakdown) ? latest.breakdown : [];
+              return (
+                <div>
+                  <p className="text-neural-label mb-2">
+                    Dernière journée:{" "}
+                    {latest?.score_date
+                      ? new Date(latest.score_date).toLocaleDateString("fr-FR")
+                      : "—"}
+                  </p>
+                  <div className="space-y-1.5">
+                    {breakdown.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Aucun détail disponible.</p>
+                    ) : (
+                      breakdown.map((b: any, idx: number) => (
+                        <div key={`${b.criteria_id || idx}`} className="flex items-center justify-between text-xs bg-secondary/20 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {b.met ? <Check size={12} className="text-primary" /> : <X size={12} className="text-destructive" />}
+                            <span className="text-foreground">{b.label}</span>
+                          </div>
+                          <span className="text-muted-foreground">
+                            {b.earned}/{b.max} pts
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">

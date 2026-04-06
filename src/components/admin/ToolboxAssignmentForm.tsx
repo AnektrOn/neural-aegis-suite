@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wind, Eye, Brain, BookOpen, Heart, Sparkles, Link as LinkIcon, Send } from "lucide-react";
+import { Wind, Eye, Scan, BookOpen, Heart, Sparkles, Stars, Link as LinkIcon, Send, ShieldAlert, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_BODY_SCAN_TOTAL_SEC, DEFAULT_BODY_SCAN_ZONES } from "@/components/widgets/BodyScanWidget";
+import { DEFAULT_VISUALIZATION_SCENES, DEFAULT_VISUALIZATION_TOTAL_SEC } from "@/components/widgets/VisualizationWidget";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -10,11 +12,26 @@ interface Props {
   onAssigned: () => void;
 }
 
+function parseStopSteps(text: string): { title: string; hint: string }[] {
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const m = line.match(/^(.+?)\s*[—–-]\s*(.+)$/);
+      if (m) return { title: m[1].trim(), hint: m[2].trim() };
+      return { title: line, hint: "" };
+    });
+}
+
 const WIDGET_TYPES = [
   { value: "breathwork", label: "Breathwork", icon: Wind, color: "text-primary" },
   { value: "focus_introspectif", label: "Focus Introspectif", icon: Eye, color: "text-neural-accent" },
-  { value: "body_scan", label: "Body Scan", icon: Brain, color: "text-neural-warm" },
-  { value: "affirmations", label: "Affirmations", icon: Sparkles, color: "text-primary" },
+  { value: "body_scan", label: "Body Scan", icon: Scan, color: "text-neural-warm" },
+  { value: "visualization", label: "Visualisation", icon: Sparkles, color: "text-neural-accent" },
+  { value: "stop_protocol", label: "Protocole STOP", icon: ShieldAlert, color: "text-destructive" },
+  { value: "intention", label: "Intention", icon: Target, color: "text-primary" },
+  { value: "affirmations", label: "Affirmations", icon: Stars, color: "text-primary" },
   { value: "gratitude", label: "Gratitude Check-in", icon: Heart, color: "text-destructive" },
   { value: "journal_prompt", label: "Journal Prompt", icon: BookOpen, color: "text-neural-accent" },
   { value: "external_link", label: "Lien Externe", icon: LinkIcon, color: "text-muted-foreground" },
@@ -49,6 +66,22 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
   // Journal Prompt config
   const [jpPrompt, setJpPrompt] = useState("");
+
+  // Visualization config
+  const [vizDuration, setVizDuration] = useState(8);
+  const [vizCues, setVizCues] = useState("");
+  const [vizMode, setVizMode] = useState<"timed" | "manual">("timed");
+
+  // STOP protocol (optional custom steps: "Titre — indication" per line)
+  const [stopStepsRaw, setStopStepsRaw] = useState("");
+  const [stopMode, setStopMode] = useState<"timed" | "manual">("manual");
+  const [stopStepSec, setStopStepSec] = useState(30);
+
+  // Intention (dedicated widget)
+  const [inDuration, setInDuration] = useState(2);
+  const [inQuestion, setInQuestion] = useState("");
+  const [inAllowNote, setInAllowNote] = useState(true);
+  const [inNotePrompt, setInNotePrompt] = useState("");
 
   // External Link config
   const [elTitle, setElTitle] = useState("");
@@ -86,10 +119,68 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         duration = `${fiDuration} min`;
         widgetConfig = { duration_min: fiDuration, intention: fiIntention || "Libre" };
         break;
-      case "body_scan":
+      case "body_scan": {
         title = `Body Scan`;
         duration = `${bsDuration} min`;
-        widgetConfig = { duration_min: bsDuration, zones: ["tête", "épaules", "poitrine", "abdomen", "jambes", "pieds"] };
+        const scale = (bsDuration * 60) / DEFAULT_BODY_SCAN_TOTAL_SEC;
+        widgetConfig = {
+          zones: DEFAULT_BODY_SCAN_ZONES.map((z) => ({
+            ...z,
+            duration_sec: Math.max(5, Math.round(z.duration_sec * scale)),
+          })),
+        };
+        break;
+      }
+      case "visualization": {
+        title = `Visualisation guidée`;
+        duration = `${vizDuration} min`;
+        const cues = vizCues.split("\n").map((l) => l.trim()).filter(Boolean);
+        const palette = ["hsl(176 70% 48%)", "hsl(220 70% 60%)", "hsl(270 50% 60%)", "hsl(35 80% 58%)"];
+        if (cues.length === 0) {
+          const scale = (vizDuration * 60) / DEFAULT_VISUALIZATION_TOTAL_SEC;
+          widgetConfig = {
+            mode: vizMode,
+            scenes: DEFAULT_VISUALIZATION_SCENES.map((s) => ({
+              ...s,
+              duration_sec: Math.max(8, Math.round(s.duration_sec * scale)),
+            })),
+          };
+        } else {
+          const per = Math.max(5, Math.round((vizDuration * 60) / cues.length));
+          widgetConfig = {
+            mode: vizMode,
+            scenes: cues.map((instruction, i) => ({
+              id: `custom_${i}`,
+              label: `Scène ${i + 1}`,
+              instruction,
+              duration_sec: per,
+              color: palette[i % palette.length],
+            })),
+          };
+        }
+        break;
+      }
+      case "stop_protocol": {
+        title = `Protocole STOP`;
+        const steps = parseStopSteps(stopStepsRaw);
+        const nSteps = steps.length || 4;
+        duration = `${Math.max(1, Math.round((stopStepSec * nSteps) / 60))} min`;
+        widgetConfig = {
+          mode: stopMode,
+          step_duration_sec: stopStepSec,
+          ...(steps.length ? { steps } : {}),
+        };
+        break;
+      }
+      case "intention":
+        title = inQuestion.trim() ? `Intention – ${inQuestion.trim().slice(0, 48)}${inQuestion.trim().length > 48 ? "…" : ""}` : "Intention";
+        duration = `${inDuration} min`;
+        widgetConfig = {
+          ...(inQuestion.trim() ? { question: inQuestion.trim() } : {}),
+          duration_sec: inDuration * 60,
+          allow_note: inAllowNote,
+          ...(inNotePrompt.trim() ? { note_prompt: inNotePrompt.trim() } : {}),
+        };
         break;
       case "affirmations":
         title = `Affirmations`;
@@ -223,6 +314,140 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
               <div>
                 <label className={labelClass}>Durée (min)</label>
                 <input type="number" min={1} max={60} value={bsDuration} onChange={(e) => setBsDuration(+e.target.value)} className={inputClass} />
+              </div>
+            )}
+
+            {selectedType === "visualization" && (
+              <div className="space-y-3">
+                <div>
+                  <label className={labelClass}>Mode</label>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        { v: "timed" as const, l: "Temporisé (auto)" },
+                        { v: "manual" as const, l: "Manuel (suivant)" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => setVizMode(opt.v)}
+                        className={`text-[9px] uppercase tracking-[0.15em] px-3 py-2 rounded-lg border ${
+                          vizMode === opt.v ? "border-primary/40 bg-primary/5 text-primary" : "border-border/30 text-muted-foreground"
+                        }`}
+                      >
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClass}>Durée cible (min)</label>
+                  <input type="number" min={1} max={45} value={vizDuration} onChange={(e) => setVizDuration(+e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Textes de guidage (une par ligne, optionnel)</label>
+                  <textarea
+                    value={vizCues}
+                    onChange={(e) => setVizCues(e.target.value)}
+                    rows={4}
+                    placeholder="Laissez vide pour le parcours par défaut (ancrage → retour)&#10;Ou saisissez vos propres instructions, une par ligne."
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            )}
+
+            {selectedType === "stop_protocol" && (
+              <div className="space-y-3">
+                <div>
+                  <label className={labelClass}>Mode</label>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        { v: "manual" as const, l: "Manuel" },
+                        { v: "timed" as const, l: "Temporisé" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => setStopMode(opt.v)}
+                        className={`text-[9px] uppercase tracking-[0.15em] px-3 py-2 rounded-lg border ${
+                          stopMode === opt.v ? "border-primary/40 bg-primary/5 text-primary" : "border-border/30 text-muted-foreground"
+                        }`}
+                      >
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClass}>Durée par étape (s)</label>
+                  <input
+                    type="number"
+                    min={10}
+                    max={120}
+                    value={stopStepSec}
+                    onChange={(e) => setStopStepSec(+e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Étapes personnalisées (optionnel, une par ligne : « Titre — indication »)</label>
+                  <textarea
+                    value={stopStepsRaw}
+                    onChange={(e) => setStopStepsRaw(e.target.value)}
+                    rows={5}
+                    placeholder={"Stop — Pausez ce que vous faites\nRespirez — …\nObservez — …\nReprenez — …"}
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Si vide, le protocole STOP par défaut (S·T·O·P) est utilisé.</p>
+                </div>
+              </div>
+            )}
+
+            {selectedType === "intention" && (
+              <div className="space-y-4">
+                <div>
+                  <label className={labelClass}>Question centrale (optionnel)</label>
+                  <textarea
+                    value={inQuestion}
+                    onChange={(e) => setInQuestion(e.target.value)}
+                    rows={2}
+                    placeholder="Vide = question par défaut dans l’app"
+                    className={inputClass}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClass}>Durée de réflexion (min)</label>
+                    <input type="number" min={1} max={30} value={inDuration} onChange={(e) => setInDuration(+e.target.value)} className={inputClass} />
+                  </div>
+                  <div className="flex items-end pb-2">
+                    <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={inAllowNote}
+                        onChange={(e) => setInAllowNote(e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      Proposer une note après le timer
+                    </label>
+                  </div>
+                </div>
+                {inAllowNote && (
+                  <div>
+                    <label className={labelClass}>Placeholder de la note (optionnel)</label>
+                    <input
+                      type="text"
+                      value={inNotePrompt}
+                      onChange={(e) => setInNotePrompt(e.target.value)}
+                      placeholder="Mon intention du jour…"
+                      className={inputClass}
+                    />
+                  </div>
+                )}
               </div>
             )}
 

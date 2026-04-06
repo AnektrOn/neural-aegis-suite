@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet";
 import NeuralMap from "@/components/NeuralMap";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   CONTACT_PROXIMITY_LABELS,
   CONTACT_PROXIMITY_VALUES,
@@ -672,6 +673,7 @@ export default function PeopleBoard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
 
   const periodLabels: Record<Period, string> = {
     "1d": t("people.periodDay"), "7d": t("people.period7d"), "30d": t("people.period30d"),
@@ -856,7 +858,9 @@ export default function PeopleBoard() {
   }));
 
   return (
-    <div className={`space-y-5 pb-32 ${view === "neural" ? "max-w-7xl" : "max-w-6xl"}`}>
+    <div
+      className={`space-y-5 ${isMobile ? "pb-44" : "pb-32"} ${view === "neural" ? "max-w-7xl" : "max-w-6xl"}`}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -1010,7 +1014,11 @@ export default function PeopleBoard() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-0 left-0 right-0 z-50 flex items-center gap-3 px-4 py-3 pb-safe"
+            className={
+              isMobile
+                ? "fixed left-0 right-0 z-30 flex items-center gap-3 px-4 py-3 bottom-[calc(3.5rem+var(--safe-bottom))]"
+                : "fixed bottom-0 left-0 right-0 z-50 flex items-center gap-3 px-4 py-3 pb-safe"
+            }
             style={{
               background: "linear-gradient(to top, hsl(220 15% 6%) 60%, transparent)",
               backdropFilter: "blur(12px)",

@@ -116,22 +116,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const location = useLocation();
   const isMobile = useIsMobile();
   const { online } = useNetwork();
+  const { t } = useLanguage();
+
+  const adminMainPaddingTop = online
+    ? "calc(var(--safe-top) + var(--mobile-header-toolbar))"
+    : "calc(var(--safe-top) + var(--mobile-offline-banner-height) + var(--mobile-header-toolbar))";
 
   if (isMobile) {
-    const adminMobileTop = online ? "pt-16" : "pt-[5.25rem]";
-
     return (
       <div className="min-h-screen w-full relative z-10 bg-bg-base">
-        <div className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle">
+        <div
+          className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle"
+          style={{ paddingTop: "var(--safe-top)" }}
+        >
           {!online && (
             <div
               className="bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2 shrink-0"
               role="status"
             >
-              Hors ligne — reconnexion requise pour synchroniser les données
+              {t("layout.offlineMessage")}
             </div>
           )}
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex min-h-[var(--mobile-header-toolbar)] items-center justify-between box-border px-4 py-3">
             <div className="flex items-center gap-3">
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
@@ -156,7 +162,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        <main className={`${adminMobileTop} px-4 pb-6 min-h-screen`}>
+        <main className="px-4 pb-6 min-h-screen" style={{ paddingTop: adminMainPaddingTop }}>
           <PageWrapper key={location.pathname}>{children}</PageWrapper>
         </main>
       </div>
@@ -170,7 +176,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           className="fixed top-0 left-0 right-0 z-[60] bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2"
           role="status"
         >
-          Hors ligne — reconnexion requise pour synchroniser les données
+          {t("layout.offlineMessage")}
         </div>
       )}
       <aside

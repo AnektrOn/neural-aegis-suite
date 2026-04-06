@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Send, Mail, Search, CheckCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,9 +22,12 @@ interface Message {
   created_at: string;
 }
 
+type MessagesLocationState = { adminComposeUserId?: string };
+
 export default function AdminMessages() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const location = useLocation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
@@ -34,6 +38,12 @@ export default function AdminMessages() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    const st = location.state as MessagesLocationState | null;
+    const id = st?.adminComposeUserId;
+    if (id) setSelectedUser(id);
+  }, [location.state]);
 
   const loadData = async () => {
     setLoading(true);

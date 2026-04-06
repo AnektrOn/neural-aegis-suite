@@ -43,11 +43,18 @@ export function useSessionTracking() {
       sessionId.current = null;
     };
 
+    // Desktop
     window.addEventListener("beforeunload", endSession);
+    // Mobile Safari: visibilitychange is reliable
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") endSession();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("beforeunload", endSession);
+      document.removeEventListener("visibilitychange", handleVisibility);
       endSession();
     };
   }, [user]);

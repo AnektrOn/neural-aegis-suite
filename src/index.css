@@ -13,6 +13,10 @@
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
 
+    /* Fixed mobile headers (AppLayout + AdminLayout): toolbar row below safe area / offline strip */
+    --mobile-header-toolbar: 4.35rem;
+    --mobile-offline-banner-height: 2.25rem;
+
     --background: 200 35% 7%;
     --foreground: 24 48% 95%;
     --card: 201 28% 12%;

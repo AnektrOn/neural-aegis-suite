@@ -6,6 +6,7 @@ import { fr } from "date-fns/locale";
 import { Zap, Brain, Target, TrendingUp, TrendingDown, Minus, Plus, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import ScoreCard from "@/components/ScoreCard";
 import AIInsights from "@/components/AIInsights";
 import { checkAndAwardBadges } from "@/lib/badge-engine";
@@ -48,15 +49,6 @@ const priorityBadge = (p: number): { label: string; cls: string } => {
   return { label: "P" + p, cls: "bg-transparent text-muted-foreground" };
 };
 
-const timeAgo = (dateStr: string): string => {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const h = Math.floor(diff / 3600000);
-  const d = Math.floor(h / 24);
-  if (d > 0) return `il y a ${d}j`;
-  if (h > 0) return `il y a ${h}h`;
-  return "à l'instant";
-};
-
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0 },
@@ -67,6 +59,7 @@ const fadeUp = (delay = 0) => ({
 export default function Dashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -96,7 +89,7 @@ export default function Dashboard() {
       checkAndAwardBadges(user.id);
       sessionStorage.setItem("badges_checked", "1");
     }
-  }, [user, isMobile]);
+  }, [user, isMobile, t]);
 
   // Listen for pull-to-refresh event
   useEffect(() => {
@@ -121,6 +114,47 @@ export default function Dashboard() {
       navigate(".", { replace: true, state: {} });
     }
   }, [location.state, navigate]);
+
+  const timeAgoLabel = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const h = Math.floor(diff / 3600000);
+    const d = Math.floor(h / 24);
+    if (d > 0) return t("dashboard.timeAgoDays", { n: d });
+    if (h > 0) return t("dashboard.timeAgoHours", { n: h });
+    return t("dashboard.timeAgoNow");
+  };
+
+  const toggleMobileHabit = async (habitId: string) => {
+    if (!user) return;
+    const habit = mobileHabits.find((h) => h.id === habitId);
+    if (!habit) return;
+    const nextCompleted = !habit.completed;
+    const habitsDoneBefore = mobileHabits.filter((h) => h.completed).length;
+    const rolled = mobileHabits.map((h) => (h.id === habitId ? { ...h, completed: nextCompleted } : h));
+    setMobileHabits(rolled);
+    setStats((s) => ({ ...s, habitsDone: String(rolled.filter((h) => h.completed).length) }));
+    try {
+      if (nextCompleted) {
+        const { error } = await supabase
+          .from("habit_completions" as any)
+          .insert({ user_id: user.id, assigned_habit_id: habitId, completed_date: today } as any);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("habit_completions" as any)
+          .delete()
+          .eq("user_id", user.id)
+          .eq("assigned_habit_id", habitId)
+          .eq("completed_date", today);
+        if (error) throw error;
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setMobileHabits((prev) => prev.map((h) => (h.id === habitId ? { ...h, completed: habit.completed } : h)));
+      setStats((s) => ({ ...s, habitsDone: String(habitsDoneBefore) }));
+      toast({ title: t("toast.error"), description: msg, variant: "destructive" });
+    }
+  };
 
   const loadPeople = async () => {
     const { data } = await supabase.from("people_contacts").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
@@ -202,7 +236,7 @@ export default function Dashboard() {
         setMobileHabits(
           (habitsAssignedRes.data as any[]).map((a: any) => ({
             id: a.id,
-            name: tMap.get(a.habit_template_id)?.name ?? "Habitude",
+            name: tMap.get(a.habit_template_id)?.name ?? t("habits.unknown"),
             category: tMap.get(a.habit_template_id)?.category ?? "",
             completed: completedTodaySet.has(a.id),
           }))
@@ -314,11 +348,12 @@ export default function Dashboard() {
   if (isMobile) {
     const completedHabits = mobileHabits.filter(h => h.completed).length;
     const hour = new Date().getHours();
-    const greeting = hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
+    const greeting =
+      hour < 12 ? t("dashboard.greetingMorning") : hour < 18 ? t("dashboard.greetingAfternoon") : t("dashboard.greetingEvening");
     const streakDays = digest?.streakDays ?? 0;
     const habitsTotal = mobileHabits.length || totalHabits;
     const sessionLabel =
-      hour < 12 ? "MATIN" : hour < 18 ? "APRÈS-MIDI" : "SOIRÉE";
+      hour < 12 ? t("dashboard.sessionMorning") : hour < 18 ? t("dashboard.sessionAfternoon") : t("dashboard.sessionEvening");
     const heroProgress = digest != null ? Math.min(100, Math.max(0, digest.habitRate)) : 75;
 
     return (
@@ -327,7 +362,9 @@ export default function Dashboard() {
         {streakDays > 0 && (
           <motion.div {...fadeUp(0)} className="flex justify-end items-center gap-1.5 min-h-[24px]">
             <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-            <span className="font-barlow text-[11px] font-medium text-primary">{streakDays} jours</span>
+            <span className="font-barlow text-[11px] font-medium text-primary">
+              {t("dashboard.streakLine", { n: streakDays })}
+            </span>
           </motion.div>
         )}
 
@@ -357,10 +394,10 @@ export default function Dashboard() {
                 </div>
                 <div className="text-left min-w-0">
                   <p className="font-barlow text-[13px] font-medium text-text-primary leading-tight">
-                    Logger maintenant
+                    {t("dashboard.mobileLogNow")}
                   </p>
                   <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.22em] text-text-tertiary/75 mt-1">
-                    Humeur · stress · sommeil
+                    {t("dashboard.mobileLogSubtitle")}
                   </p>
                 </div>
               </div>
@@ -390,7 +427,7 @@ export default function Dashboard() {
             >
               <p className="font-cormorant text-[22px] font-light leading-none text-primary">{stats.moodAvg}</p>
               <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/70 mt-2">
-                Humeur
+                {t("mood.label")}
               </p>
               <p className="font-barlow text-[9px] text-primary/55 mt-0.5 tabular-nums">
                 {digest?.moodTrend === "up"
@@ -408,7 +445,7 @@ export default function Dashboard() {
                 {habitsTotal > 0 ? `${completedHabits}/${habitsTotal}` : stats.habitsDone}
               </p>
               <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/70 mt-2">
-                Habitudes
+                {t("nav.habits")}
               </p>
               <p className="font-barlow text-[9px] text-primary/55 mt-0.5 tabular-nums">
                 {digest != null ? `${digest.habitRate}%` : "—"}
@@ -426,10 +463,10 @@ export default function Dashboard() {
                 {streakDays > 0 ? `${streakDays}j` : stats.openDecisions}
               </p>
               <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/70 mt-2">
-                {streakDays > 0 ? "Série" : "Décisions"}
+                {streakDays > 0 ? t("dashboard.kpiStreak") : t("dashboard.kpiDecisions")}
               </p>
               <p className="font-barlow text-[9px] text-primary/55 mt-0.5 tabular-nums">
-                {streakDays > 0 ? "jours" : "ouvertes"}
+                {streakDays > 0 ? t("dashboard.kpiStreakUnit") : t("dashboard.kpiDecisionsOpen")}
               </p>
             </motion.div>
           </motion.div>
@@ -443,25 +480,25 @@ export default function Dashboard() {
           <motion.div {...fadeUp(0.04)}>
             <div className="card-interactive ethereal-glass p-4 rounded-[14px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]">
               <div className="flex items-center justify-between mb-3">
-                <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
-                  Décisions en cours
+                  <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
+                  {t("dashboard.mobileDecisionsOpen")}
                 </p>
                 <NavLink
                   to="/decisions"
                   className="font-barlow text-[10px] text-primary/50 hover:text-primary/80 transition-colors tracking-wide"
                 >
-                  Tout voir →
+                  {t("dashboard.mobileSeeAll")}
                 </NavLink>
               </div>
               {decisions.length === 0 ? (
                 <div className="flex flex-col items-center py-4 gap-2">
                   <Target size={24} strokeWidth={1} className="text-muted-foreground/20" />
-                  <p className="font-barlow text-xs text-muted-foreground/40 text-center">Aucune décision en attente</p>
+                  <p className="font-barlow text-xs text-muted-foreground/40 text-center">{t("dashboard.mobileNoDecisions")}</p>
                   <NavLink
                     to="/decisions"
                     className="font-barlow text-[10px] text-primary border border-primary/20 bg-primary/5 px-3 py-1.5 rounded-lg tracking-wider uppercase hover:bg-primary/10 transition-colors mt-1"
                   >
-                    + Nouvelle décision
+                    {t("dashboard.mobileNewDecision")}
                   </NavLink>
                 </div>
               ) : (
@@ -477,7 +514,7 @@ export default function Dashboard() {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {d.created_at && (
-                              <span className="font-barlow text-[9px] text-muted-foreground/45">{timeAgo(d.created_at)}</span>
+                              <span className="font-barlow text-[9px] text-muted-foreground/45">{timeAgoLabel(d.created_at)}</span>
                             )}
                             <span className={`font-barlow text-[10px] px-1.5 py-0.5 rounded-md ${badge.cls}`}>
                               {badge.label}
@@ -492,7 +529,7 @@ export default function Dashboard() {
                     className="font-barlow flex items-center gap-1.5 mt-3 pt-3 border-t border-border/40 text-[10px] text-primary/60 hover:text-primary tracking-wider uppercase transition-colors"
                   >
                     <span className="text-base leading-none">+</span>
-                    <span>Nouvelle décision</span>
+                    <span>{t("decisions.newDecision")}</span>
                   </NavLink>
                 </>
               )}
@@ -508,7 +545,7 @@ export default function Dashboard() {
             <div className="card-interactive ethereal-glass p-4 rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border-ice))]">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
-                  Habitudes du jour
+                  {t("dashboard.mobileHabitsToday")}
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="font-barlow text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md">
@@ -521,7 +558,13 @@ export default function Dashboard() {
               </div>
               <div className="space-y-1">
                 {mobileHabits.map((habit) => (
-                  <div key={habit.id} className="flex items-center gap-3 min-h-[44px] py-1">
+                  <button
+                    key={habit.id}
+                    type="button"
+                    onClick={() => void toggleMobileHabit(habit.id)}
+                    className="flex w-full items-center gap-3 min-h-[44px] py-1 text-left rounded-lg active:opacity-90 transition-opacity"
+                    style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+                  >
                     <div
                       className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all ${
                         habit.completed
@@ -551,7 +594,7 @@ export default function Dashboard() {
                     >
                       {habit.name}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
               <div className="h-[2px] rounded-full mt-3 overflow-hidden bg-border/50">
@@ -577,13 +620,13 @@ export default function Dashboard() {
           <motion.div {...fadeUp(0.06)}>
             <div className="card-static ethereal-glass p-4 rounded-[14px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]">
               <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80 mb-3">
-                Cette semaine
+                {t("dashboard.mobileThisWeek")}
               </p>
               <div className="grid grid-cols-3 text-center">
                 <div className="px-1">
                   <div className="flex items-center justify-center gap-1 mb-1 min-h-[22px]">
                     {digest.moodTrend === "stable" ? (
-                      <span className="font-barlow text-[11px] text-muted-foreground/45">stable</span>
+                      <span className="font-barlow text-[11px] text-muted-foreground/45">{t("dashboard.stable")}</span>
                     ) : (
                       <>
                         <span
@@ -600,19 +643,19 @@ export default function Dashboard() {
                       </>
                     )}
                   </div>
-                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">Humeur</p>
+                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">{t("mood.label")}</p>
                 </div>
                 <div className="border-l border-border/50 px-2">
                   <p className="font-cormorant text-[18px] font-light text-text-primary leading-tight mb-1">
                     {digest.habitRate}%
                   </p>
-                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">Habitudes</p>
+                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">{t("nav.habits")}</p>
                 </div>
                 <div className="border-l border-border/50 pl-2">
                   <p className="font-cormorant text-[18px] font-light text-text-primary leading-tight mb-1">
                     {streakDays}j
                   </p>
-                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">Série</p>
+                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">{t("dashboard.kpiStreak")}</p>
                 </div>
               </div>
             </div>
@@ -629,10 +672,10 @@ export default function Dashboard() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
-                    Dernière entrée
+                    {t("dashboard.mobileLastEntry")}
                   </p>
                   <span className="font-barlow text-[9px] text-muted-foreground/45">
-                    {timeAgo(lastJournalEntry.created_at)}
+                    {timeAgoLabel(lastJournalEntry.created_at)}
                   </span>
                 </div>
                 <p className="font-cormorant text-[14px] font-light italic leading-snug line-clamp-2 text-muted-foreground">
