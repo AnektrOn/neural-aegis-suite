@@ -107,6 +107,7 @@ const App = () => (
                             <Route path="/people" element={<PeopleBoard />} />
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/profile" element={<Profile />} />
+                            <Route path="/install" element={<InstallApp />} />
                             <Route path="/calendar" element={<CalendarView />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
