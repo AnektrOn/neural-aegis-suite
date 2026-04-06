@@ -190,6 +190,20 @@ export default function Profile() {
           {exporting ? t("profile.exporting") : t("profile.exportButton")}
         </button>
       </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="ethereal-glass p-8">
+        <div className="flex items-center gap-3 mb-4">
+          <Smartphone size={18} strokeWidth={1.5} className="text-primary" />
+          <p className="text-neural-label">{t("install.title")}</p>
+        </div>
+        <p className="text-sm text-muted-foreground mb-6">
+          {t("install.onboardingDesc")}
+        </p>
+        <button onClick={() => navigate("/install")} className="btn-neural w-full">
+          <Smartphone size={14} />
+          {t("install.title")}
+        </button>
+      </motion.div>
     </div>
   );
 }
