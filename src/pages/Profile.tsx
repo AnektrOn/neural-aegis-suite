@@ -9,6 +9,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 
 export default function Profile() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { t } = useLanguage();
   const [displayName, setDisplayName] = useState("");
   const [country, setCountry] = useState("");
