@@ -392,9 +392,9 @@ export default function AdminSegmentation() {
       head.join(","),
       ...rows.map((u) =>
         [
-          `"${(u.display_name || "").replaceAll('"', '""')}"`,
-          `"${(u.email || "").replaceAll('"', '""')}"`,
-          `"${(u.company_id ? companyNameById.get(u.company_id) || "" : "").replaceAll('"', '""')}"`,
+          `"${(u.display_name || "").split('"').join('""')}"`,
+          `"${(u.email || "").split('"').join('""')}"`,
+          `"${(u.company_id ? companyNameById.get(u.company_id) || "" : "").split('"').join('""')}"`,
           u.avg_mood_14d ?? "",
           u.habit_rate_14d,
           u.days_since_login,
