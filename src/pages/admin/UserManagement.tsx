@@ -20,6 +20,8 @@ interface UserData {
   auditCount: number;
   habitCount: number;
   toolboxCount: number;
+  moodCount: number;
+  lastSeen: string | null;
 }
 
 interface Company {
@@ -42,19 +44,25 @@ export default function UserManagement() {
 
   const loadUsers = async () => {
     setLoading(true);
-    const [profilesRes, rolesRes, auditsRes, habitsRes, toolboxRes, companiesRes] = await Promise.all([
+    const [profilesRes, rolesRes, auditsRes, habitsRes, toolboxRes, companiesRes, moodsRes, sessionsRes] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("user_roles" as any).select("*"),
       supabase.from("audit_calls" as any).select("user_id"),
       supabase.from("assigned_habits" as any).select("user_id"),
       supabase.from("toolbox_assignments" as any).select("user_id"),
       supabase.from("companies" as any).select("*"),
+      supabase.from("mood_entries").select("user_id", { count: "exact" })
+        .gte("logged_at", new Date(Date.now() - 30 * 86400000).toISOString()),
+      supabase.from("user_sessions" as any).select("user_id, started_at")
+        .order("started_at", { ascending: false }).limit(500),
     ]);
 
     const roles = (rolesRes.data || []) as any[];
     const audits = (auditsRes.data || []) as any[];
     const habits = (habitsRes.data || []) as any[];
     const toolbox = (toolboxRes.data || []) as any[];
+    const moods = (moodsRes.data || []) as any[];
+    const recentSessions = (sessionsRes.data || []) as any[];
     setCompanies((companiesRes.data || []) as any);
 
     const userData: UserData[] = (profilesRes.data || []).map((p: any) => ({
@@ -64,6 +72,9 @@ export default function UserManagement() {
       auditCount: audits.filter((a: any) => a.user_id === p.id).length,
       habitCount: habits.filter((h: any) => h.user_id === p.id).length,
       toolboxCount: toolbox.filter((t: any) => t.user_id === p.id).length,
+      moodCount: moods.filter((m: any) => m.user_id === p.id).length,
+      lastSeen: recentSessions
+        .filter((s: any) => s.user_id === p.id)[0]?.started_at ?? null,
     }));
 
     setUsers(userData);
@@ -184,6 +195,19 @@ export default function UserManagement() {
                 <div className="text-center">
                   <p className="text-sm font-cinzel text-foreground">{userData.toolboxCount}</p>
                   <p className="text-neural-label">{t("users.tools")}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-cinzel text-foreground">{userData.moodCount}</p>
+                  <p className="text-neural-label">Humeurs</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-cinzel text-foreground">
+                    {userData.lastSeen
+                      ? `${Math.floor((Date.now() - new Date(userData.lastSeen).getTime())
+                        / 86400000)}j`
+                      : "—"}
+                  </p>
+                  <p className="text-neural-label">Inactivité</p>
                 </div>
               </div>
 

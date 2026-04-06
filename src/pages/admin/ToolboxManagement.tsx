@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wind, Eye, Brain, Sparkles, Heart, BookOpen, Link as LinkIcon, Search, Trash2, Users, Package } from "lucide-react";
+import { Wind, Eye, Scan, Sparkles, Stars, Heart, BookOpen, Link as LinkIcon, Search, Trash2, Users, Package, ShieldAlert, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -27,13 +27,15 @@ interface UserProfile {
 const TYPE_META: Record<string, { icon: typeof Wind; color: string; label: string }> = {
   breathwork: { icon: Wind, color: "text-primary", label: "Breathwork" },
   focus_introspectif: { icon: Eye, color: "text-neural-accent", label: "Focus Introspectif" },
-  body_scan: { icon: Brain, color: "text-neural-warm", label: "Body Scan" },
-  affirmations: { icon: Sparkles, color: "text-primary", label: "Affirmations" },
+  body_scan: { icon: Scan, color: "text-neural-warm", label: "Body Scan" },
+  visualization: { icon: Sparkles, color: "text-neural-accent", label: "Visualisation" },
+  stop_protocol: { icon: ShieldAlert, color: "text-destructive", label: "Protocole STOP" },
+  intention: { icon: Target, color: "text-primary", label: "Intention" },
+  affirmations: { icon: Stars, color: "text-primary", label: "Affirmations" },
   gratitude: { icon: Heart, color: "text-destructive", label: "Gratitude" },
   journal_prompt: { icon: BookOpen, color: "text-neural-accent", label: "Journal Prompt" },
   external_link: { icon: LinkIcon, color: "text-muted-foreground", label: "Lien Externe" },
   meditation: { icon: Eye, color: "text-primary", label: "Méditation" },
-  visualization: { icon: Eye, color: "text-neural-accent", label: "Visualisation" },
   course: { icon: BookOpen, color: "text-neural-warm", label: "Formation" },
 };
 

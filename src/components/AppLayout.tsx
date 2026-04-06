@@ -18,7 +18,7 @@ import {
   BookOpen,
   UserCircle,
   CalendarDays,
-  MoreHorizontal,
+  Menu,
 } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,12 +32,20 @@ import { PageWrapper } from "@/components/PageWrapper";
 import { useNetwork } from "@/hooks/use-network";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-const bottomNavTabs = [
-  { to: "/", icon: LayoutDashboard, label: "Board" },
-  { to: "/decisions", icon: Target, label: "Décisions" },
-  { to: "/habits", icon: ListChecks, label: "Habits" },
-  { to: "/journal", icon: BookOpen, label: "Journal" },
-] as const;
+const mobileDockKeys = [
+  { to: "/", icon: LayoutDashboard, labelKey: "nav.bottom.board" as const },
+  { to: "/decisions", icon: Target, labelKey: "nav.decisions" as const },
+  { to: "/people", icon: Users, labelKey: "nav.people" as const },
+  { to: "/mood", icon: Brain, labelKey: "nav.mood" as const },
+  { to: "/habits", icon: ListChecks, labelKey: "nav.habits" as const },
+];
+
+const mobileMenuKeys = [
+  { to: "/journal", icon: BookOpen, labelKey: "nav.journal" as const },
+  { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" as const },
+  { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" as const },
+  { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" as const },
+];
 
 const navKeys = [
   { to: "/", icon: LayoutDashboard, key: "nav.dashboard" as const },
@@ -128,13 +136,14 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const touchStartY = useRef(0);
   const location = useLocation();
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdmin();
+  const { t, locale } = useLanguage();
   useSessionTracking();
   useHesitationTracking();
   const { online } = useNetwork();
@@ -154,21 +163,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (isMobile) {
     const avatarInitial = user?.email ? user.email[0].toUpperCase() : "?";
-    const dateStr = new Date().toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
-
-    const sheetRoutes = [
-      { to: "/people", icon: Users, label: "Réseau" },
-      { to: "/analytics", icon: BarChart3, label: "Analytics" },
-      { to: "/calendar", icon: CalendarDays, label: "Calendrier" },
-      { to: "/toolbox", icon: Headphones, label: "Toolbox" },
-      { to: "/mood", icon: Brain, label: "Humeur" },
-      { to: "/profile", icon: UserCircle, label: "Profil" },
-      ...(isAdmin ? [{ to: "/admin", icon: Shield, label: "Admin" }] : []),
-    ];
+    const dateLocale = locale === "fr" ? "fr-FR" : "en-US";
+    const dateStr = new Date()
+      .toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" })
+      .toUpperCase();
 
     const mobileTopPadding = online
-      ? "calc(3.25rem + var(--safe-top))"
-      : "calc(5.25rem + var(--safe-top))";
+      ? "calc(var(--safe-top) + var(--mobile-header-toolbar))"
+      : "calc(var(--safe-top) + var(--mobile-offline-banner-height) + var(--mobile-header-toolbar))";
 
     return (
       <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
@@ -181,11 +183,76 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               className="bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2 shrink-0"
               role="status"
             >
-              Hors ligne — reconnexion requise pour synchroniser les données
+              {t("layout.offlineMessage")}
             </div>
           )}
-          <div className="relative flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-2.5 shrink-0">
+          <div className="relative flex min-h-[var(--mobile-header-toolbar)] items-center justify-between box-border px-4 py-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <button
+                    type="button"
+                    className="p-2 rounded-xl text-text-tertiary hover:text-text-secondary transition-all duration-200"
+                    aria-label={t("layout.openMenu")}
+                    style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+                  >
+                    <Menu size={22} strokeWidth={1.5} />
+                  </button>
+                </SheetTrigger>
+                <SheetContent
+                  side="bottom"
+                  className="rounded-t-3xl p-0 bg-bg-surface border-t border-border-subtle"
+                  style={{ paddingBottom: "calc(1.5rem + var(--safe-bottom))" }}
+                >
+                  <div className="px-6 pt-3 pb-6">
+                    <div className="w-10 h-1 bg-border-active/60 rounded-full mx-auto mb-6" />
+                    <div className="grid grid-cols-3 gap-3">
+                      {mobileMenuKeys.map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-bg-elevated border border-border-subtle hover:border-accent-primary/25 transition-all duration-200"
+                        >
+                          <item.icon size={20} strokeWidth={1.5} className="text-text-secondary" />
+                          <span className="text-[10px] text-text-secondary tracking-wider uppercase font-medium text-center leading-tight">
+                            {t(item.labelKey)}
+                          </span>
+                        </Link>
+                      ))}
+                      {isAdmin && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-bg-elevated border border-border-subtle hover:border-accent-primary/25 transition-all duration-200"
+                        >
+                          <Shield size={20} strokeWidth={1.5} className="text-text-secondary" />
+                          <span className="text-[10px] text-text-secondary tracking-wider uppercase font-medium">
+                            {t("nav.admin")}
+                          </span>
+                        </Link>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-4 mt-6 pt-4 border-t border-border-subtle/60">
+                      <div className="flex items-center justify-between gap-3">
+                        <ThemeToggle collapsed={false} />
+                        <LanguageSwitcher collapsed={false} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          void signOut();
+                        }}
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-accent-danger/80 hover:text-accent-danger hover:bg-accent-danger/5 transition-colors duration-200"
+                      >
+                        <LogOut size={16} strokeWidth={1.5} />
+                        <span className="text-xs">{t("nav.logout")}</span>
+                      </button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
               <img src={aegisLogo} alt="Aegis" className="w-8 h-8 rounded-lg object-contain" />
             </div>
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none text-center max-w-[55%]">
@@ -227,65 +294,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
 
         <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-bg-surface/90 backdrop-blur-xl border-t border-border-subtle pb-safe">
-          <div className="flex items-center justify-around h-14 px-2">
-            {bottomNavTabs.map((tab) => (
+          <div className="flex items-stretch justify-between h-14 px-1 gap-0.5">
+            {mobileDockKeys.map((tab) => (
               <NavLink
                 key={tab.to}
                 to={tab.to}
+                end={tab.to === "/"}
                 className={({ isActive }) =>
-                  `flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-200 ${
+                  `flex flex-1 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 rounded-xl transition-all duration-200 ${
                     isActive ? "text-accent-primary" : "text-text-tertiary hover:text-text-secondary"
                   }`
                 }
               >
-                <tab.icon size={20} strokeWidth={1.5} />
-                <span className="text-[9px] tracking-[0.08em] uppercase font-medium">{tab.label}</span>
+                <tab.icon size={19} strokeWidth={1.5} />
+                <span className="text-[7px] sm:text-[8px] tracking-[0.06em] uppercase font-medium text-center leading-none line-clamp-2">
+                  {t(tab.labelKey)}
+                </span>
               </NavLink>
             ))}
-
-            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetTrigger asChild>
-                <button
-                  type="button"
-                  className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-text-tertiary hover:text-text-secondary transition-all duration-200"
-                >
-                  <MoreHorizontal size={20} strokeWidth={1.5} />
-                  <span className="text-[9px] tracking-[0.08em] uppercase font-medium">Plus</span>
-                </button>
-              </SheetTrigger>
-              <SheetContent
-                side="bottom"
-                className="rounded-t-3xl p-0 bg-bg-surface border-t border-border-subtle"
-                style={{ paddingBottom: "calc(1.5rem + var(--safe-bottom))" }}
-              >
-                <div className="px-6 pt-3 pb-6">
-                  <div className="w-10 h-1 bg-border-active/60 rounded-full mx-auto mb-6" />
-                  <div className="grid grid-cols-3 gap-3">
-                    {sheetRoutes.map((item) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setMobileOpen(false)}
-                        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-bg-elevated border border-border-subtle hover:border-accent-primary/25 transition-all duration-200"
-                      >
-                        <item.icon size={20} strokeWidth={1.5} className="text-text-secondary" />
-                        <span className="text-[10px] text-text-secondary tracking-wider uppercase font-medium">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border-subtle/60">
-                    <ThemeToggle collapsed={false} />
-                    <button
-                      onClick={signOut}
-                      className="flex items-center gap-2 text-accent-danger/80 hover:text-accent-danger transition-colors duration-200"
-                    >
-                      <LogOut size={16} strokeWidth={1.5} />
-                      <span className="text-xs">Déconnexion</span>
-                    </button>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
           </div>
         </nav>
       </div>
@@ -299,7 +325,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           className="fixed top-0 left-0 right-0 z-[60] bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2"
           role="status"
         >
-          Hors ligne — reconnexion requise pour synchroniser les données
+          {t("layout.offlineMessage")}
         </div>
       )}
       <aside

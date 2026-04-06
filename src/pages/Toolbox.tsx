@@ -1,12 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Play, Headphones, Eye, BookOpen, Wind, Sparkles, Heart, Brain, Link as LinkIcon, ExternalLink, CheckCircle2, XCircle, EyeOff, RotateCcw } from "lucide-react";
+import { Play, Headphones, Eye, BookOpen, Wind, Sparkles, Stars, Heart, Scan, Link as LinkIcon, ExternalLink, CheckCircle2, XCircle, EyeOff, RotateCcw, ShieldAlert, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import BreathworkWidget from "@/components/widgets/BreathworkWidget";
 import FocusIntrospectifWidget from "@/components/widgets/FocusIntrospectifWidget";
+import BodyScanWidget from "@/components/widgets/BodyScanWidget";
+import AffirmationsWidget from "@/components/widgets/AffirmationsWidget";
+import GratitudeWidget from "@/components/widgets/GratitudeWidget";
+import JournalPromptWidget from "@/components/widgets/JournalPromptWidget";
+import VisualizationWidget from "@/components/widgets/VisualizationWidget";
+import StopProtocolWidget from "@/components/widgets/StopProtocolWidget";
+import IntentionWidget from "@/components/widgets/IntentionWidget";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -29,15 +36,54 @@ interface CompletionRecord {
 
 const typeConfigKeys: Record<string, { icon: typeof Headphones; color: string; labelKey: string }> = {
   meditation: { icon: Headphones, color: "text-primary", labelKey: "toolbox.typeMeditation" },
-  visualization: { icon: Eye, color: "text-neural-accent", labelKey: "toolbox.typeVisualization" },
+  visualization: { icon: Sparkles, color: "text-neural-accent", labelKey: "toolbox.typeVisualization" },
   course: { icon: BookOpen, color: "text-neural-warm", labelKey: "toolbox.typeCourse" },
   breathwork: { icon: Wind, color: "text-primary", labelKey: "toolbox.typeBreathwork" },
   focus_introspectif: { icon: Eye, color: "text-neural-accent", labelKey: "toolbox.typeFocusIntrospectif" },
-  body_scan: { icon: Brain, color: "text-neural-warm", labelKey: "toolbox.typeBodyScan" },
-  affirmations: { icon: Sparkles, color: "text-primary", labelKey: "toolbox.typeAffirmations" },
+  body_scan: { icon: Scan, color: "text-neural-warm", labelKey: "toolbox.typeBodyScan" },
+  affirmations: { icon: Stars, color: "text-primary", labelKey: "toolbox.typeAffirmations" },
   gratitude: { icon: Heart, color: "text-destructive", labelKey: "toolbox.typeGratitude" },
+  journal_prompt: { icon: BookOpen, color: "text-neural-accent", labelKey: "toolbox.typeJournalPrompt" },
   external_link: { icon: LinkIcon, color: "text-muted-foreground", labelKey: "toolbox.typeExternalLink" },
+  stop_protocol: { icon: ShieldAlert, color: "text-destructive", labelKey: "toolbox.typeStopProtocol" },
+  intention: { icon: Target, color: "text-primary", labelKey: "toolbox.typeIntention" },
 };
+
+const INTERACTIVE_WIDGET_TYPES = new Set([
+  "breathwork",
+  "focus_introspectif",
+  "body_scan",
+  "visualization",
+  "affirmations",
+  "gratitude",
+  "journal_prompt",
+  "stop_protocol",
+  "intention",
+]);
+
+function canRenderToolboxWidget(item: ToolboxItem): boolean {
+  const c = item.widget_config;
+  switch (item.content_type) {
+    case "breathwork":
+    case "focus_introspectif":
+      return c != null;
+    case "body_scan":
+      return true;
+    case "affirmations":
+      return c != null && c.duration_min != null;
+    case "visualization":
+      return c != null;
+    case "gratitude":
+    case "stop_protocol":
+      return true;
+    case "journal_prompt":
+      return !!c?.prompt?.trim();
+    case "intention":
+      return c != null;
+    default:
+      return false;
+  }
+}
 
 export default function Toolbox() {
   const { user } = useAuth();
@@ -72,11 +118,14 @@ export default function Toolbox() {
         return assignedAge > 24 * 60 * 60 * 1000;
       });
       for (const item of ignoredCandidates) {
-        await supabase.from("toolbox_completions" as any).insert({
-          assignment_id: item.id,
-          user_id: user.id,
-          status: "ignored",
-        } as any);
+        await supabase.from("toolbox_completions" as any).upsert(
+          {
+            assignment_id: item.id,
+            user_id: user.id,
+            status: "ignored",
+          } as any,
+          { onConflict: "assignment_id", ignoreDuplicates: true }
+        );
       }
       if (ignoredCandidates.length > 0) {
         const { data: freshComps } = await supabase.from("toolbox_completions" as any).select("assignment_id, status").eq("user_id", user!.id);
@@ -102,19 +151,31 @@ export default function Toolbox() {
   const recordCompletion = useCallback(async (assignmentId: string, status: "completed" | "abandoned") => {
     if (!user) return;
 
-    const { error } = await supabase.from("toolbox_completions" as any).insert({
-      assignment_id: assignmentId,
-      user_id: user.id,
-      status,
-    } as any);
+    // DB unique index is on assignment_id only — INSERT fails if a row already exists
+    // (e.g. auto "ignored" after 24h, or a previous "abandoned"). Upsert updates the row.
+    const { error } = await supabase.from("toolbox_completions" as any).upsert(
+      {
+        assignment_id: assignmentId,
+        user_id: user.id,
+        status,
+        completed_at: new Date().toISOString(),
+      } as any,
+      { onConflict: "assignment_id" }
+    );
 
     if (!error) {
       const labels: Record<string, string> = { completed: t("toolbox.exerciseCompleted"), abandoned: t("toolbox.exerciseAbandoned") };
       setCompletionDialog({ open: true, itemId: assignmentId, status });
       toast({ title: labels[status] });
       loadData();
+    } else {
+      toast({
+        title: t("toolbox.saveError"),
+        description: error.message,
+        variant: "destructive",
+      });
     }
-  }, [user, t]);
+  }, [user, t, toast]);
 
   // Reload an abandoned tool = clear the "reloaded" flag so user can retry
   // We DON'T delete the old completion — we just allow a new attempt
@@ -137,7 +198,15 @@ export default function Toolbox() {
 
   const renderWidget = (item: ToolboxItem) => {
     const config = item.widget_config;
-    if (!config) return null;
+    if (
+      !config &&
+      item.content_type !== "gratitude" &&
+      item.content_type !== "stop_protocol" &&
+      item.content_type !== "body_scan" &&
+      item.content_type !== "visualization" &&
+      item.content_type !== "intention"
+    )
+      return null;
     switch (item.content_type) {
       case "breathwork":
         return (
@@ -151,6 +220,71 @@ export default function Toolbox() {
       case "focus_introspectif":
         return (
           <FocusIntrospectifWidget
+            config={config}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
+      case "body_scan":
+        return (
+          <BodyScanWidget
+            config={config ?? {}}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
+      case "affirmations":
+        if (config?.duration_min == null) return null;
+        return (
+          <AffirmationsWidget
+            config={config}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
+      case "visualization":
+        return (
+          <VisualizationWidget
+            config={config ?? {}}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
+      case "stop_protocol":
+        return (
+          <StopProtocolWidget
+            config={config ?? {}}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
+      case "intention":
+        return (
+          <IntentionWidget
+            config={config ?? {}}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
+      case "gratitude":
+        return (
+          <GratitudeWidget
+            config={config ?? {}}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
+      case "journal_prompt":
+        if (!config?.prompt?.trim()) return null;
+        return (
+          <JournalPromptWidget
             config={config}
             title={item.title}
             onComplete={() => recordCompletion(item.id, "completed")}
@@ -226,7 +360,8 @@ export default function Toolbox() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((item, i) => {
             const cfg = typeConfigKeys[item.content_type] || typeConfigKeys.course;
-            const hasWidget = ["breathwork", "focus_introspectif"].includes(item.content_type);
+            const isInteractiveType = INTERACTIVE_WIDGET_TYPES.has(item.content_type);
+            const hasWidget = isInteractiveType && canRenderToolboxWidget(item);
             const isExternal = item.content_type === "external_link" && item.external_url;
             const latestCompletion = getLatestCompletion(item.id);
             const isAbandoned = latestCompletion?.status === "abandoned";
@@ -263,10 +398,21 @@ export default function Toolbox() {
                         <Play size={12} /> {isActive ? t("toolbox.inProgress") : t("toolbox.launch")}
                       </button>
                     ) : isExternal ? (
-                      <a href={item.external_url!} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
-                        <ExternalLink size={12} /> {t("toolbox.openLink")}
-                      </a>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <a href={item.external_url!} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                          <ExternalLink size={12} /> {t("toolbox.openLink")}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => recordCompletion(item.id, "completed")}
+                          className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent hover:text-foreground transition-colors"
+                        >
+                          <CheckCircle2 size={12} /> {t("toolbox.markDone")}
+                        </button>
+                      </div>
+                    ) : isInteractiveType ? (
+                      <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{t("toolbox.unavailableConfig")}</span>
                     ) : (
                       <button onClick={() => setActiveWidget(item.id)}
                         className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">

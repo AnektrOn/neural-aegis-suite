@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Users, Building2, Globe, Clock, MousePointerClick, Search, ChevronDown, ChevronUp,
@@ -37,7 +38,10 @@ interface Company {
 
 type ViewMode = "global" | "entreprise" | "utilisateur";
 
+type AnalyticsLocationState = { adminAnalyticsUserId?: string };
+
 export default function AdminAnalytics() {
+  const location = useLocation();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -49,6 +53,7 @@ export default function AdminAnalytics() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [toolboxCompletions, setToolboxCompletions] = useState<any[]>([]);
   const [toolboxAssignments, setToolboxAssignments] = useState<any[]>([]);
+  const [journalEntries, setJournalEntries] = useState<any[]>([]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("global");
   const [filterCompany, setFilterCompany] = useState("");
@@ -59,9 +64,18 @@ export default function AdminAnalytics() {
 
   useEffect(() => { loadData(); }, []);
 
+  useEffect(() => {
+    const st = location.state as AnalyticsLocationState | null;
+    const id = st?.adminAnalyticsUserId;
+    if (id) {
+      setViewMode("utilisateur");
+      setExpandedUser(id);
+    }
+  }, [location.state]);
+
   const loadData = async () => {
     setLoading(true);
-    const [profRes, compRes, sessRes, hesRes, moodRes, decRes, habRes, assignRes, contactRes, tbCompRes, tbAssignRes] = await Promise.all([
+    const [profRes, compRes, sessRes, hesRes, moodRes, decRes, habRes, assignRes, contactRes, tbCompRes, tbAssignRes, journalRes] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("companies" as any).select("*"),
       supabase.from("user_sessions" as any).select("*").order("started_at", { ascending: false }).limit(1000),
@@ -73,6 +87,7 @@ export default function AdminAnalytics() {
       supabase.from("people_contacts" as any).select("user_id, quality"),
       supabase.from("toolbox_completions" as any).select("*"),
       supabase.from("toolbox_assignments" as any).select("id, title, user_id"),
+      supabase.from("journal_entries").select("user_id, title, tags, mood_score, created_at").order("created_at", { ascending: false }).limit(2000),
     ]);
 
     setProfiles((profRes.data || []) as any);
@@ -86,6 +101,7 @@ export default function AdminAnalytics() {
     setContacts((contactRes.data || []) as any);
     setToolboxCompletions((tbCompRes.data || []) as any);
     setToolboxAssignments((tbAssignRes.data || []) as any);
+    setJournalEntries((journalRes.data || []) as any);
     setLoading(false);
   };
 
@@ -123,6 +139,7 @@ export default function AdminAnalytics() {
   const fSessions = useMemo(() => sessions.filter((s: any) => filteredUserIds.has(s.user_id)), [sessions, filteredUserIds]);
   const fContacts = useMemo(() => contacts.filter((c: any) => filteredUserIds.has(c.user_id)), [contacts, filteredUserIds]);
   const fAssigned = useMemo(() => assignedHabits.filter((a: any) => filteredUserIds.has(a.user_id)), [assignedHabits, filteredUserIds]);
+  const fHesitations = useMemo(() => hesitations.filter((h: any) => filteredUserIds.has(h.user_id)), [hesitations, filteredUserIds]);
 
   // ===== GLOBAL AGGREGATED CHARTS =====
   const globalMoodTrend = useMemo(() => {
@@ -186,6 +203,25 @@ export default function AdminAnalytics() {
     }, 0);
   }, [fSessions]);
 
+  const hesitationByPage = useMemo(() => {
+    const pageMap = new Map<string, { page: string; count: number; totalMs: number; maxMs: number; avgMs: number }>();
+    fHesitations.forEach((h: any) => {
+      const page = h.page || "/";
+      if (!pageMap.has(page)) {
+        pageMap.set(page, { page, count: 0, totalMs: 0, maxMs: 0, avgMs: 0 });
+      }
+      const curr = pageMap.get(page)!;
+      const ms = Number(h.hesitation_ms) || 0;
+      curr.count += 1;
+      curr.totalMs += ms;
+      curr.maxMs = Math.max(curr.maxMs, ms);
+    });
+    return Array.from(pageMap.values())
+      .map((p) => ({ ...p, avgMs: Math.round(p.totalMs / Math.max(1, p.count)) }))
+      .sort((a, b) => b.avgMs - a.avgMs)
+      .slice(0, 10);
+  }, [fHesitations]);
+
   // ===== PER COMPANY STATS =====
   const companyStats = useMemo(() => {
     return companies.map((company) => {
@@ -220,19 +256,19 @@ export default function AdminAnalytics() {
   const getUserHabitCompletions = (userId: string) => habitCompletions.filter((h: any) => h.user_id === userId);
   const getUserContacts = (userId: string) => contacts.filter((c: any) => c.user_id === userId);
   const getUserHesitations = (userId: string) => hesitations.filter((h: any) => h.user_id === userId);
+  const getUserJournal = (userId: string) => journalEntries.filter((j: any) => j.user_id === userId);
   const getUserToolboxStats = (userId: string) => {
     const comps = toolboxCompletions.filter((c: any) => c.user_id === userId);
     const assigns = toolboxAssignments.filter((a: any) => a.user_id === userId);
+    const assignMap = new Map(toolboxAssignments.map((a: any) => [a.id, a]));
     const completed = comps.filter((c: any) => c.status === "completed").length;
     const abandoned = comps.filter((c: any) => c.status === "abandoned").length;
     const ignored = comps.filter((c: any) => c.status === "ignored").length;
-    const abandonedTools = comps.filter((c: any) => c.status === "abandoned").map((c: any) => {
-      const assign = toolboxAssignments.find((a: any) => a.id === c.assignment_id);
-      return { title: assign?.title || "?", count: 1, date: c.completed_at };
-    });
-    // Group abandoned by title
     const abandonMap = new Map<string, number>();
-    abandonedTools.forEach(t => abandonMap.set(t.title, (abandonMap.get(t.title) || 0) + 1));
+    comps.filter((c: any) => c.status === "abandoned").forEach((c: any) => {
+      const title = assignMap.get(c.assignment_id)?.title ?? "?";
+      abandonMap.set(title, (abandonMap.get(title) ?? 0) + 1);
+    });
     return { total: assigns.length, completed, abandoned, ignored, abandonDetails: Array.from(abandonMap.entries()) };
   };
 
@@ -416,6 +452,54 @@ export default function AdminAnalytics() {
               </ResponsiveContainer>
             </div>
           </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
+            <p className="text-neural-label mb-4">Carte des hésitations par page</p>
+            <div className="h-64">
+              {hesitationByPage.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={hesitationByPage} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      type="number"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
+                      tickFormatter={(v: any) => `${(Number(v) / 1000).toFixed(1)}s`}
+                    />
+                    <YAxis
+                      dataKey="page"
+                      type="category"
+                      width={150}
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
+                      tickFormatter={(v: any) => {
+                        const s = String(v || "");
+                        return s.length > 18 ? `${s.slice(0, 18)}…` : s;
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(v: any, _name: any, entry: any) => {
+                        const p = entry?.payload;
+                        const avg = `${(Number(v) / 1000).toFixed(1)}s`;
+                        const max = `${(Number(p?.maxMs || 0) / 1000).toFixed(1)}s`;
+                        return [`Moyenne: ${avg} | Max: ${max} | ${p?.count || 0} fois`, "Hésitation"];
+                      }}
+                      labelFormatter={(label: any) => `Page: ${label}`}
+                    />
+                    <Bar dataKey="avgMs" radius={[0, 6, 6, 0]}>
+                      {hesitationByPage.map((row) => (
+                        <Cell
+                          key={row.page}
+                          fill={row.avgMs > 5000 ? "hsl(var(--destructive))" : row.avgMs > 2000 ? "hsl(35, 80%, 55%)" : "hsl(180, 70%, 50%)"}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>
+              )}
+            </div>
+          </motion.div>
         </>
       )}
 
@@ -479,6 +563,7 @@ export default function AdminAnalytics() {
             const userHab = getUserHabitCompletions(profile.id);
             const userContacts = getUserContacts(profile.id);
             const userHes = getUserHesitations(profile.id);
+            const userJournal = getUserJournal(profile.id);
             const userTbStats = getUserToolboxStats(profile.id);
 
             const avgMood = userMood.length ? +(userMood.reduce((s, m: any) => s + m.value, 0) / userMood.length).toFixed(1) : 0;
@@ -541,21 +626,56 @@ export default function AdminAnalytics() {
                       {/* Hesitation */}
                       <div className="ethereal-glass p-5">
                         <p className="text-neural-label mb-3">Temps d'hésitation</p>
-                        <div className="h-40">
+                        <div className="space-y-4">
                           {userHes.length > 0 ? (() => {
                             const byInput = new Map<string, number[]>();
                             userHes.forEach((h: any) => { if (!byInput.has(h.input_name)) byInput.set(h.input_name, []); byInput.get(h.input_name)!.push(h.hesitation_ms); });
-                            const data = Array.from(byInput.entries()).map(([name, values]) => ({ name, moy: Math.round(values.reduce((a, b) => a + b, 0) / values.length) }));
+                            const data = Array.from(byInput.entries()).map(([name, values]) => ({ name, moy: Math.round(values.reduce((a, b) => a + b, 0) / values.length) })).sort((a, b) => b.moy - a.moy);
+                            const topInputName = data[0]?.name;
+                            const topInputRows = topInputName ? userHes.filter((h: any) => h.input_name === topInputName) : [];
+                            const weekMap = new Map<string, { label: string; vals: number[]; sortKey: string }>();
+                            topInputRows.forEach((h: any) => {
+                              const d = new Date(h.created_at);
+                              const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+                              const dayNum = date.getUTCDay() || 7;
+                              date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+                              const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+                              const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+                              const key = `${date.getUTCFullYear()}-${String(weekNo).padStart(2, "0")}`;
+                              if (!weekMap.has(key)) weekMap.set(key, { label: `Semaine ${weekNo}`, vals: [], sortKey: key });
+                              weekMap.get(key)!.vals.push(h.hesitation_ms);
+                            });
+                            const weekData = Array.from(weekMap.values())
+                              .map((w) => ({ label: w.label, avgMs: Math.round(w.vals.reduce((a, b) => a + b, 0) / w.vals.length), sortKey: w.sortKey }))
+                              .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
                             return (
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={data.slice(0, 8)}>
-                                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                  <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 8 }} />
-                                  <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
-                                  <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `${(v / 1000).toFixed(1)}s`} />
-                                  <Bar dataKey="moy" fill={COLORS[2]} radius={[4, 4, 0, 0]} name="Moy. ms" />
-                                </BarChart>
-                              </ResponsiveContainer>
+                              <div className="space-y-4">
+                                <ResponsiveContainer width="100%" height={160}>
+                                  <BarChart data={data.slice(0, 8)}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                                    <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 8 }} />
+                                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                                    <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `${(v / 1000).toFixed(1)}s`} />
+                                    <Bar dataKey="moy" fill={COLORS[2]} radius={[4, 4, 0, 0]} name="Moy. ms" />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                                {weekData.length >= 2 && (
+                                  <div>
+                                    <p className="text-neural-label mb-2">{`Évolution — "${topInputName}"`}</p>
+                                    <div className="h-32">
+                                      <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={weekData}>
+                                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                                          <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                                          <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} tickFormatter={(v: any) => `${(Number(v) / 1000).toFixed(1)}s`} />
+                                          <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `${(Number(v) / 1000).toFixed(1)}s`} />
+                                          <Line type="monotone" dataKey="avgMs" stroke={COLORS[4]} strokeWidth={2} dot={{ r: 2 }} name="Moyenne" />
+                                        </LineChart>
+                                      </ResponsiveContainer>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             );
                           })() : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>}
                         </div>
@@ -611,6 +731,123 @@ export default function AdminAnalytics() {
                       </div>
 
                       {/* Toolbox stats */}
+                      <div className="ethereal-glass p-5 lg:col-span-2">
+                        <p className="text-neural-label mb-3">Journal (méta-données uniquement)</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                          <div className="bg-secondary/20 rounded-xl p-3">
+                            <p className="text-lg font-cinzel text-foreground">{userJournal.length}</p>
+                            <p className="text-neural-label text-[10px] mt-1">Entrées totales</p>
+                          </div>
+                          <div className="bg-secondary/20 rounded-xl p-3">
+                            <p className="text-sm font-cinzel text-foreground">
+                              {userJournal[0]?.created_at
+                                ? (() => {
+                                    const days = Math.floor((Date.now() - new Date(userJournal[0].created_at).getTime()) / 86400000);
+                                    if (days <= 0) return "Aujourd'hui";
+                                    if (days === 1) return "Hier";
+                                    return `Il y a ${days}j`;
+                                  })()
+                                : "—"}
+                            </p>
+                            <p className="text-neural-label text-[10px] mt-1">Dernière entrée</p>
+                          </div>
+                          <div className="bg-secondary/20 rounded-xl p-3">
+                            {(() => {
+                              const moodVals = userJournal.map((j: any) => j.mood_score).filter((v: any) => v != null);
+                              const avg = moodVals.length ? +(moodVals.reduce((a: number, b: number) => a + b, 0) / moodVals.length).toFixed(1) : null;
+                              return (
+                                <>
+                                  <p className={`text-lg font-cinzel ${avg == null ? "text-muted-foreground" : avg < 2.5 ? "text-destructive" : avg > 3.5 ? "text-primary" : "text-foreground"}`}>
+                                    {avg == null ? "—" : `${avg}/5`}
+                                  </p>
+                                  <p className="text-neural-label text-[10px] mt-1">Humeur moy. journal</p>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
+                          <p className="text-neural-label mb-2">Tags fréquents</p>
+                          {(() => {
+                            const tagMap = new Map<string, number>();
+                            userJournal.forEach((j: any) => {
+                              (j.tags || []).forEach((t: string) => {
+                                const key = String(t || "").trim();
+                                if (!key) return;
+                                tagMap.set(key, (tagMap.get(key) || 0) + 1);
+                              });
+                            });
+                            const topTags = Array.from(tagMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+                            if (topTags.length === 0) {
+                              return <p className="text-xs text-muted-foreground">Aucun tag</p>;
+                            }
+                            return (
+                              <div className="flex flex-wrap gap-2">
+                                {topTags.map(([tag, count]) => (
+                                  <span key={tag} className="text-[9px] uppercase tracking-[0.12em] px-2 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary">
+                                    {tag}
+                                    {count > 1 && <sup className="ml-1 text-[8px] opacity-80">{count}</sup>}
+                                  </span>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        <div>
+                          <p className="text-neural-label mb-2">Humeur journal vs déclarée (30 jours)</p>
+                          {(() => {
+                            const now = new Date();
+                            const threshold = new Date();
+                            threshold.setDate(now.getDate() - 30);
+                            const dayMap = new Map<string, { moodVals: number[]; journalVals: number[] }>();
+                            userMood.forEach((m: any) => {
+                              const dt = new Date(m.logged_at);
+                              if (dt < threshold) return;
+                              const key = dt.toISOString().split("T")[0];
+                              if (!dayMap.has(key)) dayMap.set(key, { moodVals: [], journalVals: [] });
+                              dayMap.get(key)!.moodVals.push(Number(m.value));
+                            });
+                            userJournal.forEach((j: any) => {
+                              if (j.mood_score == null) return;
+                              const dt = new Date(j.created_at);
+                              if (dt < threshold) return;
+                              const key = dt.toISOString().split("T")[0];
+                              if (!dayMap.has(key)) dayMap.set(key, { moodVals: [], journalVals: [] });
+                              dayMap.get(key)!.journalVals.push(Number(j.mood_score) * 2);
+                            });
+                            const data = Array.from(dayMap.entries())
+                              .sort((a, b) => a[0].localeCompare(b[0]))
+                              .map(([day, vals]) => ({
+                                day: new Date(day).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }),
+                                declared: vals.moodVals.length ? +(vals.moodVals.reduce((a, b) => a + b, 0) / vals.moodVals.length).toFixed(1) : null,
+                                journal: vals.journalVals.length ? +(vals.journalVals.reduce((a, b) => a + b, 0) / vals.journalVals.length).toFixed(1) : null,
+                              }));
+                            const declaredPoints = data.filter((d) => d.declared != null).length;
+                            const journalPoints = data.filter((d) => d.journal != null).length;
+                            if (declaredPoints < 2 || journalPoints < 2) {
+                              return <p className="text-xs text-muted-foreground">Données insuffisantes pour comparer</p>;
+                            }
+                            return (
+                              <div className="h-32">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={data}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                                    <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                                    <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
+                                    <Tooltip contentStyle={tooltipStyle} />
+                                    <Line type="monotone" dataKey="declared" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 2 }} name="Humeur déclarée" />
+                                    <Line type="monotone" dataKey="journal" stroke={COLORS[5]} strokeWidth={2} dot={{ r: 2 }} name="Humeur journal" />
+                                    <Legend />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
                       <div className="ethereal-glass p-5 lg:col-span-2">
                         <p className="text-neural-label mb-3">Boîte à outils</p>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">

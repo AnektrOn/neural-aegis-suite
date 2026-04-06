@@ -15,7 +15,7 @@ const tooltipStyle = {
 interface KPI {
   label: string;
   value: string | number;
-  delta: number;
+  delta: number | null;
   icon: React.ElementType;
 }
 
@@ -61,7 +61,8 @@ export default function ExecutiveDashboard() {
 
     const avgMood = mT.length ? +(mT.reduce((s, m) => s + m.value, 0) / mT.length).toFixed(1) : 0;
     const avgMoodLast = mL.length ? +(mL.reduce((s, m) => s + m.value, 0) / mL.length).toFixed(1) : 0;
-    const delta = (n: number, o: number) => o === 0 ? 0 : Math.round(((n - o) / o) * 100);
+    const delta = (n: number, o: number): number | null =>
+      o === 0 ? null : Math.round(((n - o) / o) * 100);
 
     // Active users this week
     const activeUsers = new Set([...mT.map(m => m.user_id), ...dT.map(d => d.user_id), ...hT.map(h => h.user_id), ...sT.map(s => s.user_id)]);
@@ -120,12 +121,21 @@ export default function ExecutiveDashboard() {
               <kpi.icon size={14} strokeWidth={1.5} className="text-primary mb-3" />
               <p className="text-xl font-cinzel text-foreground">{kpi.value}</p>
               <div className="flex items-center gap-1.5 mt-1">
-                {kpi.delta > 0 ? <TrendingUp size={10} className="text-primary" /> :
-                 kpi.delta < 0 ? <TrendingDown size={10} className="text-destructive" /> :
-                 <Minus size={10} className="text-muted-foreground" />}
-                <span className={`text-[10px] ${kpi.delta > 0 ? "text-primary" : kpi.delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                  {kpi.delta > 0 ? `+${kpi.delta}` : kpi.delta}
-                </span>
+                {kpi.delta === null ? (
+                  <span className="text-[10px] text-muted-foreground">nouveau</span>
+                ) : (
+                  <>
+                    {kpi.delta > 0
+                      ? <TrendingUp size={10} className="text-primary" />
+                      : kpi.delta < 0
+                        ? <TrendingDown size={10} className="text-destructive" />
+                        : <Minus size={10} className="text-muted-foreground" />}
+                    <span className={`text-[10px] ${kpi.delta > 0 ? "text-primary"
+                      : kpi.delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                      {kpi.delta > 0 ? `+${kpi.delta}%` : `${kpi.delta}%`}
+                    </span>
+                  </>
+                )}
               </div>
               <p className="text-neural-label mt-2">{kpi.label}</p>
             </motion.div>

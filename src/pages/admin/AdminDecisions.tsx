@@ -54,14 +54,19 @@ export default function AdminDecisions() {
   const updateStatus = async (id: string, status: string) => {
     const decision = decisions.find(d => d.id === id);
     const updates: any = { status };
-    if (status === "decided") {
+    if (status === "decided" && !decision?.decided_at) {
+      // Only set if not already decided by the user
       const now = new Date().toISOString();
       updates.decided_at = now;
       if (decision) {
-        const diff = new Date(now).getTime() - new Date(decision.created_at).getTime();
+        const diff = new Date(now).getTime() -
+          new Date(decision.created_at).getTime();
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const days = Math.floor(hours / 24);
-        updates.time_to_decide = days > 0 ? `${days}j ${hours % 24}h` : hours > 0 ? `${hours}h` : `${Math.floor(diff / (1000 * 60))}min`;
+        updates.time_to_decide = days > 0
+          ? `${days}j ${hours % 24}h`
+          : hours > 0 ? `${hours}h`
+          : `${Math.floor(diff / (1000 * 60))}min`;
       }
     }
     const { error } = await supabase.from("decisions").update(updates).eq("id", id);

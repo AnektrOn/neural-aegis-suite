@@ -129,9 +129,9 @@ export default function DecisionLog() {
 
   // Mobile: compact status pill labels
   const mobileStatusLabels: Record<string, string> = {
-    pending: "En attente",
-    decided: "✓ Décidée",
-    deferred: "Reporter",
+    pending: t("decisions.pillPending"),
+    decided: t("decisions.pillDecided"),
+    deferred: t("decisions.pillDeferred"),
   };
 
   const mobileStatusStyle = (s: string, isActive: boolean) => {
@@ -144,7 +144,7 @@ export default function DecisionLog() {
   return (
     <div className={isMobile ? "space-y-3 max-w-full pb-6 pt-2" : "space-y-10 max-w-5xl"}>
       {/* Header */}
-      <div className={`flex ${isMobile ? "items-center" : "flex-col sm:flex-row sm:items-start"} justify-between gap-3`}>
+      <div className={`flex ${isMobile ? "items-start" : "flex-col sm:flex-row sm:items-start"} justify-between gap-3`}>
         {!isMobile && (
           <div>
             <p className="text-neural-label mb-3">{t("decisions.cognitiveArchitecture")}</p>
@@ -152,20 +152,31 @@ export default function DecisionLog() {
           </div>
         )}
         {isMobile && (
-          <div>
-            <p className="text-[8px] text-muted-foreground/40 tracking-[0.2em] uppercase mb-0.5">{t("decisions.cognitiveArchitecture")}</p>
-            <h1 className="text-neural-title text-xl text-foreground">{t("decisions.journalTitle")}</h1>
+          <div className="flex items-start justify-between gap-3 w-full">
+            <div className="min-w-0 flex-1">
+              <p className="text-[8px] text-muted-foreground/40 tracking-[0.2em] uppercase mb-0.5">{t("decisions.cognitiveArchitecture")}</p>
+              <h1 className="text-neural-title text-xl text-foreground">{t("decisions.journalTitle")}</h1>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowForm(!showForm)}
+              className="shrink-0 w-11 h-11 rounded-2xl border border-accent/30 flex items-center justify-center text-accent/70 hover:bg-accent/5 transition-colors"
+              aria-label={showForm ? t("general.cancel") : t("decisions.newDecision")}
+              style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+            >
+              {showForm ? <X size={18} strokeWidth={1.5} /> : <Plus size={18} strokeWidth={1.5} />}
+            </button>
           </div>
         )}
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className={isMobile
-            ? "w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-accent/30 text-accent/70 text-xs tracking-widest uppercase hover:bg-accent/5 transition-colors"
-            : "btn-neural shrink-0"
-          }
-        >
-          {showForm ? <><X size={14} /> {t("general.cancel")}</> : <><Plus size={14} /> {t("decisions.newDecision")}</>}
-        </button>
+        {!isMobile && (
+          <button
+            type="button"
+            onClick={() => setShowForm(!showForm)}
+            className="btn-neural shrink-0"
+          >
+            {showForm ? <><X size={14} /> {t("general.cancel")}</> : <><Plus size={14} /> {t("decisions.newDecision")}</>}
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -204,9 +215,9 @@ export default function DecisionLog() {
       {isMobile && (
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: "Total", value: decisions.length },
-            { label: "Ouvertes", value: openCount },
-            { label: "Cette semaine", value: decidedThisWeek },
+            { label: t("decisions.mobileStatTotal"), value: decisions.length },
+            { label: t("decisions.mobileStatOpen"), value: openCount },
+            { label: t("decisions.mobileStatWeek"), value: decidedThisWeek },
           ].map((s) => (
             <div key={s.label} className="ethereal-glass p-2.5 text-center">
               <p className="text-base font-cinzel text-foreground">{s.value}</p>
