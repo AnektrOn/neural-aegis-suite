@@ -130,10 +130,10 @@ export default function ScoreboardConfig() {
 
     const ops: Promise<any>[] = [
       ...(removedIds.current.length > 0
-        ? [supabase.from("scoreboard_criteria" as any).delete().in("id", removedIds.current)]
+        ? [(supabase.from("scoreboard_criteria" as any).delete().in("id", removedIds.current) as any).then(() => {})]
         : []),
       ...existing.map((c) =>
-        supabase
+        (supabase
           .from("scoreboard_criteria" as any)
           .update({
             criteria_type: c.criteria_type,
@@ -142,11 +142,11 @@ export default function ScoreboardConfig() {
             points: c.points,
             is_active: c.is_active,
           } as any)
-          .eq("id", c.id as string)
+          .eq("id", c.id as string) as any).then(() => {})
       ),
       ...(news.length > 0
         ? [
-            supabase.from("scoreboard_criteria" as any).insert(
+            (supabase.from("scoreboard_criteria" as any).insert(
               news.map((c) => ({
                 user_id: selectedUser,
                 criteria_type: c.criteria_type,
@@ -156,7 +156,7 @@ export default function ScoreboardConfig() {
                 is_active: c.is_active,
                 created_by: user.id,
               })) as any
-            ),
+            ) as any).then(() => {}),
           ]
         : []),
     ];
