@@ -22,6 +22,7 @@ const PeopleBoard = lazy(() => import("./pages/PeopleBoard"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Profile = lazy(() => import("./pages/Profile"));
+const InstallApp = lazy(() => import("./pages/InstallApp"));
 const CalendarView = lazy(() => import("./pages/CalendarView"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
