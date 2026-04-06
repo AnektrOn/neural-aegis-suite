@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Brain, Target, ListChecks, BookOpen, ArrowRight, Check } from "lucide-react";
+import { Zap, Brain, Target, ListChecks, BookOpen, Smartphone, ArrowRight, Check } from "lucide-react";
 
 const steps = [
   {
@@ -32,6 +32,12 @@ const steps = [
     title: "Journalisez vos réflexions",
     description: "Le journal vous aide à capturer vos pensées et insights.",
     detail: "Écrivez librement, ajoutez des tags et suivez l'évolution de votre pensée stratégique.",
+  },
+  {
+    icon: Smartphone,
+    title: "Installez Aegis sur votre mobile",
+    description: "Accédez à Aegis en un tap depuis votre écran d'accueil.",
+    detail: "Sur iPhone : Safari → Partager → « Sur l'écran d'accueil ». Sur Android : Chrome → menu ⋮ → « Ajouter à l'écran d'accueil ». L'app s'ouvre ensuite en plein écran.",
   },
 ];
 
