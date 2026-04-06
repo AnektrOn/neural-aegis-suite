@@ -478,6 +478,24 @@ export const translations = {
   "people.qualityLabel": { fr: "Qualité de la relation ({value}/10)", en: "Relationship quality ({value}/10)" },
   "people.observation": { fr: "Observation", en: "Observation" },
   "people.relationsUpdated": { fr: "{count} relation(s) mise(s) à jour", en: "{count} relation(s) updated" },
+
+  // Install app
+  "install.title": { fr: "Installer l'application", en: "Install the app" },
+  "install.subtitle": { fr: "Accès rapide", en: "Quick access" },
+  "install.iosTitle": { fr: "iPhone / iPad (Safari)", en: "iPhone / iPad (Safari)" },
+  "install.iosStep1": { fr: "Ouvrez Aegis dans Safari (pas Chrome)", en: "Open Aegis in Safari (not Chrome)" },
+  "install.iosStep2": { fr: "Appuyez sur le bouton Partager", en: "Tap the Share button" },
+  "install.iosStep3": { fr: "Sélectionnez « Sur l'écran d'accueil »", en: "Select \"Add to Home Screen\"" },
+  "install.iosStep4": { fr: "Appuyez sur « Ajouter » — c'est fait !", en: "Tap \"Add\" — done!" },
+  "install.androidTitle": { fr: "Android (Chrome)", en: "Android (Chrome)" },
+  "install.androidStep1": { fr: "Ouvrez Aegis dans Chrome", en: "Open Aegis in Chrome" },
+  "install.androidStep2": { fr: "Appuyez sur le menu ⋮ en haut à droite", en: "Tap the ⋮ menu in the top right" },
+  "install.androidStep3": { fr: "Sélectionnez « Ajouter à l'écran d'accueil »", en: "Select \"Add to Home Screen\"" },
+  "install.androidStep4": { fr: "Confirmez — l'icône apparaît sur votre écran", en: "Confirm — the icon appears on your screen" },
+  "install.tip": { fr: "Une fois installée, l'application s'ouvre en plein écran comme une app native, sans barre d'adresse. Vos données restent synchronisées en temps réel.", en: "Once installed, the app opens in full screen like a native app, without the address bar. Your data stays synced in real time." },
+  "install.onboardingTitle": { fr: "Installez Aegis sur votre mobile", en: "Install Aegis on your phone" },
+  "install.onboardingDesc": { fr: "Accédez à Aegis en un tap depuis votre écran d'accueil.", en: "Access Aegis with one tap from your home screen." },
+  "install.onboardingDetail": { fr: "Sur iPhone : Safari → Partager → « Sur l'écran d'accueil ». Sur Android : Chrome → menu ⋮ → « Ajouter à l'écran d'accueil ». L'app s'ouvre ensuite en plein écran.", en: "On iPhone: Safari → Share → \"Add to Home Screen\". On Android: Chrome → ⋮ menu → \"Add to Home Screen\". The app then opens in full screen." },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
