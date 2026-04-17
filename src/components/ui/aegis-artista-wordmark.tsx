@@ -102,10 +102,10 @@ export function AegisArtistaWordmark({ className, ...props }: React.ComponentPro
         requestAnimationFrame(() => {
           if (cancelled) return;
           setPhase("draw");
-          drawTimer = window.setTimeout(() => {
+          drawTimer = setTimeout(() => {
             if (cancelled) return;
             setPhase("undraw");
-            undrawTimer = window.setTimeout(() => {
+            undrawTimer = setTimeout(() => {
               if (cancelled) return;
               setInstant(true);
               setPhase("idle");
@@ -113,7 +113,7 @@ export function AegisArtistaWordmark({ className, ...props }: React.ComponentPro
               requestAnimationFrame(() => {
                 if (cancelled) return;
                 setInstant(false);
-                pauseTimer = window.setTimeout(cycle, PAUSE_MS);
+                pauseTimer = setTimeout(cycle, PAUSE_MS);
               });
             }, UNDRAW_PHASE_MS);
           }, DRAW_PHASE_MS);
