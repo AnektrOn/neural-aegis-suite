@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (wait <= 0) {
         setLoading(false);
       } else {
-        loadingTimeoutId = window.setTimeout(() => setLoading(false), wait);
+        loadingTimeoutId = setTimeout(() => setLoading(false), wait);
       }
     };
 
