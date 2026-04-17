@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { notifyAdminOnJournalEntry } from "@/services/adminNotifications";
 
 interface JournalEntry {
   id: string;
@@ -61,6 +62,11 @@ export default function Journal() {
         tags: form.tags,
         mood_score: form.mood_score,
       } as any);
+      void notifyAdminOnJournalEntry({
+        user: user!,
+        title: form.title || null,
+        content: form.content,
+      });
       toast({ title: t("journal.entryAdded") });
     }
     resetForm();

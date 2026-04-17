@@ -1,0 +1,17 @@
+/* Artista-style timing is applied inline; this only suppresses transitions on instant reset. */
+.aegis-artista-instant path {
+  transition: none !important;
+}
+
+svg.aegis-artista.aegis-mark-responsive {
+  width: min(100%, min(94vw, 28rem));
+  height: auto;
+  max-height: min(28vh, 9rem);
+}
+
+@media (min-width: 768px) {
+  svg.aegis-artista.aegis-mark-responsive {
+    width: min(100%, min(90vw, 32rem));
+    max-height: min(26vh, 11rem);
+  }
+}

@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { BootLoadingScreen } from "@/components/BootLoadingScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
@@ -48,11 +49,7 @@ const queryClient = new QueryClient({
 });
 
 function PageLoader() {
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-5 h-5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-    </div>
-  );
+  return <BootLoadingScreen />;
 }
 
 const App = () => (
@@ -65,6 +62,9 @@ const App = () => (
           <AuthProvider>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                {import.meta.env.DEV ? (
+                  <Route path="/__loader" element={<BootLoadingScreen />} />
+                ) : null}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route
                   path="/admin/*"
