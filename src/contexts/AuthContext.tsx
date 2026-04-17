@@ -1,9 +1,16 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyAdminOnLogin } from "@/services/adminNotifications";
 
 const MOCK_AUTH = import.meta.env.VITE_MOCK_AUTH === "true";
 const MOCK_USER_ID = "00000000-0000-0000-0000-000000000001";
+
+/** Dev / demo: keep auth `loading` true at least this many ms after mount so the boot loader stays visible. */
+const MIN_AUTH_LOADING_MS = Math.min(
+  120_000,
+  Math.max(0, Number(import.meta.env.VITE_MIN_AUTH_LOADING_MS) || 0)
+);
 
 function mockUser(): User {
   return {
@@ -45,33 +52,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastNotifiedLogin = useRef<string | null>(null);
+  const loadingEndScheduled = useRef(false);
 
   useEffect(() => {
+    const mountTime = Date.now();
+    let loadingTimeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const endInitialLoading = () => {
+      if (loadingEndScheduled.current) return;
+      loadingEndScheduled.current = true;
+      const elapsed = Date.now() - mountTime;
+      const wait = Math.max(0, MIN_AUTH_LOADING_MS - elapsed);
+      if (wait <= 0) {
+        setLoading(false);
+      } else {
+        loadingTimeoutId = window.setTimeout(() => setLoading(false), wait);
+      }
+    };
+
     if (MOCK_AUTH) {
       if (typeof window !== "undefined") {
         localStorage.setItem(`aegis_onboarded_${MOCK_USER_ID}`, "true");
       }
       setUser(mockUser());
       setSession(null);
-      setLoading(false);
-      return;
+      endInitialLoading();
+      return () => {
+        if (loadingTimeoutId) window.clearTimeout(loadingTimeoutId);
+      };
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+        endInitialLoading();
+
+        if (event === "SIGNED_IN" && session?.user) {
+          const loginFingerprint = `${session.user.id}:${session.access_token.slice(-12)}`;
+          if (lastNotifiedLogin.current !== loginFingerprint) {
+            lastNotifiedLogin.current = loginFingerprint;
+            void notifyAdminOnLogin(session.user);
+          }
+        }
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    void supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      endInitialLoading();
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (loadingTimeoutId) window.clearTimeout(loadingTimeoutId);
+    };
   }, []);
 
   const signOut = async () => {

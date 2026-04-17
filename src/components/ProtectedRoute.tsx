@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
+import { BootLoadingScreen } from "@/components/BootLoadingScreen";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -19,8 +20,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (loading || (user && !onboardingChecked)) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative z-10">
-        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="relative z-10 min-h-screen">
+        <BootLoadingScreen />
       </div>
     );
   }
