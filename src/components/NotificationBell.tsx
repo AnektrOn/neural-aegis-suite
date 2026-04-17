@@ -43,7 +43,15 @@ export default function NotificationBell() {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setNotifications((prev) => [payload.new as Notification, ...prev].slice(0, 20));
+            const n = payload.new as Notification;
+            setNotifications((prev) => [n, ...prev].slice(0, 20));
+            const toastFn =
+              n.type === "success"
+                ? toast.success
+                : n.type === "error"
+                ? toast.error
+                : toast;
+            toastFn(n.title, { description: n.message });
           } else if (payload.eventType === "UPDATE") {
             setNotifications((prev) =>
               prev.map((n) => (n.id === (payload.new as Notification).id ? (payload.new as Notification) : n))
