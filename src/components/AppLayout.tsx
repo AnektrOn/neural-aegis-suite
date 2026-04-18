@@ -291,6 +291,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <PageWrapper key={location.pathname}>{children}</PageWrapper>
+          <AppFooter />
         </main>
 
         <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-bg-surface/90 backdrop-blur-xl border-t border-border-subtle pb-safe">
