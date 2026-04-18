@@ -25,6 +25,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { PageWrapper } from "@/components/PageWrapper";
+import AppFooter from "@/components/AppFooter";
 import { useNetwork } from "@/hooks/use-network";
 
 const adminNavKeys = [
@@ -164,6 +165,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <main className="px-4 pb-6 min-h-screen" style={{ paddingTop: adminMainPaddingTop }}>
           <PageWrapper key={location.pathname}>{children}</PageWrapper>
+          <AppFooter />
         </main>
       </div>
     );
@@ -201,6 +203,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         } ${!online ? "mt-7" : ""}`}
       >
         <PageWrapper key={location.pathname}>{children}</PageWrapper>
+        <AppFooter />
       </main>
     </div>
   );
