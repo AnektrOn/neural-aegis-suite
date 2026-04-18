@@ -9,6 +9,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NeuralCard } from "@/components/ui/neural-card";
+import AppFooter from "@/components/AppFooter";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -122,6 +123,7 @@ export default function AuthPage() {
           </NeuralCard>
         </motion.div>
       </div>
+      <AppFooter />
     </div>
   );
 }
