@@ -29,6 +29,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
+import AppFooter from "@/components/AppFooter";
 import { useNetwork } from "@/hooks/use-network";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -291,6 +292,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <PageWrapper key={location.pathname}>{children}</PageWrapper>
+          <AppFooter />
         </main>
 
         <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-bg-surface/90 backdrop-blur-xl border-t border-border-subtle pb-safe">
@@ -350,6 +352,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         } ${!online ? "mt-7" : ""}`}
       >
         <PageWrapper key={location.pathname}>{children}</PageWrapper>
+        <AppFooter />
       </main>
     </div>
   );
