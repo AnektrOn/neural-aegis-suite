@@ -29,6 +29,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
+import AppFooter from "@/components/AppFooter";
 import { useNetwork } from "@/hooks/use-network";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
