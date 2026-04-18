@@ -37,16 +37,17 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-base flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-bg-base flex flex-col p-4 relative overflow-hidden">
       <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
         <LanguageSwitcher />
         <ThemeToggle collapsed />
       </div>
 
-      <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
+      <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none dark:block hidden" />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-accent-primary/5 blur-3xl pointer-events-none" />
 
-      <div className="relative w-full max-w-sm">
+      <div className="relative flex-1 w-full flex items-center justify-center">
+        <div className="w-full max-w-sm">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
