@@ -123,6 +123,7 @@ export default function AuthPage() {
             </form>
           </NeuralCard>
         </motion.div>
+        </div>
       </div>
       <AppFooter />
     </div>
