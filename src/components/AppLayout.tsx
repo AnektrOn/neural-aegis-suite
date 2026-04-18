@@ -352,6 +352,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         } ${!online ? "mt-7" : ""}`}
       >
         <PageWrapper key={location.pathname}>{children}</PageWrapper>
+        <AppFooter />
       </main>
     </div>
   );
