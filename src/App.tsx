@@ -6,7 +6,7 @@ import { BootLoadingScreen } from "@/components/BootLoadingScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -55,6 +55,19 @@ function PageLoader() {
   return <BootLoadingScreen />;
 }
 
+/** Global boot overlay (auth + native cold/resume): also covers `/auth` before session is known. */
+function AuthBootGate({ children }: { children: React.ReactNode }) {
+  const { bootScreenActive } = useAuth();
+  if (bootScreenActive) {
+    return (
+      <div className="relative z-[100] min-h-screen">
+        <BootLoadingScreen />
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -63,6 +76,7 @@ const App = () => (
       <Router>
         <LanguageProvider>
           <AuthProvider>
+            <AuthBootGate>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 {import.meta.env.DEV ? (
@@ -124,6 +138,7 @@ const App = () => (
                 />
               </Routes>
             </Suspense>
+            </AuthBootGate>
           </AuthProvider>
         </LanguageProvider>
       </Router>

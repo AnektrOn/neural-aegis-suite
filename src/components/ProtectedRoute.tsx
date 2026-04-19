@@ -5,7 +5,7 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import { BootLoadingScreen } from "@/components/BootLoadingScreen";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
@@ -18,7 +18,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     }
   }, [user]);
 
-  if (loading || (user && !onboardingChecked)) {
+  if (user && !onboardingChecked) {
     return (
       <div className="relative z-10 min-h-screen">
         <BootLoadingScreen />

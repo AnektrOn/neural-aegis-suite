@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
+import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdminOnLogin } from "@/services/adminNotifications";
 
@@ -11,6 +13,27 @@ const MIN_AUTH_LOADING_MS = Math.min(
   120_000,
   Math.max(0, Number(import.meta.env.VITE_MIN_AUTH_LOADING_MS) || 0)
 );
+
+function parseBoundedMs(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  if (Number.isNaN(n) || n < 0) return fallback;
+  return Math.min(120_000, n);
+}
+
+/** Minimum boot overlay on cold start (Capacitor): ensures AEGIS loader is visible every app open. */
+function nativeColdBootFloorMs(): number {
+  return Capacitor.isNativePlatform()
+    ? parseBoundedMs(import.meta.env.VITE_NATIVE_BOOT_MIN_MS, 1650)
+    : 0;
+}
+
+/** Boot overlay when returning from background (native only). */
+function nativeResumeBootMs(): number {
+  return Capacitor.isNativePlatform()
+    ? parseBoundedMs(import.meta.env.VITE_NATIVE_RESUME_BOOT_MS, 1400)
+    : 0;
+}
 
 function mockUser(): User {
   return {
@@ -35,7 +58,10 @@ function mockUser(): User {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  /** Session bootstrap in progress (Supabase getSession + first auth event). */
   loading: boolean;
+  /** Full-screen boot loader: auth bootstrap and/or forced native cold/resume timing. */
+  bootScreenActive: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -43,6 +69,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
+  bootScreenActive: true,
   signOut: async () => {},
 });
 
@@ -52,8 +79,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [holdResumeBoot, setHoldResumeBoot] = useState(false);
   const lastNotifiedLogin = useRef<string | null>(null);
   const loadingEndScheduled = useRef(false);
+  const resumeBootTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const subPromise = App.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) return;
+      if (resumeBootTimerRef.current) clearTimeout(resumeBootTimerRef.current);
+      setHoldResumeBoot(true);
+      const ms = nativeResumeBootMs();
+      resumeBootTimerRef.current = setTimeout(() => {
+        setHoldResumeBoot(false);
+        resumeBootTimerRef.current = null;
+      }, ms);
+    });
+
+    return () => {
+      if (resumeBootTimerRef.current) clearTimeout(resumeBootTimerRef.current);
+      void subPromise.then((h) => void h.remove());
+    };
+  }, []);
 
   useEffect(() => {
     const mountTime = Date.now();
@@ -63,7 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (loadingEndScheduled.current) return;
       loadingEndScheduled.current = true;
       const elapsed = Date.now() - mountTime;
-      const wait = Math.max(0, MIN_AUTH_LOADING_MS - elapsed);
+      const coldFloor = nativeColdBootFloorMs();
+      const minWaitMs = Math.max(MIN_AUTH_LOADING_MS, coldFloor);
+      const wait = Math.max(0, minWaitMs - elapsed);
       if (wait <= 0) {
         setLoading(false);
       } else {
@@ -115,8 +166,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const bootScreenActive = loading || holdResumeBoot;
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, bootScreenActive, signOut }}>
       {children}
     </AuthContext.Provider>
   );

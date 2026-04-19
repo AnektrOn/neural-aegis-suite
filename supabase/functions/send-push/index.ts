@@ -41,23 +41,35 @@ serve(async (req) => {
       tag,
     } = body ?? {};
 
-    let query = supabase.from("push_subscriptions").select("id, endpoint, p256dh, auth, user_id");
-    if (target === "user" && user_id) {
-      query = query.eq("user_id", user_id);
-    } else {
+    let adminIds: string[] | null = null;
+    if (!(target === "user" && user_id)) {
       const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      const ids = (admins ?? []).map((a: any) => a.user_id);
-      if (ids.length === 0) {
+      adminIds = (admins ?? []).map((a: any) => a.user_id);
+      if (adminIds.length === 0) {
         return new Response(JSON.stringify({ sent: 0, reason: "no admins" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      query = query.in("user_id", ids);
+    }
+
+    let query = supabase.from("push_subscriptions").select("id, endpoint, p256dh, auth, user_id");
+    let nativeQuery = supabase.from("native_fcm_tokens").select("id, token, user_id");
+
+    if (target === "user" && user_id) {
+      query = query.eq("user_id", user_id);
+      nativeQuery = nativeQuery.eq("user_id", user_id);
+    } else if (adminIds) {
+      query = query.in("user_id", adminIds);
+      nativeQuery = nativeQuery.in("user_id", adminIds);
     }
 
     const { data: subs, error } = await query;
     if (error) throw error;
-    if (!subs?.length) {
+
+    const { data: nativeRows, error: nativeErr } = await nativeQuery;
+    if (nativeErr) console.error("native_fcm_tokens query", nativeErr);
+
+    if (!subs?.length && !(nativeRows as any[])?.length) {
       return new Response(JSON.stringify({ sent: 0, reason: "no subscriptions" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -68,7 +80,7 @@ serve(async (req) => {
     const stale: string[] = [];
 
     await Promise.all(
-      subs.map(async (s: any) => {
+      (subs ?? []).map(async (s: any) => {
         try {
           await webpush.sendNotification(
             { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
@@ -87,9 +99,74 @@ serve(async (req) => {
       await supabase.from("push_subscriptions").delete().in("endpoint", stale);
     }
 
-    return new Response(JSON.stringify({ sent, removed: stale.length, total: subs.length }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const FCM_SERVER_KEY = Deno.env.get("FCM_SERVER_KEY");
+    let fcmSent = 0;
+    const staleFcmIds: string[] = [];
+
+    if (FCM_SERVER_KEY && (nativeRows as any[])?.length) {
+      for (const row of nativeRows as { id: string; token: string }[]) {
+        try {
+          const r = await fetch("https://fcm.googleapis.com/fcm/send", {
+            method: "POST",
+            headers: {
+              Authorization: `key=${FCM_SERVER_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              to: row.token,
+              priority: "high",
+              notification: { title, body: message, sound: "default" },
+              data: {
+                url: typeof url === "string" ? url : "/",
+                tag: typeof tag === "string" ? tag : "",
+              },
+            }),
+          });
+          const j = await r.json().catch(() => ({}));
+          const jr = j as {
+            success?: number;
+            failure?: number;
+            results?: { error?: string }[];
+            error?: string;
+          };
+          if (r.ok && (jr.success ?? 0) > 0) {
+            fcmSent += jr.success ?? 0;
+          } else {
+            const resultErr = jr.results?.[0]?.error;
+            if (
+              resultErr === "NotRegistered" ||
+              resultErr === "InvalidRegistration" ||
+              jr.error === "NotFound"
+            ) {
+              staleFcmIds.push(row.id);
+            } else {
+              console.error("FCM send failed", r.status, j);
+            }
+          }
+        } catch (e) {
+          console.error("FCM fetch", e);
+        }
+      }
+      if (staleFcmIds.length) {
+        await supabase.from("native_fcm_tokens").delete().in("id", staleFcmIds);
+      }
+    } else if ((nativeRows as any[])?.length && !FCM_SERVER_KEY) {
+      console.warn("send-push: native_fcm_tokens present but FCM_SERVER_KEY is not set (Capacitor / FCM)");
+    }
+
+    return new Response(
+      JSON.stringify({
+        sent,
+        fcmSent,
+        removed: stale.length,
+        fcmStaleRemoved: staleFcmIds.length,
+        totalWeb: subs?.length ?? 0,
+        totalNative: (nativeRows as any[])?.length ?? 0,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (e) {
     console.error("send-push error", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "unknown" }), {
