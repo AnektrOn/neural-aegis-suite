@@ -369,9 +369,48 @@ export default function Toolbox() {
             const isCompleted = latestCompletion?.status === "completed";
             const isActive = activeWidget === item.id;
 
+            const primaryAction = () => {
+              if (isIgnored) return;
+              if (latestCompletion && !isActive) return;
+              if (hasWidget) {
+                setActiveWidget(isActive ? null : item.id);
+              } else if (isExternal) {
+                window.open(item.external_url!, "_blank", "noopener,noreferrer");
+              } else if (!isInteractiveType) {
+                setActiveWidget(item.id);
+              }
+            };
+            const cardIsClickable =
+              !isIgnored &&
+              (!latestCompletion || isActive) &&
+              (hasWidget || isExternal || !isInteractiveType);
+
             return (
-              <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                className={`ethereal-glass p-6 flex flex-col ${latestCompletion && !isActive ? "opacity-60" : ""}`}>
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+                role={cardIsClickable ? "button" : undefined}
+                tabIndex={cardIsClickable ? 0 : undefined}
+                onClick={cardIsClickable ? primaryAction : undefined}
+                onKeyDown={
+                  cardIsClickable
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          primaryAction();
+                        }
+                      }
+                    : undefined
+                }
+                style={cardIsClickable ? ({ WebkitTapHighlightColor: "transparent" } as React.CSSProperties) : undefined}
+                className={`ethereal-glass p-6 flex flex-col ${latestCompletion && !isActive ? "opacity-60" : ""} ${
+                  cardIsClickable
+                    ? "cursor-pointer hover:border-primary/30 active:scale-[0.98] transition-all"
+                    : ""
+                }`}
+              >
                 <div className="flex items-start justify-between mb-4">
                   <cfg.icon size={18} strokeWidth={1.5} className={cfg.color} />
                   <div className="flex items-center gap-2">
@@ -390,23 +429,23 @@ export default function Toolbox() {
                 <p className="text-sm font-medium text-foreground mb-2">{item.title}</p>
                 <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || (typeConfigKeys[item.content_type] ? t(typeConfigKeys[item.content_type].labelKey as any) : "")}</p>
 
-                <div className="mt-4 flex items-center gap-3">
+                <div className="mt-4 flex items-center gap-3 flex-wrap" onClick={(e) => e.stopPropagation()}>
                   {(!latestCompletion || isActive) && !isIgnored ? (
                     hasWidget ? (
                       <button onClick={() => setActiveWidget(isActive ? null : item.id)}
-                        className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                        className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors min-h-[36px] px-2">
                         <Play size={12} /> {isActive ? t("toolbox.inProgress") : t("toolbox.launch")}
                       </button>
                     ) : isExternal ? (
                       <div className="flex flex-wrap items-center gap-3">
                         <a href={item.external_url!} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                          className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors min-h-[36px] px-2">
                           <ExternalLink size={12} /> {t("toolbox.openLink")}
                         </a>
                         <button
                           type="button"
                           onClick={() => recordCompletion(item.id, "completed")}
-                          className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent hover:text-foreground transition-colors"
+                          className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent hover:text-foreground transition-colors min-h-[36px] px-2"
                         >
                           <CheckCircle2 size={12} /> {t("toolbox.markDone")}
                         </button>
@@ -415,7 +454,7 @@ export default function Toolbox() {
                       <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{t("toolbox.unavailableConfig")}</span>
                     ) : (
                       <button onClick={() => setActiveWidget(item.id)}
-                        className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors">
+                        className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors min-h-[36px] px-2">
                         <Play size={12} /> {t("toolbox.launch")}
                       </button>
                     )
@@ -423,7 +462,7 @@ export default function Toolbox() {
 
                   {isAbandoned && !isActive && (
                     <button onClick={() => handleReload(item.id)}
-                      className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent hover:text-foreground transition-colors">
+                      className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent hover:text-foreground transition-colors min-h-[36px] px-2">
                       <RotateCcw size={12} /> {t("toolbox.reload")}
                     </button>
                   )}
