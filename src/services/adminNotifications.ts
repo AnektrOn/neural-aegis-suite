@@ -14,10 +14,14 @@ function resolveUserDisplayName(
   return metadataName || user.email || fallback;
 }
 
-/** Notifies admins of login: in-app via edge (always); email optional if VITE_ADMIN_NOTIFICATION_EMAIL is set. */
+/** Notifies admins of login: in-app via edge (always); email optional if VITE_ADMIN_NOTIFICATION_EMAIL is set; push via send-push. */
 export async function notifyAdminOnLogin(
   user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> | null },
 ) {
+  const userName = resolveUserDisplayName(user);
+  const userEmail = user.email ?? "unknown";
+
+  // 1) email + in-app (existing)
   try {
     const { error } = await supabase.functions.invoke("send-email-notification", {
       body: {
@@ -25,18 +29,30 @@ export async function notifyAdminOnLogin(
         user_id: user.id,
         data: {
           ...(adminNotificationEmail ? { admin_email: adminNotificationEmail } : {}),
-          user_email: user.email ?? "unknown",
-          user_name: resolveUserDisplayName(user),
+          user_email: userEmail,
+          user_name: userName,
           logged_at: new Date().toISOString(),
         },
       },
     });
-
-    if (error) {
-      console.error("Failed to send admin login notification:", error.message);
-    }
+    if (error) console.error("admin login email/in-app failed:", error.message);
   } catch (error) {
-    console.error("Unexpected error sending admin login notification:", error);
+    console.error("admin login email/in-app unexpected:", error);
+  }
+
+  // 2) Web Push to all admin devices (so they get a phone notification even app closed)
+  try {
+    await supabase.functions.invoke("send-push", {
+      body: {
+        target: "admins",
+        title: "Connexion utilisateur",
+        message: `${userName} (${userEmail}) vient de se connecter.`,
+        url: "/admin/analytics",
+        tag: `login-${user.id}`,
+      },
+    });
+  } catch (error) {
+    console.error("admin login push failed:", error);
   }
 }
 
