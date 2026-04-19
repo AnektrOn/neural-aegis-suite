@@ -27,6 +27,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { PageWrapper } from "@/components/PageWrapper";
 import AppFooter from "@/components/AppFooter";
@@ -115,8 +116,9 @@ function AdminSidebarContent({
       </nav>
 
       {showNotificationBell && (
-        <div className="mx-3 mb-2 shrink-0">
+        <div className="mx-3 mb-2 shrink-0 flex flex-col gap-2">
           <NotificationBell />
+          {!collapsed && <PushNotificationToggle />}
         </div>
       )}
 
@@ -187,7 +189,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 Admin
               </span>
             </div>
-            <div className="shrink-0 text-muted-foreground">
+            <div className="shrink-0 flex items-center gap-1 text-muted-foreground">
+              <PushNotificationToggle compact />
               <NotificationBell />
             </div>
           </div>
