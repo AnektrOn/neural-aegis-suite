@@ -18,11 +18,15 @@ import {
   Target,
   MessageSquare,
   Trophy,
+  Bell,
+  Tag,
+  MapPin,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import NotificationBell from "@/components/NotificationBell";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { PageWrapper } from "@/components/PageWrapper";
 import AppFooter from "@/components/AppFooter";
@@ -39,9 +43,20 @@ const adminNavKeys = [
   { to: "/admin/decisions", icon: Target, key: "admin.nav.decisions" as const },
   { to: "/admin/messages", icon: MessageSquare, key: "admin.nav.messages" as const },
   { to: "/admin/scoreboard", icon: Trophy, key: "admin.nav.scoreboard" as const },
+  { to: "/admin/notification-registry", icon: Bell, key: "admin.nav.notificationRegistry" as const },
+  { to: "/admin/place-tags", icon: Tag, key: "admin.nav.placeTags" as const },
+  { to: "/admin/user-places", icon: MapPin, key: "admin.nav.userPlaces" as const },
 ];
 
-function AdminSidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
+function AdminSidebarContent({
+  collapsed,
+  onNavigate,
+  showNotificationBell = true,
+}: {
+  collapsed: boolean;
+  onNavigate?: () => void;
+  showNotificationBell?: boolean;
+}) {
   const location = useLocation();
   const { signOut } = useAuth();
   const { t } = useLanguage();
@@ -99,6 +114,12 @@ function AdminSidebarContent({ collapsed, onNavigate }: { collapsed: boolean; on
         })}
       </nav>
 
+      {showNotificationBell && (
+        <div className="mx-3 mb-2 shrink-0">
+          <NotificationBell />
+        </div>
+      )}
+
       <button
         onClick={signOut}
         className="mx-3 p-3 rounded-lg text-text-secondary hover:text-accent-danger hover:bg-accent-danger/5 transition-colors duration-200"
@@ -139,7 +160,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           )}
           <div className="flex min-h-[var(--mobile-header-toolbar)] items-center justify-between box-border px-4 py-3">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
                   <button
@@ -151,14 +172,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[260px] p-0 py-0 bg-bg-surface border-r border-border-subtle">
                   <div className="py-4">
-                    <AdminSidebarContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
+                    <AdminSidebarContent
+                      collapsed={false}
+                      onNavigate={() => setMobileOpen(false)}
+                      showNotificationBell={false}
+                    />
                   </div>
                 </SheetContent>
               </Sheet>
-              <div className="w-7 h-7 rounded-lg bg-accent-warning/15 border border-accent-warning/25 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-accent-warning/15 border border-accent-warning/25 flex items-center justify-center shrink-0">
                 <Zap size={14} strokeWidth={1.5} className="text-accent-warning" />
               </div>
-              <span className="font-display text-[10px] tracking-[0.2em] uppercase text-accent-warning">Admin</span>
+              <span className="font-display text-[10px] tracking-[0.2em] uppercase text-accent-warning truncate">
+                Admin
+              </span>
+            </div>
+            <div className="shrink-0 text-muted-foreground">
+              <NotificationBell />
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
+/** Used only for optional Resend delivery; in-app admin alerts use DB triggers + edge (login). */
 const adminNotificationEmail = import.meta.env.VITE_ADMIN_NOTIFICATION_EMAIL;
 
 function resolveUserDisplayName(
@@ -13,18 +14,17 @@ function resolveUserDisplayName(
   return metadataName || user.email || fallback;
 }
 
+/** Notifies admins of login: in-app via edge (always); email optional if VITE_ADMIN_NOTIFICATION_EMAIL is set. */
 export async function notifyAdminOnLogin(
   user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> | null },
 ) {
-  if (!adminNotificationEmail) return;
-
   try {
     const { error } = await supabase.functions.invoke("send-email-notification", {
       body: {
         type: "admin_login_alert",
         user_id: user.id,
         data: {
-          admin_email: adminNotificationEmail,
+          ...(adminNotificationEmail ? { admin_email: adminNotificationEmail } : {}),
           user_email: user.email ?? "unknown",
           user_name: resolveUserDisplayName(user),
           logged_at: new Date().toISOString(),
@@ -40,13 +40,12 @@ export async function notifyAdminOnLogin(
   }
 }
 
-export async function notifyAdminOnJournalEntry(
-  payload: {
-    user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> | null };
-    title?: string | null;
-    content: string;
-  },
-) {
+/** Optional email to admin when a user creates a journal entry; in-app notifications come from Postgres triggers. */
+export async function notifyAdminOnJournalEntry(payload: {
+  user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> | null };
+  title?: string | null;
+  content: string;
+}) {
   if (!adminNotificationEmail) return;
 
   try {

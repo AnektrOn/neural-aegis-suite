@@ -67,6 +67,25 @@ export const translations = {
   "admin.nav.decisions": { fr: "Décisions", en: "Decisions" },
   "admin.nav.messages": { fr: "Messagerie", en: "Messages" },
   "admin.nav.scoreboard": { fr: "Scoreboard", en: "Scoreboard" },
+  "admin.nav.notificationRegistry": { fr: "Réf. notifications", en: "Notification ref" },
+
+  "admin.notificationRegistry.title": {
+    fr: "Référentiel des notifications admin",
+    en: "Admin notification registry",
+  },
+  "admin.notificationRegistry.subtitle": {
+    fr: "Liste des types stockés dans notifications pour les comptes admin : source (Postgres / edge), origine technique et canal email. À tenir à jour avec les migrations.",
+    en: "Types stored in notifications for admin accounts: source (Postgres / edge), technical origin, and email channel. Keep in sync with migrations.",
+  },
+  "admin.notificationRegistry.colType": { fr: "type", en: "type" },
+  "admin.notificationRegistry.colLabel": { fr: "Libellé", en: "Label" },
+  "admin.notificationRegistry.colSource": { fr: "Source", en: "Source" },
+  "admin.notificationRegistry.colOrigin": { fr: "Origine", en: "Origin" },
+  "admin.notificationRegistry.colDetail": { fr: "Détail", en: "Detail" },
+  "admin.notificationRegistry.colLink": { fr: "Lien", en: "Link" },
+  "admin.notificationRegistry.colEmail": { fr: "Email", en: "Email" },
+  "admin.notificationRegistry.sourceDb": { fr: "Postgres", en: "Postgres" },
+  "admin.notificationRegistry.sourceEdge": { fr: "Edge", en: "Edge" },
 
   // User Management
   "users.title": { fr: "Gestion des Utilisateurs", en: "User Management" },
@@ -478,6 +497,81 @@ export const translations = {
   "people.qualityLabel": { fr: "Qualité de la relation ({value}/10)", en: "Relationship quality ({value}/10)" },
   "people.observation": { fr: "Observation", en: "Observation" },
   "people.relationsUpdated": { fr: "{count} relation(s) mise(s) à jour", en: "{count} relation(s) updated" },
+
+  "neural.immersiveTitle": { fr: "Réseau relationnel", en: "Relationship network" },
+  "neural.immersiveHint": {
+    fr: "Chaque point est un contact. Glissez pour faire tourner le graphe, molette pour zoomer.",
+    en: "Each dot is a contact. Drag to rotate the graph, scroll to zoom.",
+  },
+  "neural.freeze": { fr: "Pause", en: "Freeze" },
+  "neural.play": { fr: "Lecture", en: "Play" },
+  "neural.reset": { fr: "Réinit.", en: "Reset" },
+
+  "people.placesTab": { fr: "Lieux", en: "Places" },
+
+  "places.consentTitle": { fr: "Lieux et accompagnement", en: "Places and coaching" },
+  "places.consentBody": {
+    fr: "Les lieux que vous enregistrez (nom, lien Google Maps, liens avec vos contacts) peuvent être consultés par l’équipe admin pour vous accompagner. Indiquez si vous acceptez ce partage.",
+    en: "Places you save (name, Google Maps link, links to your contacts) may be viewed by the admin team to support you. Choose whether you accept this sharing.",
+  },
+  "places.consentHideAgain": { fr: "Ne plus afficher ce message", en: "Don’t show this message again" },
+  "places.consentAccept": { fr: "Oui, j’accepte", en: "Yes, I accept" },
+  "places.consentDecline": { fr: "Non, je refuse", en: "No, I decline" },
+  "places.consentSaveError": { fr: "Impossible d’enregistrer votre choix.", en: "Could not save your choice." },
+  "places.consentAcceptedToast": { fr: "Partage activé avec l’admin.", en: "Sharing with admin enabled." },
+  "places.consentDeclinedToast": { fr: "Partage désactivé — vos lieux restent privés côté admin.", en: "Sharing off — your places stay private for admins." },
+  "places.consentRequiredFirst": { fr: "Répondez au message de confidentialité avant d’ajouter un lieu.", en: "Please answer the privacy prompt before adding a place." },
+  "places.addTitle": { fr: "Nouveau lieu", en: "New place" },
+  "places.namePlaceholder": { fr: "Nom du lieu", en: "Place name" },
+  "places.mapsUrlPlaceholder": { fr: "Lien Google Maps (maps.google.com ou goo.gl …)", en: "Google Maps link" },
+  "places.notePlaceholder": { fr: "Note (optionnel)", en: "Note (optional)" },
+  "places.linkContactsHint": { fr: "Associez des contacts présents dans ce lieu.", en: "Link contacts associated with this place." },
+  "places.addButton": { fr: "Enregistrer le lieu", en: "Save place" },
+  "places.listTitle": { fr: "Vos lieux", en: "Your places" },
+  "places.empty": { fr: "Aucun lieu enregistré.", en: "No places yet." },
+  "places.invalidMapsUrl": {
+    fr: "L’URL ne ressemble pas à un lien Google Maps.",
+    en: "This URL does not look like a Google Maps link.",
+  },
+  "places.saveError": { fr: "Erreur à l’enregistrement", en: "Save failed" },
+  "places.placeAdded": { fr: "Lieu ajouté", en: "Place added" },
+  "places.deleteError": { fr: "Suppression impossible", en: "Could not delete" },
+  "places.placeDeleted": { fr: "Lieu supprimé", en: "Place deleted" },
+  "places.delete": { fr: "Supprimer", en: "Delete" },
+
+  "dashboard.neuralMapTeaser": {
+    fr: "Le graphe 3D des relations se charge uniquement sur la page Relations pour garder le tableau de bord léger.",
+    en: "The 3D relationship graph only loads on the Relationships page to keep the dashboard light.",
+  },
+  "dashboard.openRelationsGraph": { fr: "Ouvrir le graphe", en: "Open graph" },
+  "dashboard.neuralMapStat": { fr: "{n} contacts dans votre réseau", en: "{n} contacts in your network" },
+
+  "admin.nav.placeTags": { fr: "Tags lieux", en: "Place tags" },
+  "admin.nav.userPlaces": { fr: "Lieux utilisateurs", en: "User places" },
+  "admin.placeTags.title": { fr: "Tags lieux", en: "Place tags" },
+  "admin.placeTags.subtitle": {
+    fr: "Référentiel pour qualifier les lieux (ex. vie nocturne). Visible des utilisateurs pour les tags actifs.",
+    en: "Catalog to qualify places (e.g. nightlife). Active tags are visible to users.",
+  },
+  "admin.placeTags.add": { fr: "Nouveau tag", en: "New tag" },
+  "admin.placeTags.edit": { fr: "Modifier", en: "Edit" },
+  "admin.placeTags.save": { fr: "Enregistrer", en: "Save" },
+  "admin.placeTags.cancel": { fr: "Annuler", en: "Cancel" },
+  "admin.placeTags.colSlug": { fr: "Slug", en: "Slug" },
+  "admin.placeTags.colLabels": { fr: "Libellés", en: "Labels" },
+  "admin.placeTags.colRisk": { fr: "Risque", en: "Risk" },
+  "admin.placeTags.saved": { fr: "Enregistré", en: "Saved" },
+  "admin.placeTags.saveError": { fr: "Erreur d’enregistrement", en: "Save error" },
+  "admin.placeTags.deleteError": { fr: "Suppression impossible", en: "Delete failed" },
+  "admin.placeTags.confirmDelete": { fr: "Supprimer ce tag ?", en: "Delete this tag?" },
+
+  "admin.userPlaces.title": { fr: "Lieux partagés", en: "Shared places" },
+  "admin.userPlaces.subtitle": {
+    fr: "Lieux des utilisateurs ayant accepté le partage avec l’admin. Les coordonnées sont dérivées du lien quand c’est possible.",
+    en: "Places from users who opted in to admin sharing. Coordinates are parsed from the link when possible.",
+  },
+  "admin.userPlaces.empty": { fr: "Aucun lieu partagé pour le moment.", en: "No shared places yet." },
+  "admin.userPlaces.userLabel": { fr: "Utilisateur", en: "User" },
 
   // Install app
   "install.title": { fr: "Installer l'application", en: "Install the app" },

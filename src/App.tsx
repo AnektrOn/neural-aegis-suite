@@ -39,6 +39,9 @@ const ToolboxManagement = lazy(() => import("./pages/admin/ToolboxManagement"));
 const AdminDecisions = lazy(() => import("./pages/admin/AdminDecisions"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const ScoreboardConfig = lazy(() => import("./pages/admin/ScoreboardConfig"));
+const AdminNotificationRegistry = lazy(() => import("./pages/admin/AdminNotificationRegistry"));
+const AdminPlaceTags = lazy(() => import("./pages/admin/AdminPlaceTags"));
+const AdminUserPlaces = lazy(() => import("./pages/admin/AdminUserPlaces"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -84,6 +87,9 @@ const App = () => (
                               <Route path="/decisions" element={<AdminDecisions />} />
                               <Route path="/messages" element={<AdminMessages />} />
                               <Route path="/scoreboard" element={<ScoreboardConfig />} />
+                              <Route path="/notification-registry" element={<AdminNotificationRegistry />} />
+                              <Route path="/place-tags" element={<AdminPlaceTags />} />
+                              <Route path="/user-places" element={<AdminUserPlaces />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
