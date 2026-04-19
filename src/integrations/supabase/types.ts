@@ -522,150 +522,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_location_admin_consent: {
-        Row: {
-          consent_version: string
-          hide_consent_modal: boolean
-          responded_at: string | null
-          share_places_with_admin: boolean
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          consent_version?: string
-          hide_consent_modal?: boolean
-          responded_at?: string | null
-          share_places_with_admin?: boolean
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          consent_version?: string
-          hide_consent_modal?: boolean
-          responded_at?: string | null
-          share_places_with_admin?: boolean
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_place_contact_links: {
-        Row: {
-          contact_id: string
-          created_at: string
-          id: string
-          note: string | null
-          user_id: string
-          user_place_id: string
-        }
-        Insert: {
-          contact_id: string
-          created_at?: string
-          id?: string
-          note?: string | null
-          user_id: string
-          user_place_id: string
-        }
-        Update: {
-          contact_id?: string
-          created_at?: string
-          id?: string
-          note?: string | null
-          user_id?: string
-          user_place_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_place_contact_links_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "people_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_place_contact_links_user_place_id_fkey"
-            columns: ["user_place_id"]
-            isOneToOne: false
-            referencedRelation: "user_places"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_place_tag_assignments: {
-        Row: {
-          assigned_by: string | null
-          created_at: string
-          tag_id: string
-          user_place_id: string
-        }
-        Insert: {
-          assigned_by?: string | null
-          created_at?: string
-          tag_id: string
-          user_place_id: string
-        }
-        Update: {
-          assigned_by?: string | null
-          created_at?: string
-          tag_id?: string
-          user_place_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_place_tag_assignments_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "place_tag_definitions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_place_tag_assignments_user_place_id_fkey"
-            columns: ["user_place_id"]
-            isOneToOne: false
-            referencedRelation: "user_places"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_places: {
-        Row: {
-          created_at: string
-          id: string
-          latitude: number | null
-          longitude: number | null
-          maps_parsed_at: string | null
-          maps_url: string
-          name: string
-          note: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          latitude?: number | null
-          longitude?: number | null
-          maps_parsed_at?: string | null
-          maps_url: string
-          name: string
-          note?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          latitude?: number | null
-          longitude?: number | null
-          maps_parsed_at?: string | null
-          maps_url?: string
-          name?: string
-          note?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -878,6 +734,150 @@ export type Database = {
           description?: string | null
           earned_at?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_location_admin_consent: {
+        Row: {
+          consent_version: string
+          hide_consent_modal: boolean
+          responded_at: string | null
+          share_places_with_admin: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consent_version?: string
+          hide_consent_modal?: boolean
+          responded_at?: string | null
+          share_places_with_admin?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consent_version?: string
+          hide_consent_modal?: boolean
+          responded_at?: string | null
+          share_places_with_admin?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_place_contact_links: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          note: string | null
+          user_id: string
+          user_place_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          user_id: string
+          user_place_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+          user_place_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_place_contact_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "people_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_place_contact_links_user_place_id_fkey"
+            columns: ["user_place_id"]
+            isOneToOne: false
+            referencedRelation: "user_places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_place_tag_assignments: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          tag_id: string
+          user_place_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          tag_id: string
+          user_place_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          tag_id?: string
+          user_place_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_place_tag_assignments_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "place_tag_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_place_tag_assignments_user_place_id_fkey"
+            columns: ["user_place_id"]
+            isOneToOne: false
+            referencedRelation: "user_places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_places: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          maps_parsed_at: string | null
+          maps_url: string
+          name: string
+          note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          maps_parsed_at?: string | null
+          maps_url: string
+          name: string
+          note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          maps_parsed_at?: string | null
+          maps_url?: string
+          name?: string
+          note?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
