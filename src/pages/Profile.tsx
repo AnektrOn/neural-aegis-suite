@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { User, Save, Download, FileText, Smartphone } from "lucide-react";
+import { User, Save, Download, FileText, Smartphone, Camera, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,20 +14,48 @@ export default function Profile() {
   const [displayName, setDisplayName] = useState("");
   const [country, setCountry] = useState("");
   const [timezone, setTimezone] = useState("Europe/Paris");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) loadProfile();
   }, [user]);
 
   const loadProfile = async () => {
-    const { data } = await supabase.from("profiles").select("display_name, country, timezone").eq("id", user!.id).single();
+    const { data } = await supabase.from("profiles").select("display_name, country, timezone, avatar_url").eq("id", user!.id).single();
     if (data) {
       setDisplayName(data.display_name || "");
       setCountry(data.country || "");
       setTimezone((data as any).timezone || "Europe/Paris");
+      setAvatarUrl((data as any).avatar_url || null);
     }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: t("toast.error"), description: "Image > 5MB", variant: "destructive" });
+      return;
+    }
+    setUploadingAvatar(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (upErr) {
+      setUploadingAvatar(false);
+      toast({ title: t("toast.error"), description: upErr.message, variant: "destructive" });
+      return;
+    }
+    const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+    const url = `${pub.publicUrl}?t=${Date.now()}`;
+    await supabase.from("profiles").update({ avatar_url: url } as any).eq("id", user.id);
+    setAvatarUrl(url);
+    setUploadingAvatar(false);
+    toast({ title: t("profile.profileUpdated"), description: t("profile.profileUpdatedDesc") });
   };
 
   const saveProfile = async () => {
@@ -127,9 +155,33 @@ export default function Profile() {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-8 space-y-6">
         <div className="flex items-center gap-4 mb-2">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <User size={24} strokeWidth={1.5} className="text-primary" />
-          </div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="relative w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden group hover:border-primary/40 transition-colors disabled:opacity-50"
+            aria-label="Changer la photo de profil"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <User size={24} strokeWidth={1.5} className="text-primary" />
+            )}
+            <span className="absolute inset-0 bg-background/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              {uploadingAvatar ? (
+                <Loader2 size={16} className="animate-spin text-primary" />
+              ) : (
+                <Camera size={16} className="text-primary" />
+              )}
+            </span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
           <div>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
             <p className="text-neural-label mt-1">{t("profile.memberSince", { date: user?.created_at ? new Date(user.created_at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "—" })}</p>
