@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { BellRing, BellOff, Loader2 } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { isPushSupported, isCurrentlySubscribed, subscribeToPush, unsubscribeFromPush } from "@/lib/push";
+import {
+  isNativePushEnvironment,
+  isNativePushSubscribed,
+  subscribeNativePush,
+  unsubscribeNativePush,
+} from "@/lib/nativePush";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -12,16 +19,26 @@ interface Props {
 
 export default function PushNotificationToggle({ className, compact = false }: Props) {
   const { user } = useAuth();
+  const native = isNativePushEnvironment();
   const [supported, setSupported] = useState(true);
   const [active, setActive] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (native) {
+      setSupported(true);
+      if (!user?.id) {
+        setActive(false);
+        return;
+      }
+      void isNativePushSubscribed(user.id).then(setActive);
+      return;
+    }
     setSupported(isPushSupported());
     void isCurrentlySubscribed().then(setActive);
-  }, []);
+  }, [native, user?.id]);
 
-  if (!supported) {
+  if (!native && !supported) {
     return compact ? null : (
       <p className="text-xs text-muted-foreground">Notifications push non supportées sur ce navigateur.</p>
     );
@@ -31,6 +48,35 @@ export default function PushNotificationToggle({ className, compact = false }: P
     if (!user) return;
     setBusy(true);
     try {
+      if (native) {
+        if (active) {
+          await unsubscribeNativePush(user.id);
+          setActive(false);
+          toast({ title: "Notifications désactivées" });
+        } else {
+          const res = await subscribeNativePush(user.id);
+          if (res.ok) {
+            setActive(true);
+            toast({
+              title: "Notifications activées",
+              description:
+                Capacitor.getPlatform() === "ios"
+                  ? "Alertes via APNs."
+                  : "Alertes via FCM (vérifie google-services.json + FCM_SERVER_KEY côté Supabase).",
+            });
+          } else if (res.reason === "denied") {
+            toast({
+              title: "Permission refusée",
+              description: "Active les notifications dans les réglages Android / iOS.",
+              variant: "destructive",
+            });
+          } else {
+            toast({ title: "Erreur", description: res.reason ?? "—", variant: "destructive" });
+          }
+        }
+        return;
+      }
+
       if (active) {
         await unsubscribeFromPush();
         setActive(false);

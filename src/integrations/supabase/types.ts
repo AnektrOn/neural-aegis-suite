@@ -599,6 +599,30 @@ export type Database = {
         }
         Relationships: []
       }
+      native_fcm_tokens: {
+        Row: {
+          id: string
+          platform: string | null
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          platform?: string | null
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          platform?: string | null
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       relation_quality_history: {
         Row: {
           contact_id: string
