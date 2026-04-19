@@ -52,7 +52,11 @@ const queryClient = new QueryClient({
 });
 
 function PageLoader() {
-  return <BootLoadingScreen />;
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
 }
 
 /** Global boot overlay (auth + native cold/resume): also covers `/auth` before session is known. */

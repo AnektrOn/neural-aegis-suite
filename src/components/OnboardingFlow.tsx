@@ -59,11 +59,17 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const current = steps[step];
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 relative z-10">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative z-10"
+      style={{
+        paddingTop: "calc(var(--safe-top) + 1rem)",
+        paddingBottom: "calc(var(--safe-bottom) + 1rem)",
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="ethereal-glass p-10 max-w-lg w-full text-center space-y-8"
+        className="ethereal-glass p-6 sm:p-10 max-w-lg w-full text-center space-y-6 sm:space-y-8"
       >
         {/* Progress */}
         <div className="flex gap-2 justify-center">
