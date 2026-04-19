@@ -280,20 +280,23 @@ export default function DecisionLog() {
             </div>
 
             {/* Status pills */}
-            <div className="flex gap-1 mt-2.5 flex-wrap">
+            <div className={`flex gap-1.5 mt-3 flex-wrap ${isMobile ? "" : ""}`}>
               {(["pending", "decided", "deferred"] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => requestStatusChange(d, s)}
                   aria-label={`Marquer comme ${statusLabels[s]}`}
-                  className={`text-[8px] uppercase tracking-[0.18em] px-2 py-1 rounded-full border transition-all ${
+                  style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+                  className={`text-[9px] uppercase tracking-[0.18em] rounded-full border transition-all active:scale-95 ${
                     isMobile
-                      ? mobileStatusStyle(s, d.status === s)
-                      : d.status === s
-                        ? s === "decided" ? "text-primary border-primary/20 bg-primary/5"
-                          : s === "pending" ? "text-neural-warm border-neural-warm/20 bg-neural-warm/5"
-                          : "text-muted-foreground border-border bg-muted/20"
-                        : "text-muted-foreground/40 border-transparent hover:border-border/30"
+                      ? `min-h-[36px] px-3 py-2 flex-1 ${mobileStatusStyle(s, d.status === s)}`
+                      : `px-2.5 py-1 ${
+                          d.status === s
+                            ? s === "decided" ? "text-primary border-primary/20 bg-primary/5"
+                              : s === "pending" ? "text-neural-warm border-neural-warm/20 bg-neural-warm/5"
+                              : "text-muted-foreground border-border bg-muted/20"
+                            : "text-muted-foreground/40 border-transparent hover:border-border/30"
+                        }`
                   }`}
                 >
                   {isMobile ? mobileStatusLabels[s] : statusLabels[s]}
