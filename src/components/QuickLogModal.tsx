@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Drawer } from "vaul";
-import { Brain, Flame, Moon } from "lucide-react";
+import { Brain, Flame, Moon, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import RadialSlider from "@/components/RadialSlider";
 import type { TranslationKey } from "@/i18n/translations";
 
 const frequencyKeys: TranslationKey[] = [
@@ -68,111 +69,97 @@ export default function QuickLogModal({ open, onClose }: QuickLogModalProps) {
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40" />
         <Drawer.Content
-          className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-card border-t border-primary/10 flex flex-col max-h-[88dvh] focus:outline-none"
+          className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-card border-t border-primary/10 flex flex-col max-h-[90dvh] focus:outline-none"
         >
-          <div className="px-5 flex-1 overflow-y-auto min-h-0 overscroll-contain">
-          {/* Handle */}
-          <div className="w-8 h-1 bg-border/40 rounded-full mx-auto mt-3 mb-6" />
-
-          {/* Header */}
-          <div className="mb-6">
-            <p className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50 mb-0.5">
-              {t("quickLog.neuralState")}
-            </p>
-            <p className="text-base font-light text-foreground capitalize">{today}</p>
+          {/* Sticky header with handle + close */}
+          <div className="shrink-0 relative pt-3 pb-2 px-5">
+            <div className="w-10 h-1 bg-border/50 rounded-full mx-auto" />
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t("general.close") || "Fermer"}
+              className="absolute right-3 top-2 w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-95 transition-all"
+              style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+            >
+              <X size={18} strokeWidth={1.5} />
+            </button>
           </div>
 
-          {/* Sliders */}
-          <div className="space-y-6 pb-2">
-            {/* Humeur */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
+          <div className="px-5 flex-1 overflow-y-auto min-h-0 overscroll-contain">
+            {/* Title */}
+            <div className="mb-5">
+              <p className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50 mb-0.5">
+                {t("quickLog.neuralState")}
+              </p>
+              <p className="text-base font-light text-foreground capitalize">{today}</p>
+            </div>
+
+            {/* Radial sliders */}
+            <div className="grid grid-cols-1 gap-6 pb-4">
+              <div className="ethereal-glass p-4 flex flex-col items-center">
+                <div className="flex items-center gap-2 mb-2">
                   <Brain size={13} strokeWidth={1.5} style={{ color: "hsl(var(--primary))" }} />
                   <span className="text-[10px] tracking-widest uppercase text-muted-foreground/70">{t("mood.label")}</span>
                 </div>
-                <span className="text-sm font-light tabular-nums" style={{ color: "hsl(var(--primary))" }}>
-                  {mood.toFixed(1)}
-                </span>
+                <RadialSlider
+                  value={mood}
+                  onChange={setMood}
+                  min={1}
+                  max={10}
+                  step={0.5}
+                  size={140}
+                  color="hsl(var(--primary))"
+                />
+                <p className="text-[10px] mt-1 text-primary/60">{moodLabel}</p>
               </div>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                step={0.5}
-                value={mood}
-                onChange={(e) => setMood(parseFloat(e.target.value))}
-                className="w-full h-1 rounded-full appearance-none cursor-pointer slider-mood"
-                style={{
-                  background: `linear-gradient(to right, hsl(var(--primary)) ${(mood - 1) / 9 * 100}%, hsl(var(--border)) ${(mood - 1) / 9 * 100}%)`,
-                }}
-              />
-              <p
-                className="text-[9px] mt-1.5 transition-all"
-                style={{ color: "hsl(var(--primary) / 0.5)" }}
-              >
-                {moodLabel}
-              </p>
-            </div>
 
-            {/* Stress */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Flame size={13} strokeWidth={1.5} className="text-red-400" />
-                  <span className="text-[10px] tracking-widest uppercase text-muted-foreground/70">{t("mood.stress")}</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="ethereal-glass p-3 flex flex-col items-center">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Flame size={12} strokeWidth={1.5} className="text-red-400" />
+                    <span className="text-[9px] tracking-widest uppercase text-muted-foreground/70">{t("mood.stress")}</span>
+                  </div>
+                  <RadialSlider
+                    value={stress}
+                    onChange={setStress}
+                    min={0}
+                    max={10}
+                    step={0.5}
+                    size={108}
+                    color="hsl(var(--destructive))"
+                  />
                 </div>
-                <span className="text-sm font-light tabular-nums text-red-400">{stress.toFixed(1)}</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={10}
-                step={0.5}
-                value={stress}
-                onChange={(e) => setStress(parseFloat(e.target.value))}
-                className="w-full h-1 rounded-full appearance-none cursor-pointer slider-stress"
-                style={{
-                  background: `linear-gradient(to right, hsl(var(--destructive)) ${stress / 10 * 100}%, hsl(var(--border)) ${stress / 10 * 100}%)`,
-                }}
-              />
-            </div>
 
-            {/* Sommeil */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Moon size={13} strokeWidth={1.5} className="text-blue-400" />
-                  <span className="text-[10px] tracking-widest uppercase text-muted-foreground/70">{t("mood.sleep")}</span>
+                <div className="ethereal-glass p-3 flex flex-col items-center">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Moon size={12} strokeWidth={1.5} className="text-blue-400" />
+                    <span className="text-[9px] tracking-widest uppercase text-muted-foreground/70">{t("mood.sleep")}</span>
+                  </div>
+                  <RadialSlider
+                    value={sleep}
+                    onChange={setSleep}
+                    min={0}
+                    max={12}
+                    step={0.5}
+                    size={108}
+                    color="hsl(220 70% 60%)"
+                    formatValue={(v) => `${v.toFixed(1)}h`}
+                  />
                 </div>
-                <span className="text-sm font-light tabular-nums text-blue-400">{sleep.toFixed(1)}h</span>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={12}
-                step={0.5}
-                value={sleep}
-                onChange={(e) => setSleep(parseFloat(e.target.value))}
-                className="w-full h-1 rounded-full appearance-none cursor-pointer slider-sleep"
-                style={{
-                  background: `linear-gradient(to right, hsl(220 70% 60%) ${sleep / 12 * 100}%, hsl(var(--border)) ${sleep / 12 * 100}%)`,
-                }}
-              />
             </div>
-          </div>
           </div>
 
           {/* CTA — sticky footer */}
           <div className="shrink-0 px-5 pt-3 pb-[calc(1rem+var(--safe-bottom))] border-t border-border/40 bg-card">
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="btn-neural w-full disabled:opacity-50 active:scale-[0.98]"
-            style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
-          >
-            {loading ? t("general.saving") : t("general.save")}
-          </button>
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="btn-neural w-full disabled:opacity-50 active:scale-[0.98]"
+              style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+            >
+              {loading ? t("general.saving") : t("general.save")}
+            </button>
           </div>
         </Drawer.Content>
       </Drawer.Portal>
