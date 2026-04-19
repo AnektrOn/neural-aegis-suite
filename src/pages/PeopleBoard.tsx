@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Network, LayoutGrid, Plus, X, Save, Trash2,
   TrendingUp, Send, MessageSquare, ChevronDown, Star,
-  AlertCircle, CheckCircle2, Edit3, ArrowLeft,
+  AlertCircle, CheckCircle2, Edit3, ArrowLeft, MapPin,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,7 +17,9 @@ import {
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
-import NeuralMap from "@/components/NeuralMap";
+import { PeoplePlacesPanel } from "@/components/PeoplePlacesPanel";
+
+const NeuralMap = lazy(() => import("@/components/NeuralMap"));
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -681,7 +683,7 @@ export default function PeopleBoard() {
     semester: t("people.periodSemester"), year: t("people.periodYear"),
   };
 
-  const [view, setView] = useState<"neural" | "card">("card");
+  const [view, setView] = useState<"neural" | "card" | "places">("card");
   const [people, setPeople] = useState<Person[]>([]);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -859,7 +861,7 @@ export default function PeopleBoard() {
 
   return (
     <div
-      className={`space-y-5 ${isMobile ? "pb-44" : "pb-32"} ${view === "neural" ? "max-w-7xl" : "max-w-6xl"}`}
+      className={`space-y-5 ${isMobile ? "pb-44" : "pb-32"} ${view === "neural" || view === "places" ? "max-w-7xl" : "max-w-6xl"}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
@@ -891,6 +893,18 @@ export default function PeopleBoard() {
             }`}
           >
             <Network size={16} strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("places")}
+            className={`p-2.5 rounded-xl border transition-all ${
+              view === "places"
+                ? "border-primary/30 bg-primary/5 text-primary"
+                : "border-border text-muted-foreground"
+            }`}
+            title={t("people.placesTab")}
+          >
+            <MapPin size={16} strokeWidth={1.5} />
           </button>
         </div>
       </div>
@@ -933,9 +947,11 @@ export default function PeopleBoard() {
             Ajouter un contact
           </button>
         </motion.div>
+      ) : view === "places" ? (
+        <PeoplePlacesPanel contacts={people.map((p) => ({ id: p.id, name: p.name }))} />
       ) : view === "neural" ? (
-        <div className="flex flex-col md:flex-row gap-4 md:items-start md:min-h-0">
-          <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+        <div className="flex flex-col gap-4 md:min-h-[min(720px,calc(100vh-12rem))] md:flex-row md:items-stretch">
+          <div className="flex flex-1 min-h-[min(520px,70vh)] min-w-0 flex-col md:min-h-[min(640px,calc(100vh-14rem))]">
             <div
               className="flex overflow-x-auto border-b border-white/[0.06]"
               style={{ scrollbarWidth: "none" }}
@@ -955,15 +971,27 @@ export default function PeopleBoard() {
                 </button>
               ))}
             </div>
-            <NeuralMap
-              people={people}
-              proximityById={localProximities}
-              qualityById={localQualities}
-              onPersonClick={openHistory}
-              showFilters={false}
-              period={mapPeriod}
-              onPeriodChange={setMapPeriod}
-            />
+            <Suspense
+              fallback={
+                <div
+                  className="flex w-full items-center justify-center rounded-2xl border border-white/[0.06] bg-black"
+                  style={{ minHeight: 480 }}
+                >
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+                </div>
+              }
+            >
+              <NeuralMap
+                people={people}
+                proximityById={localProximities}
+                qualityById={localQualities}
+                onPersonClick={openHistory}
+                showFilters={false}
+                period={mapPeriod}
+                onPeriodChange={setMapPeriod}
+                immersive
+              />
+            </Suspense>
           </div>
           <NeuralRelationsSidebar
             people={people}

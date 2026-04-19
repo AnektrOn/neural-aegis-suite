@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { Network, RotateCcw } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -66,6 +71,8 @@ interface NeuralMapProps {
   qualityById?: Record<string, number>;
   /** Expose resetView() pour remettre zoom, pan et rotation par défaut */
   viewControlsRef?: MutableRefObject<NeuralMapViewControls | null>;
+  /** Carte pleine expérience (bloom sur le graphe contacts) — non utilisé sur Dashboard */
+  immersive?: boolean;
 }
 
 function createGlowTexture(): THREE.CanvasTexture {
@@ -163,8 +170,10 @@ export default function NeuralMap({
   proximityById,
   qualityById,
   viewControlsRef,
+  immersive = false,
 }: NeuralMapProps) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const mountRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const resetViewFnRef = useRef<(() => void) | null>(null);
@@ -180,7 +189,19 @@ export default function NeuralMap({
 
   const activePeriod: Period = compact ? "all" : periodProp;
 
-  const heightPx = compact ? 260 : isMobile ? 420 : 520;
+  const heightPx = compact
+    ? 260
+    : immersive
+      ? isMobile
+        ? 480
+        : Math.min(720, Math.round((typeof window !== "undefined" ? window.innerHeight : 900) * 0.62))
+      : isMobile
+        ? 420
+        : 520;
+
+  const scenePausedRef = useRef(false);
+  const freezeToggleRef = useRef<(() => boolean) | null>(null);
+  const [uiFrozen, setUiFrozen] = useState(false);
 
   useEffect(() => {
     const onResizeViewport = () => setIsMobile(window.innerWidth < MOBILE_MAX_W);
@@ -219,9 +240,9 @@ export default function NeuralMap({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
-    scene.fog = new THREE.FogExp2(0x000000, compact ? 0.01 : 0.014);
+    scene.fog = new THREE.FogExp2(0x000000, immersive ? 0.0035 : compact ? 0.01 : 0.014);
 
-    const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 200);
+    const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, immersive ? 1000 : 200);
     let baseZ = compact ? 20 : mobile ? 22 : 26;
     let zoomMul = 1;
     const clampZoomMul = () => {
@@ -232,11 +253,28 @@ export default function NeuralMap({
     };
     applyCameraZ();
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(w, h);
+    if (immersive) {
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+    }
     renderer.domElement.style.touchAction = "none";
     el.appendChild(renderer.domElement);
+
+    const useBloom = immersive && !mobile;
+    let composer: EffectComposer | null = null;
+    let bloomPass: UnrealBloomPass | null = null;
+    if (useBloom) {
+      composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+      bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), mobile ? 1.0 : 1.35, 0.55, 0.72);
+      composer.addPass(bloomPass);
+      composer.addPass(new OutputPass());
+    }
+
+    const spinGroup = new THREE.Group();
+    scene.add(spinGroup);
 
     const BG_DUST = 250;
     const bgPos = new Float32Array(BG_DUST * 3);
@@ -253,15 +291,27 @@ export default function NeuralMap({
         color: 0xffffff,
         size: compact ? 0.04 : 0.055,
         transparent: true,
-        opacity: 0.28,
+        opacity: immersive ? 0.12 : 0.28,
         depthWrite: false,
         sizeAttenuation: true,
       })
     );
-    scene.add(bgDust);
+    if (immersive) {
+      spinGroup.add(bgDust);
+    } else {
+      scene.add(bgDust);
+    }
 
     const interactiveRoot = new THREE.Group();
-    scene.add(interactiveRoot);
+    spinGroup.add(interactiveRoot);
+
+    let animPaused = false;
+    scenePausedRef.current = false;
+    freezeToggleRef.current = () => {
+      animPaused = !animPaused;
+      scenePausedRef.current = animPaused;
+      return animPaused;
+    };
 
     const glowTex = createGlowTexture();
 
@@ -423,11 +473,11 @@ export default function NeuralMap({
       camera.updateMatrixWorld(true);
       camera.matrixWorld.extractBasis(panRight, panUp, panFwd);
       const k = 0.032 * (camera.position.z / 24);
-      interactiveRoot.position.addScaledVector(panRight, -dx * k);
-      interactiveRoot.position.addScaledVector(panUp, dy * k);
-      interactiveRoot.position.z = 0;
-      interactiveRoot.position.x = THREE.MathUtils.clamp(interactiveRoot.position.x, -PAN_MAX, PAN_MAX);
-      interactiveRoot.position.y = THREE.MathUtils.clamp(interactiveRoot.position.y, -PAN_MAX, PAN_MAX);
+      spinGroup.position.addScaledVector(panRight, -dx * k);
+      spinGroup.position.addScaledVector(panUp, dy * k);
+      spinGroup.position.z = 0;
+      spinGroup.position.x = THREE.MathUtils.clamp(spinGroup.position.x, -PAN_MAX, PAN_MAX);
+      spinGroup.position.y = THREE.MathUtils.clamp(spinGroup.position.y, -PAN_MAX, PAN_MAX);
     };
 
     const onDown = (e: MouseEvent) => {
@@ -487,6 +537,7 @@ export default function NeuralMap({
           selectedIdRef.current = entry.person.id;
           onPersonClickRef.current?.(entry.person);
         }
+        return;
       }
     };
 
@@ -501,6 +552,10 @@ export default function NeuralMap({
       clampZoomMul();
       applyCameraZ();
       renderer.setSize(nw, nh);
+      if (composer && bloomPass) {
+        composer.setSize(nw, nh);
+        bloomPass.resolution.set(nw, nh);
+      }
     };
 
     const onWheel = (e: WheelEvent) => {
@@ -619,12 +674,17 @@ export default function NeuralMap({
     const resetView = () => {
       zoomMul = 1;
       clampZoomMul();
-      interactiveRoot.position.set(0, 0, 0);
+      spinGroup.position.set(0, 0, 0);
       targetRotY.v = 0;
       targetRotX.v = 0;
       currentRotY = 0;
       currentRotX = 0;
       applyCameraZ();
+      if (immersive) {
+        animPaused = false;
+        scenePausedRef.current = false;
+        setUiFrozen(false);
+      }
     };
     resetViewFnRef.current = resetView;
     if (viewControlsRef) viewControlsRef.current = { resetView };
@@ -647,17 +707,19 @@ export default function NeuralMap({
     const animate = () => {
       raf = requestAnimationFrame(animate);
       const t = performance.now() / 1000 - t0;
-      if (!isDragging) targetRotY.v += 0.001;
+      if (!scenePausedRef.current && !isDragging) targetRotY.v += 0.001;
       currentRotY += (targetRotY.v - currentRotY) * 0.05;
       currentRotX += (targetRotX.v - currentRotX) * 0.05;
-      interactiveRoot.rotation.y = currentRotY;
-      interactiveRoot.rotation.x = currentRotX;
-      bgDust.rotation.y = currentRotY * 0.08;
+      spinGroup.rotation.y = currentRotY;
+      spinGroup.rotation.x = currentRotX;
+      bgDust.rotation.y = currentRotY * (immersive ? 0.04 : 0.08);
 
-      const cp = 1 + Math.sin(t * 2.2) * 0.09;
-      centerCore.scale.set(cs * cp, cs * cp, 1);
-      centerCoreMat.opacity = 0.75 + Math.sin(t * 2.0) * 0.12;
-      centerOuterMat.opacity = 0.14 + Math.sin(t * 1.6) * 0.05;
+      if (!scenePausedRef.current) {
+        const cp = 1 + Math.sin(t * 2.2) * 0.09;
+        centerCore.scale.set(cs * cp, cs * cp, 1);
+        centerCoreMat.opacity = 0.75 + Math.sin(t * 2.0) * 0.12;
+        centerOuterMat.opacity = 0.14 + Math.sin(t * 1.6) * 0.05;
+      }
 
       const sel = selectedIdRef.current;
       for (const n of nodeEntries) {
@@ -668,27 +730,33 @@ export default function NeuralMap({
         const outerMat = n.outer.material as THREE.SpriteMaterial;
         const lineMat = n.line.material as THREE.LineBasicMaterial;
 
-        if (isSel) {
-          const pulse = 1.25 + Math.sin(t * 5) * 0.12;
-          n.core.scale.set(n.baseScale * pulse, n.baseScale * pulse, 1);
-          n.outer.scale.set(n.outerBaseScale * pulse, n.outerBaseScale * pulse, 1);
-          coreMat.opacity = 0.92;
-          outerMat.opacity = 0.32;
-          lineMat.opacity = n.baseLineOp * (1.4 + Math.sin(t * 4) * 0.25);
-        } else {
-          const breath = 1 + Math.sin(t * 1.5 + n.idx * 0.9) * 0.07;
-          const ts = n.baseScale * breath;
-          n.core.scale.x += (ts - n.core.scale.x) * 0.07;
-          n.core.scale.y = n.core.scale.x;
-          n.outer.scale.x += (ts * 3.2 - n.outer.scale.x) * 0.07;
-          n.outer.scale.y = n.outer.scale.x;
-          coreMat.opacity = (0.55 + pq * 0.045) * (0.78 + Math.sin(t * 1.8 + n.idx) * 0.14);
-          outerMat.opacity = (0.12 + pq * 0.032) * (0.82 + Math.sin(t * 1.3 + n.idx) * 0.1);
-          lineMat.opacity = n.baseLineOp * (0.88 + Math.sin(t * 1.1 + n.idx * 0.7) * 0.09);
+        if (!scenePausedRef.current) {
+          if (isSel) {
+            const pulse = 1.25 + Math.sin(t * 5) * 0.12;
+            n.core.scale.set(n.baseScale * pulse, n.baseScale * pulse, 1);
+            n.outer.scale.set(n.outerBaseScale * pulse, n.outerBaseScale * pulse, 1);
+            coreMat.opacity = 0.92;
+            outerMat.opacity = 0.32;
+            lineMat.opacity = n.baseLineOp * (1.4 + Math.sin(t * 4) * 0.25);
+          } else {
+            const breath = 1 + Math.sin(t * 1.5 + n.idx * 0.9) * 0.07;
+            const ts = n.baseScale * breath;
+            n.core.scale.x += (ts - n.core.scale.x) * 0.07;
+            n.core.scale.y = n.core.scale.x;
+            n.outer.scale.x += (ts * 3.2 - n.outer.scale.x) * 0.07;
+            n.outer.scale.y = n.outer.scale.x;
+            coreMat.opacity = (0.55 + pq * 0.045) * (0.78 + Math.sin(t * 1.8 + n.idx) * 0.14);
+            outerMat.opacity = (0.12 + pq * 0.032) * (0.82 + Math.sin(t * 1.3 + n.idx) * 0.1);
+            lineMat.opacity = n.baseLineOp * (0.88 + Math.sin(t * 1.1 + n.idx * 0.7) * 0.09);
+          }
         }
       }
 
-      renderer.render(scene, camera);
+      if (composer) {
+        composer.render();
+      } else {
+        renderer.render(scene, camera);
+      }
     };
     animate();
 
@@ -707,6 +775,8 @@ export default function NeuralMap({
       renderer.domElement.removeEventListener("touchcancel", onTouchEnd);
       window.removeEventListener("resize", onResize);
       hideNeuralTooltip(wrapRef.current);
+      freezeToggleRef.current = null;
+      composer?.dispose();
       glowTex.dispose();
       bgGeo.dispose();
       bgDust.geometry.dispose();
@@ -724,7 +794,7 @@ export default function NeuralMap({
       resetViewFnRef.current = null;
       if (viewControlsRef) viewControlsRef.current = null;
     };
-  }, [people, periodQualities, compact, isMobile, proximityById, qualityById, viewControlsRef]);
+  }, [people, periodQualities, compact, isMobile, proximityById, qualityById, viewControlsRef, immersive]);
 
   if (people.length === 0) {
     return (
@@ -759,7 +829,7 @@ export default function NeuralMap({
         style={{ height: heightPx }}
         title="Souris : glisser — rotation · Maj / clic droit / milieu — déplacer · molette — zoom · Tactile : 1 doigt glisser — rotation · appui long puis glisser — déplacer · 2 doigts — zoom"
       />
-      {!compact && (
+      {!compact && !immersive && (
         <div className="absolute right-2 top-2 z-[6] flex gap-1">
           <button
             type="button"
@@ -771,6 +841,42 @@ export default function NeuralMap({
             Vue
           </button>
         </div>
+      )}
+      {immersive && !compact && (
+        <>
+          <div className="pointer-events-none absolute inset-0 z-[14]">
+            <div className="pointer-events-auto absolute left-3 top-3 w-[min(280px,calc(100%-1.5rem))] rounded-3xl border border-white/[0.08] border-t-white/20 border-l-white/15 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-5 shadow-[0_20px_40px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:left-5 sm:top-5">
+              <h3 className="mb-2 bg-gradient-to-br from-white to-indigo-200/90 bg-clip-text text-lg font-medium tracking-tight text-transparent">
+                {t("neural.immersiveTitle")}
+              </h3>
+              <p className="text-sm font-light leading-relaxed text-white/60">{t("neural.immersiveHint")}</p>
+            </div>
+          </div>
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-[16] flex -translate-x-1/2 gap-3 px-3 sm:bottom-8">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const v = freezeToggleRef.current?.() ?? false;
+                setUiFrozen(v);
+              }}
+              className="pointer-events-auto min-w-[5.5rem] rounded-full border border-white/10 border-t-white/25 bg-white/[0.05] px-5 py-2.5 text-[11px] font-medium uppercase tracking-wider text-white/90 shadow-[0_8px_20px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all hover:border-white/35 hover:bg-white/10 active:translate-y-px sm:min-w-[6.25rem] sm:px-6 sm:text-[13px]"
+            >
+              {uiFrozen ? t("neural.play") : t("neural.freeze")}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetViewFnRef.current?.();
+              }}
+              className="pointer-events-auto flex min-w-[5.5rem] items-center justify-center gap-1.5 rounded-full border border-white/10 border-t-white/25 bg-white/[0.05] px-5 py-2.5 text-[11px] font-medium uppercase tracking-wider text-white/90 shadow-[0_8px_20px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all hover:border-white/35 hover:bg-white/10 active:translate-y-px sm:min-w-[6.25rem] sm:px-6 sm:text-[13px]"
+            >
+              <RotateCcw size={13} strokeWidth={1.5} className="opacity-80" />
+              {t("neural.reset")}
+            </button>
+          </div>
+        </>
       )}
       <div
         className="pointer-events-none absolute inset-0 z-[1] rounded-2xl"

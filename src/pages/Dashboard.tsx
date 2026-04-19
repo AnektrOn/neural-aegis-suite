@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import ScoreCard from "@/components/ScoreCard";
 import AIInsights from "@/components/AIInsights";
 import { checkAndAwardBadges } from "@/lib/badge-engine";
-import NeuralMap from "@/components/NeuralMap";
 import ScoreboardWidget from "@/components/ScoreboardWidget";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -798,11 +797,27 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <NeuralCard className="lg:col-span-2 p-4 md:p-5" glow="blue">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1.5 h-4 rounded-full bg-accent-primary shrink-0" />
-              <h2 className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary">{t("dashboard.neuralMap")}</h2>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="h-4 w-1.5 shrink-0 rounded-full bg-accent-primary" />
+                  <h2 className="font-display text-[11px] uppercase tracking-[0.15em] text-text-secondary">
+                    {t("dashboard.neuralMap")}
+                  </h2>
+                </div>
+                <p className="max-w-md text-sm leading-relaxed text-text-tertiary">{t("dashboard.neuralMapTeaser")}</p>
+              </div>
+              <NavLink
+                to="/people"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-accent-primary/25 bg-accent-primary/10 px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-accent-primary transition-colors hover:bg-accent-primary/15"
+              >
+                {t("dashboard.openRelationsGraph")}
+                <ArrowUpRight size={14} strokeWidth={1.5} />
+              </NavLink>
             </div>
-            <NeuralMap people={people} compact showFilters={false} />
+            <div className="rounded-xl border border-border-subtle bg-bg-elevated/50 px-4 py-3 text-center text-sm text-text-tertiary">
+              {loading ? "—" : t("dashboard.neuralMapStat", { n: String(people.length) })}
+            </div>
           </NeuralCard>
           <NeuralCard glow="purple" className="p-4 md:p-5">
             <AIInsights />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,8 @@ interface Notification {
   created_at: string;
 }
 
+/** Voir `src/lib/admin-notification-registry.ts` pour la liste des types admin vs utilisateur. */
+
 export default function NotificationBell() {
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -27,9 +29,20 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  const loadNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setNotifications(((data as any[]) || []) as Notification[]);
+  }, [user?.id]);
+
   useEffect(() => {
-    if (!user) return;
-    loadNotifications();
+    if (!user?.id) return;
+    void loadNotifications();
 
     const channel = supabase
       .channel(`notifications-${user.id}`)
@@ -49,8 +62,8 @@ export default function NotificationBell() {
               n.type === "success"
                 ? toast.success
                 : n.type === "error"
-                ? toast.error
-                : toast;
+                  ? toast.error
+                  : toast;
             toastFn(n.title, { description: n.message });
           } else if (payload.eventType === "UPDATE") {
             setNotifications((prev) =>
@@ -64,9 +77,9 @@ export default function NotificationBell() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, loadNotifications]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -76,16 +89,6 @@ export default function NotificationBell() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [isMobile]);
-
-  const loadNotifications = async () => {
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    setNotifications(((data as any[]) || []) as Notification[]);
-  };
 
   const markRead = async (id: string) => {
     await supabase
