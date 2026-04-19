@@ -417,6 +417,30 @@ export type Database = {
         }
         Relationships: []
       }
+      native_fcm_tokens: {
+        Row: {
+          id: string
+          platform: string | null
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          platform?: string | null
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          platform?: string | null
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -595,30 +619,6 @@ export type Database = {
           last_used_at?: string
           p256dh?: string
           user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      native_fcm_tokens: {
-        Row: {
-          id: string
-          platform: string | null
-          token: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          platform?: string | null
-          token: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          id?: string
-          platform?: string | null
-          token?: string
-          updated_at?: string
           user_id?: string
         }
         Relationships: []
