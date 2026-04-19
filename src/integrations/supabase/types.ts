@@ -984,6 +984,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      send_admin_push: {
+        Args: {
+          p_message: string
+          p_tag?: string
+          p_title: string
+          p_url?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"
