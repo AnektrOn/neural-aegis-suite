@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "443551447731",
+    "project_id": "aegis-b3ebc",
+    "storage_bucket": "aegis-b3ebc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443551447731:android:0cf4d777d0d71f5d9f8ec6",
+        "android_client_info": {
+          "package_name": "com.neuralaegis.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJQJ1lrKk7dVLg56bj_4j4heslenN0wNk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
