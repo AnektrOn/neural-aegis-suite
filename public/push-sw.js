@@ -1,21 +1,37 @@
-// Service Worker dédié aux Web Push admin (séparé de tout cache pour éviter conflits preview)
+// Service Worker dédié aux Web Push admin — v2 (payload robuste)
+const SW_VERSION = "v2";
+
 self.addEventListener("install", (e) => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (event) => {
-  let payload = { title: "Aegis", body: "Nouvelle notification", url: "/admin/analytics" };
-  try {
-    if (event.data) payload = { ...payload, ...event.data.json() };
-  } catch (_) {
-    if (event.data) payload.body = event.data.text();
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (_) {
+      try {
+        data = { body: event.data.text() };
+      } catch (__) {
+        data = {};
+      }
+    }
   }
+
+  const title = data.title || "Aegis";
+  const body = data.body || data.message || "Nouvelle activité";
+  const url = data.url || "/admin/analytics";
+  const tag = data.tag || `aegis-${Date.now()}`;
+
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
+    self.registration.showNotification(title, {
+      body,
       icon: "/icon-192.png",
       badge: "/icon-192.png",
-      data: { url: payload.url },
-      tag: payload.tag || undefined,
+      data: { url },
+      tag,
+      renotify: true,
+      requireInteraction: false,
     })
   );
 });
