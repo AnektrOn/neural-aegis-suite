@@ -31,7 +31,11 @@ export async function getPushPermission(): Promise<NotificationPermission> {
 
 async function getRegistration(): Promise<ServiceWorkerRegistration> {
   const existing = await navigator.serviceWorker.getRegistration("/push-sw.js");
-  if (existing) return existing;
+  if (existing) {
+    // Force update check to pick up new SW versions
+    try { await existing.update(); } catch (_) {}
+    return existing;
+  }
   return navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
 }
 
