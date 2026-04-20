@@ -38,12 +38,37 @@ const ChartContainer = React.forwardRef<
 >(({ id, className, children, config, ...props }, ref) => {
   const uniqueId = React.useId();
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
+  const innerRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Dismiss sticky tooltips on touch devices when the user lifts their finger
+  // by dispatching a pointerleave/mouseleave on the recharts surface.
+  const handleTouchEnd = React.useCallback(() => {
+    const root = innerRef.current;
+    if (!root) return;
+    const surface = root.querySelector(".recharts-wrapper");
+    if (!surface) return;
+    window.setTimeout(() => {
+      surface.dispatchEvent(new PointerEvent("pointerleave", { bubbles: true }));
+      surface.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+    }, 1500);
+  }, []);
+
+  const setRefs = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      innerRef.current = node;
+      if (typeof ref === "function") ref(node);
+      else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    },
+    [ref]
+  );
 
   return (
     <ChartContext.Provider value={{ config }}>
       <div
         data-chart={chartId}
-        ref={ref}
+        ref={setRefs}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         className={cn(
           "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
           className,
