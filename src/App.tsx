@@ -42,6 +42,9 @@ const ScoreboardConfig = lazy(() => import("./pages/admin/ScoreboardConfig"));
 const AdminNotificationRegistry = lazy(() => import("./pages/admin/AdminNotificationRegistry"));
 const AdminPlaceTags = lazy(() => import("./pages/admin/AdminPlaceTags"));
 const AdminUserPlaces = lazy(() => import("./pages/admin/AdminUserPlaces"));
+const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
+const AssessmentFlow = lazy(() => import("./features/archetype-assessment/pages/AssessmentFlow"));
+const AssessmentResults = lazy(() => import("./features/archetype-assessment/pages/AssessmentResults"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -108,6 +111,7 @@ const App = () => (
                               <Route path="/notification-registry" element={<AdminNotificationRegistry />} />
                               <Route path="/place-tags" element={<AdminPlaceTags />} />
                               <Route path="/user-places" element={<AdminUserPlaces />} />
+                              <Route path="/assessments" element={<AdminAssessments />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
@@ -133,6 +137,8 @@ const App = () => (
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/install" element={<InstallApp />} />
                             <Route path="/calendar" element={<CalendarView />} />
+                            <Route path="/onboarding/assessment" element={<AssessmentFlow />} />
+                            <Route path="/onboarding/results" element={<AssessmentResults />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </Suspense>
