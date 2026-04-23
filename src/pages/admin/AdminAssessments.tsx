@@ -419,12 +419,12 @@ function AssessmentDetail({
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2">
                   {/* Lumière */}
-                  <div className="p-4 bg-amber-500/5 dark:bg-amber-500/[0.03] md:border-r border-border/40">
-                    <div className="flex items-center gap-2 mb-3 text-amber-600 dark:text-amber-400">
+                    <div className="p-4 bg-primary/[0.04] md:border-r border-border/40">
+                    <div className="flex items-center gap-2 mb-3 text-primary">
                       <Sun className="w-4 h-4" />
                       <span className="font-serif text-sm uppercase tracking-wider">Lumière</span>
                     </div>
-                    <p className="text-sm mb-3">{a.lightAspect_fr}</p>
+                    <p className="text-sm mb-3 text-foreground">{a.lightAspect_fr}</p>
                     <div className="space-y-2 text-sm">
                       <div>
                         <span className="text-xs uppercase text-muted-foreground">Besoin essentiel</span>
@@ -445,12 +445,12 @@ function AssessmentDetail({
                     </div>
                   </div>
                   {/* Ombre */}
-                  <div className="p-4 bg-slate-900/30 dark:bg-slate-950/40">
-                    <div className="flex items-center gap-2 mb-3 text-indigo-300 dark:text-indigo-300">
+                  <div className="p-4 bg-muted/40 dark:bg-background/60">
+                    <div className="flex items-center gap-2 mb-3 text-foreground/80">
                       <Moon className="w-4 h-4" />
                       <span className="font-serif text-sm uppercase tracking-wider">Ombre</span>
                     </div>
-                    <p className="text-sm mb-3">{a.shadowAspect_fr}</p>
+                    <p className="text-sm mb-3 text-foreground">{a.shadowAspect_fr}</p>
                     <div className="space-y-2 text-sm">
                       <div>
                         <span className="text-xs uppercase text-muted-foreground">Pattern de peur</span>
