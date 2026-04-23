@@ -21,6 +21,7 @@ import {
   Bell,
   Tag,
   MapPin,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -47,6 +48,7 @@ const adminNavKeys = [
   { to: "/admin/notification-registry", icon: Bell, key: "admin.nav.notificationRegistry" as const },
   { to: "/admin/place-tags", icon: Tag, key: "admin.nav.placeTags" as const },
   { to: "/admin/user-places", icon: MapPin, key: "admin.nav.userPlaces" as const },
+  { to: "/admin/assessments", icon: Sparkles, key: "admin.nav.assessments" as const },
 ];
 
 function AdminSidebarContent({
