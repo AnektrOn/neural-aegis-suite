@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Activity, TrendingDown, TrendingUp, Minus, ChevronDown } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 import type { AegisHealthScore } from "@/types/aegisHealth";
 
 interface AegisHealthCardProps {
