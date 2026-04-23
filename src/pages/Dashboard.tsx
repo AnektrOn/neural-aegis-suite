@@ -297,11 +297,13 @@ export default function Dashboard() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     try {
-      const [moodRes, decRes, habitRes, contactRes] = await Promise.all([
+      const [moodRes, decRes, decOldestRes, habitRes, contactRes, lastTouchRes] = await Promise.all([
         supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", sevenDaysAgo.toISOString()),
         supabase.from("decisions" as any).select("id, name, priority, status").eq("user_id", user!.id).eq("status", "pending").order("priority", { ascending: false }).limit(3),
+        supabase.from("decisions" as any).select("created_at").eq("user_id", user!.id).eq("status", "pending").order("created_at", { ascending: true }).limit(1),
         supabase.from("habit_completions" as any).select("id").eq("user_id", user!.id).eq("completed_date", today),
         supabase.from("people_contacts" as any).select("id").eq("user_id", user!.id),
+        supabase.from("relation_quality_history" as any).select("recorded_at").eq("user_id", user!.id).order("recorded_at", { ascending: false }).limit(1),
       ]);
       const moods = (moodRes.data as any[] || []);
       const avg = moods.length > 0
@@ -313,6 +315,18 @@ export default function Dashboard() {
         contacts: String((contactRes.data || []).length),
       });
       if (decRes.data) setDecisions(decRes.data as any[]);
+      const oldest = (decOldestRes.data as any[] | null)?.[0]?.created_at;
+      if (oldest) {
+        setOldestDecisionDays(Math.max(0, Math.floor((Date.now() - new Date(oldest).getTime()) / 86400000)));
+      } else {
+        setOldestDecisionDays(0);
+      }
+      const lastTouch = (lastTouchRes.data as any[] | null)?.[0]?.recorded_at;
+      if (lastTouch) {
+        setLastContactDays(Math.max(0, Math.floor((Date.now() - new Date(lastTouch).getTime()) / 86400000)));
+      } else {
+        setLastContactDays(999);
+      }
     } catch (e) {
       console.error("Dashboard loadStats error:", e);
     } finally {
