@@ -83,7 +83,7 @@ function formatDetail(detail: Record<string, unknown>, locale: "fr" | "en"): str
 
 export default function AdminAlertsPanel() {
   const navigate = useNavigate();
-  const { language, t } = useLanguage();
+  const { locale, t } = useLanguage();
   const [alerts, setAlerts] = useState<AdminAlert[]>([]);
   const [profileMap, setProfileMap] = useState<
     Map<string, { name: string; companyName: string | null; companyId: string | null }>
@@ -126,7 +126,7 @@ export default function AdminAlertsPanel() {
         company_id: string | null;
       }>).forEach((p) => {
         map.set(p.id, {
-          name: p.display_name?.trim() || (language === "fr" ? "Sans nom" : "No name"),
+          name: p.display_name?.trim() || (locale === "fr" ? "Sans nom" : "No name"),
           companyId: p.company_id,
           companyName: p.company_id ? compNameById.get(p.company_id) ?? null : null,
         });
@@ -134,11 +134,11 @@ export default function AdminAlertsPanel() {
       setProfileMap(map);
     } catch (e) {
       console.error(e);
-      toast.error(language === "fr" ? "Erreur de chargement" : "Failed to load");
+      toast.error(locale === "fr" ? "Erreur de chargement" : "Failed to load");
     } finally {
       setLoading(false);
     }
-  }, [showResolved, language]);
+  }, [showResolved, locale]);
 
   useEffect(() => {
     load();
@@ -183,14 +183,14 @@ export default function AdminAlertsPanel() {
     try {
       const res = await runAlertScan();
       toast.success(
-        language === "fr"
+        locale === "fr"
           ? `Scan terminé · ${res.created} nouvelle(s) alerte(s)`
           : `Scan done · ${res.created} new alert(s)`,
       );
       await load();
     } catch (e) {
       console.error(e);
-      toast.error(language === "fr" ? "Échec du scan" : "Scan failed");
+      toast.error(locale === "fr" ? "Échec du scan" : "Scan failed");
     } finally {
       setScanning(false);
     }
@@ -202,10 +202,10 @@ export default function AdminAlertsPanel() {
       await resolveAlert(id);
       setAlerts((prev) => prev.filter((a) => a.id !== id || showResolved));
       if (showResolved) await load();
-      toast.success(language === "fr" ? "Alerte résolue" : "Alert resolved");
+      toast.success(locale === "fr" ? "Alerte résolue" : "Alert resolved");
     } catch (e) {
       console.error(e);
-      toast.error(language === "fr" ? "Échec" : "Failed");
+      toast.error(locale === "fr" ? "Échec" : "Failed");
     } finally {
       setResolving(null);
     }
@@ -216,7 +216,7 @@ export default function AdminAlertsPanel() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <p className="text-neural-label mb-3 text-neural-accent/60">
-            {language === "fr" ? "Administration" : "Administration"}
+            {locale === "fr" ? "Administration" : "Administration"}
           </p>
           <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground flex items-center gap-3">
             <Shield size={22} className="text-accent-warning" />
@@ -339,7 +339,7 @@ export default function AdminAlertsPanel() {
           {filtered.map((a, i) => {
             const st = SEVERITY_STYLES[a.severity];
             const prof = profileMap.get(a.user_id);
-            const title = language === "fr" ? a.title_fr : a.title_en;
+            const title = locale === "fr" ? a.title_fr : a.title_en;
             return (
               <motion.div
                 key={a.id}
@@ -376,12 +376,12 @@ export default function AdminAlertsPanel() {
                   </div>
                   <p className="text-sm text-foreground/90 mt-1">{title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {formatDetail(a.detail, language)}
+                    {formatDetail(a.detail, locale)}
                   </p>
                   <p className="text-[11px] text-neural-label text-neural-accent/50 mt-1">
-                    {formatRelative(a.created_at, language)}
+                    {formatRelative(a.created_at, locale)}
                     {a.is_resolved && a.resolved_at
-                      ? ` · ${language === "fr" ? "résolu" : "resolved"} ${formatRelative(a.resolved_at, language)}`
+                      ? ` · ${locale === "fr" ? "résolu" : "resolved"} ${formatRelative(a.resolved_at, locale)}`
                       : ""}
                   </p>
                 </div>
