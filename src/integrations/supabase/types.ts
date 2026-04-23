@@ -44,6 +44,51 @@ export type Database = {
         }
         Relationships: []
       }
+      aegis_health_scores: {
+        Row: {
+          archetype_coherence: number
+          computed_at: string
+          decision_score: number
+          habit_score: number
+          id: string
+          journal_score: number
+          log_regularity: number
+          mood_score: number
+          overall_score: number
+          relation_score: number
+          score_date: string
+          user_id: string
+        }
+        Insert: {
+          archetype_coherence?: number
+          computed_at?: string
+          decision_score?: number
+          habit_score?: number
+          id?: string
+          journal_score?: number
+          log_regularity?: number
+          mood_score?: number
+          overall_score?: number
+          relation_score?: number
+          score_date: string
+          user_id: string
+        }
+        Update: {
+          archetype_coherence?: number
+          computed_at?: string
+          decision_score?: number
+          habit_score?: number
+          id?: string
+          journal_score?: number
+          log_regularity?: number
+          mood_score?: number
+          overall_score?: number
+          relation_score?: number
+          score_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       analysis_results: {
         Row: {
           admin_notes: string | null
