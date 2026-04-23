@@ -396,6 +396,18 @@ export default function Dashboard() {
 
     return (
       <div className="mobile-section-gap max-w-full pt-5">
+        {showPostAssessment && (
+          <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
+        )}
+        {showWelcome && maturity && (
+          <WelcomeExperience
+            maturityProfile={maturity}
+            onDismiss={() => setWelcomeDismissed(true)}
+          />
+        )}
+        {showSetupBanner && maturity && !showWelcome && (
+          <SetupProgressBanner maturityProfile={maturity} />
+        )}
         {/* Streak (date + AEGIS: header AppLayout) */}
         {streakDays > 0 && (
           <motion.div {...fadeUp(0)} className="flex justify-end items-center gap-1.5 min-h-[24px]">
@@ -746,6 +758,18 @@ export default function Dashboard() {
   return (
     <div className="min-h-full -mx-6 -mt-6 px-6 pt-6 pb-10 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
       <div className="max-w-7xl mx-auto space-y-6">
+        {showPostAssessment && (
+          <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
+        )}
+        {showWelcome && maturity && (
+          <WelcomeExperience
+            maturityProfile={maturity}
+            onDismiss={() => setWelcomeDismissed(true)}
+          />
+        )}
+        {showSetupBanner && maturity && !showWelcome && (
+          <SetupProgressBanner maturityProfile={maturity} />
+        )}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-[10px] tracking-[0.2em] uppercase text-text-tertiary font-display">
