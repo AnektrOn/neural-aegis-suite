@@ -24,8 +24,8 @@ import type { ArchetypeKey } from "../domain/types";
 export default function AssessmentResults() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { language } = useLanguage();
-  const isFR = language === "fr";
+  const { locale } = useLanguage();
+  const isFR = locale === "fr";
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Awaited<ReturnType<typeof getSessionFullDetails>> | null>(null);
