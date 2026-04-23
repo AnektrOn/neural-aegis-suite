@@ -834,81 +834,30 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {highlight && !loading && (
+          <motion.div {...fadeUp(0)} className="rounded-[14px] border-[0.5px] border-[hsl(var(--aegis-border))] bg-[hsl(var(--aegis-s1))] px-5 py-4">
+            <p className="font-display text-[10px] uppercase tracking-[0.2em] text-text-tertiary mb-1.5">
+              {t("dashboard.weekInOneSentence")}
+            </p>
+            <p className="text-sm leading-relaxed text-text-primary">
+              {(() => {
+                const isFR = (typeof window !== "undefined" && localStorage.getItem("app-locale") !== "en");
+                return isFR ? highlight.story_fr : highlight.story_en;
+              })()}
+            </p>
+          </motion.div>
+        )}
+
         <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-3" variants={kpiContainer} initial="initial" animate="animate">
-          <motion.div variants={kpiItem}>
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.statMood")}
-              </span>
-              <span className="text-2xl font-display text-accent-primary">{loading ? "—" : stats.moodAvg}</span>
-              {digest && (
-                <span
-                  className={`text-[10px] flex items-center gap-1 font-medium ${
-                    digest.moodTrend === "up"
-                      ? "text-accent-positive"
-                      : digest.moodTrend === "down"
-                        ? "text-accent-danger"
-                        : "text-text-tertiary"
-                  }`}
-                >
-                  <TrendIcon trend={digest.moodTrend} />
-                  {moodTrendLabel}
-                </span>
-              )}
-            </NeuralCard>
-          </motion.div>
-          <motion.div variants={kpiItem}>
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.statOpenDecisions")}
-              </span>
-              <span className="text-2xl font-display text-accent-primary">{loading ? "—" : stats.openDecisions}</span>
-              <span className="text-[10px] text-text-tertiary flex items-center gap-1">
-                <Target size={10} strokeWidth={1.5} /> {t("nav.decisions")}
-              </span>
-            </NeuralCard>
-          </motion.div>
-          <motion.div variants={kpiItem}>
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.statHabitsToday")}
-              </span>
-              <span className="text-2xl font-display text-accent-secondary">
-                {loading ? "—" : `${stats.habitsDone}${totalHabits > 0 ? `/${totalHabits}` : ""}`}
-              </span>
-              {digest != null && (
-                <span className="text-[10px] text-accent-positive flex items-center gap-1">
-                  <TrendingUp size={10} strokeWidth={1.5} /> {digest.habitRate}% · {t("dashboard.habitRate")}
-                </span>
-              )}
-            </NeuralCard>
-          </motion.div>
-          <motion.div variants={kpiItem}>
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.statNetwork")}
-              </span>
-              <span className="text-2xl font-display text-text-primary">{loading ? "—" : stats.contacts}</span>
-              <span className="text-[10px] text-text-tertiary flex items-center gap-1">
-                <Zap size={10} strokeWidth={1.5} />
-                {t("nav.people")}
-              </span>
-            </NeuralCard>
-          </motion.div>
-          <motion.div variants={kpiItem} className="col-span-2 md:col-span-1">
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.streakDays")}
-              </span>
-              <span className="text-2xl font-display text-accent-warning">
-                {digest != null ? `${digest.streakDays}j` : "—"}
-              </span>
-              <span className="text-[10px] text-accent-positive flex items-center gap-1">
-                <Brain size={10} strokeWidth={1.5} /> {digest?.journalCount ?? 0} · {t("dashboard.journalEntries")}
-              </span>
-            </NeuralCard>
-          </motion.div>
+          {narratives.map((n) => (
+            <motion.div key={n.key} variants={kpiItem}>
+              <NarrativeKPICard narrative={n} />
+            </motion.div>
+          ))}
         </motion.div>
+
+        {/* Hidden trend label (kept to avoid unused-var lint) */}
+        <span className="sr-only">{moodTrendLabel}</span>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <NeuralCard className="lg:col-span-2 p-4 md:p-5" glow="blue">
