@@ -689,6 +689,73 @@ export const translations = {
   },
   "correlation.bestDay": { fr: "Meilleur jour :", en: "Best day:" },
   "correlation.worstDay": { fr: "Jour le plus lent :", en: "Slowest day:" },
+
+  // Welcome experience
+  "welcome.title": { fr: "Bienvenue sur AEGIS, {name}.", en: "Welcome to AEGIS, {name}." },
+  "welcome.title.noname": { fr: "Bienvenue sur AEGIS.", en: "Welcome to AEGIS." },
+  "welcome.subtitle": {
+    fr: "Voici ce que ce système va faire pour toi.",
+    en: "Here is what this system will do for you.",
+  },
+  "welcome.promise1.title": { fr: "Te connaître en profondeur", en: "Know you deeply" },
+  "welcome.promise1.body": {
+    fr: "Cartographier tes archétypes, tes ombres et tes leviers intérieurs.",
+    en: "Map your archetypes, shadows and inner levers.",
+  },
+  "welcome.promise2.title": {
+    fr: "Détecter tes cycles avant que tu les subisses",
+    en: "Detect your cycles before they catch you",
+  },
+  "welcome.promise2.body": {
+    fr: "Repérer les corrélations entre humeur, décisions et énergie.",
+    en: "Surface correlations between mood, decisions and energy.",
+  },
+  "welcome.promise3.title": {
+    fr: "Te donner les bons outils au bon moment",
+    en: "Give you the right tool at the right moment",
+  },
+  "welcome.promise3.body": {
+    fr: "Pratiques ciblées, ajustées à ton état présent.",
+    en: "Targeted practices, tuned to your current state.",
+  },
+  "welcome.checklist.title": { fr: "Configuration de ton espace", en: "Setting up your space" },
+  "welcome.checklist.account": { fr: "Compte créé", en: "Account created" },
+  "welcome.checklist.archetype": {
+    fr: "Compléter mon profil archétypal",
+    en: "Complete my archetypal profile",
+  },
+  "welcome.checklist.mood": { fr: "Logger mon premier mood", en: "Log my first mood" },
+  "welcome.checklist.decision": { fr: "Ajouter une décision", en: "Add a decision" },
+  "welcome.checklist.journal": { fr: "Écrire une note journal", en: "Write a journal note" },
+  "welcome.cta.start": { fr: "Commencer", en: "Start" },
+  "welcome.cta.log": { fr: "Logger", en: "Log" },
+  "welcome.cta.add": { fr: "Ajouter", en: "Add" },
+  "welcome.cta.write": { fr: "Écrire", en: "Write" },
+  "welcome.completion.label": { fr: "{pct}% de configuration", en: "{pct}% setup" },
+  "welcome.completion.hint": {
+    fr: "Plus tu complètes, plus AEGIS devient intelligent pour toi.",
+    en: "The more you complete, the smarter AEGIS becomes for you.",
+  },
+  "welcome.dismiss": {
+    fr: "Je connais déjà AEGIS — voir le dashboard complet",
+    en: "I already know AEGIS — show the full dashboard",
+  },
+  "welcome.next.archetype": { fr: "Faire l'évaluation →", en: "Take the assessment →" },
+  "welcome.next.mood": { fr: "Logger ma première humeur →", en: "Log my first mood →" },
+  "welcome.next.decision": { fr: "Ajouter ma première décision →", en: "Add my first decision →" },
+  "welcome.next.journal": { fr: "Écrire ma première note →", en: "Write my first note →" },
+  "welcome.next.contact": { fr: "Ajouter une relation →", en: "Add a contact →" },
+
+  // Post-assessment banner
+  "postAssessment.title": {
+    fr: "✨ Ton profil archétypal est actif.",
+    en: "✨ Your archetypal profile is now active.",
+  },
+  "postAssessment.body": {
+    fr: "AEGIS commence maintenant à personnaliser ton expérience selon ton profil {archetype}.",
+    en: "AEGIS now starts personalizing your experience based on your {archetype} profile.",
+  },
+  "postAssessment.discover": { fr: "Découvrir", en: "Discover" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
