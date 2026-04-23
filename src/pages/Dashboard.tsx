@@ -24,6 +24,8 @@ import { MoodDecisionInsightCard } from "@/components/MoodDecisionInsightCard";
 import { WelcomeExperience, SetupProgressBanner, WELCOME_DISMISSED_KEY } from "@/components/WelcomeExperience";
 import { PostAssessmentBanner } from "@/components/PostAssessmentBanner";
 import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMaturity";
+import { generateAllNarratives, pickHighlightNarrative, type NarrativeContext, type KPINarrative } from "@/lib/narrativeEngine";
+import { NarrativeKPICard } from "@/components/NarrativeKPICard";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
