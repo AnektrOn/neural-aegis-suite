@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { AppendixModal } from "@/features/appendix/AppendixModal";
+import AegisHealthSection from "@/components/AegisHealthSection";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -230,6 +231,8 @@ export default function Profile() {
           {saving ? t("profile.savingProfile") : t("profile.saveProfile")}
         </button>
       </motion.div>
+
+      <AegisHealthSection />
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ethereal-glass p-8">
         <div className="flex items-center gap-3 mb-4">
