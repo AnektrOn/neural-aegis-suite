@@ -43,6 +43,7 @@ const AdminNotificationRegistry = lazy(() => import("./pages/admin/AdminNotifica
 const AdminPlaceTags = lazy(() => import("./pages/admin/AdminPlaceTags"));
 const AdminUserPlaces = lazy(() => import("./pages/admin/AdminUserPlaces"));
 const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
+const AdminAlertsPanel = lazy(() => import("./pages/admin/AdminAlertsPanel"));
 const AssessmentFlow = lazy(() => import("./features/archetype-assessment/pages/AssessmentFlow"));
 const AssessmentResults = lazy(() => import("./features/archetype-assessment/pages/AssessmentResults"));
 
@@ -112,6 +113,7 @@ const App = () => (
                               <Route path="/place-tags" element={<AdminPlaceTags />} />
                               <Route path="/user-places" element={<AdminUserPlaces />} />
                               <Route path="/assessments" element={<AdminAssessments />} />
+                              <Route path="/alerts" element={<AdminAlertsPanel />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>

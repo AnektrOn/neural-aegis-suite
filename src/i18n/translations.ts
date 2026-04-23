@@ -646,6 +646,27 @@ export const translations = {
   "admin.snapshots.pickB": { fr: "Version B", en: "Version B" },
   "admin.snapshots.compare": { fr: "Comparer", en: "Compare" },
   "admin.snapshots.delta": { fr: "Évolution par archétype", en: "Delta per archetype" },
+
+  // Smart admin alerts
+  "admin.nav.alerts": { fr: "Alertes", en: "Alerts" },
+  "admin.alerts.title": { fr: "Alertes intelligentes", en: "Smart alerts" },
+  "admin.alerts.subtitle": {
+    fr: "Détection automatique des risques et signaux de désengagement.",
+    en: "Automatic detection of risk and disengagement signals.",
+  },
+  "admin.alerts.runScan": { fr: "Lancer un scan", en: "Run scan" },
+  "admin.alerts.resolve": { fr: "Résoudre", en: "Resolve" },
+  "admin.alerts.viewProfile": { fr: "Voir le profil", en: "View profile" },
+  "admin.alerts.empty": { fr: "Aucune alerte active.", en: "No active alerts." },
+  "admin.alerts.sev.critical": { fr: "Critiques", en: "Critical" },
+  "admin.alerts.sev.high": { fr: "Élevées", en: "High" },
+  "admin.alerts.sev.medium": { fr: "Moyennes", en: "Medium" },
+  "admin.alerts.sev.low": { fr: "Faibles", en: "Low" },
+  "admin.alerts.filter.all": { fr: "Toutes", en: "All" },
+  "admin.alerts.filter.allTypes": { fr: "Tous les types", en: "All types" },
+  "admin.alerts.filter.allCompanies": { fr: "Toutes les entreprises", en: "All companies" },
+  "admin.alerts.filter.showResolved": { fr: "Afficher résolues", en: "Show resolved" },
+  "users.col.alerts": { fr: "Alertes", en: "Alerts" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
