@@ -66,7 +66,7 @@ const fadeUp = (delay = 0) => ({
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -840,10 +840,7 @@ export default function Dashboard() {
               {t("dashboard.weekInOneSentence")}
             </p>
             <p className="text-sm leading-relaxed text-text-primary">
-              {(() => {
-                const isFR = (typeof window !== "undefined" && localStorage.getItem("app-locale") !== "en");
-                return isFR ? highlight.story_fr : highlight.story_en;
-              })()}
+              {locale === "fr" ? highlight.story_fr : highlight.story_en}
             </p>
           </motion.div>
         )}
