@@ -155,9 +155,53 @@ export default function AssessmentResults() {
 
   return (
     <div className="min-h-screen max-w-4xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
           <ArrowLeft className="w-4 h-4 mr-2" /> {isFR ? "Tableau de bord" : "Dashboard"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={exporting}
+          onClick={async () => {
+            try {
+              setExporting(true);
+              const firstName =
+                (user?.user_metadata as any)?.first_name ||
+                (user?.user_metadata as any)?.full_name?.split(" ")?.[0] ||
+                user?.email?.split("@")?.[0] ||
+                "profil";
+              await exportProfileToPdf({
+                isFR,
+                firstName,
+                submittedAt: session?.submitted_at ? new Date(session.submitted_at) : new Date(),
+                radarElement: radarRef.current,
+                narrative: buildNarrative({
+                  isFR,
+                  topArchetypes: top,
+                  shadowSignals: (analysis.shadow_signals ?? {}) as Record<string, number>,
+                }),
+                topScores: scores ?? [],
+                dominantKey,
+                growthKey,
+              });
+            } catch (e) {
+              toast({
+                title: isFR ? "Export impossible" : "Export failed",
+                description: (e as Error)?.message ?? "",
+                variant: "destructive",
+              });
+            } finally {
+              setExporting(false);
+            }
+          }}
+        >
+          {exporting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <FileDown className="w-4 h-4 mr-2" />
+          )}
+          {isFR ? "Exporter mon profil" : "Export my profile"}
         </Button>
       </div>
 
@@ -283,22 +327,31 @@ export default function AssessmentResults() {
           )}
         </div>
 
-        <DualLayerRadar
-          isFR={isFR}
-          lightScores={scores ?? []}
-          shadowSignals={(analysis.shadow_signals ?? {}) as Record<string, number>}
-          previousLightScores={previousScores}
-          showPrevious={showPrevious}
-        />
+        <div ref={radarRef} className="bg-background/0">
+          <DualLayerRadar
+            isFR={isFR}
+            lightScores={scores ?? []}
+            shadowSignals={(analysis.shadow_signals ?? {}) as Record<string, number>}
+            previousLightScores={previousScores}
+            showPrevious={showPrevious}
+          />
 
-        {showPrevious && previousDate && (
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            {isFR
-              ? `Session actuelle vs ${previousDate}`
-              : `Current session vs ${previousDate}`}
-          </p>
-        )}
+          {showPrevious && previousDate && (
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              {isFR
+                ? `Session actuelle vs ${previousDate}`
+                : `Current session vs ${previousDate}`}
+            </p>
+          )}
+        </div>
       </Card>
+
+      {/* Narrative profile card */}
+      <NarrativeProfileCard
+        isFR={isFR}
+        topArchetypes={top}
+        shadowSignals={(analysis.shadow_signals ?? {}) as Record<string, number>}
+      />
 
       {/* Strengths & Watchouts */}
       <div className="grid sm:grid-cols-2 gap-4">
