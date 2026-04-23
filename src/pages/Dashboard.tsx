@@ -75,6 +75,8 @@ export default function Dashboard() {
   const [mobileHabits, setMobileHabits] = useState<MobileHabit[]>([]);
   const [lastJournalEntry, setLastJournalEntry] = useState<{ content: string; created_at: string } | null>(null);
   const today = new Date().toISOString().split("T")[0];
+  const { score: aegisScore, trend: aegisTrend, isLoading: aegisLoading } = useAegisHealthScore(user?.id);
+  const aegisYesterday = aegisTrend.length >= 2 ? aegisTrend[aegisTrend.length - 2] : null;
 
   useEffect(() => {
     if (!user) return;
