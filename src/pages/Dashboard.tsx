@@ -720,6 +720,8 @@ export default function Dashboard() {
           </button>
         </div>
 
+        <AssessmentCTA />
+
         <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-3" variants={kpiContainer} initial="initial" animate="animate">
           <motion.div variants={kpiItem}>
             <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
