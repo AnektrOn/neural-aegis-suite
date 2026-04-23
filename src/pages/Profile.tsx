@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { AppendixModal } from "@/features/appendix/AppendixModal";
 import AegisHealthSection from "@/components/AegisHealthSection";
+import { ProfileEvolutionSection } from "@/features/archetype-assessment/components/ProfileEvolutionSection";
 
 export default function Profile() {
   const { user } = useAuth();
