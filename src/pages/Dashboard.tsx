@@ -773,6 +773,24 @@ export default function Dashboard() {
         ? `-${digest.moodDelta} vs semaine`
         : t("dashboard.stable");
 
+  const narrativeCtx: NarrativeContext = {
+    moodAvg: stats.moodAvg === "—" ? 0 : Number(stats.moodAvg) || 0,
+    moodDelta: digest ? (digest.moodTrend === "down" ? -digest.moodDelta : digest.moodDelta) : 0,
+    moodTrend: digest?.moodTrend ?? "stable",
+    openDecisions: Number(stats.openDecisions) || 0,
+    oldestDecisionDays,
+    habitRate: digest?.habitRate ?? 0,
+    streakDays: digest?.streakDays ?? 0,
+    journalCount: digest?.journalCount ?? 0,
+    contactsCount: Number(stats.contacts) || 0,
+    lastContactDays,
+    aegisScore: aegisScore?.overall_score ?? 0,
+    aegisScoreDelta:
+      aegisScore && aegisYesterday ? aegisScore.overall_score - aegisYesterday.overall_score : 0,
+  };
+  const narratives: KPINarrative[] = generateAllNarratives(narrativeCtx);
+  const highlight = pickHighlightNarrative(narratives);
+
   return (
     <div className="min-h-full -mx-6 -mt-6 px-6 pt-6 pb-10 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
       <div className="max-w-7xl mx-auto space-y-6">
