@@ -38,6 +38,8 @@ export default function AssessmentResults() {
     Array<{ archetype_key: string; normalized_score: number }> | null
   >(null);
   const [showPrevious, setShowPrevious] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const radarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let alive = true;
