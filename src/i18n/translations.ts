@@ -667,6 +667,28 @@ export const translations = {
   "admin.alerts.filter.allCompanies": { fr: "Toutes les entreprises", en: "All companies" },
   "admin.alerts.filter.showResolved": { fr: "Afficher résolues", en: "Show resolved" },
   "users.col.alerts": { fr: "Alertes", en: "Alerts" },
+
+  "correlation.title": { fr: "Humeur × Décision", en: "Mood × Decision" },
+  "correlation.insufficient": {
+    fr: "Pas encore assez de données pour révéler des corrélations.",
+    en: "Not enough data yet to surface correlations.",
+  },
+  "correlation.avgMoodOnDecisionDays": {
+    fr: "Humeur moy. (jours de décision)",
+    en: "Avg mood (decision days)",
+  },
+  "correlation.avgResolutionTime": { fr: "Temps moy. de résolution", en: "Avg resolution time" },
+  "correlation.days": { fr: "j", en: "d" },
+  "correlation.fastVsSlow": {
+    fr: "Humeur rapide / lente",
+    en: "Mood fast / slow",
+  },
+  "correlation.lowMoodPending": {
+    fr: "% en attente sur humeur basse",
+    en: "% pending on low mood",
+  },
+  "correlation.bestDay": { fr: "Meilleur jour :", en: "Best day:" },
+  "correlation.worstDay": { fr: "Jour le plus lent :", en: "Slowest day:" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
