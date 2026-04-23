@@ -42,8 +42,9 @@ export async function loadActiveTemplate(): Promise<LoadedTemplate> {
   const { data: tpl, error: tplErr } = await supabase
     .from("assessment_templates" as any)
     .select("*")
-    .eq("slug", TEMPLATE_SLUG)
     .eq("is_active", true)
+    .order("version", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (tplErr) throw tplErr;
