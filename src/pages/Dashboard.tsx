@@ -18,6 +18,8 @@ import HabitsMiniCard from "@/components/HabitsMiniCard";
 import DashboardHero from "@/components/DashboardHero";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
+import { AegisHealthCard } from "@/components/AegisHealthCard";
+import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
@@ -73,6 +75,8 @@ export default function Dashboard() {
   const [mobileHabits, setMobileHabits] = useState<MobileHabit[]>([]);
   const [lastJournalEntry, setLastJournalEntry] = useState<{ content: string; created_at: string } | null>(null);
   const today = new Date().toISOString().split("T")[0];
+  const { score: aegisScore, trend: aegisTrend, isLoading: aegisLoading } = useAegisHealthScore(user?.id);
+  const aegisYesterday = aegisTrend.length >= 2 ? aegisTrend[aegisTrend.length - 2] : null;
 
   useEffect(() => {
     if (!user) return;
@@ -726,6 +730,12 @@ export default function Dashboard() {
         </div>
 
         <AssessmentCTA />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-1">
+            <AegisHealthCard score={aegisScore} previous={aegisYesterday} isLoading={aegisLoading} />
+          </div>
+        </div>
 
         <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-3" variants={kpiContainer} initial="initial" animate="animate">
           <motion.div variants={kpiItem}>
