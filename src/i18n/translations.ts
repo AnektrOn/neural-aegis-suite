@@ -627,6 +627,25 @@ export const translations = {
   "aegis.dimRelation": { fr: "Relations", en: "Relations" },
   "aegis.dimRegularity": { fr: "Régularité", en: "Regularity" },
   "aegis.dimArchetype": { fr: "Cohérence archétype", en: "Archetype coherence" },
+
+  // Profile evolution / snapshots
+  "profile.evolutionTitle": { fr: "Évolution de mon profil", en: "Profile Evolution" },
+  "profile.loadingEvolution": { fr: "Chargement de l'historique…", en: "Loading history…" },
+  "profile.evolutionLatest": { fr: "actuel", en: "current" },
+  "profile.evolutionTopArchetypes": { fr: "Top archétypes", en: "Top archetypes" },
+  "profile.evolutionVsLatest": { fr: "Comparaison avec ton profil actuel", en: "Comparison with your current profile" },
+  "profile.evolutionComparing": { fr: "Calcul des évolutions…", en: "Computing deltas…" },
+  "profile.evolutionTopGain": { fr: "Tu as progressé sur {name} ({delta} pts) depuis cette évaluation.", en: "You've grown on {name} ({delta} pts) since that assessment." },
+  "profile.evolutionTopLoss": { fr: "Recul sur {name} ({delta} pts) depuis cette évaluation.", en: "Decline on {name} ({delta} pts) since that assessment." },
+
+  // Admin snapshots tab
+  "admin.snapshots.tabAnalysis": { fr: "Analyse", en: "Analysis" },
+  "admin.snapshots.tabHistory": { fr: "Historique des versions", en: "Version history" },
+  "admin.snapshots.empty": { fr: "Aucun instantané pour cet utilisateur.", en: "No snapshot for this user." },
+  "admin.snapshots.pickA": { fr: "Version A", en: "Version A" },
+  "admin.snapshots.pickB": { fr: "Version B", en: "Version B" },
+  "admin.snapshots.compare": { fr: "Comparer", en: "Compare" },
+  "admin.snapshots.delta": { fr: "Évolution par archétype", en: "Delta per archetype" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
