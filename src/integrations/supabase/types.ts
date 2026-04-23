@@ -186,6 +186,7 @@ export type Database = {
       appendix_questions: {
         Row: {
           category_id: string
+          context_tags: string[]
           created_at: string
           dimension: string | null
           helper_en: string | null
@@ -200,6 +201,7 @@ export type Database = {
         }
         Insert: {
           category_id: string
+          context_tags?: string[]
           created_at?: string
           dimension?: string | null
           helper_en?: string | null
@@ -214,6 +216,7 @@ export type Database = {
         }
         Update: {
           category_id?: string
+          context_tags?: string[]
           created_at?: string
           dimension?: string | null
           helper_en?: string | null
@@ -243,6 +246,7 @@ export type Database = {
           numeric_value: number | null
           question_id: string
           raw_payload: Json
+          score_version: number
           selected_option_ids: string[]
           session_id: string | null
           text_value: string | null
@@ -255,6 +259,7 @@ export type Database = {
           numeric_value?: number | null
           question_id: string
           raw_payload?: Json
+          score_version?: number
           selected_option_ids?: string[]
           session_id?: string | null
           text_value?: string | null
@@ -267,6 +272,7 @@ export type Database = {
           numeric_value?: number | null
           question_id?: string
           raw_payload?: Json
+          score_version?: number
           selected_option_ids?: string[]
           session_id?: string | null
           text_value?: string | null
@@ -1578,7 +1584,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      archetype_scores_by_user: {
+        Row: {
+          archetype_weights: Json | null
+          created_at: string | null
+          option_id: string | null
+          question_id: string | null
+          response_id: string | null
+          session_id: string | null
+          shadow_weights: Json | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appendix_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "appendix_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appendix_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
@@ -1597,6 +1630,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      refresh_archetype_scores_by_user: { Args: never; Returns: undefined }
       send_admin_push: {
         Args: {
           p_message: string
