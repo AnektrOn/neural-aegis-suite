@@ -610,6 +610,23 @@ export const translations = {
   "appendix.resume": { fr: "Reprendre le questionnaire", en: "Resume questionnaire" },
   "appendix.shortTextPlaceholder": { fr: "Votre réponse…", en: "Your answer…" },
   "appendix.likertHint": { fr: "Glissez pour évaluer (0 = pas du tout, 10 = totalement)", en: "Drag to rate (0 = not at all, 10 = totally)" },
+
+  // AEGIS Health Score
+  "aegis.title": { fr: "Score AEGIS", en: "AEGIS Score" },
+  "aegis.profileTitle": { fr: "Mon score AEGIS", en: "My AEGIS Score" },
+  "aegis.computing": { fr: "Calcul du score…", en: "Computing score…" },
+  "aegis.vsYesterday": { fr: "vs hier", en: "vs yesterday" },
+  "aegis.explainer": {
+    fr: "Ce score reflète la régularité et la qualité de tes pratiques.",
+    en: "This score reflects the regularity and quality of your practices.",
+  },
+  "aegis.dimMood": { fr: "Humeur", en: "Mood" },
+  "aegis.dimDecision": { fr: "Décisions", en: "Decisions" },
+  "aegis.dimHabit": { fr: "Habitudes", en: "Habits" },
+  "aegis.dimJournal": { fr: "Journal", en: "Journal" },
+  "aegis.dimRelation": { fr: "Relations", en: "Relations" },
+  "aegis.dimRegularity": { fr: "Régularité", en: "Regularity" },
+  "aegis.dimArchetype": { fr: "Cohérence archétype", en: "Archetype coherence" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
