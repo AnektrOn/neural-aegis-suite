@@ -254,6 +254,11 @@ export async function submitAppendixResponses(opts: {
 
   // 4. Recompute analysis on the full set
   const analysis = buildAnalysisResult(allQuestions, allResponses);
+  const confidence = computeCompletionConfidence(allQuestions.length, allResponses);
+  const consistency = detectConsistencyWarning(
+    analysis.normalizedScores,
+    analysis.shadowSignals
+  );
 
   // 5. Upsert archetype_scores
   const scoreRows = analysis.rankedScores.map((s) => ({
@@ -291,6 +296,26 @@ export async function submitAppendixResponses(opts: {
       { onConflict: "session_id" }
     );
   if (aErr) throw aErr;
+
+  // 7. Refresh confidence + consistency on the session
+  const { data: prevSession } = await supabase
+    .from("assessment_sessions" as any)
+    .select("client_meta")
+    .eq("id", sessionId)
+    .maybeSingle();
+  const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
+  const nextMeta: Record<string, any> = { ...prevMeta };
+  if (consistency) {
+    nextMeta.consistency_warning = true;
+    nextMeta.conflicting_pair = consistency.conflicting_pair;
+  } else {
+    delete nextMeta.consistency_warning;
+    delete nextMeta.conflicting_pair;
+  }
+  await supabase
+    .from("assessment_sessions" as any)
+    .update({ confidence_score: confidence, client_meta: nextMeta })
+    .eq("id", sessionId);
 }
 
 /* -------------------------------------------------------------------------- */
