@@ -21,6 +21,9 @@ import { AssessmentCTA } from "@/features/archetype-assessment/components/Assess
 import { AegisHealthCard } from "@/components/AegisHealthCard";
 import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
 import { MoodDecisionInsightCard } from "@/components/MoodDecisionInsightCard";
+import { WelcomeExperience, SetupProgressBanner, WELCOME_DISMISSED_KEY } from "@/components/WelcomeExperience";
+import { PostAssessmentBanner } from "@/components/PostAssessmentBanner";
+import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMaturity";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
