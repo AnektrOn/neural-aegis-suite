@@ -115,6 +115,47 @@ export default function AssessmentResults() {
         </p>
       </header>
 
+      {lowConfidence && (
+        <Alert className="border-amber-500/40 bg-amber-500/5">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="text-sm">
+            {isFR
+              ? "Ton profil est partiel. Réponds à plus de questions pour affiner tes archétypes."
+              : "Your profile is partial. Answer more questions to refine your archetypes."}
+            <span className="ml-2 text-muted-foreground">
+              ({Math.round(confidence)}%)
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {consistencyWarning && (
+        <TooltipProvider>
+          <Alert className="border-primary/30 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm flex items-center gap-2 flex-wrap">
+              <span>
+                {isFR
+                  ? "Certaines réponses semblent contradictoires — explore cette tension, elle est souvent révélatrice."
+                  : "Some responses seem contradictory — explore this tension, it is often revealing."}
+              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="cursor-help text-xs">
+                    {consistencyWarning.join(" ↔ ")}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isFR
+                    ? "Polarité détectée entre ces deux signaux."
+                    : "Polarity detected between these two signals."}
+                </TooltipContent>
+              </Tooltip>
+            </AlertDescription>
+          </Alert>
+        </TooltipProvider>
+      )}
+
       {/* Top 3 cards */}
       <div className="grid sm:grid-cols-3 gap-4">
         {top.map((k, idx) => {
@@ -148,7 +189,7 @@ export default function AssessmentResults() {
             <RadarChart data={radarData}>
               <PolarGrid />
               <PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+              <PolarRadiusAxis domain={[0, radarMax]} tick={{ fontSize: 10 }} />
               <Radar
                 name="Score"
                 dataKey="score"
