@@ -221,7 +221,24 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
+                {userData.alertCounts.total > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/admin/alerts", { state: { userId: userData.id } })}
+                    title={t("users.col.alerts")}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-medium tabular-nums ${
+                      userData.alertCounts.critical > 0
+                        ? "border-destructive/30 bg-destructive/10 text-destructive"
+                        : userData.alertCounts.high > 0
+                        ? "border-orange-500/30 bg-orange-500/10 text-orange-500"
+                        : "border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
+                    }`}
+                  >
+                    <AlertTriangle size={12} />
+                    {userData.alertCounts.total}
+                  </button>
+                )}
                 <button onClick={() => toggleAdmin(userData.id, userData.isAdmin)}
                   className={`p-2 rounded-lg border transition-all ${userData.isAdmin ? "border-neural-accent/30 text-neural-accent" : "border-border/30 text-muted-foreground hover:border-neural-accent/30 hover:text-neural-accent"}`}
                   title={userData.isAdmin ? t("users.removeAdmin") : t("users.makeAdmin")}>
