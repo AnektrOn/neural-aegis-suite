@@ -502,6 +502,18 @@ export async function submitSession(opts: {
 
   void refreshArchetypeScoresView();
 
+  // Append-only profile snapshot (core assessment submission)
+  try {
+    await createSnapshot({
+      userId,
+      sessionId,
+      triggerEvent: "core_assessment",
+      analysisResult: analysis,
+    });
+  } catch (e) {
+    console.warn("createSnapshot (core_assessment) failed", e);
+  }
+
   return { analysis };
 }
 
