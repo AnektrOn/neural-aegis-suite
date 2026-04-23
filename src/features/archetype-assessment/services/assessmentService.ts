@@ -336,6 +336,18 @@ export async function submitAppendixResponses(opts: {
     .eq("id", sessionId);
 
   void refreshArchetypeScoresView();
+
+  // Append-only profile snapshot (appendix completion)
+  try {
+    await createSnapshot({
+      userId,
+      sessionId,
+      triggerEvent: "appendix_completed",
+      analysisResult: analysis,
+    });
+  } catch (e) {
+    console.warn("createSnapshot (appendix_completed) failed", e);
+  }
 }
 
 /* -------------------------------------------------------------------------- */
