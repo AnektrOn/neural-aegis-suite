@@ -676,8 +676,14 @@ function AssessmentDetail({
               className="text-sm"
             />
           </div>
-        </Card>
-      </div>
+          </Card>
+        </div>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-0">
+          <AdminSnapshotHistoryTab userId={session.user_id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
