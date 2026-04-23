@@ -756,6 +756,11 @@ export const translations = {
     en: "AEGIS now starts personalizing your experience based on your {archetype} profile.",
   },
   "postAssessment.discover": { fr: "Découvrir", en: "Discover" },
+
+  "dashboard.weekInOneSentence": {
+    fr: "Cette semaine en une phrase",
+    en: "This week in one sentence",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
