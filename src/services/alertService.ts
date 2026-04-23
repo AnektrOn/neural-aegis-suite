@@ -155,9 +155,9 @@ export async function getActiveAlertCountsByUser(
           low: 0,
           total: 0,
         };
-      if (r.severity in cur) {
-        // @ts-expect-error indexed
-        cur[r.severity] += 1;
+      const sev = r.severity as keyof typeof cur;
+      if (sev === "critical" || sev === "high" || sev === "medium" || sev === "low") {
+        cur[sev] += 1;
       }
       cur.total += 1;
       map.set(r.user_id, cur);
