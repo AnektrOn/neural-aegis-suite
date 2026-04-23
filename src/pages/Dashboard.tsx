@@ -18,6 +18,8 @@ import HabitsMiniCard from "@/components/HabitsMiniCard";
 import DashboardHero from "@/components/DashboardHero";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
+import { AegisHealthCard } from "@/components/AegisHealthCard";
+import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
