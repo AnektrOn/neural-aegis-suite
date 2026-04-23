@@ -475,6 +475,48 @@ export async function submitSession(opts: {
 /* Read helpers (results page + admin)                                        */
 /* -------------------------------------------------------------------------- */
 
+/** Returns the previous submitted session (the one just before the latest), if any. */
+export async function getPreviousSubmittedSessionForUser(
+  userId: string,
+  excludeSessionId?: string
+) {
+  let query = supabase
+    .from("assessment_sessions" as any)
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "submitted")
+    .order("submitted_at", { ascending: false })
+    .limit(2);
+  const { data, error } = await query;
+  if (error) throw error;
+  const rows = (data as any[]) ?? [];
+  const filtered = excludeSessionId
+    ? rows.filter((r) => r.id !== excludeSessionId)
+    : rows.slice(1);
+  return (filtered[0] as any) ?? null;
+}
+
+/** Fetch normalized archetype scores for a given session (for comparisons). */
+export async function getSessionArchetypeScores(sessionId: string) {
+  const { data, error } = await supabase
+    .from("archetype_scores" as any)
+    .select("archetype_key, normalized_score, rank")
+    .eq("session_id", sessionId);
+  if (error) throw error;
+  return (data as any[]) ?? [];
+}
+
+/** Fetch shadow signals (0..1) from analysis_results for a session. */
+export async function getSessionShadowSignals(sessionId: string) {
+  const { data, error } = await supabase
+    .from("analysis_results" as any)
+    .select("shadow_signals")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  if (error) throw error;
+  return ((data as any)?.shadow_signals ?? {}) as Record<string, number>;
+}
+
 export async function getLatestSubmittedSessionForUser(userId: string) {
   const { data, error } = await supabase
     .from("assessment_sessions" as any)
