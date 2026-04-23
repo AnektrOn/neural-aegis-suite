@@ -82,6 +82,36 @@ export default function Dashboard() {
   const { score: aegisScore, trend: aegisTrend, isLoading: aegisLoading } = useAegisHealthScore(user?.id);
   const aegisYesterday = aegisTrend.length >= 2 ? aegisTrend[aegisTrend.length - 2] : null;
 
+  // ── First-time user "Aha Moment" experience ───────────────────────────────
+  const [maturity, setMaturity] = useState<UserMaturityProfile | null>(null);
+  const [welcomeDismissed, setWelcomeDismissed] = useState<boolean>(() => {
+    try { return localStorage.getItem(WELCOME_DISMISSED_KEY) === "1"; } catch { return false; }
+  });
+  const [showPostAssessment, setShowPostAssessment] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    getUserMaturityProfile(user.id)
+      .then((m) => { if (alive) setMaturity(m); })
+      .catch((e) => console.error("maturity load error", e));
+    return () => { alive = false; };
+  }, [user]);
+
+  // Detect ?welcome=post_assessment URL param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("welcome") === "post_assessment") {
+      setShowPostAssessment(true);
+      params.delete("welcome");
+      const next = params.toString();
+      navigate({ pathname: location.pathname, search: next ? `?${next}` : "" }, { replace: true });
+    }
+  }, [location.search, location.pathname, navigate]);
+
+  const showWelcome = !!maturity && maturity.level === "new" && !welcomeDismissed;
+  const showSetupBanner = !!maturity && maturity.level === "emerging";
+
   useEffect(() => {
     if (!user) return;
     if (isMobile) {
