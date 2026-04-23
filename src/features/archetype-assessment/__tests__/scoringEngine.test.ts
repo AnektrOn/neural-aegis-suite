@@ -84,11 +84,13 @@ describe("computeRawScores", () => {
 });
 
 describe("normalizeScores", () => {
-  it("scales max to 1 and proportional values below", () => {
+  it("scales values proportionally so the total sums to 100", () => {
     const out = normalizeScores({ a: 2, b: 4, c: 1 });
-    expect(out.b).toBe(1);
-    expect(out.a).toBe(0.5);
-    expect(out.c).toBe(0.25);
+    const total = out.a + out.b + out.c;
+    expect(total).toBeCloseTo(100);
+    expect(out.b).toBeCloseTo((4 / 7) * 100);
+    expect(out.a).toBeCloseTo((2 / 7) * 100);
+    expect(out.c).toBeCloseTo((1 / 7) * 100);
   });
   it("returns zeros when all inputs are 0", () => {
     const out = normalizeScores({ a: 0, b: 0 });
