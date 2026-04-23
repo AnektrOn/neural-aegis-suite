@@ -340,6 +340,13 @@ export async function submitSession(opts: {
   const analysis = buildAnalysisResult(questions, responses);
   const recos = selectTopTools(analysis, { limit: 6, lang: "fr" });
 
+  // 2bis. Confidence + consistency
+  const confidence = computeCompletionConfidence(questions.length, responses);
+  const consistency = detectConsistencyWarning(
+    analysis.normalizedScores,
+    analysis.shadowSignals
+  );
+
   // 3. Persist scores
   const scoreRows = analysis.rankedScores.map((s) => ({
     session_id: sessionId,
@@ -406,7 +413,23 @@ export async function submitSession(opts: {
     if (rcErr) throw rcErr;
   }
 
-  // 6. Mark session submitted
+  // 6. Read existing client_meta then merge consistency flag
+  const { data: prevSession } = await supabase
+    .from("assessment_sessions" as any)
+    .select("client_meta")
+    .eq("id", sessionId)
+    .maybeSingle();
+  const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
+  const nextMeta: Record<string, any> = { ...prevMeta };
+  if (consistency) {
+    nextMeta.consistency_warning = true;
+    nextMeta.conflicting_pair = consistency.conflicting_pair;
+  } else {
+    delete nextMeta.consistency_warning;
+    delete nextMeta.conflicting_pair;
+  }
+
+  // 7. Mark session submitted (+ confidence + meta)
   const duration = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
   const { error: upErr } = await supabase
     .from("assessment_sessions" as any)
@@ -414,6 +437,8 @@ export async function submitSession(opts: {
       status: "submitted",
       submitted_at: new Date().toISOString(),
       duration_seconds: duration,
+      confidence_score: confidence,
+      client_meta: nextMeta,
     })
     .eq("id", sessionId);
   if (upErr) throw upErr;
