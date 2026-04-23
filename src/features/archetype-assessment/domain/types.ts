@@ -1,52 +1,58 @@
 /**
  * Archetype Assessment — domain types
  * Pure types, no runtime deps. Used by engines, services, UI.
+ *
+ * Aligned with Caroline Myss' 12 universal archetypes and 4 universal shadows
+ * (the "Survival archetypes"). Keys MUST match what is stored in the SQL
+ * options/scores tables (archetype_weights, shadow_weights, archetype_key).
  */
 
 export type ArchetypeKey =
-  | "advocate"
-  | "artist"
-  | "athlete"
-  | "caregiver"
-  | "intellectual"
-  | "queen"
-  | "rebel"
-  | "spiritual_seeker"
-  | "visionary"
-  | "student"
-  | "healer"
-  | "networker";
-
-export type ArchetypeFamily =
-  | "guardian"
-  | "creator"
+  | "sage"
   | "warrior"
-  | "nurturer"
-  | "thinker"
-  | "leader"
-  | "disruptor"
-  | "seeker"
-  | "innovator"
-  | "learner"
-  | "restorer"
-  | "connector";
+  | "lover"
+  | "sovereign"
+  | "magician"
+  | "healer"
+  | "creator"
+  | "rebel"
+  | "caregiver"
+  | "explorer"
+  | "mystic"
+  | "jester";
 
-export type DimensionKey =
-  | "learning_style"
-  | "relational_style"
-  | "activation_style"
-  | "regulation_need"
-  | "self_trust"
-  | "expression_need"
-  | "structure_need";
+/**
+ * UI-only grouping. Not persisted in DB. Free to evolve without migrations.
+ */
+export type ArchetypeFamily =
+  | "wisdom"
+  | "action"
+  | "relation"
+  | "leadership"
+  | "transformation"
+  | "expression";
 
+/**
+ * Free-form string: dimensions used in seed data are documented in
+ * `questions.ts` but not constrained at the type level so the BDD can grow
+ * (leadership_style, decision_making, power_sources, conflict_style,
+ * leadership_confidence, shadow_strategy, power_leaks, boundaries,
+ * relational_focus, purpose, legacy_focus, intuition_channel,
+ * mystic_orientation, change_reaction, risk_trust, self_sabotage,
+ * inner_practices, sacred_view, …).
+ */
+export type DimensionKey = string;
+
+/**
+ * Caroline Myss' 4 universal "Survival" shadow archetypes that everyone
+ * carries. Anything else (perfectionism, withdrawal, …) is expressed as a
+ * variant or intensity inside one of these 4 buckets.
+ */
 export type ShadowKey =
   | "control"
-  | "withdrawal"
-  | "people_pleasing"
-  | "self_doubt"
-  | "perfectionism"
-  | "avoidance";
+  | "victim"
+  | "prostitute"
+  | "saboteur";
 
 export type QuestionType =
   | "single_choice"
@@ -97,7 +103,7 @@ export interface QuestionSeed {
   helper_en?: string;
   dimension?: DimensionKey;
   isRequired?: boolean;
-  /** When true, question belongs to the optional appendix module (positions 34-100). */
+  /** When true, question belongs to the optional appendix module. */
   isAppendix?: boolean;
   meta?: Record<string, unknown>;
   options?: OptionSeed[];
@@ -110,7 +116,7 @@ export interface ToolSeed {
   title_en: string;
   duration_fr: string;
   duration_en: string;
-  /** Maps to an existing Toolbox widget when present (BreathworkWidget, BodyScanWidget, ...). */
+  /** Maps to an existing Toolbox widget when present. */
   widgetKey?: string;
   /** Archetypes this tool primarily serves. */
   archetypes: ArchetypeKey[];
