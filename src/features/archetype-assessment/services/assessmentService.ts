@@ -12,6 +12,7 @@ import {
   detectConsistencyWarning,
 } from "../domain/scoringEngine";
 import { selectTopTools } from "../domain/recommendationEngine";
+import { createSnapshot } from "./snapshotService";
 import type {
   AnalysisResult,
   ArchetypeKey,
