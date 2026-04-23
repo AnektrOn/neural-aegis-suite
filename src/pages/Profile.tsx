@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { User, Save, Download, FileText, Smartphone, Camera, Loader2 } from "lucide-react";
+import { User, Save, Download, FileText, Smartphone, Camera, Loader2, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { AppendixModal } from "@/features/appendix/AppendixModal";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ export default function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [appendixOpen, setAppendixOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -243,6 +245,20 @@ export default function Profile() {
         </button>
       </motion.div>
 
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="ethereal-glass p-8">
+        <div className="flex items-center gap-3 mb-4">
+          <ClipboardList size={18} strokeWidth={1.5} className="text-primary" />
+          <p className="text-neural-label">{t("appendix.title")}</p>
+        </div>
+        <p className="text-sm text-muted-foreground mb-6">
+          {t("appendix.description")}
+        </p>
+        <button onClick={() => setAppendixOpen(true)} className="btn-neural w-full">
+          <ClipboardList size={14} />
+          {t("appendix.cta")}
+        </button>
+      </motion.div>
+
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="ethereal-glass p-8">
         <div className="flex items-center gap-3 mb-4">
           <Smartphone size={18} strokeWidth={1.5} className="text-primary" />
@@ -256,6 +272,8 @@ export default function Profile() {
           {t("install.title")}
         </button>
       </motion.div>
+
+      <AppendixModal open={appendixOpen} onOpenChange={setAppendixOpen} />
     </div>
   );
 }
