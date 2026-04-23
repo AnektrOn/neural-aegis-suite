@@ -406,6 +406,11 @@ export default function Dashboard() {
           </motion.div>
         )}
 
+        {/* Archetype Assessment CTA (mobile) */}
+        <motion.div {...fadeUp(0.03)}>
+          <AssessmentCTA />
+        </motion.div>
+
         {/* 3 KPI pills */}
         {loading ? (
           <div className="grid grid-cols-3 gap-2">
