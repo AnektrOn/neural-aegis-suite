@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Search, Shield, ShieldCheck, Headphones, Eye, Ban, CheckCircle, Building2 } from "lucide-react";
+import { Users, Search, Shield, ShieldCheck, Headphones, Eye, Ban, CheckCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useNavigate } from "react-router-dom";
+import { getActiveAlertCountsByUser } from "@/services/alertService";
 import CSVImport from "@/components/admin/CSVImport";
 import CreateUserForm from "@/components/admin/CreateUserForm";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
@@ -22,6 +24,7 @@ interface UserData {
   toolboxCount: number;
   moodCount: number;
   lastSeen: string | null;
+  alertCounts: { critical: number; high: number; medium: number; low: number; total: number };
 }
 
 interface Company {
@@ -34,6 +37,7 @@ export default function UserManagement() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserData[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [search, setSearch] = useState("");
@@ -65,6 +69,11 @@ export default function UserManagement() {
     const recentSessions = (sessionsRes.data || []) as any[];
     setCompanies((companiesRes.data || []) as any);
 
+    const profileIds = (profilesRes.data || []).map((p: any) => p.id);
+    const alertCountsMap = await getActiveAlertCountsByUser(profileIds).catch(
+      () => new Map<string, { critical: number; high: number; medium: number; low: number; total: number }>(),
+    );
+
     const userData: UserData[] = (profilesRes.data || []).map((p: any) => ({
       id: p.id, display_name: p.display_name, created_at: p.created_at,
       is_disabled: p.is_disabled || false, company_id: p.company_id || null, country: p.country || null,
@@ -75,6 +84,7 @@ export default function UserManagement() {
       moodCount: moods.filter((m: any) => m.user_id === p.id).length,
       lastSeen: recentSessions
         .filter((s: any) => s.user_id === p.id)[0]?.started_at ?? null,
+      alertCounts: alertCountsMap.get(p.id) ?? { critical: 0, high: 0, medium: 0, low: 0, total: 0 },
     }));
 
     setUsers(userData);
