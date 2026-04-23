@@ -272,7 +272,7 @@ export const QUESTIONS: QuestionSeed[] = [
       { position: 4, value: 4 / 7, label_fr: "4", shadowWeights: { control: 1 }, label_en: "4" },
       { position: 5, value: 5 / 7, label_fr: "5", shadowWeights: { control: 2 }, label_en: "5" },
       { position: 6, value: 6 / 7, label_fr: "6", shadowWeights: { control: 2 }, label_en: "6" },
-      { position: 7, value: 1, label_fr: "7", shadowWeights: { control: 3, control: 1 }, label_en: "7" },
+      { position: 7, value: 1, label_fr: "7", shadowWeights: { control: 4 }, label_en: "7" },
     ],
   },
   {
@@ -546,7 +546,7 @@ export const QUESTIONS: QuestionSeed[] = [
     prompt_fr: "Le pouvoir, pour vous, sert avant tout à…",
     prompt_en: "Power, for you, mainly serves to…",
     options: [
-      { position: 1, label_fr: "Protéger les plus fragiles", label_en: "Protect the most fragile", archetypeWeights: { caregiver: 2, caregiver: 2 } },
+      { position: 1, label_fr: "Protéger les plus fragiles", label_en: "Protect the most fragile", archetypeWeights: { caregiver: 4 } },
       { position: 2, label_fr: "Construire une vision long terme", label_en: "Build a long-term vision", archetypeWeights: { sovereign: 2, magician: 2 } },
       { position: 3, label_fr: "Briser des règles injustes", label_en: "Break unjust rules", archetypeWeights: { rebel: 3 } },
       { position: 4, label_fr: "Tisser des alliances durables", label_en: "Weave lasting alliances", archetypeWeights: { lover: 3 } },
@@ -997,7 +997,7 @@ export const QUESTIONS: QuestionSeed[] = [
     prompt_en: "Under high pressure, you risk… (up to 3)",
     meta: { maxSelect: 3 },
     options: [
-      { position: 1, label_fr: "Tout micro-manager", label_en: "Micro-managing everything", shadowWeights: { control: 2, control: 1 } },
+      { position: 1, label_fr: "Tout micro-manager", label_en: "Micro-managing everything", shadowWeights: { control: 3 } },
       { position: 2, label_fr: "Dire oui à tout", label_en: "Saying yes to everything", shadowWeights: { prostitute: 2 } },
       { position: 3, label_fr: "Disparaître émotionnellement", label_en: "Emotionally disappearing", shadowWeights: { victim: 2 } },
       { position: 4, label_fr: "Reporter sans cesse", label_en: "Endlessly postponing", shadowWeights: { saboteur: 2 } },
@@ -1028,7 +1028,7 @@ export const QUESTIONS: QuestionSeed[] = [
       { position: 3, label_fr: "Déléguer ce qui m'importe", label_en: "Delegating what matters to me", shadowWeights: { control: 2 } },
       { position: 4, label_fr: "Tenir le cap sur la durée", label_en: "Staying the course over time", archetypeWeights: { warrior: 1, sovereign: 1 } },
       { position: 5, label_fr: "Communiquer une mauvaise nouvelle", label_en: "Sharing bad news", shadowWeights: { saboteur: 2 } },
-      { position: 6, label_fr: "Recevoir une critique frontale", label_en: "Receiving frontal criticism", shadowWeights: { victim: 1, victim: 1 } },
+      { position: 6, label_fr: "Recevoir une critique frontale", label_en: "Receiving frontal criticism", shadowWeights: { victim: 2 } },
     ],
   },
   {
