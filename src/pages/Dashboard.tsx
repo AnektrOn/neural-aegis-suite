@@ -398,9 +398,26 @@ export default function Dashboard() {
   const mobileKpiChild = {
     initial: { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.28, ease: "easeOut" as const } },
-  };
 
-  // ─── Mobile layout ─────────────────────────────────────────────────────────
+  // Build narratives once — shared by mobile + desktop layouts.
+  const narrativeCtxShared: NarrativeContext = {
+    moodAvg: stats.moodAvg === "—" ? 0 : Number(stats.moodAvg) || 0,
+    moodDelta: digest ? (digest.moodTrend === "down" ? -digest.moodDelta : digest.moodDelta) : 0,
+    moodTrend: digest?.moodTrend ?? "stable",
+    openDecisions: Number(stats.openDecisions) || 0,
+    oldestDecisionDays,
+    habitRate: digest?.habitRate ?? 0,
+    streakDays: digest?.streakDays ?? 0,
+    journalCount: digest?.journalCount ?? 0,
+    contactsCount: Number(stats.contacts) || 0,
+    lastContactDays,
+    aegisScore: aegisScore?.overall_score ?? 0,
+    aegisScoreDelta:
+      aegisScore && aegisYesterday ? aegisScore.overall_score - aegisYesterday.overall_score : 0,
+  };
+  const narratives: KPINarrative[] = generateAllNarratives(narrativeCtxShared);
+  const highlight = pickHighlightNarrative(narratives);
+
   if (isMobile) {
     const completedHabits = mobileHabits.filter(h => h.completed).length;
     const hour = new Date().getHours();
