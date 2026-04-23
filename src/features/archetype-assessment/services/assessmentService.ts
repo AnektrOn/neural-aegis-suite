@@ -6,7 +6,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ARCHETYPES } from "../domain/archetypes";
 import { QUESTIONS } from "../domain/questions";
-import { buildAnalysisResult } from "../domain/scoringEngine";
+import {
+  buildAnalysisResult,
+  computeCompletionConfidence,
+  detectConsistencyWarning,
+} from "../domain/scoringEngine";
 import { selectTopTools } from "../domain/recommendationEngine";
 import type {
   AnalysisResult,
@@ -250,6 +254,11 @@ export async function submitAppendixResponses(opts: {
 
   // 4. Recompute analysis on the full set
   const analysis = buildAnalysisResult(allQuestions, allResponses);
+  const confidence = computeCompletionConfidence(allQuestions.length, allResponses);
+  const consistency = detectConsistencyWarning(
+    analysis.normalizedScores,
+    analysis.shadowSignals
+  );
 
   // 5. Upsert archetype_scores
   const scoreRows = analysis.rankedScores.map((s) => ({
@@ -287,6 +296,26 @@ export async function submitAppendixResponses(opts: {
       { onConflict: "session_id" }
     );
   if (aErr) throw aErr;
+
+  // 7. Refresh confidence + consistency on the session
+  const { data: prevSession } = await supabase
+    .from("assessment_sessions" as any)
+    .select("client_meta")
+    .eq("id", sessionId)
+    .maybeSingle();
+  const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
+  const nextMeta: Record<string, any> = { ...prevMeta };
+  if (consistency) {
+    nextMeta.consistency_warning = true;
+    nextMeta.conflicting_pair = consistency.conflicting_pair;
+  } else {
+    delete nextMeta.consistency_warning;
+    delete nextMeta.conflicting_pair;
+  }
+  await supabase
+    .from("assessment_sessions" as any)
+    .update({ confidence_score: confidence, client_meta: nextMeta })
+    .eq("id", sessionId);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -335,6 +364,13 @@ export async function submitSession(opts: {
   // 2. Compute analysis (pure)
   const analysis = buildAnalysisResult(questions, responses);
   const recos = selectTopTools(analysis, { limit: 6, lang: "fr" });
+
+  // 2bis. Confidence + consistency
+  const confidence = computeCompletionConfidence(questions.length, responses);
+  const consistency = detectConsistencyWarning(
+    analysis.normalizedScores,
+    analysis.shadowSignals
+  );
 
   // 3. Persist scores
   const scoreRows = analysis.rankedScores.map((s) => ({
@@ -402,7 +438,23 @@ export async function submitSession(opts: {
     if (rcErr) throw rcErr;
   }
 
-  // 6. Mark session submitted
+  // 6. Read existing client_meta then merge consistency flag
+  const { data: prevSession } = await supabase
+    .from("assessment_sessions" as any)
+    .select("client_meta")
+    .eq("id", sessionId)
+    .maybeSingle();
+  const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
+  const nextMeta: Record<string, any> = { ...prevMeta };
+  if (consistency) {
+    nextMeta.consistency_warning = true;
+    nextMeta.conflicting_pair = consistency.conflicting_pair;
+  } else {
+    delete nextMeta.consistency_warning;
+    delete nextMeta.conflicting_pair;
+  }
+
+  // 7. Mark session submitted (+ confidence + meta)
   const duration = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
   const { error: upErr } = await supabase
     .from("assessment_sessions" as any)
@@ -410,6 +462,8 @@ export async function submitSession(opts: {
       status: "submitted",
       submitted_at: new Date().toISOString(),
       duration_seconds: duration,
+      confidence_score: confidence,
+      client_meta: nextMeta,
     })
     .eq("id", sessionId);
   if (upErr) throw upErr;
