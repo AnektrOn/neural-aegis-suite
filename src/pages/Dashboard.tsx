@@ -731,6 +731,12 @@ export default function Dashboard() {
 
         <AssessmentCTA />
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-1">
+            <AegisHealthCard score={aegisScore} previous={aegisYesterday} isLoading={aegisLoading} />
+          </div>
+        </div>
+
         <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-3" variants={kpiContainer} initial="initial" animate="animate">
           <motion.div variants={kpiItem}>
             <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
