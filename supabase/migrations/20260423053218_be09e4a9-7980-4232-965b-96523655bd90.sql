@@ -1,0 +1,1 @@
+REVOKE ALL ON public.archetype_scores_by_user FROM anon, authenticated;
