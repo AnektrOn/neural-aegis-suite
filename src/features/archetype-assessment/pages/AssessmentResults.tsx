@@ -1,27 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, ArrowLeft, AlertTriangle, Info } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Loader2, Sparkles, ArrowLeft, AlertTriangle, Info, TrendingUp, Crown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-} from "recharts";
 import {
   archetypeMeta,
   getLatestSubmittedSessionForUser,
   getSessionFullDetails,
+  getPreviousSubmittedSessionForUser,
+  getSessionArchetypeScores,
 } from "../services/assessmentService";
 import type { ArchetypeKey } from "../domain/types";
+import { DualLayerRadar } from "../components/DualLayerRadar";
+
+const SHADOW_KEYS = ["control", "victim", "prostitute", "saboteur"] as const;
 
 export default function AssessmentResults() {
   const navigate = useNavigate();
@@ -31,6 +30,11 @@ export default function AssessmentResults() {
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Awaited<ReturnType<typeof getSessionFullDetails>> | null>(null);
+  const [previousSession, setPreviousSession] = useState<any | null>(null);
+  const [previousScores, setPreviousScores] = useState<
+    Array<{ archetype_key: string; normalized_score: number }> | null
+  >(null);
+  const [showPrevious, setShowPrevious] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -43,16 +47,66 @@ export default function AssessmentResults() {
           return;
         }
         const details = await getSessionFullDetails(session.id);
-        if (alive) {
-          setData(details);
-          setLoading(false);
+        if (!alive) return;
+        setData(details);
+
+        // Look up previous session for comparison.
+        const prev = await getPreviousSubmittedSessionForUser(user.id, session.id);
+        if (!alive) return;
+        if (prev) {
+          setPreviousSession(prev);
+          const prevScores = await getSessionArchetypeScores(prev.id);
+          if (alive) setPreviousScores(prevScores);
         }
+        setLoading(false);
       } catch {
         if (alive) setLoading(false);
       }
     })();
     return () => { alive = false; };
   }, [user]);
+
+  // --- Derived: dominant + growth archetype ---
+  const { dominantKey, growthKey } = useMemo(() => {
+    if (!data?.scores || !data?.analysis) return { dominantKey: null as ArchetypeKey | null, growthKey: null as ArchetypeKey | null };
+
+    const scores = data.scores as Array<{ archetype_key: string; normalized_score: number; rank: number }>;
+    const sorted = [...scores].sort((a, b) => Number(b.normalized_score) - Number(a.normalized_score));
+    const dominant = (sorted[0]?.archetype_key as ArchetypeKey) ?? null;
+
+    // Growth = archetype with biggest "shadow activation - light score" delta.
+    // Shadow signals are 0..1; map them onto archetypes via the shared lexicon
+    // (sovereign/control, victim/victim, lover&caregiver/prostitute, warrior/saboteur).
+    const shadow = (data.analysis as any).shadow_signals ?? {};
+    const lightOf = (k: string) =>
+      Number(scores.find((s) => s.archetype_key === k)?.normalized_score ?? 0);
+
+    // Map each shadow to candidate archetypes whose growth edge it represents.
+    const SHADOW_TO_ARCHETYPES: Record<string, ArchetypeKey[]> = {
+      control: ["sovereign", "magician"],
+      victim: ["healer", "rebel"],
+      prostitute: ["lover", "caregiver"],
+      saboteur: ["warrior", "creator"],
+    };
+
+    let bestKey: ArchetypeKey | null = null;
+    let bestDelta = -Infinity;
+    for (const sk of SHADOW_KEYS) {
+      const intensity = (Number(shadow[sk] ?? 0) || 0) * 100; // 0..100
+      const candidates = SHADOW_TO_ARCHETYPES[sk] ?? [];
+      for (const a of candidates) {
+        const delta = intensity - lightOf(a);
+        if (delta > bestDelta) {
+          bestDelta = delta;
+          bestKey = a;
+        }
+      }
+    }
+    // Only meaningful if shadow actually outweighs the light.
+    if (bestDelta <= 0) bestKey = null;
+
+    return { dominantKey: dominant, growthKey: bestKey };
+  }, [data]);
 
   if (loading) {
     return (
@@ -78,23 +132,20 @@ export default function AssessmentResults() {
   const { analysis, scores, recommendations, session } = data;
   const top: ArchetypeKey[] = analysis.top_archetypes ?? [];
 
-  // normalized_score is now expressed on a 0..100 sum-to-100 scale.
-  const radarData = (scores ?? []).map((s: any) => {
-    const meta = archetypeMeta(s.archetype_key);
-    return {
-      key: s.archetype_key,
-      name: isFR ? meta?.name_fr ?? s.archetype_key : meta?.name_en ?? s.archetype_key,
-      score: Math.round(Number(s.normalized_score ?? 0)),
-    };
-  });
-
-  const radarMax = Math.max(20, ...radarData.map((d) => d.score));
-
   const confidence = Number(session?.confidence_score ?? 0);
   const lowConfidence = confidence > 0 && confidence < 60;
   const sessionMeta = (session?.client_meta ?? {}) as Record<string, any>;
   const consistencyWarning = sessionMeta?.consistency_warning === true
     ? (sessionMeta?.conflicting_pair as string[] | undefined)
+    : null;
+
+  const dominantMeta = dominantKey ? archetypeMeta(dominantKey) : null;
+  const growthMeta = growthKey ? archetypeMeta(growthKey) : null;
+
+  const previousDate = previousSession?.submitted_at
+    ? new Date(previousSession.submitted_at).toLocaleDateString(isFR ? "fr-FR" : "en-US", {
+        day: "numeric", month: "short", year: "numeric",
+      })
     : null;
 
   return (
@@ -113,6 +164,34 @@ export default function AssessmentResults() {
         <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
           {isFR ? analysis.summary_fr : analysis.summary_en}
         </p>
+
+        {/* Profile summary badges */}
+        {(dominantMeta || growthMeta) && (
+          <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
+            {dominantMeta && (
+              <Badge
+                variant="default"
+                className="gap-1.5 px-3 py-1 text-xs"
+                style={{ background: dominantMeta.color, color: "hsl(var(--background))" }}
+              >
+                <Crown className="w-3 h-3" />
+                <span className="opacity-80">
+                  {isFR ? "Archétype dominant" : "Dominant archetype"} ·
+                </span>
+                <strong>{isFR ? dominantMeta.name_fr : dominantMeta.name_en}</strong>
+              </Badge>
+            )}
+            {growthMeta && (
+              <Badge variant="outline" className="gap-1.5 px-3 py-1 text-xs border-dashed">
+                <TrendingUp className="w-3 h-3" />
+                <span className="text-muted-foreground">
+                  {isFR ? "Archétype de croissance" : "Growth archetype"} ·
+                </span>
+                <strong>{isFR ? growthMeta.name_fr : growthMeta.name_en}</strong>
+              </Badge>
+            )}
+          </div>
+        )}
       </header>
 
       {lowConfidence && (
@@ -179,27 +258,41 @@ export default function AssessmentResults() {
         })}
       </div>
 
-      {/* Radar */}
+      {/* Dual-layer Radar */}
       <Card className="p-4 sm:p-6 backdrop-blur-3xl bg-card/40 border-border/40">
-        <h2 className="font-serif text-lg mb-3">
-          {isFR ? "Cartographie des 12 archétypes" : "12-archetype map"}
-        </h2>
-        <div className="w-full h-[360px]">
-          <ResponsiveContainer>
-            <RadarChart data={radarData}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <PolarRadiusAxis domain={[0, radarMax]} tick={{ fontSize: 10 }} />
-              <Radar
-                name="Score"
-                dataKey="score"
-                stroke="hsl(var(--primary))"
-                fill="hsl(var(--primary))"
-                fillOpacity={0.35}
+        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <h2 className="font-serif text-lg">
+            {isFR ? "Cartographie lumière & ombre" : "Light & shadow map"}
+          </h2>
+          {previousSession && (
+            <div className="flex items-center gap-2">
+              <Switch
+                id="compare-toggle"
+                checked={showPrevious}
+                onCheckedChange={setShowPrevious}
               />
-            </RadarChart>
-          </ResponsiveContainer>
+              <Label htmlFor="compare-toggle" className="text-xs cursor-pointer">
+                {isFR ? "Comparer à la session précédente" : "Compare with previous session"}
+              </Label>
+            </div>
+          )}
         </div>
+
+        <DualLayerRadar
+          isFR={isFR}
+          lightScores={scores ?? []}
+          shadowSignals={(analysis.shadow_signals ?? {}) as Record<string, number>}
+          previousLightScores={previousScores}
+          showPrevious={showPrevious}
+        />
+
+        {showPrevious && previousDate && (
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            {isFR
+              ? `Session actuelle vs ${previousDate}`
+              : `Current session vs ${previousDate}`}
+          </p>
+        )}
       </Card>
 
       {/* Strengths & Watchouts */}
