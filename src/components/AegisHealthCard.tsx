@@ -13,7 +13,7 @@ interface AegisHealthCardProps {
 
 const dims = (
   score: AegisHealthScore,
-): Array<{ key: string; labelKey: string; value: number }> => [
+): Array<{ key: string; labelKey: TranslationKey; value: number }> => [
   { key: "mood", labelKey: "aegis.dimMood", value: Number(score.mood_score) },
   { key: "decision", labelKey: "aegis.dimDecision", value: Number(score.decision_score) },
   { key: "habit", labelKey: "aegis.dimHabit", value: Number(score.habit_score) },
