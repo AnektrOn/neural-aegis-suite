@@ -103,6 +103,193 @@ export type Database = {
           },
         ]
       }
+      appendix_categories: {
+        Row: {
+          created_at: string
+          description_en: string | null
+          description_fr: string | null
+          id: string
+          is_active: boolean
+          label_en: string
+          label_fr: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          id?: string
+          is_active?: boolean
+          label_en: string
+          label_fr: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          id?: string
+          is_active?: boolean
+          label_en?: string
+          label_fr?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      appendix_options: {
+        Row: {
+          archetype_weights: Json
+          created_at: string
+          id: string
+          label_en: string
+          label_fr: string
+          position: number
+          question_id: string
+          shadow_weights: Json
+          value: number | null
+        }
+        Insert: {
+          archetype_weights?: Json
+          created_at?: string
+          id?: string
+          label_en: string
+          label_fr: string
+          position: number
+          question_id: string
+          shadow_weights?: Json
+          value?: number | null
+        }
+        Update: {
+          archetype_weights?: Json
+          created_at?: string
+          id?: string
+          label_en?: string
+          label_fr?: string
+          position?: number
+          question_id?: string
+          shadow_weights?: Json
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appendix_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "appendix_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appendix_questions: {
+        Row: {
+          category_id: string
+          created_at: string
+          dimension: string | null
+          helper_en: string | null
+          helper_fr: string | null
+          id: string
+          is_required: boolean
+          meta: Json
+          position: number
+          prompt_en: string
+          prompt_fr: string
+          question_type: Database["public"]["Enums"]["assessment_question_type"]
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          dimension?: string | null
+          helper_en?: string | null
+          helper_fr?: string | null
+          id?: string
+          is_required?: boolean
+          meta?: Json
+          position: number
+          prompt_en: string
+          prompt_fr: string
+          question_type: Database["public"]["Enums"]["assessment_question_type"]
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          dimension?: string | null
+          helper_en?: string | null
+          helper_fr?: string | null
+          id?: string
+          is_required?: boolean
+          meta?: Json
+          position?: number
+          prompt_en?: string
+          prompt_fr?: string
+          question_type?: Database["public"]["Enums"]["assessment_question_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appendix_questions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "appendix_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appendix_responses: {
+        Row: {
+          created_at: string
+          id: string
+          numeric_value: number | null
+          question_id: string
+          raw_payload: Json
+          selected_option_ids: string[]
+          session_id: string | null
+          text_value: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          numeric_value?: number | null
+          question_id: string
+          raw_payload?: Json
+          selected_option_ids?: string[]
+          session_id?: string | null
+          text_value?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          numeric_value?: number | null
+          question_id?: string
+          raw_payload?: Json
+          selected_option_ids?: string[]
+          session_id?: string | null
+          text_value?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appendix_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "appendix_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appendix_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       archetype_scores: {
         Row: {
           archetype_key: string
