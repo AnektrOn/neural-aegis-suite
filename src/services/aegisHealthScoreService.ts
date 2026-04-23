@@ -85,14 +85,14 @@ export async function computeDailyHealthScore(
       .maybeSingle(),
   ]);
 
-  const moods = (moodRes.data as Array<{ value: number; logged_at: string }> | null) ?? [];
-  const decisions = (decisionsRes.data as Array<{ status: string }> | null) ?? [];
-  const assignedHabits = (assignedHabitsRes.data as Array<{ id: string }> | null) ?? [];
-  const completionsToday = (completionsTodayRes.data as Array<{ assigned_habit_id: string }> | null) ?? [];
-  const journals = (journalRes.data as Array<{ created_at: string }> | null) ?? [];
-  const contactLogs = (contactsRes.data as Array<{ updated_at: string }> | null) ?? [];
-  const relationLogs = (relationHistoryRes.data as Array<{ recorded_at: string }> | null) ?? [];
-  const yesterday = (yesterdayScoreRes.data as AegisHealthScore | null) ?? null;
+  const moods = ((moodRes.data as unknown) as Array<{ value: number; logged_at: string }> | null) ?? [];
+  const decisions = ((decisionsRes.data as unknown) as Array<{ status: string }> | null) ?? [];
+  const assignedHabits = ((assignedHabitsRes.data as unknown) as Array<{ id: string }> | null) ?? [];
+  const completionsToday = ((completionsTodayRes.data as unknown) as Array<{ assigned_habit_id: string }> | null) ?? [];
+  const journals = ((journalRes.data as unknown) as Array<{ created_at: string }> | null) ?? [];
+  const contactLogs = ((contactsRes.data as unknown) as Array<{ updated_at: string }> | null) ?? [];
+  const relationLogs = ((relationHistoryRes.data as unknown) as Array<{ recorded_at: string }> | null) ?? [];
+  const yesterday = ((yesterdayScoreRes.data as unknown) as AegisHealthScore | null) ?? null;
 
   // ── Mood: average mood_value scaled 0-100 (mood is 1-10) ──
   const moodScore = moods.length > 0
