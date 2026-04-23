@@ -398,6 +398,7 @@ export default function Dashboard() {
   const mobileKpiChild = {
     initial: { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.28, ease: "easeOut" as const } },
+  };
 
   // Build narratives once — shared by mobile + desktop layouts.
   const narrativeCtxShared: NarrativeContext = {
@@ -418,6 +419,7 @@ export default function Dashboard() {
   const narratives: KPINarrative[] = generateAllNarratives(narrativeCtxShared);
   const highlight = pickHighlightNarrative(narratives);
 
+  // ─── Mobile layout ─────────────────────────────────────────────────────────
   if (isMobile) {
     const completedHabits = mobileHabits.filter(h => h.completed).length;
     const hour = new Date().getHours();
