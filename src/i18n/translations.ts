@@ -591,6 +591,25 @@ export const translations = {
   "install.onboardingTitle": { fr: "Installez Aegis sur votre mobile", en: "Install Aegis on your phone" },
   "install.onboardingDesc": { fr: "Accédez à Aegis en un tap depuis votre écran d'accueil.", en: "Access Aegis with one tap from your home screen." },
   "install.onboardingDetail": { fr: "Sur iPhone : Safari → Partager → « Sur l'écran d'accueil ». Sur Android : Chrome → menu ⋮ → « Ajouter à l'écran d'accueil ». L'app s'ouvre ensuite en plein écran.", en: "On iPhone: Safari → Share → \"Add to Home Screen\". On Android: Chrome → ⋮ menu → \"Add to Home Screen\". The app then opens in full screen." },
+
+  // Appendix
+  "appendix.title": { fr: "Questionnaire approfondi", en: "Deep questionnaire" },
+  "appendix.subtitle": { fr: "70 questions pour affiner votre profil d'archétype", en: "70 questions to refine your archetype profile" },
+  "appendix.cta": { fr: "Compléter le questionnaire approfondi", en: "Complete the deep questionnaire" },
+  "appendix.description": { fr: "Un questionnaire en 6 thématiques (leadership, ombre, relations, sens, intuition, changement). Vos réponses sont sauvegardées automatiquement — vous pouvez reprendre à tout moment.", en: "A questionnaire across 6 themes (leadership, shadow, relations, purpose, intuition, change). Your answers are saved automatically — you can resume anytime." },
+  "appendix.progress": { fr: "{n} / {total} répondues", en: "{n} / {total} answered" },
+  "appendix.next": { fr: "Suivant", en: "Next" },
+  "appendix.previous": { fr: "Précédent", en: "Previous" },
+  "appendix.close": { fr: "Fermer", en: "Close" },
+  "appendix.saved": { fr: "Réponse enregistrée", en: "Answer saved" },
+  "appendix.saveError": { fr: "Erreur lors de l'enregistrement", en: "Error saving" },
+  "appendix.loading": { fr: "Chargement…", en: "Loading…" },
+  "appendix.continue": { fr: "Continuer", en: "Continue" },
+  "appendix.complete": { fr: "Terminer", en: "Finish" },
+  "appendix.completed": { fr: "Questionnaire complété ✓", en: "Questionnaire completed ✓" },
+  "appendix.resume": { fr: "Reprendre le questionnaire", en: "Resume questionnaire" },
+  "appendix.shortTextPlaceholder": { fr: "Votre réponse…", en: "Your answer…" },
+  "appendix.likertHint": { fr: "Glissez pour évaluer (0 = pas du tout, 10 = totalement)", en: "Drag to rate (0 = not at all, 10 = totally)" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
