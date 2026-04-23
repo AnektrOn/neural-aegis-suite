@@ -63,7 +63,10 @@ export async function loadActiveTemplate(): Promise<LoadedTemplate> {
   return { template, questions };
 }
 
-async function fetchQuestions(templateId: string): Promise<RuntimeQuestion[]> {
+async function fetchQuestions(
+  templateId: string,
+  opts: { appendix?: boolean } = {}
+): Promise<RuntimeQuestion[]> {
   const { data: qs, error: qErr } = await supabase
     .from("assessment_questions" as any)
     .select("*")
@@ -72,8 +75,16 @@ async function fetchQuestions(templateId: string): Promise<RuntimeQuestion[]> {
   if (qErr) throw qErr;
   if (!qs || qs.length === 0) return [];
 
-  const qIds = (qs as any[]).map((q) => q.id);
-  const { data: opts, error: oErr } = await supabase
+  // Filter by appendix flag stored in meta JSON
+  const wantAppendix = opts.appendix === true;
+  const filtered = (qs as any[]).filter((q) => {
+    const isApp = q?.meta?.is_appendix === true;
+    return wantAppendix ? isApp : !isApp;
+  });
+  if (filtered.length === 0) return [];
+
+  const qIds = filtered.map((q) => q.id);
+  const { data: opts2, error: oErr } = await supabase
     .from("assessment_options" as any)
     .select("*")
     .in("question_id", qIds)
@@ -81,13 +92,13 @@ async function fetchQuestions(templateId: string): Promise<RuntimeQuestion[]> {
   if (oErr) throw oErr;
 
   const optsByQ = new Map<string, any[]>();
-  for (const o of (opts as any[]) ?? []) {
+  for (const o of (opts2 as any[]) ?? []) {
     const arr = optsByQ.get(o.question_id) ?? [];
     arr.push(o);
     optsByQ.set(o.question_id, arr);
   }
 
-  return (qs as any[]).map((q) => ({
+  return filtered.map((q) => ({
     id: q.id,
     position: q.position,
     question_type: q.question_type,
