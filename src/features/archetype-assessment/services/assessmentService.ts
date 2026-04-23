@@ -6,7 +6,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ARCHETYPES } from "../domain/archetypes";
 import { QUESTIONS } from "../domain/questions";
-import { buildAnalysisResult } from "../domain/scoringEngine";
+import {
+  buildAnalysisResult,
+  computeCompletionConfidence,
+  detectConsistencyWarning,
+} from "../domain/scoringEngine";
 import { selectTopTools } from "../domain/recommendationEngine";
 import type {
   AnalysisResult,
