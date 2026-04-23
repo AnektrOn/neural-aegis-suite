@@ -15,7 +15,7 @@ import type {
   RuntimeQuestion,
 } from "../domain/types";
 
-const TEMPLATE_SLUG = "archetype-v1";
+const TEMPLATE_SLUG = "archetype-v2";
 
 interface TemplateRow {
   id: string;
