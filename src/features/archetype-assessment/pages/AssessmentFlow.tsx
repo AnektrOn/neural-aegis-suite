@@ -25,8 +25,8 @@ import type { ResponseValue, RuntimeQuestion } from "../domain/types";
 export default function AssessmentFlow() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { language } = useLanguage();
-  const isFR = language === "fr";
+  const { locale } = useLanguage();
+  const isFR = locale === "fr";
 
   const [loaded, setLoaded] = useState<LoadedTemplate | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
