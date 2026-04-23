@@ -83,6 +83,8 @@ export default function Dashboard() {
   const today = new Date().toISOString().split("T")[0];
   const { score: aegisScore, trend: aegisTrend, isLoading: aegisLoading } = useAegisHealthScore(user?.id);
   const aegisYesterday = aegisTrend.length >= 2 ? aegisTrend[aegisTrend.length - 2] : null;
+  const [oldestDecisionDays, setOldestDecisionDays] = useState(0);
+  const [lastContactDays, setLastContactDays] = useState(999);
 
   // ── First-time user "Aha Moment" experience ───────────────────────────────
   const [maturity, setMaturity] = useState<UserMaturityProfile | null>(null);
