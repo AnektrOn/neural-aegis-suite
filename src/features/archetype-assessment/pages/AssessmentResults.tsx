@@ -5,7 +5,9 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, ArrowLeft } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, AlertTriangle, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Radar,
   RadarChart,
@@ -73,17 +75,27 @@ export default function AssessmentResults() {
     );
   }
 
-  const { analysis, scores, recommendations } = data;
+  const { analysis, scores, recommendations, session } = data;
   const top: ArchetypeKey[] = analysis.top_archetypes ?? [];
 
+  // normalized_score is now expressed on a 0..100 sum-to-100 scale.
   const radarData = (scores ?? []).map((s: any) => {
     const meta = archetypeMeta(s.archetype_key);
     return {
       key: s.archetype_key,
       name: isFR ? meta?.name_fr ?? s.archetype_key : meta?.name_en ?? s.archetype_key,
-      score: Math.round(Number(s.normalized_score ?? 0) * 100),
+      score: Math.round(Number(s.normalized_score ?? 0)),
     };
   });
+
+  const radarMax = Math.max(20, ...radarData.map((d) => d.score));
+
+  const confidence = Number(session?.confidence_score ?? 0);
+  const lowConfidence = confidence > 0 && confidence < 60;
+  const sessionMeta = (session?.client_meta ?? {}) as Record<string, any>;
+  const consistencyWarning = sessionMeta?.consistency_warning === true
+    ? (sessionMeta?.conflicting_pair as string[] | undefined)
+    : null;
 
   return (
     <div className="min-h-screen max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -102,6 +114,47 @@ export default function AssessmentResults() {
           {isFR ? analysis.summary_fr : analysis.summary_en}
         </p>
       </header>
+
+      {lowConfidence && (
+        <Alert className="border-amber-500/40 bg-amber-500/5">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="text-sm">
+            {isFR
+              ? "Ton profil est partiel. Réponds à plus de questions pour affiner tes archétypes."
+              : "Your profile is partial. Answer more questions to refine your archetypes."}
+            <span className="ml-2 text-muted-foreground">
+              ({Math.round(confidence)}%)
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {consistencyWarning && (
+        <TooltipProvider>
+          <Alert className="border-primary/30 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm flex items-center gap-2 flex-wrap">
+              <span>
+                {isFR
+                  ? "Certaines réponses semblent contradictoires — explore cette tension, elle est souvent révélatrice."
+                  : "Some responses seem contradictory — explore this tension, it is often revealing."}
+              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="cursor-help text-xs">
+                    {consistencyWarning.join(" ↔ ")}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isFR
+                    ? "Polarité détectée entre ces deux signaux."
+                    : "Polarity detected between these two signals."}
+                </TooltipContent>
+              </Tooltip>
+            </AlertDescription>
+          </Alert>
+        </TooltipProvider>
+      )}
 
       {/* Top 3 cards */}
       <div className="grid sm:grid-cols-3 gap-4">
@@ -136,7 +189,7 @@ export default function AssessmentResults() {
             <RadarChart data={radarData}>
               <PolarGrid />
               <PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+              <PolarRadiusAxis domain={[0, radarMax]} tick={{ fontSize: 10 }} />
               <Radar
                 name="Score"
                 dataKey="score"

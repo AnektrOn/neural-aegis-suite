@@ -482,6 +482,7 @@ export type Database = {
       assessment_sessions: {
         Row: {
           client_meta: Json
+          confidence_score: number | null
           created_at: string
           duration_seconds: number | null
           id: string
@@ -494,6 +495,7 @@ export type Database = {
         }
         Insert: {
           client_meta?: Json
+          confidence_score?: number | null
           created_at?: string
           duration_seconds?: number | null
           id?: string
@@ -506,6 +508,7 @@ export type Database = {
         }
         Update: {
           client_meta?: Json
+          confidence_score?: number | null
           created_at?: string
           duration_seconds?: number | null
           id?: string
