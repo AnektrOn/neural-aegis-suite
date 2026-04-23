@@ -56,6 +56,9 @@ export async function loadUserResponses(userId: string): Promise<Map<string, App
 }
 
 export async function upsertResponse(userId: string, response: AppendixResponse): Promise<void> {
+  const { SCORE_VERSION } = await import(
+    "@/features/archetype-assessment/services/assessmentService"
+  );
   const { error } = await supabase
     .from("appendix_responses" as any)
     .upsert(
@@ -65,6 +68,7 @@ export async function upsertResponse(userId: string, response: AppendixResponse)
         selected_option_ids: response.selected_option_ids,
         numeric_value: response.numeric_value,
         text_value: response.text_value,
+        score_version: SCORE_VERSION,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id,question_id" }
