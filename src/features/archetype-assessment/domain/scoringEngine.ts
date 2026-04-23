@@ -14,23 +14,16 @@ import type {
   ShadowKey,
 } from "./types";
 
-const DIMENSION_KEYS: DimensionKey[] = [
-  "learning_style",
-  "relational_style",
-  "activation_style",
-  "regulation_need",
-  "self_trust",
-  "expression_need",
-  "structure_need",
-];
-
+/**
+ * Dimensions are free-form strings (DB-driven). We accumulate dynamically per
+ * question. This list is empty by design; `computeDimensionScores` discovers
+ * dimensions from `RuntimeQuestion.dimension` and produces a sparse map.
+ */
 const SHADOW_KEYS: ShadowKey[] = [
   "control",
-  "withdrawal",
-  "people_pleasing",
-  "self_doubt",
-  "perfectionism",
-  "avoidance",
+  "victim",
+  "prostitute",
+  "saboteur",
 ];
 
 function emptyArchetypeMap(): Record<ArchetypeKey, number> {
@@ -38,13 +31,6 @@ function emptyArchetypeMap(): Record<ArchetypeKey, number> {
     acc[k] = 0;
     return acc;
   }, {} as Record<ArchetypeKey, number>);
-}
-
-function emptyDimensionMap(): Record<DimensionKey, number> {
-  return DIMENSION_KEYS.reduce((acc, k) => {
-    acc[k] = 0;
-    return acc;
-  }, {} as Record<DimensionKey, number>);
 }
 
 function emptyShadowMap(): Record<ShadowKey, number> {
@@ -144,8 +130,8 @@ export function computeDimensionScores(
   questions: RuntimeQuestion[],
   responses: ResponseValue[]
 ): Record<DimensionKey, number> {
-  const sums = emptyDimensionMap();
-  const counts = emptyDimensionMap();
+  const sums: Record<string, number> = {};
+  const counts: Record<string, number> = {};
 
   const responsesByQ = new Map<string, ResponseValue>(
     responses.map((r) => [r.questionId, r])
@@ -156,23 +142,20 @@ export function computeDimensionScores(
     const r = responsesByQ.get(q.id);
     if (!r) continue;
 
-    if (q.question_type === "likert_scale") {
+    if (
+      q.question_type === "likert_scale" ||
+      q.question_type === "single_choice"
+    ) {
       const opt = q.options.find((o) => r.selectedOptionIds?.includes(o.id));
       if (opt && typeof opt.value === "number") {
-        sums[q.dimension] += opt.value;
-        counts[q.dimension] += 1;
-      }
-    } else if (q.question_type === "single_choice") {
-      const opt = q.options.find((o) => r.selectedOptionIds?.includes(o.id));
-      if (opt && typeof opt.value === "number") {
-        sums[q.dimension] += opt.value;
-        counts[q.dimension] += 1;
+        sums[q.dimension] = (sums[q.dimension] ?? 0) + opt.value;
+        counts[q.dimension] = (counts[q.dimension] ?? 0) + 1;
       }
     }
   }
 
-  const out = emptyDimensionMap();
-  for (const k of DIMENSION_KEYS) {
+  const out: Record<string, number> = {};
+  for (const k of Object.keys(sums)) {
     out[k] = counts[k] > 0 ? sums[k] / counts[k] : 0;
   }
   return out;
@@ -251,4 +234,4 @@ export function buildAnalysisResult(
   };
 }
 
-export const __internals = { DIMENSION_KEYS, SHADOW_KEYS };
+export const __internals = { SHADOW_KEYS };
