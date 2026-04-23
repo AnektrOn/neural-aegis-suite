@@ -63,7 +63,10 @@ export async function loadActiveTemplate(): Promise<LoadedTemplate> {
   return { template, questions };
 }
 
-async function fetchQuestions(templateId: string): Promise<RuntimeQuestion[]> {
+async function fetchQuestions(
+  templateId: string,
+  opts: { appendix?: boolean } = {}
+): Promise<RuntimeQuestion[]> {
   const { data: qs, error: qErr } = await supabase
     .from("assessment_questions" as any)
     .select("*")
@@ -72,8 +75,16 @@ async function fetchQuestions(templateId: string): Promise<RuntimeQuestion[]> {
   if (qErr) throw qErr;
   if (!qs || qs.length === 0) return [];
 
-  const qIds = (qs as any[]).map((q) => q.id);
-  const { data: opts, error: oErr } = await supabase
+  // Filter by appendix flag stored in meta JSON
+  const wantAppendix = opts.appendix === true;
+  const filtered = (qs as any[]).filter((q) => {
+    const isApp = q?.meta?.is_appendix === true;
+    return wantAppendix ? isApp : !isApp;
+  });
+  if (filtered.length === 0) return [];
+
+  const qIds = filtered.map((q) => q.id);
+  const { data: opts2, error: oErr } = await supabase
     .from("assessment_options" as any)
     .select("*")
     .in("question_id", qIds)
@@ -81,13 +92,13 @@ async function fetchQuestions(templateId: string): Promise<RuntimeQuestion[]> {
   if (oErr) throw oErr;
 
   const optsByQ = new Map<string, any[]>();
-  for (const o of (opts as any[]) ?? []) {
+  for (const o of (opts2 as any[]) ?? []) {
     const arr = optsByQ.get(o.question_id) ?? [];
     arr.push(o);
     optsByQ.set(o.question_id, arr);
   }
 
-  return (qs as any[]).map((q) => ({
+  return filtered.map((q) => ({
     id: q.id,
     position: q.position,
     question_type: q.question_type,
@@ -112,6 +123,9 @@ async function fetchQuestions(templateId: string): Promise<RuntimeQuestion[]> {
 
 async function seedQuestions(templateId: string): Promise<void> {
   for (const q of QUESTIONS) {
+    const meta = { ...(q.meta ?? {}) } as Record<string, unknown>;
+    if (q.isAppendix) meta.is_appendix = true;
+
     const { data: inserted, error: qErr } = await supabase
       .from("assessment_questions" as any)
       .insert({
@@ -124,7 +138,7 @@ async function seedQuestions(templateId: string): Promise<void> {
         helper_en: q.helper_en ?? null,
         dimension: q.dimension ?? null,
         is_required: q.isRequired ?? true,
-        meta: q.meta ?? {},
+        meta,
       })
       .select("id")
       .single();
@@ -147,6 +161,131 @@ async function seedQuestions(templateId: string): Promise<void> {
       if (oErr) throw oErr;
     }
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Appendix questions (loaded on demand from Profile)                         */
+/* -------------------------------------------------------------------------- */
+
+export async function loadAppendixQuestions(): Promise<RuntimeQuestion[]> {
+  const { data: tpl, error: tplErr } = await supabase
+    .from("assessment_templates" as any)
+    .select("id")
+    .eq("slug", TEMPLATE_SLUG)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (tplErr) throw tplErr;
+  if (!tpl) throw new Error("No active assessment template found");
+  return fetchQuestions((tpl as any).id, { appendix: true });
+}
+
+export async function getLatestSessionId(userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("assessment_sessions" as any)
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "submitted")
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any)?.id ?? null;
+}
+
+export async function submitAppendixResponses(opts: {
+  userId: string;
+  sessionId: string;
+  questions: RuntimeQuestion[];
+  responses: ResponseValue[];
+}): Promise<void> {
+  const { userId, sessionId, questions, responses } = opts;
+
+  // 1. Persist new appendix responses
+  if (responses.length > 0) {
+    const payload = responses.map((r) => ({
+      session_id: sessionId,
+      question_id: r.questionId,
+      user_id: userId,
+      selected_option_ids: r.selectedOptionIds ?? [],
+      numeric_value: r.numericValue ?? null,
+      text_value: r.textValue ?? null,
+      raw_payload: r,
+    }));
+    const { error: rErr } = await supabase
+      .from("assessment_responses" as any)
+      .upsert(payload, { onConflict: "session_id,question_id" });
+    if (rErr) throw rErr;
+  }
+
+  // 2. Reload ALL responses for this session (core + appendix)
+  const { data: allResp, error: arErr } = await supabase
+    .from("assessment_responses" as any)
+    .select("*")
+    .eq("session_id", sessionId);
+  if (arErr) throw arErr;
+
+  // 3. Reload ALL questions of the template (core + appendix)
+  const { data: sessionRow, error: sErr } = await supabase
+    .from("assessment_sessions" as any)
+    .select("template_id")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (sErr) throw sErr;
+  const templateId = (sessionRow as any)?.template_id;
+  if (!templateId) throw new Error("Session has no template_id");
+
+  const [coreQs, appendixQs] = await Promise.all([
+    fetchQuestions(templateId, { appendix: false }),
+    fetchQuestions(templateId, { appendix: true }),
+  ]);
+  const allQuestions = [...coreQs, ...appendixQs];
+
+  const allResponses: ResponseValue[] = ((allResp as any[]) ?? []).map((r) => ({
+    questionId: r.question_id,
+    selectedOptionIds: r.selected_option_ids ?? [],
+    numericValue: r.numeric_value ?? undefined,
+    textValue: r.text_value ?? undefined,
+  }));
+
+  // 4. Recompute analysis on the full set
+  const analysis = buildAnalysisResult(allQuestions, allResponses);
+
+  // 5. Upsert archetype_scores
+  const scoreRows = analysis.rankedScores.map((s) => ({
+    session_id: sessionId,
+    user_id: userId,
+    archetype_key: s.key,
+    raw_score: analysis.rawScores[s.key] ?? 0,
+    normalized_score: s.score,
+    rank: s.rank,
+  }));
+  if (scoreRows.length > 0) {
+    const { error: scErr } = await supabase
+      .from("archetype_scores" as any)
+      .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
+    if (scErr) throw scErr;
+  }
+
+  // 6. Upsert analysis_results
+  const { error: aErr } = await supabase
+    .from("analysis_results" as any)
+    .upsert(
+      {
+        session_id: sessionId,
+        user_id: userId,
+        top_archetypes: analysis.topArchetypes,
+        dimension_scores: analysis.dimensionScores,
+        shadow_signals: analysis.shadowSignals,
+        strengths_fr: analysis.strengths_fr,
+        strengths_en: analysis.strengths_en,
+        watchouts_fr: analysis.watchouts_fr,
+        watchouts_en: analysis.watchouts_en,
+        summary_fr: analysis.summary_fr,
+        summary_en: analysis.summary_en,
+      },
+      { onConflict: "session_id" }
+    );
+  if (aErr) throw aErr;
 }
 
 /* -------------------------------------------------------------------------- */
