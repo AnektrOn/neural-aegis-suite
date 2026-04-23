@@ -295,13 +295,36 @@ export async function getLatestSubmittedSessionForUser(userId: string) {
 }
 
 export async function getSessionFullDetails(sessionId: string) {
-  const [sessionRes, analysisRes, scoresRes, recosRes, responsesRes] = await Promise.all([
+  const [sessionRes, analysisRes, scoresRes, recosRes, responsesRes, questionsRes] = await Promise.all([
     supabase.from("assessment_sessions" as any).select("*").eq("id", sessionId).maybeSingle(),
     supabase.from("analysis_results" as any).select("*").eq("session_id", sessionId).maybeSingle(),
     supabase.from("archetype_scores" as any).select("*").eq("session_id", sessionId).order("rank"),
     supabase.from("recommendation_tools" as any).select("*").eq("session_id", sessionId).order("rank"),
     supabase.from("assessment_responses" as any).select("*").eq("session_id", sessionId),
+    // Fetch all questions+options to render readable answers
+    supabase.from("assessment_questions" as any).select("*, assessment_options(*)").order("position"),
   ]);
+
+  // Join user profile + company
+  let profile: any = null;
+  let company: any = null;
+  const userId = (sessionRes.data as any)?.user_id;
+  if (userId) {
+    const { data: p } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+    profile = p;
+    if (p?.company_id) {
+      const { data: c } = await supabase
+        .from("companies" as any)
+        .select("*")
+        .eq("id", p.company_id)
+        .maybeSingle();
+      company = c;
+    }
+  }
 
   return {
     session: sessionRes.data as any,
@@ -309,6 +332,9 @@ export async function getSessionFullDetails(sessionId: string) {
     scores: (scoresRes.data as any[]) ?? [],
     recommendations: (recosRes.data as any[]) ?? [],
     responses: (responsesRes.data as any[]) ?? [],
+    questions: (questionsRes.data as any[]) ?? [],
+    profile,
+    company,
   };
 }
 
@@ -319,7 +345,44 @@ export async function listAllSessionsForAdmin() {
     .order("submitted_at", { ascending: false, nullsFirst: false })
     .limit(200);
   if (error) throw error;
-  return (data as any[]) ?? [];
+  const sessions = (data as any[]) ?? [];
+  if (sessions.length === 0) return [];
+
+  const userIds = Array.from(new Set(sessions.map((s) => s.user_id)));
+  const sessionIds = sessions.map((s) => s.id);
+
+  const [profilesRes, companiesRes, analysisRes, scoresRes] = await Promise.all([
+    supabase.from("profiles").select("*").in("id", userIds),
+    supabase.from("companies" as any).select("*"),
+    supabase.from("analysis_results" as any).select("session_id, top_archetypes, shadow_signals").in("session_id", sessionIds),
+    supabase.from("archetype_scores" as any).select("session_id, archetype_key, rank").in("session_id", sessionIds).eq("rank", 1),
+  ]);
+
+  const profiles = (profilesRes.data as any[]) ?? [];
+  const companies = (companiesRes.data as any[]) ?? [];
+  const analyses = (analysisRes.data as any[]) ?? [];
+  const topScores = (scoresRes.data as any[]) ?? [];
+
+  return sessions.map((s) => {
+    const p = profiles.find((x) => x.id === s.user_id);
+    const c = p?.company_id ? companies.find((x) => x.id === p.company_id) : null;
+    const a = analyses.find((x) => x.session_id === s.id);
+    const top = topScores.find((x) => x.session_id === s.id)?.archetype_key
+      ?? a?.top_archetypes?.[0]
+      ?? null;
+    const shadowCount = a?.shadow_signals
+      ? Object.values(a.shadow_signals).filter((v: any) => Number(v) >= 0.3).length
+      : 0;
+    return { ...s, profile: p ?? null, company: c ?? null, top_archetype: top, shadow_count: shadowCount };
+  });
+}
+
+export async function saveAdminNote(sessionId: string, notes: string) {
+  const { error } = await supabase
+    .from("analysis_results" as any)
+    .update({ admin_notes: notes })
+    .eq("session_id", sessionId);
+  if (error) throw error;
 }
 
 export function archetypeMeta(key: ArchetypeKey) {
