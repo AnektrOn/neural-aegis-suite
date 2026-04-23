@@ -21,6 +21,9 @@ import { AssessmentCTA } from "@/features/archetype-assessment/components/Assess
 import { AegisHealthCard } from "@/components/AegisHealthCard";
 import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
 import { MoodDecisionInsightCard } from "@/components/MoodDecisionInsightCard";
+import { WelcomeExperience, SetupProgressBanner, WELCOME_DISMISSED_KEY } from "@/components/WelcomeExperience";
+import { PostAssessmentBanner } from "@/components/PostAssessmentBanner";
+import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMaturity";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
@@ -78,6 +81,36 @@ export default function Dashboard() {
   const today = new Date().toISOString().split("T")[0];
   const { score: aegisScore, trend: aegisTrend, isLoading: aegisLoading } = useAegisHealthScore(user?.id);
   const aegisYesterday = aegisTrend.length >= 2 ? aegisTrend[aegisTrend.length - 2] : null;
+
+  // ── First-time user "Aha Moment" experience ───────────────────────────────
+  const [maturity, setMaturity] = useState<UserMaturityProfile | null>(null);
+  const [welcomeDismissed, setWelcomeDismissed] = useState<boolean>(() => {
+    try { return localStorage.getItem(WELCOME_DISMISSED_KEY) === "1"; } catch { return false; }
+  });
+  const [showPostAssessment, setShowPostAssessment] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    getUserMaturityProfile(user.id)
+      .then((m) => { if (alive) setMaturity(m); })
+      .catch((e) => console.error("maturity load error", e));
+    return () => { alive = false; };
+  }, [user]);
+
+  // Detect ?welcome=post_assessment URL param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("welcome") === "post_assessment") {
+      setShowPostAssessment(true);
+      params.delete("welcome");
+      const next = params.toString();
+      navigate({ pathname: location.pathname, search: next ? `?${next}` : "" }, { replace: true });
+    }
+  }, [location.search, location.pathname, navigate]);
+
+  const showWelcome = !!maturity && maturity.level === "new" && !welcomeDismissed;
+  const showSetupBanner = !!maturity && maturity.level === "emerging";
 
   useEffect(() => {
     if (!user) return;
@@ -363,6 +396,18 @@ export default function Dashboard() {
 
     return (
       <div className="mobile-section-gap max-w-full pt-5">
+        {showPostAssessment && (
+          <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
+        )}
+        {showWelcome && maturity && (
+          <WelcomeExperience
+            maturityProfile={maturity}
+            onDismiss={() => setWelcomeDismissed(true)}
+          />
+        )}
+        {showSetupBanner && maturity && !showWelcome && (
+          <SetupProgressBanner maturityProfile={maturity} />
+        )}
         {/* Streak (date + AEGIS: header AppLayout) */}
         {streakDays > 0 && (
           <motion.div {...fadeUp(0)} className="flex justify-end items-center gap-1.5 min-h-[24px]">
@@ -713,6 +758,18 @@ export default function Dashboard() {
   return (
     <div className="min-h-full -mx-6 -mt-6 px-6 pt-6 pb-10 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
       <div className="max-w-7xl mx-auto space-y-6">
+        {showPostAssessment && (
+          <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
+        )}
+        {showWelcome && maturity && (
+          <WelcomeExperience
+            maturityProfile={maturity}
+            onDismiss={() => setWelcomeDismissed(true)}
+          />
+        )}
+        {showSetupBanner && maturity && !showWelcome && (
+          <SetupProgressBanner maturityProfile={maturity} />
+        )}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-[10px] tracking-[0.2em] uppercase text-text-tertiary font-display">
