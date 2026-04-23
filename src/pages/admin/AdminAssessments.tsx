@@ -354,6 +354,13 @@ function AssessmentDetail({
         <ChevronLeft className="w-4 h-4 mr-1" /> Retour
       </Button>
 
+      <Tabs defaultValue="analysis" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="analysis">Analyse</TabsTrigger>
+          <TabsTrigger value="history">Historique des versions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analysis" className="space-y-4 mt-0">
       {/* Student identity */}
       <Card className="p-4 backdrop-blur-3xl bg-card/40 border-border/40">
         <div className="flex items-start gap-4">
@@ -669,8 +676,14 @@ function AssessmentDetail({
               className="text-sm"
             />
           </div>
-        </Card>
-      </div>
+          </Card>
+        </div>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-0">
+          <AdminSnapshotHistoryTab userId={session.user_id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
