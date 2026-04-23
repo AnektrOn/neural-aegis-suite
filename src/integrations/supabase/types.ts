@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          detail: Json
+          id: string
+          is_resolved: boolean
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          title_en: string
+          title_fr: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          is_resolved?: boolean
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          title_en: string
+          title_fr: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          is_resolved?: boolean
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          title_en?: string
+          title_fr?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_messages: {
         Row: {
           body: string
@@ -86,6 +131,45 @@ export type Database = {
           relation_score?: number
           score_date?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      alert_rules: {
+        Row: {
+          created_at: string
+          description_en: string | null
+          description_fr: string | null
+          id: string
+          is_active: boolean
+          rule_key: string
+          severity: string
+          threshold_days: number | null
+          threshold_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          id?: string
+          is_active?: boolean
+          rule_key: string
+          severity: string
+          threshold_days?: number | null
+          threshold_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          id?: string
+          is_active?: boolean
+          rule_key?: string
+          severity?: string
+          threshold_days?: number | null
+          threshold_value?: number | null
+          updated_at?: string
         }
         Relationships: []
       }

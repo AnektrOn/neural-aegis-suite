@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Search, Shield, ShieldCheck, Headphones, Eye, Ban, CheckCircle, Building2 } from "lucide-react";
+import { Users, Search, Shield, ShieldCheck, Headphones, Eye, Ban, CheckCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useNavigate } from "react-router-dom";
+import { getActiveAlertCountsByUser } from "@/services/alertService";
 import CSVImport from "@/components/admin/CSVImport";
 import CreateUserForm from "@/components/admin/CreateUserForm";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
@@ -22,6 +24,7 @@ interface UserData {
   toolboxCount: number;
   moodCount: number;
   lastSeen: string | null;
+  alertCounts: { critical: number; high: number; medium: number; low: number; total: number };
 }
 
 interface Company {
@@ -34,6 +37,7 @@ export default function UserManagement() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserData[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [search, setSearch] = useState("");
@@ -65,6 +69,11 @@ export default function UserManagement() {
     const recentSessions = (sessionsRes.data || []) as any[];
     setCompanies((companiesRes.data || []) as any);
 
+    const profileIds = (profilesRes.data || []).map((p: any) => p.id);
+    const alertCountsMap = await getActiveAlertCountsByUser(profileIds).catch(
+      () => new Map<string, { critical: number; high: number; medium: number; low: number; total: number }>(),
+    );
+
     const userData: UserData[] = (profilesRes.data || []).map((p: any) => ({
       id: p.id, display_name: p.display_name, created_at: p.created_at,
       is_disabled: p.is_disabled || false, company_id: p.company_id || null, country: p.country || null,
@@ -75,6 +84,7 @@ export default function UserManagement() {
       moodCount: moods.filter((m: any) => m.user_id === p.id).length,
       lastSeen: recentSessions
         .filter((s: any) => s.user_id === p.id)[0]?.started_at ?? null,
+      alertCounts: alertCountsMap.get(p.id) ?? { critical: 0, high: 0, medium: 0, low: 0, total: 0 },
     }));
 
     setUsers(userData);
@@ -211,7 +221,24 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
+                {userData.alertCounts.total > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/admin/alerts", { state: { userId: userData.id } })}
+                    title={t("users.col.alerts")}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-medium tabular-nums ${
+                      userData.alertCounts.critical > 0
+                        ? "border-destructive/30 bg-destructive/10 text-destructive"
+                        : userData.alertCounts.high > 0
+                        ? "border-orange-500/30 bg-orange-500/10 text-orange-500"
+                        : "border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
+                    }`}
+                  >
+                    <AlertTriangle size={12} />
+                    {userData.alertCounts.total}
+                  </button>
+                )}
                 <button onClick={() => toggleAdmin(userData.id, userData.isAdmin)}
                   className={`p-2 rounded-lg border transition-all ${userData.isAdmin ? "border-neural-accent/30 text-neural-accent" : "border-border/30 text-muted-foreground hover:border-neural-accent/30 hover:text-neural-accent"}`}
                   title={userData.isAdmin ? t("users.removeAdmin") : t("users.makeAdmin")}>

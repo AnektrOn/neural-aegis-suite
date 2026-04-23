@@ -22,6 +22,7 @@ import {
   Tag,
   MapPin,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -49,6 +50,7 @@ const adminNavKeys = [
   { to: "/admin/place-tags", icon: Tag, key: "admin.nav.placeTags" as const },
   { to: "/admin/user-places", icon: MapPin, key: "admin.nav.userPlaces" as const },
   { to: "/admin/assessments", icon: Sparkles, key: "admin.nav.assessments" as const },
+  { to: "/admin/alerts", icon: AlertTriangle, key: "admin.nav.alerts" as const },
 ];
 
 function AdminSidebarContent({
