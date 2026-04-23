@@ -44,6 +44,337 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_results: {
+        Row: {
+          created_at: string
+          dimension_scores: Json
+          id: string
+          session_id: string
+          shadow_signals: Json
+          strengths_en: string[]
+          strengths_fr: string[]
+          summary_en: string | null
+          summary_fr: string | null
+          top_archetypes: string[]
+          user_id: string
+          watchouts_en: string[]
+          watchouts_fr: string[]
+        }
+        Insert: {
+          created_at?: string
+          dimension_scores?: Json
+          id?: string
+          session_id: string
+          shadow_signals?: Json
+          strengths_en?: string[]
+          strengths_fr?: string[]
+          summary_en?: string | null
+          summary_fr?: string | null
+          top_archetypes?: string[]
+          user_id: string
+          watchouts_en?: string[]
+          watchouts_fr?: string[]
+        }
+        Update: {
+          created_at?: string
+          dimension_scores?: Json
+          id?: string
+          session_id?: string
+          shadow_signals?: Json
+          strengths_en?: string[]
+          strengths_fr?: string[]
+          summary_en?: string | null
+          summary_fr?: string | null
+          top_archetypes?: string[]
+          user_id?: string
+          watchouts_en?: string[]
+          watchouts_fr?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_results_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      archetype_scores: {
+        Row: {
+          archetype_key: string
+          created_at: string
+          id: string
+          normalized_score: number
+          rank: number
+          raw_score: number
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          archetype_key: string
+          created_at?: string
+          id?: string
+          normalized_score?: number
+          rank?: number
+          raw_score?: number
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          archetype_key?: string
+          created_at?: string
+          id?: string
+          normalized_score?: number
+          rank?: number
+          raw_score?: number
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archetype_scores_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_options: {
+        Row: {
+          archetype_weights: Json
+          created_at: string
+          id: string
+          label_en: string
+          label_fr: string
+          position: number
+          question_id: string
+          shadow_weights: Json
+          value: number | null
+        }
+        Insert: {
+          archetype_weights?: Json
+          created_at?: string
+          id?: string
+          label_en: string
+          label_fr: string
+          position: number
+          question_id: string
+          shadow_weights?: Json
+          value?: number | null
+        }
+        Update: {
+          archetype_weights?: Json
+          created_at?: string
+          id?: string
+          label_en?: string
+          label_fr?: string
+          position?: number
+          question_id?: string
+          shadow_weights?: Json
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_questions: {
+        Row: {
+          created_at: string
+          dimension: string | null
+          helper_en: string | null
+          helper_fr: string | null
+          id: string
+          is_required: boolean
+          meta: Json
+          position: number
+          prompt_en: string
+          prompt_fr: string
+          question_type: Database["public"]["Enums"]["assessment_question_type"]
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          dimension?: string | null
+          helper_en?: string | null
+          helper_fr?: string | null
+          id?: string
+          is_required?: boolean
+          meta?: Json
+          position: number
+          prompt_en: string
+          prompt_fr: string
+          question_type: Database["public"]["Enums"]["assessment_question_type"]
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          dimension?: string | null
+          helper_en?: string | null
+          helper_fr?: string | null
+          id?: string
+          is_required?: boolean
+          meta?: Json
+          position?: number
+          prompt_en?: string
+          prompt_fr?: string
+          question_type?: Database["public"]["Enums"]["assessment_question_type"]
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_questions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_responses: {
+        Row: {
+          created_at: string
+          id: string
+          numeric_value: number | null
+          question_id: string
+          raw_payload: Json
+          selected_option_ids: string[]
+          session_id: string
+          text_value: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          numeric_value?: number | null
+          question_id: string
+          raw_payload?: Json
+          selected_option_ids?: string[]
+          session_id: string
+          text_value?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          numeric_value?: number | null
+          question_id?: string
+          raw_payload?: Json
+          selected_option_ids?: string[]
+          session_id?: string
+          text_value?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_sessions: {
+        Row: {
+          client_meta: Json
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          started_at: string
+          status: Database["public"]["Enums"]["assessment_session_status"]
+          submitted_at: string | null
+          template_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_meta?: Json
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["assessment_session_status"]
+          submitted_at?: string | null
+          template_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_meta?: Json
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["assessment_session_status"]
+          submitted_at?: string | null
+          template_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_sessions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_templates: {
+        Row: {
+          created_at: string
+          description_en: string | null
+          description_fr: string | null
+          id: string
+          is_active: boolean
+          slug: string
+          title_en: string
+          title_fr: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          id?: string
+          is_active?: boolean
+          slug: string
+          title_en: string
+          title_fr: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          id?: string
+          is_active?: boolean
+          slug?: string
+          title_en?: string
+          title_fr?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       assigned_habits: {
         Row: {
           assigned_at: string
@@ -623,6 +954,71 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_tools: {
+        Row: {
+          created_at: string
+          duration_en: string | null
+          duration_fr: string | null
+          id: string
+          meta: Json
+          rank: number
+          rationale_en: string
+          rationale_fr: string
+          rule_key: string | null
+          session_id: string
+          title_en: string
+          title_fr: string
+          tool_key: string
+          tool_type: Database["public"]["Enums"]["assessment_tool_type"]
+          user_id: string
+          widget_key: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_en?: string | null
+          duration_fr?: string | null
+          id?: string
+          meta?: Json
+          rank?: number
+          rationale_en: string
+          rationale_fr: string
+          rule_key?: string | null
+          session_id: string
+          title_en: string
+          title_fr: string
+          tool_key: string
+          tool_type: Database["public"]["Enums"]["assessment_tool_type"]
+          user_id: string
+          widget_key?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_en?: string | null
+          duration_fr?: string | null
+          id?: string
+          meta?: Json
+          rank?: number
+          rationale_en?: string
+          rationale_fr?: string
+          rule_key?: string | null
+          session_id?: string
+          title_en?: string
+          title_fr?: string
+          tool_key?: string
+          tool_type?: Database["public"]["Enums"]["assessment_tool_type"]
+          user_id?: string
+          widget_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_tools_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relation_quality_history: {
         Row: {
           contact_id: string
@@ -1020,6 +1416,18 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      assessment_question_type:
+        | "single_choice"
+        | "multiple_choice"
+        | "likert_scale"
+        | "ranking"
+        | "short_text"
+      assessment_session_status: "in_progress" | "submitted" | "archived"
+      assessment_tool_type:
+        | "meditation"
+        | "breathwork"
+        | "journal_prompt"
+        | "micro_practice"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1148,6 +1556,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      assessment_question_type: [
+        "single_choice",
+        "multiple_choice",
+        "likert_scale",
+        "ranking",
+        "short_text",
+      ],
+      assessment_session_status: ["in_progress", "submitted", "archived"],
+      assessment_tool_type: [
+        "meditation",
+        "breathwork",
+        "journal_prompt",
+        "micro_practice",
+      ],
     },
   },
 } as const
