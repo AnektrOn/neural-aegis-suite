@@ -97,6 +97,8 @@ export interface QuestionSeed {
   helper_en?: string;
   dimension?: DimensionKey;
   isRequired?: boolean;
+  /** When true, question belongs to the optional appendix module (positions 34-100). */
+  isAppendix?: boolean;
   meta?: Record<string, unknown>;
   options?: OptionSeed[];
 }
