@@ -12,6 +12,8 @@ import {
   archetypeMeta,
   saveAdminNote,
 } from "@/features/archetype-assessment/services/assessmentService";
+import { AdminSnapshotHistoryTab } from "@/features/archetype-assessment/components/AdminSnapshotHistoryTab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ARCHETYPES } from "@/features/archetype-assessment/domain/archetypes";
 import type { ArchetypeKey, DimensionKey } from "@/features/archetype-assessment/domain/types";
 import { useToast } from "@/hooks/use-toast";
