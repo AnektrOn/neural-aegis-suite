@@ -156,8 +156,8 @@ export default function AssessmentResults() {
   return (
     <div className="min-h-screen max-w-4xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> {isFR ? "Tableau de bord" : "Dashboard"}
+        <Button variant="ghost" size="sm" onClick={() => navigate("/?welcome=post_assessment")}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> {isFR ? "Continuer vers AEGIS" : "Continue to AEGIS"}
         </Button>
         <Button
           variant="outline"
