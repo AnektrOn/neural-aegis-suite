@@ -46,6 +46,7 @@ export type Database = {
       }
       analysis_results: {
         Row: {
+          admin_notes: string | null
           created_at: string
           dimension_scores: Json
           id: string
@@ -61,6 +62,7 @@ export type Database = {
           watchouts_fr: string[]
         }
         Insert: {
+          admin_notes?: string | null
           created_at?: string
           dimension_scores?: Json
           id?: string
@@ -76,6 +78,7 @@ export type Database = {
           watchouts_fr?: string[]
         }
         Update: {
+          admin_notes?: string | null
           created_at?: string
           dimension_scores?: Json
           id?: string
