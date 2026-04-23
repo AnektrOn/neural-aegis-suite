@@ -97,18 +97,58 @@ export function computeRawScores(
 }
 
 /* -------------------------------------------------------------------------- */
-/* normalizeScores — min-max into 0..1                                        */
+/* normalizeScores — proportional, sums to 100 across all archetypes          */
 /* -------------------------------------------------------------------------- */
 export function normalizeScores(
   scores: Record<string, number>
 ): Record<string, number> {
-  const values = Object.values(scores);
-  const max = Math.max(...values, 0);
+  const total = Object.values(scores).reduce((s, v) => s + (Number(v) || 0), 0);
   const out: Record<string, number> = {};
   for (const k of Object.keys(scores)) {
-    out[k] = max > 0 ? scores[k] / max : 0;
+    out[k] = total > 0 ? (scores[k] / total) * 100 : 0;
   }
   return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/* computeCompletionConfidence — % of available questions answered            */
+/* -------------------------------------------------------------------------- */
+export function computeCompletionConfidence(
+  totalAvailableQuestions: number,
+  responses: ResponseValue[]
+): number {
+  if (totalAvailableQuestions <= 0) return 0;
+  const answered = responses.filter((r) => {
+    if (r.textValue && r.textValue.trim().length > 0) return true;
+    if (typeof r.numericValue === "number") return true;
+    return (r.selectedOptionIds?.length ?? 0) > 0;
+  }).length;
+  return Math.min(100, (answered / totalAvailableQuestions) * 100);
+}
+
+/* -------------------------------------------------------------------------- */
+/* detectConsistencyWarning — contradictory archetype/shadow patterns         */
+/* -------------------------------------------------------------------------- */
+export interface ConsistencyWarning {
+  consistency_warning: true;
+  conflicting_pair: [string, string];
+}
+
+export function detectConsistencyWarning(
+  normalizedArchetypes: Record<string, number>,
+  shadowSignals: Record<string, number>
+): ConsistencyWarning | null {
+  // Threshold expressed in normalized 0..100 space (>=2.0 on a 0..100 scale = 2%).
+  // Per spec the threshold is 2.0 raw points → with sum-to-100 normalization we
+  // keep the literal 2.0 cutoff: a non-trivial co-presence of both signals.
+  const T = 2.0;
+  if ((normalizedArchetypes.sovereign ?? 0) >= T && (normalizedArchetypes.victim ?? 0) >= T) {
+    return { consistency_warning: true, conflicting_pair: ["sovereign", "victim"] };
+  }
+  if ((normalizedArchetypes.warrior ?? 0) >= T && (shadowSignals.saboteur ?? 0) >= T) {
+    return { consistency_warning: true, conflicting_pair: ["warrior", "saboteur"] };
+  }
+  return null;
 }
 
 /* -------------------------------------------------------------------------- */

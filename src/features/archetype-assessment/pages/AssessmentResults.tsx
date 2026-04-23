@@ -5,7 +5,9 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, ArrowLeft } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, AlertTriangle, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Radar,
   RadarChart,
@@ -73,17 +75,27 @@ export default function AssessmentResults() {
     );
   }
 
-  const { analysis, scores, recommendations } = data;
+  const { analysis, scores, recommendations, session } = data;
   const top: ArchetypeKey[] = analysis.top_archetypes ?? [];
 
+  // normalized_score is now expressed on a 0..100 sum-to-100 scale.
   const radarData = (scores ?? []).map((s: any) => {
     const meta = archetypeMeta(s.archetype_key);
     return {
       key: s.archetype_key,
       name: isFR ? meta?.name_fr ?? s.archetype_key : meta?.name_en ?? s.archetype_key,
-      score: Math.round(Number(s.normalized_score ?? 0) * 100),
+      score: Math.round(Number(s.normalized_score ?? 0)),
     };
   });
+
+  const radarMax = Math.max(20, ...radarData.map((d) => d.score));
+
+  const confidence = Number(session?.confidence_score ?? 0);
+  const lowConfidence = confidence > 0 && confidence < 60;
+  const sessionMeta = (session?.client_meta ?? {}) as Record<string, any>;
+  const consistencyWarning = sessionMeta?.consistency_warning === true
+    ? (sessionMeta?.conflicting_pair as string[] | undefined)
+    : null;
 
   return (
     <div className="min-h-screen max-w-4xl mx-auto px-4 py-8 space-y-6">
