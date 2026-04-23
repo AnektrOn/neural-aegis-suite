@@ -45,8 +45,8 @@ function formatDate(iso: string, lang: "fr" | "en"): string {
 
 export function ProfileEvolutionSection() {
   const { user } = useAuth();
-  const { t, language } = useLanguage();
-  const lang: "fr" | "en" = language === "en" ? "en" : "fr";
+  const { t, locale } = useLanguage();
+  const lang: "fr" | "en" = locale === "en" ? "en" : "fr";
   const { snapshots, isLoading, compare } = useSnapshotHistory(user?.id);
   const [openSnapshot, setOpenSnapshot] = useState<ArchetypeProfileSnapshot | null>(null);
   const [delta, setDelta] = useState<SnapshotDelta | null>(null);
