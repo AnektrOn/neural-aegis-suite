@@ -17,6 +17,7 @@ import QuickLogModal from "@/components/QuickLogModal";
 import HabitsMiniCard from "@/components/HabitsMiniCard";
 import DashboardHero from "@/components/DashboardHero";
 import { NeuralCard } from "@/components/ui/neural-card";
+import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
@@ -718,6 +719,8 @@ export default function Dashboard() {
             <Plus size={14} strokeWidth={1.5} /> Log rapide
           </button>
         </div>
+
+        <AssessmentCTA />
 
         <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-3" variants={kpiContainer} initial="initial" animate="animate">
           <motion.div variants={kpiItem}>

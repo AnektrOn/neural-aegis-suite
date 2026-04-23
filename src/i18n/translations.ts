@@ -57,6 +57,7 @@ export const translations = {
 
   // Admin nav
   "admin.nav.calls": { fr: "Audit Appels", en: "Call Audit" },
+  "admin.nav.assessments": { fr: "Évaluations", en: "Assessments" },
   "admin.nav.habits": { fr: "Habitudes", en: "Habits" },
   "admin.nav.users": { fr: "Utilisateurs", en: "Users" },
   "admin.nav.analytics": { fr: "Analytiques", en: "Analytics" },
