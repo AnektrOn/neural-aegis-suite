@@ -22,6 +22,8 @@ export interface AppendixOption {
   label_fr: string;
   label_en: string;
   value: number | null;
+  archetype_weights?: Record<string, number>;
+  shadow_weights?: Record<string, number>;
 }
 
 export interface AppendixQuestion {

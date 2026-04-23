@@ -20,7 +20,7 @@ export async function loadAppendix(): Promise<AppendixCategoryWithQuestions[]> {
 
   const { data: options, error: oErr } = await supabase
     .from("appendix_options" as any)
-    .select("id, question_id, position, label_fr, label_en, value")
+    .select("id, question_id, position, label_fr, label_en, value, archetype_weights, shadow_weights")
     .order("position");
   if (oErr) throw oErr;
 
