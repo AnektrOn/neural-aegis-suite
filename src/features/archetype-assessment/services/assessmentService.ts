@@ -333,6 +333,8 @@ export async function submitAppendixResponses(opts: {
     .from("assessment_sessions" as any)
     .update({ confidence_score: confidence, client_meta: nextMeta })
     .eq("id", sessionId);
+
+  void refreshArchetypeScoresView();
 }
 
 /* -------------------------------------------------------------------------- */
