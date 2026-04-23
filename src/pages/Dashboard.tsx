@@ -20,6 +20,7 @@ import { NeuralCard } from "@/components/ui/neural-card";
 import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
 import { AegisHealthCard } from "@/components/AegisHealthCard";
 import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
+import { MoodDecisionInsightCard } from "@/components/MoodDecisionInsightCard";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
@@ -734,6 +735,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-1">
             <AegisHealthCard score={aegisScore} previous={aegisYesterday} isLoading={aegisLoading} />
+          </div>
+          <div className="md:col-span-2">
+            <MoodDecisionInsightCard userId={user?.id} />
           </div>
         </div>
 
