@@ -21,6 +21,23 @@ import type {
 
 const TEMPLATE_SLUG = "archetype-v1";
 
+/**
+ * Bump this whenever the scoring algorithm (weights, normalization, shadows)
+ * changes. Stored on each appendix_response so historical answers can be
+ * recomputed under the version they were captured with.
+ */
+export const SCORE_VERSION = 1;
+
+/** Refreshes the materialized view aggregating selected option weights. */
+async function refreshArchetypeScoresView(): Promise<void> {
+  try {
+    await supabase.rpc("refresh_archetype_scores_by_user" as any);
+  } catch (e) {
+    // Non-blocking — view refresh failure must not break submission.
+    console.warn("refresh_archetype_scores_by_user failed", e);
+  }
+}
+
 interface TemplateRow {
   id: string;
   slug: string;
@@ -316,6 +333,8 @@ export async function submitAppendixResponses(opts: {
     .from("assessment_sessions" as any)
     .update({ confidence_score: confidence, client_meta: nextMeta })
     .eq("id", sessionId);
+
+  void refreshArchetypeScoresView();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -467,6 +486,8 @@ export async function submitSession(opts: {
     })
     .eq("id", sessionId);
   if (upErr) throw upErr;
+
+  void refreshArchetypeScoresView();
 
   return { analysis };
 }
