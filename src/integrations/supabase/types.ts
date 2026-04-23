@@ -341,6 +341,62 @@ export type Database = {
           },
         ]
       }
+      archetype_profile_snapshots: {
+        Row: {
+          active_principle: string | null
+          admin_notes: string | null
+          all_scores: Json
+          computed_at: string
+          dimension_scores: Json
+          dominant_body: string | null
+          id: string
+          session_id: string | null
+          shadow_scores: Json
+          snapshot_version: number
+          top_archetypes: Json
+          trigger_event: string
+          user_id: string
+        }
+        Insert: {
+          active_principle?: string | null
+          admin_notes?: string | null
+          all_scores?: Json
+          computed_at?: string
+          dimension_scores?: Json
+          dominant_body?: string | null
+          id?: string
+          session_id?: string | null
+          shadow_scores?: Json
+          snapshot_version?: number
+          top_archetypes?: Json
+          trigger_event: string
+          user_id: string
+        }
+        Update: {
+          active_principle?: string | null
+          admin_notes?: string | null
+          all_scores?: Json
+          computed_at?: string
+          dimension_scores?: Json
+          dominant_body?: string | null
+          id?: string
+          session_id?: string | null
+          shadow_scores?: Json
+          snapshot_version?: number
+          top_archetypes?: Json
+          trigger_event?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archetype_profile_snapshots_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       archetype_scores: {
         Row: {
           archetype_key: string

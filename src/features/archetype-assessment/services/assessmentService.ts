@@ -12,6 +12,7 @@ import {
   detectConsistencyWarning,
 } from "../domain/scoringEngine";
 import { selectTopTools } from "../domain/recommendationEngine";
+import { createSnapshot } from "./snapshotService";
 import type {
   AnalysisResult,
   ArchetypeKey,
@@ -335,6 +336,18 @@ export async function submitAppendixResponses(opts: {
     .eq("id", sessionId);
 
   void refreshArchetypeScoresView();
+
+  // Append-only profile snapshot (appendix completion)
+  try {
+    await createSnapshot({
+      userId,
+      sessionId,
+      triggerEvent: "appendix_completed",
+      analysisResult: analysis,
+    });
+  } catch (e) {
+    console.warn("createSnapshot (appendix_completed) failed", e);
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -488,6 +501,18 @@ export async function submitSession(opts: {
   if (upErr) throw upErr;
 
   void refreshArchetypeScoresView();
+
+  // Append-only profile snapshot (core assessment submission)
+  try {
+    await createSnapshot({
+      userId,
+      sessionId,
+      triggerEvent: "core_assessment",
+      analysisResult: analysis,
+    });
+  } catch (e) {
+    console.warn("createSnapshot (core_assessment) failed", e);
+  }
 
   return { analysis };
 }
