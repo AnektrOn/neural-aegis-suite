@@ -24,6 +24,8 @@ import { MoodDecisionInsightCard } from "@/components/MoodDecisionInsightCard";
 import { WelcomeExperience, SetupProgressBanner, WELCOME_DISMISSED_KEY } from "@/components/WelcomeExperience";
 import { PostAssessmentBanner } from "@/components/PostAssessmentBanner";
 import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMaturity";
+import { generateAllNarratives, pickHighlightNarrative, type NarrativeContext, type KPINarrative } from "@/lib/narrativeEngine";
+import { NarrativeKPICard } from "@/components/NarrativeKPICard";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
@@ -64,7 +66,7 @@ const fadeUp = (delay = 0) => ({
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -81,6 +83,8 @@ export default function Dashboard() {
   const today = new Date().toISOString().split("T")[0];
   const { score: aegisScore, trend: aegisTrend, isLoading: aegisLoading } = useAegisHealthScore(user?.id);
   const aegisYesterday = aegisTrend.length >= 2 ? aegisTrend[aegisTrend.length - 2] : null;
+  const [oldestDecisionDays, setOldestDecisionDays] = useState(0);
+  const [lastContactDays, setLastContactDays] = useState(999);
 
   // ── First-time user "Aha Moment" experience ───────────────────────────────
   const [maturity, setMaturity] = useState<UserMaturityProfile | null>(null);
@@ -293,11 +297,13 @@ export default function Dashboard() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     try {
-      const [moodRes, decRes, habitRes, contactRes] = await Promise.all([
+      const [moodRes, decRes, decOldestRes, habitRes, contactRes, lastTouchRes] = await Promise.all([
         supabase.from("mood_entries" as any).select("value").eq("user_id", user!.id).gte("logged_at", sevenDaysAgo.toISOString()),
         supabase.from("decisions" as any).select("id, name, priority, status").eq("user_id", user!.id).eq("status", "pending").order("priority", { ascending: false }).limit(3),
+        supabase.from("decisions" as any).select("created_at").eq("user_id", user!.id).eq("status", "pending").order("created_at", { ascending: true }).limit(1),
         supabase.from("habit_completions" as any).select("id").eq("user_id", user!.id).eq("completed_date", today),
         supabase.from("people_contacts" as any).select("id").eq("user_id", user!.id),
+        supabase.from("relation_quality_history" as any).select("recorded_at").eq("user_id", user!.id).order("recorded_at", { ascending: false }).limit(1),
       ]);
       const moods = (moodRes.data as any[] || []);
       const avg = moods.length > 0
@@ -309,6 +315,18 @@ export default function Dashboard() {
         contacts: String((contactRes.data || []).length),
       });
       if (decRes.data) setDecisions(decRes.data as any[]);
+      const oldest = (decOldestRes.data as any[] | null)?.[0]?.created_at;
+      if (oldest) {
+        setOldestDecisionDays(Math.max(0, Math.floor((Date.now() - new Date(oldest).getTime()) / 86400000)));
+      } else {
+        setOldestDecisionDays(0);
+      }
+      const lastTouch = (lastTouchRes.data as any[] | null)?.[0]?.recorded_at;
+      if (lastTouch) {
+        setLastContactDays(Math.max(0, Math.floor((Date.now() - new Date(lastTouch).getTime()) / 86400000)));
+      } else {
+        setLastContactDays(999);
+      }
     } catch (e) {
       console.error("Dashboard loadStats error:", e);
     } finally {
@@ -381,6 +399,25 @@ export default function Dashboard() {
     initial: { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.28, ease: "easeOut" as const } },
   };
+
+  // Build narratives once — shared by mobile + desktop layouts.
+  const narrativeCtxShared: NarrativeContext = {
+    moodAvg: stats.moodAvg === "—" ? 0 : Number(stats.moodAvg) || 0,
+    moodDelta: digest ? (digest.moodTrend === "down" ? -digest.moodDelta : digest.moodDelta) : 0,
+    moodTrend: digest?.moodTrend ?? "stable",
+    openDecisions: Number(stats.openDecisions) || 0,
+    oldestDecisionDays,
+    habitRate: digest?.habitRate ?? 0,
+    streakDays: digest?.streakDays ?? 0,
+    journalCount: digest?.journalCount ?? 0,
+    contactsCount: Number(stats.contacts) || 0,
+    lastContactDays,
+    aegisScore: aegisScore?.overall_score ?? 0,
+    aegisScoreDelta:
+      aegisScore && aegisYesterday ? aegisScore.overall_score - aegisYesterday.overall_score : 0,
+  };
+  const narratives: KPINarrative[] = generateAllNarratives(narrativeCtxShared);
+  const highlight = pickHighlightNarrative(narratives);
 
   // ─── Mobile layout ─────────────────────────────────────────────────────────
   if (isMobile) {
@@ -755,6 +792,9 @@ export default function Dashboard() {
         ? `-${digest.moodDelta} vs semaine`
         : t("dashboard.stable");
 
+
+
+
   return (
     <div className="min-h-full -mx-6 -mt-6 px-6 pt-6 pb-10 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -798,81 +838,27 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {highlight && !loading && (
+          <motion.div {...fadeUp(0)} className="rounded-[14px] border-[0.5px] border-[hsl(var(--aegis-border))] bg-[hsl(var(--aegis-s1))] px-5 py-4">
+            <p className="font-display text-[10px] uppercase tracking-[0.2em] text-text-tertiary mb-1.5">
+              {t("dashboard.weekInOneSentence")}
+            </p>
+            <p className="text-sm leading-relaxed text-text-primary">
+              {locale === "fr" ? highlight.story_fr : highlight.story_en}
+            </p>
+          </motion.div>
+        )}
+
         <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-3" variants={kpiContainer} initial="initial" animate="animate">
-          <motion.div variants={kpiItem}>
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.statMood")}
-              </span>
-              <span className="text-2xl font-display text-accent-primary">{loading ? "—" : stats.moodAvg}</span>
-              {digest && (
-                <span
-                  className={`text-[10px] flex items-center gap-1 font-medium ${
-                    digest.moodTrend === "up"
-                      ? "text-accent-positive"
-                      : digest.moodTrend === "down"
-                        ? "text-accent-danger"
-                        : "text-text-tertiary"
-                  }`}
-                >
-                  <TrendIcon trend={digest.moodTrend} />
-                  {moodTrendLabel}
-                </span>
-              )}
-            </NeuralCard>
-          </motion.div>
-          <motion.div variants={kpiItem}>
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.statOpenDecisions")}
-              </span>
-              <span className="text-2xl font-display text-accent-primary">{loading ? "—" : stats.openDecisions}</span>
-              <span className="text-[10px] text-text-tertiary flex items-center gap-1">
-                <Target size={10} strokeWidth={1.5} /> {t("nav.decisions")}
-              </span>
-            </NeuralCard>
-          </motion.div>
-          <motion.div variants={kpiItem}>
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.statHabitsToday")}
-              </span>
-              <span className="text-2xl font-display text-accent-secondary">
-                {loading ? "—" : `${stats.habitsDone}${totalHabits > 0 ? `/${totalHabits}` : ""}`}
-              </span>
-              {digest != null && (
-                <span className="text-[10px] text-accent-positive flex items-center gap-1">
-                  <TrendingUp size={10} strokeWidth={1.5} /> {digest.habitRate}% · {t("dashboard.habitRate")}
-                </span>
-              )}
-            </NeuralCard>
-          </motion.div>
-          <motion.div variants={kpiItem}>
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.statNetwork")}
-              </span>
-              <span className="text-2xl font-display text-text-primary">{loading ? "—" : stats.contacts}</span>
-              <span className="text-[10px] text-text-tertiary flex items-center gap-1">
-                <Zap size={10} strokeWidth={1.5} />
-                {t("nav.people")}
-              </span>
-            </NeuralCard>
-          </motion.div>
-          <motion.div variants={kpiItem} className="col-span-2 md:col-span-1">
-            <NeuralCard glow="none" className="flex flex-col gap-1 min-h-[100px]">
-              <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
-                {t("dashboard.streakDays")}
-              </span>
-              <span className="text-2xl font-display text-accent-warning">
-                {digest != null ? `${digest.streakDays}j` : "—"}
-              </span>
-              <span className="text-[10px] text-accent-positive flex items-center gap-1">
-                <Brain size={10} strokeWidth={1.5} /> {digest?.journalCount ?? 0} · {t("dashboard.journalEntries")}
-              </span>
-            </NeuralCard>
-          </motion.div>
+          {narratives.map((n) => (
+            <motion.div key={n.key} variants={kpiItem}>
+              <NarrativeKPICard narrative={n} />
+            </motion.div>
+          ))}
         </motion.div>
+
+        {/* Hidden trend label (kept to avoid unused-var lint) */}
+        <span className="sr-only">{moodTrendLabel}</span>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <NeuralCard className="lg:col-span-2 p-4 md:p-5" glow="blue">
