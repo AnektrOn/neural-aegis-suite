@@ -487,6 +487,8 @@ export async function submitSession(opts: {
     .eq("id", sessionId);
   if (upErr) throw upErr;
 
+  void refreshArchetypeScoresView();
+
   return { analysis };
 }
 
