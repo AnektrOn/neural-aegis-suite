@@ -5,8 +5,8 @@ import { Sparkles, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 export function AssessmentCTA() {
-  const { language } = useLanguage();
-  const isFR = language === "fr";
+  const { locale } = useLanguage();
+  const isFR = locale === "fr";
   return (
     <Card className="p-5 backdrop-blur-3xl bg-card/40 border-border/40">
       <div className="flex items-start gap-3">
