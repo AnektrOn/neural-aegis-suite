@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Sparkles, ArrowLeft, AlertTriangle, Info, TrendingUp, Crown } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, AlertTriangle, Info, TrendingUp, Crown, FileDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "@/hooks/use-toast";
 import {
   archetypeMeta,
   getLatestSubmittedSessionForUser,
@@ -17,8 +18,10 @@ import {
   getPreviousSubmittedSessionForUser,
   getSessionArchetypeScores,
 } from "../services/assessmentService";
+import { exportProfileToPdf } from "../services/exportProfilePdf";
 import type { ArchetypeKey } from "../domain/types";
 import { DualLayerRadar } from "../components/DualLayerRadar";
+import { NarrativeProfileCard, buildNarrative } from "../components/NarrativeProfileCard";
 
 const SHADOW_KEYS = ["control", "victim", "prostitute", "saboteur"] as const;
 
