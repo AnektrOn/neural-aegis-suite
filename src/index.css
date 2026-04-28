@@ -670,6 +670,17 @@ input[type="range"]::-moz-range-thumb {
     inset: 0;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    transform: rotateY(0deg) translateZ(0);
+    overflow: hidden;
+    border-radius: inherit;
   }
-  .flip-face-back { transform: rotateY(180deg); }
+  /* Ensure children with their own stacking context (backdrop-blur, filters)
+     don't break backface-visibility on Chromium/Safari. */
+  .flip-face > * {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    height: 100%;
+    width: 100%;
+  }
+  .flip-face-back { transform: rotateY(180deg) translateZ(0); }
 }
