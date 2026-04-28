@@ -1,77 +1,27 @@
-import { supabase } from "@/integrations/supabase/client";
+/**
+ * DEPRECATED: The appendix module has been retired in favor of the unified
+ * 30-question Aegis V1 onboarding assessment. The underlying tables were
+ * dropped. These functions remain as no-ops so legacy callers don't crash
+ * until the UI is fully removed.
+ */
 import type {
   AppendixCategoryWithQuestions,
   AppendixResponse,
 } from "./types";
 
 export async function loadAppendix(): Promise<AppendixCategoryWithQuestions[]> {
-  const { data: categories, error: catErr } = await supabase
-    .from("appendix_categories" as any)
-    .select("*")
-    .eq("is_active", true)
-    .order("sort_order");
-  if (catErr) throw catErr;
-
-  const { data: questions, error: qErr } = await supabase
-    .from("appendix_questions" as any)
-    .select("*")
-    .order("position");
-  if (qErr) throw qErr;
-
-  const { data: options, error: oErr } = await supabase
-    .from("appendix_options" as any)
-    .select("id, question_id, position, label_fr, label_en, value, archetype_weights, shadow_weights")
-    .order("position");
-  if (oErr) throw oErr;
-
-  const optionsByQ = new Map<string, any[]>();
-  (options as any[]).forEach((o) => {
-    const arr = optionsByQ.get(o.question_id) || [];
-    arr.push(o);
-    optionsByQ.set(o.question_id, arr);
-  });
-
-  const questionsByCat = new Map<string, any[]>();
-  (questions as any[]).forEach((q) => {
-    const arr = questionsByCat.get(q.category_id) || [];
-    arr.push({ ...q, options: optionsByQ.get(q.id) || [] });
-    questionsByCat.set(q.category_id, arr);
-  });
-
-  return (categories as any[]).map((c) => ({
-    ...c,
-    questions: questionsByCat.get(c.id) || [],
-  }));
+  return [];
 }
 
-export async function loadUserResponses(userId: string): Promise<Map<string, AppendixResponse>> {
-  const { data, error } = await supabase
-    .from("appendix_responses" as any)
-    .select("question_id, selected_option_ids, numeric_value, text_value")
-    .eq("user_id", userId);
-  if (error) throw error;
-  const map = new Map<string, AppendixResponse>();
-  (data as any[]).forEach((r) => map.set(r.question_id, r as AppendixResponse));
-  return map;
+export async function loadUserResponses(
+  _userId: string
+): Promise<Map<string, AppendixResponse>> {
+  return new Map();
 }
 
-export async function upsertResponse(userId: string, response: AppendixResponse): Promise<void> {
-  const { SCORE_VERSION } = await import(
-    "@/features/archetype-assessment/services/assessmentService"
-  );
-  const { error } = await supabase
-    .from("appendix_responses" as any)
-    .upsert(
-      {
-        user_id: userId,
-        question_id: response.question_id,
-        selected_option_ids: response.selected_option_ids,
-        numeric_value: response.numeric_value,
-        text_value: response.text_value,
-        score_version: SCORE_VERSION,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,question_id" }
-    );
-  if (error) throw error;
+export async function upsertResponse(
+  _userId: string,
+  _response: AppendixResponse
+): Promise<void> {
+  // no-op
 }
