@@ -20,7 +20,7 @@ import type {
  * dimensions from `RuntimeQuestion.dimension` and produces a sparse map.
  */
 const SHADOW_KEYS: ShadowKey[] = [
-  "control",
+  "child",
   "victim",
   "prostitute",
   "saboteur",

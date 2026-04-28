@@ -11,7 +11,7 @@ import { archetypeMeta } from "../services/assessmentService";
 import { ARCHETYPE_KEYS } from "../domain/archetypes";
 import type { ArchetypeKey } from "../domain/types";
 
-const SHADOW_KEYS = ["control", "victim", "prostitute", "saboteur"] as const;
+const SHADOW_KEYS = ["child", "victim", "prostitute", "saboteur"] as const;
 type ShadowKey = (typeof SHADOW_KEYS)[number];
 
 interface Props {
@@ -26,13 +26,13 @@ interface Props {
 }
 
 const SHADOW_LABELS_FR: Record<ShadowKey, string> = {
-  control: "Contrôle",
+  child: "Contrôle",
   victim: "Victime",
   prostitute: "Prostitué·e",
   saboteur: "Saboteur",
 };
 const SHADOW_LABELS_EN: Record<ShadowKey, string> = {
-  control: "Control",
+  child: "Control",
   victim: "Victim",
   prostitute: "Prostitute",
   saboteur: "Saboteur",

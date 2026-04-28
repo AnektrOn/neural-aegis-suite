@@ -57,10 +57,10 @@ describe("computeRawScores", () => {
   });
 
   it("collects shadow signals from selected options", () => {
-    const questions = [q("q1", "single_choice", [opt("o1", {}, { control: 2, saboteur: 1 })])];
+    const questions = [q("q1", "single_choice", [opt("o1", {}, { child: 2, saboteur: 1 })])];
     const responses: ResponseValue[] = [{ questionId: "q1", selectedOptionIds: ["o1"] }];
     const { shadowSignals } = computeRawScores(questions, responses);
-    expect(shadowSignals.control).toBe(2);
+    expect(shadowSignals.child).toBe(2);
     expect(shadowSignals.saboteur).toBe(1);
   });
 
@@ -133,9 +133,9 @@ describe("computeDimensionScores", () => {
 describe("detectShadowSignals", () => {
   it("normalizes raw shadow scores into 0..1 with cap at 6", () => {
     const out = detectShadowSignals({
-      control: 12, victim: 3, prostitute: 0, saboteur: 0,
+      child: 12, victim: 3, prostitute: 0, saboteur: 0,
     });
-    expect(out.control).toBe(1);
+    expect(out.child).toBe(1);
     expect(out.victim).toBe(0.5);
     expect(out.prostitute).toBe(0);
   });
@@ -183,7 +183,7 @@ describe("recommendation engine", () => {
 
   it("selectTopTools returns ordered RecommendedTool list with rationales", () => {
     const analysis = buildAnalysisResult(
-      [q("q1", "single_choice", [opt("o1", { sovereign: 5 }, { control: 6 })])],
+      [q("q1", "single_choice", [opt("o1", { sovereign: 5 }, { child: 6 })])],
       [{ questionId: "q1", selectedOptionIds: ["o1"] }]
     );
     const recos = selectTopTools(analysis, { limit: 5 });

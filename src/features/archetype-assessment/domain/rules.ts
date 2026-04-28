@@ -14,7 +14,7 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     description:
       "Sovereign with high control shadow → coherent breathing + STOP + shadow journal.",
     match: ({ topArchetypes, shadowSignals }) =>
-      topArchetypes.includes("sovereign") && (shadowSignals.control ?? 0) >= 0.5,
+      topArchetypes.includes("sovereign") && (shadowSignals.child ?? 0) >= 0.5,
     toolKeys: ["coherent_breathing_5min", "stop_protocol", "shadow_journal_control"],
     weight: 3,
   },
@@ -23,7 +23,7 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     description:
       "Sage with shadow control (over-mentalisation) → body scan + grounding to re-embody.",
     match: ({ topArchetypes, shadowSignals }) =>
-      topArchetypes.includes("sage") && (shadowSignals.control ?? 0) >= 0.4,
+      topArchetypes.includes("sage") && (shadowSignals.child ?? 0) >= 0.4,
     toolKeys: ["body_scan_10min", "grounding_3min", "single_task_block"],
     weight: 3,
   },
@@ -43,7 +43,7 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
       "Warrior with high control + saboteur shadow → physiological sigh + body scan.",
     match: ({ topArchetypes, shadowSignals }) =>
       topArchetypes.includes("warrior") &&
-      (shadowSignals.control ?? 0) >= 0.5 &&
+      (shadowSignals.child ?? 0) >= 0.5 &&
       (shadowSignals.saboteur ?? 0) >= 0.3,
     toolKeys: ["physiological_sigh", "body_scan_10min"],
     weight: 3,
@@ -61,7 +61,7 @@ export const RECOMMENDATION_RULES: RecommendationRule[] = [
     description:
       "Creator with control shadow (perfectionism) → morning pages + creative constraint.",
     match: ({ topArchetypes, shadowSignals }) =>
-      topArchetypes.includes("creator") && (shadowSignals.control ?? 0) >= 0.4,
+      topArchetypes.includes("creator") && (shadowSignals.child ?? 0) >= 0.4,
     toolKeys: ["creative_morning_pages", "creative_constraint"],
     weight: 3,
   },

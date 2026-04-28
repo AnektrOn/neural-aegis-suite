@@ -23,7 +23,7 @@ import type { ArchetypeKey } from "../domain/types";
 import { DualLayerRadar } from "../components/DualLayerRadar";
 import { NarrativeProfileCard, buildNarrative } from "../components/NarrativeProfileCard";
 
-const SHADOW_KEYS = ["control", "victim", "prostitute", "saboteur"] as const;
+const SHADOW_KEYS = ["child", "victim", "prostitute", "saboteur"] as const;
 
 export default function AssessmentResults() {
   const navigate = useNavigate();
@@ -88,7 +88,7 @@ export default function AssessmentResults() {
 
     // Map each shadow to candidate archetypes whose growth edge it represents.
     const SHADOW_TO_ARCHETYPES: Record<string, ArchetypeKey[]> = {
-      control: ["sovereign", "magician"],
+      child: ["sovereign", "magician"],
       victim: ["healer", "rebel"],
       prostitute: ["lover", "caregiver"],
       saboteur: ["warrior", "creator"],
