@@ -22,6 +22,7 @@ import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
 import { listAllSessionsForAdmin } from "@/features/archetype-assessment/services/assessmentService";
 import { useToast } from "@/hooks/use-toast";
 import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
+import { DeepDiveAdminCards } from "../components/DeepDiveAdminCards";
 
 interface DeepDiveReportPageProps {
   /**
