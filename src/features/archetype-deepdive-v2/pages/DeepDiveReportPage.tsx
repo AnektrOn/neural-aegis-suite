@@ -22,6 +22,7 @@ import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
 import { listAllSessionsForAdmin } from "@/features/archetype-assessment/services/assessmentService";
 import { useToast } from "@/hooks/use-toast";
 import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
+import { DeepDiveAdminCards } from "../components/DeepDiveAdminCards";
 
 interface DeepDiveReportPageProps {
   /**
@@ -289,11 +290,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
 
           {mode === "admin" && (
             <TabsContent value="admin" className="mt-4">
-              <Card className="p-8 backdrop-blur-3xl bg-white/[0.03] border border-white/10">
-                <article className="prose prose-invert max-w-none prose-headings:font-display prose-headings:tracking-wider prose-h1:text-2xl prose-h2:text-xl prose-h3:text-base prose-p:text-text-secondary prose-li:text-text-secondary prose-strong:text-text-primary prose-em:text-text-tertiary">
-                  <ReactMarkdown>{adminReport}</ReactMarkdown>
-                </article>
-              </Card>
+              <DeepDiveAdminCards profile={profile} />
             </TabsContent>
           )}
         </Tabs>
