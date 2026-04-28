@@ -632,3 +632,44 @@ input[type="range"]::-moz-range-thumb {
     transform: scale(1.1);
   }
 }
+
+/* ---------------- Deep Dive — Neural Deck animations ---------------- */
+@layer utilities {
+  .neural-card {
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 0.35s ease,
+                border-color 0.35s ease,
+                background-color 0.35s ease;
+    will-change: transform;
+  }
+  .neural-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 50px -25px rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+  @media (hover: none) {
+    .neural-card:active {
+      transform: translateY(-2px) scale(0.995);
+    }
+  }
+
+  .perspective-1200 { perspective: 1200px; }
+
+  .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+  .flip-card.is-flipped .flip-card-inner {
+    transform: rotateY(180deg);
+  }
+  .flip-face {
+    position: absolute;
+    inset: 0;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  .flip-face-back { transform: rotateY(180deg); }
+}
