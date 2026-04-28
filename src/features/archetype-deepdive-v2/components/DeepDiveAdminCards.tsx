@@ -14,6 +14,7 @@ import {
   Brain, AlertTriangle, Target, Eye, RotateCcw, ShieldAlert,
 } from "lucide-react";
 import type { SampleProfile } from "../domain/sampleProfile";
+import { DeepDiveRadarChart } from "./DeepDiveRadarChart";
 import type { AnyArchetypeKey } from "../domain/types";
 
 const ARCH_LABEL_FR: Record<AnyArchetypeKey, string> = {
@@ -233,6 +234,9 @@ export function DeepDiveAdminCards({ profile }: { profile: SampleProfile }) {
           ))}
         </div>
       </Card>
+
+      {/* Radar — 12 archetypes wheel */}
+      <DeepDiveRadarChart profile={profile} title="Roue archétypale — 12 majeurs" />
 
       {/* Archetype clinical flip cards */}
       <div>
