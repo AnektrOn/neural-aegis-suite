@@ -46,6 +46,7 @@ const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
 const AdminAlertsPanel = lazy(() => import("./pages/admin/AdminAlertsPanel"));
 const AssessmentFlow = lazy(() => import("./features/archetype-assessment/pages/AssessmentFlow"));
 const AssessmentResults = lazy(() => import("./features/archetype-assessment/pages/AssessmentResults"));
+const DeepDiveSampleReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveSampleReport"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -114,6 +115,7 @@ const App = () => (
                               <Route path="/user-places" element={<AdminUserPlaces />} />
                               <Route path="/assessments" element={<AdminAssessments />} />
                               <Route path="/alerts" element={<AdminAlertsPanel />} />
+                              <Route path="/deep-dive-sample" element={<DeepDiveSampleReport />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
