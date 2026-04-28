@@ -115,6 +115,7 @@ const App = () => (
                               <Route path="/user-places" element={<AdminUserPlaces />} />
                               <Route path="/assessments" element={<AdminAssessments />} />
                               <Route path="/alerts" element={<AdminAlertsPanel />} />
+                              <Route path="/deep-dive-sample" element={<DeepDiveSampleReport />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
