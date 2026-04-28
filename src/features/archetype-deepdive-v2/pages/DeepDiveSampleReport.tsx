@@ -4,12 +4,13 @@ import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileText, Download, User, Shield } from "lucide-react";
+import { FileText, Download, User, Shield, FileDown } from "lucide-react";
 import {
   SAMPLE_PROFILE_LEADER,
   buildUserReport,
   buildAdminReport,
 } from "../domain/sampleProfile";
+import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
 
 /**
  * Renders the live-generated Deep Dive V2 reports (user + admin views) from the
