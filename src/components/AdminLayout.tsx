@@ -23,6 +23,7 @@ import {
   MapPin,
   Sparkles,
   AlertTriangle,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
