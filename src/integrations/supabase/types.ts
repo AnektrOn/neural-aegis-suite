@@ -379,6 +379,7 @@ export type Database = {
           dimension: string | null
           helper_en: string | null
           helper_fr: string | null
+          house: number | null
           id: string
           is_required: boolean
           meta: Json
@@ -393,6 +394,7 @@ export type Database = {
           dimension?: string | null
           helper_en?: string | null
           helper_fr?: string | null
+          house?: number | null
           id?: string
           is_required?: boolean
           meta?: Json
@@ -407,6 +409,7 @@ export type Database = {
           dimension?: string | null
           helper_en?: string | null
           helper_fr?: string | null
+          house?: number | null
           id?: string
           is_required?: boolean
           meta?: Json
