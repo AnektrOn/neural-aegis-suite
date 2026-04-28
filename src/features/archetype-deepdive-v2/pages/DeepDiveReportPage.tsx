@@ -1,41 +1,111 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, User, Shield, FileDown, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  FileText, Download, User, Shield, FileDown, ChevronLeft,
+  Search, Loader2, Sparkles,
+} from "lucide-react";
 import {
   SAMPLE_PROFILES,
   SAMPLE_PROFILE_MYSTIC,
+  SAMPLE_PROFILE_LEADER,
   buildUserReport,
   buildAdminReport,
   type SampleProfile,
 } from "../domain/sampleProfile";
 import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
+import { listAllSessionsForAdmin } from "@/features/archetype-assessment/services/assessmentService";
+import { useToast } from "@/hooks/use-toast";
 
 interface DeepDiveReportPageProps {
   /**
    * "user"  → client view: only their own profile, only "Vue Utilisateur" tab.
-   * "admin" → admin view: profile selector + both Vue Utilisateur and Vue Admin tabs.
+   * "admin" → admin view: lists real users with submitted assessments,
+   *           plus "Vue Admin" tab.
    */
   mode: "user" | "admin";
 }
 
+interface AdminSessionRow {
+  id: string;
+  user_id: string;
+  submitted_at: string | null;
+  profile: { id: string; display_name: string | null } | null;
+  company: { id: string; name: string | null } | null;
+  top_archetype: string | null;
+  shadow_count: number;
+}
+
 /**
- * Unified Deep Dive report page.
- * - In "user" mode: shows the client's report (currently the canonical sample
- *   profile until per-user persistence ships). User cannot switch profiles.
- * - In "admin" mode: a profile selector lists every available client profile,
- *   and the admin can toggle between the user-facing and clinical admin views.
+ * Map a real user's dominant archetype to the closest curated SampleProfile.
+ * Until per-user narratives are persisted, this gives admins a meaningful
+ * Myss-style read of any submitted assessment.
  */
+function pickProfileForUser(topArchetype: string | null): SampleProfile {
+  if (!topArchetype) return SAMPLE_PROFILE_MYSTIC;
+  const verticals = ["mystic", "sage", "magician", "creator"];
+  return verticals.includes(topArchetype)
+    ? SAMPLE_PROFILE_MYSTIC
+    : SAMPLE_PROFILE_LEADER;
+}
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("fr-FR", {
+    year: "numeric", month: "short", day: "numeric",
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Page                                                                       */
+/* -------------------------------------------------------------------------- */
+
 export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
-  const [profileId, setProfileId] = useState<string>(SAMPLE_PROFILE_MYSTIC.id);
+  const { toast } = useToast();
+
+  // Admin: list of real submitted sessions + selection
+  const [sessions, setSessions] = useState<AdminSessionRow[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(mode === "admin");
+  const [filter, setFilter] = useState("");
+  const [selectedSession, setSelectedSession] = useState<AdminSessionRow | null>(null);
+
+  // Tabs (admin can flip between user / admin views)
   const [tab, setTab] = useState<"user" | "admin">(mode === "admin" ? "admin" : "user");
 
-  const profile: SampleProfile =
-    SAMPLE_PROFILES.find((p) => p.id === profileId) ?? SAMPLE_PROFILE_MYSTIC;
+  useEffect(() => {
+    if (mode !== "admin") return;
+    listAllSessionsForAdmin()
+      .then((rows: any[]) => {
+        const submitted = rows.filter((r) => r.submitted_at);
+        setSessions(submitted as AdminSessionRow[]);
+      })
+      .catch((e) => {
+        console.error("[DeepDive admin] list failed", e);
+        toast({ title: "Erreur", description: "Impossible de charger les utilisateurs.", variant: "destructive" });
+      })
+      .finally(() => setLoadingSessions(false));
+  }, [mode, toast]);
+
+  const filtered = useMemo(() => {
+    if (!filter.trim()) return sessions;
+    const q = filter.toLowerCase();
+    return sessions.filter((s) =>
+      (s.profile?.display_name ?? "").toLowerCase().includes(q) ||
+      (s.company?.name ?? "").toLowerCase().includes(q) ||
+      (s.top_archetype ?? "").toLowerCase().includes(q),
+    );
+  }, [sessions, filter]);
+
+  // The currently displayed profile (curated narrative).
+  const profile: SampleProfile = useMemo(() => {
+    if (mode === "user") return SAMPLE_PROFILE_MYSTIC;
+    return selectedSession ? pickProfileForUser(selectedSession.top_archetype) : SAMPLE_PROFILE_MYSTIC;
+  }, [mode, selectedSession]);
 
   const userReport = useMemo(() => buildUserReport(profile), [profile]);
   const adminReport = useMemo(() => buildAdminReport(profile), [profile]);
@@ -51,49 +121,125 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   };
 
   const activeMarkdown = tab === "user" ? userReport : adminReport;
-  const filenameStem = `deep-dive-${profile.id}-${tab}`;
+  const reportSubject = selectedSession?.profile?.display_name || profile.label;
+  const filenameStem = `deep-dive-${(reportSubject || "rapport").replace(/\s+/g, "-").toLowerCase()}-${tab}`;
 
+  /* ------------------------------------------------------------------ */
+  /* Admin LIST view (no user selected yet)                              */
+  /* ------------------------------------------------------------------ */
+  if (mode === "admin" && !selectedSession) {
+    return (
+      <PageWrapper>
+        <div className="mx-auto max-w-5xl space-y-6 py-8">
+          <header className="space-y-2">
+            <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
+              <FileText size={14} strokeWidth={1.5} />
+              Deep Dive — Lecture admin
+            </div>
+            <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
+              Rapports clients
+            </h1>
+            <p className="text-sm text-text-secondary">
+              Liste des utilisateurs ayant complété une évaluation. Sélectionne un profil pour
+              consulter son rapport personnel et la lecture admin.
+            </p>
+          </header>
+
+          <Card className="p-4 backdrop-blur-3xl bg-white/[0.03] border border-white/10 flex items-center gap-3">
+            <Search size={16} strokeWidth={1.5} className="text-text-tertiary shrink-0" />
+            <Input
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Rechercher par nom, société, archétype dominant…"
+              className="border-0 bg-transparent focus-visible:ring-0 px-0"
+            />
+          </Card>
+
+          {loadingSessions ? (
+            <div className="flex items-center justify-center py-16 text-text-tertiary">
+              <Loader2 size={20} strokeWidth={1.5} className="animate-spin mr-2" />
+              Chargement des utilisateurs…
+            </div>
+          ) : filtered.length === 0 ? (
+            <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
+              <Sparkles size={28} strokeWidth={1.2} className="mx-auto mb-3 text-text-tertiary" />
+              <p className="text-text-secondary text-sm">
+                {sessions.length === 0
+                  ? "Aucun utilisateur n'a encore complété d'évaluation."
+                  : "Aucun résultat pour ce filtre."}
+              </p>
+            </Card>
+          ) : (
+            <div className="grid gap-3">
+              {filtered.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => { setSelectedSession(s); setTab("admin"); }}
+                  className="text-left transition-all hover:scale-[1.005]"
+                >
+                  <Card className="p-4 backdrop-blur-3xl bg-white/[0.03] border border-white/10 hover:border-accent-warning/30 transition-colors">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-display tracking-wide text-text-primary truncate">
+                          {s.profile?.display_name || "Utilisateur"}
+                        </div>
+                        <div className="text-xs text-text-tertiary mt-1 flex items-center gap-3 flex-wrap">
+                          {s.company?.name && <span>{s.company.name}</span>}
+                          <span>Soumis le {fmtDate(s.submitted_at)}</span>
+                        </div>
+                      </div>
+                      {s.top_archetype && (
+                        <Badge variant="outline" className="capitalize border-white/10 text-text-secondary">
+                          {s.top_archetype}
+                        </Badge>
+                      )}
+                      {s.shadow_count > 0 && (
+                        <Badge variant="outline" className="border-accent-warning/30 text-accent-warning">
+                          {s.shadow_count} ombre{s.shadow_count > 1 ? "s" : ""}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-text-tertiary uppercase tracking-[0.2em]">Consulter →</span>
+                    </div>
+                  </Card>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Report view (admin with user selected, or user mode)                */
+  /* ------------------------------------------------------------------ */
   return (
     <PageWrapper>
       <div className="mx-auto max-w-4xl space-y-6 py-8">
+        {mode === "admin" && selectedSession && (
+          <button
+            onClick={() => setSelectedSession(null)}
+            className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-display text-text-tertiary hover:text-text-primary transition-colors"
+          >
+            <ChevronLeft size={14} strokeWidth={1.5} />
+            Retour à la liste
+          </button>
+        )}
+
         <header className="space-y-2">
           <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
             <FileText size={14} strokeWidth={1.5} />
             {mode === "admin" ? "Deep Dive — Lecture admin" : "Ton rapport Deep Dive"}
           </div>
           <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
-            Rapport archétypal
+            {reportSubject}
           </h1>
           <p className="text-sm text-text-secondary">
             {mode === "admin"
-              ? "Sélectionne un profil client pour consulter sa lecture utilisateur ou la lecture admin Myss."
+              ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null)}. Profil archétypal mappé sur la lecture « ${profile.label} ».`
               : "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."}
           </p>
         </header>
-
-        {mode === "admin" && (
-          <Card className="p-4 backdrop-blur-3xl bg-white/[0.03] border border-white/10">
-            <label className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-              <span className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-display text-text-tertiary">
-                <Users size={14} strokeWidth={1.5} />
-                Profil client
-              </span>
-              <Select value={profileId} onValueChange={setProfileId}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SAMPLE_PROFILES.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.label}
-                      {p.subtitle ? ` — ${p.subtitle}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-          </Card>
-        )}
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as "user" | "admin")}>
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -125,7 +271,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
                   exportDeepDivePdf({
                     kind: tab,
                     markdown: activeMarkdown,
-                    profileLabel: profile.label,
+                    profileLabel: reportSubject,
                   })
                 }
                 className="gap-2"
