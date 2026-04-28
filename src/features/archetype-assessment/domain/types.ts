@@ -48,11 +48,15 @@ export type DimensionKey = string;
  * carries. Anything else (perfectionism, withdrawal, …) is expressed as a
  * variant or intensity inside one of these 4 buckets.
  */
+/**
+ * Aegis V1 — 4 universal Survival shadow archetypes everyone carries.
+ * Aligned with Caroline Myss' "Survival Family".
+ */
 export type ShadowKey =
-  | "control"
+  | "child"
   | "victim"
-  | "prostitute"
-  | "saboteur";
+  | "saboteur"
+  | "prostitute";
 
 export type QuestionType =
   | "single_choice"

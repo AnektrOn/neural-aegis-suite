@@ -4,13 +4,13 @@ import { archetypeMeta } from "../services/assessmentService";
 import type { ArchetypeKey } from "../domain/types";
 
 const SHADOW_LABELS_FR: Record<string, string> = {
-  control: "Contrôle",
+  child: "Contrôle",
   victim: "Victime",
   prostitute: "Prostitué·e",
   saboteur: "Saboteur",
 };
 const SHADOW_LABELS_EN: Record<string, string> = {
-  control: "Control",
+  child: "Control",
   victim: "Victim",
   prostitute: "Prostitute",
   saboteur: "Saboteur",
@@ -29,7 +29,7 @@ export function buildNarrative({ isFR, topArchetypes, shadowSignals }: Narrative
   const a3 = topArchetypes[2] ? archetypeMeta(topArchetypes[2]) : null;
 
   const shadowEntries = Object.entries(shadowSignals ?? {})
-    .filter(([k]) => ["control", "victim", "prostitute", "saboteur"].includes(k))
+    .filter(([k]) => ["child", "victim", "prostitute", "saboteur"].includes(k))
     .sort((a, b) => Number(b[1]) - Number(a[1]));
   const topShadowKey = shadowEntries[0]?.[0];
   const shadowLabel = topShadowKey
