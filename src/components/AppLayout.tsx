@@ -19,6 +19,7 @@ import {
   UserCircle,
   CalendarDays,
   Menu,
+  FileText,
 } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +59,7 @@ const navKeys = [
   { to: "/people", icon: Users, key: "nav.people" as const },
   { to: "/analytics", icon: BarChart3, key: "nav.analytics" as const },
   { to: "/calendar", icon: CalendarDays, key: "nav.calendar" as const },
+  { to: "/deep-dive", icon: FileText, key: "nav.deepDive" as const },
   { to: "/profile", icon: UserCircle, key: "nav.profile" as const },
 ];
 
