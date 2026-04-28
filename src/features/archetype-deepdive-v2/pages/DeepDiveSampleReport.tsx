@@ -4,12 +4,13 @@ import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileText, Download, User, Shield } from "lucide-react";
+import { FileText, Download, User, Shield, FileDown } from "lucide-react";
 import {
   SAMPLE_PROFILE_LEADER,
   buildUserReport,
   buildAdminReport,
 } from "../domain/sampleProfile";
+import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
 
 /**
  * Renders the live-generated Deep Dive V2 reports (user + admin views) from the
@@ -60,19 +61,35 @@ export default function DeepDiveSampleReport() {
               </TabsTrigger>
             </TabsList>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                tab === "user"
-                  ? downloadMarkdown(userReport, "deep-dive-user.md")
-                  : downloadMarkdown(adminReport, "deep-dive-admin.md")
-              }
-              className="gap-2"
-            >
-              <Download size={14} strokeWidth={1.5} />
-              Télécharger .md
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  tab === "user"
+                    ? downloadMarkdown(userReport, "deep-dive-user.md")
+                    : downloadMarkdown(adminReport, "deep-dive-admin.md")
+                }
+                className="gap-2"
+              >
+                <Download size={14} strokeWidth={1.5} />
+                .md
+              </Button>
+              <Button
+                size="sm"
+                onClick={() =>
+                  exportDeepDivePdf({
+                    kind: tab,
+                    markdown: tab === "user" ? userReport : adminReport,
+                    profileLabel: SAMPLE_PROFILE_LEADER.label,
+                  })
+                }
+                className="gap-2 bg-gradient-to-r from-amber-500/80 to-amber-600/80 hover:from-amber-500 hover:to-amber-600 text-black font-medium"
+              >
+                <FileDown size={14} strokeWidth={1.5} />
+                Exporter PDF
+              </Button>
+            </div>
           </div>
 
           <TabsContent value="user" className="mt-4">
