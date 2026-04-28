@@ -175,6 +175,9 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
         </div>
       </Card>
 
+      {/* Radar — 12 archetypes wheel */}
+      <DeepDiveRadarChart profile={profile} />
+
       {/* Cards 2–4 — Archetypes flip deck */}
       <div>
         <div className="flex items-center justify-between mb-3">
