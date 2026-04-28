@@ -61,19 +61,35 @@ export default function DeepDiveSampleReport() {
               </TabsTrigger>
             </TabsList>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                tab === "user"
-                  ? downloadMarkdown(userReport, "deep-dive-user.md")
-                  : downloadMarkdown(adminReport, "deep-dive-admin.md")
-              }
-              className="gap-2"
-            >
-              <Download size={14} strokeWidth={1.5} />
-              Télécharger .md
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  tab === "user"
+                    ? downloadMarkdown(userReport, "deep-dive-user.md")
+                    : downloadMarkdown(adminReport, "deep-dive-admin.md")
+                }
+                className="gap-2"
+              >
+                <Download size={14} strokeWidth={1.5} />
+                .md
+              </Button>
+              <Button
+                size="sm"
+                onClick={() =>
+                  exportDeepDivePdf({
+                    kind: tab,
+                    markdown: tab === "user" ? userReport : adminReport,
+                    profileLabel: SAMPLE_PROFILE_LEADER.label,
+                  })
+                }
+                className="gap-2 bg-gradient-to-r from-amber-500/80 to-amber-600/80 hover:from-amber-500 hover:to-amber-600 text-black font-medium"
+              >
+                <FileDown size={14} strokeWidth={1.5} />
+                Exporter PDF
+              </Button>
+            </div>
           </div>
 
           <TabsContent value="user" className="mt-4">
