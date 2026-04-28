@@ -12,6 +12,7 @@ export const translations = {
   "nav.analytics": { fr: "Analytiques", en: "Analytics" },
   "nav.calendar": { fr: "Calendrier", en: "Calendar" },
   "nav.profile": { fr: "Profil", en: "Profile" },
+  "nav.deepDive": { fr: "Deep Dive", en: "Deep Dive" },
   "nav.admin": { fr: "Admin", en: "Admin" },
   "nav.logout": { fr: "Se déconnecter", en: "Sign out" },
   "nav.bottom.board": { fr: "Board", en: "Board" },
