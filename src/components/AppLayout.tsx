@@ -44,11 +44,45 @@ const mobileDockKeys = [
   { to: "/habits", icon: ListChecks, labelKey: "nav.habits" as const },
 ];
 
-const mobileMenuKeys = [
-  { to: "/journal", icon: BookOpen, labelKey: "nav.journal" as const },
-  { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" as const },
-  { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" as const },
-  { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" as const },
+type MobileSection = {
+  titleKey: "nav.section.daily" | "nav.section.reflect" | "nav.section.insights" | "nav.section.account";
+  items: Array<{
+    to: string;
+    icon: typeof LayoutDashboard;
+    labelKey: Parameters<ReturnType<typeof useLanguage>["t"]>[0];
+  }>;
+};
+
+const mobileMenuSections: MobileSection[] = [
+  {
+    titleKey: "nav.section.daily",
+    items: [
+      { to: "/", icon: LayoutDashboard, labelKey: "nav.dashboard" as const },
+      { to: "/mood", icon: Brain, labelKey: "nav.mood" as const },
+      { to: "/decisions", icon: Target, labelKey: "nav.decisions" as const },
+      { to: "/habits", icon: ListChecks, labelKey: "nav.habits" as const },
+    ],
+  },
+  {
+    titleKey: "nav.section.reflect",
+    items: [
+      { to: "/journal", icon: BookOpen, labelKey: "nav.journal" as const },
+      { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" as const },
+      { to: "/people", icon: Users, labelKey: "nav.people" as const },
+      { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" as const },
+    ],
+  },
+  {
+    titleKey: "nav.section.insights",
+    items: [
+      { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" as const },
+      { to: "/deep-dive", icon: FileText, labelKey: "nav.deepDive" as const },
+    ],
+  },
+  {
+    titleKey: "nav.section.account",
+    items: [{ to: "/profile", icon: UserCircle, labelKey: "nav.profile" as const }],
+  },
 ];
 
 const navKeys = [
