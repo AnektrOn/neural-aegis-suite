@@ -159,7 +159,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   };
 
   const activeMarkdown = tab === "user" ? userReport : adminReport;
-  const reportSubject = selectedSession?.profile?.display_name || profile.label;
+  const reportSubject = selectedSession?.profile?.display_name || profile?.label || "Deep Dive";
   const filenameStem = `deep-dive-${(reportSubject || "rapport").replace(/\s+/g, "-").toLowerCase()}-${tab}`;
 
   /* ------------------------------------------------------------------ */
