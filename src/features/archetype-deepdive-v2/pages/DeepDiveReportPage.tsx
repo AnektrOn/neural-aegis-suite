@@ -269,29 +269,35 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
             className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-display text-text-tertiary hover:text-text-primary transition-colors"
           >
             <ChevronLeft size={14} strokeWidth={1.5} />
-            Retour à la liste
+            {isFR ? "Retour à la liste" : "Back to list"}
           </button>
         )}
 
         <header className="space-y-2">
           <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
             <FileText size={14} strokeWidth={1.5} />
-            {mode === "admin" ? "Deep Dive — Lecture admin" : "Ton rapport Deep Dive"}
+            {mode === "admin"
+              ? (isFR ? "Deep Dive — Lecture admin" : "Deep Dive — Admin reading")
+              : (isFR ? "Ton rapport Deep Dive" : "Your Deep Dive report")}
           </div>
           <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
             {reportSubject}
           </h1>
           <p className="text-sm text-text-secondary">
             {mode === "admin"
-              ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null)}.${profile ? ` Triade : ${profile.label}.` : ""}`
-              : "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."}
+              ? (isFR
+                  ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triade : ${profile.label}.` : ""}`
+                  : `Assessment submitted on ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triad: ${profile.label}.` : ""}`)
+              : (isFR
+                  ? "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."
+                  : "Personalized reading of your dominant archetypes, shadows and recommended practices.")}
           </p>
         </header>
 
         {loadingProfile && (
           <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
             <Loader2 size={20} strokeWidth={1.5} className="animate-spin mx-auto mb-3 text-text-tertiary" />
-            <p className="text-text-secondary text-sm">Construction de ton profil archétypal…</p>
+            <p className="text-text-secondary text-sm">{isFR ? "Construction de ton profil archétypal…" : "Building your archetypal profile…"}</p>
           </Card>
         )}
 
@@ -307,11 +313,11 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <TabsList>
                 <TabsTrigger value="user" className="gap-2">
-                  <User size={14} strokeWidth={1.5} /> Vue Utilisateur
+                  <User size={14} strokeWidth={1.5} /> {isFR ? "Vue Utilisateur" : "User view"}
                 </TabsTrigger>
                 {mode === "admin" && (
                   <TabsTrigger value="admin" className="gap-2">
-                    <Shield size={14} strokeWidth={1.5} /> Vue Admin
+                    <Shield size={14} strokeWidth={1.5} /> {isFR ? "Vue Admin" : "Admin view"}
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -339,7 +345,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
                   className="gap-2"
                 >
                   <FileDown size={14} strokeWidth={1.5} />
-                  Exporter PDF
+                  {isFR ? "Exporter PDF" : "Export PDF"}
                 </Button>
               </div>
             </div>
