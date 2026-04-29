@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
 import { DeepDiveAdminCards } from "../components/DeepDiveAdminCards";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface DeepDiveReportPageProps {
   /**
