@@ -274,62 +274,78 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
           </h1>
           <p className="text-sm text-text-secondary">
             {mode === "admin"
-              ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null)}. Profil archétypal mappé sur la lecture « ${profile.label} ».`
+              ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null)}.${profile ? ` Triade : ${profile.label}.` : ""}`
               : "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."}
           </p>
         </header>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "user" | "admin")}>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <TabsList>
-              <TabsTrigger value="user" className="gap-2">
-                <User size={14} strokeWidth={1.5} /> Vue Utilisateur
-              </TabsTrigger>
-              {mode === "admin" && (
-                <TabsTrigger value="admin" className="gap-2">
-                  <Shield size={14} strokeWidth={1.5} /> Vue Admin
+        {loadingProfile && (
+          <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
+            <Loader2 size={20} strokeWidth={1.5} className="animate-spin mx-auto mb-3 text-text-tertiary" />
+            <p className="text-text-secondary text-sm">Construction de ton profil archétypal…</p>
+          </Card>
+        )}
+
+        {!loadingProfile && profileError && (
+          <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
+            <Sparkles size={28} strokeWidth={1.2} className="mx-auto mb-3 text-text-tertiary" />
+            <p className="text-text-secondary text-sm">{profileError}</p>
+          </Card>
+        )}
+
+        {!loadingProfile && !profileError && profile && (
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "user" | "admin")}>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <TabsList>
+                <TabsTrigger value="user" className="gap-2">
+                  <User size={14} strokeWidth={1.5} /> Vue Utilisateur
                 </TabsTrigger>
-              )}
-            </TabsList>
+                {mode === "admin" && (
+                  <TabsTrigger value="admin" className="gap-2">
+                    <Shield size={14} strokeWidth={1.5} /> Vue Admin
+                  </TabsTrigger>
+                )}
+              </TabsList>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => downloadMarkdown(activeMarkdown, `${filenameStem}.md`)}
-                className="gap-2"
-              >
-                <Download size={14} strokeWidth={1.5} />
-                .md
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  exportDeepDivePdf({
-                    kind: tab,
-                    markdown: activeMarkdown,
-                    profileLabel: reportSubject,
-                  })
-                }
-                className="gap-2"
-              >
-                <FileDown size={14} strokeWidth={1.5} />
-                Exporter PDF
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadMarkdown(activeMarkdown, `${filenameStem}.md`)}
+                  className="gap-2"
+                >
+                  <Download size={14} strokeWidth={1.5} />
+                  .md
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    exportDeepDivePdf({
+                      kind: tab,
+                      markdown: activeMarkdown,
+                      profileLabel: reportSubject,
+                    })
+                  }
+                  className="gap-2"
+                >
+                  <FileDown size={14} strokeWidth={1.5} />
+                  Exporter PDF
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <TabsContent value="user" className="mt-4">
-            <DeepDiveUserCards profile={profile} />
-          </TabsContent>
-
-          {mode === "admin" && (
-            <TabsContent value="admin" className="mt-4">
-              <DeepDiveAdminCards profile={profile} />
+            <TabsContent value="user" className="mt-4">
+              <DeepDiveUserCards profile={profile} />
             </TabsContent>
-          )}
-        </Tabs>
+
+            {mode === "admin" && (
+              <TabsContent value="admin" className="mt-4">
+                <DeepDiveAdminCards profile={profile} />
+              </TabsContent>
+            )}
+          </Tabs>
+        )}
       </div>
     </PageWrapper>
   );
