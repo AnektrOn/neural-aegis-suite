@@ -86,7 +86,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
       })
       .catch((e) => {
         console.error("[DeepDive admin] list failed", e);
-        toast({ title: "Erreur", description: "Impossible de charger les utilisateurs.", variant: "destructive" });
+        toast({ title: isFR ? "Erreur" : "Error", description: isFR ? "Impossible de charger les utilisateurs." : "Unable to load users.", variant: "destructive" });
       })
       .finally(() => setLoadingSessions(false));
   }, [mode, toast]);
