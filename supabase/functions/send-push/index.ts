@@ -94,15 +94,24 @@ serve(async (req) => {
 
   try {
     const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
-    const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@aegis.local";
-    if (!VAPID_PRIVATE_KEY) {
-      return new Response(JSON.stringify({ error: "VAPID_PRIVATE_KEY missing" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const rawSubject = (Deno.env.get("VAPID_SUBJECT") || "admin@aegis.local").trim();
+    // web-push requires mailto: or https:// — auto-fix common misconfig (bare email)
+    const VAPID_SUBJECT =
+      rawSubject.startsWith("mailto:") || rawSubject.startsWith("https://")
+        ? rawSubject
+        : `mailto:${rawSubject.replace(/^mailto:/i, "")}`;
 
-    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    let webpushReady = false;
+    if (VAPID_PRIVATE_KEY) {
+      try {
+        webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        webpushReady = true;
+      } catch (e) {
+        console.error("VAPID setup failed (web push disabled, FCM still OK):", e);
+      }
+    } else {
+      console.warn("VAPID_PRIVATE_KEY missing — web push disabled, FCM still attempted");
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -158,7 +167,7 @@ serve(async (req) => {
     const stale: string[] = [];
 
     await Promise.all(
-      (subs ?? []).map(async (s: any) => {
+      (webpushReady ? subs ?? [] : []).map(async (s: any) => {
         try {
           await webpush.sendNotification(
             { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
