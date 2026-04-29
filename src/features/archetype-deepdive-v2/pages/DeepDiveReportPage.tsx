@@ -180,14 +180,15 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
           <header className="space-y-2">
             <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
               <FileText size={14} strokeWidth={1.5} />
-              Deep Dive — Lecture admin
+              {isFR ? "Deep Dive — Lecture admin" : "Deep Dive — Admin reading"}
             </div>
             <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
-              Rapports clients
+              {isFR ? "Rapports clients" : "Client reports"}
             </h1>
             <p className="text-sm text-text-secondary">
-              Liste des utilisateurs ayant complété une évaluation. Sélectionne un profil pour
-              consulter son rapport personnel et la lecture admin.
+              {isFR
+                ? "Liste des utilisateurs ayant complété une évaluation. Sélectionne un profil pour consulter son rapport personnel et la lecture admin."
+                : "List of users who have completed an assessment. Select a profile to view their personal report and the admin reading."}
             </p>
           </header>
 
@@ -196,7 +197,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
             <Input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Rechercher par nom, société, archétype dominant…"
+              placeholder={isFR ? "Rechercher par nom, société, archétype dominant…" : "Search by name, company, dominant archetype…"}
               className="border-0 bg-transparent focus-visible:ring-0 px-0"
             />
           </Card>
@@ -204,15 +205,15 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
           {loadingSessions ? (
             <div className="flex items-center justify-center py-16 text-text-tertiary">
               <Loader2 size={20} strokeWidth={1.5} className="animate-spin mr-2" />
-              Chargement des utilisateurs…
+              {isFR ? "Chargement des utilisateurs…" : "Loading users…"}
             </div>
           ) : filtered.length === 0 ? (
             <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
               <Sparkles size={28} strokeWidth={1.2} className="mx-auto mb-3 text-text-tertiary" />
               <p className="text-text-secondary text-sm">
                 {sessions.length === 0
-                  ? "Aucun utilisateur n'a encore complété d'évaluation."
-                  : "Aucun résultat pour ce filtre."}
+                  ? (isFR ? "Aucun utilisateur n'a encore complété d'évaluation." : "No user has completed an assessment yet.")
+                  : (isFR ? "Aucun résultat pour ce filtre." : "No results for this filter.")}
               </p>
             </Card>
           ) : (
@@ -227,11 +228,11 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
                     <div className="flex items-center gap-4 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <div className="font-display tracking-wide text-text-primary truncate">
-                          {s.profile?.display_name || "Utilisateur"}
+                          {s.profile?.display_name || (isFR ? "Utilisateur" : "User")}
                         </div>
                         <div className="text-xs text-text-tertiary mt-1 flex items-center gap-3 flex-wrap">
                           {s.company?.name && <span>{s.company.name}</span>}
-                          <span>Soumis le {fmtDate(s.submitted_at)}</span>
+                          <span>{isFR ? "Soumis le" : "Submitted on"} {fmtDate(s.submitted_at, locale)}</span>
                         </div>
                       </div>
                       {s.top_archetype && (
@@ -241,10 +242,10 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
                       )}
                       {s.shadow_count > 0 && (
                         <Badge variant="outline" className="border-accent-warning/30 text-accent-warning">
-                          {s.shadow_count} ombre{s.shadow_count > 1 ? "s" : ""}
+                          {s.shadow_count} {isFR ? `ombre${s.shadow_count > 1 ? "s" : ""}` : `shadow${s.shadow_count > 1 ? "s" : ""}`}
                         </Badge>
                       )}
-                      <span className="text-xs text-text-tertiary uppercase tracking-[0.2em]">Consulter →</span>
+                      <span className="text-xs text-text-tertiary uppercase tracking-[0.2em]">{isFR ? "Consulter →" : "View →"}</span>
                     </div>
                   </Card>
                 </button>
