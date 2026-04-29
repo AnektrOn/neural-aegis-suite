@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,15 +10,18 @@ import {
   Search, Loader2, Sparkles,
 } from "lucide-react";
 import {
-  SAMPLE_PROFILES,
-  SAMPLE_PROFILE_MYSTIC,
-  SAMPLE_PROFILE_LEADER,
   buildUserReport,
   buildAdminReport,
   type SampleProfile,
 } from "../domain/sampleProfile";
+import { buildDynamicProfile } from "../domain/dynamicProfileBuilder";
 import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
-import { listAllSessionsForAdmin } from "@/features/archetype-assessment/services/assessmentService";
+import {
+  listAllSessionsForAdmin,
+  getLatestSubmittedSessionForUser,
+  getSessionFullDetails,
+} from "@/features/archetype-assessment/services/assessmentService";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
 import { DeepDiveAdminCards } from "../components/DeepDiveAdminCards";
@@ -43,19 +45,6 @@ interface AdminSessionRow {
   shadow_count: number;
 }
 
-/**
- * Map a real user's dominant archetype to the closest curated SampleProfile.
- * Until per-user narratives are persisted, this gives admins a meaningful
- * Myss-style read of any submitted assessment.
- */
-function pickProfileForUser(topArchetype: string | null): SampleProfile {
-  if (!topArchetype) return SAMPLE_PROFILE_MYSTIC;
-  const verticals = ["mystic", "sage", "magician", "creator"];
-  return verticals.includes(topArchetype)
-    ? SAMPLE_PROFILE_MYSTIC
-    : SAMPLE_PROFILE_LEADER;
-}
-
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("fr-FR", {
@@ -69,12 +58,18 @@ function fmtDate(iso: string | null): string {
 
 export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Admin: list of real submitted sessions + selection
   const [sessions, setSessions] = useState<AdminSessionRow[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(mode === "admin");
   const [filter, setFilter] = useState("");
   const [selectedSession, setSelectedSession] = useState<AdminSessionRow | null>(null);
+
+  // Dynamic profile loading from real DB data
+  const [profile, setProfile] = useState<SampleProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Tabs (admin can flip between user / admin views)
   const [tab, setTab] = useState<"user" | "admin">(mode === "admin" ? "admin" : "user");
@@ -103,14 +98,55 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
     );
   }, [sessions, filter]);
 
-  // The currently displayed profile (curated narrative).
-  const profile: SampleProfile = useMemo(() => {
-    if (mode === "user") return SAMPLE_PROFILE_MYSTIC;
-    return selectedSession ? pickProfileForUser(selectedSession.top_archetype) : SAMPLE_PROFILE_MYSTIC;
-  }, [mode, selectedSession]);
+  // Load the REAL deep dive profile for the active subject (current user OR selected admin target)
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setProfile(null);
+      setProfileError(null);
 
-  const userReport = useMemo(() => buildUserReport(profile), [profile]);
-  const adminReport = useMemo(() => buildAdminReport(profile), [profile]);
+      let sessionId: string | null = null;
+      let displayName: string | null = null;
+
+      if (mode === "user") {
+        if (!user?.id) return;
+        const session = await getLatestSubmittedSessionForUser(user.id);
+        if (!session) {
+          if (!cancelled) setProfileError("Tu n'as pas encore complété d'évaluation. Lance l'assessment pour générer ton Deep Dive personnel.");
+          return;
+        }
+        sessionId = session.id;
+      } else {
+        if (!selectedSession) return;
+        sessionId = selectedSession.id;
+        displayName = selectedSession.profile?.display_name ?? null;
+      }
+
+      if (!sessionId) return;
+      setLoadingProfile(true);
+      try {
+        const details = await getSessionFullDetails(sessionId);
+        if (cancelled) return;
+        const dynProfile = buildDynamicProfile({
+          sessionId,
+          displayName: displayName ?? details.profile?.display_name ?? null,
+          scores: (details.scores ?? []) as any,
+          analysis: (details.analysis ?? null) as any,
+        });
+        setProfile(dynProfile);
+      } catch (e: any) {
+        console.error("[DeepDive] load profile failed", e);
+        if (!cancelled) setProfileError(e?.message ?? "Erreur lors du chargement du profil.");
+      } finally {
+        if (!cancelled) setLoadingProfile(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [mode, user?.id, selectedSession]);
+
+  const userReport = useMemo(() => (profile ? buildUserReport(profile) : ""), [profile]);
+  const adminReport = useMemo(() => (profile ? buildAdminReport(profile) : ""), [profile]);
 
   const downloadMarkdown = (content: string, filename: string) => {
     const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
@@ -123,7 +159,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   };
 
   const activeMarkdown = tab === "user" ? userReport : adminReport;
-  const reportSubject = selectedSession?.profile?.display_name || profile.label;
+  const reportSubject = selectedSession?.profile?.display_name || profile?.label || "Deep Dive";
   const filenameStem = `deep-dive-${(reportSubject || "rapport").replace(/\s+/g, "-").toLowerCase()}-${tab}`;
 
   /* ------------------------------------------------------------------ */
@@ -238,62 +274,78 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
           </h1>
           <p className="text-sm text-text-secondary">
             {mode === "admin"
-              ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null)}. Profil archétypal mappé sur la lecture « ${profile.label} ».`
+              ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null)}.${profile ? ` Triade : ${profile.label}.` : ""}`
               : "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."}
           </p>
         </header>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "user" | "admin")}>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <TabsList>
-              <TabsTrigger value="user" className="gap-2">
-                <User size={14} strokeWidth={1.5} /> Vue Utilisateur
-              </TabsTrigger>
-              {mode === "admin" && (
-                <TabsTrigger value="admin" className="gap-2">
-                  <Shield size={14} strokeWidth={1.5} /> Vue Admin
+        {loadingProfile && (
+          <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
+            <Loader2 size={20} strokeWidth={1.5} className="animate-spin mx-auto mb-3 text-text-tertiary" />
+            <p className="text-text-secondary text-sm">Construction de ton profil archétypal…</p>
+          </Card>
+        )}
+
+        {!loadingProfile && profileError && (
+          <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
+            <Sparkles size={28} strokeWidth={1.2} className="mx-auto mb-3 text-text-tertiary" />
+            <p className="text-text-secondary text-sm">{profileError}</p>
+          </Card>
+        )}
+
+        {!loadingProfile && !profileError && profile && (
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "user" | "admin")}>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <TabsList>
+                <TabsTrigger value="user" className="gap-2">
+                  <User size={14} strokeWidth={1.5} /> Vue Utilisateur
                 </TabsTrigger>
-              )}
-            </TabsList>
+                {mode === "admin" && (
+                  <TabsTrigger value="admin" className="gap-2">
+                    <Shield size={14} strokeWidth={1.5} /> Vue Admin
+                  </TabsTrigger>
+                )}
+              </TabsList>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => downloadMarkdown(activeMarkdown, `${filenameStem}.md`)}
-                className="gap-2"
-              >
-                <Download size={14} strokeWidth={1.5} />
-                .md
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  exportDeepDivePdf({
-                    kind: tab,
-                    markdown: activeMarkdown,
-                    profileLabel: reportSubject,
-                  })
-                }
-                className="gap-2"
-              >
-                <FileDown size={14} strokeWidth={1.5} />
-                Exporter PDF
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadMarkdown(activeMarkdown, `${filenameStem}.md`)}
+                  className="gap-2"
+                >
+                  <Download size={14} strokeWidth={1.5} />
+                  .md
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    exportDeepDivePdf({
+                      kind: tab,
+                      markdown: activeMarkdown,
+                      profileLabel: reportSubject,
+                    })
+                  }
+                  className="gap-2"
+                >
+                  <FileDown size={14} strokeWidth={1.5} />
+                  Exporter PDF
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <TabsContent value="user" className="mt-4">
-            <DeepDiveUserCards profile={profile} />
-          </TabsContent>
-
-          {mode === "admin" && (
-            <TabsContent value="admin" className="mt-4">
-              <DeepDiveAdminCards profile={profile} />
+            <TabsContent value="user" className="mt-4">
+              <DeepDiveUserCards profile={profile} />
             </TabsContent>
-          )}
-        </Tabs>
+
+            {mode === "admin" && (
+              <TabsContent value="admin" className="mt-4">
+                <DeepDiveAdminCards profile={profile} />
+              </TabsContent>
+            )}
+          </Tabs>
+        )}
       </div>
     </PageWrapper>
   );
