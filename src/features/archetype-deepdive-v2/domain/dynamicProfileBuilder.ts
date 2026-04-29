@@ -71,10 +71,17 @@ export function buildDynamicProfile(input: BuildDynamicProfileInput): SampleProf
   // Top 3 archetypes
   const topThree = coreScores.slice(0, 3).map((s) => s.archetype_key as AnyArchetypeKey);
 
+  // `normalized_score` is a percentage that sums to 100 across all 12 archetypes,
+  // so the top archetype is typically ~20–30, never 100. To get a meaningful
+  // 0..1 intensity for the radar (dominant = full ring, others proportional),
+  // we rescale relative to the strongest score in the session.
+  const maxScore = coreScores.reduce((m, s) => Math.max(m, Number(s.normalized_score) || 0), 0);
+
   // Map all 12 to majors (for radar / score bars)
   const majors: SampleArchetypeScore[] = coreScores.map((s) => {
     const arch = s.archetype_key as AnyArchetypeKey;
-    const intensity = clamp01(s.normalized_score);
+    const raw = Number(s.normalized_score) || 0;
+    const intensity = maxScore > 0 ? clamp01(raw / maxScore) : 0;
     // shadow ratio approximated from associated shadow signals (avg of all);
     // fallback: 0.35 baseline when no signal.
     const shadowRatio = estimateShadowRatio(arch, analysis?.shadow_signals ?? {});
