@@ -58,12 +58,18 @@ function fmtDate(iso: string | null): string {
 
 export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Admin: list of real submitted sessions + selection
   const [sessions, setSessions] = useState<AdminSessionRow[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(mode === "admin");
   const [filter, setFilter] = useState("");
   const [selectedSession, setSelectedSession] = useState<AdminSessionRow | null>(null);
+
+  // Dynamic profile loading from real DB data
+  const [profile, setProfile] = useState<SampleProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Tabs (admin can flip between user / admin views)
   const [tab, setTab] = useState<"user" | "admin">(mode === "admin" ? "admin" : "user");
@@ -92,14 +98,55 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
     );
   }, [sessions, filter]);
 
-  // The currently displayed profile (curated narrative).
-  const profile: SampleProfile = useMemo(() => {
-    if (mode === "user") return SAMPLE_PROFILE_MYSTIC;
-    return selectedSession ? pickProfileForUser(selectedSession.top_archetype) : SAMPLE_PROFILE_MYSTIC;
-  }, [mode, selectedSession]);
+  // Load the REAL deep dive profile for the active subject (current user OR selected admin target)
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setProfile(null);
+      setProfileError(null);
 
-  const userReport = useMemo(() => buildUserReport(profile), [profile]);
-  const adminReport = useMemo(() => buildAdminReport(profile), [profile]);
+      let sessionId: string | null = null;
+      let displayName: string | null = null;
+
+      if (mode === "user") {
+        if (!user?.id) return;
+        const session = await getLatestSubmittedSessionForUser(user.id);
+        if (!session) {
+          if (!cancelled) setProfileError("Tu n'as pas encore complété d'évaluation. Lance l'assessment pour générer ton Deep Dive personnel.");
+          return;
+        }
+        sessionId = session.id;
+      } else {
+        if (!selectedSession) return;
+        sessionId = selectedSession.id;
+        displayName = selectedSession.profile?.display_name ?? null;
+      }
+
+      if (!sessionId) return;
+      setLoadingProfile(true);
+      try {
+        const details = await getSessionFullDetails(sessionId);
+        if (cancelled) return;
+        const dynProfile = buildDynamicProfile({
+          sessionId,
+          displayName: displayName ?? details.profile?.display_name ?? null,
+          scores: (details.scores ?? []) as any,
+          analysis: (details.analysis ?? null) as any,
+        });
+        setProfile(dynProfile);
+      } catch (e: any) {
+        console.error("[DeepDive] load profile failed", e);
+        if (!cancelled) setProfileError(e?.message ?? "Erreur lors du chargement du profil.");
+      } finally {
+        if (!cancelled) setLoadingProfile(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [mode, user?.id, selectedSession]);
+
+  const userReport = useMemo(() => (profile ? buildUserReport(profile) : ""), [profile]);
+  const adminReport = useMemo(() => (profile ? buildAdminReport(profile) : ""), [profile]);
 
   const downloadMarkdown = (content: string, filename: string) => {
     const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
