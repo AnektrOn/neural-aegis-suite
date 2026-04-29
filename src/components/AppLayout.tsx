@@ -20,7 +20,9 @@ import {
   CalendarDays,
   Menu,
   FileText,
+  X,
 } from "lucide-react";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
@@ -42,11 +44,45 @@ const mobileDockKeys = [
   { to: "/habits", icon: ListChecks, labelKey: "nav.habits" as const },
 ];
 
-const mobileMenuKeys = [
-  { to: "/journal", icon: BookOpen, labelKey: "nav.journal" as const },
-  { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" as const },
-  { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" as const },
-  { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" as const },
+type MobileSection = {
+  titleKey: "nav.section.daily" | "nav.section.reflect" | "nav.section.insights" | "nav.section.account";
+  items: Array<{
+    to: string;
+    icon: typeof LayoutDashboard;
+    labelKey: Parameters<ReturnType<typeof useLanguage>["t"]>[0];
+  }>;
+};
+
+const mobileMenuSections: MobileSection[] = [
+  {
+    titleKey: "nav.section.daily",
+    items: [
+      { to: "/", icon: LayoutDashboard, labelKey: "nav.dashboard" as const },
+      { to: "/mood", icon: Brain, labelKey: "nav.mood" as const },
+      { to: "/decisions", icon: Target, labelKey: "nav.decisions" as const },
+      { to: "/habits", icon: ListChecks, labelKey: "nav.habits" as const },
+    ],
+  },
+  {
+    titleKey: "nav.section.reflect",
+    items: [
+      { to: "/journal", icon: BookOpen, labelKey: "nav.journal" as const },
+      { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" as const },
+      { to: "/people", icon: Users, labelKey: "nav.people" as const },
+      { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" as const },
+    ],
+  },
+  {
+    titleKey: "nav.section.insights",
+    items: [
+      { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" as const },
+      { to: "/deep-dive", icon: FileText, labelKey: "nav.deepDive" as const },
+    ],
+  },
+  {
+    titleKey: "nav.section.account",
+    items: [{ to: "/profile", icon: UserCircle, labelKey: "nav.profile" as const }],
+  },
 ];
 
 const navKeys = [
@@ -203,56 +239,101 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   </button>
                 </SheetTrigger>
                 <SheetContent
-                  side="bottom"
-                  className="rounded-t-3xl p-0 bg-bg-surface border-t border-border-subtle"
-                  style={{ paddingBottom: "calc(1.5rem + var(--safe-bottom))" }}
+                  side="left"
+                  className="w-[88vw] max-w-[360px] p-0 bg-bg-surface border-r border-border-subtle flex flex-col [&>button.absolute]:hidden"
+                  style={{
+                    paddingTop: "var(--safe-top)",
+                    paddingBottom: "calc(1rem + var(--safe-bottom))",
+                  }}
                 >
-                  <div className="px-6 pt-3 pb-6">
-                    <div className="w-10 h-1 bg-border-active/60 rounded-full mx-auto mb-6" />
-                    <div className="grid grid-cols-3 gap-3">
-                      {mobileMenuKeys.map((item) => (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-bg-elevated border border-border-subtle hover:border-accent-primary/25 transition-all duration-200"
-                        >
-                          <item.icon size={20} strokeWidth={1.5} className="text-text-secondary" />
-                          <span className="text-[10px] text-text-secondary tracking-wider uppercase font-medium text-center leading-tight">
-                            {t(item.labelKey)}
-                          </span>
-                        </Link>
-                      ))}
-                      {isAdmin && (
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle shrink-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img src={aegisLogo} alt="Aegis" className="w-9 h-9 rounded-xl object-contain shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-cormorant text-[15px] tracking-[0.2em] text-primary truncate">AEGIS</p>
+                        <p className="text-[10px] text-text-tertiary truncate">{user?.email ?? ""}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="p-2 rounded-lg text-text-tertiary hover:text-text-secondary"
+                      aria-label={t("layout.closeMenu")}
+                    >
+                      <X size={18} strokeWidth={1.5} />
+                    </button>
+                  </div>
+
+                  {/* Scrollable nav */}
+                  <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+                    {mobileMenuSections.map((section) => (
+                      <div key={section.titleKey}>
+                        <p className="px-3 mb-2 text-[9px] tracking-[0.22em] uppercase text-text-tertiary/70 font-medium">
+                          {t(section.titleKey)}
+                        </p>
+                        <div className="flex flex-col gap-0.5">
+                          {section.items.map((item) => {
+                            const isActive = location.pathname === item.to;
+                            return (
+                              <Link
+                                key={item.to}
+                                to={item.to}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 ${
+                                  isActive
+                                    ? "bg-accent-primary/10 border-accent-primary/25 text-accent-primary"
+                                    : "border-transparent text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+                                }`}
+                              >
+                                <item.icon size={18} strokeWidth={1.5} className="shrink-0" />
+                                <span className="text-[12px] tracking-[0.08em] uppercase font-medium">
+                                  {t(item.labelKey)}
+                                </span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+
+                    {isAdmin && (
+                      <div>
+                        <p className="px-3 mb-2 text-[9px] tracking-[0.22em] uppercase text-accent-warning/70 font-medium">
+                          {t("nav.admin")}
+                        </p>
                         <Link
                           to="/admin"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-bg-elevated border border-border-subtle hover:border-accent-primary/25 transition-all duration-200"
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-accent-warning/15 bg-accent-warning/5 text-accent-warning hover:bg-accent-warning/10 transition-all"
                         >
-                          <Shield size={20} strokeWidth={1.5} className="text-text-secondary" />
-                          <span className="text-[10px] text-text-secondary tracking-wider uppercase font-medium">
+                          <Shield size={18} strokeWidth={1.5} className="shrink-0" />
+                          <span className="text-[12px] tracking-[0.08em] uppercase font-medium">
                             {t("nav.admin")}
                           </span>
                         </Link>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-4 mt-6 pt-4 border-t border-border-subtle/60">
-                      <div className="flex items-center justify-between gap-3">
-                        <ThemeToggle collapsed={false} />
-                        <LanguageSwitcher collapsed={false} />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          void signOut();
-                        }}
-                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-accent-danger/80 hover:text-accent-danger hover:bg-accent-danger/5 transition-colors duration-200"
-                      >
-                        <LogOut size={16} strokeWidth={1.5} />
-                        <span className="text-xs">{t("nav.logout")}</span>
-                      </button>
+                    )}
+                  </div>
+
+                  {/* Footer controls */}
+                  <div className="border-t border-border-subtle/60 px-3 pt-3 space-y-2 shrink-0">
+                    <PushNotificationToggle className="w-full justify-center" />
+                    <div className="flex items-center justify-between gap-2 px-1">
+                      <ThemeToggle collapsed={false} />
+                      <LanguageSwitcher collapsed={false} />
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        void signOut();
+                      }}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-accent-danger/80 hover:text-accent-danger hover:bg-accent-danger/5 transition-colors duration-200"
+                    >
+                      <LogOut size={16} strokeWidth={1.5} />
+                      <span className="text-xs tracking-[0.08em] uppercase">{t("nav.logout")}</span>
+                    </button>
                   </div>
                 </SheetContent>
               </Sheet>
