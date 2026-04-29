@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,15 +10,18 @@ import {
   Search, Loader2, Sparkles,
 } from "lucide-react";
 import {
-  SAMPLE_PROFILES,
-  SAMPLE_PROFILE_MYSTIC,
-  SAMPLE_PROFILE_LEADER,
   buildUserReport,
   buildAdminReport,
   type SampleProfile,
 } from "../domain/sampleProfile";
+import { buildDynamicProfile } from "../domain/dynamicProfileBuilder";
 import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
-import { listAllSessionsForAdmin } from "@/features/archetype-assessment/services/assessmentService";
+import {
+  listAllSessionsForAdmin,
+  getLatestSubmittedSessionForUser,
+  getSessionFullDetails,
+} from "@/features/archetype-assessment/services/assessmentService";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
 import { DeepDiveAdminCards } from "../components/DeepDiveAdminCards";
@@ -41,19 +43,6 @@ interface AdminSessionRow {
   company: { id: string; name: string | null } | null;
   top_archetype: string | null;
   shadow_count: number;
-}
-
-/**
- * Map a real user's dominant archetype to the closest curated SampleProfile.
- * Until per-user narratives are persisted, this gives admins a meaningful
- * Myss-style read of any submitted assessment.
- */
-function pickProfileForUser(topArchetype: string | null): SampleProfile {
-  if (!topArchetype) return SAMPLE_PROFILE_MYSTIC;
-  const verticals = ["mystic", "sage", "magician", "creator"];
-  return verticals.includes(topArchetype)
-    ? SAMPLE_PROFILE_MYSTIC
-    : SAMPLE_PROFILE_LEADER;
 }
 
 function fmtDate(iso: string | null): string {
