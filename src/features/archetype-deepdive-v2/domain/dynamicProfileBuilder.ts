@@ -404,6 +404,15 @@ const HOUSE_THEMES: Record<number, string> = {
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
 
+function estimateShadowRatio(_arch: AnyArchetypeKey, shadow: Record<string, number>): number {
+  // Approximation: average of survival shadow signals (intensity 0..1).
+  const vals = SURVIVAL_KEYS.map((k) => Number(shadow[k] ?? 0)).filter((v) => !Number.isNaN(v));
+  if (vals.length === 0) return 0.35;
+  const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+  // Map avg [0..1] to a shadow ratio [0.25..0.55]
+  return clamp01(0.25 + avg * 0.3);
+}
+
 function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0;
   return Math.max(0, Math.min(1, n));
