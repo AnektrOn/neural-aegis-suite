@@ -167,7 +167,7 @@ serve(async (req) => {
     const stale: string[] = [];
 
     await Promise.all(
-      (subs ?? []).map(async (s: any) => {
+      (webpushReady ? subs ?? [] : []).map(async (s: any) => {
         try {
           await webpush.sendNotification(
             { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
