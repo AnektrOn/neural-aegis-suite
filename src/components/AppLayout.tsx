@@ -240,8 +240,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </SheetTrigger>
                 <SheetContent
                   side="left"
-                  hideClose
-                  className="w-[88vw] max-w-[360px] p-0 bg-bg-surface border-r border-border-subtle flex flex-col"
+                  className="w-[88vw] max-w-[360px] p-0 bg-bg-surface border-r border-border-subtle flex flex-col [&>button.absolute]:hidden"
                   style={{
                     paddingTop: "var(--safe-top)",
                     paddingBottom: "calc(1rem + var(--safe-bottom))",
