@@ -20,7 +20,9 @@ import {
   CalendarDays,
   Menu,
   FileText,
+  X,
 } from "lucide-react";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
