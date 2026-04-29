@@ -16,12 +16,17 @@ export const translations = {
   "nav.admin": { fr: "Admin", en: "Admin" },
   "nav.logout": { fr: "Se déconnecter", en: "Sign out" },
   "nav.bottom.board": { fr: "Board", en: "Board" },
+  "nav.section.daily": { fr: "Quotidien", en: "Daily" },
+  "nav.section.reflect": { fr: "Réflexion", en: "Reflect" },
+  "nav.section.insights": { fr: "Analyses", en: "Insights" },
+  "nav.section.account": { fr: "Compte", en: "Account" },
 
   "layout.offlineMessage": {
     fr: "Hors ligne — reconnexion requise pour synchroniser les données",
     en: "Offline — reconnect to sync your data",
   },
   "layout.openMenu": { fr: "Ouvrir le menu", en: "Open menu" },
+  "layout.closeMenu": { fr: "Fermer le menu", en: "Close menu" },
 
   "dashboard.timeAgoNow": { fr: "à l'instant", en: "just now" },
   "dashboard.timeAgoHours": { fr: "il y a {n}h", en: "{n}h ago" },
