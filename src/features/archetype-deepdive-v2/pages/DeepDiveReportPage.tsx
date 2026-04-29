@@ -115,7 +115,11 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
         if (!user?.id) return;
         const session = await getLatestSubmittedSessionForUser(user.id);
         if (!session) {
-          if (!cancelled) setProfileError("Tu n'as pas encore complété d'évaluation. Lance l'assessment pour générer ton Deep Dive personnel.");
+          if (!cancelled) setProfileError(
+            isFR
+              ? "Tu n'as pas encore complété d'évaluation. Lance l'assessment pour générer ton Deep Dive personnel."
+              : "You haven't completed an assessment yet. Run the assessment to generate your personal Deep Dive."
+          );
           return;
         }
         sessionId = session.id;
@@ -135,18 +139,19 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
           displayName: displayName ?? details.profile?.display_name ?? null,
           scores: (details.scores ?? []) as any,
           analysis: (details.analysis ?? null) as any,
+          locale,
         });
         setProfile(dynProfile);
       } catch (e: any) {
         console.error("[DeepDive] load profile failed", e);
-        if (!cancelled) setProfileError(e?.message ?? "Erreur lors du chargement du profil.");
+        if (!cancelled) setProfileError(e?.message ?? (isFR ? "Erreur lors du chargement du profil." : "Error loading profile."));
       } finally {
         if (!cancelled) setLoadingProfile(false);
       }
     }
     load();
     return () => { cancelled = true; };
-  }, [mode, user?.id, selectedSession]);
+  }, [mode, user?.id, selectedSession, locale, isFR]);
 
   const userReport = useMemo(() => (profile ? buildUserReport(profile) : ""), [profile]);
   const adminReport = useMemo(() => (profile ? buildAdminReport(profile) : ""), [profile]);
