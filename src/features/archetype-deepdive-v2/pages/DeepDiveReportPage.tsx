@@ -60,6 +60,8 @@ function fmtDate(iso: string | null, locale: "fr" | "en" = "fr"): string {
 export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { locale, t } = useLanguage();
+  const isFR = locale === "fr";
 
   // Admin: list of real submitted sessions + selection
   const [sessions, setSessions] = useState<AdminSessionRow[]>([]);
