@@ -46,9 +46,9 @@ interface AdminSessionRow {
   shadow_count: number;
 }
 
-function fmtDate(iso: string | null): string {
+function fmtDate(iso: string | null, locale: "fr" | "en" = "fr"): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("fr-FR", {
+  return new Date(iso).toLocaleDateString(locale === "en" ? "en-US" : "fr-FR", {
     year: "numeric", month: "short", day: "numeric",
   });
 }
