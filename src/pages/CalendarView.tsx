@@ -156,10 +156,10 @@ export default function CalendarView() {
         {/* Legend */}
         <div className="flex flex-wrap gap-3 sm:gap-4 mt-6 justify-center">
           {[
-            { color: "bg-primary", label: "Humeur" },
-            { color: "bg-emerald-500", label: "Habitudes" },
-            { color: "bg-amber-500", label: "Décisions" },
-            { color: "bg-violet-500", label: "Journal" },
+            { color: "bg-primary", label: t("nav.mood") },
+            { color: "bg-emerald-500", label: t("nav.habits") },
+            { color: "bg-amber-500", label: t("calendar.legendDecisions") },
+            { color: "bg-violet-500", label: t("nav.journal") },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${item.color}`} />
@@ -180,22 +180,22 @@ export default function CalendarView() {
               <div className="bg-secondary/20 rounded-xl p-4 text-center">
                 <Brain size={16} className="text-primary mx-auto mb-2" />
                 <p className="text-lg font-cinzel text-foreground">{selectedData.mood ?? "—"}</p>
-                <p className="text-neural-label">Humeur</p>
+                <p className="text-neural-label">{t("nav.mood")}</p>
               </div>
               <div className="bg-secondary/20 rounded-xl p-4 text-center">
                 <ListChecks size={16} className="text-emerald-500 mx-auto mb-2" />
                 <p className="text-lg font-cinzel text-foreground">{selectedData.habits}</p>
-                <p className="text-neural-label">Habitudes</p>
+                <p className="text-neural-label">{t("nav.habits")}</p>
               </div>
               <div className="bg-secondary/20 rounded-xl p-4 text-center">
                 <Target size={16} className="text-amber-500 mx-auto mb-2" />
                 <p className="text-lg font-cinzel text-foreground">{selectedData.decisions}</p>
-                <p className="text-neural-label">Décisions</p>
+                <p className="text-neural-label">{t("calendar.legendDecisions")}</p>
               </div>
               <div className="bg-secondary/20 rounded-xl p-4 text-center">
                 <BookOpen size={16} className="text-violet-500 mx-auto mb-2" />
                 <p className="text-lg font-cinzel text-foreground">{selectedData.journal}</p>
-                <p className="text-neural-label">Journal</p>
+                <p className="text-neural-label">{t("nav.journal")}</p>
               </div>
             </div>
           ) : (

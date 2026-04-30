@@ -131,7 +131,7 @@ export default function Profile() {
     const contacts = (contactsRes.data as any[]) || [];
     if (contacts.length > 0) {
       sections.push("\n=== CONTACTS ===");
-      sections.push("Nom,Rôle,Qualité,Insight");
+      sections.push(t("profile.csvHeader"));
       contacts.forEach((c) => {
         sections.push(`"${c.name}","${c.role || ""}",${c.quality},"${c.insight || ""}"`);
       });

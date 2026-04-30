@@ -88,9 +88,9 @@ export default function Analytics() {
   };
 
   const decisionPieData = [
-    { name: "En attente", value: decisionData.pending },
-    { name: "Décidée", value: decisionData.decided },
-    { name: "Reportée", value: decisionData.deferred },
+    { name: t("analytics.decisionPending"), value: decisionData.pending },
+    { name: t("analytics.decisionDecided"), value: decisionData.decided },
+    { name: t("analytics.decisionDeferred"), value: decisionData.deferred },
   ].filter((d) => d.value > 0);
 
   const habitRadialData = habitData.length > 0
@@ -162,7 +162,7 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-1 ethereal-glass p-8">
-          <p className="text-neural-label mb-6">Complétion habitudes (7j)</p>
+          <p className="text-neural-label mb-6">{t("analytics.habitCompletion7d")}</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={habitData}>
@@ -170,14 +170,14 @@ export default function Analytics() {
                 <XAxis dataKey="jour" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="complétées" fill={COLORS[3]} radius={[6, 6, 0, 0]} name="Complétées" />
+                <Bar dataKey="complétées" fill={COLORS[3]} radius={[6, 6, 0, 0]} name={t("analytics.completedKey")} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="ethereal-glass p-8 flex flex-col items-center justify-center">
-          <p className="text-neural-label mb-6">Taux de complétion moyen</p>
+          <p className="text-neural-label mb-6">{t("analytics.avgCompletionRate")}</p>
           <div className="h-48 w-48">
             <ResponsiveContainer width="100%" height="100%">
               <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={habitRadialData} startAngle={90} endAngle={-270}>
@@ -191,7 +191,7 @@ export default function Analytics() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="ethereal-glass p-8">
-          <p className="text-neural-label mb-6">Aperçu des décisions</p>
+          <p className="text-neural-label mb-6">{t("analytics.decisionsOverview")}</p>
           {decisionPieData.length > 0 ? (
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
