@@ -781,6 +781,96 @@ export const translations = {
   "toolbox.focus.minutesDone": { fr: "{n} min complétées", en: "{n} min completed" },
   "toolbox.focus.running": { fr: "En cours…", en: "In progress…" },
   "toolbox.focus.ready": { fr: "Prêt", en: "Ready" },
+
+  // Decisions mini card
+  "decisionsMini.title": { fr: "Décisions en cours", en: "Open decisions" },
+  "decisionsMini.openCount": { fr: "{n} ouvertes", en: "{n} open" },
+  "decisionsMini.empty": { fr: "Aucune décision enregistrée", en: "No decision yet" },
+  "decisionsMini.add": { fr: "Nouvelle décision", en: "New decision" },
+
+  // Push notifications
+  "push.unsupported": { fr: "Notifications push non supportées sur ce navigateur.", en: "Push notifications are not supported in this browser." },
+  "push.disabledToast": { fr: "Notifications désactivées", en: "Notifications disabled" },
+  "push.enabledToast": { fr: "Notifications activées", en: "Notifications enabled" },
+  "push.enabledNativeIos": { fr: "Alertes via APNs.", en: "Alerts via APNs." },
+  "push.enabledNativeAndroid": { fr: "Alertes via FCM.", en: "Alerts via FCM." },
+  "push.enabledWebDesc": { fr: "Tu recevras les alertes même app fermée.", en: "You'll receive alerts even when the app is closed." },
+  "push.deniedTitle": { fr: "Permission refusée", en: "Permission denied" },
+  "push.deniedNativeDesc": { fr: "Active les notifications dans les réglages Android / iOS.", en: "Enable notifications in your Android / iOS settings." },
+  "push.deniedWebDesc": { fr: "Active les notifications dans les réglages du navigateur.", en: "Enable notifications in your browser settings." },
+  "push.errorTitle": { fr: "Erreur", en: "Error" },
+  "push.active": { fr: "Push activées", en: "Push enabled" },
+  "push.activate": { fr: "Activer push", en: "Enable push" },
+
+  // MoodTracker
+  "mood.weeklyFrequency": { fr: "Fréquence hebdomadaire", en: "Weekly frequency" },
+
+  // CalendarView
+  "calendar.legendDecisions": { fr: "Décisions", en: "Decisions" },
+
+  // Analytics
+  "analytics.completedKey": { fr: "Complétées", en: "Completed" },
+  "analytics.decisionDecided": { fr: "Décidée", en: "Decided" },
+  "analytics.decisionDeferred": { fr: "Reportée", en: "Deferred" },
+  "analytics.decisionPending": { fr: "En attente", en: "Pending" },
+  "analytics.habitCompletion7d": { fr: "Complétion habitudes (7j)", en: "Habit completion (7d)" },
+  "analytics.avgCompletionRate": { fr: "Taux de complétion moyen", en: "Average completion rate" },
+  "analytics.decisionsOverview": { fr: "Aperçu des décisions", en: "Decisions overview" },
+
+  // Profile / CSV
+  "profile.csvHeader": { fr: "Nom,Rôle,Qualité,Insight", en: "Name,Role,Quality,Insight" },
+
+  // AuthPage
+  "auth.tagline": { fr: "Suite cognitif & décisionnel", en: "Cognitive & decision suite" },
+
+  // NeuralMap
+  "neural.year": { fr: "Année", en: "Year" },
+  "neural.empty": { fr: "Aucun contact dans votre réseau.", en: "No contact in your network." },
+  "neural.mouseHelp": {
+    fr: "Souris : glisser — rotation · Maj / clic droit / milieu — déplacer · molette — zoom · Tactile : 1 doigt glisser — rotation · appui long puis glisser — déplacer · 2 doigts — zoom",
+    en: "Mouse: drag — rotate · Shift / right / middle — pan · wheel — zoom · Touch: 1 finger drag — rotate · long press then drag — pan · 2 fingers — zoom",
+  },
+  "neural.resetView": { fr: "Réinitialiser zoom, position et rotation", en: "Reset zoom, position and rotation" },
+
+  // PeopleBoard
+  "people.tf.1m": { fr: "1 Mois", en: "1 Month" },
+  "people.tf.3m": { fr: "Trim.", en: "Quarter" },
+  "people.tf.6m": { fr: "Sem.", en: "Half" },
+  "people.tf.1y": { fr: "Année", en: "Year" },
+  "people.tf.all": { fr: "Lifetime", en: "Lifetime" },
+  "people.noRecentJournal": { fr: "Aucun journal récent", en: "No recent journal" },
+  "people.notePlaceholder": { fr: "Ex: Bon échange, à relancer dans 2 semaines...", en: "E.g.: Good exchange, follow up in 2 weeks..." },
+  "people.seeEvolution": { fr: "Voir l'évolution", en: "See evolution" },
+  "people.roleLabel": { fr: "Rôle", en: "Role" },
+  "people.rolePlaceholder": { fr: "Directeur des opérations", en: "Operations director" },
+  "people.proximityHint": { fr: "Détermine la position sur la carte relationnelle.", en: "Determines position on the relationship map." },
+  "people.observationsPlaceholder": { fr: "Observations clés sur la relation...", en: "Key observations about the relationship..." },
+  "people.singleDataPoint": { fr: "Un seul point de données — revenez bientôt.", en: "Only one data point — check back soon." },
+  "people.noDataPeriod": { fr: "Aucune donnée sur cette période.", en: "No data for this period." },
+
+  // Onboarding steps
+  "onboarding.step1.title": { fr: "Bienvenue sur Aegis", en: "Welcome to Aegis" },
+  "onboarding.step1.description": { fr: "Votre copilote neuronal pour la prise de décision, le leadership et le bien-être.", en: "Your neural copilot for decision-making, leadership, and well-being." },
+  "onboarding.step1.detail": { fr: "Aegis vous aide à suivre votre humeur, structurer vos décisions, développer des habitudes et cultiver votre réseau professionnel.", en: "Aegis helps you track your mood, structure your decisions, build habits, and cultivate your professional network." },
+  "onboarding.step2.title": { fr: "Suivez votre humeur", en: "Track your mood" },
+  "onboarding.step2.description": { fr: "Enregistrez votre état émotionnel quotidien avec le tracker d'humeur.", en: "Log your daily emotional state with the mood tracker." },
+  "onboarding.step2.detail": { fr: "Notez votre humeur, sommeil, stress et alimentation pour identifier vos patterns et optimiser votre énergie.", en: "Record mood, sleep, stress, and nutrition to spot patterns and optimize your energy." },
+  "onboarding.step3.title": { fr: "Structurez vos décisions", en: "Structure your decisions" },
+  "onboarding.step3.description": { fr: "Le log de décisions vous aide à prioriser et agir avec clarté.", en: "The decision log helps you prioritize and act with clarity." },
+  "onboarding.step3.detail": { fr: "Classez vos décisions par priorité et responsabilité. Suivez leur évolution et réduisez la paralysie décisionnelle.", en: "Sort your decisions by priority and responsibility. Track their evolution and reduce decision paralysis." },
+  "onboarding.step4.title": { fr: "Développez vos habitudes", en: "Build your habits" },
+  "onboarding.step4.description": { fr: "Des habitudes personnalisées assignées par votre coach.", en: "Personalized habits assigned by your coach." },
+  "onboarding.step4.detail": { fr: "Complétez vos habitudes quotidiennes et suivez votre progression au fil du temps.", en: "Complete your daily habits and track your progress over time." },
+  "onboarding.step5.title": { fr: "Journalisez vos réflexions", en: "Journal your reflections" },
+  "onboarding.step5.description": { fr: "Le journal vous aide à capturer vos pensées et insights.", en: "The journal helps you capture your thoughts and insights." },
+  "onboarding.step5.detail": { fr: "Écrivez librement, ajoutez des tags et suivez l'évolution de votre pensée stratégique.", en: "Write freely, add tags, and follow the evolution of your strategic thinking." },
+  "onboarding.step6.title": { fr: "Installez Aegis sur votre mobile", en: "Install Aegis on your mobile" },
+  "onboarding.step6.description": { fr: "Accédez à Aegis en un tap depuis votre écran d'accueil.", en: "Open Aegis with one tap from your home screen." },
+  "onboarding.step6.detail": { fr: "Sur iPhone : Safari → Partager → « Sur l'écran d'accueil ». Sur Android : Chrome → menu ⋮ → « Ajouter à l'écran d'accueil ». L'app s'ouvre ensuite en plein écran.", en: "On iPhone: Safari → Share → 'Add to Home Screen'. On Android: Chrome → menu ⋮ → 'Add to Home screen'. The app then opens fullscreen." },
+  "onboarding.back": { fr: "Retour", en: "Back" },
+  "onboarding.skip": { fr: "Passer", en: "Skip" },
+  "onboarding.next": { fr: "Suivant", en: "Next" },
+  "onboarding.start": { fr: "Commencer", en: "Begin" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

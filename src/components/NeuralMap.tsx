@@ -800,7 +800,7 @@ export default function NeuralMap({
     return (
       <div className="rounded-2xl border border-white/[0.06] bg-black p-8 text-center" style={{ minHeight: heightPx }}>
         <Network size={24} strokeWidth={1} className="mx-auto mb-3 text-white/20" />
-        <p className="text-sm text-white/35">Aucun contact dans votre réseau.</p>
+        <p className="text-sm text-white/35">{t("neural.empty")}</p>
       </div>
     );
   }
@@ -827,7 +827,7 @@ export default function NeuralMap({
         ref={mountRef}
         className="w-full"
         style={{ height: heightPx }}
-        title="Souris : glisser — rotation · Maj / clic droit / milieu — déplacer · molette — zoom · Tactile : 1 doigt glisser — rotation · appui long puis glisser — déplacer · 2 doigts — zoom"
+        title={t("neural.mouseHelp")}
       />
       {!compact && !immersive && (
         <div className="absolute right-2 top-2 z-[6] flex gap-1">
@@ -835,7 +835,7 @@ export default function NeuralMap({
             type="button"
             onClick={() => resetViewFnRef.current?.()}
             className="pointer-events-auto flex items-center gap-1.5 rounded-lg border border-white/[0.12] bg-black/80 px-2.5 py-1.5 text-[9px] font-medium uppercase tracking-[0.1em] text-white/55 backdrop-blur-sm transition-colors hover:border-white/25 hover:text-white/85"
-            title="Réinitialiser zoom, position et rotation"
+            title={t("neural.resetView")}
           >
             <RotateCcw size={12} strokeWidth={1.5} />
             Vue

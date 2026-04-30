@@ -149,7 +149,7 @@ export default function MoodTracker() {
             <NeuralCard glow="purple" className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-1.5 h-4 rounded-full bg-accent-secondary" />
-                <h2 className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary">Fréquence hebdomadaire</h2>
+                <h2 className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary">{t("mood.weeklyFrequency")}</h2>
               </div>
               <div className="h-40 w-full">
                 <ResponsiveContainer width="100%" height="100%">

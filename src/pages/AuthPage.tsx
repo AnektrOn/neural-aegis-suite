@@ -56,7 +56,7 @@ export default function AuthPage() {
         >
           <img src={aegisLogo} alt="Aegis" className="w-52 h-52 rounded-2xl mb-5 object-contain" />
           <h1 className="font-display text-sm tracking-[0.25em] uppercase text-text-secondary">Neural Aegis</h1>
-          <p className="text-[11px] text-text-tertiary mt-1 tracking-wide">Suite cognitif & décisionnel</p>
+          <p className="text-[11px] text-text-tertiary mt-1 tracking-wide">{t("auth.tagline")}</p>
         </motion.div>
 
         <motion.div

@@ -11,6 +11,7 @@ import {
 } from "@/lib/nativePush";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Props {
   className?: string;
@@ -19,6 +20,7 @@ interface Props {
 
 export default function PushNotificationToggle({ className, compact = false }: Props) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const native = isNativePushEnvironment();
   const [supported, setSupported] = useState(true);
   const [active, setActive] = useState(false);
@@ -40,7 +42,7 @@ export default function PushNotificationToggle({ className, compact = false }: P
 
   if (!native && !supported) {
     return compact ? null : (
-      <p className="text-xs text-muted-foreground">Notifications push non supportées sur ce navigateur.</p>
+      <p className="text-xs text-muted-foreground">{t("push.unsupported")}</p>
     );
   }
 
@@ -52,26 +54,26 @@ export default function PushNotificationToggle({ className, compact = false }: P
         if (active) {
           await unsubscribeNativePush(user.id);
           setActive(false);
-          toast({ title: "Notifications désactivées" });
+          toast({ title: t("push.disabledToast") });
         } else {
           const res = await subscribeNativePush(user.id);
           if (res.ok) {
             setActive(true);
             toast({
-              title: "Notifications activées",
+              title: t("push.enabledToast"),
               description:
                 Capacitor.getPlatform() === "ios"
-                  ? "Alertes via APNs."
-                  : "Alertes via FCM (vérifie google-services.json + FCM_SERVER_KEY côté Supabase).",
+                  ? t("push.enabledNativeIos")
+                  : t("push.enabledNativeAndroid"),
             });
           } else if (res.reason === "denied") {
             toast({
-              title: "Permission refusée",
-              description: "Active les notifications dans les réglages Android / iOS.",
+              title: t("push.deniedTitle"),
+              description: t("push.deniedNativeDesc"),
               variant: "destructive",
             });
           } else {
-            toast({ title: "Erreur", description: res.reason ?? "—", variant: "destructive" });
+            toast({ title: t("push.errorTitle"), description: res.reason ?? "—", variant: "destructive" });
           }
         }
         return;
@@ -80,20 +82,20 @@ export default function PushNotificationToggle({ className, compact = false }: P
       if (active) {
         await unsubscribeFromPush();
         setActive(false);
-        toast({ title: "Notifications désactivées" });
+        toast({ title: t("push.disabledToast") });
       } else {
         const res = await subscribeToPush(user.id);
         if (res.ok) {
           setActive(true);
-          toast({ title: "Notifications activées", description: "Tu recevras les alertes même app fermée." });
+          toast({ title: t("push.enabledToast"), description: t("push.enabledWebDesc") });
         } else if (res.reason === "denied") {
           toast({
-            title: "Permission refusée",
-            description: "Active les notifications dans les réglages du navigateur.",
+            title: t("push.deniedTitle"),
+            description: t("push.deniedWebDesc"),
             variant: "destructive",
           });
         } else {
-          toast({ title: "Erreur", description: res.reason ?? "—", variant: "destructive" });
+          toast({ title: t("push.errorTitle"), description: res.reason ?? "—", variant: "destructive" });
         }
       }
     } finally {
@@ -115,7 +117,7 @@ export default function PushNotificationToggle({ className, compact = false }: P
       )}
     >
       {busy ? <Loader2 size={14} className="animate-spin" /> : active ? <BellRing size={14} /> : <BellOff size={14} />}
-      {compact ? null : <span>{active ? "Push activées" : "Activer push"}</span>}
+      {compact ? null : <span>{active ? t("push.active") : t("push.activate")}</span>}
     </button>
   );
 }
