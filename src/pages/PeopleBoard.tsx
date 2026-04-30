@@ -108,6 +108,7 @@ function NeuralRelationsSidebar({
   logsByContact: Record<string, QualityHistory[]>;
   onOpenHistory: (p: Person) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <aside
       className="hidden md:flex flex-col w-full md:max-w-[20rem] lg:max-w-[22rem] shrink-0 rounded-2xl border border-white/[0.06] overflow-hidden min-h-0"
@@ -274,6 +275,7 @@ function PersonCard({
   onHistory: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -432,6 +434,7 @@ function AddPersonSheet({
   onClose: () => void;
   onSubmit: (form: any) => void;
 }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     name: "", role: "", quality: 7, insight: "",
     proximity: DEFAULT_CONTACT_PROXIMITY as ContactProximity,
@@ -547,6 +550,7 @@ function HistorySheet({
   history: QualityHistory[];
   periodLabels: Record<Period, string>;
 }) {
+  const { t } = useLanguage();
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
