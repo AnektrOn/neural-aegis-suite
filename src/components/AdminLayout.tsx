@@ -53,6 +53,7 @@ const adminNavKeys = [
   { to: "/admin/user-places", icon: MapPin, key: "admin.nav.userPlaces" as const },
   { to: "/admin/assessments", icon: Sparkles, key: "admin.nav.assessments" as const },
   { to: "/admin/deep-dive-sample", icon: FileText, key: "admin.nav.deepDiveSample" as const },
+  { to: "/admin/deep-dive", icon: Sparkles, key: "admin.nav.deepDive" as const },
   { to: "/admin/alerts", icon: AlertTriangle, key: "admin.nav.alerts" as const },
   { to: "/admin/export", icon: Download, key: "admin.nav.export" as const },
 ];
