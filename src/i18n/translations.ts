@@ -65,6 +65,7 @@ export const translations = {
   "admin.nav.calls": { fr: "Audit Appels", en: "Call Audit" },
   "admin.nav.assessments": { fr: "Évaluations", en: "Assessments" },
   "admin.nav.deepDiveSample": { fr: "Rapport Deep Dive", en: "Deep Dive Report" },
+  "admin.nav.deepDive": { fr: "Deep Dive — Scores", en: "Deep Dive — Scores" },
   "admin.nav.habits": { fr: "Habitudes", en: "Habits" },
   "admin.nav.users": { fr: "Utilisateurs", en: "Users" },
   "admin.nav.analytics": { fr: "Analytiques", en: "Analytics" },
