@@ -547,6 +547,15 @@ export const translations = {
   "places.placeDeleted": { fr: "Lieu supprimé", en: "Place deleted" },
   "places.delete": { fr: "Supprimer", en: "Delete" },
 
+  "footer.protocol": { fr: "Protocole Nomos", en: "Nomos Protocol" },
+  "footer.ownership": {
+    fr: "Propriété de PT Membimbing Draco Terbang",
+    en: "Property of PT Membimbing Draco Terbang",
+  },
+  "analytics.avgPriority": { fr: "Priorité moyenne", en: "Average priority" },
+  "people.proximityLabel": { fr: "Proximité", en: "Proximity" },
+
+
   "dashboard.neuralMapTeaser": {
     fr: "Le graphe 3D des relations se charge uniquement sur la page Relations pour garder le tableau de bord léger.",
     en: "The 3D relationship graph only loads on the Relationships page to keep the dashboard light.",

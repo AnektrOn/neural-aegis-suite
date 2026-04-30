@@ -211,7 +211,7 @@ export default function Analytics() {
             </div>
           )}
           <div className="text-center mt-2">
-            <p className="text-neural-label">Priorité moyenne</p>
+            <p className="text-neural-label">{t("analytics.avgPriority")}</p>
             <p className="text-lg font-cinzel text-foreground">{decisionData.avgPriority}/5</p>
           </div>
         </motion.div>
