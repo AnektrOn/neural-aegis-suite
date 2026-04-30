@@ -781,6 +781,26 @@ export const translations = {
   "toolbox.focus.minutesDone": { fr: "{n} min complétées", en: "{n} min completed" },
   "toolbox.focus.running": { fr: "En cours…", en: "In progress…" },
   "toolbox.focus.ready": { fr: "Prêt", en: "Ready" },
+
+  // Decisions mini card
+  "decisionsMini.title": { fr: "Décisions en cours", en: "Open decisions" },
+  "decisionsMini.openCount": { fr: "{n} ouvertes", en: "{n} open" },
+  "decisionsMini.empty": { fr: "Aucune décision enregistrée", en: "No decision yet" },
+  "decisionsMini.add": { fr: "Nouvelle décision", en: "New decision" },
+
+  // Push notifications
+  "push.unsupported": { fr: "Notifications push non supportées sur ce navigateur.", en: "Push notifications are not supported in this browser." },
+  "push.disabledToast": { fr: "Notifications désactivées", en: "Notifications disabled" },
+  "push.enabledToast": { fr: "Notifications activées", en: "Notifications enabled" },
+  "push.enabledNativeIos": { fr: "Alertes via APNs.", en: "Alerts via APNs." },
+  "push.enabledNativeAndroid": { fr: "Alertes via FCM.", en: "Alerts via FCM." },
+  "push.enabledWebDesc": { fr: "Tu recevras les alertes même app fermée.", en: "You'll receive alerts even when the app is closed." },
+  "push.deniedTitle": { fr: "Permission refusée", en: "Permission denied" },
+  "push.deniedNativeDesc": { fr: "Active les notifications dans les réglages Android / iOS.", en: "Enable notifications in your Android / iOS settings." },
+  "push.deniedWebDesc": { fr: "Active les notifications dans les réglages du navigateur.", en: "Enable notifications in your browser settings." },
+  "push.errorTitle": { fr: "Erreur", en: "Error" },
+  "push.active": { fr: "Push activées", en: "Push enabled" },
+  "push.activate": { fr: "Activer push", en: "Enable push" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
