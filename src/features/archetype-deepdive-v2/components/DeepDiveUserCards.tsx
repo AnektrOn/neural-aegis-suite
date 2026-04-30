@@ -64,6 +64,8 @@ interface ArchetypeFlipCardProps {
 }
 
 function ArchetypeFlipCard({ archetype, rank, tagline, gives, watchOut }: ArchetypeFlipCardProps) {
+  const { locale } = useLanguage();
+  const isFR = locale === "fr";
   const [flipped, setFlipped] = useState(false);
   const a = ARCH_ACCENT[archetype] ?? DEFAULT_ACCENT;
 
@@ -89,20 +91,20 @@ function ArchetypeFlipCard({ archetype, rank, tagline, gives, watchOut }: Archet
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display">
-                {RANK_LABEL[rank]}
+                {RANK_LABEL[rank][locale]}
               </span>
               <Compass size={14} strokeWidth={1.5} className="text-text-tertiary" />
             </div>
 
             <div className="flex-1 flex flex-col justify-center text-center">
               <h3 className="font-display text-2xl tracking-[0.12em] uppercase text-text-primary mb-3">
-                Le {ARCH_LABEL_FR[archetype]}
+                {isFR ? "Le " : "The "}{ARCH_LABEL_FR[archetype]}
               </h3>
               <p className="text-sm italic text-text-tertiary px-2">{tagline}</p>
             </div>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display opacity-60">
-              <RotateCcw size={11} strokeWidth={1.5} /> Retourne la carte
+              <RotateCcw size={11} strokeWidth={1.5} /> {isFR ? "Retourne la carte" : "Flip the card"}
             </div>
           </Card>
         </div>
@@ -121,13 +123,13 @@ function ArchetypeFlipCard({ archetype, rank, tagline, gives, watchOut }: Archet
             <div className="space-y-3 flex-1 overflow-auto">
               <div>
                 <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-text-tertiary mb-1">
-                  <Flame size={11} strokeWidth={1.5} /> Ce que ça t'apporte
+                  <Flame size={11} strokeWidth={1.5} /> {isFR ? "Ce que ça t'apporte" : "What it gives you"}
                 </div>
                 <p className="text-sm text-text-secondary leading-relaxed">{gives}</p>
               </div>
               <div className="border-t border-white/5 pt-3">
                 <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-accent-warning/80 mb-1">
-                  <AlertTriangle size={11} strokeWidth={1.5} /> À surveiller
+                  <AlertTriangle size={11} strokeWidth={1.5} /> {isFR ? "À surveiller" : "Watch out for"}
                 </div>
                 <p className="text-sm text-text-secondary leading-relaxed">{watchOut}</p>
               </div>
@@ -142,6 +144,8 @@ function ArchetypeFlipCard({ archetype, rank, tagline, gives, watchOut }: Archet
 /* -------------------------------------------------------------------------- */
 
 export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
+  const { locale } = useLanguage();
+  const isFR = locale === "fr";
   const n = profile.narrative;
 
   return (
@@ -150,16 +154,18 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
       <Card className="neural-card p-6 sm:p-8 backdrop-blur-3xl bg-white/[0.04] border border-white/10 shadow-[0_0_60px_-30px_rgba(255,255,255,0.15)]">
         <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-3">
           <Sparkles size={14} strokeWidth={1.5} />
-          Vue d'ensemble
+          {isFR ? "Vue d'ensemble" : "Overview"}
         </div>
         <h2 className="font-display text-2xl sm:text-3xl tracking-[0.12em] uppercase text-text-primary mb-4">
-          Ton paysage archétypal
+          {isFR ? "Ton paysage archétypal" : "Your archetypal landscape"}
         </h2>
         <p className="text-text-secondary leading-relaxed">{n.overviewLead}</p>
         <p className="text-text-secondary leading-relaxed mt-3">
-          L'ombre principale de ton profil tourne autour du{" "}
-          <span className="text-text-primary font-medium">{n.primaryShadowTheme}</span> : besoin de garder la
-          main sur ce qui compte, aussi bien intérieurement (sens, cohérence) qu'extérieurement (cadre, trajectoires).
+          {isFR ? "L'ombre principale de ton profil tourne autour du " : "The main shadow of your profile centers on "}
+          <span className="text-text-primary font-medium">{n.primaryShadowTheme}</span>
+          {isFR
+            ? " : besoin de garder la main sur ce qui compte, aussi bien intérieurement (sens, cohérence) qu'extérieurement (cadre, trajectoires)."
+            : ": a need to stay in control of what matters, both internally (meaning, coherence) and externally (frame, trajectories)."}
         </p>
 
         <div className="flex flex-wrap items-center gap-2 mt-5">
@@ -172,7 +178,7 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
             );
           })}
           <Badge variant="outline" className="border-accent-warning/30 text-accent-warning px-3 py-1 font-display tracking-wider">
-            Ombre · {n.primaryShadowTheme}
+            {isFR ? "Ombre" : "Shadow"} · {n.primaryShadowTheme}
           </Badge>
         </div>
       </Card>
@@ -185,10 +191,10 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
             <Compass size={14} strokeWidth={1.5} />
-            Tes archétypes majeurs
+            {isFR ? "Tes archétypes majeurs" : "Your major archetypes"}
           </div>
           <span className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary/70 font-display hidden sm:inline">
-            Touche une carte pour la retourner
+            {isFR ? "Touche une carte pour la retourner" : "Tap a card to flip it"}
           </span>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
@@ -209,10 +215,10 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
       <Card className="neural-card p-6 backdrop-blur-3xl bg-white/[0.03] border border-white/10">
         <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-3">
           <ShieldAlert size={14} strokeWidth={1.5} />
-          Ombres de survie
+          {isFR ? "Ombres de survie" : "Survival shadows"}
         </div>
         <h2 className="font-display text-xl tracking-[0.12em] uppercase text-text-primary mb-4">
-          Tes signaux profonds
+          {isFR ? "Tes signaux profonds" : "Your deep signals"}
         </h2>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
@@ -247,14 +253,14 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
       <Card className="neural-card p-6 sm:p-8 backdrop-blur-3xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-[0_0_50px_-25px_rgba(255,255,255,0.2)]">
         <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-3">
           <BookOpen size={14} strokeWidth={1.5} />
-          Ton récit archétypal
+          {isFR ? "Ton récit archétypal" : "Your archetypal narrative"}
         </div>
         <p className="text-text-secondary leading-relaxed text-base">{n.closingNarrativeUser}</p>
 
         <div className="grid md:grid-cols-2 gap-5 mt-6">
           <div>
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-emerald-300/80 mb-2 font-display">
-              <Flame size={11} strokeWidth={1.5} /> Forces sur lesquelles t'appuyer
+              <Flame size={11} strokeWidth={1.5} /> {isFR ? "Forces sur lesquelles t'appuyer" : "Strengths to lean on"}
             </div>
             <ul className="space-y-2">
               {n.strengths.map((s, i) => (
@@ -267,7 +273,7 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
           </div>
           <div>
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-accent-warning/80 mb-2 font-display">
-              <Eye size={11} strokeWidth={1.5} /> Points de vigilance
+              <Eye size={11} strokeWidth={1.5} /> {isFR ? "Points de vigilance" : "Watch points"}
             </div>
             <ul className="space-y-2">
               {n.vigilance.map((v, i) => (
@@ -285,7 +291,7 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
       <div>
         <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-3">
           <Play size={14} strokeWidth={1.5} />
-          Pratiques recommandées
+          {isFR ? "Pratiques recommandées" : "Recommended practices"}
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {n.practices.map((p, i) => {
