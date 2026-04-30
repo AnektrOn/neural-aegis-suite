@@ -24,6 +24,7 @@ import {
   Sparkles,
   AlertTriangle,
   FileText,
+  Download,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -53,6 +54,7 @@ const adminNavKeys = [
   { to: "/admin/assessments", icon: Sparkles, key: "admin.nav.assessments" as const },
   { to: "/admin/deep-dive-sample", icon: FileText, key: "admin.nav.deepDiveSample" as const },
   { to: "/admin/alerts", icon: AlertTriangle, key: "admin.nav.alerts" as const },
+  { to: "/admin/export", icon: Download, key: "admin.nav.export" as const },
 ];
 
 function AdminSidebarContent({
