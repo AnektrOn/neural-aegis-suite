@@ -231,9 +231,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SheetTrigger asChild>
                   <button
                     type="button"
-                    className="p-2 rounded-xl text-text-tertiary hover:text-text-secondary transition-all duration-200"
+                    className="relative z-[60] inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl text-text-tertiary hover:text-text-secondary active:bg-bg-elevated/60 transition-all duration-200 select-none"
                     aria-label={t("layout.openMenu")}
-                    style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+                    aria-expanded={mobileMenuOpen}
+                    style={{
+                      WebkitTapHighlightColor: "transparent",
+                      touchAction: "manipulation",
+                    } as React.CSSProperties}
                   >
                     <Menu size={22} strokeWidth={1.5} />
                   </button>
