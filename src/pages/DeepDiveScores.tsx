@@ -32,7 +32,7 @@ export default function DeepDiveScores() {
       if (error) {
         setError(error.message);
       } else {
-        const raw = (data ?? []) as RawAnswer[];
+        const raw = ((data ?? []) as unknown) as RawAnswer[];
         setResult(computeDeepDiveScores(raw));
       }
       setLoading(false);
