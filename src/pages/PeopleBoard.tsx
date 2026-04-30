@@ -32,9 +32,12 @@ import {
 
 type MapPeriod = "1d" | "3d" | "7d" | "14d" | "1m" | "3m" | "6m" | "1y" | "all";
 
-const MAP_PERIOD_LABELS: Record<MapPeriod, string> = {
+const MAP_PERIOD_KEYS: Record<MapPeriod, string> = {
   "1d": "1J", "3d": "3J", "7d": "1 Sem", "14d": "2 Sem",
-  "1m": "1 Mois", "3m": "Trim.", "6m": "Sem.", "1y": "Année", all: "Lifetime",
+  "1m": "people.tf.1m", "3m": "people.tf.3m", "6m": "people.tf.6m", "1y": "people.tf.1y", all: "people.tf.all",
+};
+const MAP_PERIOD_PLAIN: Partial<Record<MapPeriod, string>> = {
+  "1d": "1J", "3d": "3J", "7d": "1 Sem", "14d": "2 Sem",
 };
 
 interface Person {
@@ -143,7 +146,7 @@ function NeuralRelationsSidebar({
                     {CONTACT_PROXIMITY_LABELS[px]}
                   </p>
                   {logs.length === 0 ? (
-                    <p className="text-[11px] text-white/20 mt-2 italic">Aucun journal récent</p>
+                    <p className="text-[11px] text-white/20 mt-2 italic">{t("people.noRecentJournal")}</p>
                   ) : (
                     <ul className="mt-2 space-y-1.5">
                       {logs.map((h) => (
@@ -353,7 +356,7 @@ function PersonCard({
                 <textarea
                   value={localNote}
                   onChange={(e) => onNoteChange(e.target.value)}
-                  placeholder="Ex: Bon échange, à relancer dans 2 semaines..."
+                  placeholder={t("people.notePlaceholder")}
                   rows={2}
                   className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-foreground/80 placeholder:text-white/20 focus:outline-none focus:border-primary/30 transition-colors resize-none"
                 />
@@ -373,7 +376,7 @@ function PersonCard({
                   className="flex items-center gap-1.5 text-[11px] text-white/40 hover:text-primary transition-colors py-2 px-3 rounded-xl hover:bg-primary/5"
                 >
                   <TrendingUp size={12} />
-                  Voir l'évolution
+                  {t("people.seeEvolution")}
                 </button>
                 <button
                   onClick={onDelete}
@@ -468,12 +471,12 @@ function AddPersonSheet({
               />
             </div>
             <div className="col-span-2 space-y-1.5">
-              <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">Rôle</label>
+              <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">{t("people.roleLabel")}</label>
               <input
                 type="text"
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
-                placeholder="Directeur des opérations"
+                placeholder={t("people.rolePlaceholder")}
                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 text-sm text-foreground placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
               />
             </div>
@@ -493,7 +496,7 @@ function AddPersonSheet({
               </select>
               <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
             </div>
-            <p className="text-[10px] text-white/20">Détermine la position sur la carte relationnelle.</p>
+            <p className="text-[10px] text-white/20">{t("people.proximityHint")}</p>
           </div>
 
           <QualitySlider
@@ -508,7 +511,7 @@ function AddPersonSheet({
               type="text"
               value={form.insight}
               onChange={(e) => setForm({ ...form, insight: e.target.value })}
-              placeholder="Observations clés sur la relation..."
+              placeholder={t("people.observationsPlaceholder")}
               className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 text-sm text-foreground placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
             />
           </div>
@@ -618,8 +621,8 @@ function HistorySheet({
             <div className="flex items-center justify-center h-full rounded-2xl border border-white/[0.04]">
               <p className="text-white/25 text-sm text-center px-6">
                 {chartData.length === 1
-                  ? "Un seul point de données — revenez bientôt."
-                  : "Aucune donnée sur cette période."}
+                  ? t("people.singleDataPoint")
+                  : t("people.noDataPeriod")}
               </p>
             </div>
           )}
@@ -956,20 +959,24 @@ export default function PeopleBoard() {
               className="flex overflow-x-auto border-b border-white/[0.06]"
               style={{ scrollbarWidth: "none" }}
             >
-              {(Object.entries(MAP_PERIOD_LABELS) as [MapPeriod, string][]).map(([id, label]) => (
-                <button
-                  key={id}
-                  onClick={() => setMapPeriod(id)}
-                  className={[
-                    "flex-shrink-0 whitespace-nowrap border-r border-white/[0.05] bg-transparent px-3 py-2 font-sans text-[9px] uppercase tracking-[0.14em] transition-colors",
-                    mapPeriod === id
-                      ? "border-b border-white/60 bg-white/[0.03] text-white/90"
-                      : "text-white/20 hover:text-white/45",
-                  ].join(" ")}
-                >
-                  {label}
-                </button>
-              ))}
+              {(Object.keys(MAP_PERIOD_KEYS) as MapPeriod[]).map((id) => {
+                const k = MAP_PERIOD_KEYS[id];
+                const label = MAP_PERIOD_PLAIN[id] ?? t(k as any);
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setMapPeriod(id)}
+                    className={[
+                      "flex-shrink-0 whitespace-nowrap border-r border-white/[0.05] bg-transparent px-3 py-2 font-sans text-[9px] uppercase tracking-[0.14em] transition-colors",
+                      mapPeriod === id
+                        ? "border-b border-white/60 bg-white/[0.03] text-white/90"
+                        : "text-white/20 hover:text-white/45",
+                    ].join(" ")}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
             <Suspense
               fallback={
