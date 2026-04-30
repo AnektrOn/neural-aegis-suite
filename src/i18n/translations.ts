@@ -768,6 +768,19 @@ export const translations = {
     fr: "Cette semaine en une phrase",
     en: "This week in one sentence",
   },
+
+  // Breathwork widget phases
+  "toolbox.breath.phase.in": { fr: "Inspirez", en: "Breathe in" },
+  "toolbox.breath.phase.hold": { fr: "Retenez", en: "Hold" },
+  "toolbox.breath.phase.out": { fr: "Expirez", en: "Breathe out" },
+  "toolbox.breath.done": { fr: "Terminé ✦", en: "Complete ✦" },
+  "toolbox.breath.cycle": { fr: "Cycle {current} / {total}", en: "Cycle {current} / {total}" },
+
+  // Focus introspectif widget
+  "toolbox.focus.namaste": { fr: "Namaste", en: "Namaste" },
+  "toolbox.focus.minutesDone": { fr: "{n} min complétées", en: "{n} min completed" },
+  "toolbox.focus.running": { fr: "En cours…", en: "In progress…" },
+  "toolbox.focus.ready": { fr: "Prêt", en: "Ready" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
