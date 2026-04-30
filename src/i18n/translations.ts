@@ -552,6 +552,9 @@ export const translations = {
     fr: "Propriété de PT Membimbing Draco Terbang",
     en: "Property of PT Membimbing Draco Terbang",
   },
+  "analytics.avgPriority": { fr: "Priorité moyenne", en: "Average priority" },
+  "people.proximityLabel": { fr: "Proximité", en: "Proximity" },
+
 
   "dashboard.neuralMapTeaser": {
     fr: "Le graphe 3D des relations se charge uniquement sur la page Relations pour garder le tableau de bord léger.",
