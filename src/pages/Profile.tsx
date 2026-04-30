@@ -259,10 +259,19 @@ export default function Profile() {
         <p className="text-sm text-muted-foreground mb-6">
           {t("appendix.description")}
         </p>
-        <button onClick={() => setAppendixOpen(true)} className="btn-neural w-full">
-          <ClipboardList size={14} />
-          {t("appendix.cta")}
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button onClick={() => setAppendixOpen(true)} className="btn-neural flex-1">
+            <ClipboardList size={14} />
+            {t("appendix.cta")}
+          </button>
+          <button
+            onClick={() => navigate("/deep-dive/scores")}
+            className="btn-neural flex-1"
+          >
+            <ClipboardList size={14} />
+            {t("appendix.viewScores")}
+          </button>
+        </div>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="ethereal-glass p-8">
