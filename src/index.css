@@ -684,3 +684,26 @@ input[type="range"]::-moz-range-thumb {
   }
   .flip-face-back { transform: rotateY(180deg) translateZ(0); }
 }
+
+/* ============================================================
+   Mobile menu safety net.
+   Belt-and-braces in case the JS hook (useIsMobile) hasn't
+   resolved yet on slow Android devices (e.g. Xiaomi / MIUI).
+   Forces the hamburger trigger to be tappable and the desktop
+   sidebar to stay hidden under 768px CSS-px viewport.
+   ============================================================ */
+@media (max-width: 767px) {
+  /* Make sure no transform/overflow ancestor breaks fixed positioning
+     of the mobile top bar or the sheet overlay. */
+  [data-radix-popper-content-wrapper],
+  [data-state="open"][role="dialog"] {
+    z-index: 70 !important;
+  }
+  /* Guarantee tap targets on the mobile header */
+  header button,
+  nav button,
+  [aria-label="Open menu"],
+  [aria-label="Ouvrir le menu"] {
+    touch-action: manipulation;
+  }
+}
