@@ -760,6 +760,39 @@ export type Database = {
         }
         Relationships: []
       }
+      deepdive_responses: {
+        Row: {
+          created_at: string
+          id: string
+          numeric_value: number | null
+          option_codes: string[]
+          question_code: string
+          text_value: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          numeric_value?: number | null
+          option_codes?: string[]
+          question_code: string
+          text_value?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          numeric_value?: number | null
+          option_codes?: string[]
+          question_code?: string
+          text_value?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       habit_completions: {
         Row: {
           assigned_habit_id: string
