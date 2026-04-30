@@ -19,6 +19,7 @@ import {
 import type { SampleProfile } from "../domain/sampleProfile";
 import { DeepDiveRadarChart } from "./DeepDiveRadarChart";
 import type { AnyArchetypeKey } from "../domain/types";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const ARCH_LABEL_FR: Record<AnyArchetypeKey, string> = {
   sovereign: "Sovereign", warrior: "Warrior", lover: "Lover", caregiver: "Caregiver",
@@ -44,10 +45,10 @@ const DEFAULT_ACCENT = {
   gradient: "from-white/[0.04] to-transparent",
 };
 
-const RANK_LABEL: Record<"dominant" | "secondaire" | "tertiaire", string> = {
-  dominant: "Dominant",
-  secondaire: "Secondaire",
-  tertiaire: "Tertiaire",
+const RANK_LABEL: Record<"dominant" | "secondaire" | "tertiaire", { fr: string; en: string }> = {
+  dominant:   { fr: "Dominant",   en: "Dominant" },
+  secondaire: { fr: "Secondaire", en: "Secondary" },
+  tertiaire:  { fr: "Tertiaire",  en: "Tertiary" },
 };
 
 /* -------------------------------------------------------------------------- */
