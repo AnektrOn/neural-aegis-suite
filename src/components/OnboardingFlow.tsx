@@ -1,44 +1,16 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Brain, Target, ListChecks, BookOpen, Smartphone, ArrowRight, Check } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 
-const steps = [
-  {
-    icon: Zap,
-    title: "Bienvenue sur Aegis",
-    description: "Votre copilote neuronal pour la prise de décision, le leadership et le bien-être.",
-    detail: "Aegis vous aide à suivre votre humeur, structurer vos décisions, développer des habitudes et cultiver votre réseau professionnel.",
-  },
-  {
-    icon: Brain,
-    title: "Suivez votre humeur",
-    description: "Enregistrez votre état émotionnel quotidien avec le tracker d'humeur.",
-    detail: "Notez votre humeur, sommeil, stress et alimentation pour identifier vos patterns et optimiser votre énergie.",
-  },
-  {
-    icon: Target,
-    title: "Structurez vos décisions",
-    description: "Le log de décisions vous aide à prioriser et agir avec clarté.",
-    detail: "Classez vos décisions par priorité et responsabilité. Suivez leur évolution et réduisez la paralysie décisionnelle.",
-  },
-  {
-    icon: ListChecks,
-    title: "Développez vos habitudes",
-    description: "Des habitudes personnalisées assignées par votre coach.",
-    detail: "Complétez vos habitudes quotidiennes et suivez votre progression au fil du temps.",
-  },
-  {
-    icon: BookOpen,
-    title: "Journalisez vos réflexions",
-    description: "Le journal vous aide à capturer vos pensées et insights.",
-    detail: "Écrivez librement, ajoutez des tags et suivez l'évolution de votre pensée stratégique.",
-  },
-  {
-    icon: Smartphone,
-    title: "Installez Aegis sur votre mobile",
-    description: "Accédez à Aegis en un tap depuis votre écran d'accueil.",
-    detail: "Sur iPhone : Safari → Partager → « Sur l'écran d'accueil ». Sur Android : Chrome → menu ⋮ → « Ajouter à l'écran d'accueil ». L'app s'ouvre ensuite en plein écran.",
-  },
+const stepDefs: { icon: typeof Zap; titleKey: TranslationKey; descKey: TranslationKey; detailKey: TranslationKey }[] = [
+  { icon: Zap, titleKey: "onboarding.step1.title", descKey: "onboarding.step1.description", detailKey: "onboarding.step1.detail" },
+  { icon: Brain, titleKey: "onboarding.step2.title", descKey: "onboarding.step2.description", detailKey: "onboarding.step2.detail" },
+  { icon: Target, titleKey: "onboarding.step3.title", descKey: "onboarding.step3.description", detailKey: "onboarding.step3.detail" },
+  { icon: ListChecks, titleKey: "onboarding.step4.title", descKey: "onboarding.step4.description", detailKey: "onboarding.step4.detail" },
+  { icon: BookOpen, titleKey: "onboarding.step5.title", descKey: "onboarding.step5.description", detailKey: "onboarding.step5.detail" },
+  { icon: Smartphone, titleKey: "onboarding.step6.title", descKey: "onboarding.step6.description", detailKey: "onboarding.step6.detail" },
 ];
 
 interface OnboardingFlowProps {
@@ -46,17 +18,18 @@ interface OnboardingFlowProps {
 }
 
 export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
+  const { t } = useLanguage();
   const [step, setStep] = useState(0);
 
   const next = () => {
-    if (step < steps.length - 1) {
+    if (step < stepDefs.length - 1) {
       setStep(step + 1);
     } else {
       onComplete();
     }
   };
 
-  const current = steps[step];
+  const current = stepDefs[step];
 
   return (
     <div
@@ -73,7 +46,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       >
         {/* Progress */}
         <div className="flex gap-2 justify-center">
-          {steps.map((_, i) => (
+          {stepDefs.map((_, i) => (
             <div
               key={i}
               className={`h-1 rounded-full transition-all duration-500 ${
@@ -97,9 +70,9 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
 
             <div>
-              <h2 className="text-neural-title text-xl text-foreground mb-3">{current.title}</h2>
-              <p className="text-sm text-foreground/80 mb-2">{current.description}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">{current.detail}</p>
+              <h2 className="text-neural-title text-xl text-foreground mb-3">{t(current.titleKey)}</h2>
+              <p className="text-sm text-foreground/80 mb-2">{t(current.descKey)}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t(current.detailKey)}</p>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -110,22 +83,22 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               onClick={() => setStep(step - 1)}
               className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground transition-colors px-4 py-2"
             >
-              Retour
+              {t("onboarding.back")}
             </button>
           ) : (
             <button
               onClick={onComplete}
               className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground transition-colors px-4 py-2"
             >
-              Passer
+              {t("onboarding.skip")}
             </button>
           )}
 
           <button onClick={next} className="btn-neural !px-6 !py-3">
-            {step < steps.length - 1 ? (
-              <>Suivant <ArrowRight size={12} /></>
+            {step < stepDefs.length - 1 ? (
+              <>{t("onboarding.next")} <ArrowRight size={12} /></>
             ) : (
-              <>Commencer <Check size={12} /></>
+              <>{t("onboarding.start")} <Check size={12} /></>
             )}
           </button>
         </div>
