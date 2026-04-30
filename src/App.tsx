@@ -44,6 +44,7 @@ const AdminPlaceTags = lazy(() => import("./pages/admin/AdminPlaceTags"));
 const AdminUserPlaces = lazy(() => import("./pages/admin/AdminUserPlaces"));
 const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
 const AdminAlertsPanel = lazy(() => import("./pages/admin/AdminAlertsPanel"));
+const AdminExport = lazy(() => import("./pages/admin/AdminExport"));
 const AssessmentFlow = lazy(() => import("./features/archetype-assessment/pages/AssessmentFlow"));
 const AssessmentResults = lazy(() => import("./features/archetype-assessment/pages/AssessmentResults"));
 const DeepDiveSampleReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveSampleReport"));
@@ -116,6 +117,7 @@ const App = () => (
                               <Route path="/user-places" element={<AdminUserPlaces />} />
                               <Route path="/assessments" element={<AdminAssessments />} />
                               <Route path="/alerts" element={<AdminAlertsPanel />} />
+                              <Route path="/export" element={<AdminExport />} />
                               <Route path="/deep-dive-sample" element={<DeepDiveSampleReport />} />
                             </Routes>
                           </Suspense>
