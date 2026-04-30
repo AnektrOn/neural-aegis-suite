@@ -10,6 +10,7 @@
  */
 
 import type { AnyArchetypeKey } from "./types";
+import type { Locale } from "@/i18n/translations";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                       */
@@ -377,58 +378,128 @@ function pct(n: number): string {
 /* Report builders — markdown                                                 */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/* Bilingual section headings                                                 */
+/* -------------------------------------------------------------------------- */
+
+const T = {
+  userTitle:        { fr: "Ton paysage archétypal",                en: "Your archetypal landscape" },
+  overview:         { fr: "Vue d'ensemble",                         en: "Overview" },
+  shadowLead:       {
+    fr: (theme: string) => `L'ombre principale de ton profil tourne autour du **${theme}** : besoin de garder la main sur ce qui compte, aussi bien intérieurement (sens, cohérence) qu'extérieurement (cadre, trajectoires).`,
+    en: (theme: string) => `The main shadow of your profile centers on **${theme}**: a need to stay in control of what matters, both internally (meaning, coherence) and externally (frame, trajectories).`,
+  },
+  archetypeHeading: {
+    fr: (rank: string, label: string) => `## Archétype ${rank} — Le ${label}`,
+    en: (rank: string, label: string) => `## ${rank} archetype — The ${label}`,
+  },
+  rank: {
+    dominant:   { fr: "dominant",   en: "Dominant" },
+    secondaire: { fr: "secondaire", en: "Secondary" },
+    tertiaire:  { fr: "tertiaire",  en: "Tertiary" },
+  },
+  gives:            { fr: "**Ce que ça t'apporte**",                en: "**What it gives you**" },
+  watchOut:         { fr: "**À surveiller**",                       en: "**Watch out for**" },
+  survivalShadows:  { fr: "Ombres de survie",                       en: "Survival shadows" },
+  yourNarrative:    { fr: "Ton récit archétypal",                   en: "Your archetypal narrative" },
+  strengths:        { fr: "Forces sur lesquelles t'appuyer",        en: "Strengths to lean on" },
+  vigilance:        { fr: "Points de vigilance",                    en: "Watch points" },
+  practices:        { fr: "Pratiques recommandées",                 en: "Recommended practices" },
+
+  adminTitle:       { fr: (l: string) => `Lecture admin — ${l}`,    en: (l: string) => `Admin reading — ${l}` },
+  diagnostic:       { fr: "Diagnostique rapide",                    en: "Quick diagnostic" },
+  triad:            { fr: "Triade dominante",                       en: "Dominant triad" },
+  resources:        { fr: "Ressources",                             en: "Resources" },
+  survivalLabel:    { fr: "Survie",                                 en: "Survival" },
+  hypothesis:       { fr: "Hypothèse admin",                        en: "Admin hypothesis" },
+  scores:           { fr: "Scores",                                 en: "Scores" },
+  scoreLine:        {
+    fr: (label: string, i: string, l: string, s: string, h: string) => `- **${label}** — intensité ${i} · light ${l} · shadow ${s} · maisons ${h}.`,
+    en: (label: string, i: string, l: string, s: string, h: string) => `- **${label}** — intensity ${i} · light ${l} · shadow ${s} · houses ${h}.`,
+  },
+  survivalLine:     {
+    fr: (label: string, i: string, s: string, h: string) => `- ${label} — intensité ${i} · shadow ${s} · maison ${h}.`,
+    en: (label: string, i: string, s: string, h: string) => `- ${label} — intensity ${i} · shadow ${s} · house ${h}.`,
+  },
+  archByArch:       { fr: "Lecture archétype par archétype",        en: "Archetype-by-archetype reading" },
+  functions:        { fr: "Fonctions",                              en: "Functions" },
+  evidence:         { fr: "Ce qu'on voit dans les réponses",        en: "What we see in the answers" },
+  risks:            { fr: "Risques",                                en: "Risks" },
+  workAxis:         { fr: "Axe de travail",                         en: "Work axis" },
+  primaryShadow:    {
+    fr: (theme: string) => `## Ombre principale — ${theme} & Child`,
+    en: (theme: string) => `## Primary shadow — ${theme} & Child`,
+  },
+  hotspotHouses:    { fr: "Maisons les plus chargées",              en: "Most charged houses" },
+  houseHeading:     {
+    fr: (n: number, l: string) => `### Maison ${n} — ${l}`,
+    en: (n: number, l: string) => `### House ${n} — ${l}`,
+  },
+  convergent:       {
+    fr: (a: string) => `Archétypes convergents : ${a}.`,
+    en: (a: string) => `Converging archetypes: ${a}.`,
+  },
+  theme:            { fr: "Thème",                                  en: "Theme" },
+  contract:         { fr: "Lecture contrat (Sacred Contracts)",     en: "Contract reading (Sacred Contracts)" },
+};
+
+/* -------------------------------------------------------------------------- */
+/* Report builders — markdown                                                 */
+/* -------------------------------------------------------------------------- */
+
 /**
  * USER-facing report. Tone: bienveillant, orienté prise de conscience.
  */
-export function buildUserReport(profile: SampleProfile): string {
+export function buildUserReport(profile: SampleProfile, locale: Locale = "fr"): string {
   const n = profile.narrative;
   const lines: string[] = [];
 
-  lines.push("# Ton paysage archétypal");
+  lines.push(`# ${T.userTitle[locale]}`);
   lines.push("");
-  lines.push("## Vue d'ensemble");
+  lines.push(`## ${T.overview[locale]}`);
   lines.push("");
   lines.push(n.overviewLead);
   lines.push("");
-  lines.push(`L'ombre principale de ton profil tourne autour du **${n.primaryShadowTheme}** : besoin de garder la main sur ce qui compte, aussi bien intérieurement (sens, cohérence) qu'extérieurement (cadre, trajectoires).`);
+  lines.push(T.shadowLead[locale](n.primaryShadowTheme));
   lines.push("");
 
   for (const block of n.archetypeBlocks) {
-    lines.push(`## Archétype ${block.rank} — Le ${ARCH_LABEL_FR[block.archetype]}`);
+    const rankLabel = T.rank[block.rank][locale];
+    lines.push(T.archetypeHeading[locale](rankLabel, ARCH_LABEL_FR[block.archetype]));
     lines.push("");
     lines.push(`*${block.tagline}*`);
     lines.push("");
-    lines.push("**Ce que ça t'apporte**");
+    lines.push(T.gives[locale]);
     lines.push("");
     lines.push(block.gives);
     lines.push("");
-    lines.push("**À surveiller**");
+    lines.push(T.watchOut[locale]);
     lines.push("");
     lines.push(block.watchOut);
     lines.push("");
   }
 
-  lines.push("## Ombres de survie");
+  lines.push(`## ${T.survivalShadows[locale]}`);
   lines.push("");
   lines.push(n.survivalUser);
   lines.push("");
 
-  lines.push("## Ton récit archétypal");
+  lines.push(`## ${T.yourNarrative[locale]}`);
   lines.push("");
   lines.push(n.closingNarrativeUser);
   lines.push("");
 
-  lines.push("## Forces sur lesquelles t'appuyer");
+  lines.push(`## ${T.strengths[locale]}`);
   lines.push("");
   for (const s of n.strengths) lines.push(`- ${s}`);
   lines.push("");
 
-  lines.push("## Points de vigilance");
+  lines.push(`## ${T.vigilance[locale]}`);
   lines.push("");
   for (const v of n.vigilance) lines.push(`- ${v}`);
   lines.push("");
 
-  lines.push("## Pratiques recommandées");
+  lines.push(`## ${T.practices[locale]}`);
   lines.push("");
   for (const p of n.practices) {
     lines.push(`### ${p.title}`);
@@ -442,64 +513,64 @@ export function buildUserReport(profile: SampleProfile): string {
 /**
  * ADMIN report — Myss-style clinical reading of the same profile.
  */
-export function buildAdminReport(profile: SampleProfile): string {
+export function buildAdminReport(profile: SampleProfile, locale: Locale = "fr"): string {
   const n = profile.narrative;
   const lines: string[] = [];
 
-  lines.push(`# Lecture admin — ${profile.label}`);
+  lines.push(`# ${T.adminTitle[locale](profile.label)}`);
   lines.push("");
 
-  lines.push("## Diagnostique rapide");
+  lines.push(`## ${T.diagnostic[locale]}`);
   lines.push("");
-  lines.push(`- **Triade dominante** : ${n.adminDiagnostic.triad}`);
-  lines.push(`- **Ressources** : ${n.adminDiagnostic.resources}`);
-  lines.push(`- **Survie** : ${n.adminDiagnostic.survival}`);
+  lines.push(`- **${T.triad[locale]}** : ${n.adminDiagnostic.triad}`);
+  lines.push(`- **${T.resources[locale]}** : ${n.adminDiagnostic.resources}`);
+  lines.push(`- **${T.survivalLabel[locale]}** : ${n.adminDiagnostic.survival}`);
   lines.push("");
-  lines.push(`**Hypothèse admin** : ${n.adminDiagnostic.hypothesis}`);
+  lines.push(`**${T.hypothesis[locale]}** : ${n.adminDiagnostic.hypothesis}`);
   lines.push("");
 
-  lines.push("## Scores");
+  lines.push(`## ${T.scores[locale]}`);
   lines.push("");
   for (const m of profile.majors) {
-    lines.push(`- **${ARCH_LABEL_FR[m.archetype]}** — intensité ${fmt(m.intensity)} · light ${pct(m.light)} · shadow ${pct(m.shadow)} · maisons ${m.topHouses.join(", ")}.`);
+    lines.push(T.scoreLine[locale](ARCH_LABEL_FR[m.archetype], fmt(m.intensity), pct(m.light), pct(m.shadow), m.topHouses.join(", ")));
   }
   lines.push("");
-  lines.push("**Survie**");
+  lines.push(`**${T.survivalLabel[locale]}**`);
   for (const s of profile.survival) {
-    lines.push(`- ${ARCH_LABEL_FR[s.archetype]} — intensité ${fmt(s.intensity)} · shadow ${pct(s.shadow)} · maison ${s.topHouses.join("/")}.`);
+    lines.push(T.survivalLine[locale](ARCH_LABEL_FR[s.archetype], fmt(s.intensity), pct(s.shadow), s.topHouses.join("/")));
   }
   lines.push("");
 
-  lines.push("## Lecture archétype par archétype");
+  lines.push(`## ${T.archByArch[locale]}`);
   lines.push("");
   for (const block of n.archetypeBlocks) {
-    lines.push(`### ${ARCH_LABEL_FR[block.archetype]} — ${block.rank}`);
+    lines.push(`### ${ARCH_LABEL_FR[block.archetype]} — ${T.rank[block.rank][locale]}`);
     lines.push("");
-    lines.push(`**Fonctions** : ${block.adminFunctions}`);
+    lines.push(`**${T.functions[locale]}** : ${block.adminFunctions}`);
     lines.push("");
-    lines.push(`**Ce qu'on voit dans les réponses** : ${block.adminEvidence}`);
+    lines.push(`**${T.evidence[locale]}** : ${block.adminEvidence}`);
     lines.push("");
-    lines.push(`**Risques** : ${block.adminRisks}`);
+    lines.push(`**${T.risks[locale]}** : ${block.adminRisks}`);
     lines.push("");
-    lines.push(`**Axe de travail** : ${block.adminWorkAxis}`);
+    lines.push(`**${T.workAxis[locale]}** : ${block.adminWorkAxis}`);
     lines.push("");
   }
 
-  lines.push(`## Ombre principale — ${n.primaryShadowTheme} & Child`);
+  lines.push(T.primaryShadow[locale](n.primaryShadowTheme));
   lines.push("");
   lines.push(n.survivalAdmin);
   lines.push("");
 
-  lines.push("## Maisons les plus chargées");
+  lines.push(`## ${T.hotspotHouses[locale]}`);
   lines.push("");
   for (const h of profile.hotspotHouses) {
-    lines.push(`### Maison ${h.house} — ${h.label}`);
-    lines.push(`Archétypes convergents : ${h.archetypes.map((a) => ARCH_LABEL_FR[a]).join(", ")}.`);
-    lines.push(`Thème : ${h.theme}`);
+    lines.push(T.houseHeading[locale](h.house, h.label));
+    lines.push(T.convergent[locale](h.archetypes.map((a) => ARCH_LABEL_FR[a]).join(", ")));
+    lines.push(`${T.theme[locale]} : ${h.theme}`);
     lines.push("");
   }
 
-  lines.push("## Lecture contrat (Sacred Contracts)");
+  lines.push(`## ${T.contract[locale]}`);
   lines.push("");
   for (const c of n.adminContract) {
     lines.push(`- ${c}`);
