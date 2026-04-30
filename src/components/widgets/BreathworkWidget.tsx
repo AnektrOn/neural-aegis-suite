@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Wind } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface BreathworkConfig {
   cycles: number;
@@ -19,11 +20,11 @@ interface Props {
 
 type Phase = "breath_in" | "pause1" | "breath_out" | "pause2";
 
-const PHASE_LABELS: Record<Phase, string> = {
-  breath_in: "Inspirez",
-  pause1: "Retenez",
-  breath_out: "Expirez",
-  pause2: "Retenez",
+const PHASE_LABEL_KEYS: Record<Phase, "toolbox.breath.phase.in" | "toolbox.breath.phase.hold" | "toolbox.breath.phase.out"> = {
+  breath_in: "toolbox.breath.phase.in",
+  pause1: "toolbox.breath.phase.hold",
+  breath_out: "toolbox.breath.phase.out",
+  pause2: "toolbox.breath.phase.hold",
 };
 
 const PHASE_COLORS: Record<Phase, string> = {
@@ -34,6 +35,7 @@ const PHASE_COLORS: Record<Phase, string> = {
 };
 
 export default function BreathworkWidget({ config, title, onComplete, onAbandon }: Props) {
+  const { t } = useLanguage();
   const [isRunning, setIsRunning] = useState(false);
   const [currentCycle, setCurrentCycle] = useState(0);
   const [currentPhase, setCurrentPhase] = useState<Phase>("breath_in");
@@ -156,11 +158,11 @@ export default function BreathworkWidget({ config, title, onComplete, onAbandon 
         >
           <div className="text-center">
             {completed ? (
-              <p className="text-sm font-medium text-primary">Terminé ✦</p>
+              <p className="text-sm font-medium text-primary">{t("toolbox.breath.done")}</p>
             ) : isRunning ? (
               <>
                 <p className="text-lg font-cinzel" style={{ color: PHASE_COLORS[currentPhase] }}>
-                  {PHASE_LABELS[currentPhase]}
+                  {t(PHASE_LABEL_KEYS[currentPhase])}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {Math.ceil(currentPhaseDuration - phaseProgress * currentPhaseDuration)}s
@@ -190,7 +192,7 @@ export default function BreathworkWidget({ config, title, onComplete, onAbandon 
 
       <div className="text-center space-y-1">
         <p className="text-sm text-foreground font-medium">
-          Cycle {Math.min(currentCycle + 1, config.cycles)} / {config.cycles}
+          {t("toolbox.breath.cycle", { current: Math.min(currentCycle + 1, config.cycles), total: config.cycles })}
         </p>
         <p className="text-neural-label">{formatTime(elapsed)} / {formatTime(totalTime)}</p>
       </div>
