@@ -65,6 +65,7 @@ export const translations = {
   "admin.nav.calls": { fr: "Audit Appels", en: "Call Audit" },
   "admin.nav.assessments": { fr: "Évaluations", en: "Assessments" },
   "admin.nav.deepDiveSample": { fr: "Rapport Deep Dive", en: "Deep Dive Report" },
+  "admin.nav.deepDive": { fr: "Deep Dive — Scores", en: "Deep Dive — Scores" },
   "admin.nav.habits": { fr: "Habitudes", en: "Habits" },
   "admin.nav.users": { fr: "Utilisateurs", en: "Users" },
   "admin.nav.analytics": { fr: "Analytiques", en: "Analytics" },
@@ -624,6 +625,7 @@ export const translations = {
   "appendix.complete": { fr: "Terminer", en: "Finish" },
   "appendix.completed": { fr: "Questionnaire complété ✓", en: "Questionnaire completed ✓" },
   "appendix.resume": { fr: "Reprendre le questionnaire", en: "Resume questionnaire" },
+  "appendix.viewScores": { fr: "Voir mes scores", en: "View my scores" },
   "appendix.shortTextPlaceholder": { fr: "Votre réponse…", en: "Your answer…" },
   "appendix.likertHint": { fr: "Glissez pour évaluer (0 = pas du tout, 10 = totalement)", en: "Drag to rate (0 = not at all, 10 = totally)" },
 
