@@ -4,10 +4,9 @@ import { Loader2, Search, Sparkles, ChevronDown, ChevronRight } from "lucide-rea
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  computeDeepDiveScores,
   type DeepDiveResult,
-  type RawAnswer,
 } from "@/features/archetype-deepdive-v2/domain/computeDeepDiveScores";
+import { loadUnifiedDeepDiveResultsForAllUsers } from "@/features/archetype-deepdive-v2/domain/loadUnifiedScores";
 import { archLabel } from "@/features/archetype-deepdive-v2/domain/narrativeContent";
 
 interface UserRow {
