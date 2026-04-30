@@ -153,8 +153,8 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
     return () => { cancelled = true; };
   }, [mode, user?.id, selectedSession, locale, isFR]);
 
-  const userReport = useMemo(() => (profile ? buildUserReport(profile) : ""), [profile]);
-  const adminReport = useMemo(() => (profile ? buildAdminReport(profile) : ""), [profile]);
+  const userReport = useMemo(() => (profile ? buildUserReport(profile, locale) : ""), [profile, locale]);
+  const adminReport = useMemo(() => (profile ? buildAdminReport(profile, locale) : ""), [profile, locale]);
 
   const downloadMarkdown = (content: string, filename: string) => {
     const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });

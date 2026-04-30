@@ -16,6 +16,7 @@ import {
 import type { SampleProfile } from "../domain/sampleProfile";
 import { DeepDiveRadarChart } from "./DeepDiveRadarChart";
 import type { AnyArchetypeKey } from "../domain/types";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const ARCH_LABEL_FR: Record<AnyArchetypeKey, string> = {
   sovereign: "Sovereign", warrior: "Warrior", lover: "Lover", caregiver: "Caregiver",
@@ -41,10 +42,10 @@ const DEFAULT_ACCENT = {
   gradient: "from-white/[0.04] to-transparent",
 };
 
-const RANK_LABEL: Record<"dominant" | "secondaire" | "tertiaire", string> = {
-  dominant: "Dominant",
-  secondaire: "Secondaire",
-  tertiaire: "Tertiaire",
+const RANK_LABEL: Record<"dominant" | "secondaire" | "tertiaire", { fr: string; en: string }> = {
+  dominant:   { fr: "Dominant",   en: "Dominant" },
+  secondaire: { fr: "Secondaire", en: "Secondary" },
+  tertiaire:  { fr: "Tertiaire",  en: "Tertiary" },
 };
 
 function pct(n: number): string {
@@ -70,6 +71,8 @@ interface AdminArchetypeCardProps {
 function AdminArchetypeFlipCard({
   archetype, rank, adminFunctions, adminEvidence, adminRisks, adminWorkAxis,
 }: AdminArchetypeCardProps) {
+  const { locale } = useLanguage();
+  const isFR = locale === "fr";
   const [flipped, setFlipped] = useState(false);
   const a = ARCH_ACCENT[archetype] ?? DEFAULT_ACCENT;
 
@@ -95,7 +98,7 @@ function AdminArchetypeFlipCard({
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display">
-                {RANK_LABEL[rank]}
+                {RANK_LABEL[rank][locale]}
               </span>
               <Brain size={14} strokeWidth={1.5} className="text-text-tertiary" />
             </div>
@@ -106,20 +109,20 @@ function AdminArchetypeFlipCard({
             <div className="space-y-3 flex-1">
               <div>
                 <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-text-tertiary mb-1">
-                  <Activity size={11} strokeWidth={1.5} /> Fonctions
+                  <Activity size={11} strokeWidth={1.5} /> {isFR ? "Fonctions" : "Functions"}
                 </div>
                 <p className="text-sm text-text-secondary leading-relaxed">{adminFunctions}</p>
               </div>
               <div className="border-t border-white/5 pt-3">
                 <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-text-tertiary mb-1">
-                  <Eye size={11} strokeWidth={1.5} /> Ce qu'on voit
+                  <Eye size={11} strokeWidth={1.5} /> {isFR ? "Ce qu'on voit" : "What we see"}
                 </div>
                 <p className="text-sm text-text-secondary leading-relaxed">{adminEvidence}</p>
               </div>
             </div>
 
             <div className="mt-3 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display opacity-60">
-              <RotateCcw size={11} strokeWidth={1.5} /> Risques & axe de travail
+              <RotateCcw size={11} strokeWidth={1.5} /> {isFR ? "Risques & axe de travail" : "Risks & work axis"}
             </div>
           </Card>
         </div>
@@ -131,20 +134,20 @@ function AdminArchetypeFlipCard({
           >
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-display text-sm tracking-[0.12em] uppercase text-text-primary">
-                {ARCH_LABEL_FR[archetype]} — clinique
+                {ARCH_LABEL_FR[archetype]} — {isFR ? "clinique" : "clinical"}
               </h4>
               <RotateCcw size={12} strokeWidth={1.5} className="text-text-tertiary" />
             </div>
             <div className="space-y-3 flex-1 overflow-auto">
               <div>
                 <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-accent-warning/80 mb-1">
-                  <AlertTriangle size={11} strokeWidth={1.5} /> Risques
+                  <AlertTriangle size={11} strokeWidth={1.5} /> {isFR ? "Risques" : "Risks"}
                 </div>
                 <p className="text-sm text-text-secondary leading-relaxed">{adminRisks}</p>
               </div>
               <div className="border-t border-white/5 pt-3">
                 <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-emerald-300/80 mb-1">
-                  <Target size={11} strokeWidth={1.5} /> Axe de travail
+                  <Target size={11} strokeWidth={1.5} /> {isFR ? "Axe de travail" : "Work axis"}
                 </div>
                 <p className="text-sm text-text-secondary leading-relaxed">{adminWorkAxis}</p>
               </div>
@@ -159,6 +162,8 @@ function AdminArchetypeFlipCard({
 /* -------------------------------------------------------------------------- */
 
 export function DeepDiveAdminCards({ profile }: { profile: SampleProfile }) {
+  const { locale } = useLanguage();
+  const isFR = locale === "fr";
   const n = profile.narrative;
 
   return (
@@ -167,29 +172,29 @@ export function DeepDiveAdminCards({ profile }: { profile: SampleProfile }) {
       <Card className="neural-card p-6 sm:p-8 backdrop-blur-3xl bg-white/[0.04] border border-white/10 shadow-[0_0_60px_-30px_rgba(255,255,255,0.15)]">
         <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-3">
           <Stethoscope size={14} strokeWidth={1.5} />
-          Diagnostic rapide
+          {isFR ? "Diagnostic rapide" : "Quick diagnostic"}
         </div>
         <h2 className="font-display text-2xl sm:text-3xl tracking-[0.12em] uppercase text-text-primary mb-5">
-          Lecture admin — {profile.label}
+          {isFR ? "Lecture admin" : "Admin reading"} — {profile.label}
         </h2>
 
         <div className="grid sm:grid-cols-3 gap-4 mb-5">
           <div className="rounded-lg bg-white/[0.02] border border-white/5 p-4">
-            <div className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display mb-2">Triade</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display mb-2">{isFR ? "Triade" : "Triad"}</div>
             <p className="text-sm text-text-secondary leading-relaxed">{n.adminDiagnostic.triad}</p>
           </div>
           <div className="rounded-lg bg-white/[0.02] border border-white/5 p-4">
-            <div className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display mb-2">Ressources</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display mb-2">{isFR ? "Ressources" : "Resources"}</div>
             <p className="text-sm text-text-secondary leading-relaxed">{n.adminDiagnostic.resources}</p>
           </div>
           <div className="rounded-lg bg-white/[0.02] border border-white/5 p-4">
-            <div className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display mb-2">Survie</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display mb-2">{isFR ? "Survie" : "Survival"}</div>
             <p className="text-sm text-text-secondary leading-relaxed">{n.adminDiagnostic.survival}</p>
           </div>
         </div>
 
         <div className="rounded-lg bg-white/[0.03] border border-white/10 p-4">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-accent-warning/80 font-display mb-1">Hypothèse admin</div>
+          <div className="text-[10px] uppercase tracking-[0.25em] text-accent-warning/80 font-display mb-1">{isFR ? "Hypothèse admin" : "Admin hypothesis"}</div>
           <p className="text-sm text-text-secondary leading-relaxed">{n.adminDiagnostic.hypothesis}</p>
         </div>
       </Card>
@@ -198,7 +203,7 @@ export function DeepDiveAdminCards({ profile }: { profile: SampleProfile }) {
       <Card className="neural-card p-6 backdrop-blur-3xl bg-white/[0.03] border border-white/10">
         <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-4">
           <Layers size={14} strokeWidth={1.5} />
-          Scores
+          {isFR ? "Scores" : "Scores"}
         </div>
 
         <div className="grid sm:grid-cols-2 gap-3 mb-5">
@@ -213,7 +218,7 @@ export function DeepDiveAdminCards({ profile }: { profile: SampleProfile }) {
                 <span className="text-text-tertiary">·</span>
                 <span className="text-accent-warning/80">shadow {pct(m.shadow)}</span>
                 <span className="text-text-tertiary">·</span>
-                <span className="text-text-secondary">maisons {m.topHouses.join(", ")}</span>
+                <span className="text-text-secondary">{isFR ? "maisons" : "houses"} {m.topHouses.join(", ")}</span>
               </div>
               <div className="h-1.5 rounded-full bg-white/5 overflow-hidden flex">
                 <div className="h-full bg-emerald-400/50 transition-all duration-700" style={{ width: `${Math.round(m.light * 100)}%` }} />
@@ -223,30 +228,30 @@ export function DeepDiveAdminCards({ profile }: { profile: SampleProfile }) {
           ))}
         </div>
 
-        <div className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display mb-2">Survie</div>
+        <div className="text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display mb-2">{isFR ? "Survie" : "Survival"}</div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {profile.survival.map((s) => (
             <div key={s.archetype} className="rounded-lg bg-white/[0.02] border border-white/5 p-2 text-xs text-text-secondary">
               <div className="font-display tracking-wider text-text-primary mb-1">{ARCH_LABEL_FR[s.archetype]}</div>
               <div className="text-[11px]">i. {fmt(s.intensity)} · shadow {pct(s.shadow)}</div>
-              <div className="text-[10px] text-text-tertiary">m. {s.topHouses.join("/")}</div>
+              <div className="text-[10px] text-text-tertiary">{isFR ? "m." : "h."} {s.topHouses.join("/")}</div>
             </div>
           ))}
         </div>
       </Card>
 
       {/* Radar — 12 archetypes wheel */}
-      <DeepDiveRadarChart profile={profile} title="Roue archétypale — 12 majeurs" />
+      <DeepDiveRadarChart profile={profile} title={isFR ? "Roue archétypale — 12 majeurs" : "Archetypal wheel — 12 majors"} />
 
       {/* Archetype clinical flip cards */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
             <Brain size={14} strokeWidth={1.5} />
-            Lecture archétype par archétype
+            {isFR ? "Lecture archétype par archétype" : "Archetype-by-archetype reading"}
           </div>
           <span className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary/70 font-display hidden sm:inline">
-            Touche pour voir risques & axe de travail
+            {isFR ? "Touche pour voir risques & axe de travail" : "Tap to see risks & work axis"}
           </span>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
@@ -268,7 +273,7 @@ export function DeepDiveAdminCards({ profile }: { profile: SampleProfile }) {
       <Card className="neural-card p-6 backdrop-blur-3xl bg-gradient-to-br from-amber-500/[0.04] to-transparent bg-white/[0.03] border border-accent-warning/20">
         <div className="flex items-center gap-2 text-accent-warning/80 text-xs uppercase tracking-[0.2em] font-display mb-3">
           <ShieldAlert size={14} strokeWidth={1.5} />
-          Ombre principale — {n.primaryShadowTheme} & Child
+          {isFR ? "Ombre principale" : "Primary shadow"} — {n.primaryShadowTheme} & Child
         </div>
         <p className="text-sm text-text-secondary leading-relaxed">{n.survivalAdmin}</p>
       </Card>
@@ -277,14 +282,14 @@ export function DeepDiveAdminCards({ profile }: { profile: SampleProfile }) {
       <div>
         <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-3">
           <HomeIcon size={14} strokeWidth={1.5} />
-          Maisons les plus chargées
+          {isFR ? "Maisons les plus chargées" : "Most charged houses"}
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {profile.hotspotHouses.map((h) => (
             <Card key={h.house} className="neural-card p-5 backdrop-blur-3xl bg-white/[0.03] border border-white/10 flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-display text-3xl text-text-primary tracking-wider">{h.house}</span>
-                <span className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary font-display">Maison</span>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary font-display">{isFR ? "Maison" : "House"}</span>
               </div>
               <h4 className="font-display text-sm tracking-wider uppercase text-text-primary mb-3">{h.label}</h4>
               <div className="flex flex-wrap gap-1 mb-3">
@@ -307,7 +312,7 @@ export function DeepDiveAdminCards({ profile }: { profile: SampleProfile }) {
       <Card className="neural-card p-6 sm:p-8 backdrop-blur-3xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/10 shadow-[0_0_50px_-25px_rgba(255,255,255,0.2)]">
         <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-3">
           <ScrollText size={14} strokeWidth={1.5} />
-          Lecture contrat (Sacred Contracts)
+          {isFR ? "Lecture contrat (Sacred Contracts)" : "Contract reading (Sacred Contracts)"}
         </div>
         <ul className="space-y-3 mt-4">
           {n.adminContract.map((c, i) => (
