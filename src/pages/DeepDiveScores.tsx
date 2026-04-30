@@ -4,12 +4,8 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Sparkles, AlertTriangle, Loader2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  computeDeepDiveScores,
-  type DeepDiveResult,
-  type RawAnswer,
-} from "@/features/archetype-deepdive-v2/domain/computeDeepDiveScores";
+import { type DeepDiveResult } from "@/features/archetype-deepdive-v2/domain/computeDeepDiveScores";
+import { loadUnifiedDeepDiveResult } from "@/features/archetype-deepdive-v2/domain/loadUnifiedScores";
 import { archLabel } from "@/features/archetype-deepdive-v2/domain/narrativeContent";
 
 export default function DeepDiveScores() {
