@@ -156,10 +156,10 @@ export default function CalendarView() {
         {/* Legend */}
         <div className="flex flex-wrap gap-3 sm:gap-4 mt-6 justify-center">
           {[
-            { color: "bg-primary", label: t("calendar.mood") },
-            { color: "bg-emerald-500", label: t("calendar.habits") },
+            { color: "bg-primary", label: t("nav.mood") },
+            { color: "bg-emerald-500", label: t("nav.habits") },
             { color: "bg-amber-500", label: t("calendar.legendDecisions") },
-            { color: "bg-violet-500", label: t("calendar.journal") },
+            { color: "bg-violet-500", label: t("nav.journal") },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${item.color}`} />
