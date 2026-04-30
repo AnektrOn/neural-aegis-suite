@@ -4,12 +4,8 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Sparkles, AlertTriangle, Loader2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  computeDeepDiveScores,
-  type DeepDiveResult,
-  type RawAnswer,
-} from "@/features/archetype-deepdive-v2/domain/computeDeepDiveScores";
+import { type DeepDiveResult } from "@/features/archetype-deepdive-v2/domain/computeDeepDiveScores";
+import { loadUnifiedDeepDiveResult } from "@/features/archetype-deepdive-v2/domain/loadUnifiedScores";
 import { archLabel } from "@/features/archetype-deepdive-v2/domain/narrativeContent";
 
 export default function DeepDiveScores() {
@@ -24,18 +20,14 @@ export default function DeepDiveScores() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("deepdive_responses" as any)
-        .select("question_code, option_codes")
-        .eq("user_id", user.id);
-      if (cancelled) return;
-      if (error) {
-        setError(error.message);
-      } else {
-        const raw = ((data ?? []) as unknown) as RawAnswer[];
-        setResult(computeDeepDiveScores(raw));
+      try {
+        const r = await loadUnifiedDeepDiveResult(user.id);
+        if (!cancelled) setResult(r);
+      } catch (e: any) {
+        if (!cancelled) setError(e.message);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     })();
     return () => {
       cancelled = true;
