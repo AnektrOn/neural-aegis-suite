@@ -665,6 +665,7 @@ export const translations = {
 
   // Smart admin alerts
   "admin.nav.alerts": { fr: "Alertes", en: "Alerts" },
+  "admin.nav.export": { fr: "Export", en: "Export" },
   "admin.alerts.title": { fr: "Alertes intelligentes", en: "Smart alerts" },
   "admin.alerts.subtitle": {
     fr: "Détection automatique des risques et signaux de désengagement.",
