@@ -49,6 +49,8 @@ const AssessmentFlow = lazy(() => import("./features/archetype-assessment/pages/
 const AssessmentResults = lazy(() => import("./features/archetype-assessment/pages/AssessmentResults"));
 const DeepDiveSampleReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveSampleReport"));
 const DeepDiveUserReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveUserReport"));
+const DeepDiveScores = lazy(() => import("./pages/DeepDiveScores"));
+const AdminDeepDive = lazy(() => import("./pages/admin/AdminDeepDive"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -119,6 +121,7 @@ const App = () => (
                               <Route path="/alerts" element={<AdminAlertsPanel />} />
                               <Route path="/export" element={<AdminExport />} />
                               <Route path="/deep-dive-sample" element={<DeepDiveSampleReport />} />
+                              <Route path="/deep-dive" element={<AdminDeepDive />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
@@ -147,6 +150,7 @@ const App = () => (
                             <Route path="/onboarding/assessment" element={<AssessmentFlow />} />
                             <Route path="/onboarding/results" element={<AssessmentResults />} />
                             <Route path="/deep-dive" element={<DeepDiveUserReport />} />
+                            <Route path="/deep-dive/scores" element={<DeepDiveScores />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </Suspense>
