@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Decision {
   id: string;
@@ -21,6 +22,7 @@ const priorityTextColor = (priority: number) => {
 };
 
 export default function DecisionsMiniCard({ userId, onAddNew }: DecisionsMiniCardProps) {
+  const { t } = useLanguage();
   const [decisions, setDecisions] = useState<Decision[]>([]);
 
   useEffect(() => {
@@ -53,18 +55,18 @@ export default function DecisionsMiniCard({ userId, onAddNew }: DecisionsMiniCar
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60">
-          Décisions en cours
+          {t("decisionsMini.title")}
         </p>
         {pendingCount > 0 && (
           <span className="text-[8px] bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded-full leading-none">
-            {pendingCount} ouvertes
+            {t("decisionsMini.openCount", { n: pendingCount })}
           </span>
         )}
       </div>
 
       {/* List */}
       {decisions.length === 0 ? (
-        <p className="text-[10px] text-muted-foreground/30 py-1">Aucune décision enregistrée</p>
+        <p className="text-[10px] text-muted-foreground/30 py-1">{t("decisionsMini.empty")}</p>
       ) : (
         <div className="space-y-1.5">
           {decisions.map((d) => (
@@ -93,7 +95,7 @@ export default function DecisionsMiniCard({ userId, onAddNew }: DecisionsMiniCar
         className="flex items-center gap-1 text-[9px] tracking-widest uppercase text-accent/50 hover:text-accent transition-colors"
       >
         <Plus size={9} strokeWidth={2} />
-        Nouvelle décision
+        {t("decisionsMini.add")}
       </button>
     </motion.div>
   );
