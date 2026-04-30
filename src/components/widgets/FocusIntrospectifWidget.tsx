@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, RotateCcw, Eye } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Props {
   config: { duration_min: number; intention: string };
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function FocusIntrospectifWidget({ config, title, onComplete, onAbandon }: Props) {
+  const { t } = useLanguage();
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [completed, setCompleted] = useState(false);
@@ -95,14 +97,14 @@ export default function FocusIntrospectifWidget({ config, title, onComplete, onA
         <div className="relative text-center z-10">
           {completed ? (
             <div>
-              <p className="text-neural-accent font-cinzel text-lg">Namaste</p>
-              <p className="text-xs text-muted-foreground mt-1">{config.duration_min} min complétées</p>
+              <p className="text-neural-accent font-cinzel text-lg">{t("toolbox.focus.namaste")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("toolbox.focus.minutesDone", { n: config.duration_min })}</p>
             </div>
           ) : (
             <div>
               <p className="text-2xl font-cinzel text-foreground">{formatTime(remaining)}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {isRunning ? "En cours…" : "Prêt"}
+                {isRunning ? t("toolbox.focus.running") : t("toolbox.focus.ready")}
               </p>
             </div>
           )}
