@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Search, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, Search, Sparkles, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -68,6 +68,68 @@ export default function AdminDeepDive() {
     return rows.filter((r) => (r.user.display_name ?? "").toLowerCase().includes(q));
   }, [rows, search]);
 
+  function downloadCSV() {
+    const header = [
+      "user_id",
+      "display_name",
+      "answered_count",
+      "total_questions",
+      "completion_pct",
+      "top_1",
+      "top_2",
+      "top_3",
+      "shadow_alerts",
+      "archetype",
+      "rank",
+      "light",
+      "shadow",
+      "net",
+      "intensity_pct",
+    ];
+    const escape = (v: any) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines: string[] = [header.join(",")];
+    for (const { user, result } of filtered) {
+      const base = [
+        user.id,
+        user.display_name ?? "",
+        result.answeredCount,
+        result.totalQuestions,
+        Math.round(result.completionPct),
+        result.topThree[0] ?? "",
+        result.topThree[1] ?? "",
+        result.topThree[2] ?? "",
+        result.shadowAlerts.join("|"),
+      ];
+      result.archetypes.forEach((a, i) => {
+        lines.push(
+          [
+            ...base,
+            a.archetype,
+            i + 1,
+            a.light.toFixed(2),
+            a.shadow.toFixed(2),
+            a.net.toFixed(2),
+            Math.round(a.intensity * 100),
+          ]
+            .map(escape)
+            .join(","),
+        );
+      });
+    }
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `deep-dive-scores-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -93,15 +155,26 @@ export default function AdminDeepDive() {
         </p>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={locale === "fr" ? "Rechercher un utilisateur…" : "Search user…"}
-          className="w-full pl-9 pr-3 py-2 rounded-xl bg-bg-surface border border-border-subtle text-sm text-foreground placeholder:text-text-tertiary/60 focus:outline-none focus:border-primary/40"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={locale === "fr" ? "Rechercher un utilisateur…" : "Search user…"}
+            className="w-full pl-9 pr-3 py-2 rounded-xl bg-bg-surface border border-border-subtle text-sm text-foreground placeholder:text-text-tertiary/60 focus:outline-none focus:border-primary/40"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={downloadCSV}
+          disabled={filtered.length === 0}
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-primary/40 bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-all disabled:opacity-40 disabled:pointer-events-none"
+        >
+          <Download size={14} />
+          {locale === "fr" ? "Exporter CSV" : "Export CSV"}
+        </button>
       </div>
 
       {filtered.length === 0 ? (
