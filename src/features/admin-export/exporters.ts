@@ -12,7 +12,7 @@ function escapeCsv(v: any): string {
 
 export function rowsToCsv(rows: Record<string, any>[]): string {
   if (rows.length === 0) return "";
-  const headers = Array.from(rows.reduce((set, r) => {
+  const headers = Array.from(rows.reduce<Set<string>>((set, r) => {
     Object.keys(r).forEach((k) => set.add(k));
     return set;
   }, new Set<string>()));
@@ -25,7 +25,7 @@ export function rowsToCsv(rows: Record<string, any>[]): string {
 
 export function rowsToMarkdown(label: string, rows: Record<string, any>[]): string {
   if (rows.length === 0) return `## ${label}\n\n_Aucune donnée._\n`;
-  const headers = Array.from(rows.reduce((set, r) => {
+  const headers = Array.from(rows.reduce<Set<string>>((set, r) => {
     Object.keys(r).forEach((k) => set.add(k));
     return set;
   }, new Set<string>()));
