@@ -8,16 +8,13 @@
  * AppendixModal already wires the UI, progress and resume logic.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { QUESTIONS_70, HOUSES } from "@/features/archetype-deepdive-v2/domain/questions70";
-import { HOUSES as HOUSE_META } from "@/features/archetype-deepdive-v2/domain/types";
+import { QUESTIONS_70 } from "@/features/archetype-deepdive-v2/domain/questions70";
+import { HOUSES as HOUSE_LIST } from "@/features/archetype-deepdive-v2/domain/types";
 import type {
   AppendixCategoryWithQuestions,
   AppendixQuestion,
   AppendixResponse,
 } from "./types";
-
-// HOUSES is re-exported from questions70.ts; fall back to types.ts if needed.
-const HOUSE_LIST = (HOUSES as typeof HOUSE_META | undefined) ?? HOUSE_META;
 
 export async function loadAppendix(): Promise<AppendixCategoryWithQuestions[]> {
   // Group the 70 questions by Caroline Myss house number.
