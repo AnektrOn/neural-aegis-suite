@@ -4,10 +4,9 @@ import { Loader2, Search, Sparkles, ChevronDown, ChevronRight } from "lucide-rea
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  computeDeepDiveScores,
   type DeepDiveResult,
-  type RawAnswer,
 } from "@/features/archetype-deepdive-v2/domain/computeDeepDiveScores";
+import { loadUnifiedDeepDiveResultsForAllUsers } from "@/features/archetype-deepdive-v2/domain/loadUnifiedScores";
 import { archLabel } from "@/features/archetype-deepdive-v2/domain/narrativeContent";
 
 interface UserRow {
@@ -33,27 +32,22 @@ export default function AdminDeepDive() {
     (async () => {
       setLoading(true);
       try {
-        const [profilesRes, responsesRes] = await Promise.all([
+        const [profilesRes, resultsByUser] = await Promise.all([
           supabase.from("profiles").select("id, display_name"),
-          supabase
-            .from("deepdive_responses" as any)
-            .select("user_id, question_code, option_codes"),
+          loadUnifiedDeepDiveResultsForAllUsers(),
         ]);
         if (profilesRes.error) throw profilesRes.error;
-        if (responsesRes.error) throw responsesRes.error;
 
-        const byUser = new Map<string, RawAnswer[]>();
-        for (const r of (responsesRes.data ?? []) as any[]) {
-          const list = byUser.get(r.user_id) ?? [];
-          list.push({ question_code: r.question_code, option_codes: r.option_codes ?? [] });
-          byUser.set(r.user_id, list);
+        const profilesById = new Map<string, UserRow>();
+        for (const p of (profilesRes.data ?? []) as UserRow[]) {
+          profilesById.set(p.id, p);
         }
 
         const out: UserScore[] = [];
-        for (const p of (profilesRes.data ?? []) as UserRow[]) {
-          const answers = byUser.get(p.id) ?? [];
-          if (answers.length === 0) continue; // skip users without any deep-dive data
-          out.push({ user: p, result: computeDeepDiveScores(answers) });
+        for (const [uid, result] of resultsByUser) {
+          if (result.answeredCount === 0) continue;
+          const user = profilesById.get(uid) ?? { id: uid, display_name: null };
+          out.push({ user, result });
         }
         out.sort((a, b) => b.result.answeredCount - a.result.answeredCount);
         if (!cancelled) setRows(out);
