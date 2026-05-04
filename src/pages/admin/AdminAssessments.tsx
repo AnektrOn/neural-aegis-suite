@@ -15,85 +15,101 @@ import {
 import { AdminSnapshotHistoryTab } from "@/features/archetype-assessment/components/AdminSnapshotHistoryTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ARCHETYPES } from "@/features/archetype-assessment/domain/archetypes";
-import type { ArchetypeKey, DimensionKey } from "@/features/archetype-assessment/domain/types";
+import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { Locale } from "@/i18n/translations";
+import type { TranslationKey } from "@/i18n/translations";
+
+type TFn = (key: TranslationKey, params?: Record<string, string | number>) => string;
+
+const KNOWN_DIMENSION_KEYS = new Set<string>([
+  "learning_style",
+  "relational_style",
+  "activation_style",
+  "regulation_need",
+  "self_trust",
+  "expression_need",
+  "structure_need",
+]);
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
 
-const DIMENSION_LABELS_FR: Record<DimensionKey, { name: string; high: string; low: string }> = {
-  learning_style: {
-    name: "Style d'apprentissage",
-    high: "préfère l'expérimentation guidée et les itérations rapides",
-    low: "préfère intégrer la théorie avant d'agir",
-  },
-  relational_style: {
-    name: "Style relationnel",
-    high: "puise son énergie dans le collectif et les échanges",
-    low: "a besoin de solitude pour se ressourcer",
-  },
-  activation_style: {
-    name: "Style d'activation",
-    high: "passe à l'action rapidement, parfois avant d'être prêt",
-    low: "prend le temps de mûrir avant d'agir",
-  },
-  regulation_need: {
-    name: "Besoin de régulation",
-    high: "a besoin de pratiques régulières pour apaiser le système nerveux",
-    low: "régule naturellement son énergie",
-  },
-  self_trust: {
-    name: "Confiance en soi",
-    high: "s'appuie solidement sur son jugement intérieur",
-    low: "tend à douter et chercher validation externe",
-  },
-  expression_need: {
-    name: "Besoin d'expression",
-    high: "doit créer et exprimer pour exister pleinement",
-    low: "exprime peu mais avec intention",
-  },
-  structure_need: {
-    name: "Besoin de structure",
-    high: "bénéficie de cadres clairs et de plans étape par étape",
-    low: "préfère la fluidité et l'adaptation au moment",
-  },
-};
-
-const SHADOW_LABELS_FR: Record<string, string> = {
-  control: "Contrôle",
-  withdrawal: "Retrait",
-  people_pleasing: "Plaire à tout prix",
-  self_doubt: "Doute de soi",
-  perfectionism: "Perfectionnisme",
-  avoidance: "Évitement",
-};
-
-function intensityLabel(value: number): { label: string; tone: "low" | "medium" | "high" } {
-  if (value >= 0.6) return { label: "élevée", tone: "high" };
-  if (value >= 0.3) return { label: "moyenne", tone: "medium" };
-  return { label: "faible", tone: "low" };
+function sessionStatusLabel(status: string | undefined, t: TFn): string {
+  const s = (status ?? "").toLowerCase();
+  if (s === "submitted") return t("admin.assessments.status.submitted");
+  if (s === "draft") return t("admin.assessments.status.draft");
+  return status ?? "—";
 }
 
-function readDimension(key: DimensionKey, normalized: number): string {
-  const def = DIMENSION_LABELS_FR[key];
-  if (!def) return `${key}: ${Math.round(normalized * 100)}%`;
+function dimensionAxisLabel(key: string, t: TFn): string {
+  if (!KNOWN_DIMENSION_KEYS.has(key)) return key;
+  return t(`admin.assessments.dim.${key}.name` as TranslationKey);
+}
+
+function archetypeName(
+  a: { name_fr: string; name_en: string } | null | undefined,
+  locale: Locale
+): string {
+  if (!a) return "—";
+  return locale === "fr" ? a.name_fr : a.name_en;
+}
+
+function intensityLabel(value: number, t: TFn): { label: string; tone: "low" | "medium" | "high" } {
+  if (value >= 0.6) return { label: t("admin.assessments.intensity.high"), tone: "high" };
+  if (value >= 0.3) return { label: t("admin.assessments.intensity.medium"), tone: "medium" };
+  return { label: t("admin.assessments.intensity.low"), tone: "low" };
+}
+
+function readDimension(key: string, normalized: number, t: TFn): string {
   const pct = Math.round(normalized * 100);
-  if (normalized >= 0.6) return `${def.name} : ${pct}% — ${def.high}.`;
-  if (normalized <= 0.4) return `${def.name} : ${pct}% — ${def.low}.`;
-  return `${def.name} : ${pct}% — équilibré.`;
+  if (!KNOWN_DIMENSION_KEYS.has(key)) {
+    return t("admin.assessments.readDimension.fallback", { key, pct });
+  }
+  const name = t(`admin.assessments.dim.${key}.name` as TranslationKey);
+  const highLine = t(`admin.assessments.dim.${key}.high` as TranslationKey);
+  const lowLine = t(`admin.assessments.dim.${key}.low` as TranslationKey);
+  if (normalized >= 0.6) return t("admin.assessments.readDimension.high", { name, pct, line: highLine });
+  if (normalized <= 0.4) return t("admin.assessments.readDimension.low", { name, pct, line: lowLine });
+  return t("admin.assessments.readDimension.balanced", { name, pct });
 }
 
 function buildArchetypeInterpretation(
   key: ArchetypeKey,
   normalized: number,
-  rank: number
+  rank: number,
+  t: TFn,
+  locale: Locale
 ): string {
   const a = archetypeMeta(key);
   if (!a) return "";
   const pct = Math.round(normalized * 100);
-  const rankLabel = rank === 1 ? "dominant" : rank === 2 ? "secondaire" : "tertiaire";
-  return `Archétype ${rankLabel} (${pct}%). ${a.shortDescription_fr} En lumière : ${a.lightAspect_fr.toLowerCase()} À surveiller : ${a.shadowAspect_fr.toLowerCase()}`;
+  const rankLabel = t(
+    rank === 1
+      ? "admin.assessments.rank.dominant"
+      : rank === 2
+        ? "admin.assessments.rank.secondary"
+        : "admin.assessments.rank.tertiary"
+  );
+  const desc = locale === "fr" ? a.shortDescription_fr : a.shortDescription_en;
+  const light = (locale === "fr" ? a.lightAspect_fr : a.lightAspect_en).toLowerCase();
+  const shadow = (locale === "fr" ? a.shadowAspect_fr : a.shadowAspect_en).toLowerCase();
+  return t("admin.assessments.interpretation", { rank: rankLabel, pct, desc, light, shadow });
+}
+
+function shadowLabel(key: string, t: TFn): string {
+  const map: Record<string, TranslationKey> = {
+    control: "admin.assessments.shadow.control",
+    withdrawal: "admin.assessments.shadow.withdrawal",
+    people_pleasing: "admin.assessments.shadow.people_pleasing",
+    self_doubt: "admin.assessments.shadow.self_doubt",
+    perfectionism: "admin.assessments.shadow.perfectionism",
+    avoidance: "admin.assessments.shadow.avoidance",
+  };
+  const tk = map[key];
+  return tk ? t(tk) : key;
 }
 
 function initials(name?: string | null, fallback?: string): string {
@@ -103,7 +119,7 @@ function initials(name?: string | null, fallback?: string): string {
   return src.slice(0, 2).toUpperCase();
 }
 
-function answerLabel(response: any, question: any): string {
+function answerLabel(response: any, question: any, locale: Locale): string {
   if (!question) return "—";
   const opts = question.assessment_options ?? [];
   if (response.numeric_value !== null && response.numeric_value !== undefined) {
@@ -113,7 +129,11 @@ function answerLabel(response: any, question: any): string {
   const ids: string[] = response.selected_option_ids ?? [];
   if (ids.length === 0) return "—";
   return ids
-    .map((id) => opts.find((o: any) => o.id === id)?.label_fr ?? "?")
+    .map((id) => {
+      const o = opts.find((x: any) => x.id === id);
+      if (!o) return "?";
+      return locale === "fr" ? o.label_fr : o.label_en ?? o.label_fr;
+    })
     .join(", ");
 }
 
@@ -122,6 +142,8 @@ function answerLabel(response: any, question: any): string {
 /* -------------------------------------------------------------------------- */
 
 export default function AdminAssessments() {
+  const { t, locale } = useLanguage();
+  const dateLocale = locale === "fr" ? "fr-FR" : "en-US";
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
@@ -177,9 +199,9 @@ export default function AdminAssessments() {
 
   return (
     <div className="space-y-4 p-4 sm:p-6">
-      <h1 className="text-2xl font-serif">Évaluations Archétypes</h1>
+      <h1 className="text-2xl font-serif">{t("admin.assessments.title")}</h1>
       <Input
-        placeholder="Filtrer par nom, entreprise, id…"
+        placeholder={t("admin.assessments.filterPlaceholder")}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         className="max-w-md"
@@ -191,12 +213,12 @@ export default function AdminAssessments() {
           <table className="w-full text-sm">
             <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="text-left p-3">Étudiant</th>
-                <th className="text-left p-3">Entreprise</th>
-                <th className="text-left p-3">Date</th>
-                <th className="text-left p-3">Archétype</th>
-                <th className="text-left p-3">Statut</th>
-                <th className="text-left p-3">Ombre</th>
+                <th className="text-left p-3">{t("admin.assessments.colStudent")}</th>
+                <th className="text-left p-3">{t("admin.assessments.colCompany")}</th>
+                <th className="text-left p-3">{t("admin.assessments.colDate")}</th>
+                <th className="text-left p-3">{t("admin.assessments.colArchetype")}</th>
+                <th className="text-left p-3">{t("admin.assessments.colStatus")}</th>
+                <th className="text-left p-3">{t("admin.assessments.colShadow")}</th>
                 <th className="text-right p-3"></th>
               </tr>
             </thead>
@@ -214,7 +236,9 @@ export default function AdminAssessments() {
                     </td>
                     <td className="p-3 text-muted-foreground">{s.company?.name ?? "—"}</td>
                     <td className="p-3 text-muted-foreground">
-                      {s.submitted_at ? new Date(s.submitted_at).toLocaleDateString() : "—"}
+                      {s.submitted_at
+                        ? new Date(s.submitted_at).toLocaleDateString(dateLocale)
+                        : "—"}
                     </td>
                     <td className="p-3">
                       {a ? (
@@ -222,7 +246,7 @@ export default function AdminAssessments() {
                           variant="outline"
                           style={{ borderColor: a.color, color: a.color }}
                         >
-                          {a.name_fr}
+                          {archetypeName(a, locale)}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground">—</span>
@@ -230,7 +254,7 @@ export default function AdminAssessments() {
                     </td>
                     <td className="p-3">
                       <Badge variant={s.status === "submitted" ? "default" : "secondary"}>
-                        {s.status}
+                        {sessionStatusLabel(s.status, t)}
                       </Badge>
                     </td>
                     <td className="p-3">
@@ -244,7 +268,7 @@ export default function AdminAssessments() {
                     </td>
                     <td className="p-3 text-right">
                       <Button size="sm" variant="ghost" onClick={() => setSelected(s.id)}>
-                        <Eye className="w-4 h-4 mr-1" /> Voir
+                        <Eye className="w-4 h-4 mr-1" /> {t("admin.assessments.view")}
                       </Button>
                     </td>
                   </tr>
@@ -271,19 +295,21 @@ export default function AdminAssessments() {
                       {s.company?.name ?? "—"}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {s.submitted_at ? new Date(s.submitted_at).toLocaleDateString() : "—"}
+                      {s.submitted_at
+                        ? new Date(s.submitted_at).toLocaleDateString(dateLocale)
+                        : "—"}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge variant={s.status === "submitted" ? "default" : "secondary"}>
-                      {s.status}
+                      {sessionStatusLabel(s.status, t)}
                     </Badge>
                     {a && (
                       <Badge
                         variant="outline"
                         style={{ borderColor: a.color, color: a.color }}
                       >
-                        {a.name_fr}
+                        {archetypeName(a, locale)}
                       </Badge>
                     )}
                   </div>
@@ -294,7 +320,7 @@ export default function AdminAssessments() {
         </div>
 
         {filtered.length === 0 && (
-          <p className="p-4 text-sm text-muted-foreground">Aucune session.</p>
+          <p className="p-4 text-sm text-muted-foreground">{t("admin.assessments.noSessions")}</p>
         )}
       </Card>
     </div>
@@ -315,6 +341,8 @@ function AssessmentDetail({
   onBack: () => void;
 }) {
   const { toast } = useToast();
+  const { t, locale } = useLanguage();
+  const dateLocale = locale === "fr" ? "fr-FR" : "en-US";
   const { session, analysis, scores, recommendations, responses, questions, profile, company } = details;
   const [note, setNote] = useState<string>(analysis?.admin_notes ?? "");
   const [savingNote, setSavingNote] = useState(false);
@@ -340,9 +368,9 @@ function AssessmentDetail({
     setSavingNote(true);
     try {
       await saveAdminNote(session.id, note);
-      toast({ title: "Note enregistrée" });
+      toast({ title: t("admin.assessments.noteSaved") });
     } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+      toast({ title: t("toast.error"), description: e.message, variant: "destructive" });
     } finally {
       setSavingNote(false);
     }
@@ -351,13 +379,13 @@ function AssessmentDetail({
   return (
     <div className="space-y-4 p-4 sm:p-6">
       <Button variant="ghost" size="sm" onClick={onBack}>
-        <ChevronLeft className="w-4 h-4 mr-1" /> Retour
+        <ChevronLeft className="w-4 h-4 mr-1" /> {t("admin.assessments.back")}
       </Button>
 
       <Tabs defaultValue="analysis" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="analysis">Analyse</TabsTrigger>
-          <TabsTrigger value="history">Historique des versions</TabsTrigger>
+          <TabsTrigger value="analysis">{t("admin.assessments.tabAnalysis")}</TabsTrigger>
+          <TabsTrigger value="history">{t("admin.assessments.tabHistory")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="analysis" className="space-y-4 mt-0">
@@ -369,31 +397,33 @@ function AssessmentDetail({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm flex-1">
             <div>
-              <div className="text-xs uppercase text-muted-foreground">Nom</div>
+              <div className="text-xs uppercase text-muted-foreground">{t("admin.assessments.fieldName")}</div>
               <div className="font-medium">{profile?.display_name ?? "—"}</div>
             </div>
             <div>
-              <div className="text-xs uppercase text-muted-foreground">Email</div>
+              <div className="text-xs uppercase text-muted-foreground">{t("admin.assessments.fieldEmail")}</div>
               <div className="font-mono text-xs truncate">—</div>
             </div>
             <div>
-              <div className="text-xs uppercase text-muted-foreground">Entreprise</div>
+              <div className="text-xs uppercase text-muted-foreground">{t("admin.assessments.fieldCompany")}</div>
               <div>{company?.name ?? "—"}</div>
             </div>
             <div>
-              <div className="text-xs uppercase text-muted-foreground">Rôle</div>
+              <div className="text-xs uppercase text-muted-foreground">{t("admin.assessments.fieldRole")}</div>
               <div>—</div>
             </div>
             <div>
-              <div className="text-xs uppercase text-muted-foreground">Date d'évaluation</div>
+              <div className="text-xs uppercase text-muted-foreground">{t("admin.assessments.fieldEvalDate")}</div>
               <div>
-                {session.submitted_at ? new Date(session.submitted_at).toLocaleString() : "—"}
+                {session.submitted_at
+                  ? new Date(session.submitted_at).toLocaleString(dateLocale)
+                  : "—"}
               </div>
             </div>
             <div>
-              <div className="text-xs uppercase text-muted-foreground">Statut</div>
+              <div className="text-xs uppercase text-muted-foreground">{t("admin.assessments.fieldStatus")}</div>
               <Badge variant={session.status === "submitted" ? "default" : "secondary"}>
-                {session.status}
+                {sessionStatusLabel(session.status, t)}
               </Badge>
             </div>
           </div>
@@ -403,7 +433,7 @@ function AssessmentDetail({
       {/* Double reading — Light & Shadow per archetype */}
       {top.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-serif text-xl">Double lecture des archétypes dominants</h2>
+          <h2 className="font-serif text-xl">{t("admin.assessments.doubleReadTitle")}</h2>
           {top.map((key) => {
             const a = archetypeMeta(key);
             if (!a) return null;
@@ -411,7 +441,15 @@ function AssessmentDetail({
             const normalized = score?.normalized_score ?? 0;
             // Shadow intensity: take max relevant shadow signal as proxy
             const maxShadow = Math.max(0, ...Object.values(shadowSignals).map(Number));
-            const intensity = intensityLabel(maxShadow);
+            const intensity = intensityLabel(maxShadow, t);
+            const lightAspect = locale === "fr" ? a.lightAspect_fr : a.lightAspect_en;
+            const shadowAspect = locale === "fr" ? a.shadowAspect_fr : a.shadowAspect_en;
+            const coreNeed = locale === "fr" ? a.coreNeed_fr : a.coreNeed_en;
+            const fearPattern = locale === "fr" ? a.fearPattern_fr : a.fearPattern_en;
+            const shortDesc = locale === "fr" ? a.shortDescription_fr : a.shortDescription_en;
+            const displayName = archetypeName(a, locale);
+            const archetypeForHint =
+              locale === "fr" ? a.name_fr.toLowerCase() : a.name_en.toLowerCase();
 
             return (
               <Card
@@ -423,7 +461,7 @@ function AssessmentDetail({
                     className="w-3 h-3 rounded-full"
                     style={{ background: a.color }}
                   />
-                  <span className="font-medium">{a.name_fr}</span>
+                  <span className="font-medium">{displayName}</span>
                   <Badge variant="outline">{Math.round(normalized * 100)}%</Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2">
@@ -431,25 +469,31 @@ function AssessmentDetail({
                     <div className="p-4 bg-primary/[0.04] md:border-r border-border/40">
                     <div className="flex items-center gap-2 mb-3 text-primary">
                       <Sun className="w-4 h-4" />
-                      <span className="font-serif text-sm uppercase tracking-wider">Lumière</span>
+                      <span className="font-serif text-sm uppercase tracking-wider">
+                        {t("admin.assessments.light")}
+                      </span>
                     </div>
-                    <p className="text-sm mb-3 text-foreground">{a.lightAspect_fr}</p>
+                    <p className="text-sm mb-3 text-foreground">{lightAspect}</p>
                     <div className="space-y-2 text-sm">
                       <div>
-                        <span className="text-xs uppercase text-muted-foreground">Besoin essentiel</span>
-                        <p>{a.coreNeed_fr}</p>
+                        <span className="text-xs uppercase text-muted-foreground">
+                          {t("admin.assessments.coreNeed")}
+                        </span>
+                        <p>{coreNeed}</p>
                       </div>
                       <div>
-                        <span className="text-xs uppercase text-muted-foreground">Style de coaching</span>
+                        <span className="text-xs uppercase text-muted-foreground">
+                          {t("admin.assessments.coachingStyle")}
+                        </span>
                         <p className="text-muted-foreground">
-                          Valoriser ses forces, lui donner de l'espace pour incarner {a.name_fr.toLowerCase()}.
+                          {t("admin.assessments.coachingStyleHint", { archetype: archetypeForHint })}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs uppercase text-muted-foreground">Ce qui marche</span>
-                        <p className="text-muted-foreground">
-                          {a.shortDescription_fr}
-                        </p>
+                        <span className="text-xs uppercase text-muted-foreground">
+                          {t("admin.assessments.whatWorks")}
+                        </span>
+                        <p className="text-muted-foreground">{shortDesc}</p>
                       </div>
                     </div>
                   </div>
@@ -457,16 +501,22 @@ function AssessmentDetail({
                   <div className="p-4 bg-muted/40 dark:bg-background/60">
                     <div className="flex items-center gap-2 mb-3 text-foreground/80">
                       <Moon className="w-4 h-4" />
-                      <span className="font-serif text-sm uppercase tracking-wider">Ombre</span>
+                      <span className="font-serif text-sm uppercase tracking-wider">
+                        {t("admin.assessments.shadowSection")}
+                      </span>
                     </div>
-                    <p className="text-sm mb-3 text-foreground">{a.shadowAspect_fr}</p>
+                    <p className="text-sm mb-3 text-foreground">{shadowAspect}</p>
                     <div className="space-y-2 text-sm">
                       <div>
-                        <span className="text-xs uppercase text-muted-foreground">Pattern de peur</span>
-                        <p>{a.fearPattern_fr}</p>
+                        <span className="text-xs uppercase text-muted-foreground">
+                          {t("admin.assessments.fearPattern")}
+                        </span>
+                        <p>{fearPattern}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs uppercase text-muted-foreground">Intensité ombre</span>
+                        <span className="text-xs uppercase text-muted-foreground">
+                          {t("admin.assessments.shadowIntensity")}
+                        </span>
                         <Badge
                           variant={
                             intensity.tone === "high"
@@ -480,10 +530,12 @@ function AssessmentDetail({
                         </Badge>
                       </div>
                       <div>
-                        <span className="text-xs uppercase text-muted-foreground">À surveiller</span>
+                        <span className="text-xs uppercase text-muted-foreground">
+                          {t("admin.assessments.watchFor")}
+                        </span>
                         <p className="text-muted-foreground flex gap-1">
                           <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
-                          <span>{a.shadowAspect_fr}</span>
+                          <span>{shadowAspect}</span>
                         </p>
                       </div>
                     </div>
@@ -496,27 +548,31 @@ function AssessmentDetail({
       )}
 
       {/* Raw data + Interpretation */}
-      <h2 className="font-serif text-xl pt-2">Données brutes et interprétation</h2>
+      <h2 className="font-serif text-xl pt-2">{t("admin.assessments.rawAndInterp")}</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* LEFT — Raw data */}
         <Card className="p-4 backdrop-blur-3xl bg-card/40 border-border/40 space-y-4">
-          <h3 className="font-serif text-base">Données brutes</h3>
+          <h3 className="font-serif text-base">{t("admin.assessments.rawData")}</h3>
 
           {/* Responses */}
           <div>
-            <h4 className="text-xs uppercase text-muted-foreground mb-2">Réponses</h4>
+            <h4 className="text-xs uppercase text-muted-foreground mb-2">{t("admin.assessments.responses")}</h4>
             <div className="space-y-2 max-h-64 overflow-auto pr-2">
               {responses.map((r: any) => {
                 const q = questions.find((x: any) => x.id === r.question_id);
+                const prompt =
+                  locale === "fr"
+                    ? q?.prompt_fr ?? r.question_id
+                    : q?.prompt_en ?? q?.prompt_fr ?? r.question_id;
                 return (
                   <div key={r.id} className="text-xs border border-border/40 rounded p-2">
-                    <div className="text-muted-foreground">{q?.prompt_fr ?? r.question_id}</div>
-                    <div className="font-medium mt-1">{answerLabel(r, q)}</div>
+                    <div className="text-muted-foreground">{prompt}</div>
+                    <div className="font-medium mt-1">{answerLabel(r, q, locale)}</div>
                   </div>
                 );
               })}
               {responses.length === 0 && (
-                <p className="text-xs text-muted-foreground">Aucune réponse.</p>
+                <p className="text-xs text-muted-foreground">{t("admin.assessments.noResponses")}</p>
               )}
             </div>
           </div>
@@ -525,14 +581,16 @@ function AssessmentDetail({
 
           {/* Dimension bars */}
           <div>
-            <h4 className="text-xs uppercase text-muted-foreground mb-2">Scores par dimension</h4>
+            <h4 className="text-xs uppercase text-muted-foreground mb-2">
+              {t("admin.assessments.dimensionScores")}
+            </h4>
             <div className="space-y-2">
               {Object.entries(dimensionScores).map(([k, v]) => {
                 const pct = Math.round(Number(v) * 100);
                 return (
                   <div key={k}>
                     <div className="flex justify-between text-xs mb-1">
-                      <span>{DIMENSION_LABELS_FR[k as DimensionKey]?.name ?? k}</span>
+                      <span>{dimensionAxisLabel(k, t)}</span>
                       <span className="font-mono">{pct}%</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
@@ -552,7 +610,7 @@ function AssessmentDetail({
           {/* All 12 archetype scores */}
           <div>
             <h4 className="text-xs uppercase text-muted-foreground mb-2">
-              Scores bruts (12 archétypes)
+              {t("admin.assessments.rawScores12")}
             </h4>
             <div className="space-y-1 text-xs">
               {ARCHETYPES.map((a) => {
@@ -567,11 +625,14 @@ function AssessmentDetail({
                         className="w-2 h-2 rounded-full"
                         style={{ background: a.color }}
                       />
-                      {a.name_fr}
+                      {archetypeName(a, locale)}
                     </span>
                     <span className="font-mono text-muted-foreground">
-                      #{s?.rank ?? "—"} · brut {s ? Number(s.raw_score).toFixed(1) : "—"} ·{" "}
-                      {s ? Math.round(Number(s.normalized_score) * 100) : "—"}%
+                      {t("admin.assessments.scoreLine", {
+                        rank: s?.rank ?? "—",
+                        raw: s ? Number(s.raw_score).toFixed(1) : "—",
+                        pct: s ? Math.round(Number(s.normalized_score) * 100) : "—",
+                      })}
                     </span>
                   </div>
                 );
@@ -583,13 +644,15 @@ function AssessmentDetail({
 
           {/* Shadow signals */}
           <div>
-            <h4 className="text-xs uppercase text-muted-foreground mb-2">Signaux d'ombre</h4>
+            <h4 className="text-xs uppercase text-muted-foreground mb-2">
+              {t("admin.assessments.shadowSignals")}
+            </h4>
             <div className="space-y-1 text-xs">
               {Object.entries(shadowSignals).map(([k, v]) => (
                 <div key={k} className="flex justify-between">
-                  <span>{SHADOW_LABELS_FR[k] ?? k}</span>
+                  <span>{shadowLabel(k, t)}</span>
                   <span className="font-mono text-muted-foreground">
-                    {Math.round(Number(v) * 100)}% · {intensityLabel(Number(v)).label}
+                    {Math.round(Number(v) * 100)}% · {intensityLabel(Number(v), t).label}
                   </span>
                 </div>
               ))}
@@ -602,23 +665,27 @@ function AssessmentDetail({
 
         {/* RIGHT — Interpretation */}
         <Card className="p-4 backdrop-blur-3xl bg-card/40 border-border/40 space-y-4">
-          <h3 className="font-serif text-base">Interprétation qualitative</h3>
+          <h3 className="font-serif text-base">{t("admin.assessments.qualitativeInterp")}</h3>
 
           {/* Top archetype paragraphs */}
           <div className="space-y-2">
-            <h4 className="text-xs uppercase text-muted-foreground">Archétypes dominants</h4>
+            <h4 className="text-xs uppercase text-muted-foreground">
+              {t("admin.assessments.dominantArchetypes")}
+            </h4>
             {top.map((key) => {
               const s = scores.find((x: any) => x.archetype_key === key);
               const a = archetypeMeta(key);
               if (!a) return null;
               return (
                 <div key={key} className="border-l-2 pl-3" style={{ borderColor: a.color }}>
-                  <div className="font-medium text-sm">{a.name_fr}</div>
+                  <div className="font-medium text-sm">{archetypeName(a, locale)}</div>
                   <p className="text-sm text-muted-foreground">
                     {buildArchetypeInterpretation(
                       key,
                       s?.normalized_score ?? 0,
-                      s?.rank ?? 0
+                      s?.rank ?? 0,
+                      t,
+                      locale
                     )}
                   </p>
                 </div>
@@ -630,10 +697,12 @@ function AssessmentDetail({
 
           {/* Dimensions reading */}
           <div className="space-y-1">
-            <h4 className="text-xs uppercase text-muted-foreground">Lecture des dimensions</h4>
+            <h4 className="text-xs uppercase text-muted-foreground">
+              {t("admin.assessments.dimensionReading")}
+            </h4>
             {Object.entries(dimensionScores).map(([k, v]) => (
               <p key={k} className="text-sm text-muted-foreground">
-                • {readDimension(k as DimensionKey, Number(v))}
+                • {readDimension(k, Number(v), t)}
               </p>
             ))}
           </div>
@@ -642,21 +711,29 @@ function AssessmentDetail({
 
           {/* Recommendations */}
           <div className="space-y-2">
-            <h4 className="text-xs uppercase text-muted-foreground">Outils recommandés</h4>
+            <h4 className="text-xs uppercase text-muted-foreground">
+              {t("admin.assessments.recommendedTools")}
+            </h4>
             {recommendations.map((r: any) => (
               <div key={r.id} className="border border-border/40 rounded p-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="text-xs">{r.tool_type}</Badge>
-                  <span className="font-medium text-sm">{r.title_fr}</span>
-                  {r.duration_fr && (
-                    <span className="text-xs text-muted-foreground">· {r.duration_fr}</span>
+                  <span className="font-medium text-sm">
+                    {locale === "fr" ? r.title_fr : r.title_en ?? r.title_fr}
+                  </span>
+                  {(locale === "fr" ? r.duration_fr : r.duration_en ?? r.duration_fr) && (
+                    <span className="text-xs text-muted-foreground">
+                      · {locale === "fr" ? r.duration_fr : r.duration_en ?? r.duration_fr}
+                    </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{r.rationale_fr}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {locale === "fr" ? r.rationale_fr : r.rationale_en ?? r.rationale_fr}
+                </p>
               </div>
             ))}
             {recommendations.length === 0 && (
-              <p className="text-xs text-muted-foreground">Aucune recommandation.</p>
+              <p className="text-xs text-muted-foreground">{t("admin.assessments.noRecommendations")}</p>
             )}
           </div>
 
@@ -665,13 +742,14 @@ function AssessmentDetail({
           {/* Admin note */}
           <div>
             <h4 className="text-xs uppercase text-muted-foreground mb-2">
-              Note admin {savingNote && <Loader2 className="inline w-3 h-3 animate-spin ml-1" />}
+              {t("admin.assessments.adminNote")}{" "}
+              {savingNote && <Loader2 className="inline w-3 h-3 animate-spin ml-1" />}
             </h4>
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               onBlur={handleNoteBlur}
-              placeholder="Observations, prochaines étapes, contexte coaching…"
+              placeholder={t("admin.assessments.coachNotesPlaceholder")}
               rows={5}
               className="text-sm"
             />

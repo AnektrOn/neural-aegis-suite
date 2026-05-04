@@ -5,6 +5,7 @@ import { Check, ArrowUpRight } from "lucide-react";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Habit {
   id: string;
@@ -17,6 +18,7 @@ interface HabitsMiniCardProps {
 
 export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const today = new Date().toISOString().split("T")[0];
@@ -41,7 +43,7 @@ export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
         setHabits(
           (assigned as any[]).map((a) => ({
             id: a.id,
-            name: tplMap.get(a.habit_template_id)?.name ?? "Habitude",
+            name: tplMap.get(a.habit_template_id)?.name ?? t("habits.mini.fallbackName"),
           }))
         );
 
@@ -56,7 +58,7 @@ export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
       }
     };
     load();
-  }, [userId]);
+  }, [userId, t]);
 
   const toggle = async (habitId: string) => {
     const wasDone = completedIds.has(habitId);
@@ -76,7 +78,7 @@ export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
         .eq("completed_date", today);
       if (error) {
         setCompletedIds((prev) => { const s = new Set(prev); s.add(habitId); return s; });
-        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+        toast({ title: t("habits.mini.errorTitle"), description: error.message, variant: "destructive" });
       }
     } else {
       const { error } = await supabase
@@ -84,7 +86,7 @@ export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
         .insert({ user_id: userId, assigned_habit_id: habitId, completed_date: today } as any);
       if (error) {
         setCompletedIds((prev) => { const s = new Set(prev); s.delete(habitId); return s; });
-        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+        toast({ title: t("habits.mini.errorTitle"), description: error.message, variant: "destructive" });
       }
     }
   };
@@ -100,11 +102,11 @@ export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-1 h-3 rounded-full bg-accent-primary shrink-0" />
-            <p className="font-display text-[10px] tracking-[0.15em] uppercase text-text-tertiary">Habitudes du jour</p>
+            <p className="font-display text-[10px] tracking-[0.15em] uppercase text-text-tertiary">{t("dashboard.mobileHabitsToday")}</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[9px] text-text-tertiary tabular-nums font-display">{doneCount}/{habits.length}</span>
-            <Link to="/habits" className="text-accent-primary/50 hover:text-accent-primary transition-colors" aria-label="Voir les habitudes">
+            <Link to="/habits" className="text-accent-primary/50 hover:text-accent-primary transition-colors" aria-label={t("nav.habits")}>
               <ArrowUpRight size={11} strokeWidth={1.5} />
             </Link>
           </div>

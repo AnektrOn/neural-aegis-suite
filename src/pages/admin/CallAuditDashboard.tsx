@@ -24,6 +24,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Profile {
   id: string;
@@ -44,6 +45,7 @@ interface AuditCall {
 }
 
 export default function CallAuditDashboard() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -405,13 +407,13 @@ export default function CallAuditDashboard() {
                           <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                           <Tooltip />
                           <Line type="monotone" dataKey="leadership" stroke="hsl(var(--primary))" strokeWidth={2} name="Leadership" />
-                          <Line type="monotone" dataKey="emotional" stroke="hsl(var(--neural-accent))" strokeWidth={2} name="Émotionnel" />
+                          <Line type="monotone" dataKey="emotional" stroke="hsl(var(--neural-accent))" strokeWidth={2} name={t("admin.callAudit.chartEmotional")} />
                           <Legend />
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (
                       <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                        Un seul appel enregistré — revenez après le prochain pour voir l&apos;évolution.
+                        {t("admin.callAudit.singleCallHint")}
                       </div>
                     )}
                   </div>
@@ -426,7 +428,7 @@ export default function CallAuditDashboard() {
                         <div className="bg-secondary/20 rounded-xl p-4 border border-border/20">
                           <p className="text-neural-label mb-2">Humeur post-call</p>
                           {moodDelta == null ? (
-                            <p className="text-sm text-muted-foreground">Données insuffisantes</p>
+                            <p className="text-sm text-muted-foreground">{t("admin.callAudit.insufficient")}</p>
                           ) : (
                             <div className={`flex items-center gap-2 text-lg font-cinzel ${moodDelta >= 0 ? "text-primary" : "text-destructive"}`}>
                               {moodDelta >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
@@ -437,7 +439,7 @@ export default function CallAuditDashboard() {
                         <div className="bg-secondary/20 rounded-xl p-4 border border-border/20">
                           <p className="text-neural-label mb-2">Habitudes post-call</p>
                           {habitDelta == null ? (
-                            <p className="text-sm text-muted-foreground">Données insuffisantes</p>
+                            <p className="text-sm text-muted-foreground">{t("admin.callAudit.insufficient")}</p>
                           ) : (
                             <div className={`flex items-center gap-2 text-lg font-cinzel ${habitDelta >= 0 ? "text-primary" : "text-destructive"}`}>
                               {habitDelta >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}

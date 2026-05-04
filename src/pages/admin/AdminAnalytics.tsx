@@ -10,6 +10,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, Legend, RadialBarChart, RadialBar,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const COLORS = [
   "hsl(180, 70%, 50%)", "hsl(270, 50%, 55%)", "hsl(35, 80%, 55%)",
@@ -42,6 +43,8 @@ type AnalyticsLocationState = { adminAnalyticsUserId?: string };
 
 export default function AdminAnalytics() {
   const location = useLocation();
+  const { t, locale } = useLanguage();
+  const dateLocale = locale === "fr" ? "fr-FR" : "en-US";
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -145,7 +148,7 @@ export default function AdminAnalytics() {
   const globalMoodTrend = useMemo(() => {
     const dayMap = new Map<string, { mood: number[]; sleep: number[]; stress: number[]; meals: number[] }>();
     fMood.forEach((e: any) => {
-      const day = new Date(e.logged_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+      const day = new Date(e.logged_at).toLocaleDateString(dateLocale, { day: "2-digit", month: "2-digit" });
       if (!dayMap.has(day)) dayMap.set(day, { mood: [], sleep: [], stress: [], meals: [] });
       const d = dayMap.get(day)!;
       d.mood.push(e.value);
@@ -155,9 +158,9 @@ export default function AdminAnalytics() {
     });
     return Array.from(dayMap.entries()).map(([day, v]) => {
       const avg = (arr: number[]) => arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : null;
-      return { day, humeur: avg(v.mood), sommeil: avg(v.sleep), stress: avg(v.stress), repas: avg(v.meals) };
+      return { day, mood: avg(v.mood), sleep: avg(v.sleep), stress: avg(v.stress), meals: avg(v.meals) };
     });
-  }, [fMood]);
+  }, [fMood, dateLocale]);
 
   const globalSessionHours = useMemo(() => {
     const hourCounts = Array(24).fill(0);
@@ -167,11 +170,11 @@ export default function AdminAnalytics() {
 
   const globalDecisionPie = useMemo(() => {
     return [
-      { name: "En attente", value: fDecisions.filter((d: any) => d.status === "pending").length },
-      { name: "Décidée", value: fDecisions.filter((d: any) => d.status === "decided").length },
-      { name: "Reportée", value: fDecisions.filter((d: any) => d.status === "deferred").length },
+      { name: t("admin.analytics.pending"), value: fDecisions.filter((d: any) => d.status === "pending").length },
+      { name: t("admin.analytics.decided"), value: fDecisions.filter((d: any) => d.status === "decided").length },
+      { name: t("admin.analytics.deferred"), value: fDecisions.filter((d: any) => d.status === "deferred").length },
     ].filter((d) => d.value > 0);
-  }, [fDecisions]);
+  }, [fDecisions, t]);
 
   const globalHabitChart = useMemo(() => {
     const last7 = new Map<string, number>();
@@ -181,10 +184,10 @@ export default function AdminAnalytics() {
     }
     fHabitComp.forEach((c: any) => { if (last7.has(c.completed_date)) last7.set(c.completed_date, (last7.get(c.completed_date) || 0) + 1); });
     return Array.from(last7.entries()).map(([date, count]) => ({
-      jour: new Date(date).toLocaleDateString("fr-FR", { weekday: "short" }),
-      complétées: count,
+      jour: new Date(date).toLocaleDateString(dateLocale, { weekday: "short" }),
+      completed: count,
     }));
-  }, [fHabitComp]);
+  }, [fHabitComp, dateLocale]);
 
   const globalAvgMood = useMemo(() => fMood.length ? +(fMood.reduce((s, m: any) => s + m.value, 0) / fMood.length).toFixed(1) : 0, [fMood]);
   const globalAvgSleep = useMemo(() => {
@@ -301,16 +304,16 @@ export default function AdminAnalytics() {
   return (
     <div className="space-y-8 max-w-7xl">
       <div>
-        <p className="text-neural-label mb-3 text-neural-accent/60">Administration</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Analytiques</h1>
+        <p className="text-neural-label mb-3 text-neural-accent/60">{t("admin.analytics.administration")}</p>
+        <h1 className="text-neural-title text-3xl text-foreground">{t("admin.analytics.title")}</h1>
       </div>
 
       {/* View mode tabs */}
       <div className="flex gap-2">
         {([
-          { mode: "global" as ViewMode, label: "Vue Globale" },
-          { mode: "entreprise" as ViewMode, label: "Par Entreprise" },
-          { mode: "utilisateur" as ViewMode, label: "Par Utilisateur" },
+          { mode: "global" as ViewMode, label: t("admin.analytics.viewGlobal") },
+          { mode: "entreprise" as ViewMode, label: t("admin.analytics.viewCompany") },
+          { mode: "utilisateur" as ViewMode, label: t("admin.analytics.viewUser") },
         ]).map(({ mode, label }) => (
           <button key={mode} onClick={() => setViewMode(mode)}
             className={`text-[9px] uppercase tracking-[0.3em] px-4 py-2 rounded-full border transition-all ${
@@ -326,18 +329,18 @@ export default function AdminAnalytics() {
         {viewMode === "utilisateur" && (
           <div className="relative flex-1 min-w-[200px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un utilisateur..."
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("admin.analytics.searchUserPlaceholder")}
               className="w-full bg-secondary/20 border border-border/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/30 transition-colors" />
           </div>
         )}
         <select value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}
           className="bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-neural-accent/30">
-          <option value="">Toutes les entreprises</option>
+          <option value="">{t("admin.analytics.allCompanies")}</option>
           {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <select value={filterCountry} onChange={(e) => setFilterCountry(e.target.value)}
           className="bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-neural-accent/30">
-          <option value="">Tous les pays</option>
+          <option value="">{t("admin.analytics.allCountries")}</option>
           {countries.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
@@ -348,14 +351,14 @@ export default function AdminAnalytics() {
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3">
             {[
-              { label: "Utilisateurs", value: filteredProfiles.length, icon: Users },
-              { label: "Entreprises", value: companies.length, icon: Building2 },
-              { label: "Humeur moy.", value: globalAvgMood, icon: Brain },
-              { label: "Sommeil moy.", value: `${globalAvgSleep}h`, icon: Moon },
-              { label: "Stress moy.", value: globalAvgStress, icon: Flame },
-              { label: "Sessions", value: fSessions.length, icon: Clock },
-              { label: "Temps total", value: formatDuration(totalSessionTime), icon: Clock },
-              { label: "Contacts", value: fContacts.length, icon: UserCheck },
+              { label: t("admin.analytics.kpiUsers"), value: filteredProfiles.length, icon: Users },
+              { label: t("admin.analytics.kpiCompanies"), value: companies.length, icon: Building2 },
+              { label: t("admin.analytics.kpiAvgMood"), value: globalAvgMood, icon: Brain },
+              { label: t("admin.analytics.kpiAvgSleep"), value: `${globalAvgSleep}h`, icon: Moon },
+              { label: t("admin.analytics.kpiAvgStress"), value: globalAvgStress, icon: Flame },
+              { label: t("admin.analytics.kpiSessions"), value: fSessions.length, icon: Clock },
+              { label: t("admin.analytics.kpiTotalTime"), value: formatDuration(totalSessionTime), icon: Clock },
+              { label: t("admin.analytics.kpiContacts"), value: fContacts.length, icon: UserCheck },
             ].map((s, i) => (
               <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="ethereal-glass p-4">
                 <s.icon size={14} strokeWidth={1.5} className="text-neural-accent mb-2" />
@@ -367,7 +370,7 @@ export default function AdminAnalytics() {
 
           {/* Mood + Sleep + Stress trend */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
-            <p className="text-neural-label mb-4">Tendance Humeur / Sommeil / Stress</p>
+            <p className="text-neural-label mb-4">{t("admin.analytics.trendMoodSleepStress")}</p>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={globalMoodTrend}>
@@ -375,9 +378,9 @@ export default function AdminAnalytics() {
                   <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                   <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="humeur" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 2 }} name="Humeur" />
-                  <Line type="monotone" dataKey="sommeil" stroke={COLORS[5]} strokeWidth={1.5} dot={{ r: 1 }} name="Sommeil" />
-                  <Line type="monotone" dataKey="stress" stroke={COLORS[4]} strokeWidth={1.5} dot={{ r: 1 }} name="Stress" />
+                  <Line type="monotone" dataKey="mood" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 2 }} name={t("admin.analytics.seriesMood")} />
+                  <Line type="monotone" dataKey="sleep" stroke={COLORS[5]} strokeWidth={1.5} dot={{ r: 1 }} name={t("admin.analytics.seriesSleep")} />
+                  <Line type="monotone" dataKey="stress" stroke={COLORS[4]} strokeWidth={1.5} dot={{ r: 1 }} name={t("admin.analytics.seriesStress")} />
                   <Legend />
                 </LineChart>
               </ResponsiveContainer>
@@ -387,7 +390,7 @@ export default function AdminAnalytics() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Sessions par heure */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
-              <p className="text-neural-label mb-4">Heures de connexion</p>
+              <p className="text-neural-label mb-4">{t("admin.analytics.loginHours")}</p>
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={globalSessionHours}>
@@ -395,7 +398,7 @@ export default function AdminAnalytics() {
                     <XAxis dataKey="heure" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="sessions" fill={COLORS[0]} radius={[4, 4, 0, 0]} name="Sessions" />
+                    <Bar dataKey="sessions" fill={COLORS[0]} radius={[4, 4, 0, 0]} name={t("admin.analytics.barSessions")} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -403,7 +406,7 @@ export default function AdminAnalytics() {
 
             {/* Decisions pie */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ethereal-glass p-6">
-              <p className="text-neural-label mb-4">Décisions ({fDecisions.length} total)</p>
+              <p className="text-neural-label mb-4">{t("admin.analytics.decisionsSection", { n: fDecisions.length })}</p>
               <div className="h-48">
                 {globalDecisionPie.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -415,14 +418,14 @@ export default function AdminAnalytics() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">{t("admin.analytics.noData")}</div>
                 )}
               </div>
             </motion.div>
 
             {/* Habits chart */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="ethereal-glass p-6">
-              <p className="text-neural-label mb-4">Complétion habitudes (7j)</p>
+              <p className="text-neural-label mb-4">{t("admin.analytics.habitCompletion7d")}</p>
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={globalHabitChart}>
@@ -430,7 +433,7 @@ export default function AdminAnalytics() {
                     <XAxis dataKey="jour" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="complétées" fill={COLORS[3]} radius={[4, 4, 0, 0]} name="Complétées" />
+                    <Bar dataKey="completed" fill={COLORS[3]} radius={[4, 4, 0, 0]} name={t("admin.analytics.completedSeries")} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -439,7 +442,7 @@ export default function AdminAnalytics() {
 
           {/* Repas par jour */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
-            <p className="text-neural-label mb-4">Repas par jour (moyenne)</p>
+            <p className="text-neural-label mb-4">{t("admin.analytics.mealsPerDay")}</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={globalMoodTrend}>
@@ -447,14 +450,14 @@ export default function AdminAnalytics() {
                   <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                   <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="repas" fill={COLORS[2]} radius={[4, 4, 0, 0]} name="Repas" />
+                  <Bar dataKey="meals" fill={COLORS[2]} radius={[4, 4, 0, 0]} name={t("admin.analytics.barMeals")} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
-            <p className="text-neural-label mb-4">Carte des hésitations par page</p>
+            <p className="text-neural-label mb-4">{t("admin.analytics.hesitationMap")}</p>
             <div className="h-64">
               {hesitationByPage.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -481,9 +484,12 @@ export default function AdminAnalytics() {
                         const p = entry?.payload;
                         const avg = `${(Number(v) / 1000).toFixed(1)}s`;
                         const max = `${(Number(p?.maxMs || 0) / 1000).toFixed(1)}s`;
-                        return [`Moyenne: ${avg} | Max: ${max} | ${p?.count || 0} fois`, "Hésitation"];
+                        return [
+                          t("admin.analytics.hesitationTooltip", { avg, max, count: p?.count || 0 }),
+                          t("admin.analytics.hesitationSeries"),
+                        ];
                       }}
-                      labelFormatter={(label: any) => `Page: ${label}`}
+                      labelFormatter={(label: any) => t("admin.analytics.pageTooltip", { label })}
                     />
                     <Bar dataKey="avgMs" radius={[0, 6, 6, 0]}>
                       {hesitationByPage.map((row) => (
@@ -496,7 +502,7 @@ export default function AdminAnalytics() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>
+                <div className="h-full flex items-center justify-center text-muted-foreground text-sm">{t("admin.analytics.noData")}</div>
               )}
             </div>
           </motion.div>
@@ -509,7 +515,7 @@ export default function AdminAnalytics() {
           {companyStats.length === 0 && (
             <div className="ethereal-glass p-12 text-center">
               <Building2 size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-              <p className="text-muted-foreground text-sm">Aucune entreprise.</p>
+              <p className="text-muted-foreground text-sm">{t("admin.analytics.noCompanies")}</p>
             </div>
           )}
           {companyStats.filter((c) => !filterCompany || c.id === filterCompany).map((company, i) => (
@@ -520,18 +526,20 @@ export default function AdminAnalytics() {
                 </div>
                 <div className="flex-1">
                   <p className="text-lg font-cinzel text-foreground">{company.name}</p>
-                  <p className="text-neural-label">{company.country || "—"} · {company.userCount} utilisateur{company.userCount > 1 ? "s" : ""}</p>
+                  <p className="text-neural-label">
+                    {company.country || "—"} · {t("admin.analytics.userCount", { n: company.userCount })}
+                  </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
-                  { label: "Utilisateurs", value: company.userCount },
-                  { label: "Humeur moy.", value: company.avgMood },
-                  { label: "Décisions", value: company.totalDecisions },
-                  { label: "Taux décision", value: `${company.decidedRate}%` },
-                  { label: "Habitudes complétées", value: company.totalHabitCompletions },
-                  { label: "Qualité relations", value: `${company.avgRelationQuality}/10` },
+                  { label: t("admin.analytics.kpiUsers"), value: company.userCount },
+                  { label: t("admin.analytics.kpiAvgMood"), value: company.avgMood },
+                  { label: t("admin.analytics.labelDecisions"), value: company.totalDecisions },
+                  { label: t("admin.analytics.labelDecisionRate"), value: `${company.decidedRate}%` },
+                  { label: t("admin.analytics.labelHabitsCompleted"), value: company.totalHabitCompletions },
+                  { label: t("admin.analytics.labelRelationQuality"), value: `${company.avgRelationQuality}/10` },
                 ].map((stat) => (
                   <div key={stat.label} className="bg-secondary/20 rounded-xl p-3">
                     <p className="text-lg font-cinzel text-foreground">{stat.value}</p>
@@ -550,7 +558,7 @@ export default function AdminAnalytics() {
           {filteredProfiles.length === 0 && (
             <div className="ethereal-glass p-12 text-center">
               <Users size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-              <p className="text-muted-foreground text-sm">Aucun utilisateur trouvé.</p>
+              <p className="text-muted-foreground text-sm">{t("admin.analytics.noUsers")}</p>
             </div>
           )}
 
@@ -578,54 +586,61 @@ export default function AdminAnalytics() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-foreground truncate">{profile.display_name || "Sans nom"}</p>
-                      {profile.is_disabled && <span className="text-[8px] uppercase tracking-[0.3em] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">Désactivé</span>}
+                      <p className="text-sm font-medium text-foreground truncate">{profile.display_name || t("admin.analytics.unnamed")}</p>
+                      {profile.is_disabled && <span className="text-[8px] uppercase tracking-[0.3em] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">{t("admin.analytics.disabled")}</span>}
                     </div>
-                    <p className="text-neural-label mt-0.5">{company ? company.name : "Aucune entreprise"} · {profile.country || "—"}</p>
+                    <p className="text-neural-label mt-0.5">{company ? company.name : t("admin.analytics.noCompany")} · {profile.country || "—"}</p>
                   </div>
                   <div className="hidden sm:flex gap-6 text-center">
-                    <div><p className="text-sm font-cinzel text-foreground">{avgMood}</p><p className="text-neural-label">Humeur</p></div>
-                    <div><p className="text-sm font-cinzel text-foreground">{stats.totalSessions}</p><p className="text-neural-label">Sessions</p></div>
-                    <div><p className="text-sm font-cinzel text-foreground">{formatDuration(stats.avgDuration)}</p><p className="text-neural-label">Durée moy.</p></div>
-                    <div><p className="text-sm font-cinzel text-foreground">{userDec.length}</p><p className="text-neural-label">Décisions</p></div>
-                    <div><p className="text-sm font-cinzel text-foreground">{userHab.length}</p><p className="text-neural-label">Habitudes</p></div>
-                    <div><p className="text-sm font-cinzel text-foreground">{userContacts.length}</p><p className="text-neural-label">Contacts</p></div>
+                    <div><p className="text-sm font-cinzel text-foreground">{avgMood}</p><p className="text-neural-label">{t("admin.analytics.moodShort")}</p></div>
+                    <div><p className="text-sm font-cinzel text-foreground">{stats.totalSessions}</p><p className="text-neural-label">{t("admin.analytics.kpiSessions")}</p></div>
+                    <div><p className="text-sm font-cinzel text-foreground">{formatDuration(stats.avgDuration)}</p><p className="text-neural-label">{t("admin.analytics.avgDurationShort")}</p></div>
+                    <div><p className="text-sm font-cinzel text-foreground">{userDec.length}</p><p className="text-neural-label">{t("admin.analytics.labelDecisions")}</p></div>
+                    <div><p className="text-sm font-cinzel text-foreground">{userHab.length}</p><p className="text-neural-label">{t("admin.analytics.habitsShort")}</p></div>
+                    <div><p className="text-sm font-cinzel text-foreground">{userContacts.length}</p><p className="text-neural-label">{t("admin.analytics.kpiContacts")}</p></div>
                   </div>
                   {isExpanded ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
                 </button>
 
                 {isExpanded && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="border-t border-border/10 p-6 space-y-6">
-                    <p className="text-neural-label">Dernière connexion : {stats.lastSeen ? new Date(stats.lastSeen).toLocaleString("fr-FR") : "Jamais"} · Heure de pointe : {stats.peakHour}</p>
+                    <p className="text-neural-label">
+                      {t("admin.analytics.lastConnection", {
+                        when: stats.lastSeen
+                          ? new Date(stats.lastSeen).toLocaleString(dateLocale)
+                          : t("admin.analytics.never"),
+                        peak: stats.peakHour,
+                      })}
+                    </p>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Mood + Sleep + Stress */}
                       <div className="ethereal-glass p-5">
-                        <p className="text-neural-label mb-3">Humeur / Sommeil / Stress</p>
+                        <p className="text-neural-label mb-3">{t("admin.analytics.moodSleepStressUser")}</p>
                         <div className="h-40">
                           {userMood.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                               <LineChart data={userMood.map((m: any) => ({
-                                day: new Date(m.logged_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }),
-                                humeur: m.value, sommeil: m.sleep ? Number(m.sleep) : null, stress: m.stress ? Number(m.stress) : null,
+                                day: new Date(m.logged_at).toLocaleDateString(dateLocale, { day: "2-digit", month: "2-digit" }),
+                                mood: m.value, sleep: m.sleep ? Number(m.sleep) : null, stress: m.stress ? Number(m.stress) : null,
                               }))}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                                 <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                                 <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                                 <Tooltip contentStyle={tooltipStyle} />
-                                <Line type="monotone" dataKey="humeur" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 2 }} name="Humeur" />
-                                <Line type="monotone" dataKey="sommeil" stroke={COLORS[5]} strokeWidth={1.5} dot={{ r: 1 }} name="Sommeil" />
-                                <Line type="monotone" dataKey="stress" stroke={COLORS[4]} strokeWidth={1.5} dot={{ r: 1 }} name="Stress" />
+                                <Line type="monotone" dataKey="mood" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 2 }} name={t("admin.analytics.seriesMood")} />
+                                <Line type="monotone" dataKey="sleep" stroke={COLORS[5]} strokeWidth={1.5} dot={{ r: 1 }} name={t("admin.analytics.seriesSleep")} />
+                                <Line type="monotone" dataKey="stress" stroke={COLORS[4]} strokeWidth={1.5} dot={{ r: 1 }} name={t("admin.analytics.seriesStress")} />
                                 <Legend />
                               </LineChart>
                             </ResponsiveContainer>
-                          ) : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>}
+                          ) : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">{t("admin.analytics.noData")}</div>}
                         </div>
                       </div>
 
                       {/* Hesitation */}
                       <div className="ethereal-glass p-5">
-                        <p className="text-neural-label mb-3">Temps d'hésitation</p>
+                        <p className="text-neural-label mb-3">{t("admin.analytics.hesitationTime")}</p>
                         <div className="space-y-4">
                           {userHes.length > 0 ? (() => {
                             const byInput = new Map<string, number[]>();
@@ -642,7 +657,7 @@ export default function AdminAnalytics() {
                               const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
                               const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
                               const key = `${date.getUTCFullYear()}-${String(weekNo).padStart(2, "0")}`;
-                              if (!weekMap.has(key)) weekMap.set(key, { label: `Semaine ${weekNo}`, vals: [], sortKey: key });
+                              if (!weekMap.has(key)) weekMap.set(key, { label: t("admin.analytics.weekLabel", { n: weekNo }), vals: [], sortKey: key });
                               weekMap.get(key)!.vals.push(h.hesitation_ms);
                             });
                             const weekData = Array.from(weekMap.values())
@@ -656,12 +671,12 @@ export default function AdminAnalytics() {
                                     <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 8 }} />
                                     <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                                     <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `${(v / 1000).toFixed(1)}s`} />
-                                    <Bar dataKey="moy" fill={COLORS[2]} radius={[4, 4, 0, 0]} name="Moy. ms" />
+                                    <Bar dataKey="moy" fill={COLORS[2]} radius={[4, 4, 0, 0]} name={t("admin.analytics.barAvgMs")} />
                                   </BarChart>
                                 </ResponsiveContainer>
                                 {weekData.length >= 2 && (
                                   <div>
-                                    <p className="text-neural-label mb-2">{`Évolution — "${topInputName}"`}</p>
+                                    <p className="text-neural-label mb-2">{t("admin.analytics.evolutionTitle", { name: topInputName ?? "" })}</p>
                                     <div className="h-32">
                                       <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={weekData}>
@@ -669,7 +684,7 @@ export default function AdminAnalytics() {
                                           <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                                           <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} tickFormatter={(v: any) => `${(Number(v) / 1000).toFixed(1)}s`} />
                                           <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `${(Number(v) / 1000).toFixed(1)}s`} />
-                                          <Line type="monotone" dataKey="avgMs" stroke={COLORS[4]} strokeWidth={2} dot={{ r: 2 }} name="Moyenne" />
+                                          <Line type="monotone" dataKey="avgMs" stroke={COLORS[4]} strokeWidth={2} dot={{ r: 2 }} name={t("admin.analytics.lineAverage")} />
                                         </LineChart>
                                       </ResponsiveContainer>
                                     </div>
@@ -677,19 +692,19 @@ export default function AdminAnalytics() {
                                 )}
                               </div>
                             );
-                          })() : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>}
+                          })() : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">{t("admin.analytics.noData")}</div>}
                         </div>
                       </div>
 
                       {/* Decisions pie */}
                       <div className="ethereal-glass p-5">
-                        <p className="text-neural-label mb-3">Décisions</p>
+                        <p className="text-neural-label mb-3">{t("admin.analytics.decisionsUser")}</p>
                         <div className="h-40">
                           {userDec.length > 0 ? (() => {
                             const pieData = [
-                              { name: "En attente", value: userDec.filter((d: any) => d.status === "pending").length },
-                              { name: "Décidée", value: userDec.filter((d: any) => d.status === "decided").length },
-                              { name: "Reportée", value: userDec.filter((d: any) => d.status === "deferred").length },
+                              { name: t("admin.analytics.pending"), value: userDec.filter((d: any) => d.status === "pending").length },
+                              { name: t("admin.analytics.decided"), value: userDec.filter((d: any) => d.status === "decided").length },
+                              { name: t("admin.analytics.deferred"), value: userDec.filter((d: any) => d.status === "deferred").length },
                             ].filter((d) => d.value > 0);
                             return (
                               <ResponsiveContainer width="100%" height="100%">
@@ -701,19 +716,19 @@ export default function AdminAnalytics() {
                                 </PieChart>
                               </ResponsiveContainer>
                             );
-                          })() : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>}
+                          })() : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">{t("admin.analytics.noData")}</div>}
                         </div>
                       </div>
 
                       {/* Habit completions */}
                       <div className="ethereal-glass p-5">
-                        <p className="text-neural-label mb-3">Complétion habitudes</p>
+                        <p className="text-neural-label mb-3">{t("admin.analytics.habitCompletionUser")}</p>
                         <div className="h-40">
                           {userHab.length > 0 ? (() => {
                             const dayMap = new Map<string, number>();
                             userHab.forEach((h: any) => { dayMap.set(h.completed_date, (dayMap.get(h.completed_date) || 0) + 1); });
                             const data = Array.from(dayMap.entries()).slice(-7).map(([d, c]) => ({
-                              jour: new Date(d).toLocaleDateString("fr-FR", { weekday: "short" }), count: c,
+                              jour: new Date(d).toLocaleDateString(dateLocale, { weekday: "short" }), count: c,
                             }));
                             return (
                               <ResponsiveContainer width="100%" height="100%">
@@ -722,34 +737,34 @@ export default function AdminAnalytics() {
                                   <XAxis dataKey="jour" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                                   <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                                   <Tooltip contentStyle={tooltipStyle} />
-                                  <Bar dataKey="count" fill={COLORS[3]} radius={[4, 4, 0, 0]} name="Complétées" />
+                                  <Bar dataKey="count" fill={COLORS[3]} radius={[4, 4, 0, 0]} name={t("admin.analytics.completedSeries")} />
                                 </BarChart>
                               </ResponsiveContainer>
                             );
-                          })() : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Aucune donnée</div>}
+                          })() : <div className="h-full flex items-center justify-center text-muted-foreground text-sm">{t("admin.analytics.noData")}</div>}
                         </div>
                       </div>
 
                       {/* Toolbox stats */}
                       <div className="ethereal-glass p-5 lg:col-span-2">
-                        <p className="text-neural-label mb-3">Journal (méta-données uniquement)</p>
+                        <p className="text-neural-label mb-3">{t("admin.analytics.journalMeta")}</p>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                           <div className="bg-secondary/20 rounded-xl p-3">
                             <p className="text-lg font-cinzel text-foreground">{userJournal.length}</p>
-                            <p className="text-neural-label text-[10px] mt-1">Entrées totales</p>
+                            <p className="text-neural-label text-[10px] mt-1">{t("admin.analytics.totalEntries")}</p>
                           </div>
                           <div className="bg-secondary/20 rounded-xl p-3">
                             <p className="text-sm font-cinzel text-foreground">
                               {userJournal[0]?.created_at
                                 ? (() => {
                                     const days = Math.floor((Date.now() - new Date(userJournal[0].created_at).getTime()) / 86400000);
-                                    if (days <= 0) return "Aujourd'hui";
-                                    if (days === 1) return "Hier";
-                                    return `Il y a ${days}j`;
+                                    if (days <= 0) return t("admin.analytics.relativeToday");
+                                    if (days === 1) return t("admin.analytics.relativeYesterday");
+                                    return t("admin.analytics.relativeDaysAgo", { n: days });
                                   })()
                                 : "—"}
                             </p>
-                            <p className="text-neural-label text-[10px] mt-1">Dernière entrée</p>
+                            <p className="text-neural-label text-[10px] mt-1">{t("admin.analytics.lastEntry")}</p>
                           </div>
                           <div className="bg-secondary/20 rounded-xl p-3">
                             {(() => {
@@ -760,7 +775,7 @@ export default function AdminAnalytics() {
                                   <p className={`text-lg font-cinzel ${avg == null ? "text-muted-foreground" : avg < 2.5 ? "text-destructive" : avg > 3.5 ? "text-primary" : "text-foreground"}`}>
                                     {avg == null ? "—" : `${avg}/5`}
                                   </p>
-                                  <p className="text-neural-label text-[10px] mt-1">Humeur moy. journal</p>
+                                  <p className="text-neural-label text-[10px] mt-1">{t("admin.analytics.journalAvgMoodShort")}</p>
                                 </>
                               );
                             })()}
@@ -768,19 +783,19 @@ export default function AdminAnalytics() {
                         </div>
 
                         <div className="mb-4">
-                          <p className="text-neural-label mb-2">Tags fréquents</p>
+                          <p className="text-neural-label mb-2">{t("admin.analytics.frequentTags")}</p>
                           {(() => {
                             const tagMap = new Map<string, number>();
                             userJournal.forEach((j: any) => {
-                              (j.tags || []).forEach((t: string) => {
-                                const key = String(t || "").trim();
+                              (j.tags || []).forEach((tagStr: string) => {
+                                const key = String(tagStr || "").trim();
                                 if (!key) return;
                                 tagMap.set(key, (tagMap.get(key) || 0) + 1);
                               });
                             });
                             const topTags = Array.from(tagMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
                             if (topTags.length === 0) {
-                              return <p className="text-xs text-muted-foreground">Aucun tag</p>;
+                              return <p className="text-xs text-muted-foreground">{t("admin.analytics.noTags")}</p>;
                             }
                             return (
                               <div className="flex flex-wrap gap-2">
@@ -796,7 +811,7 @@ export default function AdminAnalytics() {
                         </div>
 
                         <div>
-                          <p className="text-neural-label mb-2">Humeur journal vs déclarée (30 jours)</p>
+                          <p className="text-neural-label mb-2">{t("admin.analytics.journalVsDeclared")}</p>
                           {(() => {
                             const now = new Date();
                             const threshold = new Date();
@@ -820,14 +835,14 @@ export default function AdminAnalytics() {
                             const data = Array.from(dayMap.entries())
                               .sort((a, b) => a[0].localeCompare(b[0]))
                               .map(([day, vals]) => ({
-                                day: new Date(day).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }),
+                                day: new Date(day).toLocaleDateString(dateLocale, { day: "2-digit", month: "2-digit" }),
                                 declared: vals.moodVals.length ? +(vals.moodVals.reduce((a, b) => a + b, 0) / vals.moodVals.length).toFixed(1) : null,
                                 journal: vals.journalVals.length ? +(vals.journalVals.reduce((a, b) => a + b, 0) / vals.journalVals.length).toFixed(1) : null,
                               }));
                             const declaredPoints = data.filter((d) => d.declared != null).length;
                             const journalPoints = data.filter((d) => d.journal != null).length;
                             if (declaredPoints < 2 || journalPoints < 2) {
-                              return <p className="text-xs text-muted-foreground">Données insuffisantes pour comparer</p>;
+                              return <p className="text-xs text-muted-foreground">{t("admin.analytics.insufficientCompare")}</p>;
                             }
                             return (
                               <div className="h-32">
@@ -837,8 +852,8 @@ export default function AdminAnalytics() {
                                     <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                                     <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
                                     <Tooltip contentStyle={tooltipStyle} />
-                                    <Line type="monotone" dataKey="declared" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 2 }} name="Humeur déclarée" />
-                                    <Line type="monotone" dataKey="journal" stroke={COLORS[5]} strokeWidth={2} dot={{ r: 2 }} name="Humeur journal" />
+                                    <Line type="monotone" dataKey="declared" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 2 }} name={t("admin.analytics.moodDeclared")} />
+                                    <Line type="monotone" dataKey="journal" stroke={COLORS[5]} strokeWidth={2} dot={{ r: 2 }} name={t("admin.analytics.moodJournal")} />
                                     <Legend />
                                   </LineChart>
                                 </ResponsiveContainer>
@@ -849,13 +864,13 @@ export default function AdminAnalytics() {
                       </div>
 
                       <div className="ethereal-glass p-5 lg:col-span-2">
-                        <p className="text-neural-label mb-3">Boîte à outils</p>
+                        <p className="text-neural-label mb-3">{t("admin.analytics.toolboxSection")}</p>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                           {[
-                            { label: "Assignés", value: userTbStats.total, color: "text-foreground" },
-                            { label: "Complétés", value: userTbStats.completed, color: "text-primary" },
-                            { label: "Abandonnés", value: userTbStats.abandoned, color: "text-destructive" },
-                            { label: "Ignorés", value: userTbStats.ignored, color: "text-muted-foreground" },
+                            { label: t("admin.analytics.tbAssigned"), value: userTbStats.total, color: "text-foreground" },
+                            { label: t("admin.analytics.tbCompleted"), value: userTbStats.completed, color: "text-primary" },
+                            { label: t("admin.analytics.tbAbandoned"), value: userTbStats.abandoned, color: "text-destructive" },
+                            { label: t("admin.analytics.tbIgnored"), value: userTbStats.ignored, color: "text-muted-foreground" },
                           ].map(s => (
                             <div key={s.label} className="bg-secondary/20 rounded-xl p-3 text-center">
                               <p className={`text-lg font-cinzel ${s.color}`}>{s.value}</p>
@@ -865,12 +880,12 @@ export default function AdminAnalytics() {
                         </div>
                         {userTbStats.abandonDetails.length > 0 && (
                           <div className="space-y-1.5">
-                            <p className="text-[10px] uppercase tracking-[0.3em] text-destructive/60 mb-2">Outils abandonnés</p>
+                            <p className="text-[10px] uppercase tracking-[0.3em] text-destructive/60 mb-2">{t("admin.analytics.toolsAbandoned")}</p>
                             {userTbStats.abandonDetails.map(([title, count]) => (
                               <div key={title} className="flex items-center gap-2 text-xs">
                                 <span className="w-5 h-5 rounded-md bg-destructive/10 text-destructive flex items-center justify-center text-[10px] font-bold">{count}</span>
                                 <span className="text-foreground">{title}</span>
-                                {count > 1 && <span className="text-[9px] text-destructive/60">({count}x abandonné)</span>}
+                                {count > 1 && <span className="text-[9px] text-destructive/60">{t("admin.analytics.abandonedTimes", { n: count })}</span>}
                               </div>
                             ))}
                           </div>

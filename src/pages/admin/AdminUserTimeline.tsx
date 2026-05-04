@@ -28,6 +28,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { AdminProfile } from "@/lib/admin-types";
 import { avgOrNull, formatDurationSec, getDayKey } from "@/lib/admin-helpers";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
+
+type TFn = (key: TranslationKey, params?: Record<string, string | number>) => string;
 
 interface TimelineEvent {
   id: string;
@@ -95,32 +99,34 @@ function subtractDays(base: Date, days: number): Date {
   return d;
 }
 
-function formatRelativeTime(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "—";
-  const delta = Date.now() - t;
+function formatRelativeTime(iso: string, t: TFn): string {
+  const ts = new Date(iso).getTime();
+  if (Number.isNaN(ts)) return "—";
+  const delta = Date.now() - ts;
   const mins = Math.floor(delta / 60000);
-  if (mins < 1) return "à l'instant";
-  if (mins < 60) return `il y a ${mins} min`;
+  if (mins < 1) return t("admin.timeline.relativeNow");
+  if (mins < 60) return t("admin.timeline.relativeMinutes", { n: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `il y a ${hours} h`;
+  if (hours < 24) return t("admin.timeline.relativeHours", { n: hours });
   const days = Math.floor(hours / 24);
-  if (days === 1) return "hier";
-  return `il y a ${days} jours`;
+  if (days === 1) return t("admin.timeline.relativeYesterday");
+  return t("admin.timeline.relativeDays", { n: days });
 }
 
-function formatDayHeading(dayKey: string, count: number): string {
+function formatDayHeading(dayKey: string, count: number, dateLocale: string, t: TFn): string {
   const date = new Date(`${dayKey}T12:00:00`);
-  const day = date.toLocaleDateString("fr-FR", {
+  const day = date.toLocaleDateString(dateLocale, {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
   const clean = day.charAt(0).toUpperCase() + day.slice(1);
-  return `${clean} · ${count} activité${count > 1 ? "s" : ""}`;
+  const act =
+    count === 1 ? t("admin.timeline.activitiesOne", { n: count }) : t("admin.timeline.activitiesMany", { n: count });
+  return `${clean} · ${act}`;
 }
 
-function buildDisplayItems(events: TimelineEvent[]): DisplayTimelineItem[] {
+function buildDisplayItems(events: TimelineEvent[], t: TFn): DisplayTimelineItem[] {
   const items: DisplayTimelineItem[] = [];
   for (let i = 0; i < events.length; i++) {
     const event = events[i]!;
@@ -128,13 +134,13 @@ function buildDisplayItems(events: TimelineEvent[]): DisplayTimelineItem[] {
       items.push({ kind: "event", event });
       continue;
     }
-    const page = String(event.metadata?.page || "Page inconnue");
+    const page = String(event.metadata?.page || t("admin.timeline.unknownPage"));
     const group = [event];
     let j = i + 1;
     while (j < events.length) {
       const next = events[j]!;
       if (next.type !== "session_start") break;
-      const nextPage = String(next.metadata?.page || "Page inconnue");
+      const nextPage = String(next.metadata?.page || t("admin.timeline.unknownPage"));
       if (nextPage !== page) break;
       group.push(next);
       j++;
@@ -150,6 +156,8 @@ function buildDisplayItems(events: TimelineEvent[]): DisplayTimelineItem[] {
 }
 
 export default function AdminUserTimeline({ userId }: { userId?: string }) {
+  const { t, locale } = useLanguage();
+  const dateLocaleTag = locale === "fr" ? "fr-FR" : "en-US";
   const location = useLocation();
   const [profiles, setProfiles] = useState<AdminProfile[]>([]);
   const [companyNameById, setCompanyNameById] = useState<Map<string, string>>(
@@ -317,7 +325,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
 
       const habitTemplateNameById = new Map<string, string>();
       ((habitTemplatesRes.data || []) as { id: string; title?: string; name?: string }[]).forEach((row) => {
-        habitTemplateNameById.set(row.id, row.title || row.name || "Habitude");
+        habitTemplateNameById.set(row.id, row.title || row.name || t("admin.timeline.habitFallback"));
       });
 
       const habitNameByAssignedId = new Map<string, string>();
@@ -331,7 +339,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
         const fromTemplate = row.template_id
           ? habitTemplateNameById.get(row.template_id)
           : null;
-        habitNameByAssignedId.set(row.id, row.title || fromTemplate || "Habitude");
+        habitNameByAssignedId.set(row.id, row.title || fromTemplate || t("admin.timeline.habitFallback"));
       });
 
       const built: TimelineEvent[] = [];
@@ -346,8 +354,12 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           id: `mood-${idx}-${row.logged_at}`,
           timestamp: row.logged_at,
           type: "mood",
-          title: "Humeur enregistrée",
-          subtitle: `${row.value}/10 · Sommeil: ${row.sleep ?? "—"}h · Stress: ${row.stress ?? "—"}/10`,
+          title: t("admin.timeline.moodTitle"),
+          subtitle: t("admin.timeline.moodSubtitle", {
+            value: row.value,
+            sleep: row.sleep ?? "—",
+            stress: row.stress ?? "—",
+          }),
           value: row.value,
         });
       });
@@ -366,8 +378,8 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
             id: `decision-created-${idx}-${row.created_at}`,
             timestamp: row.created_at,
             type: "decision_created",
-            title: `Décision créée: "${row.name}"`,
-            subtitle: `Priorité ${row.priority} · Poids ${row.responsibility}/10`,
+            title: t("admin.timeline.decisionCreated", { name: row.name }),
+            subtitle: t("admin.timeline.decisionPriority", { p: row.priority, w: row.responsibility }),
           });
         }
         if (row.decided_at && new Date(row.decided_at) >= since) {
@@ -375,8 +387,8 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
             id: `decision-resolved-${idx}-${row.decided_at}`,
             timestamp: row.decided_at,
             type: "decision_resolved",
-            title: `Décision résolue: "${row.name}"`,
-            subtitle: row.time_to_decide ? `En ${row.time_to_decide}` : undefined,
+            title: t("admin.timeline.decisionResolved", { name: row.name }),
+            subtitle: row.time_to_decide ? t("admin.timeline.decisionIn", { duration: row.time_to_decide }) : undefined,
           });
         }
       });
@@ -385,7 +397,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
         completed_date: string;
         assigned_habit_id: string;
       }[]).forEach((row, idx) => {
-        const habitName = habitNameByAssignedId.get(row.assigned_habit_id) || "Habitude";
+        const habitName = habitNameByAssignedId.get(row.assigned_habit_id) || t("admin.timeline.habitFallback");
         const ts = row.completed_date.includes("T")
           ? row.completed_date
           : `${row.completed_date}T12:00:00.000Z`;
@@ -393,7 +405,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           id: `habit-${idx}-${row.completed_date}`,
           timestamp: ts,
           type: "habit",
-          title: "Habitude complétée",
+          title: t("admin.timeline.habitCompleted"),
           subtitle: habitName,
           metadata: { assigned_habit_id: row.assigned_habit_id },
         });
@@ -405,14 +417,14 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
         mood_score: number | null;
         created_at: string;
       }[]).forEach((row, idx) => {
-        const tags = row.tags?.length ? row.tags.join(", ") : "Sans tags";
+        const tags = row.tags?.length ? row.tags.join(", ") : t("admin.timeline.noTags");
         const mood =
-          row.mood_score != null ? ` · Humeur ${row.mood_score}/5` : "";
+          row.mood_score != null ? t("admin.timeline.journalMoodFragment", { n: row.mood_score }) : "";
         built.push({
           id: `journal-${idx}-${row.created_at}`,
           timestamp: row.created_at,
           type: "journal",
-          title: row.title || "Entrée journal",
+          title: row.title || t("admin.timeline.journalEntry"),
           subtitle: `${tags}${mood}`,
         });
       });
@@ -425,8 +437,8 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           id: `session-${idx}-${row.started_at}`,
           timestamp: row.started_at,
           type: "session_start",
-          title: `Session — ${row.page}`,
-          subtitle: `Durée ${formatDurationSec(durationSec)}`,
+          title: t("admin.timeline.sessionTitle", { page: row.page }),
+          subtitle: t("admin.timeline.sessionDuration", { duration: formatDurationSec(durationSec) }),
           metadata: { page: row.page, duration_sec: durationSec },
         });
       });
@@ -442,8 +454,8 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           id: `tool-${idx}-${row.completed_at}`,
           timestamp: row.completed_at,
           type: isCompleted ? "tool_completed" : "tool_abandoned",
-          title: assignmentTitleById.get(row.assignment_id) || "Outil",
-          subtitle: isCompleted ? "Complété" : "Abandonné",
+          title: assignmentTitleById.get(row.assignment_id) || t("admin.timeline.toolDefault"),
+          subtitle: isCompleted ? t("admin.timeline.toolCompleted") : t("admin.timeline.toolAbandoned"),
         });
       });
 
@@ -459,8 +471,11 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           id: `audit-${idx}-${row.call_date}`,
           timestamp: ts,
           type: "audit_call",
-          title: "Appel d'audit",
-          subtitle: `Leadership: ${row.leadership_score ?? "—"}/10 · Émotionnel: ${row.emotional_baseline ?? "—"}/10`,
+          title: t("admin.timeline.auditCall"),
+          subtitle: t("admin.timeline.auditSubtitle", {
+            l: row.leadership_score ?? "—",
+            e: row.emotional_baseline ?? "—",
+          }),
         });
       });
 
@@ -472,7 +487,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           id: `badge-${idx}-${row.earned_at}`,
           timestamp: row.earned_at,
           type: "badge",
-          title: `Badge débloqué: ${row.badge_name}`,
+          title: t("admin.timeline.badgeUnlocked", { name: row.badge_name }),
         });
       });
 
@@ -486,16 +501,16 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
     };
 
     loadUserTimeline();
-  }, [selectedUserId, rangeDays]);
+  }, [selectedUserId, rangeDays, t, locale]);
 
   const selectedProfile = useMemo(() => {
     return profiles.find((p) => p.id === selectedUserId) || null;
   }, [profiles, selectedUserId]);
 
   const selectedCompanyName = useMemo(() => {
-    if (!selectedProfile?.company_id) return "Aucune entreprise";
-    return companyNameById.get(selectedProfile.company_id) || "Aucune entreprise";
-  }, [selectedProfile, companyNameById]);
+    if (!selectedProfile?.company_id) return t("common.noCompany");
+    return companyNameById.get(selectedProfile.company_id) || t("common.noCompany");
+  }, [selectedProfile, companyNameById, t]);
 
   const kpis = useMemo(() => {
     const sessions = events.filter((e) => e.type === "session_start").length;
@@ -521,13 +536,13 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
     return Array.from(dayMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([day, count]) => ({
-        day: new Date(`${day}T12:00:00`).toLocaleDateString("fr-FR", {
+        day: new Date(`${day}T12:00:00`).toLocaleDateString(dateLocaleTag, {
           day: "2-digit",
           month: "2-digit",
         }),
         count,
       }));
-  }, [events]);
+  }, [events, dateLocaleTag]);
 
   const groupedByDay = useMemo(() => {
     const map = new Map<string, TimelineEvent[]>();
@@ -542,9 +557,9 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
       .map(([day, dayEvents]) => ({
         day,
         events: dayEvents,
-        displayItems: buildDisplayItems(dayEvents),
+        displayItems: buildDisplayItems(dayEvents, t),
       }));
-  }, [events]);
+  }, [events, t]);
 
   const toggleSessionGroup = (key: string) => {
     setExpandedSessionGroups((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -561,12 +576,12 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
   return (
     <div className="space-y-8 max-w-6xl">
       <div>
-        <p className="text-neural-label mb-3 text-neural-accent/60">Administration</p>
+        <p className="text-neural-label mb-3 text-neural-accent/60">{t("users.administration")}</p>
         <h1 className="text-neural-title text-3xl text-foreground">
-          Timeline utilisateur
+          {t("admin.timeline.pageTitle")}
         </h1>
         <p className="text-sm text-muted-foreground mt-2">
-          Vue chronologique unifiée de l&apos;activité utilisateur
+          {t("admin.timeline.pageSubtitle")}
         </p>
       </div>
 
@@ -577,10 +592,10 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
             onChange={(e) => setSelectedUserId(e.target.value)}
             className="w-full lg:max-w-sm bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary/30"
           >
-            <option value="">Sélectionner un utilisateur...</option>
+            <option value="">{t("admin.timeline.selectUser")}</option>
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
-                {profile.display_name || "Sans nom"}
+                {profile.display_name || t("users.noName")}
               </option>
             ))}
           </select>
@@ -588,12 +603,12 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           {selectedProfile && (
             <div className="text-xs text-muted-foreground">
               <span className="text-foreground font-medium">
-                {selectedProfile.display_name || "Sans nom"}
+                {selectedProfile.display_name || t("users.noName")}
               </span>
               <span> · {selectedCompanyName}</span>
               <span>
                 {" "}
-                · Dernière activité: {lastSeen ? formatRelativeTime(lastSeen) : "—"}
+                · {t("admin.timeline.lastActivity")} {lastSeen ? formatRelativeTime(lastSeen, t) : "—"}
               </span>
             </div>
           )}
@@ -611,7 +626,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
                   : "text-muted-foreground border-border hover:border-muted-foreground/30"
               }`}
             >
-              {days} jours
+              {t("admin.timeline.days", { n: days })}
             </button>
           ))}
         </div>
@@ -621,7 +636,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
         <div className="ethereal-glass p-16 text-center">
           <User size={38} strokeWidth={1.25} className="mx-auto mb-4 text-muted-foreground/35" />
           <p className="text-neural-title text-lg text-foreground">
-            Sélectionnez un utilisateur
+            {t("admin.timeline.pickUser")}
           </p>
         </div>
       ) : (
@@ -629,11 +644,11 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
             <div className="ethereal-glass p-4">
               <p className="text-xl font-cinzel text-foreground">{kpis.sessions}</p>
-              <p className="text-neural-label mt-1 text-[10px]">Sessions</p>
+              <p className="text-neural-label mt-1 text-[10px]">{t("admin.timeline.kpiSessions")}</p>
             </div>
             <div className="ethereal-glass p-4">
               <p className="text-xl font-cinzel text-foreground">{kpis.moods}</p>
-              <p className="text-neural-label mt-1 text-[10px]">Humeurs</p>
+              <p className="text-neural-label mt-1 text-[10px]">{t("admin.timeline.kpiMoods")}</p>
             </div>
             <div className="ethereal-glass p-4">
               <p
@@ -647,28 +662,28 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
               >
                 {kpis.avgMood ?? "—"}
               </p>
-              <p className="text-neural-label mt-1 text-[10px]">Humeur moyenne</p>
+              <p className="text-neural-label mt-1 text-[10px]">{t("admin.timeline.kpiAvgMood")}</p>
             </div>
             <div className="ethereal-glass p-4">
               <p className="text-xl font-cinzel text-foreground">{kpis.habits}</p>
-              <p className="text-neural-label mt-1 text-[10px]">Habitudes</p>
+              <p className="text-neural-label mt-1 text-[10px]">{t("admin.timeline.kpiHabits")}</p>
             </div>
             <div className="ethereal-glass p-4">
               <p className="text-xl font-cinzel text-foreground">{kpis.decisions}</p>
-              <p className="text-neural-label mt-1 text-[10px]">Décisions créées</p>
+              <p className="text-neural-label mt-1 text-[10px]">{t("admin.timeline.kpiDecisionsCreated")}</p>
             </div>
             <div className="ethereal-glass p-4">
               <p className="text-xl font-cinzel text-foreground">{kpis.journals}</p>
-              <p className="text-neural-label mt-1 text-[10px]">Journaux</p>
+              <p className="text-neural-label mt-1 text-[10px]">{t("admin.timeline.kpiJournals")}</p>
             </div>
           </div>
 
           <div className="ethereal-glass p-5">
-            <p className="text-neural-label mb-3">Résumé de la période</p>
+            <p className="text-neural-label mb-3">{t("admin.timeline.periodSummary")}</p>
             <div className="h-36">
               {activityTrend.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                  Aucune donnée
+                  {t("admin.timeline.noDataChart")}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -689,7 +704,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
                       stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       dot={{ r: 2 }}
-                      name="Activités"
+                      name={t("admin.timeline.chartSeries")}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -698,15 +713,15 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           </div>
 
           <div className="ethereal-glass p-4">
-            <p className="text-neural-label mb-4">Timeline</p>
+            <p className="text-neural-label mb-4">{t("admin.timeline.sectionTimeline")}</p>
             {timelineLoading ? (
               <div className="flex items-center justify-center py-20 text-muted-foreground">
                 <Loader2 size={18} className="animate-spin mr-2" />
-                Chargement de la timeline...
+                {t("admin.timeline.loading")}
               </div>
             ) : groupedByDay.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground">
-                Aucune activité sur cette période
+                {t("admin.timeline.emptyPeriod")}
               </div>
             ) : (
               <div className="space-y-8 max-h-[70vh] overflow-auto pr-1">
@@ -714,7 +729,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
                   <div key={group.day} className="space-y-3">
                     <div className="sticky top-0 z-10 py-2 bg-background/80 backdrop-blur-sm">
                       <p className="text-neural-label text-xs uppercase tracking-[0.18em]">
-                        {formatDayHeading(group.day, group.events.length)}
+                        {formatDayHeading(group.day, group.events.length, dateLocaleTag, t)}
                       </p>
                     </div>
 
@@ -750,10 +765,10 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm text-foreground">
-                                    Session — {item.page}
+                                    {t("admin.timeline.sessionTitle", { page: item.page })}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {item.events.length} visites sur cette page
+                                    {t("admin.timeline.sessionGroupVisits", { n: item.events.length })}
                                   </p>
                                 </div>
                                 {expanded ? (
@@ -768,7 +783,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
                                   {item.events.map((e) => (
                                     <div key={e.id} className="text-xs text-muted-foreground">
                                       <span className="text-foreground">
-                                        {new Date(e.timestamp).toLocaleTimeString("fr-FR", {
+                                        {new Date(e.timestamp).toLocaleTimeString(dateLocaleTag, {
                                           hour: "2-digit",
                                           minute: "2-digit",
                                         })}
@@ -819,7 +834,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
                               )}
                             </div>
                             <span className="text-[11px] text-muted-foreground shrink-0">
-                              {formatRelativeTime(event.timestamp)}
+                              {formatRelativeTime(event.timestamp, t)}
                             </span>
                           </motion.div>
                         );

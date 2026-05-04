@@ -14,17 +14,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 
-const CRITERIA_TYPES = [
-  { value: "mood_above", label: "Humeur ≥ seuil", labelEn: "Mood ≥ threshold" },
-  { value: "habits_completed", label: "Habitudes complétées ≥", labelEn: "Habits completed ≥" },
-  { value: "journal_written", label: "Journal écrit", labelEn: "Journal written" },
-  { value: "sleep_above", label: "Sommeil ≥ heures", labelEn: "Sleep ≥ hours" },
-  { value: "stress_below", label: "Stress ≤ seuil", labelEn: "Stress ≤ threshold" },
-  { value: "decision_made", label: "Décision prise", labelEn: "Decision made" },
-  { value: "toolbox_completed", label: "Outil terminé", labelEn: "Tool completed" },
-  { value: "relation_updated", label: "Relation mise à jour", labelEn: "Relation updated" },
-];
+const CRITERIA_TYPE_VALUES = [
+  "mood_above",
+  "habits_completed",
+  "journal_written",
+  "sleep_above",
+  "stress_below",
+  "decision_made",
+  "toolbox_completed",
+  "relation_updated",
+] as const;
+
+const CRITERIA_TYPE_LABEL_KEY: Record<(typeof CRITERIA_TYPE_VALUES)[number], TranslationKey> = {
+  mood_above: "admin.scoreboard.criteria.mood_above",
+  habits_completed: "admin.scoreboard.criteria.habits_completed",
+  journal_written: "admin.scoreboard.criteria.journal_written",
+  sleep_above: "admin.scoreboard.criteria.sleep_above",
+  stress_below: "admin.scoreboard.criteria.stress_below",
+  decision_made: "admin.scoreboard.criteria.decision_made",
+  toolbox_completed: "admin.scoreboard.criteria.toolbox_completed",
+  relation_updated: "admin.scoreboard.criteria.relation_updated",
+};
 
 interface Criteria {
   id?: string;
@@ -50,7 +62,8 @@ export default function ScoreboardConfig() {
     "hsl(220, 70%, 60%)",
   ];
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const dateLocaleTag = locale === "fr" ? "fr-FR" : "en-US";
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [criteria, setCriteria] = useState<Criteria[]>([]);
@@ -103,7 +116,7 @@ export default function ScoreboardConfig() {
   const addCriteria = () => {
     setCriteria(prev => [...prev, {
       criteria_type: "mood_above",
-      criteria_label: "Humeur ≥ 7",
+      criteria_label: t("admin.scoreboard.defaultNewLabel"),
       target_value: 7,
       points: 2,
       is_active: true,
@@ -170,7 +183,10 @@ export default function ScoreboardConfig() {
     }
     removedIds.current = [];
 
-    toast({ title: "Scoreboard sauvegardé", description: `${criteria.length} critères configurés pour cet utilisateur.` });
+    toast({
+      title: t("admin.scoreboard.saveToastTitle"),
+      description: t("admin.scoreboard.saveToastDesc", { n: criteria.length }),
+    });
     setSaving(false);
     loadCriteria(selectedUser);
   };
@@ -184,19 +200,19 @@ export default function ScoreboardConfig() {
   return (
     <div className="space-y-8 max-w-5xl">
       <div>
-        <p className="text-neural-label mb-3 text-neural-accent/60">Administration</p>
+        <p className="text-neural-label mb-3 text-neural-accent/60">{t("users.administration")}</p>
         <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground flex items-center gap-3">
           <Trophy size={24} className="text-primary" />
-          Scoreboard du Jour
+          {t("admin.scoreboard.pageTitle")}
         </h1>
         <p className="text-sm text-muted-foreground mt-2">
-          Définissez les critères de scoring pour chaque utilisateur. Le scoreboard est calculé quotidiennement.
+          {t("admin.scoreboard.pageSubtitle")}
         </p>
       </div>
 
       {/* User selector */}
       <div className="ethereal-glass p-6">
-        <label className="text-neural-label block mb-2">Sélectionner un utilisateur</label>
+        <label className="text-neural-label block mb-2">{t("admin.scoreboard.selectUser")}</label>
         <select
           value={selectedUser}
           onChange={e => setSelectedUser(e.target.value)}
@@ -219,19 +235,19 @@ export default function ScoreboardConfig() {
           >
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
               <div className="sm:col-span-3">
-                <label className="text-neural-label block mb-1">Type</label>
+                <label className="text-neural-label block mb-1">{t("admin.scoreboard.typeLabel")}</label>
                 <select
                   value={c.criteria_type}
                   onChange={e => updateCriteria(i, "criteria_type", e.target.value)}
                   className="w-full bg-secondary/20 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
                 >
-                  {CRITERIA_TYPES.map(ct => (
-                    <option key={ct.value} value={ct.value}>{ct.label}</option>
+                  {CRITERIA_TYPE_VALUES.map((ct) => (
+                    <option key={ct} value={ct}>{t(CRITERIA_TYPE_LABEL_KEY[ct])}</option>
                   ))}
                 </select>
               </div>
               <div className="sm:col-span-3">
-                <label className="text-neural-label block mb-1">Label</label>
+                <label className="text-neural-label block mb-1">{t("admin.scoreboard.labelField")}</label>
                 <input
                   value={c.criteria_label}
                   onChange={e => updateCriteria(i, "criteria_label", e.target.value)}
@@ -239,7 +255,7 @@ export default function ScoreboardConfig() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-neural-label block mb-1">Seuil</label>
+                <label className="text-neural-label block mb-1">{t("admin.scoreboard.threshold")}</label>
                 <input
                   type="number"
                   value={c.target_value}
@@ -248,7 +264,7 @@ export default function ScoreboardConfig() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-neural-label block mb-1">Points</label>
+                <label className="text-neural-label block mb-1">{t("admin.scoreboard.points")}</label>
                 <input
                   type="number"
                   value={c.points}
@@ -264,7 +280,7 @@ export default function ScoreboardConfig() {
                     onChange={e => updateCriteria(i, "is_active", e.target.checked)}
                     className="accent-primary"
                   />
-                  <span className="text-[9px] text-muted-foreground">Actif</span>
+                  <span className="text-[9px] text-muted-foreground">{t("admin.scoreboard.active")}</span>
                 </label>
               </div>
               <div className="sm:col-span-1 flex justify-end">
@@ -278,11 +294,11 @@ export default function ScoreboardConfig() {
       </div>
 
       <div className="ethereal-glass p-5">
-        <p className="text-neural-label mb-2">Aperçu du score maximum</p>
+        <p className="text-neural-label mb-2">{t("admin.scoreboard.previewMax")}</p>
         <p className="text-sm text-foreground">
-          Si tous les critères sont remplis aujourd&apos;hui :{" "}
+          {t("admin.scoreboard.previewIfAllMet")}{" "}
           <span className="font-cinzel text-primary">{maxPreview} pts</span>{" "}
-          <span className="text-muted-foreground">({activeCount} critères actifs)</span>
+          <span className="text-muted-foreground">{t("admin.scoreboard.activeCriteria", { n: activeCount })}</span>
         </p>
         <div className="mt-3 h-2 rounded-full bg-secondary/20 overflow-hidden flex">
           {criteria.filter((c) => c.is_active && c.points > 0).map((c, idx) => (
@@ -300,9 +316,9 @@ export default function ScoreboardConfig() {
       </div>
 
       <div className="ethereal-glass p-6">
-        <p className="text-neural-label mb-4">Résultats du scoreboard (hier)</p>
+        <p className="text-neural-label mb-4">{t("admin.scoreboard.historyTitle")}</p>
         {scoreHistory.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucun scoreboard calculé pour cet utilisateur.</p>
+          <p className="text-sm text-muted-foreground">{t("admin.scoreboard.noHistory")}</p>
         ) : (
           <div className="space-y-5">
             <div className="h-40">
@@ -312,7 +328,7 @@ export default function ScoreboardConfig() {
                     .slice()
                     .reverse()
                     .map((s: any) => ({
-                      date: new Date(s.score_date).toLocaleDateString("fr-FR", {
+                      date: new Date(s.score_date).toLocaleDateString(dateLocaleTag, {
                         day: "2-digit",
                         month: "2-digit",
                       }),
@@ -348,14 +364,14 @@ export default function ScoreboardConfig() {
               return (
                 <div>
                   <p className="text-neural-label mb-2">
-                    Dernière journée:{" "}
+                    {t("admin.scoreboard.lastDay")}{" "}
                     {latest?.score_date
-                      ? new Date(latest.score_date).toLocaleDateString("fr-FR")
+                      ? new Date(latest.score_date).toLocaleDateString(dateLocaleTag)
                       : "—"}
                   </p>
                   <div className="space-y-1.5">
                     {breakdown.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Aucun détail disponible.</p>
+                      <p className="text-xs text-muted-foreground">{t("admin.scoreboard.noBreakdown")}</p>
                     ) : (
                       breakdown.map((b: any, idx: number) => (
                         <div key={`${b.criteria_id || idx}`} className="flex items-center justify-between text-xs bg-secondary/20 rounded-lg px-3 py-2">
@@ -382,10 +398,10 @@ export default function ScoreboardConfig() {
           <Plus size={14} /> {t("common.addCriterion")}
         </button>
         <div className="flex items-center gap-4">
-          <span className="text-neural-label">Score max: <strong className="text-foreground">{totalPoints} pts</strong></span>
+          <span className="text-neural-label">{t("admin.scoreboard.scoreMaxLabel")} <strong className="text-foreground">{totalPoints} pts</strong></span>
           <button onClick={saveCriteria} disabled={saving} className="btn-neural">
             <Save size={14} />
-            {saving ? "Enregistrement..." : "Sauvegarder"}
+            {saving ? t("general.saving") : t("general.save")}
           </button>
         </div>
       </div>

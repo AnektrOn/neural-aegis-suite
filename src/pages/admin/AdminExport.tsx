@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Database, Calendar as CalendarIcon, Users, Loader2, FileText, FileJson, FileArchive } from "lucide-react";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { fr, enUS } from "date-fns/locale";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -14,14 +15,20 @@ import { exportCsvZip, exportJson, exportMarkdown } from "@/features/admin-expor
 
 type Preset = "7d" | "30d" | "quarter" | "year" | null;
 
-const PRESETS: { key: Exclude<Preset, null>; label: string; days: number }[] = [
-  { key: "7d", label: "7 derniers jours", days: 7 },
-  { key: "30d", label: "30 derniers jours", days: 30 },
-  { key: "quarter", label: "Dernier trimestre", days: 90 },
-  { key: "year", label: "Dernière année", days: 365 },
+const PRESET_DEFS: { key: Exclude<Preset, null>; labelKey: "admin.export.preset7d" | "admin.export.preset30d" | "admin.export.presetQuarter" | "admin.export.presetYear"; days: number }[] = [
+  { key: "7d", labelKey: "admin.export.preset7d", days: 7 },
+  { key: "30d", labelKey: "admin.export.preset30d", days: 30 },
+  { key: "quarter", labelKey: "admin.export.presetQuarter", days: 90 },
+  { key: "year", labelKey: "admin.export.presetYear", days: 365 },
 ];
 
 export default function AdminExport() {
+  const { t, locale } = useLanguage();
+  const dfLocale = locale === "fr" ? fr : enUS;
+  const PRESETS = useMemo(
+    () => PRESET_DEFS.map((p) => ({ ...p, label: t(p.labelKey) })),
+    [t]
+  );
   const [selectedSources, setSelectedSources] = useState<DataSourceKey[]>(["mood", "decisions", "habits"]);
   const [dateMode, setDateMode] = useState<"preset" | "custom" | "none">("preset");
   const [preset, setPreset] = useState<Preset>("30d");
@@ -44,7 +51,7 @@ export default function AdminExport() {
     if (dateMode === "preset" && preset) {
       const to = new Date();
       const from = new Date();
-      from.setDate(from.getDate() - PRESETS.find((p) => p.key === preset)!.days);
+      from.setDate(from.getDate() - PRESET_DEFS.find((p) => p.key === preset)!.days);
       return { from, to };
     }
     if (dateMode === "custom" && customFrom && customTo) {
@@ -55,21 +62,21 @@ export default function AdminExport() {
 
   const summary = useMemo(() => {
     const parts: string[] = [];
-    parts.push(`${selectedSources.length} type(s) de donnée`);
+    parts.push(t("admin.export.summaryTypes", { n: selectedSources.length }));
     if (dateRange) {
-      parts.push(`${format(dateRange.from, "d MMM yyyy", { locale: fr })} → ${format(dateRange.to, "d MMM yyyy", { locale: fr })}`);
+      parts.push(`${format(dateRange.from, "d MMM yyyy", { locale: dfLocale })} → ${format(dateRange.to, "d MMM yyyy", { locale: dfLocale })}`);
     } else if (months.length > 0) {
-      parts.push(`${months.length} mois sélectionné(s)`);
+      parts.push(t("admin.export.summaryMonths", { n: months.length }));
     } else {
-      parts.push("toutes périodes");
+      parts.push(t("admin.export.summaryAllPeriods"));
     }
-    parts.push(userIds.length === 0 ? "tous les utilisateurs" : `${userIds.length} utilisateur(s)`);
+    parts.push(userIds.length === 0 ? t("admin.export.summaryAllUsers") : t("admin.export.summaryNUsers", { n: userIds.length }));
     return parts.join(" · ");
-  }, [selectedSources, dateRange, months, userIds]);
+  }, [selectedSources, dateRange, months, userIds, t, dfLocale]);
 
   async function runExport(format: "csv" | "json" | "md") {
     if (selectedSources.length === 0) {
-      toast.error("Sélectionne au moins un type de donnée");
+      toast.error(t("admin.export.errorSelectSource"));
       return;
     }
     setExporting(true);
@@ -118,10 +125,10 @@ export default function AdminExport() {
       else if (format === "json") exportJson(datasets, baseName, meta);
       else exportMarkdown(datasets, baseName, meta);
 
-      toast.success(`Export terminé · ${total} lignes`);
+      toast.success(t("admin.export.success", { n: total }));
     } catch (e: any) {
       console.error(e);
-      toast.error(e?.message ?? "Erreur lors de l'export");
+      toast.error(e?.message ?? t("admin.export.errorGeneric"));
     } finally {
       setExporting(false);
     }
@@ -132,12 +139,12 @@ export default function AdminExport() {
       <div>
         <h1 className="font-display text-2xl tracking-[0.2em] uppercase text-text-primary">Export</h1>
         <p className="text-xs text-text-tertiary mt-1 tracking-wider">
-          Filtres combinables · CSV (zip) · JSON · Markdown
+          {t("admin.export.subtitle")}
         </p>
       </div>
 
       {/* Data Type */}
-      <Section icon={Database} title="Type de données">
+      <Section icon={Database} title={t("admin.export.sectionDataType")}>
         <div className="flex flex-wrap gap-2">
           {DATA_SOURCES.map((s) => {
             const active = selectedSources.includes(s.key);
@@ -161,7 +168,7 @@ export default function AdminExport() {
       </Section>
 
       {/* Date Range */}
-      <Section icon={CalendarIcon} title="Plage de dates">
+      <Section icon={CalendarIcon} title={t("admin.export.sectionDateRange")}>
         <div className="flex gap-2 mb-4">
           {(["preset", "custom", "none"] as const).map((m) => (
             <button
@@ -175,7 +182,7 @@ export default function AdminExport() {
                   : "border-border-subtle text-text-tertiary hover:text-text-primary"
               )}
             >
-              {m === "preset" ? "Presets" : m === "custom" ? "Personnalisé" : "Aucune"}
+              {m === "preset" ? t("admin.export.dateModePreset") : m === "custom" ? t("admin.export.dateModeCustom") : t("admin.export.dateModeNone")}
             </button>
           ))}
         </div>
@@ -202,14 +209,14 @@ export default function AdminExport() {
 
         {dateMode === "custom" && (
           <div className="flex flex-wrap gap-3">
-            <DateField label="Du" value={customFrom} onChange={setCustomFrom} />
-            <DateField label="Au" value={customTo} onChange={setCustomTo} />
+            <DateField label={t("admin.export.dateFrom")} value={customFrom} onChange={setCustomFrom} dfLocale={dfLocale} pickLabel={t("admin.export.pickDate")} />
+            <DateField label={t("admin.export.dateTo")} value={customTo} onChange={setCustomTo} dfLocale={dfLocale} pickLabel={t("admin.export.pickDate")} />
           </div>
         )}
       </Section>
 
       {/* Month Picker */}
-      <Section icon={CalendarIcon} title="Mois (multi-sélection, non consécutifs)">
+      <Section icon={CalendarIcon} title={t("admin.export.sectionMonths")}>
         <MonthGrid selected={months} onToggle={toggleMonth} />
         {months.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -221,7 +228,7 @@ export default function AdminExport() {
                   key={`${m.year}-${m.month}`}
                   className="px-2 py-1 rounded-md bg-accent-warning/10 border border-accent-warning/25 text-[11px] text-accent-warning"
                 >
-                  {format(new Date(m.year, m.month, 1), "MMM yyyy", { locale: fr })}
+                  {format(new Date(m.year, m.month, 1), "MMM yyyy", { locale: dfLocale })}
                 </span>
               ))}
             <button
@@ -229,19 +236,19 @@ export default function AdminExport() {
               onClick={() => setMonths([])}
               className="px-2 py-1 text-[10px] uppercase tracking-widest text-text-tertiary hover:text-accent-warning"
             >
-              Effacer
+              {t("admin.export.clearMonths")}
             </button>
           </div>
         )}
         {months.length > 0 && dateMode !== "none" && (
           <p className="mt-2 text-[10px] text-text-tertiary tracking-wider">
-            ⓘ Les mois sélectionnés priment sur la plage de dates.
+            {t("admin.export.monthsOverrideHint")}
           </p>
         )}
       </Section>
 
       {/* Users */}
-      <Section icon={Users} title="Utilisateurs">
+      <Section icon={Users} title={t("admin.export.sectionUsers")}>
         <UserPicker selected={userIds} onChange={setUserIds} />
       </Section>
 
@@ -249,7 +256,7 @@ export default function AdminExport() {
       <div className="ethereal-glass rounded-2xl p-5 sticky bottom-4 backdrop-blur-3xl border border-border-subtle">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] uppercase tracking-widest text-text-tertiary mb-1">Sélection active</div>
+            <div className="text-[10px] uppercase tracking-widest text-text-tertiary mb-1">{t("admin.export.activeSelection")}</div>
             <div className="text-sm text-text-primary truncate">{summary}</div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -260,7 +267,7 @@ export default function AdminExport() {
         </div>
         {exporting && (
           <div className="mt-3 flex items-center gap-2 text-xs text-accent-warning">
-            <Loader2 size={14} className="animate-spin" /> Préparation de l'export…
+            <Loader2 size={14} className="animate-spin" /> {t("admin.export.preparing")}
           </div>
         )}
       </div>
@@ -284,7 +291,19 @@ function Section({ icon: Icon, title, children }: { icon: any; title: string; ch
   );
 }
 
-function DateField({ label, value, onChange }: { label: string; value?: Date; onChange: (d?: Date) => void }) {
+function DateField({
+  label,
+  value,
+  onChange,
+  dfLocale,
+  pickLabel,
+}: {
+  label: string;
+  value?: Date;
+  onChange: (d?: Date) => void;
+  dfLocale: typeof fr;
+  pickLabel: string;
+}) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -297,7 +316,7 @@ function DateField({ label, value, onChange }: { label: string; value?: Date; on
         >
           <CalendarIcon size={14} strokeWidth={1.5} />
           <span className="text-[10px] uppercase tracking-widest text-text-tertiary">{label}</span>
-          <span>{value ? format(value, "d MMM yyyy", { locale: fr }) : "Choisir"}</span>
+          <span>{value ? format(value, "d MMM yyyy", { locale: dfLocale }) : pickLabel}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

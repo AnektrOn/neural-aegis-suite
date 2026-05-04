@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wind, Eye, Scan, Sparkles, Stars, Heart, BookOpen, Link as LinkIcon, Search, Trash2, Users, Package, ShieldAlert, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
 
 interface ToolboxAssignment {
@@ -24,25 +25,34 @@ interface UserProfile {
   display_name: string | null;
 }
 
-const TYPE_META: Record<string, { icon: typeof Wind; color: string; label: string }> = {
-  breathwork: { icon: Wind, color: "text-primary", label: "Breathwork" },
-  focus_introspectif: { icon: Eye, color: "text-neural-accent", label: "Focus Introspectif" },
-  body_scan: { icon: Scan, color: "text-neural-warm", label: "Body Scan" },
-  visualization: { icon: Sparkles, color: "text-neural-accent", label: "Visualisation" },
-  stop_protocol: { icon: ShieldAlert, color: "text-destructive", label: "Protocole STOP" },
-  intention: { icon: Target, color: "text-primary", label: "Intention" },
-  affirmations: { icon: Stars, color: "text-primary", label: "Affirmations" },
-  gratitude: { icon: Heart, color: "text-destructive", label: "Gratitude" },
-  journal_prompt: { icon: BookOpen, color: "text-neural-accent", label: "Journal Prompt" },
-  external_link: { icon: LinkIcon, color: "text-muted-foreground", label: "Lien Externe" },
-  meditation: { icon: Eye, color: "text-primary", label: "Méditation" },
-  course: { icon: BookOpen, color: "text-neural-warm", label: "Formation" },
+const TYPE_META_BASE: Record<string, { icon: typeof Wind; color: string; labelKey: TranslationKey }> = {
+  breathwork: { icon: Wind, color: "text-primary", labelKey: "toolbox.typeBreathwork" },
+  focus_introspectif: { icon: Eye, color: "text-neural-accent", labelKey: "toolbox.typeFocusIntrospectif" },
+  body_scan: { icon: Scan, color: "text-neural-warm", labelKey: "toolbox.typeBodyScan" },
+  visualization: { icon: Sparkles, color: "text-neural-accent", labelKey: "admin.toolboxMgmt.type.visualization" },
+  stop_protocol: { icon: ShieldAlert, color: "text-destructive", labelKey: "admin.toolboxMgmt.type.stop_protocol" },
+  intention: { icon: Target, color: "text-primary", labelKey: "toolbox.typeIntention" },
+  affirmations: { icon: Stars, color: "text-primary", labelKey: "toolbox.typeAffirmations" },
+  gratitude: { icon: Heart, color: "text-destructive", labelKey: "toolbox.typeGratitude" },
+  journal_prompt: { icon: BookOpen, color: "text-neural-accent", labelKey: "toolbox.typeJournalPrompt" },
+  external_link: { icon: LinkIcon, color: "text-muted-foreground", labelKey: "admin.toolboxMgmt.type.external_link" },
+  meditation: { icon: Eye, color: "text-primary", labelKey: "admin.toolboxMgmt.type.meditation" },
+  course: { icon: BookOpen, color: "text-neural-warm", labelKey: "admin.toolboxMgmt.type.course" },
 };
 
 export default function ToolboxManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const dateLocaleTag = locale === "fr" ? "fr-FR" : "en-US";
+
+  const TYPE_META = useMemo(() => {
+    const out: Record<string, { icon: typeof Wind; color: string; label: string }> = {};
+    for (const [k, v] of Object.entries(TYPE_META_BASE)) {
+      out[k] = { icon: v.icon, color: v.color, label: t(v.labelKey) };
+    }
+    return out;
+  }, [t]);
   const [assignments, setAssignments] = useState<ToolboxAssignment[]>([]);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
@@ -62,7 +72,7 @@ export default function ToolboxManagement() {
     setProfiles(profs);
     const items = (assignRes.data || []).map((a: any) => ({
       ...a,
-      user_name: profs.find((p) => p.id === a.user_id)?.display_name || "Inconnu",
+      user_name: profs.find((p) => p.id === a.user_id)?.display_name || t("users.noName"),
     }));
     setAssignments(items);
     setLoading(false);
@@ -71,7 +81,7 @@ export default function ToolboxManagement() {
   const deleteAssignment = async (id: string) => {
     const { error } = await supabase.from("toolbox_assignments").delete().eq("id", id);
     if (error) toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
-    else { toast({ title: "Outil retiré" }); loadData(); }
+    else { toast({ title: t("admin.toolboxMgmt.toastRemoved") }); loadData(); }
   };
 
   const allTypes = ["all", ...new Set(assignments.map((a) => a.content_type))];
@@ -87,16 +97,16 @@ export default function ToolboxManagement() {
   return (
     <div className="space-y-8 max-w-6xl">
       <div>
-        <p className="text-neural-label mb-3 text-neural-accent/60">Gestion des outils</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Boîte à Outils</h1>
+        <p className="text-neural-label mb-3 text-neural-accent/60">{t("admin.toolboxMgmt.kicker")}</p>
+        <h1 className="text-neural-title text-3xl text-foreground">{t("admin.toolboxMgmt.pageTitle")}</h1>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Outils assignés", value: assignments.length, icon: Package },
-          { label: "Utilisateurs équipés", value: new Set(assignments.map((a) => a.user_id)).size, icon: Users },
-          { label: "Types utilisés", value: new Set(assignments.map((a) => a.content_type)).size, icon: Sparkles },
+          { label: t("admin.toolboxMgmt.statAssigned"), value: assignments.length, icon: Package },
+          { label: t("admin.toolboxMgmt.statUsers"), value: new Set(assignments.map((a) => a.user_id)).size, icon: Users },
+          { label: t("admin.toolboxMgmt.statTypes"), value: new Set(assignments.map((a) => a.content_type)).size, icon: Sparkles },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="ethereal-glass p-6">
             <stat.icon size={16} strokeWidth={1.5} className="text-neural-accent mb-3" />
@@ -108,17 +118,17 @@ export default function ToolboxManagement() {
 
       {/* Assign new tool */}
       <div className="ethereal-glass p-6 space-y-4">
-        <p className="text-sm font-medium text-foreground">Assigner un nouvel outil</p>
+        <p className="text-sm font-medium text-foreground">{t("admin.toolboxMgmt.assignHeading")}</p>
         <div>
-          <label className="text-neural-label block mb-1.5">Utilisateur</label>
+          <label className="text-neural-label block mb-1.5">{t("admin.toolboxMgmt.userLabel")}</label>
           <select
             value={selectedUser || ""}
             onChange={(e) => setSelectedUser(e.target.value || null)}
             className="w-full sm:w-auto bg-secondary/30 border border-border/30 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary/40 transition-colors"
           >
-            <option value="">Sélectionner un utilisateur…</option>
+            <option value="">{t("admin.toolboxMgmt.selectUserPlaceholder")}</option>
             {profiles.map((p) => (
-              <option key={p.id} value={p.id}>{p.display_name || "Sans nom"}</option>
+              <option key={p.id} value={p.id}>{p.display_name || t("users.noName")}</option>
             ))}
           </select>
         </div>
@@ -135,12 +145,12 @@ export default function ToolboxManagement() {
             className="w-full bg-secondary/20 border border-border/20 rounded-xl pl-12 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/30 transition-colors" />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {allTypes.map((t) => (
-            <button key={t} onClick={() => setFilterType(t)}
+          {allTypes.map((typeKey) => (
+            <button key={typeKey} onClick={() => setFilterType(typeKey)}
               className={`text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-lg border transition-all ${
-                filterType === t ? "border-primary/40 bg-primary/5 text-primary" : "border-border/30 text-muted-foreground hover:border-primary/30"
+                filterType === typeKey ? "border-primary/40 bg-primary/5 text-primary" : "border-border/30 text-muted-foreground hover:border-primary/30"
               }`}>
-              {t === "all" ? "Tous" : TYPE_META[t]?.label || t}
+              {typeKey === "all" ? t("admin.toolboxMgmt.filterAll") : TYPE_META[typeKey]?.label || typeKey}
             </button>
           ))}
         </div>
@@ -170,12 +180,12 @@ export default function ToolboxManagement() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
                 <p className="text-neural-label mt-0.5">
-                  {item.user_name} · {meta.label} · {item.duration || "—"} · {new Date(item.assigned_at).toLocaleDateString("fr-FR")}
+                  {item.user_name} · {meta.label} · {item.duration || "—"} · {new Date(item.assigned_at).toLocaleDateString(dateLocaleTag)}
                 </p>
               </div>
               <button onClick={() => deleteAssignment(item.id)}
                 className="p-2 rounded-lg border border-border/30 text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors shrink-0"
-                title="Retirer">
+                title={t("admin.toolboxMgmt.removeTitle")}>
                 <Trash2 size={14} />
               </button>
             </motion.div>
