@@ -18,6 +18,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { AlertSignal, AdminProfile } from "@/lib/admin-types";
 import { getDayKey } from "@/lib/admin-helpers";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
+
+type TFn = (key: TranslationKey, params?: Record<string, string | number>) => string;
 
 type SeverityFilter = "all" | "high" | "medium" | "low";
 
@@ -28,14 +32,14 @@ function utcDayKeyFromOffset(daysAgo: number): string {
   return getDayKey(d.toISOString());
 }
 
-function formatRelativeSince(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "—";
-  const diffMs = Date.now() - t;
+function formatRelativeSince(iso: string, tr: TFn): string {
+  const ts = new Date(iso).getTime();
+  if (Number.isNaN(ts)) return "—";
+  const diffMs = Date.now() - ts;
   const days = Math.floor(diffMs / (86400 * 1000));
-  if (days <= 0) return "aujourd'hui";
-  if (days === 1) return "depuis hier";
-  return `depuis ${days} jours`;
+  if (days <= 0) return tr("admin.alerts.relative.today");
+  if (days === 1) return tr("admin.alerts.relative.sinceYesterday");
+  return tr("admin.alerts.relative.sinceDays", { n: days });
 }
 
 function daysSince(iso: string | null): number | null {
@@ -64,7 +68,8 @@ function computeAlerts(
   toolboxRows: { user_id: string; assignment_id: string; status: string; completed_at: string }[],
   assignmentTitleById: Map<string, string>,
   companyNameById: Map<string, string>,
-  now: Date
+  now: Date,
+  tr: TFn
 ): AlertSignal[] {
   const sevenAgo = new Date(now);
   sevenAgo.setUTCDate(sevenAgo.getUTCDate() - 7);
@@ -119,7 +124,7 @@ function computeAlerts(
   for (const p of profiles) {
     if (p.is_disabled) continue;
 
-    const userName = p.display_name?.trim() || "Sans nom";
+    const userName = p.display_name?.trim() || tr("users.noName");
     const companyName = p.company_id ? companyNameById.get(p.company_id) ?? null : null;
 
     const moods = moodByUser.get(p.id) || [];
@@ -146,7 +151,7 @@ function computeAlerts(
           companyName,
           type: "mood_drop",
           severity,
-          detail: `Humeur moyenne: ${rounded}/10 (était ${yStr}/10 la semaine précédente)`,
+          detail: tr("admin.alerts.detail.moodDrop", { current: rounded, prev: yStr }),
           since: last3[0]!.logged_at,
         });
       }
@@ -164,12 +169,12 @@ function computeAlerts(
       let sinceIso: string;
       if (lastS == null) {
         severity = "high";
-        detail = "Jamais connecté";
+        detail = tr("admin.alerts.detail.neverLoggedIn");
         sinceIso = p.created_at;
       } else {
         const daysIdle = daysSince(lastS);
         severity = over7d ? "high" : "medium";
-        detail = `Dernière connexion: il y a ${daysIdle} jours`;
+        detail = tr("admin.alerts.detail.lastLoginDays", { n: daysIdle == null ? 0 : daysIdle });
         sinceIso = lastS;
       }
       alerts.push({
@@ -200,7 +205,7 @@ function computeAlerts(
           companyName,
           type: "habit_streak_broken",
           severity: "medium",
-          detail: `Streak de ${streak} jours interrompu depuis 3 jours`,
+          detail: tr("admin.alerts.detail.habitStreakBroken", { streak }),
           since: new Date(now.getTime() - 3 * 86400000).toISOString(),
         });
       }
@@ -215,14 +220,14 @@ function computeAlerts(
     abandonedByAssign.forEach((rows, assignmentId) => {
       if (rows.length >= 2) {
         rows.sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
-        const title = assignmentTitleById.get(assignmentId) || "Outil";
+        const title = assignmentTitleById.get(assignmentId) || tr("admin.timeline.toolDefault");
         alerts.push({
           userId: p.id,
           userName,
           companyName,
           type: "tool_abandoned_twice",
           severity: "medium",
-          detail: `Outil '${title}' abandonné 2 fois`,
+          detail: tr("admin.alerts.detail.toolAbandonedTwice", { title }),
           since: rows[0]!.completed_at,
         });
       }
@@ -240,7 +245,7 @@ function computeAlerts(
         companyName,
         type: "decision_stale",
         severity: "low",
-        detail: `${stalePending.length} décision(s) en attente depuis plus de 10 jours`,
+        detail: tr("admin.alerts.detail.decisionStale", { n: stalePending.length }),
         since: stalePending[0]!.created_at,
       });
     }
@@ -254,7 +259,7 @@ function computeAlerts(
         companyName,
         type: "no_journal",
         severity: "low",
-        detail: "Aucune entrée journal depuis 14 jours",
+        detail: tr("admin.alerts.detail.noJournal"),
         since: fourteenAgo.toISOString(),
       });
     }
@@ -275,6 +280,7 @@ const ALERT_ICONS = {
 
 export default function AdminAlerts() {
   useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<AlertSignal[]>([]);
@@ -350,7 +356,7 @@ export default function AdminAlerts() {
       ].filter(Boolean);
       if (errs.length) {
         console.error(errs);
-        toast.error("Impossible de charger les signaux d'alerte.");
+        toast.error(t("admin.alerts.loadError"));
         setLoading(false);
         return;
       }
@@ -378,7 +384,8 @@ export default function AdminAlerts() {
         (tbRes.data || []) as { user_id: string; assignment_id: string; status: string; completed_at: string }[],
         assignmentTitleById,
         companyNameById,
-        now
+        now,
+        t
       );
 
       const pcMap = new Map<string, string | null>();
@@ -389,11 +396,11 @@ export default function AdminAlerts() {
       setAlerts(computed);
     } catch (e) {
       console.error(e);
-      toast.error("Erreur lors du chargement.");
+      toast.error(t("admin.alerts.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -500,7 +507,7 @@ export default function AdminAlerts() {
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{a.detail}</p>
                   <p className="text-[11px] text-neural-label text-neural-accent/50 mt-1">
-                    {formatRelativeSince(a.since)}
+                    {formatRelativeSince(a.since, t)}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 shrink-0">
@@ -510,11 +517,11 @@ export default function AdminAlerts() {
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs border border-border/30 bg-secondary/20 text-foreground hover:border-primary/30 transition-colors"
                   >
                     <MessageSquare size={14} />
-                    Envoyer un message
+                    {t("admin.alerts.sendMessage")}
                   </button>
                   <button type="button" onClick={() => openAnalytics(a.userId)} className="btn-neural text-xs py-2 px-3">
                     <User size={14} />
-                    Voir le profil
+                    {t("admin.alerts.viewProfile")}
                   </button>
                 </div>
               </motion.div>
@@ -529,10 +536,10 @@ export default function AdminAlerts() {
     <div className="space-y-8 max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <p className="text-neural-label mb-3 text-neural-accent/60">Administration</p>
-          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Signaux d&apos;alerte</h1>
+          <p className="text-neural-label mb-3 text-neural-accent/60">{t("users.administration")}</p>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">{t("admin.alerts.pageTitle")}</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-xl">
-            Détection automatique des utilisateurs nécessitant une attention
+            {t("admin.alerts.pageSubtitle")}
           </p>
         </div>
         <button
@@ -542,21 +549,21 @@ export default function AdminAlerts() {
           className="inline-flex items-center gap-2 self-start px-4 py-2 rounded-xl text-xs uppercase tracking-wider border border-border/30 bg-secondary/20 text-foreground hover:border-primary/30 transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          Actualiser
+          {t("admin.alerts.refresh")}
         </button>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <div className="ethereal-glass px-4 py-2 border border-destructive/20 bg-destructive/10">
-          <span className="text-neural-label text-[10px] text-destructive/80">Critiques</span>
+          <span className="text-neural-label text-[10px] text-destructive/80">{t("admin.alerts.sevLabelHigh")}</span>
           <p className="font-cinzel text-xl text-destructive tabular-nums">{kpi.high}</p>
         </div>
         <div className="ethereal-glass px-4 py-2 border border-neural-warm/20 bg-neural-warm/10">
-          <span className="text-neural-label text-[10px] text-neural-warm/90">Moyens</span>
+          <span className="text-neural-label text-[10px] text-neural-warm/90">{t("admin.alerts.sevLabelMedium")}</span>
           <p className="font-cinzel text-xl text-neural-warm tabular-nums">{kpi.medium}</p>
         </div>
         <div className="ethereal-glass px-4 py-2 border border-border/30 bg-secondary/20">
-          <span className="text-neural-label text-[10px] text-muted-foreground">Faibles</span>
+          <span className="text-neural-label text-[10px] text-muted-foreground">{t("admin.alerts.sevLabelLow")}</span>
           <p className="font-cinzel text-xl text-muted-foreground tabular-nums">{kpi.low}</p>
         </div>
       </div>
@@ -565,10 +572,10 @@ export default function AdminAlerts() {
         <div className="flex flex-wrap gap-2">
           {(
             [
-              { id: "all" as const, label: "Tous" },
-              { id: "high" as const, label: "Critique" },
-              { id: "medium" as const, label: "Moyen" },
-              { id: "low" as const, label: "Faible" },
+              { id: "all" as const, label: t("admin.alerts.filterAll") },
+              { id: "high" as const, label: t("admin.alerts.filterHigh") },
+              { id: "medium" as const, label: t("admin.alerts.filterMedium") },
+              { id: "low" as const, label: t("admin.alerts.filterLow") },
             ] as const
           ).map(({ id, label }) => (
             <button
@@ -590,7 +597,7 @@ export default function AdminAlerts() {
           onChange={(e) => setCompanyFilter(e.target.value)}
           className="bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary/30 min-w-[200px]"
         >
-          <option value="">Toutes les entreprises</option>
+          <option value="">{t("admin.alerts.allCompanies")}</option>
           {companies.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -606,13 +613,13 @@ export default function AdminAlerts() {
           className="ethereal-glass p-16 text-center border border-primary/15"
         >
           <CheckCircle2 className="mx-auto mb-4 text-primary" size={40} strokeWidth={1.25} />
-          <p className="text-neural-title text-lg text-foreground">Tous les utilisateurs sont en bonne forme</p>
+          <p className="text-neural-title text-lg text-foreground">{t("admin.alerts.emptyState")}</p>
         </motion.div>
       ) : (
         <div className="space-y-10">
-          {renderSection("Critiques", grouped.high, "high")}
-          {renderSection("Moyens", grouped.medium, "medium")}
-          {renderSection("Faibles", grouped.low, "low")}
+          {renderSection(t("admin.alerts.sevLabelHigh"), grouped.high, "high")}
+          {renderSection(t("admin.alerts.sevLabelMedium"), grouped.medium, "medium")}
+          {renderSection(t("admin.alerts.sevLabelLow"), grouped.low, "low")}
         </div>
       )}
     </div>

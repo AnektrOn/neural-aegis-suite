@@ -92,8 +92,8 @@ export function PostAssessmentBanner({ onClose }: { onClose: () => void }) {
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <Button asChild size="sm" variant="default" className="h-8">
-                  <NavLink to="/onboarding/results">
-                    {t("postAssessment.discover")}
+                  <NavLink to="/deep-dive">
+                    {t("deepDive.viewReport")}
                     <ArrowRight className="ml-1 w-3.5 h-3.5" />
                   </NavLink>
                 </Button>

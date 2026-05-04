@@ -19,6 +19,9 @@ android/keystore.properties
 android/keystore/*.keystore
 android/keystore/*.jks
 
+# Built Android packages (keep locally; use CI artifacts for sharing)
+*.apk
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

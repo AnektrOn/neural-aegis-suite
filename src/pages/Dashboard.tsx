@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { fr, enUS } from "date-fns/locale";
 import { Zap, Brain, Target, TrendingUp, TrendingDown, Minus, Plus, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -813,7 +813,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-[10px] tracking-[0.2em] uppercase text-text-tertiary font-display">
-              {format(new Date(), "EEEE d MMMM", { locale: fr })}
+              {format(new Date(), "EEEE d MMMM", { locale: locale === "fr" ? fr : enUS })}
             </p>
             <h1 className="text-xl font-display text-text-primary mt-0.5 tracking-tight">Neural Dashboard</h1>
             <p className="text-neural-label mt-2">{t("dashboard.welcome")}</p>

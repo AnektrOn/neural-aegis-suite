@@ -23,6 +23,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 import type {
   AdminProfile,
   AdminMoodEntry,
@@ -64,22 +66,20 @@ interface UserMetrics extends AdminProfile {
   tool_abandoned_14d: number;
 }
 
-const METRICS: Array<{
-  key: MetricKey;
-  label: string;
-  kind: "numeric" | "string" | "enum";
-  step?: number;
-}> = [
-  { key: "avg_mood_14d", label: "Humeur moyenne (14j)", kind: "numeric", step: 0.1 },
-  { key: "habit_rate_14d", label: "Taux habitudes (14j) %", kind: "numeric", step: 1 },
-  { key: "days_since_login", label: "Jours depuis connexion", kind: "numeric", step: 1 },
-  { key: "session_count_14d", label: "Nb sessions (14j)", kind: "numeric", step: 1 },
-  { key: "score_avg_14d", label: "Score moyen (14j) %", kind: "numeric", step: 1 },
-  { key: "company_id", label: "Entreprise", kind: "enum" },
-  { key: "country", label: "Pays", kind: "string" },
-  { key: "is_disabled", label: "Statut compte", kind: "enum" },
-  { key: "tool_abandoned_14d", label: "Outils abandonnés (14j)", kind: "numeric", step: 1 },
-];
+const METRIC_META: Record<
+  MetricKey,
+  { kind: "numeric" | "string" | "enum"; step?: number; labelKey: TranslationKey }
+> = {
+  avg_mood_14d: { kind: "numeric", step: 0.1, labelKey: "admin.segmentation.metric.avg_mood_14d" },
+  habit_rate_14d: { kind: "numeric", step: 1, labelKey: "admin.segmentation.metric.habit_rate_14d" },
+  days_since_login: { kind: "numeric", step: 1, labelKey: "admin.segmentation.metric.days_since_login" },
+  session_count_14d: { kind: "numeric", step: 1, labelKey: "admin.segmentation.metric.session_count_14d" },
+  score_avg_14d: { kind: "numeric", step: 1, labelKey: "admin.segmentation.metric.score_avg_14d" },
+  company_id: { kind: "enum", labelKey: "admin.segmentation.metric.company_id" },
+  country: { kind: "string", labelKey: "admin.segmentation.metric.country" },
+  is_disabled: { kind: "enum", labelKey: "admin.segmentation.metric.is_disabled" },
+  tool_abandoned_14d: { kind: "numeric", step: 1, labelKey: "admin.segmentation.metric.tool_abandoned_14d" },
+};
 
 const COLORS = ["#22c55e", "#14b8a6", "#f59e0b", "#ef4444"];
 
@@ -96,6 +96,7 @@ export default function AdminSegmentation() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<(AdminProfile & { email?: string | null })[]>([]);
@@ -155,7 +156,7 @@ export default function AdminSegmentation() {
 
       const err = [pRes.error, cRes.error, moodRes.error, habRes.error, sessRes.error, tbRes.error, scoreRes.error].find(Boolean);
       if (err) {
-        toast({ title: "Erreur", description: (err as any).message, variant: "destructive" });
+        toast({ title: t("toast.error"), description: (err as any).message, variant: "destructive" });
         setLoading(false);
         return;
       }
@@ -170,7 +171,7 @@ export default function AdminSegmentation() {
       setLoading(false);
     };
     load();
-  }, [toast]);
+  }, [toast, t]);
 
   const userMetrics = useMemo(() => {
     const moodMap = new Map<string, number[]>();
@@ -239,7 +240,7 @@ export default function AdminSegmentation() {
 
     return userMetrics.filter((u) =>
       active.every((f) => {
-        const metric = METRICS.find((m) => m.key === f.metric);
+        const metric = METRIC_META[f.metric];
         if (!metric) return true;
         const raw = (u as any)[f.metric];
 
@@ -335,10 +336,10 @@ export default function AdminSegmentation() {
         type: "message",
         link: "/profile",
       } as never);
-      toast({ title: "Message envoyé", description: "Le message a été transmis." });
+      toast({ title: t("admin.segmentation.toastMessageSent"), description: t("admin.segmentation.toastMessageSentDesc") });
       setSingleRecipient(null);
     } else {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
     }
     setSingleSending(false);
   };
@@ -373,7 +374,10 @@ export default function AdminSegmentation() {
     setBulkOpen(false);
     setBulkSubject("");
     setBulkBody("");
-    toast({ title: "Envoi terminé", description: `${sent}/${selectedIds.length} envoyés.` });
+    toast({
+      title: t("admin.segmentation.toastBulkDone"),
+      description: t("admin.segmentation.toastBulkDoneDesc", { sent, total: selectedIds.length }),
+    });
   };
 
   const exportCsv = () => {
@@ -423,16 +427,16 @@ export default function AdminSegmentation() {
   return (
     <div className="space-y-8 max-w-7xl">
       <div>
-        <p className="text-neural-label mb-3 text-neural-accent/60">Administration</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Segmentation dynamique</h1>
+        <p className="text-neural-label mb-3 text-neural-accent/60">{t("users.administration")}</p>
+        <h1 className="text-neural-title text-3xl text-foreground">{t("admin.segmentation.title")}</h1>
         <p className="text-sm text-muted-foreground mt-2">
-          Combinez des filtres multi-métriques pour cibler des cohortes utilisateurs.
+          {t("admin.segmentation.subtitle")}
         </p>
       </div>
 
       <div className="ethereal-glass p-5 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-neural-label">Constructeur de filtres</p>
+          <p className="text-neural-label">{t("admin.segmentation.filterBuilder")}</p>
           <button
             type="button"
             onClick={addFilter}
@@ -440,23 +444,23 @@ export default function AdminSegmentation() {
             className="inline-flex items-center gap-2 text-xs text-primary disabled:opacity-40"
           >
             <Plus size={12} />
-            Ajouter un filtre
+            {t("admin.segmentation.addFilter")}
           </button>
         </div>
 
         <div className="space-y-2">
           {filters.map((f) => {
-            const cfg = METRICS.find((m) => m.key === f.metric)!;
+            const cfg = METRIC_META[f.metric];
             const operators = cfg.kind === "numeric" ? ([">=", "<=", "="] as const) : (["=", "!="] as const);
             return (
               <div key={f.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
                 <div className="md:col-span-4">
-                  <label className="text-neural-label block mb-1">Métrique</label>
+                  <label className="text-neural-label block mb-1">{t("admin.segmentation.metric")}</label>
                   <select
                     value={f.metric}
                     onChange={(e) => {
                       const metric = e.target.value as MetricKey;
-                      const kind = METRICS.find((m) => m.key === metric)?.kind || "numeric";
+                      const kind = METRIC_META[metric]?.kind || "numeric";
                       updateFilter(f.id, {
                         metric,
                         operator: kind === "numeric" ? ">=" : "=",
@@ -465,15 +469,15 @@ export default function AdminSegmentation() {
                     }}
                     className="w-full bg-secondary/20 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
                   >
-                    {METRICS.map((m) => (
-                      <option key={m.key} value={m.key}>
-                        {m.label}
+                    {(Object.keys(METRIC_META) as MetricKey[]).map((m) => (
+                      <option key={m} value={m}>
+                        {t(METRIC_META[m].labelKey)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-neural-label block mb-1">Opérateur</label>
+                  <label className="text-neural-label block mb-1">{t("admin.segmentation.operator")}</label>
                   <select
                     value={f.operator}
                     onChange={(e) => updateFilter(f.id, { operator: e.target.value as any })}
@@ -487,14 +491,14 @@ export default function AdminSegmentation() {
                   </select>
                 </div>
                 <div className="md:col-span-5">
-                  <label className="text-neural-label block mb-1">Valeur</label>
+                  <label className="text-neural-label block mb-1">{t("admin.segmentation.value")}</label>
                   {f.metric === "company_id" ? (
                     <select
                       value={f.value}
                       onChange={(e) => updateFilter(f.id, { value: e.target.value })}
                       className="w-full bg-secondary/20 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
                     >
-                      <option value="">Sélectionner…</option>
+                      <option value="">{t("admin.segmentation.selectPlaceholder")}</option>
                       {companies.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
@@ -507,9 +511,9 @@ export default function AdminSegmentation() {
                       onChange={(e) => updateFilter(f.id, { value: e.target.value })}
                       className="w-full bg-secondary/20 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
                     >
-                      <option value="">Sélectionner…</option>
-                      <option value="false">Actif</option>
-                      <option value="true">Désactivé</option>
+                      <option value="">{t("admin.segmentation.selectPlaceholder")}</option>
+                      <option value="false">{t("admin.segmentation.accountActive")}</option>
+                      <option value="true">{t("admin.segmentation.accountDisabled")}</option>
                     </select>
                   ) : f.metric === "country" ? (
                     <input
@@ -520,7 +524,7 @@ export default function AdminSegmentation() {
                   ) : (
                     <input
                       type="number"
-                      step={f.metric === "avg_mood_14d" ? 0.1 : 1}
+                      step={METRIC_META[f.metric].step ?? 1}
                       value={f.value}
                       onChange={(e) => updateFilter(f.id, { value: e.target.value })}
                       className="w-full bg-secondary/20 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none"
@@ -542,14 +546,14 @@ export default function AdminSegmentation() {
           })}
         </div>
         <p className="text-sm text-foreground">
-          <span className="font-cinzel text-primary">{filteredUsers.length}</span> utilisateurs correspondent
+          {t("admin.segmentation.usersMatch", { n: filteredUsers.length })}
         </p>
       </div>
 
       <div className="ethereal-glass p-5">
         <p className="text-neural-label mb-3 flex items-center gap-2">
           <Filter size={13} />
-          Nuage de segmentation humeur/habitudes
+          {t("admin.segmentation.scatterTitle")}
         </p>
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
@@ -559,14 +563,14 @@ export default function AdminSegmentation() {
                 type="number"
                 dataKey="x"
                 domain={[0, 10]}
-                name="Humeur"
+                name={t("admin.segmentation.axisMood")}
                 tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
               />
               <YAxis
                 type="number"
                 dataKey="y"
                 domain={[0, 100]}
-                name="Habitudes"
+                name={t("admin.segmentation.axisHabits")}
                 tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
               />
               <ZAxis type="number" dataKey="sessionSize" range={[4, 12]} />
@@ -580,12 +584,12 @@ export default function AdminSegmentation() {
                       <p className="text-foreground font-medium">{p.name}</p>
                       <p className="text-muted-foreground">{p.company}</p>
                       <p className="text-muted-foreground mt-1">
-                        Humeur: {p.x?.toFixed?.(1) ?? p.x}/10
+                        {t("admin.segmentation.tooltipMood")} {p.x?.toFixed?.(1) ?? p.x}/10
                       </p>
                       <p className="text-muted-foreground">
-                        Habitudes: {p.y}%
+                        {t("admin.segmentation.tooltipHabits")} {p.y}%
                       </p>
-                      <p className="text-muted-foreground">Score: {p.score ?? "—"}%</p>
+                      <p className="text-muted-foreground">{t("admin.segmentation.tooltipScore")} {p.score ?? "—"}%</p>
                     </div>
                   );
                 }}
@@ -611,7 +615,7 @@ export default function AdminSegmentation() {
           </ResponsiveContainer>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {excludedScatterCount} utilisateurs exclus (données insuffisantes)
+          {t("admin.segmentation.excludedScatter", { n: excludedScatterCount })}
         </p>
       </div>
 
@@ -626,16 +630,16 @@ export default function AdminSegmentation() {
                   onChange={(e) =>
                     setSelectedIds(e.target.checked ? filteredUsers.map((u) => u.id) : [])
                   }
-                  aria-label="Sélectionner tous"
+                  aria-label={t("admin.segmentation.selectAllAria")}
                 />
               </th>
-              <th className="py-2 pr-3 text-neural-label">Nom</th>
-              <th className="py-2 pr-3 text-neural-label">Entreprise</th>
-              <th className="py-2 pr-3 text-neural-label">Humeur moy</th>
-              <th className="py-2 pr-3 text-neural-label">Taux habits</th>
-              <th className="py-2 pr-3 text-neural-label">Dernière connexion</th>
-              <th className="py-2 pr-3 text-neural-label">Score</th>
-              <th className="py-2 text-neural-label">Actions</th>
+              <th className="py-2 pr-3 text-neural-label">{t("admin.segmentation.colName")}</th>
+              <th className="py-2 pr-3 text-neural-label">{t("admin.segmentation.colCompany")}</th>
+              <th className="py-2 pr-3 text-neural-label">{t("admin.segmentation.colAvgMood")}</th>
+              <th className="py-2 pr-3 text-neural-label">{t("admin.segmentation.colHabitRate")}</th>
+              <th className="py-2 pr-3 text-neural-label">{t("admin.segmentation.colLastLogin")}</th>
+              <th className="py-2 pr-3 text-neural-label">{t("admin.segmentation.colScore")}</th>
+              <th className="py-2 text-neural-label">{t("admin.segmentation.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -652,14 +656,14 @@ export default function AdminSegmentation() {
                     }
                   />
                 </td>
-                <td className="py-2 pr-3 text-foreground">{u.display_name || "Sans nom"}</td>
+                <td className="py-2 pr-3 text-foreground">{u.display_name || t("users.noName")}</td>
                 <td className="py-2 pr-3 text-muted-foreground">
                   {u.company_id ? companyNameById.get(u.company_id) || "—" : "—"}
                 </td>
                 <td className="py-2 pr-3">{u.avg_mood_14d != null ? `${u.avg_mood_14d}/10` : "—"}</td>
                 <td className="py-2 pr-3">{u.habit_rate_14d}%</td>
                 <td className="py-2 pr-3">
-                  {u.days_since_login === 999 ? "Jamais" : `Il y a ${u.days_since_login} j`}
+                  {u.days_since_login === 999 ? t("admin.segmentation.neverLogin") : t("admin.segmentation.daysAgoShort", { n: u.days_since_login })}
                 </td>
                 <td className="py-2 pr-3">{u.score_avg_14d != null ? `${u.score_avg_14d}%` : "—"}</td>
                 <td className="py-2">
@@ -670,7 +674,7 @@ export default function AdminSegmentation() {
                       className="px-2 py-1 text-xs rounded-lg border border-border/30 bg-secondary/20 hover:border-primary/30 inline-flex items-center gap-1"
                     >
                       <Send size={12} />
-                      Message
+                      {t("admin.segmentation.message")}
                     </button>
                     <button
                       type="button"
@@ -678,7 +682,7 @@ export default function AdminSegmentation() {
                       className="btn-neural text-xs px-2 py-1"
                     >
                       <Eye size={12} />
-                      Voir
+                      {t("admin.segmentation.view")}
                     </button>
                   </div>
                 </td>
@@ -692,12 +696,12 @@ export default function AdminSegmentation() {
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[min(96vw,860px)] z-40 ethereal-glass p-3 border border-primary/20">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-sm text-foreground">
-              <span className="font-cinzel text-primary">{selectedIds.length}</span> utilisateurs sélectionnés
+              {t("admin.segmentation.selectedCount", { n: selectedIds.length })}
             </p>
             <div className="flex gap-2">
               <button type="button" onClick={() => setBulkOpen(true)} className="btn-neural text-xs">
                 <Send size={12} />
-                Envoyer un message groupé
+                {t("admin.segmentation.bulkSend")}
               </button>
               <button
                 type="button"
@@ -705,7 +709,7 @@ export default function AdminSegmentation() {
                 className="px-3 py-2 text-xs rounded-xl border border-border/30 bg-secondary/20 hover:border-primary/30 inline-flex items-center gap-1"
               >
                 <Download size={12} />
-                Exporter CSV
+                {t("admin.segmentation.exportCsv")}
               </button>
             </div>
           </div>
@@ -716,7 +720,7 @@ export default function AdminSegmentation() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="w-full max-w-lg ethereal-glass p-6 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-neural-title text-lg">Envoyer un message</p>
+              <p className="text-neural-title text-lg">{t("admin.segmentation.sendMessageTitle")}</p>
               <button onClick={() => setSingleRecipient(null)} className="text-muted-foreground hover:text-foreground">
                 <X size={14} />
               </button>
@@ -724,19 +728,19 @@ export default function AdminSegmentation() {
             <input
               value={singleSubject}
               onChange={(e) => setSingleSubject(e.target.value)}
-              placeholder="Sujet"
+              placeholder={t("admin.segmentation.subjectPlaceholder")}
               className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none"
             />
             <textarea
               value={singleBody}
               onChange={(e) => setSingleBody(e.target.value)}
               rows={5}
-              placeholder="Message..."
+              placeholder={t("admin.segmentation.bodyPlaceholder")}
               className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none resize-none"
             />
             <button onClick={sendSingleMessage} disabled={singleSending} className="btn-neural">
               <Send size={14} />
-              {singleSending ? "Envoi..." : "Envoyer"}
+              {singleSending ? t("admin.segmentation.sending") : t("admin.segmentation.send")}
             </button>
           </div>
         </div>
@@ -746,31 +750,31 @@ export default function AdminSegmentation() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="w-full max-w-xl ethereal-glass p-6 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-neural-title text-lg">Message groupé</p>
+              <p className="text-neural-title text-lg">{t("admin.segmentation.bulkTitle")}</p>
               <button onClick={() => setBulkOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X size={14} />
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Destinataires: {selectedIds.length}
-              {bulkSending && ` · ${bulkProgress.sent}/${bulkProgress.total} envoyés`}
+              {t("admin.segmentation.recipients")} {selectedIds.length}
+              {bulkSending && ` · ${t("admin.segmentation.sentProgress", { sent: bulkProgress.sent, total: bulkProgress.total })}`}
             </p>
             <input
               value={bulkSubject}
               onChange={(e) => setBulkSubject(e.target.value)}
-              placeholder="Sujet"
+              placeholder={t("admin.segmentation.subjectPlaceholder")}
               className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none"
             />
             <textarea
               value={bulkBody}
               onChange={(e) => setBulkBody(e.target.value)}
               rows={6}
-              placeholder="Message..."
+              placeholder={t("admin.segmentation.bodyPlaceholder")}
               className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none resize-none"
             />
             <button onClick={sendBulkMessage} disabled={bulkSending} className="btn-neural">
               <Send size={14} />
-              {bulkSending ? `${bulkProgress.sent}/${bulkProgress.total} envoyés` : "Envoyer"}
+              {bulkSending ? t("admin.segmentation.sentProgress", { sent: bulkProgress.sent, total: bulkProgress.total }) : t("admin.segmentation.send")}
             </button>
           </div>
         </div>

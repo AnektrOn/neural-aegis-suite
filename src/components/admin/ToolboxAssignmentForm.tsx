@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wind, Eye, Scan, BookOpen, Heart, Sparkles, Stars, Link as LinkIcon, Send, ShieldAlert, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,8 @@ import { DEFAULT_BODY_SCAN_TOTAL_SEC, DEFAULT_BODY_SCAN_ZONES } from "@/componen
 import { DEFAULT_VISUALIZATION_SCENES, DEFAULT_VISUALIZATION_TOTAL_SEC } from "@/components/widgets/VisualizationWidget";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 
 interface Props {
   userId: string;
@@ -24,22 +26,33 @@ function parseStopSteps(text: string): { title: string; hint: string }[] {
     });
 }
 
-const WIDGET_TYPES = [
-  { value: "breathwork", label: "Breathwork", icon: Wind, color: "text-primary" },
-  { value: "focus_introspectif", label: "Focus Introspectif", icon: Eye, color: "text-neural-accent" },
-  { value: "body_scan", label: "Body Scan", icon: Scan, color: "text-neural-warm" },
-  { value: "visualization", label: "Visualisation", icon: Sparkles, color: "text-neural-accent" },
-  { value: "stop_protocol", label: "Protocole STOP", icon: ShieldAlert, color: "text-destructive" },
-  { value: "intention", label: "Intention", icon: Target, color: "text-primary" },
-  { value: "affirmations", label: "Affirmations", icon: Stars, color: "text-primary" },
-  { value: "gratitude", label: "Gratitude Check-in", icon: Heart, color: "text-destructive" },
-  { value: "journal_prompt", label: "Journal Prompt", icon: BookOpen, color: "text-neural-accent" },
-  { value: "external_link", label: "Lien Externe", icon: LinkIcon, color: "text-muted-foreground" },
+const WIDGET_TYPE_DEFS: Array<{
+  value: string;
+  labelKey: TranslationKey;
+  icon: typeof Wind;
+  color: string;
+}> = [
+  { value: "breathwork", labelKey: "toolbox.typeBreathwork", icon: Wind, color: "text-primary" },
+  { value: "focus_introspectif", labelKey: "admin.toolboxForm.type.focus_introspectif", icon: Eye, color: "text-neural-accent" },
+  { value: "body_scan", labelKey: "toolbox.typeBodyScan", icon: Scan, color: "text-neural-warm" },
+  { value: "visualization", labelKey: "admin.toolboxForm.type.visualization", icon: Sparkles, color: "text-neural-accent" },
+  { value: "stop_protocol", labelKey: "admin.toolboxForm.type.stop_protocol", icon: ShieldAlert, color: "text-destructive" },
+  { value: "intention", labelKey: "toolbox.typeIntention", icon: Target, color: "text-primary" },
+  { value: "affirmations", labelKey: "toolbox.typeAffirmations", icon: Stars, color: "text-primary" },
+  { value: "gratitude", labelKey: "admin.toolboxForm.type.gratitude", icon: Heart, color: "text-destructive" },
+  { value: "journal_prompt", labelKey: "toolbox.typeJournalPrompt", icon: BookOpen, color: "text-neural-accent" },
+  { value: "external_link", labelKey: "admin.toolboxForm.type.external_link", icon: LinkIcon, color: "text-muted-foreground" },
 ];
 
 export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
+
+  const WIDGET_TYPES = useMemo(
+    () => WIDGET_TYPE_DEFS.map((d) => ({ ...d, label: t(d.labelKey) })),
+    [t]
+  );
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -104,7 +117,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
     switch (selectedType) {
       case "breathwork":
-        title = `Breathwork ${bwCycles} cycles`;
+        title = t("admin.toolboxForm.titleBreathwork", { n: bwCycles });
         duration = `${computeBreathworkDuration()} min`;
         widgetConfig = {
           cycles: bwCycles,
@@ -114,13 +127,15 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
           pause2_sec: bwPause2,
         };
         break;
-      case "focus_introspectif":
-        title = `Focus Introspectif – ${fiIntention || "Libre"}`;
+      case "focus_introspectif": {
+        const topic = fiIntention.trim() || t("admin.toolboxForm.topicFree");
+        title = t("admin.toolboxForm.titleFocus", { topic });
         duration = `${fiDuration} min`;
-        widgetConfig = { duration_min: fiDuration, intention: fiIntention || "Libre" };
+        widgetConfig = { duration_min: fiDuration, intention: topic };
         break;
+      }
       case "body_scan": {
-        title = `Body Scan`;
+        title = t("admin.toolboxForm.titleBodyScan");
         duration = `${bsDuration} min`;
         const scale = (bsDuration * 60) / DEFAULT_BODY_SCAN_TOTAL_SEC;
         widgetConfig = {
@@ -132,7 +147,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         break;
       }
       case "visualization": {
-        title = `Visualisation guidée`;
+        title = t("admin.toolboxForm.titleVizGuided");
         duration = `${vizDuration} min`;
         const cues = vizCues.split("\n").map((l) => l.trim()).filter(Boolean);
         const palette = ["hsl(176 70% 48%)", "hsl(220 70% 60%)", "hsl(270 50% 60%)", "hsl(35 80% 58%)"];
@@ -151,7 +166,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             mode: vizMode,
             scenes: cues.map((instruction, i) => ({
               id: `custom_${i}`,
-              label: `Scène ${i + 1}`,
+              label: t("admin.toolboxForm.sceneLabel", { n: i + 1 }),
               instruction,
               duration_sec: per,
               color: palette[i % palette.length],
@@ -161,7 +176,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         break;
       }
       case "stop_protocol": {
-        title = `Protocole STOP`;
+        title = t("admin.toolboxForm.titleStop");
         const steps = parseStopSteps(stopStepsRaw);
         const nSteps = steps.length || 4;
         duration = `${Math.max(1, Math.round((stopStepSec * nSteps) / 60))} min`;
@@ -173,7 +188,11 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         break;
       }
       case "intention":
-        title = inQuestion.trim() ? `Intention – ${inQuestion.trim().slice(0, 48)}${inQuestion.trim().length > 48 ? "…" : ""}` : "Intention";
+        title = inQuestion.trim()
+          ? t("admin.toolboxForm.titleIntention", {
+              q: `${inQuestion.trim().slice(0, 48)}${inQuestion.trim().length > 48 ? "…" : ""}`,
+            })
+          : t("admin.toolboxForm.titleIntentionShort");
         duration = `${inDuration} min`;
         widgetConfig = {
           ...(inQuestion.trim() ? { question: inQuestion.trim() } : {}),
@@ -183,7 +202,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         };
         break;
       case "affirmations":
-        title = `Affirmations`;
+        title = t("admin.toolboxForm.titleAffirmations");
         duration = `${affDuration} min`;
         widgetConfig = {
           duration_min: affDuration,
@@ -191,24 +210,24 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         };
         break;
       case "gratitude":
-        title = `Gratitude Check-in`;
+        title = t("admin.toolboxForm.titleGratitude");
         duration = "5 min";
         widgetConfig = { entries_count: gratEntries };
         break;
       case "journal_prompt":
-        if (!jpPrompt.trim()) { toast({ title: "Erreur", description: "Le prompt est requis", variant: "destructive" }); setSubmitting(false); return; }
+        if (!jpPrompt.trim()) { toast({ title: t("toast.error"), description: t("admin.toolboxForm.errPromptRequired"), variant: "destructive" }); setSubmitting(false); return; }
         // Insert into journal_prompts table
         const { error: jpError } = await supabase.from("journal_prompts" as any).insert({
           user_id: userId, assigned_by: user.id, prompt_text: jpPrompt,
         } as any);
-        if (jpError) { toast({ title: "Erreur", description: jpError.message, variant: "destructive" }); setSubmitting(false); return; }
+        if (jpError) { toast({ title: t("toast.error"), description: jpError.message, variant: "destructive" }); setSubmitting(false); return; }
         // Also create toolbox assignment for tracking
-        title = `Journal Prompt`;
+        title = t("admin.toolboxForm.titleJournalPrompt");
         duration = "10 min";
         widgetConfig = { prompt: jpPrompt };
         break;
       case "external_link":
-        if (!elTitle.trim() || !elUrl.trim()) { toast({ title: "Erreur", description: "Titre et URL requis", variant: "destructive" }); setSubmitting(false); return; }
+        if (!elTitle.trim() || !elUrl.trim()) { toast({ title: t("toast.error"), description: t("admin.toolboxForm.errTitleUrlRequired"), variant: "destructive" }); setSubmitting(false); return; }
         title = elTitle;
         duration = elDuration || "—";
         externalUrl = elUrl;
@@ -226,8 +245,8 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
     };
 
     const { error } = await supabase.from("toolbox_assignments" as any).insert(payload);
-    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
-    else { toast({ title: "Outil assigné", description: `"${title}" assigné avec succès` }); onAssigned(); }
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
+    else { toast({ title: t("admin.toolboxForm.toastAssignedTitle"), description: t("admin.toolboxForm.toastAssignedDesc", { title }) }); onAssigned(); }
     setSubmitting(false);
   };
 
@@ -236,7 +255,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
   return (
     <div className="space-y-4">
-      <p className="text-neural-label">Assigner un outil</p>
+      <p className="text-neural-label">{t("admin.toolboxForm.assignHeading")}</p>
 
       {/* Widget type selector */}
       <div className="flex flex-wrap gap-2">
@@ -260,36 +279,36 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   <div>
-                    <label className={labelClass}>Cycles</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.label.cycles")}</label>
                     <input type="number" min={1} max={20} value={bwCycles} onChange={(e) => setBwCycles(+e.target.value)} className={inputClass} />
                   </div>
                   <div>
-                    <label className={labelClass}>Inspir (s)</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.label.inhaleSec")}</label>
                     <input type="number" min={1} max={30} value={bwBreathIn} onChange={(e) => setBwBreathIn(+e.target.value)} className={inputClass} />
                   </div>
                   <div>
-                    <label className={labelClass}>Pause 1 (s)</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.label.pause1Sec")}</label>
                     <input type="number" min={0} max={30} value={bwPause1} onChange={(e) => setBwPause1(+e.target.value)} className={inputClass} />
                   </div>
                   <div>
-                    <label className={labelClass}>Expir (s)</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.label.exhaleSec")}</label>
                     <input type="number" min={1} max={30} value={bwBreathOut} onChange={(e) => setBwBreathOut(+e.target.value)} className={inputClass} />
                   </div>
                   <div>
-                    <label className={labelClass}>Pause 2 (s)</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.label.pause2Sec")}</label>
                     <input type="number" min={0} max={30} value={bwPause2} onChange={(e) => setBwPause2(+e.target.value)} className={inputClass} />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Durée totale estimée : <span className="text-primary font-medium">{computeBreathworkDuration()} min</span> ({bwCycles} × {bwBreathIn + bwPause1 + bwBreathOut + bwPause2}s)</p>
+                <p className="text-xs text-muted-foreground">{t("admin.toolboxForm.breathworkEstimated")} <span className="text-primary font-medium">{computeBreathworkDuration()} min</span> ({bwCycles} × {bwBreathIn + bwPause1 + bwBreathOut + bwPause2}s)</p>
 
                 {/* Cycle preview */}
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(bwCycles, 8) }).map((_, i) => (
                     <div key={i} className="flex items-center gap-0.5">
-                      <div className="w-2 h-6 rounded-sm bg-primary/40" title={`Inspir ${bwBreathIn}s`} />
-                      <div className="w-1.5 h-3 rounded-sm bg-primary/20" title={`Pause ${bwPause1}s`} />
-                      <div className="w-2 h-6 rounded-sm bg-neural-accent/40" title={`Expir ${bwBreathOut}s`} />
-                      <div className="w-1.5 h-3 rounded-sm bg-neural-accent/20" title={`Pause ${bwPause2}s`} />
+                      <div className="w-2 h-6 rounded-sm bg-primary/40" title={`${t("admin.toolboxForm.breathTitleInhale")} ${bwBreathIn}s`} />
+                      <div className="w-1.5 h-3 rounded-sm bg-primary/20" title={`${t("admin.toolboxForm.breathTitlePause")} ${bwPause1}s`} />
+                      <div className="w-2 h-6 rounded-sm bg-neural-accent/40" title={`${t("admin.toolboxForm.breathTitleExhale")} ${bwBreathOut}s`} />
+                      <div className="w-1.5 h-3 rounded-sm bg-neural-accent/20" title={`${t("admin.toolboxForm.breathTitlePause")} ${bwPause2}s`} />
                     </div>
                   ))}
                   {bwCycles > 8 && <span className="text-neural-label ml-1">+{bwCycles - 8}</span>}
@@ -300,19 +319,19 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             {selectedType === "focus_introspectif" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClass}>Durée (min)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.durationMin")}</label>
                   <input type="number" min={1} max={60} value={fiDuration} onChange={(e) => setFiDuration(+e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Intention</label>
-                  <input type="text" value={fiIntention} onChange={(e) => setFiIntention(e.target.value)} placeholder="Ex: Ancrage émotionnel, Clarté décisionnelle…" className={inputClass} />
+                  <label className={labelClass}>{t("admin.toolboxForm.intentionLabel")}</label>
+                  <input type="text" value={fiIntention} onChange={(e) => setFiIntention(e.target.value)} placeholder={t("admin.toolboxForm.intentionPlaceholder")} className={inputClass} />
                 </div>
               </div>
             )}
 
             {selectedType === "body_scan" && (
               <div>
-                <label className={labelClass}>Durée (min)</label>
+                <label className={labelClass}>{t("admin.toolboxForm.bodyScanDuration")}</label>
                 <input type="number" min={1} max={60} value={bsDuration} onChange={(e) => setBsDuration(+e.target.value)} className={inputClass} />
               </div>
             )}
@@ -320,12 +339,12 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             {selectedType === "visualization" && (
               <div className="space-y-3">
                 <div>
-                  <label className={labelClass}>Mode</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.modeLabel")}</label>
                   <div className="flex flex-wrap gap-2">
                     {(
                       [
-                        { v: "timed" as const, l: "Temporisé (auto)" },
-                        { v: "manual" as const, l: "Manuel (suivant)" },
+                        { v: "timed" as const, l: t("admin.toolboxForm.vizModeTimed") },
+                        { v: "manual" as const, l: t("admin.toolboxForm.vizModeManual") },
                       ] as const
                     ).map((opt) => (
                       <button
@@ -342,16 +361,16 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                   </div>
                 </div>
                 <div>
-                  <label className={labelClass}>Durée cible (min)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.vizTargetMin")}</label>
                   <input type="number" min={1} max={45} value={vizDuration} onChange={(e) => setVizDuration(+e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Textes de guidage (une par ligne, optionnel)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.vizCuesLabel")}</label>
                   <textarea
                     value={vizCues}
                     onChange={(e) => setVizCues(e.target.value)}
                     rows={4}
-                    placeholder="Laissez vide pour le parcours par défaut (ancrage → retour)&#10;Ou saisissez vos propres instructions, une par ligne."
+                    placeholder={t("admin.toolboxForm.vizCuesPlaceholder")}
                     className={inputClass}
                   />
                 </div>
@@ -361,12 +380,12 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             {selectedType === "stop_protocol" && (
               <div className="space-y-3">
                 <div>
-                  <label className={labelClass}>Mode</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.modeLabel")}</label>
                   <div className="flex flex-wrap gap-2">
                     {(
                       [
-                        { v: "manual" as const, l: "Manuel" },
-                        { v: "timed" as const, l: "Temporisé" },
+                        { v: "manual" as const, l: t("admin.toolboxForm.stopModeManual") },
+                        { v: "timed" as const, l: t("admin.toolboxForm.stopModeTimed") },
                       ] as const
                     ).map((opt) => (
                       <button
@@ -383,7 +402,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                   </div>
                 </div>
                 <div>
-                  <label className={labelClass}>Durée par étape (s)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.stopStepSec")}</label>
                   <input
                     type="number"
                     min={10}
@@ -394,15 +413,15 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Étapes personnalisées (optionnel, une par ligne : « Titre — indication »)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.stopStepsLabel")}</label>
                   <textarea
                     value={stopStepsRaw}
                     onChange={(e) => setStopStepsRaw(e.target.value)}
                     rows={5}
-                    placeholder={"Stop — Pausez ce que vous faites\nRespirez — …\nObservez — …\nReprenez — …"}
+                    placeholder={t("admin.toolboxForm.stopStepsPlaceholder")}
                     className={inputClass}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Si vide, le protocole STOP par défaut (S·T·O·P) est utilisé.</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t("admin.toolboxForm.stopDefaultHint")}</p>
                 </div>
               </div>
             )}
@@ -410,18 +429,18 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             {selectedType === "intention" && (
               <div className="space-y-4">
                 <div>
-                  <label className={labelClass}>Question centrale (optionnel)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.intentionQuestion")}</label>
                   <textarea
                     value={inQuestion}
                     onChange={(e) => setInQuestion(e.target.value)}
                     rows={2}
-                    placeholder="Vide = question par défaut dans l’app"
+                    placeholder={t("admin.toolboxForm.intentionQuestionPlaceholder")}
                     className={inputClass}
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={labelClass}>Durée de réflexion (min)</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.reflectionMin")}</label>
                     <input type="number" min={1} max={30} value={inDuration} onChange={(e) => setInDuration(+e.target.value)} className={inputClass} />
                   </div>
                   <div className="flex items-end pb-2">
@@ -432,18 +451,18 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                         onChange={(e) => setInAllowNote(e.target.checked)}
                         className="rounded border-border"
                       />
-                      Proposer une note après le timer
+                      {t("admin.toolboxForm.offerNoteAfter")}
                     </label>
                   </div>
                 </div>
                 {inAllowNote && (
                   <div>
-                    <label className={labelClass}>Placeholder de la note (optionnel)</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.notePlaceholderLabel")}</label>
                     <input
                       type="text"
                       value={inNotePrompt}
                       onChange={(e) => setInNotePrompt(e.target.value)}
-                      placeholder="Mon intention du jour…"
+                      placeholder={t("toolbox.intentionWidget.notePlaceholder")}
                       className={inputClass}
                     />
                   </div>
@@ -454,28 +473,28 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             {selectedType === "affirmations" && (
               <div className="space-y-3">
                 <div>
-                  <label className={labelClass}>Durée (min)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.affirmDuration")}</label>
                   <input type="number" min={1} max={30} value={affDuration} onChange={(e) => setAffDuration(+e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Affirmations (une par ligne)</label>
-                  <textarea value={affirmations} onChange={(e) => setAffirmations(e.target.value)} rows={4} placeholder="Je suis capable de prendre des décisions claires&#10;Je mérite le succès&#10;Ma vision est claire" className={inputClass} />
+                  <label className={labelClass}>{t("admin.toolboxForm.affirmLines")}</label>
+                  <textarea value={affirmations} onChange={(e) => setAffirmations(e.target.value)} rows={4} placeholder={t("admin.toolboxForm.affirmPlaceholder")} className={inputClass} />
                 </div>
               </div>
             )}
 
             {selectedType === "gratitude" && (
               <div>
-                <label className={labelClass}>Nombre d'entrées</label>
+                <label className={labelClass}>{t("admin.toolboxForm.gratitudeEntries")}</label>
                 <input type="number" min={1} max={10} value={gratEntries} onChange={(e) => setGratEntries(+e.target.value)} className={inputClass} />
               </div>
             )}
 
             {selectedType === "journal_prompt" && (
               <div>
-                <label className={labelClass}>Prompt de journaling</label>
+                <label className={labelClass}>{t("admin.toolboxForm.journalPromptLabel")}</label>
                 <textarea value={jpPrompt} onChange={(e) => setJpPrompt(e.target.value)} rows={3}
-                  placeholder="Ex: Qu'est-ce qui vous a surpris aujourd'hui ? Quelle décision avez-vous reportée et pourquoi ?"
+                  placeholder={t("admin.toolboxForm.journalPromptPlaceholder")}
                   className={inputClass} />
               </div>
             )}
@@ -484,16 +503,16 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClass}>Titre</label>
-                    <input type="text" value={elTitle} onChange={(e) => setElTitle(e.target.value)} placeholder="Nom du contenu" className={inputClass} />
+                    <label className={labelClass}>{t("admin.toolboxForm.extTitle")}</label>
+                    <input type="text" value={elTitle} onChange={(e) => setElTitle(e.target.value)} placeholder={t("admin.toolboxForm.extTitlePlaceholder")} className={inputClass} />
                   </div>
                   <div>
-                    <label className={labelClass}>Durée (optionnel)</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.extDurationOptional")}</label>
                     <input type="text" value={elDuration} onChange={(e) => setElDuration(e.target.value)} placeholder="45 min" className={inputClass} />
                   </div>
                 </div>
                 <div>
-                  <label className={labelClass}>URL</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.extUrl")}</label>
                   <input type="url" value={elUrl} onChange={(e) => setElUrl(e.target.value)} placeholder="https://..." className={inputClass} />
                 </div>
               </div>
@@ -501,7 +520,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
             <button onClick={handleSubmit} disabled={submitting}
               className="btn-neural disabled:opacity-50">
-              <Send size={14} /> {submitting ? "Assignation…" : "Assigner"}
+              <Send size={14} /> {submitting ? t("admin.toolboxForm.submitting") : t("admin.toolboxForm.submit")}
             </button>
           </motion.div>
         )}

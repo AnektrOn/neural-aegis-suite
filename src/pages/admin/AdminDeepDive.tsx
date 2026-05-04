@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Search, Sparkles, ChevronDown, ChevronRight, Download } from "lucide-react";
+import { Loader2, Search, Sparkles, ChevronDown, ChevronRight, Download, FileText } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   type DeepDiveResult,
 } from "@/features/archetype-deepdive-v2/domain/computeDeepDiveScores";
 import { loadUnifiedDeepDiveResultsForAllUsers } from "@/features/archetype-deepdive-v2/domain/loadUnifiedScores";
+import {
+  buildDeepDiveScoresMarkdown,
+  slugifyForFilename,
+} from "@/features/archetype-deepdive-v2/domain/exportDeepDiveScoresMarkdown";
 import { archLabel } from "@/features/archetype-deepdive-v2/domain/narrativeContent";
+import type { Locale } from "@/i18n/translations";
 
 interface UserRow {
   id: string;
@@ -17,6 +22,16 @@ interface UserRow {
 interface UserScore {
   user: UserRow;
   result: DeepDiveResult;
+}
+
+function downloadMarkdown(content: string, filename: string) {
+  const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function AdminDeepDive() {
@@ -130,6 +145,32 @@ export default function AdminDeepDive() {
     URL.revokeObjectURL(url);
   }
 
+  function downloadUserMarkdown(user: UserRow, result: DeepDiveResult, loc: Locale) {
+    const md = buildDeepDiveScoresMarkdown({
+      userId: user.id,
+      displayName: user.display_name,
+      result,
+      locale: loc,
+    });
+    const stem = slugifyForFilename(user.display_name || user.id.slice(0, 8));
+    const date = new Date().toISOString().slice(0, 10);
+    downloadMarkdown(md, `deep-dive-scores-${stem}-${date}.md`);
+  }
+
+  function downloadAllMarkdownFiltered(loc: Locale) {
+    const date = new Date().toISOString().slice(0, 10);
+    const parts = filtered.map(({ user, result }) =>
+      buildDeepDiveScoresMarkdown({
+        userId: user.id,
+        displayName: user.display_name,
+        result,
+        locale: loc,
+      }),
+    );
+    const combined = parts.join("\n\n---\n\n");
+    downloadMarkdown(combined, `deep-dive-scores-all-${date}.md`);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -175,6 +216,15 @@ export default function AdminDeepDive() {
           <Download size={14} />
           {locale === "fr" ? "Exporter CSV" : "Export CSV"}
         </button>
+        <button
+          type="button"
+          onClick={() => downloadAllMarkdownFiltered(locale)}
+          disabled={filtered.length === 0}
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border-subtle bg-bg-elevated/40 text-foreground text-xs hover:bg-bg-elevated/70 transition-all disabled:opacity-40 disabled:pointer-events-none"
+        >
+          <FileText size={14} />
+          {locale === "fr" ? "Tout en Markdown" : "All as Markdown"}
+        </button>
       </div>
 
       {filtered.length === 0 ? (
@@ -191,27 +241,38 @@ export default function AdminDeepDive() {
                 layout
                 className="rounded-2xl border border-border-subtle bg-bg-surface/40 backdrop-blur-xl overflow-hidden"
               >
-                <button
-                  type="button"
-                  onClick={() => setExpanded(isOpen ? null : user.id)}
-                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-bg-elevated/40 transition-colors"
-                >
-                  {isOpen ? (
-                    <ChevronDown size={16} className="text-text-tertiary shrink-0" />
-                  ) : (
-                    <ChevronRight size={16} className="text-text-tertiary shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-foreground text-sm truncate">
-                      {user.display_name ?? user.id.slice(0, 8)}
-                    </p>
-                    <p className="text-[11px] text-text-tertiary mt-0.5">
-                      {result.answeredCount}/{result.totalQuestions}{" "}
-                      {locale === "fr" ? "questions" : "questions"} ·{" "}
-                      {Math.round(result.completionPct)}%
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end max-w-[55%]">
+                <div className="flex w-full items-stretch gap-1 px-2 py-1 sm:px-3 sm:py-1">
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(isOpen ? null : user.id)}
+                    className="flex flex-1 min-w-0 items-center gap-3 px-2 py-2.5 text-left rounded-xl hover:bg-bg-elevated/40 transition-colors"
+                  >
+                    {isOpen ? (
+                      <ChevronDown size={16} className="text-text-tertiary shrink-0" />
+                    ) : (
+                      <ChevronRight size={16} className="text-text-tertiary shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-foreground text-sm truncate">
+                        {user.display_name ?? user.id.slice(0, 8)}
+                      </p>
+                      <p className="text-[11px] text-text-tertiary mt-0.5">
+                        {result.answeredCount}/{result.totalQuestions}{" "}
+                        {locale === "fr" ? "questions" : "questions"} ·{" "}
+                        {Math.round(result.completionPct)}%
+                      </p>
+                    </div>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-1.5 pr-1 flex-wrap justify-end max-w-[min(52%,12rem)] sm:max-w-[55%]">
+                    <button
+                      type="button"
+                      onClick={() => downloadUserMarkdown(user, result, locale)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated/30 text-primary hover:bg-primary/10 hover:border-primary/30 transition-colors"
+                      title={locale === "fr" ? "Télécharger les scores (.md)" : "Download scores (.md)"}
+                      aria-label={locale === "fr" ? "Télécharger les scores Markdown" : "Download Markdown scores"}
+                    >
+                      <FileText size={16} />
+                    </button>
                     {result.topThree.slice(0, 3).map((arch) => (
                       <span
                         key={arch}
@@ -221,7 +282,7 @@ export default function AdminDeepDive() {
                       </span>
                     ))}
                   </div>
-                </button>
+                </div>
 
                 {isOpen && (
                   <div className="border-t border-border-subtle px-4 py-4 space-y-4">
