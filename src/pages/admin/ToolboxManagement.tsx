@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
+import DriveVideoBulkImport from "@/components/admin/DriveVideoBulkImport";
 
 interface ToolboxAssignment {
   id: string;
@@ -136,6 +137,8 @@ export default function ToolboxManagement() {
           <ToolboxAssignmentForm userId={selectedUser} onAssigned={loadData} />
         )}
       </div>
+
+      <DriveVideoBulkImport onImported={loadData} />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">

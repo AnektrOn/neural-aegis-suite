@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.compute-daily-scoreboard]
 verify_jwt = false
+
+[functions.import-drive-links]
+verify_jwt = true
