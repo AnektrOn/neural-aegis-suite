@@ -325,7 +325,10 @@ export const translations = {
   "toolbox.completed": { fr: "Terminés", en: "Completed" },
   "toolbox.abandoned": { fr: "Abandonnés", en: "Abandoned" },
   "toolbox.ignored": { fr: "Ignorés", en: "Ignored" },
+  "toolbox.reported": { fr: "Reportés", en: "Deferred" },
+  "toolbox.pending": { fr: "En attente", en: "Pending" },
   "toolbox.filterAll": { fr: "Tout", en: "All" },
+  "toolbox.statusFilterAll": { fr: "Tous statuts", en: "All statuses" },
   "toolbox.noContentAssigned": { fr: "Aucun contenu assigné. Votre coach vous assignera des outils depuis le panneau admin.", en: "No content assigned. Your coach will assign tools from the admin panel." },
   "toolbox.close": { fr: "Fermer ✕", en: "Close ✕" },
   "toolbox.launch": { fr: "Lancer", en: "Launch" },
@@ -470,8 +473,11 @@ export const translations = {
   "habits.assignedHabits": { fr: "Habitudes assignées", en: "Assigned habits" },
   "habits.dailyScore": { fr: "Score du jour", en: "Daily score" },
   "habits.noHabitsAssigned": { fr: "Aucune habitude assignée. Votre coach vous assignera des habitudes depuis le panneau admin.", en: "No habits assigned. Your coach will assign habits from the admin panel." },
+  "habits.noHabitsInFilters": { fr: "Aucune habitude dans ce filtre.", en: "No habits match these filters." },
   "habits.unknown": { fr: "Inconnu", en: "Unknown" },
   "habits.categoryGeneral": { fr: "Général", en: "General" },
+  "habits.filterAllCategories": { fr: "Toutes catégories", en: "All categories" },
+  "habits.filterAllStatuses": { fr: "Tous statuts", en: "All statuses" },
 
   // People
   "people.periodDay": { fr: "Jour", en: "Day" },

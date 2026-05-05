@@ -463,6 +463,22 @@ export async function assignJournalPromptTemplateToUser(params: {
     .single();
   if (error) throw error;
 
+  // Mirror journal prompts into Toolbox so users can execute them
+  // through the same widget/status flow as other toolbox items.
+  const { error: toolboxError } = await supabase
+    .from("toolbox_assignments" as any)
+    .insert({
+      user_id: userId,
+      content_type: "journal_prompt",
+      title: template.title || "Journal Prompt",
+      duration: template.duration || "10 min",
+      description: null,
+      widget_config: { prompt: template.prompt_text },
+      assigned_by: actorId,
+      template_id: template.id,
+    } as any);
+  if (toolboxError) throw toolboxError;
+
   await logProgramEvent({
     actor_id: actorId,
     user_id: userId,

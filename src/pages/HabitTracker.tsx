@@ -32,6 +32,8 @@ export default function HabitTracker() {
   const [habits, setHabits] = useState<AssignedHabit[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "pending">("all");
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
@@ -72,6 +74,16 @@ export default function HabitTracker() {
   };
 
   const completedCount = completedIds.size;
+  const categories = ["all", ...new Set(habits.map((h) => h.template_category).filter(Boolean))];
+  const filteredHabits = habits.filter((habit) => {
+    const byCategory = categoryFilter === "all" || habit.template_category === categoryFilter;
+    const isDone = completedIds.has(habit.id);
+    const byStatus =
+      statusFilter === "all" ||
+      (statusFilter === "completed" && isDone) ||
+      (statusFilter === "pending" && !isDone);
+    return byCategory && byStatus;
+  });
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
@@ -101,14 +113,50 @@ export default function HabitTracker() {
         </motion.div>
       </div>
 
-      {habits.length === 0 ? (
+      <div className="flex flex-wrap gap-2">
+        {categories.map((category) => (
+          <button
+            key={category}
+            onClick={() => setCategoryFilter(category)}
+            className={`text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-lg border transition-all ${
+              categoryFilter === category
+                ? "border-primary/40 bg-primary/5 text-primary"
+                : "border-border/30 text-muted-foreground hover:border-primary/30"
+            }`}
+          >
+            {category === "all" ? t("habits.filterAllCategories") : category}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {[
+          { key: "all" as const, label: t("habits.filterAllStatuses") },
+          { key: "completed" as const, label: t("toolbox.completed") },
+          { key: "pending" as const, label: t("toolbox.pending") },
+        ].map((entry) => (
+          <button
+            key={entry.key}
+            onClick={() => setStatusFilter(entry.key)}
+            className={`text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-lg border transition-all ${
+              statusFilter === entry.key
+                ? "border-primary/40 bg-primary/5 text-primary"
+                : "border-border/30 text-muted-foreground hover:border-primary/30"
+            }`}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredHabits.length === 0 ? (
         <div className="ethereal-glass p-12 text-center">
           <ListChecks size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-          <p className="text-muted-foreground text-sm">{t("habits.noHabitsAssigned")}</p>
+          <p className="text-muted-foreground text-sm">{habits.length === 0 ? t("habits.noHabitsAssigned") : t("habits.noHabitsInFilters")}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {habits.map((habit, i) => {
+          {filteredHabits.map((habit, i) => {
             const completed = completedIds.has(habit.id);
             return (
               <motion.div key={habit.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.05 }}

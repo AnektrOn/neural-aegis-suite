@@ -99,6 +99,7 @@ export default function Toolbox() {
   const [completions, setCompletions] = useState<CompletionRecord[]>([]);
   const [activeWidget, setActiveWidget] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "abandoned" | "ignored" | "pending">("all");
   const [completionDialog, setCompletionDialog] = useState<{ open: boolean; itemId: string | null; status: string }>({ open: false, itemId: null, status: "" });
 
   useEffect(() => {
@@ -199,7 +200,18 @@ export default function Toolbox() {
     setActiveWidget(null);
   }, []);
 
-  const filtered = filter === "all" ? items : items.filter((i) => i.content_type === filter);
+  const getItemStatus = (itemId: string): "completed" | "abandoned" | "ignored" | "pending" => {
+    const latest = getLatestCompletion(itemId);
+    if (!latest) return "pending";
+    if (latest.status === "completed" || latest.status === "abandoned" || latest.status === "ignored") {
+      return latest.status;
+    }
+    return "pending";
+  };
+
+  const filtered = items
+    .filter((i) => filter === "all" || i.content_type === filter)
+    .filter((i) => statusFilter === "all" || getItemStatus(i.id) === statusFilter);
   const types = ["all", ...new Set(items.map((i) => i.content_type))];
 
   const getTypeLabel = (type: string) => {
@@ -351,6 +363,28 @@ export default function Toolbox() {
               filter === f ? "text-primary border-primary/30 bg-primary/5" : "text-muted-foreground border-border hover:border-muted-foreground/30"
             }`}>
             {getTypeLabel(f)}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        {[
+          { key: "all" as const, label: t("toolbox.statusFilterAll") },
+          { key: "completed" as const, label: t("toolbox.completed") },
+          { key: "abandoned" as const, label: t("toolbox.abandoned") },
+          { key: "ignored" as const, label: t("toolbox.reported") },
+          { key: "pending" as const, label: t("toolbox.pending") },
+        ].map((entry) => (
+          <button
+            key={entry.key}
+            onClick={() => setStatusFilter(entry.key)}
+            className={`text-[9px] uppercase tracking-[0.3em] px-4 py-2 rounded-full border transition-all ${
+              statusFilter === entry.key
+                ? "text-primary border-primary/30 bg-primary/5"
+                : "text-muted-foreground border-border hover:border-muted-foreground/30"
+            }`}
+          >
+            {entry.label}
           </button>
         ))}
       </div>

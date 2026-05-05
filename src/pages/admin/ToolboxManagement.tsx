@@ -92,6 +92,10 @@ export default function ToolboxManagement() {
   const [catalogSelectedUser, setCatalogSelectedUser] = useState("");
   const [catalogAssigning, setCatalogAssigning] = useState<string | null>(null);
   const [journalAssigning, setJournalAssigning] = useState<string | null>(null);
+  const [catalogCategoryFilter, setCatalogCategoryFilter] = useState("all");
+  const [catalogDurationFilter, setCatalogDurationFilter] = useState("");
+  const [catalogCreatedFrom, setCatalogCreatedFrom] = useState("");
+  const [catalogCreatedTo, setCatalogCreatedTo] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
@@ -158,6 +162,17 @@ export default function ToolboxManagement() {
   };
 
   const allTypes = ["all", ...new Set(assignments.map((a) => a.content_type))];
+  const catalogTypes = ["all", ...new Set(templates.map((t) => t.content_type))];
+  const filteredTemplates = templates.filter((tmpl) => {
+    const byCategory = catalogCategoryFilter === "all" || tmpl.content_type === catalogCategoryFilter;
+    const byDuration =
+      !catalogDurationFilter.trim() ||
+      (tmpl.duration || "").toLowerCase().includes(catalogDurationFilter.toLowerCase().trim());
+    const created = new Date(tmpl.created_at);
+    const fromOk = !catalogCreatedFrom || created >= new Date(`${catalogCreatedFrom}T00:00:00`);
+    const toOk = !catalogCreatedTo || created <= new Date(`${catalogCreatedTo}T23:59:59`);
+    return byCategory && byDuration && fromOk && toOk;
+  });
   const filtered = assignments
     .filter((a) => filterType === "all" || a.content_type === filterType)
     .filter((a) => !search || (a.user_name || "").toLowerCase().includes(search.toLowerCase()) || a.title.toLowerCase().includes(search.toLowerCase()));
@@ -214,6 +229,40 @@ export default function ToolboxManagement() {
                 ))}
               </select>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label className="text-neural-label block mb-1.5">Catégorie</label>
+                <select
+                  value={catalogCategoryFilter}
+                  onChange={(e) => setCatalogCategoryFilter(e.target.value)}
+                  className={inputClass}
+                >
+                  {catalogTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type === "all" ? t("admin.toolboxMgmt.filterAll") : TYPE_META[type]?.label || type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-neural-label block mb-1.5">Durée</label>
+                <input
+                  type="text"
+                  value={catalogDurationFilter}
+                  onChange={(e) => setCatalogDurationFilter(e.target.value)}
+                  placeholder="ex: 10 min"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="text-neural-label block mb-1.5">Créé du</label>
+                <input type="date" value={catalogCreatedFrom} onChange={(e) => setCatalogCreatedFrom(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className="text-neural-label block mb-1.5">Créé au</label>
+                <input type="date" value={catalogCreatedTo} onChange={(e) => setCatalogCreatedTo(e.target.value)} className={inputClass} />
+              </div>
+            </div>
           </div>
 
           {loading ? (
@@ -231,8 +280,8 @@ export default function ToolboxManagement() {
             {/* Toolbox templates */}
             {templates.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Outils ({templates.length})</p>
-              {templates.map((tmpl, i) => {
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Outils ({filteredTemplates.length}/{templates.length})</p>
+              {filteredTemplates.map((tmpl, i) => {
                 const meta = TYPE_META[tmpl.content_type] || TYPE_META.course;
                 const isAssigning = catalogAssigning === tmpl.id;
                 return (
