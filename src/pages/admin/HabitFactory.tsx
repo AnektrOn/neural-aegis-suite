@@ -36,6 +36,10 @@ export default function HabitFactory() {
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", category: "", description: "" });
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [durationFilter, setDurationFilter] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
 
   const categories = ["Mind", "Body", "Leadership", "Performance", "Growth", "Wellness"];
 
@@ -105,9 +109,21 @@ export default function HabitFactory() {
   const getAssignedUsers = (templateId: string) =>
     assignments.filter((a) => a.habit_template_id === templateId && a.is_active);
 
-  const filtered = templates.filter(
-    (t) => t.name.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = templates.filter((t) => {
+    const bySearch =
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.category.toLowerCase().includes(search.toLowerCase());
+    const byCategory = categoryFilter === "all" || t.category === categoryFilter;
+    // Habit templates have no dedicated duration field yet:
+    // we allow admins to filter by duration keyword in description.
+    const byDuration =
+      !durationFilter.trim() ||
+      (t.description || "").toLowerCase().includes(durationFilter.toLowerCase().trim());
+    const created = new Date(t.created_at);
+    const fromOk = !createdFrom || created >= new Date(`${createdFrom}T00:00:00`);
+    const toOk = !createdTo || created <= new Date(`${createdTo}T23:59:59`);
+    return bySearch && byCategory && byDuration && fromOk && toOk;
+  });
 
   return (
     <div className="space-y-8 max-w-6xl">
@@ -185,6 +201,52 @@ export default function HabitFactory() {
           placeholder="Search habits..."
           className="w-full bg-secondary/20 border border-border/20 rounded-xl pl-12 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/30 transition-colors"
         />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div>
+          <label className="text-neural-label block mb-2">Catégorie</label>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-neural-accent/40 transition-colors"
+          >
+            <option value="all">Toutes</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-neural-label block mb-2">Durée</label>
+          <input
+            type="text"
+            value={durationFilter}
+            onChange={(e) => setDurationFilter(e.target.value)}
+            placeholder="ex: 10 min (dans description)"
+            className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/40 transition-colors"
+          />
+        </div>
+        <div>
+          <label className="text-neural-label block mb-2">Créé du</label>
+          <input
+            type="date"
+            value={createdFrom}
+            onChange={(e) => setCreatedFrom(e.target.value)}
+            className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-neural-accent/40 transition-colors"
+          />
+        </div>
+        <div>
+          <label className="text-neural-label block mb-2">Créé au</label>
+          <input
+            type="date"
+            value={createdTo}
+            onChange={(e) => setCreatedTo(e.target.value)}
+            className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-neural-accent/40 transition-colors"
+          />
+        </div>
       </div>
 
       {/* Templates list */}
