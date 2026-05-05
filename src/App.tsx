@@ -19,6 +19,7 @@ const MoodTracker = lazy(() => import("./pages/MoodTracker"));
 const DecisionLog = lazy(() => import("./pages/DecisionLog"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const Toolbox = lazy(() => import("./pages/Toolbox"));
+const Bibliotheque = lazy(() => import("./pages/Bibliotheque"));
 const PeopleBoard = lazy(() => import("./pages/PeopleBoard"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Journal = lazy(() => import("./pages/Journal"));
@@ -36,6 +37,8 @@ const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const ExecutiveDashboard = lazy(() => import("./pages/admin/ExecutiveDashboard"));
 const CompanyManagement = lazy(() => import("./pages/admin/CompanyManagement"));
 const ToolboxManagement = lazy(() => import("./pages/admin/ToolboxManagement"));
+const VideoLibraryAdmin = lazy(() => import("./pages/admin/VideoLibraryAdmin"));
+const ProgramBuilder = lazy(() => import("./pages/admin/ProgramBuilder"));
 const AdminDecisions = lazy(() => import("./pages/admin/AdminDecisions"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const ScoreboardConfig = lazy(() => import("./pages/admin/ScoreboardConfig"));
@@ -111,6 +114,8 @@ const App = () => (
                               <Route path="/executive" element={<ExecutiveDashboard />} />
                               <Route path="/companies" element={<CompanyManagement />} />
                               <Route path="/toolbox" element={<ToolboxManagement />} />
+                              <Route path="/program-builder" element={<ProgramBuilder />} />
+                              <Route path="/video-library" element={<VideoLibraryAdmin />} />
                               <Route path="/decisions" element={<AdminDecisions />} />
                               <Route path="/messages" element={<AdminMessages />} />
                               <Route path="/scoreboard" element={<ScoreboardConfig />} />
@@ -142,6 +147,7 @@ const App = () => (
                             <Route path="/habits" element={<HabitTracker />} />
                             <Route path="/journal" element={<Journal />} />
                             <Route path="/toolbox" element={<Toolbox />} />
+                            <Route path="/bibliotheque" element={<Bibliotheque />} />
                             <Route path="/people" element={<PeopleBoard />} />
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/profile" element={<Profile />} />

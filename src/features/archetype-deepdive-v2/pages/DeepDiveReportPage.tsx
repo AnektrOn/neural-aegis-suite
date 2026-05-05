@@ -15,6 +15,8 @@ import {
   type SampleProfile,
 } from "../domain/sampleProfile";
 import { buildDynamicProfile } from "../domain/dynamicProfileBuilder";
+import { loadUnifiedDeepDiveResult } from "../domain/loadUnifiedScores";
+import { supabase } from "@/integrations/supabase/client";
 import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
 import {
   listAllSessionsForAdmin,
@@ -134,12 +136,30 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
       try {
         const details = await getSessionFullDetails(sessionId);
         if (cancelled) return;
+
+        const userIdForDeep =
+          mode === "user" ? user!.id : selectedSession!.user_id;
+
+        let unified: Awaited<ReturnType<typeof loadUnifiedDeepDiveResult>> | null = null;
+        try {
+          const { count, error: countErr } = await supabase
+            .from("deepdive_responses" as any)
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", userIdForDeep);
+          if (!countErr && (count ?? 0) > 0) {
+            unified = await loadUnifiedDeepDiveResult(userIdForDeep);
+          }
+        } catch (e) {
+          console.warn("[DeepDive] unified score load failed", e);
+        }
+
         const dynProfile = buildDynamicProfile({
           sessionId,
           displayName: displayName ?? details.profile?.display_name ?? null,
           scores: (details.scores ?? []) as any,
           analysis: (details.analysis ?? null) as any,
           locale,
+          unified,
         });
         setProfile(dynProfile);
       } catch (e: any) {

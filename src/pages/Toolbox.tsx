@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Play, Headphones, Eye, BookOpen, Wind, Sparkles, Stars, Heart, Scan, Link as LinkIcon, ExternalLink, CheckCircle2, XCircle, EyeOff, RotateCcw, ShieldAlert, Target } from "lucide-react";
+import { Play, Headphones, Eye, BookOpen, Wind, Sparkles, Stars, Heart, Scan, Link as LinkIcon, ExternalLink, CheckCircle2, XCircle, EyeOff, RotateCcw, ShieldAlert, Target, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,8 @@ import JournalPromptWidget from "@/components/widgets/JournalPromptWidget";
 import VisualizationWidget from "@/components/widgets/VisualizationWidget";
 import StopProtocolWidget from "@/components/widgets/StopProtocolWidget";
 import IntentionWidget from "@/components/widgets/IntentionWidget";
+import MicroPracticeWidget from "@/components/widgets/MicroPracticeWidget";
+import { isLikelyVideoUrl } from "@/lib/video-links";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -47,6 +49,7 @@ const typeConfigKeys: Record<string, { icon: typeof Headphones; color: string; l
   external_link: { icon: LinkIcon, color: "text-muted-foreground", labelKey: "toolbox.typeExternalLink" },
   stop_protocol: { icon: ShieldAlert, color: "text-destructive", labelKey: "toolbox.typeStopProtocol" },
   intention: { icon: Target, color: "text-primary", labelKey: "toolbox.typeIntention" },
+  micro_practice: { icon: Zap, color: "text-neural-accent", labelKey: "toolbox.typeMicroPractice" },
 };
 
 const INTERACTIVE_WIDGET_TYPES = new Set([
@@ -59,6 +62,7 @@ const INTERACTIVE_WIDGET_TYPES = new Set([
   "journal_prompt",
   "stop_protocol",
   "intention",
+  "micro_practice",
 ]);
 
 function canRenderToolboxWidget(item: ToolboxItem): boolean {
@@ -80,6 +84,8 @@ function canRenderToolboxWidget(item: ToolboxItem): boolean {
       return !!c?.prompt?.trim();
     case "intention":
       return c != null;
+    case "micro_practice":
+      return true;
     default:
       return false;
   }
@@ -104,7 +110,12 @@ export default function Toolbox() {
       supabase.from("toolbox_assignments").select("*").eq("user_id", user!.id).order("assigned_at", { ascending: false }),
       supabase.from("toolbox_completions" as any).select("assignment_id, status").eq("user_id", user!.id),
     ]);
-    if (itemsRes.data) setItems(itemsRes.data as any);
+    if (itemsRes.data) {
+      const filteredItems = (itemsRes.data as ToolboxItem[]).filter(
+        (item) => !(item.content_type === "external_link" && isLikelyVideoUrl(item.external_url))
+      );
+      setItems(filteredItems as any);
+    }
     const comps = (compRes.data || []) as unknown as CompletionRecord[];
     setCompletions(comps);
 
@@ -204,7 +215,8 @@ export default function Toolbox() {
       item.content_type !== "stop_protocol" &&
       item.content_type !== "body_scan" &&
       item.content_type !== "visualization" &&
-      item.content_type !== "intention"
+      item.content_type !== "intention" &&
+      item.content_type !== "micro_practice"
     )
       return null;
     switch (item.content_type) {
@@ -275,6 +287,15 @@ export default function Toolbox() {
       case "gratitude":
         return (
           <GratitudeWidget
+            config={config ?? {}}
+            title={item.title}
+            onComplete={() => recordCompletion(item.id, "completed")}
+            onAbandon={() => recordCompletion(item.id, "abandoned")}
+          />
+        );
+      case "micro_practice":
+        return (
+          <MicroPracticeWidget
             config={config ?? {}}
             title={item.title}
             onComplete={() => recordCompletion(item.id, "completed")}

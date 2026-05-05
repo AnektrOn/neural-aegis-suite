@@ -8,8 +8,13 @@ const corsHeaders = {
 const DRIVE_SCOPE_DEFAULT = "https://www.googleapis.com/auth/drive.readonly";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
+const LIBRARY_SCOPES = ["global_fr", "global_en", "perso"] as const;
+type LibraryScope = (typeof LIBRARY_SCOPES)[number];
+
 type ImportPayload = {
   links?: unknown;
+  library_scope?: unknown;
+  user_ids?: unknown;
 };
 
 type DriveFileMetadata = {
@@ -229,6 +234,16 @@ Deno.serve(async (req) => {
       .map((value) => value.trim())
       .filter(Boolean);
 
+    let libraryScope: LibraryScope = "global_fr";
+    if (typeof body.library_scope === "string" && (LIBRARY_SCOPES as readonly string[]).includes(body.library_scope)) {
+      libraryScope = body.library_scope as LibraryScope;
+    }
+
+    const rawUserIds = Array.isArray(body.user_ids) ? body.user_ids : [];
+    const requestedUserIds = [...new Set(
+      rawUserIds.filter((value): value is string => typeof value === "string").map((id) => id.trim()).filter(Boolean),
+    )];
+
     if (links.length === 0) {
       return new Response(JSON.stringify({ error: "Payload must include a non-empty links array." }), {
         status: 400,
@@ -236,19 +251,40 @@ Deno.serve(async (req) => {
       });
     }
 
-    const uniqueLinks = [...new Set(links)];
-    const accessToken = await getGoogleAccessToken();
-
-    const { data: profiles, error: profilesError } = await adminClient
-      .from("profiles")
-      .select("id, is_disabled");
-    if (profilesError) {
-      throw new Error(`Failed to load profiles: ${profilesError.message}`);
+    if (requestedUserIds.length === 0) {
+      return new Response(JSON.stringify({ error: "Payload must include a non-empty user_ids array." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const targetUserIds = (profiles || [])
-      .filter((profile: { id: string; is_disabled: boolean | null }) => !profile.is_disabled)
-      .map((profile: { id: string }) => profile.id);
+    if (libraryScope === "perso" && requestedUserIds.length !== 1) {
+      return new Response(JSON.stringify({ error: "For library_scope 'perso', user_ids must contain exactly one user." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: validProfiles, error: validProfilesError } = await adminClient
+      .from("profiles")
+      .select("id")
+      .in("id", requestedUserIds)
+      .eq("is_disabled", false);
+
+    if (validProfilesError) {
+      throw new Error(`Failed to validate users: ${validProfilesError.message}`);
+    }
+
+    const targetUserIds = (validProfiles || []).map((p: { id: string }) => p.id);
+    if (targetUserIds.length !== requestedUserIds.length) {
+      return new Response(JSON.stringify({ error: "One or more user_ids are invalid or disabled." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const uniqueLinks = [...new Set(links)];
+    const accessToken = await getGoogleAccessToken();
 
     const results: Array<{
       input: string;
@@ -290,22 +326,66 @@ Deno.serve(async (req) => {
 
         processedVideos += 1;
         const previewUrl = toPreviewUrl(fileId);
-        const { data: existing, error: existingError } = await adminClient
-          .from("toolbox_assignments")
-          .select("user_id, external_url")
-          .eq("content_type", "external_link")
-          .eq("external_url", previewUrl);
+        const duration = deriveDurationLabel(metadata);
+        const description = `Imported from Google Drive (${metadata.createdTime || "unknown date"})`;
+        const meta = {
+          drive_mime_type: metadata.mimeType,
+          drive_created_time: metadata.createdTime,
+          drive_thumbnail_link: metadata.thumbnailLink,
+          duration_label: duration,
+        };
 
-        if (existingError) {
-          throw new Error(`Could not check duplicates: ${existingError.message}`);
+        const { data: existingVideo, error: findVideoError } = await adminClient
+          .from("library_videos")
+          .select("id")
+          .eq("drive_file_id", fileId)
+          .eq("library_scope", libraryScope)
+          .maybeSingle();
+
+        if (findVideoError) {
+          throw new Error(`Could not look up library video: ${findVideoError.message}`);
         }
 
-        const existingUserIds = new Set((existing || []).map((row: { user_id: string }) => row.user_id));
-        const usersToCreate = targetUserIds.filter((id) => !existingUserIds.has(id));
-        const duplicateCountForLink = targetUserIds.length - usersToCreate.length;
+        let videoId: string;
+        if (existingVideo?.id) {
+          videoId = existingVideo.id as string;
+        } else {
+          const { data: insertedVideo, error: videoInsertError } = await adminClient
+            .from("library_videos")
+            .insert({
+              title: metadata.name || "Untitled video",
+              description,
+              external_url: previewUrl,
+              provider: "google_drive",
+              drive_file_id: fileId,
+              meta,
+              library_scope: libraryScope,
+              created_by: caller.id,
+            } as any)
+            .select("id")
+            .single();
+
+          if (videoInsertError || !insertedVideo) {
+            throw new Error(videoInsertError?.message || "Failed to create library video row.");
+          }
+          videoId = (insertedVideo as { id: string }).id;
+        }
+
+        const { data: existingAssign, error: assignReadError } = await adminClient
+          .from("library_video_assignments")
+          .select("user_id")
+          .eq("video_id", videoId);
+
+        if (assignReadError) {
+          throw new Error(`Could not read assignments: ${assignReadError.message}`);
+        }
+
+        const already = new Set((existingAssign || []).map((row: { user_id: string }) => row.user_id));
+        const usersToAdd = targetUserIds.filter((id) => !already.has(id));
+        const duplicateCountForLink = targetUserIds.length - usersToAdd.length;
         skippedDuplicates += duplicateCountForLink;
 
-        if (usersToCreate.length === 0) {
+        if (usersToAdd.length === 0) {
           results.push({
             input,
             fileId,
@@ -318,39 +398,24 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const duration = deriveDurationLabel(metadata);
-        const description = `Imported from Google Drive (${metadata.createdTime || "unknown date"})`;
-        const widgetConfig = {
-          provider: "google_drive",
-          drive_file_id: fileId,
-          drive_mime_type: metadata.mimeType,
-          drive_created_time: metadata.createdTime,
-          drive_thumbnail_link: metadata.thumbnailLink,
-        };
-
-        const inserts = usersToCreate.map((userId) => ({
+        const assignRows = usersToAdd.map((userId) => ({
+          video_id: videoId,
           user_id: userId,
-          content_type: "external_link",
-          title: metadata.name || "Untitled video",
-          description,
-          duration,
           assigned_by: caller.id,
-          external_url: previewUrl,
-          widget_config: widgetConfig,
         }));
 
-        const { error: insertError } = await adminClient.from("toolbox_assignments").insert(inserts);
-        if (insertError) {
-          throw new Error(`Insert failed: ${insertError.message}`);
+        const { error: assignInsertError } = await adminClient.from("library_video_assignments").insert(assignRows as any);
+        if (assignInsertError) {
+          throw new Error(`Assignment insert failed: ${assignInsertError.message}`);
         }
 
-        createdAssignments += inserts.length;
+        createdAssignments += usersToAdd.length;
         results.push({
           input,
           fileId,
           title: metadata.name || null,
           status: "created",
-          createdAssignments: inserts.length,
+          createdAssignments: usersToAdd.length,
           skippedDuplicates: duplicateCountForLink,
           error: null,
         });
