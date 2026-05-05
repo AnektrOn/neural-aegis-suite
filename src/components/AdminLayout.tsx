@@ -25,6 +25,8 @@ import {
   AlertTriangle,
   FileText,
   Download,
+  Video,
+  Boxes,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -45,6 +47,8 @@ const adminNavKeys = [
   { to: "/admin/executive", icon: LayoutDashboard, key: "admin.nav.executive" as const },
   { to: "/admin/companies", icon: Building2, key: "admin.nav.companies" as const },
   { to: "/admin/toolbox", icon: Package, key: "admin.nav.toolbox" as const },
+  { to: "/admin/program-builder", icon: Boxes, key: "admin.nav.programBuilder" as const },
+  { to: "/admin/video-library", icon: Video, key: "admin.nav.videoLibrary" as const },
   { to: "/admin/decisions", icon: Target, key: "admin.nav.decisions" as const },
   { to: "/admin/messages", icon: MessageSquare, key: "admin.nav.messages" as const },
   { to: "/admin/scoreboard", icon: Trophy, key: "admin.nav.scoreboard" as const },

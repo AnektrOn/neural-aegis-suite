@@ -942,6 +942,77 @@ export type Database = {
         }
         Relationships: []
       }
+      library_video_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          id: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          id?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_video_assignments_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "library_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_videos: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          drive_file_id: string | null
+          external_url: string
+          id: string
+          library_scope: string
+          meta: Json
+          provider: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          drive_file_id?: string | null
+          external_url: string
+          id?: string
+          library_scope: string
+          meta?: Json
+          provider?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          drive_file_id?: string | null
+          external_url?: string
+          id?: string
+          library_scope?: string
+          meta?: Json
+          provider?: string
+          title?: string
+        }
+        Relationships: []
+      }
       mood_entries: {
         Row: {
           id: string
@@ -1326,6 +1397,7 @@ export type Database = {
           duration: string | null
           external_url: string | null
           id: string
+          template_id: string | null
           title: string
           user_id: string
           widget_config: Json | null
@@ -1338,6 +1410,7 @@ export type Database = {
           duration?: string | null
           external_url?: string | null
           id?: string
+          template_id?: string | null
           title: string
           user_id: string
           widget_config?: Json | null
@@ -1350,9 +1423,162 @@ export type Database = {
           duration?: string | null
           external_url?: string | null
           id?: string
+          template_id?: string | null
           title?: string
           user_id?: string
           widget_config?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toolbox_assignments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "toolbox_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      toolbox_templates: {
+        Row: {
+          content_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          duration: string | null
+          external_key: string | null
+          external_url: string | null
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+          widget_config: Json
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          duration?: string | null
+          external_key?: string | null
+          external_url?: string | null
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+          widget_config?: Json
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          duration?: string | null
+          external_key?: string | null
+          external_url?: string | null
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+          widget_config?: Json
+        }
+        Relationships: []
+      }
+      journal_prompt_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          duration: string | null
+          external_key: string | null
+          id: string
+          is_active: boolean
+          prompt_text: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          duration?: string | null
+          external_key?: string | null
+          id?: string
+          is_active?: boolean
+          prompt_text: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          duration?: string | null
+          external_key?: string | null
+          id?: string
+          is_active?: boolean
+          prompt_text?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      program_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          event_type: string
+          id: string
+          metadata: Json
+          user_id: string | null
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          user_id?: string | null
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      admin_import_runs: {
+        Row: {
+          created_at: string
+          created_by: string
+          dry_run: boolean
+          id: string
+          payload: Json
+          status: string
+          summary: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          dry_run?: boolean
+          id?: string
+          payload?: Json
+          status?: string
+          summary?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          dry_run?: boolean
+          id?: string
+          payload?: Json
+          status?: string
+          summary?: Json
         }
         Relationships: []
       }

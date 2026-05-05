@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wind, Eye, Scan, BookOpen, Heart, Sparkles, Stars, Link as LinkIcon, Send, ShieldAlert, Target } from "lucide-react";
+import { Wind, Eye, Scan, BookOpen, Heart, Sparkles, Stars, Link as LinkIcon, Send, ShieldAlert, Target, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_BODY_SCAN_TOTAL_SEC, DEFAULT_BODY_SCAN_ZONES } from "@/components/widgets/BodyScanWidget";
 import { DEFAULT_VISUALIZATION_SCENES, DEFAULT_VISUALIZATION_TOTAL_SEC } from "@/components/widgets/VisualizationWidget";
@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
+import { assignToolboxDirect, logProgramEvent } from "@/services/programBuilderService";
+import { isLikelyVideoUrl } from "@/lib/video-links";
 
 interface Props {
   userId: string;
@@ -42,6 +44,7 @@ const WIDGET_TYPE_DEFS: Array<{
   { value: "gratitude", labelKey: "admin.toolboxForm.type.gratitude", icon: Heart, color: "text-destructive" },
   { value: "journal_prompt", labelKey: "toolbox.typeJournalPrompt", icon: BookOpen, color: "text-neural-accent" },
   { value: "external_link", labelKey: "admin.toolboxForm.type.external_link", icon: LinkIcon, color: "text-muted-foreground" },
+  { value: "micro_practice", labelKey: "toolbox.typeMicroPractice", icon: Zap, color: "text-neural-accent" },
 ];
 
 export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
@@ -100,6 +103,11 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
   const [elTitle, setElTitle] = useState("");
   const [elUrl, setElUrl] = useState("");
   const [elDuration, setElDuration] = useState("");
+
+  // Micro Practice config
+  const [mpInstructions, setMpInstructions] = useState("");
+  const [mpDurationMin, setMpDurationMin] = useState(5);
+  const [mpStepsRaw, setMpStepsRaw] = useState("");
 
   const computeBreathworkDuration = () => {
     const cycleTime = bwBreathIn + bwPause1 + bwBreathOut + bwPause2;
@@ -228,25 +236,58 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         break;
       case "external_link":
         if (!elTitle.trim() || !elUrl.trim()) { toast({ title: t("toast.error"), description: t("admin.toolboxForm.errTitleUrlRequired"), variant: "destructive" }); setSubmitting(false); return; }
+        if (isLikelyVideoUrl(elUrl)) {
+          toast({
+            title: t("toast.error"),
+            description: "Les videos doivent etre ajoutees via Bibliotheque admin, pas dans Toolbox.",
+            variant: "destructive",
+          });
+          setSubmitting(false);
+          return;
+        }
         title = elTitle;
         duration = elDuration || "—";
         externalUrl = elUrl;
+        widgetConfig = {};
         break;
+      case "micro_practice": {
+        if (!mpInstructions.trim()) { toast({ title: t("toast.error"), description: "Les instructions sont obligatoires.", variant: "destructive" }); setSubmitting(false); return; }
+        const mpSteps = mpStepsRaw.split("\n").map(l => l.trim()).filter(Boolean).map(text => ({ text }));
+        title = mpInstructions.trim().slice(0, 60) + (mpInstructions.trim().length > 60 ? "…" : "");
+        duration = `${mpDurationMin} min`;
+        widgetConfig = {
+          instructions: mpInstructions.trim(),
+          ...(mpDurationMin > 0 ? { duration_sec: mpDurationMin * 60 } : {}),
+          ...(mpSteps.length > 0 ? { steps: mpSteps } : {}),
+        };
+        break;
+      }
     }
 
-    const payload: any = {
-      user_id: userId,
-      content_type: selectedType,
-      title,
-      duration,
-      assigned_by: user.id,
-      widget_config: widgetConfig,
-      external_url: externalUrl,
-    };
-
-    const { error } = await supabase.from("toolbox_assignments" as any).insert(payload);
-    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
-    else { toast({ title: t("admin.toolboxForm.toastAssignedTitle"), description: t("admin.toolboxForm.toastAssignedDesc", { title }) }); onAssigned(); }
+    try {
+      await assignToolboxDirect({
+        actorId: user.id,
+        userId,
+        contentType: selectedType,
+        title,
+        duration,
+        externalUrl,
+        widgetConfig,
+      });
+      if (selectedType === "journal_prompt" && jpPrompt.trim()) {
+        await logProgramEvent({
+          actor_id: user.id,
+          user_id: userId,
+          entity_type: "journal_prompt",
+          event_type: "assigned_from_toolbox_form",
+          metadata: { prompt_length: jpPrompt.trim().length },
+        });
+      }
+      toast({ title: t("admin.toolboxForm.toastAssignedTitle"), description: t("admin.toolboxForm.toastAssignedDesc", { title }) });
+      onAssigned();
+    } catch (error: any) {
+      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
+    }
     setSubmitting(false);
   };
 
@@ -496,6 +537,36 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                 <textarea value={jpPrompt} onChange={(e) => setJpPrompt(e.target.value)} rows={3}
                   placeholder={t("admin.toolboxForm.journalPromptPlaceholder")}
                   className={inputClass} />
+              </div>
+            )}
+
+            {selectedType === "micro_practice" && (
+              <div className="space-y-3">
+                <div>
+                  <label className={labelClass}>Instructions (texte de l'exercice)</label>
+                  <textarea
+                    value={mpInstructions}
+                    onChange={(e) => setMpInstructions(e.target.value)}
+                    rows={4}
+                    placeholder="Décris l'exercice étape par étape..."
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Durée (minutes)</label>
+                  <input type="number" min={1} max={60} value={mpDurationMin} onChange={(e) => setMpDurationMin(+e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Étapes guidées (optionnel, une par ligne)</label>
+                  <textarea
+                    value={mpStepsRaw}
+                    onChange={(e) => setMpStepsRaw(e.target.value)}
+                    rows={5}
+                    placeholder={"Inspire profondément\nRetiens 3 secondes\nExpire lentement"}
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Si rempli, l'utilisateur navigue étape par étape. Sinon, le texte d'instructions s'affiche directement.</p>
+                </div>
               </div>
             )}
 

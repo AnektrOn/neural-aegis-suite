@@ -1,8 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CloudUpload, CheckCircle2, AlertTriangle, Loader2, Link as LinkIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { LibraryScope } from "@/lib/library-scope";
+import { LIBRARY_SCOPES } from "@/lib/library-scope";
+import VideoLibraryUserPicker, { type VideoLibraryProfileOption } from "@/components/admin/VideoLibraryUserPicker";
 
 type ImportResult = {
   input: string;
@@ -29,16 +32,25 @@ type ImportResponse = {
   results: ImportResult[];
 };
 
-interface DriveVideoBulkImportProps {
-  onImported?: () => void;
+interface VideoLibraryImportTabProps {
+  profiles: VideoLibraryProfileOption[];
+  onImported: () => void;
 }
 
-export default function DriveVideoBulkImport({ onImported }: DriveVideoBulkImportProps) {
+export default function VideoLibraryImportTab({ profiles, onImported }: VideoLibraryImportTabProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [rawLinks, setRawLinks] = useState("");
+  const [libraryScope, setLibraryScope] = useState<LibraryScope>("global_fr");
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [report, setReport] = useState<ImportResponse | null>(null);
+
+  useEffect(() => {
+    if (libraryScope === "perso") {
+      setSelectedUserIds((prev) => (prev.length <= 1 ? prev : [prev[0]!]));
+    }
+  }, [libraryScope]);
 
   const parsedLinks = useMemo(
     () =>
@@ -61,18 +73,36 @@ export default function DriveVideoBulkImport({ onImported }: DriveVideoBulkImpor
       return;
     }
 
+    if (selectedUserIds.length === 0) {
+      toast({
+        title: t("toast.error"),
+        description: t("admin.videoLibrary.errPickUsers"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (libraryScope === "perso" && selectedUserIds.length !== 1) {
+      toast({
+        title: t("toast.error"),
+        description: t("admin.videoLibrary.errPersoOne"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setImporting(true);
     setReport(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("import-drive-links", {
-        body: { links: parsedLinks },
+        body: { links: parsedLinks, library_scope: libraryScope, user_ids: selectedUserIds },
       });
 
       if (error || data?.error) {
         toast({
           title: t("toast.error"),
-          description: data?.error || error?.message || t("admin.driveImport.errUnknown"),
+          description: typeof data?.error === "string" ? data.error : error?.message || t("admin.driveImport.errUnknown"),
           variant: "destructive",
         });
         return;
@@ -88,7 +118,7 @@ export default function DriveVideoBulkImport({ onImported }: DriveVideoBulkImpor
         }),
       });
 
-      onImported?.();
+      onImported();
     } catch (err) {
       toast({
         title: t("toast.error"),
@@ -109,6 +139,43 @@ export default function DriveVideoBulkImport({ onImported }: DriveVideoBulkImpor
 
       <p className="text-neural-label">{t("admin.driveImport.subtitle")}</p>
 
+      <div>
+        <label className="text-neural-label block mb-1.5">{t("admin.driveImport.libraryScopeLabel")}</label>
+        <div className="flex flex-wrap gap-2">
+          {LIBRARY_SCOPES.map((scope) => (
+            <button
+              key={scope}
+              type="button"
+              onClick={() => setLibraryScope(scope)}
+              className={`text-[9px] uppercase tracking-[0.15em] px-3 py-2 rounded-lg border transition-all ${
+                libraryScope === scope
+                  ? "border-primary/40 bg-primary/5 text-primary"
+                  : "border-border/30 text-muted-foreground hover:border-primary/30"
+              }`}
+            >
+              {scope === "global_fr"
+                ? t("admin.driveImport.scopeGlobalFr")
+                : scope === "global_en"
+                  ? t("admin.driveImport.scopeGlobalEn")
+                  : t("admin.driveImport.scopePerso")}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-neural-label block mb-1.5">{t("admin.videoLibrary.usersLabel")}</label>
+        <p className="text-xs text-muted-foreground mb-2">
+          {libraryScope === "perso" ? t("admin.videoLibrary.usersHintPerso") : t("admin.videoLibrary.usersHintGlobal")}
+        </p>
+        <VideoLibraryUserPicker
+          profiles={profiles}
+          mode={libraryScope === "perso" ? "single" : "multiple"}
+          value={selectedUserIds}
+          onChange={setSelectedUserIds}
+        />
+      </div>
+
       <textarea
         value={rawLinks}
         onChange={(event) => setRawLinks(event.target.value)}
@@ -128,7 +195,11 @@ export default function DriveVideoBulkImport({ onImported }: DriveVideoBulkImpor
         </span>
       </div>
 
-      <button onClick={handleImport} disabled={importing || parsedLinks.length === 0} className="btn-neural disabled:opacity-50">
+      <button
+        onClick={handleImport}
+        disabled={importing || parsedLinks.length === 0 || selectedUserIds.length === 0}
+        className="btn-neural disabled:opacity-50"
+      >
         {importing ? (
           <>
             <Loader2 size={14} className="animate-spin" />

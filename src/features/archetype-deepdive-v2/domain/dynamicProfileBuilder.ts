@@ -9,6 +9,7 @@
 
 import type { SampleProfile, SampleArchetypeScore, ProfileNarrative } from "./sampleProfile";
 import type { AnyArchetypeKey } from "./types";
+import type { ArchetypeScore, DeepDiveResult } from "./computeDeepDiveScores";
 import { getArchetypeIntro } from "./narrativeTemplates";
 import { archLabel, get, phrases } from "./narrativeContent";
 import type { Locale } from "@/i18n/translations";
@@ -60,11 +61,111 @@ export interface BuildDynamicProfileInput {
   scores: ArchetypeScoreRow[];
   analysis: AnalysisRow | null;
   locale?: Locale;
+  /**
+   * When set, majors / survival / wheel / hotspots come from the unified Deep Dive
+   * scorer (70Q + legacy), while narrative bullets still use `analysis` from the session.
+   */
+  unified?: DeepDiveResult | null;
+}
+
+function archetypeMapFromUnified(unified: DeepDiveResult): Map<AnyArchetypeKey, ArchetypeScore> {
+  const m = new Map<AnyArchetypeKey, ArchetypeScore>();
+  for (const a of unified.archetypes) {
+    m.set(a.archetype, a);
+  }
+  return m;
+}
+
+function buildProfileFromUnified(
+  input: BuildDynamicProfileInput,
+  unified: DeepDiveResult,
+  locale: Locale,
+): SampleProfile {
+  const { displayName, analysis, sessionId } = input;
+  const byArch = archetypeMapFromUnified(unified);
+
+  const majors: SampleArchetypeScore[] = CORE_12.map((arch) => {
+    const a = byArch.get(arch);
+    const tot = a ? a.light + a.shadow : 0;
+    const lightShare = tot > 0 ? a!.light / tot : 0.5;
+    const shadowShare = tot > 0 ? a!.shadow / tot : 0.5;
+    return {
+      archetype: arch,
+      intensity: a?.intensity ?? 0,
+      light: lightShare,
+      shadow: shadowShare,
+      topHouses: DEFAULT_HOUSES[arch] ?? [],
+    };
+  }).filter((m) => (byArch.get(m.archetype)?.total ?? 0) > 0);
+
+  majors.sort((x, y) => {
+    const tx = byArch.get(x.archetype)?.total ?? 0;
+    const ty = byArch.get(y.archetype)?.total ?? 0;
+    return ty - tx;
+  });
+
+  const survival: SampleArchetypeScore[] = SURVIVAL_KEYS.map((k) => {
+    const a = byArch.get(k);
+    const tot = a ? a.light + a.shadow : 0;
+    const lightShare = tot > 0 ? a!.light / tot : 0.5;
+    const shadowShare = tot > 0 ? a!.shadow / tot : 0.5;
+    const intensity = a?.intensity ?? 0;
+    return {
+      archetype: k,
+      intensity,
+      light: lightShare,
+      shadow: shadowShare,
+      topHouses: DEFAULT_HOUSES[k] ?? [],
+      shadowHouses: intensity >= 0.3 ? DEFAULT_HOUSES[k] : [],
+    };
+  });
+
+  const sortedByIntensity = [...majors].sort((a, b) => b.intensity - a.intensity);
+  const veryActive = sortedByIntensity.slice(0, 3).map((m) => m.archetype);
+  const moderate = sortedByIntensity.slice(3, 7).map((m) => m.archetype);
+  const discreet = sortedByIntensity.slice(7).map((m) => m.archetype);
+
+  const hotspotHouses = unified.houses
+    .filter((h) => h.answered > 0 && h.topArchetype)
+    .map((h) => ({
+      house: h.house,
+      label: get.houseLabel(h.house, locale),
+      archetypes: [h.topArchetype!],
+      theme: phrases.hotspotTheme(
+        archLabel(h.topArchetype!, locale),
+        get.houseTheme(h.house, locale),
+        locale,
+      ),
+    }));
+
+  const topThree = sortedByIntensity.slice(0, 3).map((m) => m.archetype);
+  const narrative = buildNarrative({ topThree, survival, analysis: analysis ?? null, locale });
+
+  const labelArchs = topThree.map((a) => archLabel(a, locale)).join(" / ") || phrases.defaultProfileLabel(locale);
+
+  return {
+    id: `dynamic-${sessionId}-unified`,
+    label: displayName ? `${displayName} — ${labelArchs}` : labelArchs,
+    subtitle: phrases.tripleTitle(labelArchs, locale),
+    majors,
+    survival,
+    wheelBuckets: { veryActive, moderate, discreet },
+    hotspotHouses,
+    narrative,
+  };
 }
 
 export function buildDynamicProfile(input: BuildDynamicProfileInput): SampleProfile {
   const { displayName, scores, analysis } = input;
   const locale: Locale = input.locale ?? "fr";
+
+  if (input.unified) {
+    const byArch = archetypeMapFromUnified(input.unified);
+    const anyCore = CORE_12.some((k) => (byArch.get(k)?.total ?? 0) > 0);
+    if (anyCore) {
+      return buildProfileFromUnified(input, input.unified, locale);
+    }
+  }
 
   const coreScores = scores
     .filter((s) => CORE_12.includes(s.archetype_key as AnyArchetypeKey))

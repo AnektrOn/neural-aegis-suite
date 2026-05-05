@@ -4,6 +4,7 @@ import { Factory, Plus, X, Save, Trash2, Users, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { assignHabitTemplateToUser, createHabitTemplate } from "@/services/programBuilderService";
 
 interface HabitTemplate {
   id: string;
@@ -56,21 +57,21 @@ export default function HabitFactory() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
-    const { error } = await supabase.from("habit_templates" as any).insert({
-      name: form.name,
-      category: form.category,
-      description: form.description || null,
-      created_by: user.id,
-    } as any);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await createHabitTemplate(
+        {
+          name: form.name,
+          category: form.category,
+          description: form.description || null,
+        },
+        user.id
+      );
       toast({ title: "Habit Created", description: `"${form.name}" added to the factory.` });
       setShowForm(false);
       setForm({ name: "", category: "", description: "" });
       loadData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
@@ -84,23 +85,20 @@ export default function HabitFactory() {
 
   const handleAssign = async (templateId: string, userId: string) => {
     if (!user) return;
-    const existing = assignments.find((a) => a.habit_template_id === templateId && a.user_id === userId);
-    if (existing) {
-      toast({ title: "Already Assigned", description: "This habit is already assigned to this user." });
-      return;
-    }
-
-    const { error } = await supabase.from("assigned_habits" as any).insert({
-      user_id: userId,
-      habit_template_id: templateId,
-      assigned_by: user.id,
-    } as any);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const result = await assignHabitTemplateToUser({
+        actorId: user.id,
+        userId,
+        habitTemplateId: templateId,
+      });
+      if (result.skipped) {
+        toast({ title: "Already Assigned", description: "This habit is already assigned to this user." });
+        return;
+      }
       toast({ title: "Assigned", description: "Habit assigned to leader." });
       loadData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 

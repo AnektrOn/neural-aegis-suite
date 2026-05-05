@@ -21,6 +21,7 @@ import {
   Menu,
   FileText,
   X,
+  Library,
 } from "lucide-react";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import aegisLogo from "@/assets/aegis-logo.png";
@@ -68,6 +69,7 @@ const mobileMenuSections: MobileSection[] = [
     items: [
       { to: "/journal", icon: BookOpen, labelKey: "nav.journal" as const },
       { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" as const },
+      { to: "/bibliotheque", icon: Library, labelKey: "nav.bibliotheque" as const },
       { to: "/people", icon: Users, labelKey: "nav.people" as const },
       { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" as const },
     ],
@@ -92,6 +94,7 @@ const navKeys = [
   { to: "/habits", icon: ListChecks, key: "nav.habits" as const },
   { to: "/journal", icon: BookOpen, key: "nav.journal" as const },
   { to: "/toolbox", icon: Headphones, key: "nav.toolbox" as const },
+  { to: "/bibliotheque", icon: Library, key: "nav.bibliotheque" as const },
   { to: "/people", icon: Users, key: "nav.people" as const },
   { to: "/analytics", icon: BarChart3, key: "nav.analytics" as const },
   { to: "/calendar", icon: CalendarDays, key: "nav.calendar" as const },
