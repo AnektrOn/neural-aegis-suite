@@ -71,3 +71,15 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Drive bulk import (admin)
+
+The admin Drive bulk import feature uses a Supabase Edge Function: `import-drive-links`.
+
+Set these as Supabase function secrets (server-side only):
+
+- `GOOGLE_CLIENT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
+- `GOOGLE_SERVICE_ACCOUNT_SCOPES` (optional, defaults to `https://www.googleapis.com/auth/drive.readonly`)
+
+Also share the target Drive files with the service account email so metadata can be fetched.
