@@ -116,8 +116,8 @@ export default function ToolboxManagement() {
         user_name: profs.find((p) => p.id === a.user_id)?.display_name || t("users.noName"),
       }));
     setAssignments(items);
-    setTemplates((templatesRes.data || []) as ToolboxTemplate[]);
-    setJournalTemplates((journalTemplatesRes.data || []) as JournalTemplate[]);
+    setTemplates(((templatesRes.data || []) as unknown) as ToolboxTemplate[]);
+    setJournalTemplates(((journalTemplatesRes.data || []) as unknown) as JournalTemplate[]);
     setLoading(false);
   };
 

@@ -59,6 +59,36 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_import_runs: {
+        Row: {
+          created_at: string
+          created_by: string
+          dry_run: boolean
+          id: string
+          payload: Json
+          status: string
+          summary: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          dry_run?: boolean
+          id?: string
+          payload?: Json
+          status?: string
+          summary?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          dry_run?: boolean
+          id?: string
+          payload?: Json
+          status?: string
+          summary?: Json
+        }
+        Relationships: []
+      }
       admin_messages: {
         Row: {
           body: string
@@ -827,28 +857,46 @@ export type Database = {
       }
       habit_templates: {
         Row: {
+          archetype_targets: string[]
           category: string
           created_at: string
           created_by: string
           description: string | null
+          description_i18n: Json
+          external_key: string | null
           id: string
+          is_active: boolean
           name: string
+          name_i18n: Json
+          shadow_targets: string[]
         }
         Insert: {
+          archetype_targets?: string[]
           category: string
           created_at?: string
           created_by: string
           description?: string | null
+          description_i18n?: Json
+          external_key?: string | null
           id?: string
+          is_active?: boolean
           name: string
+          name_i18n?: Json
+          shadow_targets?: string[]
         }
         Update: {
+          archetype_targets?: string[]
           category?: string
           created_at?: string
           created_by?: string
           description?: string | null
+          description_i18n?: Json
+          external_key?: string | null
           id?: string
+          is_active?: boolean
           name?: string
+          name_i18n?: Json
+          shadow_targets?: string[]
         }
         Relationships: []
       }
@@ -912,6 +960,54 @@ export type Database = {
         }
         Relationships: []
       }
+      journal_prompt_templates: {
+        Row: {
+          archetype_targets: string[]
+          created_at: string
+          created_by: string
+          duration: string | null
+          external_key: string | null
+          id: string
+          is_active: boolean
+          prompt_text: string
+          prompt_text_i18n: Json
+          shadow_targets: string[]
+          title: string
+          title_i18n: Json
+          updated_at: string
+        }
+        Insert: {
+          archetype_targets?: string[]
+          created_at?: string
+          created_by: string
+          duration?: string | null
+          external_key?: string | null
+          id?: string
+          is_active?: boolean
+          prompt_text: string
+          prompt_text_i18n?: Json
+          shadow_targets?: string[]
+          title: string
+          title_i18n?: Json
+          updated_at?: string
+        }
+        Update: {
+          archetype_targets?: string[]
+          created_at?: string
+          created_by?: string
+          duration?: string | null
+          external_key?: string | null
+          id?: string
+          is_active?: boolean
+          prompt_text?: string
+          prompt_text_i18n?: Json
+          shadow_targets?: string[]
+          title?: string
+          title_i18n?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       journal_prompts: {
         Row: {
           assigned_by: string
@@ -920,6 +1016,8 @@ export type Database = {
           id: string
           is_completed: boolean
           prompt_text: string
+          prompt_text_i18n: Json
+          template_id: string | null
           user_id: string
         }
         Insert: {
@@ -929,6 +1027,8 @@ export type Database = {
           id?: string
           is_completed?: boolean
           prompt_text: string
+          prompt_text_i18n?: Json
+          template_id?: string | null
           user_id: string
         }
         Update: {
@@ -938,9 +1038,19 @@ export type Database = {
           id?: string
           is_completed?: boolean
           prompt_text?: string
+          prompt_text_i18n?: Json
+          template_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "journal_prompts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "journal_prompt_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       library_video_assignments: {
         Row: {
@@ -979,6 +1089,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          description_i18n: Json
           drive_file_id: string | null
           external_url: string
           id: string
@@ -986,11 +1097,13 @@ export type Database = {
           meta: Json
           provider: string
           title: string
+          title_i18n: Json
         }
         Insert: {
           created_at?: string
           created_by: string
           description?: string | null
+          description_i18n?: Json
           drive_file_id?: string | null
           external_url: string
           id?: string
@@ -998,11 +1111,13 @@ export type Database = {
           meta?: Json
           provider?: string
           title: string
+          title_i18n?: Json
         }
         Update: {
           created_at?: string
           created_by?: string
           description?: string | null
+          description_i18n?: Json
           drive_file_id?: string | null
           external_url?: string
           id?: string
@@ -1010,6 +1125,7 @@ export type Database = {
           meta?: Json
           provider?: string
           title?: string
+          title_i18n?: Json
         }
         Relationships: []
       }
@@ -1219,6 +1335,39 @@ export type Database = {
           },
         ]
       }
+      program_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          event_type: string
+          id: string
+          metadata: Json
+          user_id: string | null
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          user_id?: string | null
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -1394,11 +1543,13 @@ export type Database = {
           assigned_by: string
           content_type: string
           description: string | null
+          description_i18n: Json
           duration: string | null
           external_url: string | null
           id: string
           template_id: string | null
           title: string
+          title_i18n: Json
           user_id: string
           widget_config: Json | null
         }
@@ -1407,11 +1558,13 @@ export type Database = {
           assigned_by: string
           content_type: string
           description?: string | null
+          description_i18n?: Json
           duration?: string | null
           external_url?: string | null
           id?: string
           template_id?: string | null
           title: string
+          title_i18n?: Json
           user_id: string
           widget_config?: Json | null
         }
@@ -1420,11 +1573,13 @@ export type Database = {
           assigned_by?: string
           content_type?: string
           description?: string | null
+          description_i18n?: Json
           duration?: string | null
           external_url?: string | null
           id?: string
           template_id?: string | null
           title?: string
+          title_i18n?: Json
           user_id?: string
           widget_config?: Json | null
         }
@@ -1437,150 +1592,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      toolbox_templates: {
-        Row: {
-          content_type: string
-          created_at: string
-          created_by: string
-          description: string | null
-          duration: string | null
-          external_key: string | null
-          external_url: string | null
-          id: string
-          is_active: boolean
-          title: string
-          updated_at: string
-          widget_config: Json
-        }
-        Insert: {
-          content_type: string
-          created_at?: string
-          created_by: string
-          description?: string | null
-          duration?: string | null
-          external_key?: string | null
-          external_url?: string | null
-          id?: string
-          is_active?: boolean
-          title: string
-          updated_at?: string
-          widget_config?: Json
-        }
-        Update: {
-          content_type?: string
-          created_at?: string
-          created_by?: string
-          description?: string | null
-          duration?: string | null
-          external_key?: string | null
-          external_url?: string | null
-          id?: string
-          is_active?: boolean
-          title?: string
-          updated_at?: string
-          widget_config?: Json
-        }
-        Relationships: []
-      }
-      journal_prompt_templates: {
-        Row: {
-          created_at: string
-          created_by: string
-          duration: string | null
-          external_key: string | null
-          id: string
-          is_active: boolean
-          prompt_text: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          duration?: string | null
-          external_key?: string | null
-          id?: string
-          is_active?: boolean
-          prompt_text: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          duration?: string | null
-          external_key?: string | null
-          id?: string
-          is_active?: boolean
-          prompt_text?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      program_events: {
-        Row: {
-          actor_id: string
-          created_at: string
-          entity_id: string | null
-          entity_type: string
-          event_type: string
-          id: string
-          metadata: Json
-          user_id: string | null
-        }
-        Insert: {
-          actor_id: string
-          created_at?: string
-          entity_id?: string | null
-          entity_type: string
-          event_type: string
-          id?: string
-          metadata?: Json
-          user_id?: string | null
-        }
-        Update: {
-          actor_id?: string
-          created_at?: string
-          entity_id?: string | null
-          entity_type?: string
-          event_type?: string
-          id?: string
-          metadata?: Json
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      admin_import_runs: {
-        Row: {
-          created_at: string
-          created_by: string
-          dry_run: boolean
-          id: string
-          payload: Json
-          status: string
-          summary: Json
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          dry_run?: boolean
-          id?: string
-          payload?: Json
-          status?: string
-          summary?: Json
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          dry_run?: boolean
-          id?: string
-          payload?: Json
-          status?: string
-          summary?: Json
-        }
-        Relationships: []
       }
       toolbox_completions: {
         Row: {
@@ -1616,6 +1627,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      toolbox_templates: {
+        Row: {
+          archetype_targets: string[]
+          content_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          description_i18n: Json
+          duration: string | null
+          external_key: string | null
+          external_url: string | null
+          id: string
+          is_active: boolean
+          shadow_targets: string[]
+          title: string
+          title_i18n: Json
+          updated_at: string
+          widget_config: Json
+        }
+        Insert: {
+          archetype_targets?: string[]
+          content_type: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          description_i18n?: Json
+          duration?: string | null
+          external_key?: string | null
+          external_url?: string | null
+          id?: string
+          is_active?: boolean
+          shadow_targets?: string[]
+          title: string
+          title_i18n?: Json
+          updated_at?: string
+          widget_config?: Json
+        }
+        Update: {
+          archetype_targets?: string[]
+          content_type?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          description_i18n?: Json
+          duration?: string | null
+          external_key?: string | null
+          external_url?: string | null
+          id?: string
+          is_active?: boolean
+          shadow_targets?: string[]
+          title?: string
+          title_i18n?: Json
+          updated_at?: string
+          widget_config?: Json
+        }
+        Relationships: []
       }
       user_badges: {
         Row: {
