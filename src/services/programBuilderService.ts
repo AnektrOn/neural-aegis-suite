@@ -162,7 +162,7 @@ export async function createHabitTemplate(input: HabitTemplateInput, actorId: st
   await logProgramEvent({
     actor_id: actorId,
     entity_type: "habit_template",
-    entity_id: data.id,
+    entity_id: (data as any).id,
     event_type: "template_created",
     metadata: { external_key: payload.external_key },
   });
@@ -194,7 +194,7 @@ export async function createToolboxTemplate(input: ToolboxTemplateInput, actorId
   await logProgramEvent({
     actor_id: actorId,
     entity_type: "toolbox_template",
-    entity_id: data.id,
+    entity_id: (data as any).id,
     event_type: "template_created",
     metadata: { content_type: payload.content_type, external_key: payload.external_key },
   });
@@ -224,7 +224,7 @@ export async function createJournalPromptTemplate(input: JournalPromptTemplateIn
   await logProgramEvent({
     actor_id: actorId,
     entity_type: "journal_prompt_template",
-    entity_id: data.id,
+    entity_id: (data as any).id,
     event_type: "template_created",
     metadata: { external_key: payload.external_key },
   });
@@ -386,7 +386,7 @@ export async function assignHabitTemplateToUser(params: {
     actor_id: actorId,
     user_id: userId,
     entity_type: "habit_assignment",
-    entity_id: data.id,
+    entity_id: (data as any).id,
     event_type: "assigned",
     metadata: { habit_template_id: habitTemplateId },
   });
@@ -409,14 +409,14 @@ export async function assignToolboxTemplateToUser(params: {
 
   const assignment = {
     user_id: userId,
-    content_type: template.content_type,
-    title: template.title,
-    duration: template.duration,
-    description: template.description,
-    external_url: template.external_url,
-    widget_config: template.widget_config || {},
+    content_type: (template as any).content_type,
+    title: (template as any).title,
+    duration: (template as any).duration,
+    description: (template as any).description,
+    external_url: (template as any).external_url,
+    widget_config: (template as any).widget_config || {},
     assigned_by: actorId,
-    template_id: template.id,
+    template_id: (template as any).id,
   };
 
   const { data, error } = await supabase
@@ -430,9 +430,9 @@ export async function assignToolboxTemplateToUser(params: {
     actor_id: actorId,
     user_id: userId,
     entity_type: "toolbox_assignment",
-    entity_id: data.id,
+    entity_id: (data as any).id,
     event_type: "assigned",
-    metadata: { template_id: template.id, content_type: template.content_type },
+    metadata: { template_id: (template as any).id, content_type: (template as any).content_type },
   });
 
   return data;
@@ -456,8 +456,8 @@ export async function assignJournalPromptTemplateToUser(params: {
     .insert({
       user_id: userId,
       assigned_by: actorId,
-      prompt_text: template.prompt_text,
-      template_id: template.id,
+      prompt_text: (template as any).prompt_text,
+      template_id: (template as any).id,
     } as any)
     .select("*")
     .single();
@@ -470,12 +470,12 @@ export async function assignJournalPromptTemplateToUser(params: {
     .insert({
       user_id: userId,
       content_type: "journal_prompt",
-      title: template.title || "Journal Prompt",
-      duration: template.duration || "10 min",
+      title: (template as any).title || "Journal Prompt",
+      duration: (template as any).duration || "10 min",
       description: null,
-      widget_config: { prompt: template.prompt_text },
+      widget_config: { prompt: (template as any).prompt_text },
       assigned_by: actorId,
-      template_id: template.id,
+      template_id: (template as any).id,
     } as any);
   if (toolboxError) throw toolboxError;
 
@@ -483,9 +483,9 @@ export async function assignJournalPromptTemplateToUser(params: {
     actor_id: actorId,
     user_id: userId,
     entity_type: "journal_prompt",
-    entity_id: data.id,
+    entity_id: (data as any).id,
     event_type: "assigned",
-    metadata: { template_id: template.id },
+    metadata: { template_id: (template as any).id },
   });
 
   return data;
@@ -525,7 +525,7 @@ export async function assignToolboxDirect(params: {
     actor_id: actorId,
     user_id: userId,
     entity_type: "toolbox_assignment",
-    entity_id: data.id,
+    entity_id: (data as any).id,
     event_type: "assigned_direct",
     metadata: { content_type: contentType },
   });
@@ -707,8 +707,8 @@ export async function getArchetypeSuggestionsForUser(userId: string) {
     listCatalogData(),
   ]);
 
-  const topArchetypes = (analysis?.top_archetypes || []) as string[];
-  const shadowSignals = (analysis?.shadow_signals || {}) as Record<string, number>;
+  const topArchetypes = ((analysis as any)?.top_archetypes || []) as string[];
+  const shadowSignals = ((analysis as any)?.shadow_signals || {}) as Record<string, number>;
   const out: SuggestionItem[] = [];
 
   for (const t of catalog.toolbox) {
@@ -883,7 +883,7 @@ export async function runToolboxCatalogImport(params: {
         .select("id")
         .eq("external_key", key)
         .maybeSingle();
-      if (existing?.id) {
+      if ((existing as any)?.id) {
         summary.skippedDuplicates += 1;
         continue;
       }
@@ -912,7 +912,7 @@ export async function runToolboxCatalogImport(params: {
         .select("id")
         .eq("external_key", key)
         .maybeSingle();
-      if (existing?.id) {
+      if ((existing as any)?.id) {
         summary.skippedDuplicates += 1;
         continue;
       }
@@ -938,7 +938,7 @@ export async function runToolboxCatalogImport(params: {
         .select("id")
         .eq("external_key", key)
         .maybeSingle();
-      if (existing?.id) {
+      if ((existing as any)?.id) {
         summary.skippedDuplicates += 1;
         continue;
       }
