@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, ChevronRight, CheckCircle2, Zap } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 /**
  * Generic widget for exercises without a dedicated widget.
@@ -33,6 +34,7 @@ interface Props {
 const DEFAULT_COLOR = "hsl(176 70% 48%)";
 
 export default function MicroPracticeWidget({ config, title, onComplete, onAbandon }: Props) {
+  const { t } = useLanguage();
   const accent = config.accent_color || DEFAULT_COLOR;
   const hasSteps = Array.isArray(config.steps) && config.steps.length > 0;
   const hasDuration = typeof config.duration_sec === "number" && config.duration_sec > 0;
@@ -140,10 +142,10 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
               <p className="text-sm text-foreground/80 leading-relaxed">{config.instructions}</p>
             )}
             {hasDuration && (
-              <p className="text-xs text-muted-foreground">Duration: {fmtTime(totalSec)}</p>
+              <p className="text-xs text-muted-foreground">{t("toolbox.micro.duration", { time: fmtTime(totalSec) })}</p>
             )}
             {hasSteps && (
-              <p className="text-xs text-muted-foreground">{config.steps!.length} steps</p>
+              <p className="text-xs text-muted-foreground">{t("toolbox.micro.stepsCount", { n: config.steps!.length })}</p>
             )}
           </motion.div>
         ) : completed ? (
@@ -154,7 +156,7 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
             className="text-center space-y-2"
           >
             <CheckCircle2 size={32} className="mx-auto" style={{ color: accent }} />
-            <p className="text-sm font-medium text-foreground">Exercise complete</p>
+            <p className="text-sm font-medium text-foreground">{t("toolbox.micro.done")}</p>
           </motion.div>
         ) : (
           <motion.div
@@ -175,7 +177,7 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] uppercase tracking-[0.2em]" style={{ color: accent }}>
-                    Step {stepIdx + 1} / {config.steps!.length}
+                    {t("toolbox.micro.stepCounter", { current: stepIdx + 1, total: config.steps!.length })}
                   </span>
                   {hasDuration && (
                     <span className="text-[10px] font-mono" style={{ color: accent }}>
@@ -226,7 +228,7 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
             }}
           >
             <Play size={14} />
-            Start
+            {t("toolbox.micro.start")}
           </button>
         ) : completed ? (
           <button
@@ -263,7 +265,7 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
                   color: accent,
                 }}
               >
-                {stepIdx >= (config.steps?.length ?? 1) - 1 ? "Finish" : "Next"}
+                {stepIdx >= (config.steps?.length ?? 1) - 1 ? t("toolbox.micro.finish") : t("toolbox.micro.next")}
                 <ChevronRight size={14} />
               </button>
             )}
@@ -279,7 +281,7 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
                 }}
               >
                 <CheckCircle2 size={14} />
-                Done
+                {t("toolbox.micro.markDone")}
               </button>
             )}
             <button
