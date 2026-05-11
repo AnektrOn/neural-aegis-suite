@@ -113,8 +113,12 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
   // External Link config
   const [elTitle, setElTitle] = useState("");
+  const [elTitleEn, setElTitleEn] = useState("");
   const [elUrl, setElUrl] = useState("");
   const [elDuration, setElDuration] = useState("");
+
+  // Optional English title override (applies to all auto-generated titles)
+  const [customTitleEn, setCustomTitleEn] = useState("");
 
   // Micro Practice config
   const [mpInstructions, setMpInstructions] = useState("");
