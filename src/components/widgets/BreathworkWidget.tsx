@@ -216,10 +216,10 @@ export default function BreathworkWidget({ config, title, onComplete, onAbandon 
       </div>
 
       <div className="flex items-center gap-3 text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-        <span>In {config.breath_in_sec}s</span>
-        {config.pause1_sec > 0 && <span>Hold {config.pause1_sec}s</span>}
-        <span>Out {config.breath_out_sec}s</span>
-        {config.pause2_sec > 0 && <span>Hold {config.pause2_sec}s</span>}
+        <span>{t("toolbox.breath.legendIn", { n: config.breath_in_sec })}</span>
+        {config.pause1_sec > 0 && <span>{t("toolbox.breath.legendHold", { n: config.pause1_sec })}</span>}
+        <span>{t("toolbox.breath.legendOut", { n: config.breath_out_sec })}</span>
+        {config.pause2_sec > 0 && <span>{t("toolbox.breath.legendHold", { n: config.pause2_sec })}</span>}
       </div>
     </div>
   );

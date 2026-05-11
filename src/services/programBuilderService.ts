@@ -550,7 +550,7 @@ export async function assignJournalPromptTemplateToUser(params: {
     .single();
   if (tErr) throw tErr;
 
-  const promptI18n = mergeI18nObject(template.prompt_text_i18n ?? null, null, null, template.prompt_text);
+  const promptI18n = mergeI18nObject((template as any).prompt_text_i18n ?? null, null, null, (template as any).prompt_text);
 
   const { data, error } = await supabase
     .from("journal_prompts" as any)
@@ -567,7 +567,7 @@ export async function assignJournalPromptTemplateToUser(params: {
 
   // Mirror journal prompts into Toolbox so users can execute them
   // through the same widget/status flow as other toolbox items.
-  const titleI18n = mergeI18nObject(template.title_i18n ?? null, null, null, template.title || "Journal Prompt");
+  const titleI18n = mergeI18nObject((template as any).title_i18n ?? null, null, null, (template as any).title || "Journal Prompt");
 
   const { error: toolboxError } = await supabase
     .from("toolbox_assignments" as any)
