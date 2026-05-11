@@ -61,7 +61,7 @@ const WIDGET_TYPE_DEFS: Array<{
 export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const WIDGET_TYPES = useMemo(
     () => WIDGET_TYPE_DEFS.map((d) => ({ ...d, label: t(d.labelKey) })),
