@@ -823,6 +823,27 @@ export type Database = {
         }
         Relationships: []
       }
+      drive_folder_cache: {
+        Row: {
+          created_at: string
+          drive_id: string
+          name: string
+          parent_id: string
+        }
+        Insert: {
+          created_at?: string
+          drive_id: string
+          name: string
+          parent_id: string
+        }
+        Update: {
+          created_at?: string
+          drive_id?: string
+          name?: string
+          parent_id?: string
+        }
+        Relationships: []
+      }
       habit_completions: {
         Row: {
           assigned_habit_id: string
