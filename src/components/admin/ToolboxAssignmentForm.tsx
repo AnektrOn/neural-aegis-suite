@@ -641,8 +641,12 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClass}>{t("admin.toolboxForm.extTitle")}</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.extTitle")} (FR)</label>
                     <input type="text" value={elTitle} onChange={(e) => setElTitle(e.target.value)} placeholder={t("admin.toolboxForm.extTitlePlaceholder")} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>{t("admin.toolboxForm.extTitle")} (EN)</label>
+                    <input type="text" value={elTitleEn} onChange={(e) => setElTitleEn(e.target.value)} placeholder="Optional — falls back to FR" className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>{t("admin.toolboxForm.extDurationOptional")}</label>
