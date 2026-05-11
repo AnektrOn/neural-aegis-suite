@@ -7,7 +7,17 @@ import { DEFAULT_VISUALIZATION_SCENES, DEFAULT_VISUALIZATION_TOTAL_SEC } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
-import type { TranslationKey } from "@/i18n/translations";
+import { translations, type TranslationKey, type Locale } from "@/i18n/translations";
+
+function tFor(loc: Locale, key: TranslationKey, params?: Record<string, string | number>): string {
+  let str: string = (translations as any)[key]?.[loc] || (translations as any)[key]?.fr || key;
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+    });
+  }
+  return str;
+}
 import { assignToolboxDirect, logProgramEvent } from "@/services/programBuilderService";
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import { bilingualPair } from "@/lib/content-i18n";
