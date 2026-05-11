@@ -833,6 +833,36 @@ export const translations = {
   "toolbox.breath.legendHold": { fr: "Pause {n}s", en: "Hold {n}s" },
   "toolbox.breath.legendOut": { fr: "Expir {n}s", en: "Out {n}s" },
 
+  // Body scan default zones
+  "toolbox.bodyScan.zone.head.label": { fr: "Tête & front", en: "Head & forehead" },
+  "toolbox.bodyScan.zone.head.instruction": { fr: "Détendez le front, les yeux et la mâchoire. Sentez le poids de votre tête.", en: "Soften your forehead, eyes, and jaw. Feel the weight of your head." },
+  "toolbox.bodyScan.zone.jaw.label": { fr: "Mâchoire", en: "Jaw" },
+  "toolbox.bodyScan.zone.jaw.instruction": { fr: "Laissez vos dents s'écarter légèrement. Détendez la langue.", en: "Let your teeth separate slightly. Relax your tongue." },
+  "toolbox.bodyScan.zone.shoulders.label": { fr: "Épaules", en: "Shoulders" },
+  "toolbox.bodyScan.zone.shoulders.instruction": { fr: "Laissez vos épaules tomber. Sentez leur poids.", en: "Let your shoulders drop. Feel their weight." },
+  "toolbox.bodyScan.zone.chest.label": { fr: "Poitrine", en: "Chest" },
+  "toolbox.bodyScan.zone.chest.instruction": { fr: "Observez votre respiration naturelle, sans la contrôler.", en: "Observe your natural breathing without trying to control it." },
+  "toolbox.bodyScan.zone.abdomen.label": { fr: "Abdomen", en: "Abdomen" },
+  "toolbox.bodyScan.zone.abdomen.instruction": { fr: "Laissez votre ventre se relâcher complètement. Sans tension.", en: "Let your belly soften completely. No bracing." },
+  "toolbox.bodyScan.zone.hands.label": { fr: "Mains & bras", en: "Hands & arms" },
+  "toolbox.bodyScan.zone.hands.instruction": { fr: "Sentez le poids de vos bras. Doigts doucement ouverts.", en: "Feel the weight of your arms. Fingers gently open." },
+  "toolbox.bodyScan.zone.thighs.label": { fr: "Cuisses", en: "Thighs" },
+  "toolbox.bodyScan.zone.thighs.instruction": { fr: "Relâchez vos quadriceps. Laissez vos jambes se détendre.", en: "Release your quadriceps. Let your legs soften." },
+  "toolbox.bodyScan.zone.feet.label": { fr: "Pieds", en: "Feet" },
+  "toolbox.bodyScan.zone.feet.instruction": { fr: "Sentez le contact avec le sol. Détendez chaque orteil.", en: "Feel the contact with the ground. Relax each toe." },
+
+  // Visualization default scenes
+  "toolbox.viz.scene.anchor.label": { fr: "Ancrage", en: "Grounding" },
+  "toolbox.viz.scene.anchor.instruction": { fr: "Fermez les yeux. Sentez le poids de votre corps. Vous êtes ici, maintenant. Trois respirations lentes.", en: "Close your eyes. Feel the weight of your body. You are here, now. Take three slow breaths." },
+  "toolbox.viz.scene.place.label": { fr: "Lieu sûr", en: "Safe place" },
+  "toolbox.viz.scene.place.instruction": { fr: "Visualisez un lieu où vous vous sentez complètement en sécurité. Une lumière, une texture, un parfum. Rendez-le réel.", en: "Visualize a place where you feel completely safe. A light, a texture, a scent. Make it real." },
+  "toolbox.viz.scene.scene.label": { fr: "La scène", en: "The scene" },
+  "toolbox.viz.scene.scene.instruction": { fr: "Voyez-vous dans la situation à venir. Calme, ancré·e, précis·e. Chaque détail est clair. Vous êtes aux commandes.", en: "See yourself in the upcoming situation. You are calm, grounded, precise. Every detail is clear. You're in control." },
+  "toolbox.viz.scene.success.label": { fr: "Réussite", en: "Success" },
+  "toolbox.viz.scene.success.instruction": { fr: "Sentez ce que vous vivez quand c'est fait. La sensation dans votre corps. Cette certitude. Ancrez-la.", en: "Feel what you experience when it's done. The sensation in your body. That certainty. Anchor it." },
+  "toolbox.viz.scene.return.label": { fr: "Retour", en: "Return" },
+  "toolbox.viz.scene.return.instruction": { fr: "Revenez doucement. Bougez les doigts et les orteils. Ouvrez les yeux. Portez cet état dans les heures à venir.", en: "Come back gently. Move your fingers and toes. Open your eyes. Carry this state into the next hours." },
+
   // Focus introspectif widget
   "toolbox.focus.namaste": { fr: "Namaste", en: "Namaste" },
   "toolbox.focus.minutesDone": { fr: "{n} min complétées", en: "{n} min completed" },
