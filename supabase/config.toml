@@ -1,16 +1,4 @@
 project_id = "wjjugtdciljmuohxoqcj"
 
-[functions.ai-insights]
-verify_jwt = false
-
-[functions.send-email-notification]
-verify_jwt = false
-
-[functions.compute-daily-scoreboard]
-verify_jwt = false
-
-[functions.import-drive-links]
-verify_jwt = true
-
-[functions.export-to-drive]
+[functions.drive-debug]
 verify_jwt = false
