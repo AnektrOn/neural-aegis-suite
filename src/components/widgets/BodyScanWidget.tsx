@@ -239,7 +239,11 @@ export default function BodyScanWidget({ config, title, onComplete, onAbandon }:
                     isActive ? "text-primary font-medium" : isDone ? "text-primary/50" : "text-muted-foreground"
                   }`}
                 >
-                  {zone.label}
+                  {(() => {
+                    const k = `toolbox.bodyScan.zone.${zone.id}.label` as any;
+                    const v = t(k);
+                    return v === k ? zone.label : v;
+                  })()}
                 </span>
                 {isActive && (
                   <span className="text-[9px] text-muted-foreground ml-auto">
