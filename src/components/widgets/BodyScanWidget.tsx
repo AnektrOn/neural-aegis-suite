@@ -268,7 +268,7 @@ export default function BodyScanWidget({ config, title, onComplete, onAbandon }:
           {completed ? (
             <p className="text-sm text-primary font-medium">{t("toolbox.bodyScanDone")}</p>
           ) : (
-            <p className="text-xs text-muted-foreground/80 italic leading-relaxed">« {currentZone.instruction} »</p>
+            <p className="text-xs text-muted-foreground/80 italic leading-relaxed">« {(() => { const k = `toolbox.bodyScan.zone.${currentZone.id}.instruction` as any; const v = t(k); return v === k ? currentZone.instruction : v; })()} »</p>
           )}
         </motion.div>
       </AnimatePresence>
