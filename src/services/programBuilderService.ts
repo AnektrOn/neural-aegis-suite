@@ -550,7 +550,7 @@ export async function assignJournalPromptTemplateToUser(params: {
     .single();
   if (tErr) throw tErr;
 
-  const promptI18n = mergeI18nObject(template.prompt_text_i18n ?? null, null, null, template.prompt_text);
+  const promptI18n = mergeI18nObject((template as any).prompt_text_i18n ?? null, null, null, (template as any).prompt_text);
 
   const { data, error } = await supabase
     .from("journal_prompts" as any)
