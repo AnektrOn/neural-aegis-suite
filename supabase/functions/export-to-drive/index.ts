@@ -1,7 +1,7 @@
 // Edge function: export-to-drive
 // Path: {ROOT_FOLDER}/{ClientName}/{Category}/{YYYY-MM-DD}/{filename}.md
-// ROOT_FOLDER_ID is the user-provided shared Drive folder.
-// Supports action=cleanup to trash stray top-level "Aegis" folders.
+// Uses a DB cache (drive_folder_cache) to guarantee unique folders even under
+// massively parallel pg_net calls.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -13,9 +13,6 @@ const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 const ROOT_FOLDER_ID = "1Gqkmqxr3EIymDFvGbC3vc7-ckEG59of8";
 
-// Simple in-memory folder cache (per cold-start) to limit Drive API calls
-const folderCache = new Map<string, string>();
-
 function gwHeaders(extra: Record<string, string> = {}): HeadersInit {
   const lov = Deno.env.get("LOVABLE_API_KEY");
   const gd = Deno.env.get("GOOGLE_DRIVE_API_KEY");
@@ -24,31 +21,88 @@ function gwHeaders(extra: Record<string, string> = {}): HeadersInit {
   return { Authorization: `Bearer ${lov}`, "X-Connection-Api-Key": gd, ...extra };
 }
 
-async function findOrCreateFolder(name: string, parentId: string): Promise<string> {
-  const cacheKey = `${parentId}/${name}`;
-  const cached = folderCache.get(cacheKey);
-  if (cached) return cached;
+async function trashDriveFolder(id: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${GATEWAY}/drive/v3/files/${id}?supportsAllDrives=true`, {
+      method: "PATCH",
+      headers: gwHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ trashed: true }),
+    });
+    return r.ok;
+  } catch { return false; }
+}
 
+async function listChildFolders(parentId: string, name: string): Promise<string[]> {
   const safe = name.replace(/'/g, "\\'");
   const q = `name='${safe}' and mimeType='${FOLDER_MIME}' and '${parentId}' in parents and trashed=false`;
-  const url = `${GATEWAY}/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+  const url = `${GATEWAY}/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,createdTime)&orderBy=createdTime&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true`;
   const r = await fetch(url, { headers: gwHeaders() });
-  if (!r.ok) throw new Error(`Drive list folder failed ${r.status}: ${await r.text()}`);
+  if (!r.ok) throw new Error(`Drive list failed ${r.status}: ${await r.text()}`);
   const data = await r.json();
-  if (data.files?.[0]?.id) {
-    folderCache.set(cacheKey, data.files[0].id);
-    return data.files[0].id;
-  }
+  return (data.files || []).map((f: any) => f.id);
+}
 
+async function createDriveFolder(parentId: string, name: string): Promise<string> {
   const create = await fetch(`${GATEWAY}/drive/v3/files?supportsAllDrives=true`, {
     method: "POST",
     headers: gwHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ name, mimeType: FOLDER_MIME, parents: [parentId] }),
   });
-  if (!create.ok) throw new Error(`Drive create folder failed ${create.status}: ${await create.text()}`);
-  const created = await create.json();
-  folderCache.set(cacheKey, created.id);
-  return created.id as string;
+  if (!create.ok) throw new Error(`Drive create failed ${create.status}: ${await create.text()}`);
+  const j = await create.json();
+  return j.id as string;
+}
+
+// Race-safe: cache lookup → list existing → create + INSERT cache with conflict handling
+async function findOrCreateFolder(
+  admin: any,
+  parentId: string,
+  name: string,
+): Promise<string> {
+  // 1. Cache hit?
+  const { data: cached } = await admin
+    .from("drive_folder_cache")
+    .select("drive_id")
+    .eq("parent_id", parentId)
+    .eq("name", name)
+    .maybeSingle();
+  if (cached?.drive_id) return cached.drive_id;
+
+  // 2. List existing (handles legacy duplicates)
+  const existing = await listChildFolders(parentId, name);
+  let driveId: string;
+  if (existing.length > 0) {
+    driveId = existing[0];
+    // trash any extras
+    for (const dup of existing.slice(1)) await trashDriveFolder(dup);
+  } else {
+    // 3. Create in Drive
+    driveId = await createDriveFolder(parentId, name);
+  }
+
+  // 4. Try to claim the cache slot. If someone else already inserted,
+  //    use theirs and trash the folder we just created.
+  const { data: inserted, error } = await admin
+    .from("drive_folder_cache")
+    .insert({ parent_id: parentId, name, drive_id: driveId })
+    .select("drive_id")
+    .single();
+
+  if (error) {
+    // conflict: another instance won. Re-read cache.
+    const { data: winner } = await admin
+      .from("drive_folder_cache")
+      .select("drive_id")
+      .eq("parent_id", parentId)
+      .eq("name", name)
+      .single();
+    if (winner && winner.drive_id !== driveId && existing.length === 0) {
+      // we created a stray folder, trash it
+      await trashDriveFolder(driveId);
+    }
+    return winner!.drive_id;
+  }
+  return inserted!.drive_id;
 }
 
 async function uploadMarkdown(parentId: string, filename: string, content: string): Promise<string> {
@@ -72,7 +126,6 @@ function sanitize(s: string): string {
   return (s || "Inconnu").replace(/[\\/:*?"<>|]/g, "_").trim().slice(0, 120) || "Inconnu";
 }
 
-// Map raw category names from triggers to user-friendly folder names
 function mapCategory(cat: string): string {
   const c = (cat || "").toLowerCase();
   if (c === "quiz" || c === "quizz") return "Quizz";
@@ -85,38 +138,44 @@ function mapCategory(cat: string): string {
   return sanitize(cat);
 }
 
-// Extract YYYY-MM-DD from a filename starting with timestamp, else today
 function extractDate(filename: string): string {
   const m = filename.match(/^(\d{4}-\d{2}-\d{2})/);
-  if (m) return m[1];
-  return new Date().toISOString().slice(0, 10);
+  return m ? m[1] : new Date().toISOString().slice(0, 10);
 }
 
-async function cleanupStrayAegis(): Promise<{ trashed: number; ids: string[] }> {
-  // Trash any "Aegis" folder at My Drive root (created by previous bug)
-  const q = `name='Aegis' and mimeType='${FOLDER_MIME}' and trashed=false`;
-  const url = `${GATEWAY}/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,parents)&pageSize=1000`;
+// Recursive cleanup: list children of `parentId`, group folders by name,
+// keep oldest (with most descendants), trash duplicates, recurse.
+async function dedupeFolder(admin: any, parentId: string): Promise<{ trashed: number; kept: number }> {
+  const url = `${GATEWAY}/drive/v3/files?q=${encodeURIComponent(`'${parentId}' in parents and mimeType='${FOLDER_MIME}' and trashed=false`)}&fields=files(id,name,createdTime)&orderBy=createdTime&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true`;
   const r = await fetch(url, { headers: gwHeaders() });
-  if (!r.ok) throw new Error(`list Aegis failed ${r.status}: ${await r.text()}`);
+  if (!r.ok) throw new Error(`list children failed ${r.status}: ${await r.text()}`);
   const data = await r.json();
-  // Exclude the configured ROOT folder so we never trash it
-  const ids: string[] = (data.files || []).map((f: any) => f.id).filter((id: string) => id !== ROOT_FOLDER_ID);
+  const folders: Array<{ id: string; name: string }> = data.files || [];
 
-  let trashed = 0;
-  // Parallel batches of 20
-  const batchSize = 20;
-  for (let i = 0; i < ids.length; i += batchSize) {
-    const slice = ids.slice(i, i + batchSize);
-    const results = await Promise.all(slice.map((id) =>
-      fetch(`${GATEWAY}/drive/v3/files/${id}?supportsAllDrives=true`, {
-        method: "PATCH",
-        headers: gwHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ trashed: true }),
-      }).then((t) => t.ok).catch(() => false)
-    ));
-    trashed += results.filter(Boolean).length;
+  // group by name
+  const groups = new Map<string, string[]>();
+  for (const f of folders) {
+    const arr = groups.get(f.name) || [];
+    arr.push(f.id);
+    groups.set(f.name, arr);
   }
-  return { trashed, total: ids.length, ids: ids.slice(0, 10) };
+
+  let trashed = 0, kept = 0;
+  for (const [name, ids] of groups.entries()) {
+    const keepId = ids[0]; // oldest first thanks to orderBy
+    kept++;
+    // Refresh cache row
+    await admin.from("drive_folder_cache")
+      .upsert({ parent_id: parentId, name, drive_id: keepId }, { onConflict: "parent_id,name" });
+    for (const dup of ids.slice(1)) {
+      if (await trashDriveFolder(dup)) trashed++;
+    }
+    // Recurse into kept folder
+    const sub = await dedupeFolder(admin, keepId);
+    trashed += sub.trashed;
+    kept += sub.kept;
+  }
+  return { trashed, kept };
 }
 
 Deno.serve(async (req) => {
@@ -142,8 +201,10 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
 
-    if (body?.action === "cleanup") {
-      const result = await cleanupStrayAegis();
+    if (body?.action === "dedupe") {
+      // Wipe cache (it might point to soon-trashed dups), then walk Drive
+      await admin.from("drive_folder_cache").delete().neq("parent_id", "");
+      const result = await dedupeFolder(admin, ROOT_FOLDER_ID);
       return new Response(JSON.stringify({ success: true, ...result }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -160,10 +221,10 @@ Deno.serve(async (req) => {
     const fname = sanitize(filename).endsWith(".md") ? sanitize(filename) : `${sanitize(filename)}.md`;
     const dateFolder = extractDate(fname);
 
-    const clientId = await findOrCreateFolder(clientName, ROOT_FOLDER_ID);
-    const catId = await findOrCreateFolder(cat, clientId);
-    const dateId = await findOrCreateFolder(dateFolder, catId);
-    const fileId = await uploadMarkdown(dateId, fname, content_md);
+    const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
+    const catId    = await findOrCreateFolder(admin, clientId, cat);
+    const dateId   = await findOrCreateFolder(admin, catId, dateFolder);
+    const fileId   = await uploadMarkdown(dateId, fname, content_md);
 
     return new Response(JSON.stringify({ success: true, fileId, path: `${clientName}/${cat}/${dateFolder}/${fname}` }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
