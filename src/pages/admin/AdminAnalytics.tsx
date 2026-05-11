@@ -11,6 +11,8 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 
 const COLORS = [
   "hsl(180, 70%, 50%)", "hsl(270, 50%, 55%)", "hsl(35, 80%, 55%)",
@@ -65,7 +67,9 @@ export default function AdminAnalytics() {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, [locale]);
 
   useEffect(() => {
     const st = location.state as AnalyticsLocationState | null;
@@ -89,7 +93,7 @@ export default function AdminAnalytics() {
       supabase.from("assigned_habits" as any).select("id, user_id, is_active"),
       supabase.from("people_contacts" as any).select("user_id, quality"),
       supabase.from("toolbox_completions" as any).select("*"),
-      supabase.from("toolbox_assignments" as any).select("id, title, user_id"),
+      supabase.from("toolbox_assignments" as any).select("id, title, title_i18n, user_id"),
       supabase.from("journal_entries").select("user_id, title, tags, mood_score, created_at").order("created_at", { ascending: false }).limit(2000),
     ]);
 
@@ -103,7 +107,12 @@ export default function AdminAnalytics() {
     setAssignedHabits((assignRes.data || []) as any);
     setContacts((contactRes.data || []) as any);
     setToolboxCompletions((tbCompRes.data || []) as any);
-    setToolboxAssignments((tbAssignRes.data || []) as any);
+    setToolboxAssignments(
+      ((tbAssignRes.data || []) as any[]).map((a: any) => ({
+        ...a,
+        display_title: pickLocalizedText(locale as Locale, a.title_i18n, a.title),
+      })) as any
+    );
     setJournalEntries((journalRes.data || []) as any);
     setLoading(false);
   };
@@ -269,7 +278,7 @@ export default function AdminAnalytics() {
     const ignored = comps.filter((c: any) => c.status === "ignored").length;
     const abandonMap = new Map<string, number>();
     comps.filter((c: any) => c.status === "abandoned").forEach((c: any) => {
-      const title = assignMap.get(c.assignment_id)?.title ?? "?";
+      const title = assignMap.get(c.assignment_id)?.display_title ?? assignMap.get(c.assignment_id)?.title ?? "?";
       abandonMap.set(title, (abandonMap.get(title) ?? 0) + 1);
     });
     return { total: assigns.length, completed, abandoned, ignored, abandonDetails: Array.from(abandonMap.entries()) };

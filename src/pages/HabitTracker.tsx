@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 
 interface AssignedHabit {
   id: string;
@@ -28,7 +30,7 @@ const categoryIcon = (cat: string) => {
 export default function HabitTracker() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [habits, setHabits] = useState<AssignedHabit[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function HabitTracker() {
 
   useEffect(() => {
     if (user) loadData();
-  }, [user]);
+  }, [user, locale]);
 
   const loadData = async () => {
     setLoading(true);
@@ -46,12 +48,23 @@ export default function HabitTracker() {
     if (!assigned || assigned.length === 0) { setHabits([]); setLoading(false); return; }
 
     const templateIds = (assigned as any[]).map((a) => a.habit_template_id);
-    const { data: templates } = await supabase.from("habit_templates" as any).select("id, name, category").in("id", templateIds);
+    const { data: templates } = await supabase
+      .from("habit_templates" as any)
+      .select("id, name, name_i18n, category")
+      .in("id", templateIds);
     const templateMap = new Map((templates as any[] || []).map((t) => [t.id, t]));
 
     const habitsData: AssignedHabit[] = (assigned as any[]).map((a) => {
       const template = templateMap.get(a.habit_template_id);
-      return { id: a.id, habit_template_id: a.habit_template_id, is_active: a.is_active, template_name: template?.name || t("habits.unknown"), template_category: template?.category || t("habits.categoryGeneral") };
+      return {
+        id: a.id,
+        habit_template_id: a.habit_template_id,
+        is_active: a.is_active,
+        template_name: template
+          ? pickLocalizedText(locale as Locale, (template as any).name_i18n, template.name)
+          : t("habits.unknown"),
+        template_category: template?.category || t("habits.categoryGeneral"),
+      };
     });
     setHabits(habitsData);
 

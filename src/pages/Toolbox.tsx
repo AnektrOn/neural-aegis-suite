@@ -16,6 +16,8 @@ import StopProtocolWidget from "@/components/widgets/StopProtocolWidget";
 import IntentionWidget from "@/components/widgets/IntentionWidget";
 import MicroPracticeWidget from "@/components/widgets/MicroPracticeWidget";
 import { isLikelyVideoUrl } from "@/lib/video-links";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -23,9 +25,11 @@ import {
 interface ToolboxItem {
   id: string;
   title: string;
+  title_i18n?: unknown;
   content_type: string;
   duration: string | null;
   description: string | null;
+  description_i18n?: unknown;
   external_url: string | null;
   widget_config: any;
   assigned_at: string;
@@ -94,7 +98,7 @@ function canRenderToolboxWidget(item: ToolboxItem): boolean {
 export default function Toolbox() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [items, setItems] = useState<ToolboxItem[]>([]);
   const [completions, setCompletions] = useState<CompletionRecord[]>([]);
   const [activeWidget, setActiveWidget] = useState<string | null>(null);
@@ -219,6 +223,12 @@ export default function Toolbox() {
     return typeConfigKeys[type] ? t(typeConfigKeys[type].labelKey as any) : type;
   };
 
+  const getLocalizedTitle = (item: ToolboxItem) =>
+    pickLocalizedText(locale as Locale, item.title_i18n as any, item.title);
+
+  const getLocalizedDescription = (item: ToolboxItem) =>
+    pickLocalizedText(locale as Locale, item.description_i18n as any, item.description);
+
   const renderWidget = (item: ToolboxItem) => {
     const config = item.widget_config;
     if (
@@ -236,7 +246,7 @@ export default function Toolbox() {
         return (
           <BreathworkWidget
             config={config}
-            title={item.title}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -245,7 +255,7 @@ export default function Toolbox() {
         return (
           <FocusIntrospectifWidget
             config={config}
-            title={item.title}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -254,7 +264,7 @@ export default function Toolbox() {
         return (
           <BodyScanWidget
             config={config ?? {}}
-            title={item.title}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -264,7 +274,7 @@ export default function Toolbox() {
         return (
           <AffirmationsWidget
             config={config}
-            title={item.title}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -273,7 +283,7 @@ export default function Toolbox() {
         return (
           <VisualizationWidget
             config={config ?? {}}
-            title={item.title}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -282,7 +292,7 @@ export default function Toolbox() {
         return (
           <StopProtocolWidget
             config={config ?? {}}
-            title={item.title}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -291,7 +301,7 @@ export default function Toolbox() {
         return (
           <IntentionWidget
             config={config ?? {}}
-            title={item.title}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -300,7 +310,7 @@ export default function Toolbox() {
         return (
           <GratitudeWidget
             config={config ?? {}}
-            title={item.title}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -309,7 +319,7 @@ export default function Toolbox() {
         return (
           <MicroPracticeWidget
             config={config ?? {}}
-            title={item.title}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -318,8 +328,11 @@ export default function Toolbox() {
         if (!config?.prompt?.trim()) return null;
         return (
           <JournalPromptWidget
-            config={config}
-            title={item.title}
+            config={{
+              ...config,
+              prompt: pickLocalizedText(locale as Locale, config.prompt_i18n, config.prompt),
+            }}
+            title={getLocalizedTitle(item)}
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -372,7 +385,7 @@ export default function Toolbox() {
           { key: "all" as const, label: t("toolbox.statusFilterAll") },
           { key: "completed" as const, label: t("toolbox.completed") },
           { key: "abandoned" as const, label: t("toolbox.abandoned") },
-          { key: "ignored" as const, label: t("toolbox.reported") },
+          { key: "ignored" as const, label: t("toolbox.ignored") },
           { key: "pending" as const, label: t("toolbox.pending") },
         ].map((entry) => (
           <button
@@ -481,8 +494,11 @@ export default function Toolbox() {
                     <span className="text-neural-label">{item.duration || "—"}</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-foreground mb-2">{item.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed flex-1">{item.description || (typeConfigKeys[item.content_type] ? t(typeConfigKeys[item.content_type].labelKey as any) : "")}</p>
+                <p className="text-sm font-medium text-foreground mb-2">{getLocalizedTitle(item)}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed flex-1">
+                  {getLocalizedDescription(item) ||
+                    (typeConfigKeys[item.content_type] ? t(typeConfigKeys[item.content_type].labelKey as any) : "")}
+                </p>
 
                 <div className="mt-4 flex items-center gap-3 flex-wrap" onClick={(e) => e.stopPropagation()}>
                   {(!latestCompletion || isActive) && !isIgnored ? (
@@ -546,7 +562,7 @@ export default function Toolbox() {
               )}
             </DialogTitle>
             <DialogDescription className="text-center">
-              {dialogItem?.title}
+              {dialogItem ? getLocalizedTitle(dialogItem) : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="text-center py-4 space-y-3">

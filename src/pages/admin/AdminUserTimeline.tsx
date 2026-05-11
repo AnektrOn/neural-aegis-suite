@@ -29,9 +29,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { AdminProfile } from "@/lib/admin-types";
 import { avgOrNull, formatDurationSec, getDayKey } from "@/lib/admin-helpers";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 import type { TranslationKey } from "@/i18n/translations";
 
 type TFn = (key: TranslationKey, params?: Record<string, string | number>) => string;
+
+type JsonI18n = Partial<Record<Locale, string>> | Record<string, string> | null;
 
 interface TimelineEvent {
   id: string;
@@ -269,7 +273,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           .gte("completed_at", sinceIso),
         supabase
           .from("toolbox_assignments" as never)
-          .select("id, title")
+          .select("id, title, title_i18n")
           .eq("user_id", selectedUserId),
         supabase
           .from("audit_calls" as never)
@@ -283,11 +287,11 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           .gte("earned_at", sinceIso),
         supabase
           .from("assigned_habits" as never)
-          .select("id, template_id, title")
+          .select("id, habit_template_id")
           .eq("user_id", selectedUserId),
         supabase
           .from("habit_templates" as never)
-          .select("id, title, name"),
+          .select("id, name, name_i18n"),
       ]);
 
       const errors = [
@@ -319,27 +323,30 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
       setLastSeen(sessions[0]?.started_at || null);
 
       const assignmentTitleById = new Map<string, string>();
-      ((tbAssignRes.data || []) as { id: string; title: string }[]).forEach(
-        (row) => assignmentTitleById.set(row.id, row.title)
-      );
+      ((tbAssignRes.data || []) as { id: string; title: string; title_i18n?: JsonI18n }[]).forEach((row) => {
+        assignmentTitleById.set(
+          row.id,
+          pickLocalizedText(locale as Locale, row.title_i18n, row.title)
+        );
+      });
 
       const habitTemplateNameById = new Map<string, string>();
-      ((habitTemplatesRes.data || []) as { id: string; title?: string; name?: string }[]).forEach((row) => {
-        habitTemplateNameById.set(row.id, row.title || row.name || t("admin.timeline.habitFallback"));
+      ((habitTemplatesRes.data || []) as { id: string; name: string; name_i18n?: JsonI18n }[]).forEach((row) => {
+        habitTemplateNameById.set(
+          row.id,
+          pickLocalizedText(locale as Locale, row.name_i18n, row.name) || t("admin.timeline.habitFallback")
+        );
       });
 
       const habitNameByAssignedId = new Map<string, string>();
       (
         (assignedHabitsRes.data || []) as {
           id: string;
-          template_id?: string | null;
-          title?: string | null;
+          habit_template_id: string;
         }[]
       ).forEach((row) => {
-        const fromTemplate = row.template_id
-          ? habitTemplateNameById.get(row.template_id)
-          : null;
-        habitNameByAssignedId.set(row.id, row.title || fromTemplate || t("admin.timeline.habitFallback"));
+        const fromTemplate = habitTemplateNameById.get(row.habit_template_id);
+        habitNameByAssignedId.set(row.id, fromTemplate || t("admin.timeline.habitFallback"));
       });
 
       const built: TimelineEvent[] = [];

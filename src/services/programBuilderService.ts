@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isLikelyVideoUrl } from "@/lib/video-links";
+import { bilingualPair } from "@/lib/content-i18n";
 
 export const TOOLBOX_CONTENT_TYPES = [
   "breathwork",
@@ -25,8 +26,10 @@ export interface CatalogTaggable {
 export interface HabitTemplateInput extends CatalogTaggable {
   external_key?: string | null;
   name: string;
+  name_i18n?: Record<string, string> | null;
   category: string;
   description?: string | null;
+  description_i18n?: Record<string, string> | null;
   is_active?: boolean;
 }
 
@@ -34,8 +37,10 @@ export interface ToolboxTemplateInput extends CatalogTaggable {
   external_key?: string | null;
   content_type: ToolboxContentType;
   title: string;
+  title_i18n?: Record<string, string> | null;
   duration?: string | null;
   description?: string | null;
+  description_i18n?: Record<string, string> | null;
   external_url?: string | null;
   widget_config?: Record<string, unknown> | null;
   is_active?: boolean;
@@ -44,7 +49,9 @@ export interface ToolboxTemplateInput extends CatalogTaggable {
 export interface JournalPromptTemplateInput extends CatalogTaggable {
   external_key?: string | null;
   title: string;
+  title_i18n?: Record<string, string> | null;
   prompt_text: string;
+  prompt_text_i18n?: Record<string, string> | null;
   duration?: string | null;
   is_active?: boolean;
 }
@@ -90,8 +97,14 @@ export interface ToolboxCatalogImportPayload {
     external_key?: string;
     content_type: ToolboxContentType;
     title: string;
+    title_fr?: string;
+    title_en?: string;
+    title_i18n?: Record<string, string>;
     duration?: string;
     description?: string;
+    description_fr?: string;
+    description_en?: string;
+    description_i18n?: Record<string, string>;
     external_url?: string;
     widget_config: Record<string, unknown>;
     is_active?: boolean;
@@ -99,14 +112,26 @@ export interface ToolboxCatalogImportPayload {
   habit_items?: Array<{
     external_key?: string;
     name: string;
+    name_fr?: string;
+    name_en?: string;
+    name_i18n?: Record<string, string>;
     category: string;
     description?: string;
+    description_fr?: string;
+    description_en?: string;
+    description_i18n?: Record<string, string>;
     is_active?: boolean;
   }>;
   journal_items?: Array<{
     external_key?: string;
     title: string;
+    title_fr?: string;
+    title_en?: string;
+    title_i18n?: Record<string, string>;
     prompt_text: string;
+    prompt_fr?: string;
+    prompt_en?: string;
+    prompt_text_i18n?: Record<string, string>;
     duration?: string;
     is_active?: boolean;
   }>;
@@ -129,6 +154,38 @@ function normalizeKey(key?: string | null) {
   return (key || "").trim() || null;
 }
 
+function mergeI18nObject(
+  direct?: Record<string, string> | null,
+  legacyFr?: string | null,
+  legacyEn?: string | null,
+  legacy?: string | null
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  const assign = (k: string, v?: string | null) => {
+    const t = (v ?? "").trim();
+    if (t) out[k] = t;
+  };
+
+  if (direct && typeof direct === "object") {
+    assign("fr", (direct as any).fr ?? (direct as any).FR);
+    assign("en", (direct as any).en ?? (direct as any).EN);
+  }
+
+  assign("fr", legacyFr ?? null);
+  assign("en", legacyEn ?? null);
+
+  const l = legacy?.trim();
+  if (l) {
+    // If only one locale is explicitly provided elsewhere, mirror to keep DB bilingual-friendly.
+    if (!out.fr) assign("fr", l);
+    if (!out.en) assign("en", l);
+  }
+
+  const frFinal = out.fr || out.en || l || "";
+  const enFinal = out.en || out.fr || l || "";
+  return bilingualPair(frFinal, enFinal);
+}
+
 export async function logProgramEvent(input: ProgramEventInput) {
   await supabase.from("program_events" as any).insert({
     actor_id: input.actor_id,
@@ -141,11 +198,15 @@ export async function logProgramEvent(input: ProgramEventInput) {
 }
 
 export async function createHabitTemplate(input: HabitTemplateInput, actorId: string) {
+  const nameI18n = mergeI18nObject(input.name_i18n || null, null, null, input.name);
+  const descI18n = mergeI18nObject(input.description_i18n || null, null, null, input.description ?? null);
   const payload = {
     external_key: normalizeKey(input.external_key),
     name: input.name.trim(),
+    name_i18n: nameI18n,
     category: input.category.trim(),
     description: input.description?.trim() || null,
+    description_i18n: descI18n,
     archetype_targets: asArray(input.archetype_targets),
     shadow_targets: asArray(input.shadow_targets),
     is_active: input.is_active ?? true,
@@ -171,12 +232,16 @@ export async function createHabitTemplate(input: HabitTemplateInput, actorId: st
 }
 
 export async function createToolboxTemplate(input: ToolboxTemplateInput, actorId: string) {
+  const titleI18n = mergeI18nObject(input.title_i18n || null, null, null, input.title);
+  const descI18n = mergeI18nObject(input.description_i18n || null, null, null, input.description ?? null);
   const payload = {
     external_key: normalizeKey(input.external_key),
     content_type: input.content_type,
     title: input.title.trim(),
+    title_i18n: titleI18n,
     duration: input.duration?.trim() || null,
     description: input.description?.trim() || null,
+    description_i18n: descI18n,
     external_url: input.external_url?.trim() || null,
     widget_config: input.widget_config || {},
     archetype_targets: asArray(input.archetype_targets),
@@ -203,10 +268,14 @@ export async function createToolboxTemplate(input: ToolboxTemplateInput, actorId
 }
 
 export async function createJournalPromptTemplate(input: JournalPromptTemplateInput, actorId: string) {
+  const titleI18n = mergeI18nObject(input.title_i18n || null, null, null, input.title);
+  const promptI18n = mergeI18nObject(input.prompt_text_i18n || null, null, null, input.prompt_text);
   const payload = {
     external_key: normalizeKey(input.external_key),
     title: input.title.trim(),
+    title_i18n: titleI18n,
     prompt_text: input.prompt_text.trim(),
+    prompt_text_i18n: promptI18n,
     duration: input.duration?.trim() || null,
     archetype_targets: asArray(input.archetype_targets),
     shadow_targets: asArray(input.shadow_targets),
@@ -240,8 +309,14 @@ export async function updateHabitTemplate(
   const patch: Record<string, unknown> = {};
   if (input.external_key !== undefined) patch.external_key = normalizeKey(input.external_key);
   if (input.name !== undefined) patch.name = input.name.trim();
+  if (input.name !== undefined || input.name_i18n !== undefined) {
+    patch.name_i18n = mergeI18nObject(input.name_i18n ?? null, null, null, input.name ?? null);
+  }
   if (input.category !== undefined) patch.category = input.category.trim();
   if (input.description !== undefined) patch.description = input.description?.trim() || null;
+  if (input.description !== undefined || input.description_i18n !== undefined) {
+    patch.description_i18n = mergeI18nObject(input.description_i18n ?? null, null, null, input.description ?? null);
+  }
   if (input.archetype_targets !== undefined) patch.archetype_targets = asArray(input.archetype_targets);
   if (input.shadow_targets !== undefined) patch.shadow_targets = asArray(input.shadow_targets);
   if (input.is_active !== undefined) patch.is_active = input.is_active;
@@ -273,8 +348,14 @@ export async function updateToolboxTemplate(
   if (input.external_key !== undefined) patch.external_key = normalizeKey(input.external_key);
   if (input.content_type !== undefined) patch.content_type = input.content_type;
   if (input.title !== undefined) patch.title = input.title.trim();
+  if (input.title !== undefined || input.title_i18n !== undefined) {
+    patch.title_i18n = mergeI18nObject(input.title_i18n ?? null, null, null, input.title ?? null);
+  }
   if (input.duration !== undefined) patch.duration = input.duration?.trim() || null;
   if (input.description !== undefined) patch.description = input.description?.trim() || null;
+  if (input.description !== undefined || input.description_i18n !== undefined) {
+    patch.description_i18n = mergeI18nObject(input.description_i18n ?? null, null, null, input.description ?? null);
+  }
   if (input.external_url !== undefined) patch.external_url = input.external_url?.trim() || null;
   if (input.widget_config !== undefined) patch.widget_config = input.widget_config || {};
   if (input.archetype_targets !== undefined) patch.archetype_targets = asArray(input.archetype_targets);
@@ -307,7 +388,13 @@ export async function updateJournalPromptTemplate(
   const patch: Record<string, unknown> = {};
   if (input.external_key !== undefined) patch.external_key = normalizeKey(input.external_key);
   if (input.title !== undefined) patch.title = input.title.trim();
+  if (input.title !== undefined || input.title_i18n !== undefined) {
+    patch.title_i18n = mergeI18nObject(input.title_i18n ?? null, null, null, input.title ?? null);
+  }
   if (input.prompt_text !== undefined) patch.prompt_text = input.prompt_text.trim();
+  if (input.prompt_text !== undefined || input.prompt_text_i18n !== undefined) {
+    patch.prompt_text_i18n = mergeI18nObject(input.prompt_text_i18n ?? null, null, null, input.prompt_text ?? null);
+  }
   if (input.duration !== undefined) patch.duration = input.duration?.trim() || null;
   if (input.archetype_targets !== undefined) patch.archetype_targets = asArray(input.archetype_targets);
   if (input.shadow_targets !== undefined) patch.shadow_targets = asArray(input.shadow_targets);
@@ -411,8 +498,20 @@ export async function assignToolboxTemplateToUser(params: {
     user_id: userId,
     content_type: (template as any).content_type,
     title: (template as any).title,
+    title_i18n: mergeI18nObject(
+      (template as any).title_i18n ?? null,
+      null,
+      null,
+      (template as any).title
+    ),
     duration: (template as any).duration,
     description: (template as any).description,
+    description_i18n: mergeI18nObject(
+      (template as any).description_i18n ?? null,
+      null,
+      null,
+      (template as any).description ?? null
+    ),
     external_url: (template as any).external_url,
     widget_config: (template as any).widget_config || {},
     assigned_by: actorId,
@@ -451,12 +550,15 @@ export async function assignJournalPromptTemplateToUser(params: {
     .single();
   if (tErr) throw tErr;
 
+  const promptI18n = mergeI18nObject(template.prompt_text_i18n ?? null, null, null, template.prompt_text);
+
   const { data, error } = await supabase
     .from("journal_prompts" as any)
     .insert({
       user_id: userId,
       assigned_by: actorId,
       prompt_text: (template as any).prompt_text,
+      prompt_text_i18n: promptI18n,
       template_id: (template as any).id,
     } as any)
     .select("*")
@@ -465,15 +567,22 @@ export async function assignJournalPromptTemplateToUser(params: {
 
   // Mirror journal prompts into Toolbox so users can execute them
   // through the same widget/status flow as other toolbox items.
+  const titleI18n = mergeI18nObject(template.title_i18n ?? null, null, null, template.title || "Journal Prompt");
+
   const { error: toolboxError } = await supabase
     .from("toolbox_assignments" as any)
     .insert({
       user_id: userId,
       content_type: "journal_prompt",
       title: (template as any).title || "Journal Prompt",
+      title_i18n: titleI18n,
       duration: (template as any).duration || "10 min",
       description: null,
-      widget_config: { prompt: (template as any).prompt_text },
+      description_i18n: {},
+      widget_config: {
+        prompt: (template as any).prompt_text,
+        prompt_i18n: promptI18n,
+      },
       assigned_by: actorId,
       template_id: (template as any).id,
     } as any);
@@ -496,23 +605,29 @@ export async function assignToolboxDirect(params: {
   userId: string;
   contentType: string;
   title: string;
+  titleI18n?: Record<string, string> | null;
   duration?: string | null;
   description?: string | null;
+  descriptionI18n?: Record<string, string> | null;
   externalUrl?: string | null;
   widgetConfig?: Record<string, unknown> | null;
 }) {
-  const { actorId, userId, contentType, title, duration, description, externalUrl, widgetConfig } = params;
+  const { actorId, userId, contentType, title, titleI18n, duration, description, descriptionI18n, externalUrl, widgetConfig } = params;
   if (contentType === "external_link" && isLikelyVideoUrl(externalUrl)) {
     throw new Error("Video links must be assigned via Bibliotheque admin.");
   }
+  const mergedTitleI18n = mergeI18nObject(titleI18n ?? null, null, null, title);
+  const mergedDescI18n = mergeI18nObject(descriptionI18n ?? null, null, null, description ?? null);
   const { data, error } = await supabase
     .from("toolbox_assignments" as any)
     .insert({
       user_id: userId,
       content_type: contentType,
       title,
+      title_i18n: mergedTitleI18n,
       duration: duration || null,
       description: description || null,
+      description_i18n: mergedDescI18n,
       external_url: externalUrl || null,
       widget_config: widgetConfig || {},
       assigned_by: actorId,
@@ -893,8 +1008,15 @@ export async function runToolboxCatalogImport(params: {
         external_key: t.external_key,
         content_type: t.content_type,
         title: t.title,
+        title_i18n: mergeI18nObject(t.title_i18n ?? null, t.title_fr ?? null, t.title_en ?? null, t.title),
         duration: t.duration,
         description: t.description,
+        description_i18n: mergeI18nObject(
+          t.description_i18n ?? null,
+          t.description_fr ?? null,
+          t.description_en ?? null,
+          t.description ?? null
+        ),
         external_url: t.external_url,
         widget_config: t.widget_config,
         is_active: t.is_active ?? true,
@@ -921,8 +1043,15 @@ export async function runToolboxCatalogImport(params: {
       {
         external_key: h.external_key,
         name: h.name,
+        name_i18n: mergeI18nObject(h.name_i18n ?? null, h.name_fr ?? null, h.name_en ?? null, h.name),
         category: h.category,
         description: h.description,
+        description_i18n: mergeI18nObject(
+          h.description_i18n ?? null,
+          h.description_fr ?? null,
+          h.description_en ?? null,
+          h.description ?? null
+        ),
         is_active: h.is_active ?? true,
       },
       actorId
@@ -947,7 +1076,14 @@ export async function runToolboxCatalogImport(params: {
       {
         external_key: j.external_key,
         title: j.title,
+        title_i18n: mergeI18nObject(j.title_i18n ?? null, j.title_fr ?? null, j.title_en ?? null, j.title),
         prompt_text: j.prompt_text,
+        prompt_text_i18n: mergeI18nObject(
+          j.prompt_text_i18n ?? null,
+          j.prompt_fr ?? null,
+          j.prompt_en ?? null,
+          j.prompt_text
+        ),
         duration: j.duration,
         is_active: j.is_active ?? true,
       },

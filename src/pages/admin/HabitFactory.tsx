@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { assignHabitTemplateToUser, createHabitTemplate } from "@/services/programBuilderService";
+import { bilingualPair } from "@/lib/content-i18n";
 
 interface HabitTemplate {
   id: string;
@@ -34,7 +35,7 @@ export default function HabitFactory() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [assigningId, setAssigningId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", category: "", description: "" });
+  const [form, setForm] = useState({ name: "", nameEn: "", category: "", description: "", descriptionEn: "" });
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [durationFilter, setDurationFilter] = useState("");
@@ -62,17 +63,24 @@ export default function HabitFactory() {
     e.preventDefault();
     if (!user) return;
     try {
+      const nameFr = form.name.trim();
+      const nameEn = (form.nameEn.trim() || nameFr).trim();
+      const descFr = form.description.trim();
+      const descEn = (form.descriptionEn.trim() || descFr).trim();
+
       await createHabitTemplate(
         {
-          name: form.name,
+          name: nameFr,
+          name_i18n: bilingualPair(nameFr, nameEn),
           category: form.category,
-          description: form.description || null,
+          description: descFr || null,
+          ...(descFr || descEn ? { description_i18n: bilingualPair(descFr || descEn, descEn || descFr) } : {}),
         },
         user.id
       );
-      toast({ title: "Habit Created", description: `"${form.name}" added to the factory.` });
+      toast({ title: "Habit Created", description: `"${nameFr}" added to the factory.` });
       setShowForm(false);
-      setForm({ name: "", category: "", description: "" });
+      setForm({ name: "", nameEn: "", category: "", description: "", descriptionEn: "" });
       loadData();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -150,13 +158,23 @@ export default function HabitFactory() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="text-neural-label block mb-2">Habit Name</label>
+              <label className="text-neural-label block mb-2">Habit name (FR)</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                placeholder="Morning Meditation"
+                placeholder="Méditation du matin"
+                className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/40 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-neural-label block mb-2">Habit name (EN)</label>
+              <input
+                type="text"
+                value={form.nameEn}
+                onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                placeholder="Morning meditation"
                 className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/40 transition-colors"
               />
             </div>
@@ -174,15 +192,27 @@ export default function HabitFactory() {
             </div>
           </div>
 
-          <div>
-            <label className="text-neural-label block mb-2">Description</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={2}
-              placeholder="High-impact habit for peak performance..."
-              className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/40 transition-colors resize-none"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="text-neural-label block mb-2">Description (FR)</label>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                rows={2}
+                placeholder="Court contexte FR…"
+                className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/40 transition-colors resize-none"
+              />
+            </div>
+            <div>
+              <label className="text-neural-label block mb-2">Description (EN)</label>
+              <textarea
+                value={form.descriptionEn}
+                onChange={(e) => setForm({ ...form, descriptionEn: e.target.value })}
+                rows={2}
+                placeholder="Short EN context…"
+                className="w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/40 transition-colors resize-none"
+              />
+            </div>
           </div>
 
           <button type="submit" className="btn-neural">

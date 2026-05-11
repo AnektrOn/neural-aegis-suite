@@ -10,6 +10,7 @@ import { getActiveAlertCountsByUser } from "@/services/alertService";
 import CSVImport from "@/components/admin/CSVImport";
 import CreateUserForm from "@/components/admin/CreateUserForm";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
+import { bilingualPair } from "@/lib/content-i18n";
 
 interface UserData {
   id: string;
@@ -107,7 +108,15 @@ export default function UserManagement() {
 
   const assignToolbox = async (userId: string, contentType: string, title: string, duration: string) => {
     if (!currentUser) return;
-    const { error } = await supabase.from("toolbox_assignments" as any).insert({ user_id: userId, content_type: contentType, title, duration, assigned_by: currentUser.id } as any);
+    const { error } = await supabase.from("toolbox_assignments" as any).insert({
+      user_id: userId,
+      content_type: contentType,
+      title,
+      title_i18n: bilingualPair(title, title),
+      description_i18n: {},
+      duration,
+      assigned_by: currentUser.id,
+    } as any);
     if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
     else { toast({ title: t("toast.contentAssigned"), description: `"${title}" ${t("toast.assignedTo")}` }); loadUsers(); }
   };

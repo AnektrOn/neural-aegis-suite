@@ -26,6 +26,8 @@ import { PostAssessmentBanner } from "@/components/PostAssessmentBanner";
 import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMaturity";
 import { generateAllNarratives, pickHighlightNarrative, type NarrativeContext, type KPINarrative } from "@/lib/narrativeEngine";
 import { NarrativeKPICard } from "@/components/NarrativeKPICard";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 
 interface WeeklyDigest {
   moodTrend: "up" | "down" | "stable";
@@ -131,7 +133,7 @@ export default function Dashboard() {
       checkAndAwardBadges(user.id);
       sessionStorage.setItem("badges_checked", "1");
     }
-  }, [user, isMobile, t]);
+  }, [user, isMobile, t, locale]);
 
   // Listen for pull-to-refresh event
   useEffect(() => {
@@ -271,14 +273,18 @@ export default function Dashboard() {
 
         const { data: templates } = await supabase
           .from("habit_templates" as any)
-          .select("id, name, category")
+          .select("id, name, name_i18n, category")
           .in("id", templateIds);
 
         const tMap = new Map((templates as any[] || []).map((t: any) => [t.id, t]));
         setMobileHabits(
           (habitsAssignedRes.data as any[]).map((a: any) => ({
             id: a.id,
-            name: tMap.get(a.habit_template_id)?.name ?? t("habits.unknown"),
+            name: (() => {
+              const tpl = tMap.get(a.habit_template_id);
+              if (!tpl) return t("habits.unknown");
+              return pickLocalizedText(locale as Locale, tpl.name_i18n, tpl.name);
+            })(),
             category: tMap.get(a.habit_template_id)?.category ?? "",
             completed: completedTodaySet.has(a.id),
           }))

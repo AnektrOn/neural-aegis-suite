@@ -18,7 +18,7 @@ interface AdminDecision {
   user_name?: string;
 }
 
-const statusLabels: Record<string, string> = { pending: "En attente", decided: "Décidée", deferred: "Reportée" };
+const statusLabels: Record<string, string> = { pending: "Pending", decided: "Decided", deferred: "Deferred" };
 const statusColors: Record<string, string> = {
   pending: "text-neural-warm border-neural-warm/20 bg-neural-warm/5",
   decided: "text-primary border-primary/20 bg-primary/5",
@@ -45,9 +45,9 @@ export default function AdminDecisions() {
     const userIds = [...new Set((decs as any[]).map(d => d.user_id))];
     const { data: profiles } = await supabase.from("profiles").select("id, display_name").in("id", userIds);
     const nameMap: Record<string, string> = {};
-    (profiles || []).forEach((p: any) => { nameMap[p.id] = p.display_name || "Utilisateur"; });
+    (profiles || []).forEach((p: any) => { nameMap[p.id] = p.display_name || "User"; });
 
-    setDecisions((decs as any[]).map(d => ({ ...d, user_name: nameMap[d.user_id] || "Utilisateur" })));
+    setDecisions((decs as any[]).map(d => ({ ...d, user_name: nameMap[d.user_id] || "User" })));
     setLoading(false);
   };
 
@@ -71,7 +71,7 @@ export default function AdminDecisions() {
     }
     const { error } = await supabase.from("decisions").update(updates).eq("id", id);
     if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); return; }
-    toast({ title: `Statut mis à jour: ${statusLabels[status]}` });
+    toast({ title: `Status updated: ${statusLabels[status]}` });
     loadDecisions();
   };
 
@@ -93,18 +93,18 @@ export default function AdminDecisions() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <p className="text-neural-label mb-3">Supervision</p>
-          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Décisions Utilisateurs</h1>
+          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">User decisions</h1>
         </div>
-        <button onClick={loadDecisions} className="btn-neural shrink-0"><RefreshCw size={14} /> Actualiser</button>
+        <button onClick={loadDecisions} className="btn-neural shrink-0"><RefreshCw size={14} /> Refresh</button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total", value: stats.total, icon: Target, color: "text-muted-foreground" },
-          { label: "En attente", value: stats.pending, icon: Clock, color: "text-neural-warm" },
-          { label: "Décidées", value: stats.decided, icon: ArrowUpRight, color: "text-primary" },
-          { label: "Reportées", value: stats.deferred, icon: Filter, color: "text-muted-foreground" },
+          { label: "Pending", value: stats.pending, icon: Clock, color: "text-neural-warm" },
+          { label: "Decided", value: stats.decided, icon: ArrowUpRight, color: "text-primary" },
+          { label: "Deferred", value: stats.deferred, icon: Filter, color: "text-muted-foreground" },
         ].map(s => (
           <div key={s.label} className="ethereal-glass p-4 text-center">
             <s.icon size={16} strokeWidth={1.5} className={`${s.color} mx-auto mb-2`} />
@@ -127,7 +127,7 @@ export default function AdminDecisions() {
               className={`text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-full border transition-all ${
                 statusFilter === s ? "text-primary border-primary/30 bg-primary/5" : "text-muted-foreground border-border hover:border-muted-foreground/30"
               }`}>
-              {s === "all" ? "Tout" : statusLabels[s]}
+              {s === "all" ? "All" : statusLabels[s]}
             </button>
           ))}
         </div>
@@ -153,16 +153,16 @@ export default function AdminDecisions() {
                     <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{d.user_name}</span>
                   </div>
                   <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
-                  <p className="text-neural-label mt-1">{new Date(d.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</p>
+                  <p className="text-neural-label mt-1">{new Date(d.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</p>
                 </div>
                 <div className="flex gap-4 items-center shrink-0">
                   <div className="text-center hidden sm:block">
                     <p className="text-sm font-cinzel text-foreground">P{d.priority}</p>
-                    <p className="text-neural-label">Priorité</p>
+                    <p className="text-neural-label">Priority</p>
                   </div>
                   <div className="text-center hidden sm:block">
                     <p className="text-sm font-cinzel text-foreground">{d.responsibility}/10</p>
-                    <p className="text-neural-label">Poids</p>
+                    <p className="text-neural-label">Weight</p>
                   </div>
                 </div>
               </div>
