@@ -197,11 +197,15 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
 
     if (body?.action === "dedupe") {
-      // Wipe cache (it might point to soon-trashed dups), then walk Drive
       await admin.from("drive_folder_cache").delete().neq("parent_id", "");
-      const result = await dedupeFolder(admin, ROOT_FOLDER_ID);
-      return new Response(JSON.stringify({ success: true, ...result }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const stats = { trashed: 0, kept: 0 };
+      // Run in background; respond immediately to avoid client timeout
+      // @ts-ignore EdgeRuntime is available in Supabase edge runtime
+      EdgeRuntime.waitUntil(dedupeFolder(admin, ROOT_FOLDER_ID, stats)
+        .then(() => console.log(`dedupe done: kept=${stats.kept} trashed=${stats.trashed}`))
+        .catch((e) => console.error("dedupe failed:", e)));
+      return new Response(JSON.stringify({ success: true, started: true }),
+        { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { user_id, category, filename, content_md } = body;
