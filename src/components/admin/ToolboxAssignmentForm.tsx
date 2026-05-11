@@ -312,7 +312,6 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
     if (selectedType !== "journal_prompt" && selectedType !== "external_link" && customTitleEn.trim()) {
       titleEn = customTitleEn.trim();
     }
-    title = t === undefined ? titleFr : (titleFr); // legacy variable still used downstream by toast
     // Use the locale's title for the legacy `title` field so toast/UI show the admin's language
     title = (locale === "en" ? titleEn : titleFr) || titleFr || titleEn;
 
