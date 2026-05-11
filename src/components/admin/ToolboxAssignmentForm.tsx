@@ -660,6 +660,22 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
               </div>
             )}
 
+            {selectedType !== "journal_prompt" && selectedType !== "external_link" && (
+              <div className="pt-2 border-t border-border/20">
+                <label className={labelClass}>Title (EN) — optional override</label>
+                <input
+                  type="text"
+                  value={customTitleEn}
+                  onChange={(e) => setCustomTitleEn(e.target.value)}
+                  placeholder="Leave empty to auto-translate from the catalog"
+                  className={inputClass}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use this to provide a custom English title. If left empty, the English version is generated from the built-in translations.
+                </p>
+              </div>
+            )}
+
             <button onClick={handleSubmit} disabled={submitting}
               className="btn-neural disabled:opacity-50">
               <Send size={14} /> {submitting ? t("admin.toolboxForm.submitting") : t("admin.toolboxForm.submit")}
