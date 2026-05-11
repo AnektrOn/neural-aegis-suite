@@ -102,15 +102,20 @@ async function cleanupStrayAegis(): Promise<{ trashed: number; ids: string[] }> 
   const ids: string[] = (data.files || []).map((f: any) => f.id);
 
   let trashed = 0;
-  for (const id of ids) {
-    const t = await fetch(`${GATEWAY}/drive/v3/files/${id}?supportsAllDrives=true`, {
-      method: "PATCH",
-      headers: gwHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ trashed: true }),
-    });
-    if (t.ok) trashed++;
+  // Parallel batches of 20
+  const batchSize = 20;
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const slice = ids.slice(i, i + batchSize);
+    const results = await Promise.all(slice.map((id) =>
+      fetch(`${GATEWAY}/drive/v3/files/${id}?supportsAllDrives=true`, {
+        method: "PATCH",
+        headers: gwHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ trashed: true }),
+      }).then((t) => t.ok).catch(() => false)
+    ));
+    trashed += results.filter(Boolean).length;
   }
-  return { trashed, ids };
+  return { trashed, total: ids.length, ids: ids.slice(0, 10) };
 }
 
 Deno.serve(async (req) => {
