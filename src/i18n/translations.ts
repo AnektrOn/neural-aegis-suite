@@ -869,6 +869,16 @@ export const translations = {
   "toolbox.focus.running": { fr: "En cours…", en: "In progress…" },
   "toolbox.focus.ready": { fr: "Prêt", en: "Ready" },
 
+  // Micro practice widget
+  "toolbox.micro.duration": { fr: "Durée : {time}", en: "Duration: {time}" },
+  "toolbox.micro.stepsCount": { fr: "{n} étapes", en: "{n} steps" },
+  "toolbox.micro.stepCounter": { fr: "Étape {current} / {total}", en: "Step {current} / {total}" },
+  "toolbox.micro.done": { fr: "Exercice terminé ✦", en: "Exercise complete ✦" },
+  "toolbox.micro.start": { fr: "Commencer", en: "Start" },
+  "toolbox.micro.next": { fr: "Suivant", en: "Next" },
+  "toolbox.micro.finish": { fr: "Terminer", en: "Finish" },
+  "toolbox.micro.markDone": { fr: "Terminé", en: "Done" },
+
   // Decisions mini card
   "decisionsMini.title": { fr: "Décisions en cours", en: "Open decisions" },
   "decisionsMini.openCount": { fr: "{n} ouvertes", en: "{n} open" },
