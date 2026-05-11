@@ -354,11 +354,11 @@ export default function VisualizationWidget({ config, title, onComplete, onAband
         >
           {!completed && (
             <p className="text-[9px] uppercase tracking-[0.25em] font-medium" style={{ color: sceneColor }}>
-              {currentScene.label}
+              {(() => { const k = `toolbox.viz.scene.${currentScene.id}.label` as any; const v = t(k); return v === k ? currentScene.label : v; })()}
             </p>
           )}
           <p className="text-sm text-foreground/75 italic leading-relaxed max-w-[280px]">
-            {completed ? t("toolbox.vizCarryState") : `« ${currentScene.instruction} »`}
+            {completed ? t("toolbox.vizCarryState") : `« ${(() => { const k = `toolbox.viz.scene.${currentScene.id}.instruction` as any; const v = t(k); return v === k ? currentScene.instruction : v; })()} »`}
           </p>
         </motion.div>
       </AnimatePresence>
