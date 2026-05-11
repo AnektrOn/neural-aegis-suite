@@ -829,6 +829,9 @@ export const translations = {
   "toolbox.breath.phase.out": { fr: "Expirez", en: "Breathe out" },
   "toolbox.breath.done": { fr: "Terminé ✦", en: "Complete ✦" },
   "toolbox.breath.cycle": { fr: "Cycle {current} / {total}", en: "Cycle {current} / {total}" },
+  "toolbox.breath.legendIn": { fr: "Inspir {n}s", en: "In {n}s" },
+  "toolbox.breath.legendHold": { fr: "Pause {n}s", en: "Hold {n}s" },
+  "toolbox.breath.legendOut": { fr: "Expir {n}s", en: "Out {n}s" },
 
   // Focus introspectif widget
   "toolbox.focus.namaste": { fr: "Namaste", en: "Namaste" },
