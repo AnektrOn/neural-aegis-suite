@@ -181,9 +181,11 @@ export default function Bibliotheque() {
           if (seenEmbedKeys.has(dedupe)) continue;
           seenEmbedKeys.add(dedupe);
           const scope = getLibraryScope(row.widget_config);
+          const displayTitle = pickLocalizedText(locale as Locale, row.title_i18n as JsonI18n, row.title as string);
+          if (isExcludedVideo(displayTitle)) continue;
           list.push({
             id: `tb:${row.id}`,
-            title: pickLocalizedText(locale as Locale, row.title_i18n as JsonI18n, row.title as string),
+            title: displayTitle,
             external_url: url,
             duration: (row.duration as string | null) ?? null,
             assigned_at: row.assigned_at as string,
