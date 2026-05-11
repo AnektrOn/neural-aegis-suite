@@ -135,6 +135,11 @@ export default function Bibliotheque() {
       const list: LibraryRow[] = [];
       const seenEmbedKeys = new Set<string>();
 
+      const isExcludedVideo = (title: string) => {
+        const normalized = title.toLowerCase().replace(/[_\s]/g, " ");
+        return normalized.includes("deep transformation") || normalized.includes("transformation profonde");
+      };
+
       if (!libRes.error) {
         for (const row of libRes.data || []) {
           const vid = row.library_videos as
@@ -154,9 +159,11 @@ export default function Bibliotheque() {
           seenEmbedKeys.add(dedupe);
           const meta = vid.meta as { duration_label?: string } | null;
           const scope = isLibraryScope(vid.library_scope) ? vid.library_scope : "global_fr";
+          const displayTitle = pickLocalizedText(locale as Locale, vid.title_i18n, vid.title);
+          if (isExcludedVideo(displayTitle)) continue;
           list.push({
             id: `lib:${vid.id}`,
-            title: pickLocalizedText(locale as Locale, vid.title_i18n, vid.title),
+            title: displayTitle,
             external_url: vid.external_url,
             duration: meta?.duration_label ?? null,
             assigned_at: row.assigned_at as string,
@@ -174,9 +181,11 @@ export default function Bibliotheque() {
           if (seenEmbedKeys.has(dedupe)) continue;
           seenEmbedKeys.add(dedupe);
           const scope = getLibraryScope(row.widget_config);
+          const displayTitle = pickLocalizedText(locale as Locale, row.title_i18n as JsonI18n, row.title as string);
+          if (isExcludedVideo(displayTitle)) continue;
           list.push({
             id: `tb:${row.id}`,
-            title: pickLocalizedText(locale as Locale, row.title_i18n as JsonI18n, row.title as string),
+            title: displayTitle,
             external_url: url,
             duration: (row.duration as string | null) ?? null,
             assigned_at: row.assigned_at as string,
