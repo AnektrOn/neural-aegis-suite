@@ -7,7 +7,17 @@ import { DEFAULT_VISUALIZATION_SCENES, DEFAULT_VISUALIZATION_TOTAL_SEC } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
-import type { TranslationKey } from "@/i18n/translations";
+import { translations, type TranslationKey, type Locale } from "@/i18n/translations";
+
+function tFor(loc: Locale, key: TranslationKey, params?: Record<string, string | number>): string {
+  let str: string = (translations as any)[key]?.[loc] || (translations as any)[key]?.fr || key;
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+    });
+  }
+  return str;
+}
 import { assignToolboxDirect, logProgramEvent } from "@/services/programBuilderService";
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import { bilingualPair } from "@/lib/content-i18n";
@@ -51,7 +61,7 @@ const WIDGET_TYPE_DEFS: Array<{
 export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const WIDGET_TYPES = useMemo(
     () => WIDGET_TYPE_DEFS.map((d) => ({ ...d, label: t(d.labelKey) })),
@@ -103,8 +113,12 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
   // External Link config
   const [elTitle, setElTitle] = useState("");
+  const [elTitleEn, setElTitleEn] = useState("");
   const [elUrl, setElUrl] = useState("");
   const [elDuration, setElDuration] = useState("");
+
+  // Optional English title override (applies to all auto-generated titles)
+  const [customTitleEn, setCustomTitleEn] = useState("");
 
   // Micro Practice config
   const [mpInstructions, setMpInstructions] = useState("");
@@ -121,6 +135,8 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
     setSubmitting(true);
 
     let title = "";
+    let titleFr = "";
+    let titleEn = "";
     let duration = "";
     let widgetConfig: Record<string, unknown> | null = null;
     let externalUrl: string | null = null;
@@ -129,7 +145,8 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
     switch (selectedType) {
       case "breathwork":
-        title = t("admin.toolboxForm.titleBreathwork", { n: bwCycles });
+        titleFr = tFor("fr", "admin.toolboxForm.titleBreathwork", { n: bwCycles });
+        titleEn = tFor("en", "admin.toolboxForm.titleBreathwork", { n: bwCycles });
         duration = `${computeBreathworkDuration()} min`;
         widgetConfig = {
           cycles: bwCycles,
@@ -140,14 +157,17 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         };
         break;
       case "focus_introspectif": {
-        const topic = fiIntention.trim() || t("admin.toolboxForm.topicFree");
-        title = t("admin.toolboxForm.titleFocus", { topic });
+        const topicFr = fiIntention.trim() || tFor("fr", "admin.toolboxForm.topicFree");
+        const topicEn = fiIntention.trim() || tFor("en", "admin.toolboxForm.topicFree");
+        titleFr = tFor("fr", "admin.toolboxForm.titleFocus", { topic: topicFr });
+        titleEn = tFor("en", "admin.toolboxForm.titleFocus", { topic: topicEn });
         duration = `${fiDuration} min`;
-        widgetConfig = { duration_min: fiDuration, intention: topic };
+        widgetConfig = { duration_min: fiDuration, intention: topicFr };
         break;
       }
       case "body_scan": {
-        title = t("admin.toolboxForm.titleBodyScan");
+        titleFr = tFor("fr", "admin.toolboxForm.titleBodyScan");
+        titleEn = tFor("en", "admin.toolboxForm.titleBodyScan");
         duration = `${bsDuration} min`;
         const scale = (bsDuration * 60) / DEFAULT_BODY_SCAN_TOTAL_SEC;
         widgetConfig = {
@@ -159,7 +179,8 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         break;
       }
       case "visualization": {
-        title = t("admin.toolboxForm.titleVizGuided");
+        titleFr = tFor("fr", "admin.toolboxForm.titleVizGuided");
+        titleEn = tFor("en", "admin.toolboxForm.titleVizGuided");
         duration = `${vizDuration} min`;
         const cues = vizCues.split("\n").map((l) => l.trim()).filter(Boolean);
         const palette = ["hsl(176 70% 48%)", "hsl(220 70% 60%)", "hsl(270 50% 60%)", "hsl(35 80% 58%)"];
@@ -188,7 +209,8 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         break;
       }
       case "stop_protocol": {
-        title = t("admin.toolboxForm.titleStop");
+        titleFr = tFor("fr", "admin.toolboxForm.titleStop");
+        titleEn = tFor("en", "admin.toolboxForm.titleStop");
         const steps = parseStopSteps(stopStepsRaw);
         const nSteps = steps.length || 4;
         duration = `${Math.max(1, Math.round((stopStepSec * nSteps) / 60))} min`;
@@ -199,22 +221,27 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         };
         break;
       }
-      case "intention":
-        title = inQuestion.trim()
-          ? t("admin.toolboxForm.titleIntention", {
-              q: `${inQuestion.trim().slice(0, 48)}${inQuestion.trim().length > 48 ? "…" : ""}`,
-            })
-          : t("admin.toolboxForm.titleIntentionShort");
+      case "intention": {
+        const qTrim = inQuestion.trim();
+        const qShort = qTrim ? `${qTrim.slice(0, 48)}${qTrim.length > 48 ? "…" : ""}` : "";
+        titleFr = qTrim
+          ? tFor("fr", "admin.toolboxForm.titleIntention", { q: qShort })
+          : tFor("fr", "admin.toolboxForm.titleIntentionShort");
+        titleEn = qTrim
+          ? tFor("en", "admin.toolboxForm.titleIntention", { q: qShort })
+          : tFor("en", "admin.toolboxForm.titleIntentionShort");
         duration = `${inDuration} min`;
         widgetConfig = {
-          ...(inQuestion.trim() ? { question: inQuestion.trim() } : {}),
+          ...(qTrim ? { question: qTrim } : {}),
           duration_sec: inDuration * 60,
           allow_note: inAllowNote,
           ...(inNotePrompt.trim() ? { note_prompt: inNotePrompt.trim() } : {}),
         };
         break;
+      }
       case "affirmations":
-        title = t("admin.toolboxForm.titleAffirmations");
+        titleFr = tFor("fr", "admin.toolboxForm.titleAffirmations");
+        titleEn = tFor("en", "admin.toolboxForm.titleAffirmations");
         duration = `${affDuration} min`;
         widgetConfig = {
           duration_min: affDuration,
@@ -222,7 +249,8 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         };
         break;
       case "gratitude":
-        title = t("admin.toolboxForm.titleGratitude");
+        titleFr = tFor("fr", "admin.toolboxForm.titleGratitude");
+        titleEn = tFor("en", "admin.toolboxForm.titleGratitude");
         duration = "5 min";
         widgetConfig = { entries_count: gratEntries };
         break;
@@ -241,7 +269,8 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         // Also create toolbox assignment for tracking
         journalCardTitleFr = jpFr.length > 72 ? `${jpFr.slice(0, 72)}…` : jpFr;
         journalCardTitleEn = jpEn.length > 72 ? `${jpEn.slice(0, 72)}…` : jpEn;
-        title = t("admin.toolboxForm.titleJournalPrompt");
+        titleFr = tFor("fr", "admin.toolboxForm.titleJournalPrompt");
+        titleEn = tFor("en", "admin.toolboxForm.titleJournalPrompt");
         duration = "10 min";
         widgetConfig = { prompt: jpFr, prompt_i18n: bilingualPair(jpFr, jpEn) };
         break;
@@ -257,7 +286,8 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
           setSubmitting(false);
           return;
         }
-        title = elTitle;
+        titleFr = elTitle.trim();
+        titleEn = (elTitleEn.trim() || elTitle.trim());
         duration = elDuration || "—";
         externalUrl = elUrl;
         widgetConfig = {};
@@ -265,7 +295,9 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
       case "micro_practice": {
         if (!mpInstructions.trim()) { toast({ title: t("toast.error"), description: "Instructions are required.", variant: "destructive" }); setSubmitting(false); return; }
         const mpSteps = mpStepsRaw.split("\n").map(l => l.trim()).filter(Boolean).map(text => ({ text }));
-        title = mpInstructions.trim().slice(0, 60) + (mpInstructions.trim().length > 60 ? "…" : "");
+        const mpTitle = mpInstructions.trim().slice(0, 60) + (mpInstructions.trim().length > 60 ? "…" : "");
+        titleFr = mpTitle;
+        titleEn = mpTitle;
         duration = `${mpDurationMin} min`;
         widgetConfig = {
           instructions: mpInstructions.trim(),
@@ -276,6 +308,13 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
       }
     }
 
+    // Apply optional manual EN override (for journal_prompt we keep its own card title pair)
+    if (selectedType !== "journal_prompt" && selectedType !== "external_link" && customTitleEn.trim()) {
+      titleEn = customTitleEn.trim();
+    }
+    // Use the locale's title for the legacy `title` field so toast/UI show the admin's language
+    title = (locale === "en" ? titleEn : titleFr) || titleFr || titleEn;
+
     try {
       await assignToolboxDirect({
         actorId: user.id,
@@ -285,7 +324,9 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         titleI18n:
           selectedType === "journal_prompt" && journalCardTitleFr && journalCardTitleEn
             ? bilingualPair(journalCardTitleFr, journalCardTitleEn)
-            : undefined,
+            : (titleFr || titleEn)
+              ? bilingualPair(titleFr || titleEn, titleEn || titleFr)
+              : undefined,
         duration,
         externalUrl,
         widgetConfig,
@@ -600,8 +641,12 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClass}>{t("admin.toolboxForm.extTitle")}</label>
+                    <label className={labelClass}>{t("admin.toolboxForm.extTitle")} (FR)</label>
                     <input type="text" value={elTitle} onChange={(e) => setElTitle(e.target.value)} placeholder={t("admin.toolboxForm.extTitlePlaceholder")} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>{t("admin.toolboxForm.extTitle")} (EN)</label>
+                    <input type="text" value={elTitleEn} onChange={(e) => setElTitleEn(e.target.value)} placeholder="Optional — falls back to FR" className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>{t("admin.toolboxForm.extDurationOptional")}</label>
@@ -612,6 +657,22 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                   <label className={labelClass}>{t("admin.toolboxForm.extUrl")}</label>
                   <input type="url" value={elUrl} onChange={(e) => setElUrl(e.target.value)} placeholder="https://..." className={inputClass} />
                 </div>
+              </div>
+            )}
+
+            {selectedType !== "journal_prompt" && selectedType !== "external_link" && (
+              <div className="pt-2 border-t border-border/20">
+                <label className={labelClass}>Title (EN) — optional override</label>
+                <input
+                  type="text"
+                  value={customTitleEn}
+                  onChange={(e) => setCustomTitleEn(e.target.value)}
+                  placeholder="Leave empty to auto-translate from the catalog"
+                  className={inputClass}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use this to provide a custom English title. If left empty, the English version is generated from the built-in translations.
+                </p>
               </div>
             )}
 
