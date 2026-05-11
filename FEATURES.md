@@ -1,98 +1,98 @@
-# Neural Aegis Suite — Liste des fonctionnalités
+# Neural Aegis Suite — Feature list
 
-## 1. Liste de toutes les fonctionnalités
+## 1. Full feature list
 
-### Authentification & entrée
-- **Page de connexion** (`/auth`) : email + mot de passe (Supabase), afficher/masquer mot de passe, chargement, toasts d'erreur
-- **AuthContext** : `user`, `session`, `loading`, `signOut`, persistance via `onAuthStateChange`
-- **ProtectedRoute** : spinner pendant le chargement auth, redirection vers `/auth` si non connecté
-- **Onboarding** (première connexion) : 5 étapes (bienvenue, mood, décisions, habitudes, journal) ; Back / Skip / Next ; « Commencer » à la fin
-- **AdminRoute** : vérification rôle admin (`user_roles`), redirection vers `/` si non admin
+### Authentication & entry
+- **Login page** (`/auth`): email + password (Supabase), show/hide password, loading state, error toasts
+- **AuthContext**: `user`, `session`, `loading`, `signOut`, persistence via `onAuthStateChange`
+- **ProtectedRoute**: spinner during auth loading, redirect to `/auth` if not signed in
+- **Onboarding** (first login): 5 steps (welcome, mood, decisions, habits, journal); Back / Skip / Next; “Start” at the end
+- **AdminRoute**: checks admin role (`user_roles`), redirects to `/` if not admin
 
-### Application utilisateur (AppLayout)
+### User app (AppLayout)
 
-| Route | Page | Fonctionnalités |
+| Route | Page | Features |
 |-------|------|-----------------|
-| `/` | **Dashboard** | Résumé hebdo (tendance mood, taux habitudes, décisions résolues, nb journal, streak) ; cartes stats ; Neural Map ; checklist actions du jour (5 items) ; ScoreboardWidget ; AIInsights ; ScoreCard ; vérification badges |
-| `/mood` | **MoodTracker** | Mood 1–10 (radial), sommeil, stress ; repas (snack/demi/normal) ; « Enregistrer » ; graphique barres 7 derniers jours |
-| `/decisions` | **DecisionLog** | Créer décision (nom, priorité 0–5, responsabilité 0–10) ; stats ; liste statuts (pending/decided/deferred) ; modal confirmation ; date de report ; temps de décision |
-| `/habits` | **HabitTracker** | Habitudes assignées ; cocher complétions du jour ; stats ; empty state si aucune |
-| `/journal` | **Journal** | Liste ; recherche ; filtre par tag ; nouveau/édition (titre, contenu, humeur 1–5, tags suggérés) ; suppression |
-| `/toolbox` | **Toolbox** | Outils assignés ; filtre par type ; stats ; Breathwork / Focus Introspectif en page ; liens externes ; dialogue complétion ; « Recharger » abandonnés ; auto-ignore >24h |
-| `/people` | **PeopleBoard** | Vue cartes vs Neural map ; ajouter contact ; slider qualité + note ; envoi en lot ; historique qualité (période, courbe) ; suppression |
-| `/analytics` | **Analytics** | Courbe mood 30j ; sommeil & stress ; repas/jour ; habitudes 7j ; décisions (camembert) ; Export PDF |
-| `/profile` | **Profile** | Nom, pays, fuseau ; sauvegarde ; export données en CSV |
-| `/calendar` | **CalendarView** | Mois ; grille indicateurs mood/habits/decisions/journal par jour ; détail jour sélectionné |
-| `*` | **NotFound** | 404 + lien « Retour à l'accueil » |
+| `/` | **Dashboard** | Weekly digest (mood trend, habit rate, decisions resolved, journal count, streak); stat cards; Neural Map; daily actions checklist (5 items); ScoreboardWidget; AIInsights; ScoreCard; badge checks |
+| `/mood` | **MoodTracker** | Mood 1–10 (radial), sleep, stress; meals (snack/half/normal); “Save”; 7-day bar chart |
+| `/decisions` | **DecisionLog** | Create decision (name, priority 0–5, responsibility 0–10); stats; status list (pending/decided/deferred); confirmation modal; defer date; decision time |
+| `/habits` | **HabitTracker** | Assigned habits; check today’s completions; stats; empty state if none |
+| `/journal` | **Journal** | List; search; tag filter; new/edit (title, content, mood 1–5, suggested tags); delete |
+| `/toolbox` | **Toolbox** | Assigned tools; filter by type; stats; in-page Breathwork / Focus Introspective; external links; completion dialog; “Reload” abandoned; auto-ignore >24h |
+| `/people` | **PeopleBoard** | Cards view vs Neural map; add contact; quality slider + note; batch send; quality history (period, curve); delete |
+| `/analytics` | **Analytics** | 30-day mood chart; sleep & stress; meals/day; 7-day habits; decisions (pie); PDF export |
+| `/profile` | **Profile** | Name, country, timezone; save; export data to CSV |
+| `/calendar` | **CalendarView** | Month view; grid indicators (mood/habits/decisions/journal) per day; selected day detail |
+| `*` | **NotFound** | 404 + “Return home” link |
 
 ### Admin (AdminLayout)
 
-| Route | Page | Fonctionnalités |
+| Route | Page | Features |
 |-------|------|-----------------|
-| `/admin` | **CallAuditDashboard** | Premier audit (leader, scores, style, défis, objectifs) ; recherche ; liste audits |
-| `/admin/habits` | **HabitFactory** | Créer template (nom, catégorie, description) ; assigner ; supprimer ; nb assignés |
-| `/admin/users` | **UserManagement** | Import CSV ; stats ; liste ; toggle admin/disabled ; assigner company, toolbox |
-| `/admin/analytics` | **AdminAnalytics** | Global / Par entreprise / Par utilisateur ; KPIs, tendances, graphiques, abandonnés toolbox |
-| `/admin/executive` | **ExecutiveDashboard** | KPIs + delta vs semaine précédente ; courbe mood ; top 5 users ; Export PDF |
-| `/admin/companies` | **CompanyManagement** | Ajouter (nom, pays) ; liste ; suppression |
-| `/admin/toolbox` | **ToolboxManagement** | Stats ; assigner outil ; filtre ; liste avec suppression |
-| `/admin/decisions` | **AdminDecisions** | Toutes décisions ; stats ; recherche/filtre ; admin change statut |
-| `/admin/messages` | **AdminMessages** | Rédiger (destinataire, sujet, corps) ; envoi + notification ; liste envoyés |
-| `/admin/scoreboard` | **ScoreboardConfig** | User ; critères (type, label, cible, points) ; sauvegarde ; score max |
+| `/admin` | **CallAuditDashboard** | First audit (leader, scores, style, challenges, objectives); search; audit list |
+| `/admin/habits` | **HabitFactory** | Create template (name, category, description); assign; delete; assigned count |
+| `/admin/users` | **UserManagement** | CSV import; stats; list; toggle admin/disabled; assign company, toolbox |
+| `/admin/analytics` | **AdminAnalytics** | Global / by company / by user; KPIs, trends, charts, abandoned toolbox items |
+| `/admin/executive` | **ExecutiveDashboard** | KPIs + delta vs previous week; mood curve; top 5 users; PDF export |
+| `/admin/companies` | **CompanyManagement** | Add (name, country); list; delete |
+| `/admin/toolbox` | **ToolboxManagement** | Stats; assign tool; filter; list with delete |
+| `/admin/decisions` | **AdminDecisions** | All decisions; stats; search/filter; admin can change status |
+| `/admin/messages` | **AdminMessages** | Compose (recipient, subject, body); send + notification; sent list |
+| `/admin/scoreboard` | **ScoreboardConfig** | User; criteria (type, label, target, points); save; max score |
 
-### Composants partagés
-- **AppLayout** : sidebar repliable ; nav (Dashboard → Profile) ; Admin si admin ; NotificationBell ; ThemeToggle ; LanguageSwitcher ; déconnexion
-- **ThemeToggle** : clair/sombre (localStorage + prefers-color-scheme)
-- **LanguageSwitcher** : FR/EN
-- **NotificationBell** : liste, badge non lus, marquer lu
-- **NeuralMap** : graphe relations ; filtre période ; couleurs qualité ; noeuds déplaçables
+### Shared components
+- **AppLayout**: collapsible sidebar; nav (Dashboard → Profile); Admin entry if admin; NotificationBell; ThemeToggle; LanguageSwitcher; sign out
+- **ThemeToggle**: light/dark (localStorage + prefers-color-scheme)
+- **LanguageSwitcher**: FR/EN
+- **NotificationBell**: list, unread badge, mark as read
+- **NeuralMap**: relationship graph; period filter; quality colors; draggable nodes
 - **ScoreboardWidget**, **AIInsights**, **ScoreCard**, **Badge engine**
 - **BreathworkWidget**, **FocusIntrospectifWidget**
 
 ---
 
-## 2. Test & try (résultats)
+## 2. Test & try (results)
 
-- **Serveur** : `npm run dev` → OK (http://localhost:8082)
-- **Tests unitaires** : `npm run test` → 1 test (example) passé
-- **Navigation** : `/` → redirection `/auth` (non connecté) → attendu
+- **Server**: `npm run dev` → OK (`http://localhost:8082`)
+- **Unit tests**: `npm run test` → 1 test (example) passed
+- **Navigation**: `/` → redirect to `/auth` (not signed in) → expected
 
-Sans compte Supabase, les pages protégées ne sont pas testables manuellement. Pour un test complet : se connecter puis parcourir chaque route ; envisager des tests E2E (Playwright).
+Without a Supabase account, protected pages cannot be tested manually. For a full test: sign in, then go through each route; consider E2E tests (Playwright).
 
 ---
 
-## 3. Idées de fonctionnalités à ajouter
+## 3. Feature ideas to add
 
-### Expérience utilisateur
-- **Rappels / notifications** : rappel quotidien (mood, habitudes, journal) ; paramètres heure/canaux
-- **Objectifs hebdomadaires** : objectifs personnalisables avec suivi et célébration
-- **Rétrospectives** : résumé hebdo/mensuel avec note ou commentaire
-- **Tags personnalisés** pour le journal ; filtres sur calendrier et analytics
-- **Recherche globale** : une barre pour journal + décisions + contacts
+### User experience
+- **Reminders / notifications**: daily reminder (mood, habits, journal); time/channel settings
+- **Weekly goals**: customizable goals with tracking and celebration
+- **Retrospectives**: weekly/monthly recap with rating or comment
+- **Custom tags** for the journal; filters on calendar and analytics
+- **Global search**: one bar for journal + decisions + contacts
 
-### Données & insights
-- **Corrélations** : mood ↔ sommeil, stress ↔ décisions avec mini graphiques
-- **Export avancé** : PDF/Excel personnalisable (période, sections) ; export récurrent par email
-- **Comparaison de périodes** : « Cette semaine vs précédente » sur mood, habitudes, décisions
-- **Tendances** : indication amélioration/stagnation sur métriques clés
+### Data & insights
+- **Correlations**: mood ↔ sleep, stress ↔ decisions with mini charts
+- **Advanced export**: customizable PDF/Excel (period, sections); scheduled export via email
+- **Period comparison**: “This week vs last” on mood, habits, decisions
+- **Trends**: improvement/stagnation indicators on key metrics
 
-### Social & réseau
-- **Partage anonymisé** : résumé (mood moyen, habitudes) pour coach ou groupe
-- **Groupes / équipes** : espaces par équipe avec tableaux agrégés
-- **Conversation** : réponses aux messages admin (pas seulement envoi one-shot)
+### Social & network
+- **Anonymized sharing**: recap (average mood, habits) for coach or group
+- **Groups / teams**: team spaces with aggregated dashboards
+- **Conversation**: reply to admin messages (not only one-shot send)
 
 ### Toolbox
-- **Séquences / parcours** : enchaînement d’outils assignable (ex. Matin : breathwork → focus → journal)
-- **Contenu éditable** : textes et durées par défaut configurables par l’admin
+- **Sequences / journeys**: assignable tool chains (e.g., Morning: breathwork → focus → journal)
+- **Editable content**: admin-configurable default texts and durations
 
 ### Admin
-- **Rôles intermédiaires** : manager/coach (voir uniquement son équipe)
-- **Templates d’onboarding** : parcours configurables par rôle ou entreprise
-- **Audit des actions** : log des actions sensibles (rôle, suppression, message)
-- **Tableaux de bord personnalisables** : choix des widgets (user + executive)
+- **Intermediate roles**: manager/coach (only see their team)
+- **Onboarding templates**: configurable journeys by role or company
+- **Action audit**: log sensitive actions (role, delete, message)
+- **Customizable dashboards**: widget selection (user + executive)
 
 ### Technique
-- **Mode hors-ligne** : cache mood/habitudes du jour + sync au retour
-- **PWA** : installable, icône, notifications push
-- **Accessibilité** : focus, aria-labels, contraste
-- **Performance** : lazy routes admin ; pagination/virtualisation longues listes
+- **Offline mode**: cache today’s mood/habits + sync when back online
+- **PWA**: installable, icon, push notifications
+- **Accessibility**: focus, aria-labels, contrast
+- **Performance**: lazy-load admin routes; pagination/virtualization for long lists

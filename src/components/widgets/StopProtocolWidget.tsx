@@ -13,7 +13,7 @@ export interface StopStepLegacy {
 export interface StopProtocolConfig {
   mode?: "timed" | "manual";
   step_duration_sec?: number;
-  /** Ancien format admin : « titre — indication » */
+  /** Legacy admin format: “title — hint” */
   steps?: StopStepLegacy[];
 }
 

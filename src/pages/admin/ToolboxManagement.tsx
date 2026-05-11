@@ -129,13 +129,13 @@ export default function ToolboxManagement() {
 
   const assignFromCatalog = async (templateId: string) => {
     if (!user || !catalogSelectedUser) {
-      toast({ title: t("toast.error"), description: "Sélectionne un utilisateur d'abord.", variant: "destructive" });
+      toast({ title: t("toast.error"), description: "Select a user first.", variant: "destructive" });
       return;
     }
     setCatalogAssigning(templateId);
     try {
       await assignToolboxTemplateToUser({ actorId: user.id, userId: catalogSelectedUser, templateId });
-      toast({ title: "Assigné", description: "L'outil a été assigné à l'utilisateur." });
+      toast({ title: "Assigned", description: "The tool has been assigned to the user." });
       loadData();
     } catch (e: any) {
       toast({ title: t("toast.error"), description: e.message, variant: "destructive" });
@@ -146,13 +146,13 @@ export default function ToolboxManagement() {
 
   const assignJournalFromCatalog = async (templateId: string) => {
     if (!user || !catalogSelectedUser) {
-      toast({ title: t("toast.error"), description: "Sélectionne un utilisateur d'abord.", variant: "destructive" });
+      toast({ title: t("toast.error"), description: "Select a user first.", variant: "destructive" });
       return;
     }
     setJournalAssigning(templateId);
     try {
       await assignJournalPromptTemplateToUser({ actorId: user.id, userId: catalogSelectedUser, templateId });
-      toast({ title: "Prompt assigné", description: "Le prompt journal a été assigné. Il apparaît dans la Toolbox de l'utilisateur." });
+      toast({ title: "Prompt assigned", description: "The journal prompt has been assigned. It will appear in the user's Toolbox." });
       loadData();
     } catch (e: any) {
       toast({ title: t("toast.error"), description: e.message, variant: "destructive" });
@@ -189,7 +189,7 @@ export default function ToolboxManagement() {
         {[
           { label: t("admin.toolboxMgmt.statAssigned"), value: assignments.length, icon: Package },
           { label: t("admin.toolboxMgmt.statUsers"), value: new Set(assignments.map((a) => a.user_id)).size, icon: Users },
-          { label: "Templates catalogue", value: templates.length, icon: Library },
+          { label: "Catalog templates", value: templates.length, icon: Library },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="ethereal-glass p-6">
             <stat.icon size={16} strokeWidth={1.5} className="text-neural-accent mb-3" />
@@ -202,28 +202,28 @@ export default function ToolboxManagement() {
       <Tabs defaultValue="assign" className="space-y-4">
         <TabsList>
           <TabsTrigger value="catalog">
-            <Library className="h-3.5 w-3.5 mr-1" /> Catalogue
+            <Library className="h-3.5 w-3.5 mr-1" /> Catalog
           </TabsTrigger>
           <TabsTrigger value="assign">
             <Package className="h-3.5 w-3.5 mr-1" /> {t("admin.toolboxMgmt.assignHeading")}
           </TabsTrigger>
           <TabsTrigger value="list">
-            <Users className="h-3.5 w-3.5 mr-1" /> Assignations actives
+            <Users className="h-3.5 w-3.5 mr-1" /> Active assignments
           </TabsTrigger>
         </TabsList>
 
         {/* TAB: CATALOGUE */}
         <TabsContent value="catalog" className="space-y-4">
           <div className="ethereal-glass p-4 space-y-3">
-            <p className="text-sm font-medium text-foreground">Assigner depuis le catalogue</p>
+            <p className="text-sm font-medium text-foreground">Assign from the catalog</p>
             <div>
-              <label className="text-neural-label block mb-1.5">Utilisateur cible</label>
+              <label className="text-neural-label block mb-1.5">Target user</label>
               <select
                 value={catalogSelectedUser}
                 onChange={(e) => setCatalogSelectedUser(e.target.value)}
                 className={inputClass + " sm:w-80"}
               >
-                <option value="">Sélectionner un utilisateur</option>
+                <option value="">Select a user</option>
                 {profiles.map((p) => (
                   <option key={p.id} value={p.id}>{p.display_name || t("users.noName")}</option>
                 ))}
@@ -231,7 +231,7 @@ export default function ToolboxManagement() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <label className="text-neural-label block mb-1.5">Catégorie</label>
+                <label className="text-neural-label block mb-1.5">Category</label>
                 <select
                   value={catalogCategoryFilter}
                   onChange={(e) => setCatalogCategoryFilter(e.target.value)}
@@ -245,21 +245,21 @@ export default function ToolboxManagement() {
                 </select>
               </div>
               <div>
-                <label className="text-neural-label block mb-1.5">Durée</label>
+                <label className="text-neural-label block mb-1.5">Duration</label>
                 <input
                   type="text"
                   value={catalogDurationFilter}
                   onChange={(e) => setCatalogDurationFilter(e.target.value)}
-                  placeholder="ex: 10 min"
+                  placeholder="e.g., 10 min"
                   className={inputClass}
                 />
               </div>
               <div>
-                <label className="text-neural-label block mb-1.5">Créé du</label>
+                <label className="text-neural-label block mb-1.5">Created from</label>
                 <input type="date" value={catalogCreatedFrom} onChange={(e) => setCatalogCreatedFrom(e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label className="text-neural-label block mb-1.5">Créé au</label>
+                <label className="text-neural-label block mb-1.5">Created to</label>
                 <input type="date" value={catalogCreatedTo} onChange={(e) => setCatalogCreatedTo(e.target.value)} className={inputClass} />
               </div>
             </div>
@@ -272,15 +272,15 @@ export default function ToolboxManagement() {
           ) : (templates.length === 0 && journalTemplates.length === 0) ? (
             <div className="ethereal-glass p-12 text-center">
               <Library size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-              <p className="text-muted-foreground text-sm">Aucun template dans le catalogue.</p>
-              <p className="text-xs text-muted-foreground mt-1">Importe un JSON depuis Program Builder pour en créer.</p>
+              <p className="text-muted-foreground text-sm">No templates in the catalog.</p>
+              <p className="text-xs text-muted-foreground mt-1">Import a JSON from Program Builder to create some.</p>
             </div>
           ) : (
             <div className="space-y-6">
             {/* Toolbox templates */}
             {templates.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Outils ({filteredTemplates.length}/{templates.length})</p>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Tools ({filteredTemplates.length}/{templates.length})</p>
               {filteredTemplates.map((tmpl, i) => {
                 const meta = TYPE_META[tmpl.content_type] || TYPE_META.course;
                 const isAssigning = catalogAssigning === tmpl.id;
@@ -308,7 +308,7 @@ export default function ToolboxManagement() {
                       className="text-[9px] uppercase tracking-[0.2em] px-4 py-2 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 flex items-center gap-1"
                     >
                       {isAssigning ? <Loader2 size={11} className="animate-spin" /> : null}
-                      Assigner
+                      Assign
                     </button>
                   </motion.div>
                 );
@@ -344,7 +344,7 @@ export default function ToolboxManagement() {
                         className="text-[9px] uppercase tracking-[0.2em] px-4 py-2 rounded-lg border border-neural-accent/30 text-neural-accent hover:bg-neural-accent/5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 flex items-center gap-1 mt-1"
                       >
                         {isAssigning ? <Loader2 size={11} className="animate-spin" /> : null}
-                        Assigner
+                        Assign
                       </button>
                     </motion.div>
                   );

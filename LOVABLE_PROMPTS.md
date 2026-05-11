@@ -1,20 +1,20 @@
 # Lovable Prompt Pack (SQL + Database)
 
-Ce fichier contient les prompts a copier-coller dans Lovable pour piloter la suite DB/SQL.
+This file contains prompts you can copy/paste into Lovable to drive the DB/SQL workstream.
 
-## Instruction a donner a Lovable
+## Instruction to give Lovable
 
-Utilise cette phrase:
+Use this sentence:
 
-`Lis le fichier LOVABLE_PROMPTS.md du repo, puis execute les prompts dans l'ordre, un par un, en me montrant le SQL genere et les points de verification.`
+`Read the repo file LOVABLE_PROMPTS.md, then execute the prompts in order, one by one, showing me the generated SQL and the verification checkpoints.`
 
-## Prompt 1 - Analyse schema existant
+## Prompt 1 - Analyze existing schema
 
 ```text
-Contexte:
-Je suis sur Supabase/Postgres.
-J’ai deja les tables suivantes:
-- toolbox_assignments (avec content_type, external_url, widget_config)
+Context:
+I'm using Supabase/Postgres.
+I already have the following tables:
+- toolbox_assignments (with content_type, external_url, widget_config)
 - habit_templates
 - assigned_habits
 - journal_prompts
@@ -22,24 +22,24 @@ J’ai deja les tables suivantes:
 - library_video_assignments
 - user_roles + function has_role(auth.uid(), 'admin')
 
-Objectif:
-Produis un diagnostic SQL de compatibilite pour un modele Catalog + Assignments unifie.
-Je veux:
-1) Les collisions de concepts entre toolbox external_link et library_videos
-2) Les colonnes manquantes pour lier templates -> assignments
-3) Les index/policies manquants
-4) Un plan de migration sans downtime
+Goal:
+Produce an SQL compatibility diagnostic for a unified Catalog + Assignments model.
+I want:
+1) Concept collisions between toolbox external_link and library_videos
+2) Missing columns to link templates -> assignments
+3) Missing indexes/policies
+4) A zero-downtime migration plan
 
-Sortie attendue:
-- Une checklist detaillee
-- Puis un script SQL de verification (SELECT only, no mutation)
+Expected output:
+- A detailed checklist
+- Then an SQL verification script (SELECT only, no mutations)
 ```
 
-## Prompt 2 - Creer catalog video unifie
+## Prompt 2 - Create unified video catalog
 
 ```text
-Ecris une migration SQL Supabase idempotente qui:
-1) Cree `video_templates` (catalog)
+Write an idempotent Supabase SQL migration that:
+1) Creates `video_templates` (catalog)
    - id uuid pk default gen_random_uuid()
    - external_key text unique nullable
    - title text not null
@@ -56,7 +56,7 @@ Ecris une migration SQL Supabase idempotente qui:
    - created_at timestamptz default now()
    - updated_at timestamptz default now()
 
-2) Cree `video_assignments`
+2) Creates `video_assignments`
    - id uuid pk default gen_random_uuid()
    - video_template_id uuid not null references video_templates(id) on delete cascade
    - user_id uuid not null references auth.users(id) on delete cascade
@@ -66,82 +66,82 @@ Ecris une migration SQL Supabase idempotente qui:
    - completed_at timestamptz null
    - unique(video_template_id, user_id)
 
-3) Ajoute indexes utiles (scope, active, user_id, status, assigned_at desc)
+3) Adds useful indexes (scope, active, user_id, status, assigned_at desc)
 
-4) Ajoute triggers updated_at via public.update_updated_at_column()
+4) Adds updated_at triggers via public.update_updated_at_column()
 
-5) Active RLS + policies:
+5) Enables RLS + policies:
    - admin manage all
    - user read own assignments
-   - user read templates only if assigned OR is_active (selon scope)
+   - user read templates only if assigned OR is_active (depending on scope)
 
-Contrainte:
-- Script entierement idempotent (IF NOT EXISTS / DROP POLICY IF EXISTS + CREATE POLICY)
-- Compatible Supabase
+Constraints:
+- Fully idempotent script (IF NOT EXISTS / DROP POLICY IF EXISTS + CREATE POLICY)
+- Supabase compatible
 ```
 
-## Prompt 3 - Bridge legacy toolbox external_link vers video
+## Prompt 3 - Bridge legacy toolbox external_link to video
 
 ```text
-Ecris une migration SQL idempotente qui:
-1) Ajoute colonne nullable `video_assignment_id` dans toolbox_assignments (fk -> video_assignments.id on delete set null)
-2) Cree une vue `v_legacy_toolbox_external_link` listant les toolbox_assignments content_type='external_link'
-3) Cree une fonction SQL `backfill_video_from_toolbox_external_link()` qui:
-   - lit les external_link legacy
-   - cree/merge des video_templates si absents (match par external_url + scope)
-   - cree les video_assignments correspondants
-   - met a jour toolbox_assignments.video_assignment_id
-4) Retourne un rapport (nb templates crees, assignments crees, lignes mappees)
+Write an idempotent SQL migration that:
+1) Adds a nullable `video_assignment_id` column in toolbox_assignments (fk -> video_assignments.id on delete set null)
+2) Creates a view `v_legacy_toolbox_external_link` listing toolbox_assignments where content_type='external_link'
+3) Creates a SQL function `backfill_video_from_toolbox_external_link()` that:
+   - reads legacy external_link rows
+   - creates/merges video_templates when missing (match by external_url + scope)
+   - creates corresponding video_assignments
+   - updates toolbox_assignments.video_assignment_id
+4) Returns a report (templates created, assignments created, rows mapped)
 
-Contrainte:
-- Aucun delete
-- Re-runnable sans doublons
+Constraints:
+- No deletes
+- Re-runnable without duplicates
 ```
 
-## Prompt 4 - Unifier bibliotheque user
+## Prompt 4 - Unify user library
 
 ```text
-Ecris une vue SQL `v_user_video_library` qui retourne pour chaque user:
-- source ('catalog_video' ou 'legacy_toolbox')
+Write a SQL view `v_user_video_library` that returns for each user:
+- source ('catalog_video' or 'legacy_toolbox')
 - video_id / assignment_id
 - title
 - external_url
 - library_scope
 - assigned_at
 - status
-- duration_label (depuis meta si dispo)
-- dedupe_key (normalise pour youtube/drive)
+- duration_label (from meta if available)
+- dedupe_key (normalized for YouTube/Drive)
 
-La vue doit:
-- privilegier les lignes catalog_video
-- garder legacy seulement si pas de match dedupe_key
-- etre triable par assigned_at desc
+The view must:
+- prefer catalog_video rows
+- keep legacy only if there is no dedupe_key match
+- be sortable by assigned_at desc
 ```
 
-## Prompt 5 - Suggestions archetypes pour video
+## Prompt 5 - Archetype-based video suggestions
 
 ```text
-Ecris une fonction SQL `get_video_suggestions_for_user(p_user_id uuid, p_limit int default 20)` qui:
-1) lit top_archetypes + shadow_signals depuis analysis_results le plus recent
-2) score chaque video_template actif:
-   - match archetype_targets => score decroissant selon rang
-   - match shadow_targets => bonus selon intensite
-3) retourne:
+Write a SQL function `get_video_suggestions_for_user(p_user_id uuid, p_limit int default 20)` that:
+1) reads top_archetypes + shadow_signals from the most recent analysis_results
+2) scores each active video_template:
+   - archetype_targets match => decreasing score by rank
+   - shadow_targets match => bonus by intensity
+3) returns:
    - video_template_id
    - title
    - score
    - reason_text
-4) n’assigne rien (suggestion only)
+4) assigns nothing (suggestion only)
 
-Contrainte:
-- Pure SELECT logic, pas d’insert/update
+Constraints:
+- Pure SELECT logic, no insert/update
 ```
 
-## Prompt 6 - KPI vues materialisees
+## Prompt 6 - KPI materialized views
 
 ```text
-Ecris SQL pour:
-1) vue `v_program_kpi_daily` avec:
+Write SQL for:
+1) view `v_program_kpi_daily` with:
    - date
    - toolbox_assigned
    - toolbox_completed
@@ -151,19 +151,19 @@ Ecris SQL pour:
    - journal_completed
    - videos_assigned
    - videos_completed
-2) vue `v_program_kpi_rate` avec:
+2) view `v_program_kpi_rate` with:
    - completion_rate_toolbox
    - adherence_rate_routines
    - completion_rate_journal
    - completion_rate_videos
-3) index pour refresh performant
-4) script refresh (materialized views si pertinent)
+3) indexes for performant refresh
+4) refresh script (materialized views if relevant)
 ```
 
-## Prompt 7 - Audit/observabilite robuste
+## Prompt 7 - Robust audit/observability
 
 ```text
-Ecris migration SQL idempotente pour table `program_events` amelioree:
+Write an idempotent SQL migration for an improved `program_events` table:
 - id uuid pk
 - actor_id uuid not null
 - user_id uuid null
@@ -185,50 +185,50 @@ Ecris migration SQL idempotente pour table `program_events` amelioree:
 + RLS admin read/insert, indexes by created_at/user.
 ```
 
-## Prompt 8 - Contraintes qualite des donnees
+## Prompt 8 - Data quality constraints
 
 ```text
-Ecris SQL ajoutant:
+Write SQL adding:
 1) check constraints:
-   - external_url format minimal (http/https)
-   - status valide sur assignments
-   - content_type whitelist toolbox
-2) unique constraints business:
-   - external_key unique par table template
-   - dedupe video par (drive_file_id, library_scope) si drive_file_id non null
-3) partial indexes pour filtres frequents (is_active=true, status='assigned')
-4) requetes de detection anomalies (orphan rows, urls nulles, status invalides)
+   - minimal external_url format (http/https)
+   - valid status on assignments
+   - content_type whitelist for toolbox
+2) business unique constraints:
+   - external_key unique per template table
+   - video dedupe by (drive_file_id, library_scope) if drive_file_id is not null
+3) partial indexes for frequent filters (is_active=true, status='assigned')
+4) anomaly detection queries (orphan rows, null urls, invalid statuses)
 ```
 
-## Prompt 9 - Script de seed de demonstration
+## Prompt 9 - Demo seed script
 
 ```text
-Produis SQL de seed (idempotent) qui cree:
+Produce seed SQL (idempotent) that creates:
 - 5 routines templates
 - 8 toolbox templates
 - 6 journal templates
 - 6 video templates
-- tags archetype/shadow realistes
-- assignations a 2 users test (UUID placeholders)
-- evenements d’audit correspondants
+- realistic archetype/shadow tags
+- assignments to 2 test users (UUID placeholders)
+- corresponding audit events
 
-Contrainte:
-- Utiliser UPSERT/ON CONFLICT
-- Aucun hard-delete
+Constraints:
+- Use UPSERT/ON CONFLICT
+- No hard-deletes
 ```
 
-## Prompt 10 - Runbook migration production
+## Prompt 10 - Production migration runbook
 
 ```text
-Genere un runbook SQL + ops en 3 phases:
+Generate a SQL + ops runbook in 3 phases:
 Phase A: preflight checks
-Phase B: apply migrations (ordre exact)
+Phase B: apply migrations (exact order)
 Phase C: post-check + rollback strategy
 
-Je veux:
-- commandes SQL exactes
-- checks de volumetrie avant/apres
-- checks RLS
-- rollback pragmatique sans perte de donnees
-- criteres GO/NO-GO
+I want:
+- exact SQL commands
+- volume checks before/after
+- RLS checks
+- pragmatic rollback without data loss
+- GO/NO-GO criteria
 ```

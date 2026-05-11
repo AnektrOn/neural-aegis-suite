@@ -19,9 +19,13 @@ import { toast } from "sonner";
 import type { AlertSignal, AdminProfile } from "@/lib/admin-types";
 import { getDayKey } from "@/lib/admin-helpers";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 import type { TranslationKey } from "@/i18n/translations";
 
 type TFn = (key: TranslationKey, params?: Record<string, string | number>) => string;
+
+type JsonI18n = Partial<Record<Locale, string>> | Record<string, string> | null;
 
 type SeverityFilter = "all" | "high" | "medium" | "low";
 
@@ -280,7 +284,7 @@ const ALERT_ICONS = {
 
 export default function AdminAlerts() {
   useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<AlertSignal[]>([]);
@@ -339,7 +343,7 @@ export default function AdminAlerts() {
           .select("user_id, assignment_id, status, completed_at")
           .gte("completed_at", iso14.toISOString()),
         supabase.from("companies" as never).select("id, name"),
-        supabase.from("toolbox_assignments" as never).select("id, title"),
+        supabase.from("toolbox_assignments" as never).select("id, title, title_i18n"),
       ]);
 
       const errs = [
@@ -369,8 +373,8 @@ export default function AdminAlerts() {
       ((jeEverRes.data || []) as { user_id: string }[]).forEach((r) => journalEverSet.add(r.user_id));
 
       const assignmentTitleById = new Map<string, string>();
-      ((tbAssignRes.data || []) as { id: string; title: string }[]).forEach((a) =>
-        assignmentTitleById.set(a.id, a.title || "?")
+      ((tbAssignRes.data || []) as { id: string; title: string; title_i18n?: JsonI18n }[]).forEach((a) =>
+        assignmentTitleById.set(a.id, pickLocalizedText(locale as Locale, a.title_i18n, a.title) || "?")
       );
 
       const computed = computeAlerts(
@@ -400,7 +404,7 @@ export default function AdminAlerts() {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, locale]);
 
   useEffect(() => {
     load();

@@ -70,12 +70,12 @@ export default function AdminMessages() {
       // Also create a notification for the user
       await supabase.from("notifications").insert({
         user_id: selectedUser,
-        title: "Message de l'admin",
+        title: "Admin message",
         message: subject.trim(),
         type: "message",
         link: "/profile",
       });
-      toast.success("Message envoyé");
+      toast.success("Message sent");
       setSubject("");
       setBody("");
       setSelectedUser("");
@@ -86,7 +86,7 @@ export default function AdminMessages() {
     setSending(false);
   };
 
-  const profileMap = new Map(profiles.map(p => [p.id, p.display_name || "Sans nom"]));
+  const profileMap = new Map(profiles.map(p => [p.id, p.display_name || "No name"]));
 
   const filteredMessages = messages.filter(m => {
     if (!search) return true;
@@ -102,37 +102,37 @@ export default function AdminMessages() {
     <div className="space-y-8 max-w-5xl">
       <div>
         <p className="text-neural-label mb-3 text-neural-accent/60">Administration</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Messagerie</h1>
+        <h1 className="text-neural-title text-3xl text-foreground">{t("admin.nav.messages")}</h1>
       </div>
 
       {/* Compose */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6 space-y-4">
-        <p className="text-neural-label text-neural-accent/60">Nouveau message</p>
+        <p className="text-neural-label text-neural-accent/60">New message</p>
 
         <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}
           className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary/30">
-          <option value="">Sélectionner un destinataire...</option>
+          <option value="">Select a recipient...</option>
           {profiles.map(p => (
-            <option key={p.id} value={p.id}>{p.display_name || "Sans nom"}</option>
+            <option key={p.id} value={p.id}>{p.display_name || "No name"}</option>
           ))}
         </select>
 
-        <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Sujet"
+        <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject"
           className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30" />
 
-        <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Votre message..." rows={4}
+        <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Your message..." rows={4}
           className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 resize-none" />
 
         <button onClick={sendMessage} disabled={sending || !selectedUser || !subject.trim() || !body.trim()}
           className="btn-neural disabled:opacity-40 disabled:cursor-not-allowed">
-          <Send size={14} /> Envoyer
+          <Send size={14} /> Send
         </button>
       </motion.div>
 
       {/* Message history */}
       <div className="space-y-3">
         <div className="flex items-center gap-3">
-          <p className="text-neural-label flex-1">Messages envoyés ({messages.length})</p>
+          <p className="text-neural-label flex-1">Sent messages ({messages.length})</p>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t("common.search")}
@@ -154,10 +154,10 @@ export default function AdminMessages() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-xs font-medium text-foreground truncate">{profileMap.get(msg.recipient_id) || "Utilisateur"}</p>
+                  <p className="text-xs font-medium text-foreground truncate">{profileMap.get(msg.recipient_id) || "User"}</p>
                   {msg.is_read && <CheckCheck size={12} className="text-primary shrink-0" />}
                   <span className="text-[9px] text-muted-foreground ml-auto shrink-0">
-                    {new Date(msg.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    {new Date(msg.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
                 <p className="text-xs font-medium text-foreground">{msg.subject}</p>

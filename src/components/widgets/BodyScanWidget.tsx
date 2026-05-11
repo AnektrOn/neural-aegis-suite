@@ -12,7 +12,7 @@ export interface BodyScanZone {
 
 export interface BodyScanConfig {
   zones?: BodyScanZone[];
-  /** @deprecated Ancien format admin ; ignoré si `zones` est un tableau d’objets valides */
+  /** @deprecated Legacy admin format; ignored if `zones` is a valid object array */
   duration_min?: number;
 }
 
@@ -46,14 +46,14 @@ const ZONE_COLOR_ACTIVE_FILL = "hsl(176 70% 48% / 0.18)";
 const ZONE_COLOR_DONE_STROKE = "hsl(176 70% 48% / 0.4)";
 
 export const DEFAULT_BODY_SCAN_ZONES: BodyScanZone[] = [
-  { id: "head", label: "Crâne & Front", instruction: "Relâchez le front, les yeux, la mâchoire. Sentez le poids de la tête.", duration_sec: 20 },
-  { id: "jaw", label: "Mâchoire", instruction: "Décollez légèrement les dents. Relâchez la langue.", duration_sec: 15 },
-  { id: "shoulders", label: "Épaules", instruction: "Laissez les épaules tomber. Sentez leur poids.", duration_sec: 20 },
-  { id: "chest", label: "Poitrine", instruction: "Observez votre respiration naturelle sans la contrôler.", duration_sec: 20 },
-  { id: "abdomen", label: "Ventre", instruction: "Relâchez le ventre complètement. Pas de contraction.", duration_sec: 20 },
-  { id: "hands", label: "Mains & Bras", instruction: "Sentez le poids de vos bras. Doigts légèrement ouverts.", duration_sec: 15 },
-  { id: "thighs", label: "Cuisses", instruction: "Relâchez les quadriceps. Laissez les jambes s'ouvrir.", duration_sec: 15 },
-  { id: "feet", label: "Pieds", instruction: "Sentez le contact du sol. Relâchez chaque orteil.", duration_sec: 15 },
+  { id: "head", label: "Head & Forehead", instruction: "Soften your forehead, eyes, and jaw. Feel the weight of your head.", duration_sec: 20 },
+  { id: "jaw", label: "Jaw", instruction: "Let your teeth separate slightly. Relax your tongue.", duration_sec: 15 },
+  { id: "shoulders", label: "Shoulders", instruction: "Let your shoulders drop. Feel their weight.", duration_sec: 20 },
+  { id: "chest", label: "Chest", instruction: "Observe your natural breathing without trying to control it.", duration_sec: 20 },
+  { id: "abdomen", label: "Abdomen", instruction: "Let your belly soften completely. No bracing.", duration_sec: 20 },
+  { id: "hands", label: "Hands & Arms", instruction: "Feel the weight of your arms. Fingers gently open.", duration_sec: 15 },
+  { id: "thighs", label: "Thighs", instruction: "Release your quadriceps. Let your legs soften.", duration_sec: 15 },
+  { id: "feet", label: "Feet", instruction: "Feel the contact with the ground. Relax each toe.", duration_sec: 15 },
 ];
 
 export const DEFAULT_BODY_SCAN_TOTAL_SEC = DEFAULT_BODY_SCAN_ZONES.reduce((s, z) => s + z.duration_sec, 0);

@@ -10,6 +10,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import { assignToolboxDirect, logProgramEvent } from "@/services/programBuilderService";
 import { isLikelyVideoUrl } from "@/lib/video-links";
+import { bilingualPair } from "@/lib/content-i18n";
 
 interface Props {
   userId: string;
@@ -82,6 +83,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
   // Journal Prompt config
   const [jpPrompt, setJpPrompt] = useState("");
+  const [jpPromptEn, setJpPromptEn] = useState("");
 
   // Visualization config
   const [vizDuration, setVizDuration] = useState(8);
@@ -120,8 +122,10 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
     let title = "";
     let duration = "";
-    let widgetConfig: any = null;
+    let widgetConfig: Record<string, unknown> | null = null;
     let externalUrl: string | null = null;
+    let journalCardTitleFr = "";
+    let journalCardTitleEn = "";
 
     switch (selectedType) {
       case "breathwork":
@@ -222,24 +226,32 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         duration = "5 min";
         widgetConfig = { entries_count: gratEntries };
         break;
-      case "journal_prompt":
-        if (!jpPrompt.trim()) { toast({ title: t("toast.error"), description: t("admin.toolboxForm.errPromptRequired"), variant: "destructive" }); setSubmitting(false); return; }
+      case "journal_prompt": {
+        const jpFr = jpPrompt.trim();
+        const jpEn = (jpPromptEn.trim() || jpFr).trim();
+        if (!jpFr) { toast({ title: t("toast.error"), description: t("admin.toolboxForm.errPromptRequired"), variant: "destructive" }); setSubmitting(false); return; }
         // Insert into journal_prompts table
-        const { error: jpError } = await supabase.from("journal_prompts" as any).insert({
-          user_id: userId, assigned_by: user.id, prompt_text: jpPrompt,
-        } as any);
+        const { error: jpError } = await supabase.from("journal_prompts").insert({
+          user_id: userId,
+          assigned_by: user.id,
+          prompt_text: jpFr,
+          prompt_text_i18n: bilingualPair(jpFr, jpEn),
+        });
         if (jpError) { toast({ title: t("toast.error"), description: jpError.message, variant: "destructive" }); setSubmitting(false); return; }
         // Also create toolbox assignment for tracking
+        journalCardTitleFr = jpFr.length > 72 ? `${jpFr.slice(0, 72)}…` : jpFr;
+        journalCardTitleEn = jpEn.length > 72 ? `${jpEn.slice(0, 72)}…` : jpEn;
         title = t("admin.toolboxForm.titleJournalPrompt");
         duration = "10 min";
-        widgetConfig = { prompt: jpPrompt };
+        widgetConfig = { prompt: jpFr, prompt_i18n: bilingualPair(jpFr, jpEn) };
         break;
+      }
       case "external_link":
         if (!elTitle.trim() || !elUrl.trim()) { toast({ title: t("toast.error"), description: t("admin.toolboxForm.errTitleUrlRequired"), variant: "destructive" }); setSubmitting(false); return; }
         if (isLikelyVideoUrl(elUrl)) {
           toast({
             title: t("toast.error"),
-            description: "Les videos doivent etre ajoutees via Bibliotheque admin, pas dans Toolbox.",
+            description: "Videos must be added via the admin library, not in the Toolbox.",
             variant: "destructive",
           });
           setSubmitting(false);
@@ -251,7 +263,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         widgetConfig = {};
         break;
       case "micro_practice": {
-        if (!mpInstructions.trim()) { toast({ title: t("toast.error"), description: "Les instructions sont obligatoires.", variant: "destructive" }); setSubmitting(false); return; }
+        if (!mpInstructions.trim()) { toast({ title: t("toast.error"), description: "Instructions are required.", variant: "destructive" }); setSubmitting(false); return; }
         const mpSteps = mpStepsRaw.split("\n").map(l => l.trim()).filter(Boolean).map(text => ({ text }));
         title = mpInstructions.trim().slice(0, 60) + (mpInstructions.trim().length > 60 ? "…" : "");
         duration = `${mpDurationMin} min`;
@@ -270,6 +282,10 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         userId,
         contentType: selectedType,
         title,
+        titleI18n:
+          selectedType === "journal_prompt" && journalCardTitleFr && journalCardTitleEn
+            ? bilingualPair(journalCardTitleFr, journalCardTitleEn)
+            : undefined,
         duration,
         externalUrl,
         widgetConfig,
@@ -285,8 +301,9 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
       }
       toast({ title: t("admin.toolboxForm.toastAssignedTitle"), description: t("admin.toolboxForm.toastAssignedDesc", { title }) });
       onAssigned();
-    } catch (error: any) {
-      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : t("toast.unexpected");
+      toast({ title: t("toast.error"), description: msg, variant: "destructive" });
     }
     setSubmitting(false);
   };
@@ -532,40 +549,49 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             )}
 
             {selectedType === "journal_prompt" && (
-              <div>
-                <label className={labelClass}>{t("admin.toolboxForm.journalPromptLabel")}</label>
-                <textarea value={jpPrompt} onChange={(e) => setJpPrompt(e.target.value)} rows={3}
-                  placeholder={t("admin.toolboxForm.journalPromptPlaceholder")}
-                  className={inputClass} />
+              <div className="space-y-3">
+                <div>
+                  <label className={labelClass}>{t("admin.toolboxForm.journalPromptLabel")} (FR)</label>
+                  <textarea value={jpPrompt} onChange={(e) => setJpPrompt(e.target.value)} rows={3}
+                    placeholder={t("admin.toolboxForm.journalPromptPlaceholder")}
+                    className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>{t("admin.toolboxForm.journalPromptLabel")} (EN)</label>
+                  <textarea value={jpPromptEn} onChange={(e) => setJpPromptEn(e.target.value)} rows={3}
+                    placeholder={"Optional — if empty, English will mirror French."}
+                    className={inputClass} />
+                  <p className="text-xs text-muted-foreground mt-1">If EN is empty, we mirror FR for both languages.</p>
+                </div>
               </div>
             )}
 
             {selectedType === "micro_practice" && (
               <div className="space-y-3">
                 <div>
-                  <label className={labelClass}>Instructions (texte de l'exercice)</label>
+                  <label className={labelClass}>Instructions (exercise text)</label>
                   <textarea
                     value={mpInstructions}
                     onChange={(e) => setMpInstructions(e.target.value)}
                     rows={4}
-                    placeholder="Décris l'exercice étape par étape..."
+                    placeholder="Describe the exercise step by step..."
                     className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Durée (minutes)</label>
+                  <label className={labelClass}>Duration (minutes)</label>
                   <input type="number" min={1} max={60} value={mpDurationMin} onChange={(e) => setMpDurationMin(+e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Étapes guidées (optionnel, une par ligne)</label>
+                  <label className={labelClass}>Guided steps (optional, one per line)</label>
                   <textarea
                     value={mpStepsRaw}
                     onChange={(e) => setMpStepsRaw(e.target.value)}
                     rows={5}
-                    placeholder={"Inspire profondément\nRetiens 3 secondes\nExpire lentement"}
+                    placeholder={"Breathe in deeply\nHold for 3 seconds\nExhale slowly"}
                     className={inputClass}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Si rempli, l'utilisateur navigue étape par étape. Sinon, le texte d'instructions s'affiche directement.</p>
+                  <p className="text-xs text-muted-foreground mt-1">If provided, the user will go step-by-step. Otherwise, the instruction text is shown directly.</p>
                 </div>
               </div>
             )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, ArrowUpRight } from "lucide-react";
@@ -6,6 +6,8 @@ import { NeuralCard } from "@/components/ui/neural-card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 
 interface Habit {
   id: string;
@@ -16,49 +18,73 @@ interface HabitsMiniCardProps {
   userId: string;
 }
 
+type JsonI18n = Partial<Record<Locale, string>> | Record<string, string> | null;
+
+interface AssignedHabitRow {
+  id: string;
+  habit_template_id: string;
+}
+
+interface HabitTemplateNameRow {
+  id: string;
+  name: string;
+  name_i18n: JsonI18n;
+}
+
+interface HabitCompletionRow {
+  assigned_habit_id: string;
+}
+
 export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
-  const today = new Date().toISOString().split("T")[0];
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   useEffect(() => {
     const load = async () => {
       try {
         const { data: assigned } = await supabase
-          .from("assigned_habits" as any)
+          .from("assigned_habits")
           .select("id, habit_template_id")
           .eq("user_id", userId)
           .eq("is_active", true);
         if (!assigned || assigned.length === 0) return;
 
-        const templateIds = (assigned as any[]).map((a) => a.habit_template_id);
+        const assignedRows = assigned as AssignedHabitRow[];
+        const templateIds = assignedRows.map((a) => a.habit_template_id);
         const { data: templates } = await supabase
-          .from("habit_templates" as any)
-          .select("id, name")
+          .from("habit_templates")
+          .select("id, name, name_i18n")
           .in("id", templateIds);
 
-        const tplMap = new Map((templates as any[] || []).map((t) => [t.id, t]));
+        const tplRows = (templates || []) as HabitTemplateNameRow[];
+        const tplMap = new Map(tplRows.map((row) => [row.id, row]));
         setHabits(
-          (assigned as any[]).map((a) => ({
+          assignedRows.map((a) => ({
             id: a.id,
-            name: tplMap.get(a.habit_template_id)?.name ?? t("habits.mini.fallbackName"),
+            name: (() => {
+              const tpl = tplMap.get(a.habit_template_id);
+              if (!tpl) return t("habits.mini.fallbackName");
+              return pickLocalizedText(locale as Locale, tpl.name_i18n, tpl.name);
+            })(),
           }))
         );
 
         const { data: completions } = await supabase
-          .from("habit_completions" as any)
+          .from("habit_completions")
           .select("assigned_habit_id")
           .eq("user_id", userId)
           .eq("completed_date", today);
-        setCompletedIds(new Set((completions as any[] || []).map((c) => c.assigned_habit_id)));
+        const completionRows = (completions || []) as HabitCompletionRow[];
+        setCompletedIds(new Set(completionRows.map((c) => c.assigned_habit_id)));
       } catch {
         // silent fail
       }
     };
     load();
-  }, [userId, t]);
+  }, [userId, t, locale, today]);
 
   const toggle = async (habitId: string) => {
     const wasDone = completedIds.has(habitId);
@@ -71,7 +97,7 @@ export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
     });
     if (wasDone) {
       const { error } = await supabase
-        .from("habit_completions" as any)
+        .from("habit_completions")
         .delete()
         .eq("user_id", userId)
         .eq("assigned_habit_id", habitId)
@@ -81,9 +107,11 @@ export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
         toast({ title: t("habits.mini.errorTitle"), description: error.message, variant: "destructive" });
       }
     } else {
-      const { error } = await supabase
-        .from("habit_completions" as any)
-        .insert({ user_id: userId, assigned_habit_id: habitId, completed_date: today } as any);
+      const { error } = await supabase.from("habit_completions").insert({
+        user_id: userId,
+        assigned_habit_id: habitId,
+        completed_date: today,
+      });
       if (error) {
         setCompletedIds((prev) => { const s = new Set(prev); s.delete(habitId); return s; });
         toast({ title: t("habits.mini.errorTitle"), description: error.message, variant: "destructive" });

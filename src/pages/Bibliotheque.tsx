@@ -7,6 +7,10 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import type { LibraryScope } from "@/lib/library-scope";
 import { getLibraryScope, isLibraryScope } from "@/lib/library-scope";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
+
+type JsonI18n = Partial<Record<Locale, string>> | Record<string, string> | null;
 
 interface LibraryRow {
   id: string;
@@ -93,6 +97,7 @@ export default function Bibliotheque() {
           library_videos (
             id,
             title,
+            title_i18n,
             external_url,
             meta,
             library_scope
@@ -103,7 +108,7 @@ export default function Bibliotheque() {
           .order("assigned_at", { ascending: false }),
         supabase
           .from("toolbox_assignments")
-          .select("id, title, external_url, duration, assigned_at, widget_config, content_type")
+          .select("id, title, title_i18n, external_url, duration, assigned_at, widget_config, content_type")
           .eq("user_id", user.id)
           .eq("content_type", "external_link")
           .not("external_url", "is", null)
@@ -136,6 +141,7 @@ export default function Bibliotheque() {
             | {
                 id: string;
                 title: string;
+                title_i18n?: JsonI18n;
                 external_url: string;
                 meta: unknown;
                 library_scope: string;
@@ -150,7 +156,7 @@ export default function Bibliotheque() {
           const scope = isLibraryScope(vid.library_scope) ? vid.library_scope : "global_fr";
           list.push({
             id: `lib:${vid.id}`,
-            title: vid.title,
+            title: pickLocalizedText(locale as Locale, vid.title_i18n, vid.title),
             external_url: vid.external_url,
             duration: meta?.duration_label ?? null,
             assigned_at: row.assigned_at as string,
@@ -170,7 +176,7 @@ export default function Bibliotheque() {
           const scope = getLibraryScope(row.widget_config);
           list.push({
             id: `tb:${row.id}`,
-            title: row.title as string,
+            title: pickLocalizedText(locale as Locale, row.title_i18n as JsonI18n, row.title as string),
             external_url: url,
             duration: (row.duration as string | null) ?? null,
             assigned_at: row.assigned_at as string,
@@ -192,7 +198,7 @@ export default function Bibliotheque() {
     } finally {
       setLoading(false);
     }
-  }, [user, t, toast]);
+  }, [user, t, toast, locale]);
 
   useEffect(() => {
     load();

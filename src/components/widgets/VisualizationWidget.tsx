@@ -14,7 +14,7 @@ export interface VisualizationScene {
 export interface VisualizationConfig {
   scenes?: VisualizationScene[];
   mode?: "timed" | "manual";
-  /** @deprecated Ancien format admin */
+  /** @deprecated Legacy admin format */
   duration_min?: number;
   cues?: string[];
 }
@@ -37,41 +37,41 @@ export function hslWithAlpha(hsl: string, alpha: number): string {
 export const DEFAULT_VISUALIZATION_SCENES: VisualizationScene[] = [
   {
     id: "anchor",
-    label: "Ancrage",
+    label: "Grounding",
     instruction:
-      "Fermez les yeux. Sentez le poids de votre corps. Vous êtes ici, maintenant. Prenez trois respirations lentes.",
+      "Close your eyes. Feel the weight of your body. You are here, now. Take three slow breaths.",
     duration_sec: 25,
     color: "hsl(176 70% 48%)",
   },
   {
     id: "place",
-    label: "Lieu sûr",
+    label: "Safe place",
     instruction:
-      "Visualisez un endroit où vous vous sentez pleinement en sécurité. Une lumière, une texture, une odeur. Rendez-le réel.",
+      "Visualize a place where you feel completely safe. A light, a texture, a scent. Make it real.",
     duration_sec: 30,
     color: "hsl(220 70% 60%)",
   },
   {
     id: "scene",
-    label: "La Scène",
+    label: "The scene",
     instruction:
-      "Voyez-vous dans la situation à venir. Vous êtes calme, ancré, précis. Chaque détail est net. Vous maîtrisez.",
+      "See yourself in the upcoming situation. You are calm, grounded, precise. Every detail is clear. You’re in control.",
     duration_sec: 40,
     color: "hsl(270 50% 60%)",
   },
   {
     id: "success",
-    label: "Réussite",
+    label: "Success",
     instruction:
-      "Ressentez ce que vous éprouvez quand c'est terminé. La sensation dans votre corps. Cette certitude. Ancrez-la.",
+      "Feel what you experience when it’s done. The sensation in your body. That certainty. Anchor it.",
     duration_sec: 25,
     color: "hsl(35 80% 58%)",
   },
   {
     id: "return",
-    label: "Retour",
+    label: "Return",
     instruction:
-      "Revenez doucement. Bougez les doigts, les pieds. Ouvrez les yeux. Portez cet état dans vos prochaines heures.",
+      "Come back gently. Move your fingers and toes. Open your eyes. Carry this state into the next hours.",
     duration_sec: 15,
     color: "hsl(176 70% 48%)",
   },
@@ -117,7 +117,7 @@ function normalizeVisualizationConfig(config: VisualizationConfig): { scenes: Vi
     mode,
     scenes: cues.map((instruction, i) => ({
       id: `cue_${i}`,
-      label: `Scène ${i + 1}`,
+      label: `Scene ${i + 1}`,
       instruction,
       duration_sec: per,
       color: VIZ_PALETTE[i % VIZ_PALETTE.length],
