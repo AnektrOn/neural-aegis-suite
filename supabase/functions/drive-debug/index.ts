@@ -15,7 +15,9 @@ Deno.serve(async (req) => {
   const gd = Deno.env.get("GOOGLE_DRIVE_API_KEY")!;
   const headers = { Authorization: `Bearer ${lov}`, "X-Connection-Api-Key": gd };
 
-  const q = `'${ROOT}' in parents and trashed=false`;
+  const url0 = new URL(req.url);
+  const parent = url0.searchParams.get("parent") || ROOT;
+  const q = `'${parent}' in parents and trashed=false`;
   const url = `${GATEWAY}/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,createdTime,owners(emailAddress))&orderBy=name&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true`;
   const r = await fetch(url, { headers });
   const data = await r.json();
