@@ -99,7 +99,8 @@ async function cleanupStrayAegis(): Promise<{ trashed: number; ids: string[] }> 
   const r = await fetch(url, { headers: gwHeaders() });
   if (!r.ok) throw new Error(`list Aegis failed ${r.status}: ${await r.text()}`);
   const data = await r.json();
-  const ids: string[] = (data.files || []).map((f: any) => f.id);
+  // Exclude the configured ROOT folder so we never trash it
+  const ids: string[] = (data.files || []).map((f: any) => f.id).filter((id: string) => id !== ROOT_FOLDER_ID);
 
   let trashed = 0;
   // Parallel batches of 20
