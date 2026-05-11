@@ -145,14 +145,13 @@ function extractDate(filename: string): string {
 
 // Recursive cleanup: list children of `parentId`, group folders by name,
 // keep oldest (with most descendants), trash duplicates, recurse.
-async function dedupeFolder(admin: any, parentId: string): Promise<{ trashed: number; kept: number }> {
+async function dedupeFolder(admin: any, parentId: string, stats: { trashed: number; kept: number }): Promise<void> {
   const url = `${GATEWAY}/drive/v3/files?q=${encodeURIComponent(`'${parentId}' in parents and mimeType='${FOLDER_MIME}' and trashed=false`)}&fields=files(id,name,createdTime)&orderBy=createdTime&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true`;
   const r = await fetch(url, { headers: gwHeaders() });
   if (!r.ok) throw new Error(`list children failed ${r.status}: ${await r.text()}`);
   const data = await r.json();
   const folders: Array<{ id: string; name: string }> = data.files || [];
 
-  // group by name
   const groups = new Map<string, string[]>();
   for (const f of folders) {
     const arr = groups.get(f.name) || [];
@@ -160,22 +159,18 @@ async function dedupeFolder(admin: any, parentId: string): Promise<{ trashed: nu
     groups.set(f.name, arr);
   }
 
-  let trashed = 0, kept = 0;
-  for (const [name, ids] of groups.entries()) {
-    const keepId = ids[0]; // oldest first thanks to orderBy
-    kept++;
-    // Refresh cache row
+  // Process all groups in parallel
+  await Promise.all(Array.from(groups.entries()).map(async ([name, ids]) => {
+    const keepId = ids[0];
+    stats.kept++;
     await admin.from("drive_folder_cache")
       .upsert({ parent_id: parentId, name, drive_id: keepId }, { onConflict: "parent_id,name" });
-    for (const dup of ids.slice(1)) {
-      if (await trashDriveFolder(dup)) trashed++;
-    }
+    // Trash duplicates in parallel
+    const trashResults = await Promise.all(ids.slice(1).map(trashDriveFolder));
+    stats.trashed += trashResults.filter(Boolean).length;
     // Recurse into kept folder
-    const sub = await dedupeFolder(admin, keepId);
-    trashed += sub.trashed;
-    kept += sub.kept;
-  }
-  return { trashed, kept };
+    await dedupeFolder(admin, keepId, stats);
+  }));
 }
 
 Deno.serve(async (req) => {
