@@ -1909,6 +1909,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      export_to_drive_async: {
+        Args: {
+          p_category: string
+          p_content_md: string
+          p_filename: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
