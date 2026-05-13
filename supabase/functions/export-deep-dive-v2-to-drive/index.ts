@@ -16,6 +16,17 @@
 //   }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import QUESTIONS_CATALOG from "./questions70.json" with { type: "json" };
+
+type CatalogOption = { id: string; label_fr: string; label_en: string; weights: { archetype: string; polarity: "light" | "shadow"; weight: number }[] };
+type CatalogQuestion = { id: string; position: number; house: number; prompt_fr: string; prompt_en: string; options: CatalogOption[] };
+type CatalogHouse = { number: number; label_fr: string; label_en: string; theme_fr: string; theme_en: string };
+
+const CATALOG_QUESTIONS: CatalogQuestion[] = (QUESTIONS_CATALOG as any).questions;
+const CATALOG_HOUSES: CatalogHouse[] = (QUESTIONS_CATALOG as any).houses;
+const CATALOG_BY_CODE = new Map(CATALOG_QUESTIONS.map((q) => [q.id, q]));
+const CATALOG_OPT_BY_CODE = new Map<string, { q: CatalogQuestion; o: CatalogOption }>();
+for (const q of CATALOG_QUESTIONS) for (const o of q.options) CATALOG_OPT_BY_CODE.set(o.id, { q, o });
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
