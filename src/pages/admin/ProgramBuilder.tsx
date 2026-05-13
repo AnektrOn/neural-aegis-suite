@@ -26,6 +26,9 @@ import {
   updateToolboxTemplate,
   validateToolboxCatalogPayload,
 } from "@/services/programBuilderService";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
+import type { Locale } from "@/i18n/translations";
 
 type Profile = { id: string; display_name: string | null };
 
@@ -35,6 +38,7 @@ const inputClass =
 export default function ProgramBuilder() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { locale } = useLanguage();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [catalog, setCatalog] = useState<{ habits: any[]; toolbox: any[]; journal: any[] }>({
@@ -555,7 +559,7 @@ export default function ProgramBuilder() {
               title="Routines catalog"
               rows={filteredCatalog.habits.map((h) => ({
                 id: h.id,
-                label: `${h.name} · ${h.category} · ${joinTagList(h.archetype_targets)}`,
+                label: `${pickCatalogTemplateDisplayTitle(locale as Locale, { name: h.name, name_i18n: h.name_i18n }, "name")} · ${h.category} · ${joinTagList(h.archetype_targets)}`,
                 onEdit: () => beginEdit("habit", h),
                 onDelete: () => removeTemplate("habit", h.id),
               }))}
@@ -564,7 +568,7 @@ export default function ProgramBuilder() {
               title="Toolbox catalog"
               rows={filteredCatalog.toolbox.map((t) => ({
                 id: t.id,
-                label: `${t.title} · ${t.content_type} · ${joinTagList(t.archetype_targets)}`,
+                label: `${pickCatalogTemplateDisplayTitle(locale as Locale, { title: t.title, title_i18n: t.title_i18n })} · ${t.content_type} · ${joinTagList(t.archetype_targets)}`,
                 onEdit: () => beginEdit("toolbox", t),
                 onDelete: () => removeTemplate("toolbox", t.id),
               }))}
@@ -573,7 +577,7 @@ export default function ProgramBuilder() {
               title="Journal catalog"
               rows={filteredCatalog.journal.map((j) => ({
                 id: j.id,
-                label: `${j.title} · ${joinTagList(j.archetype_targets)}`,
+                label: `${pickCatalogTemplateDisplayTitle(locale as Locale, { title: j.title, title_i18n: j.title_i18n })} · ${joinTagList(j.archetype_targets)}`,
                 onEdit: () => beginEdit("journal", j),
                 onDelete: () => removeTemplate("journal", j.id),
               }))}
@@ -652,7 +656,10 @@ export default function ProgramBuilder() {
               title="Assign routine"
               value={assignSelection.habitTemplateId}
               onChange={(v) => setAssignSelection((s) => ({ ...s, habitTemplateId: v }))}
-              options={catalog.habits.map((h) => ({ id: h.id, label: h.name }))}
+              options={catalog.habits.map((h) => ({
+                id: h.id,
+                label: `${pickCatalogTemplateDisplayTitle(locale as Locale, { name: h.name, name_i18n: h.name_i18n }, "name")} (${h.category})`,
+              }))}
               buttonLabel="Assign routine"
               onAssign={() => assignSelected("habit")}
             />
@@ -660,7 +667,10 @@ export default function ProgramBuilder() {
               title="Assign toolbox"
               value={assignSelection.toolboxTemplateId}
               onChange={(v) => setAssignSelection((s) => ({ ...s, toolboxTemplateId: v }))}
-              options={catalog.toolbox.map((t) => ({ id: t.id, label: `${t.title} (${t.content_type})` }))}
+              options={catalog.toolbox.map((t) => ({
+                id: t.id,
+                label: `${pickCatalogTemplateDisplayTitle(locale as Locale, { title: t.title, title_i18n: t.title_i18n })} (${t.content_type})`,
+              }))}
               buttonLabel="Assign toolbox item"
               onAssign={() => assignSelected("toolbox")}
             />
@@ -668,7 +678,10 @@ export default function ProgramBuilder() {
               title="Assign journal prompt"
               value={assignSelection.journalTemplateId}
               onChange={(v) => setAssignSelection((s) => ({ ...s, journalTemplateId: v }))}
-              options={catalog.journal.map((j) => ({ id: j.id, label: j.title }))}
+              options={catalog.journal.map((j) => ({
+                id: j.id,
+                label: pickCatalogTemplateDisplayTitle(locale as Locale, { title: j.title, title_i18n: j.title_i18n }),
+              }))}
               buttonLabel="Assign prompt"
               onAssign={() => assignSelected("journal")}
             />
@@ -708,7 +721,11 @@ export default function ProgramBuilder() {
             {suggestions.map((s) => (
               <div key={`${s.type}-${s.id}`} className="ethereal-glass p-4 flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm text-foreground">{s.title}</p>
+                  <p className="text-sm text-foreground">
+                    {s.type === "habit_template"
+                      ? pickCatalogTemplateDisplayTitle(locale as Locale, { name: s.title, name_i18n: s.title_i18n }, "name")
+                      : pickCatalogTemplateDisplayTitle(locale as Locale, { title: s.title, title_i18n: s.title_i18n })}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {s.type} · score {s.score} · {s.reason}
                   </p>

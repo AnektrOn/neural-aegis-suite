@@ -39,6 +39,23 @@ function parseStopSteps(text: string): { title: string; hint: string }[] {
     });
 }
 
+/** Pair FR/EN lines (same index); empty block yields { fr: [], en: [] }. */
+function mergeParallelLines(frBlock: string, enBlock: string): { fr: string[]; en: string[] } {
+  const fr = frBlock.split("\n").map((l) => l.trim()).filter(Boolean);
+  const en = enBlock.split("\n").map((l) => l.trim()).filter(Boolean);
+  const len = Math.max(fr.length, en.length);
+  if (len === 0) return { fr: [], en: [] };
+  const outFr: string[] = [];
+  const outEn: string[] = [];
+  for (let i = 0; i < len; i++) {
+    const f = fr[i] ?? en[i] ?? "";
+    const e = en[i] ?? fr[i] ?? "";
+    outFr.push(f || e);
+    outEn.push(e || f);
+  }
+  return { fr: outFr, en: outEn };
+}
+
 const WIDGET_TYPE_DEFS: Array<{
   value: string;
   labelKey: TranslationKey;
@@ -80,6 +97,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
   // Focus Introspectif config
   const [fiDuration, setFiDuration] = useState(15);
   const [fiIntention, setFiIntention] = useState("");
+  const [fiIntentionEn, setFiIntentionEn] = useState("");
 
   // Body Scan config
   const [bsDuration, setBsDuration] = useState(10);
@@ -87,6 +105,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
   // Affirmations config
   const [affDuration, setAffDuration] = useState(5);
   const [affirmations, setAffirmations] = useState("");
+  const [affirmationsEn, setAffirmationsEn] = useState("");
 
   // Gratitude config
   const [gratEntries, setGratEntries] = useState(3);
@@ -98,18 +117,22 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
   // Visualization config
   const [vizDuration, setVizDuration] = useState(8);
   const [vizCues, setVizCues] = useState("");
+  const [vizCuesEn, setVizCuesEn] = useState("");
   const [vizMode, setVizMode] = useState<"timed" | "manual">("timed");
 
   // STOP protocol (optional custom steps: "Titre — indication" per line)
   const [stopStepsRaw, setStopStepsRaw] = useState("");
+  const [stopStepsRawEn, setStopStepsRawEn] = useState("");
   const [stopMode, setStopMode] = useState<"timed" | "manual">("manual");
   const [stopStepSec, setStopStepSec] = useState(30);
 
   // Intention (dedicated widget)
   const [inDuration, setInDuration] = useState(2);
   const [inQuestion, setInQuestion] = useState("");
+  const [inQuestionEn, setInQuestionEn] = useState("");
   const [inAllowNote, setInAllowNote] = useState(true);
   const [inNotePrompt, setInNotePrompt] = useState("");
+  const [inNotePromptEn, setInNotePromptEn] = useState("");
 
   // External Link config
   const [elTitle, setElTitle] = useState("");
@@ -122,8 +145,10 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
 
   // Micro Practice config
   const [mpInstructions, setMpInstructions] = useState("");
+  const [mpInstructionsEn, setMpInstructionsEn] = useState("");
   const [mpDurationMin, setMpDurationMin] = useState(5);
   const [mpStepsRaw, setMpStepsRaw] = useState("");
+  const [mpStepsRawEn, setMpStepsRawEn] = useState("");
 
   const computeBreathworkDuration = () => {
     const cycleTime = bwBreathIn + bwPause1 + bwBreathOut + bwPause2;
@@ -157,12 +182,19 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         };
         break;
       case "focus_introspectif": {
-        const topicFr = fiIntention.trim() || tFor("fr", "admin.toolboxForm.topicFree");
-        const topicEn = fiIntention.trim() || tFor("en", "admin.toolboxForm.topicFree");
+        const intFr = fiIntention.trim();
+        const intEn = fiIntentionEn.trim();
+        const topicFr = intFr || intEn || tFor("fr", "admin.toolboxForm.topicFree");
+        const topicEn = intEn || intFr || tFor("en", "admin.toolboxForm.topicFree");
+        const topicPair = intFr || intEn ? bilingualPair(intFr || intEn, intEn || intFr) : bilingualPair(topicFr, topicEn);
         titleFr = tFor("fr", "admin.toolboxForm.titleFocus", { topic: topicFr });
         titleEn = tFor("en", "admin.toolboxForm.titleFocus", { topic: topicEn });
         duration = `${fiDuration} min`;
-        widgetConfig = { duration_min: fiDuration, intention: topicFr };
+        widgetConfig = {
+          duration_min: fiDuration,
+          intention: topicPair.fr,
+          intention_i18n: topicPair,
+        };
         break;
       }
       case "body_scan": {
@@ -182,9 +214,10 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         titleFr = tFor("fr", "admin.toolboxForm.titleVizGuided");
         titleEn = tFor("en", "admin.toolboxForm.titleVizGuided");
         duration = `${vizDuration} min`;
-        const cues = vizCues.split("\n").map((l) => l.trim()).filter(Boolean);
+        const cuesFr = vizCues.split("\n").map((l) => l.trim()).filter(Boolean);
+        const cuesEn = vizCuesEn.split("\n").map((l) => l.trim()).filter(Boolean);
         const palette = ["hsl(176 70% 48%)", "hsl(220 70% 60%)", "hsl(270 50% 60%)", "hsl(35 80% 58%)"];
-        if (cues.length === 0) {
+        if (cuesFr.length === 0 && cuesEn.length === 0) {
           const scale = (vizDuration * 60) / DEFAULT_VISUALIZATION_TOTAL_SEC;
           widgetConfig = {
             mode: vizMode,
@@ -194,16 +227,26 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             })),
           };
         } else {
-          const per = Math.max(5, Math.round((vizDuration * 60) / cues.length));
+          const primaryCues = cuesFr.length ? cuesFr : cuesEn;
+          const per = Math.max(5, Math.round((vizDuration * 60) / primaryCues.length));
           widgetConfig = {
             mode: vizMode,
-            scenes: cues.map((instruction, i) => ({
-              id: `custom_${i}`,
-              label: t("admin.toolboxForm.sceneLabel", { n: i + 1 }),
-              instruction,
-              duration_sec: per,
-              color: palette[i % palette.length],
-            })),
+            scenes: primaryCues.map((instructionFr, i) => {
+              const instructionEn = (cuesFr.length ? cuesEn[i] : cuesFr[i]) ?? instructionFr;
+              const ins = bilingualPair(instructionFr, instructionEn);
+              return {
+                id: `cue_${i}`,
+                label: tFor("fr", "admin.toolboxForm.sceneLabel", { n: i + 1 }),
+                label_i18n: bilingualPair(
+                  tFor("fr", "admin.toolboxForm.sceneLabel", { n: i + 1 }),
+                  tFor("en", "admin.toolboxForm.sceneLabel", { n: i + 1 })
+                ),
+                instruction: ins.fr,
+                instruction_i18n: ins,
+                duration_sec: per,
+                color: palette[i % palette.length],
+              };
+            }),
           };
         }
         break;
@@ -211,43 +254,94 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
       case "stop_protocol": {
         titleFr = tFor("fr", "admin.toolboxForm.titleStop");
         titleEn = tFor("en", "admin.toolboxForm.titleStop");
-        const steps = parseStopSteps(stopStepsRaw);
-        const nSteps = steps.length || 4;
+        const stepsFr = parseStopSteps(stopStepsRaw);
+        const stepsEn = parseStopSteps(stopStepsRawEn);
+        const n = Math.max(stepsFr.length, stepsEn.length);
+        const mergedStop: Array<{
+          title: string;
+          hint: string;
+          title_i18n: ReturnType<typeof bilingualPair>;
+          hint_i18n: ReturnType<typeof bilingualPair>;
+        }> = [];
+        for (let i = 0; i < n; i++) {
+          const sf = stepsFr[i];
+          const se = stepsEn[i];
+          if (!sf && !se) continue;
+          const titleFrS = (sf?.title ?? "").trim() || (se?.title ?? "").trim();
+          const titleEnS = (se?.title ?? "").trim() || (sf?.title ?? "").trim();
+          const hintFrS = (sf?.hint ?? "").trim() || (se?.hint ?? "").trim();
+          const hintEnS = (se?.hint ?? "").trim() || (sf?.hint ?? "").trim();
+          if (!titleFrS && !titleEnS && !hintFrS && !hintEnS) continue;
+          mergedStop.push({
+            title: titleFrS || titleEnS,
+            hint: hintFrS || hintEnS,
+            title_i18n: bilingualPair(titleFrS || titleEnS, titleEnS || titleFrS),
+            hint_i18n: bilingualPair(hintFrS || hintEnS, hintEnS || hintFrS),
+          });
+        }
+        const nSteps = mergedStop.length || 4;
         duration = `${Math.max(1, Math.round((stopStepSec * nSteps) / 60))} min`;
         widgetConfig = {
           mode: stopMode,
           step_duration_sec: stopStepSec,
-          ...(steps.length ? { steps } : {}),
+          ...(mergedStop.length ? { steps: mergedStop } : {}),
         };
         break;
       }
       case "intention": {
         const qTrim = inQuestion.trim();
-        const qShort = qTrim ? `${qTrim.slice(0, 48)}${qTrim.length > 48 ? "…" : ""}` : "";
+        const qEnTrim = inQuestionEn.trim() || qTrim;
+        const qShortFr = qTrim ? `${qTrim.slice(0, 48)}${qTrim.length > 48 ? "…" : ""}` : "";
+        const qShortEn = qEnTrim ? `${qEnTrim.slice(0, 48)}${qEnTrim.length > 48 ? "…" : ""}` : "";
         titleFr = qTrim
-          ? tFor("fr", "admin.toolboxForm.titleIntention", { q: qShort })
+          ? tFor("fr", "admin.toolboxForm.titleIntention", { q: qShortFr })
           : tFor("fr", "admin.toolboxForm.titleIntentionShort");
-        titleEn = qTrim
-          ? tFor("en", "admin.toolboxForm.titleIntention", { q: qShort })
+        titleEn = qEnTrim
+          ? tFor("en", "admin.toolboxForm.titleIntention", { q: qShortEn })
           : tFor("en", "admin.toolboxForm.titleIntentionShort");
         duration = `${inDuration} min`;
         widgetConfig = {
-          ...(qTrim ? { question: qTrim } : {}),
+          ...(qTrim || inQuestionEn.trim()
+            ? {
+                question: qTrim || inQuestionEn.trim(),
+                question_i18n: bilingualPair(qTrim || qEnTrim, qEnTrim || qTrim),
+              }
+            : {}),
           duration_sec: inDuration * 60,
           allow_note: inAllowNote,
-          ...(inNotePrompt.trim() ? { note_prompt: inNotePrompt.trim() } : {}),
+          ...(inNotePrompt.trim() || inNotePromptEn.trim()
+            ? {
+                note_prompt: inNotePrompt.trim() || inNotePromptEn.trim(),
+                note_prompt_i18n: bilingualPair(
+                  inNotePrompt.trim() || inNotePromptEn.trim(),
+                  inNotePromptEn.trim() || inNotePrompt.trim()
+                ),
+              }
+            : {}),
         };
         break;
       }
-      case "affirmations":
+      case "affirmations": {
+        const { fr: affFr, en: affEn } = mergeParallelLines(affirmations, affirmationsEn);
+        if (affFr.length === 0) {
+          toast({
+            title: t("toast.error"),
+            description: t("admin.toolboxForm.errAffirmationsRequired"),
+            variant: "destructive",
+          });
+          setSubmitting(false);
+          return;
+        }
         titleFr = tFor("fr", "admin.toolboxForm.titleAffirmations");
         titleEn = tFor("en", "admin.toolboxForm.titleAffirmations");
         duration = `${affDuration} min`;
         widgetConfig = {
           duration_min: affDuration,
-          affirmations: affirmations.split("\n").filter(Boolean),
+          affirmations: affFr,
+          affirmations_i18n: { fr: affFr, en: affEn },
         };
         break;
+      }
       case "gratitude":
         titleFr = tFor("fr", "admin.toolboxForm.titleGratitude");
         titleEn = tFor("en", "admin.toolboxForm.titleGratitude");
@@ -293,14 +387,38 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
         widgetConfig = {};
         break;
       case "micro_practice": {
-        if (!mpInstructions.trim()) { toast({ title: t("toast.error"), description: "Instructions are required.", variant: "destructive" }); setSubmitting(false); return; }
-        const mpSteps = mpStepsRaw.split("\n").map(l => l.trim()).filter(Boolean).map(text => ({ text }));
-        const mpTitle = mpInstructions.trim().slice(0, 60) + (mpInstructions.trim().length > 60 ? "…" : "");
-        titleFr = mpTitle;
-        titleEn = mpTitle;
+        const insFr = mpInstructions.trim();
+        const insEn = mpInstructionsEn.trim();
+        if (!insFr && !insEn) {
+          toast({
+            title: t("toast.error"),
+            description: t("admin.toolboxForm.errMicroInstructionsRequired"),
+            variant: "destructive",
+          });
+          setSubmitting(false);
+          return;
+        }
+        const instructionsPair = bilingualPair(insFr || insEn, insEn || insFr);
+        const frSteps = mpStepsRaw.split("\n").map((l) => l.trim()).filter(Boolean);
+        const enSteps = mpStepsRawEn.split("\n").map((l) => l.trim()).filter(Boolean);
+        const nS = Math.max(frSteps.length, enSteps.length);
+        const mpSteps =
+          nS > 0
+            ? Array.from({ length: nS }, (_, i) => {
+                const fr = frSteps[i] ?? enSteps[i] ?? "";
+                const en = enSteps[i] ?? frSteps[i] ?? "";
+                const tx = bilingualPair(fr || en, en || fr);
+                return { text: tx.fr, text_i18n: tx };
+              }).filter((s) => s.text.trim())
+            : [];
+        const mpTitleFr = instructionsPair.fr.slice(0, 60) + (instructionsPair.fr.length > 60 ? "…" : "");
+        const mpTitleEn = instructionsPair.en.slice(0, 60) + (instructionsPair.en.length > 60 ? "…" : "");
+        titleFr = mpTitleFr;
+        titleEn = mpTitleEn;
         duration = `${mpDurationMin} min`;
         widgetConfig = {
-          instructions: mpInstructions.trim(),
+          instructions: instructionsPair.fr,
+          instructions_i18n: instructionsPair,
           ...(mpDurationMin > 0 ? { duration_sec: mpDurationMin * 60 } : {}),
           ...(mpSteps.length > 0 ? { steps: mpSteps } : {}),
         };
@@ -312,8 +430,9 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
     if (selectedType !== "journal_prompt" && selectedType !== "external_link" && customTitleEn.trim()) {
       titleEn = customTitleEn.trim();
     }
-    // Use the locale's title for the legacy `title` field so toast/UI show the admin's language
-    title = (locale === "en" ? titleEn : titleFr) || titleFr || titleEn;
+    // Legacy `title` column: FR-first canonical string for search/exports — end-user UI uses `title_i18n` + locale (not admin UI language).
+    title = titleFr || titleEn || "";
+    const toastTitle = (locale === "en" ? titleEn : titleFr) || titleFr || titleEn;
 
     try {
       await assignToolboxDirect({
@@ -340,7 +459,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
           metadata: { prompt_length: jpPrompt.trim().length },
         });
       }
-      toast({ title: t("admin.toolboxForm.toastAssignedTitle"), description: t("admin.toolboxForm.toastAssignedDesc", { title }) });
+      toast({ title: t("admin.toolboxForm.toastAssignedTitle"), description: t("admin.toolboxForm.toastAssignedDesc", { title: toastTitle }) });
       onAssigned();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : t("toast.unexpected");
@@ -418,12 +537,16 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             {selectedType === "focus_introspectif" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClass}>{t("admin.toolboxForm.durationMin")}</label>
-                  <input type="number" min={1} max={60} value={fiDuration} onChange={(e) => setFiDuration(+e.target.value)} className={inputClass} />
+                  <label className={labelClass}>{t("admin.toolboxForm.intentionLabel")} (FR)</label>
+                  <input type="text" value={fiIntention} onChange={(e) => setFiIntention(e.target.value)} placeholder={t("admin.toolboxForm.intentionPlaceholder")} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>{t("admin.toolboxForm.intentionLabel")}</label>
-                  <input type="text" value={fiIntention} onChange={(e) => setFiIntention(e.target.value)} placeholder={t("admin.toolboxForm.intentionPlaceholder")} className={inputClass} />
+                  <label className={labelClass}>{t("admin.toolboxForm.focusTopicEnLabel")}</label>
+                  <input type="text" value={fiIntentionEn} onChange={(e) => setFiIntentionEn(e.target.value)} placeholder={t("admin.toolboxForm.langEnOptionalMirror")} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>{t("admin.toolboxForm.durationMin")}</label>
+                  <input type="number" min={1} max={60} value={fiDuration} onChange={(e) => setFiDuration(+e.target.value)} className={inputClass} />
                 </div>
               </div>
             )}
@@ -472,6 +595,17 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                     placeholder={t("admin.toolboxForm.vizCuesPlaceholder")}
                     className={inputClass}
                   />
+                </div>
+                <div>
+                  <label className={labelClass}>{t("admin.toolboxForm.vizCuesEnLabel")}</label>
+                  <textarea
+                    value={vizCuesEn}
+                    onChange={(e) => setVizCuesEn(e.target.value)}
+                    rows={4}
+                    placeholder={t("admin.toolboxForm.vizCuesEnPlaceholder")}
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">{t("admin.toolboxForm.langEnOptionalMirror")}</p>
                 </div>
               </div>
             )}
@@ -522,18 +656,39 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                   />
                   <p className="text-xs text-muted-foreground mt-1">{t("admin.toolboxForm.stopDefaultHint")}</p>
                 </div>
+                <div>
+                  <label className={labelClass}>{t("admin.toolboxForm.stopStepsLabelEn")}</label>
+                  <textarea
+                    value={stopStepsRawEn}
+                    onChange={(e) => setStopStepsRawEn(e.target.value)}
+                    rows={5}
+                    placeholder={t("admin.toolboxForm.stopStepsPlaceholder")}
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">{t("admin.toolboxForm.langEnOptionalMirror")}</p>
+                </div>
               </div>
             )}
 
             {selectedType === "intention" && (
               <div className="space-y-4">
                 <div>
-                  <label className={labelClass}>{t("admin.toolboxForm.intentionQuestion")}</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.intentionQuestion")} (FR)</label>
                   <textarea
                     value={inQuestion}
                     onChange={(e) => setInQuestion(e.target.value)}
                     rows={2}
                     placeholder={t("admin.toolboxForm.intentionQuestionPlaceholder")}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{t("admin.toolboxForm.intentionQuestionEnLabel")}</label>
+                  <textarea
+                    value={inQuestionEn}
+                    onChange={(e) => setInQuestionEn(e.target.value)}
+                    rows={2}
+                    placeholder={t("admin.toolboxForm.langEnOptionalMirror")}
                     className={inputClass}
                   />
                 </div>
@@ -555,15 +710,27 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                   </div>
                 </div>
                 {inAllowNote && (
-                  <div>
-                    <label className={labelClass}>{t("admin.toolboxForm.notePlaceholderLabel")}</label>
-                    <input
-                      type="text"
-                      value={inNotePrompt}
-                      onChange={(e) => setInNotePrompt(e.target.value)}
-                      placeholder={t("toolbox.intentionWidget.notePlaceholder")}
-                      className={inputClass}
-                    />
+                  <div className="space-y-3">
+                    <div>
+                      <label className={labelClass}>{t("admin.toolboxForm.notePlaceholderLabel")} (FR)</label>
+                      <input
+                        type="text"
+                        value={inNotePrompt}
+                        onChange={(e) => setInNotePrompt(e.target.value)}
+                        placeholder={t("toolbox.intentionWidget.notePlaceholder")}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>{t("admin.toolboxForm.notePromptEnLabel")}</label>
+                      <input
+                        type="text"
+                        value={inNotePromptEn}
+                        onChange={(e) => setInNotePromptEn(e.target.value)}
+                        placeholder={t("admin.toolboxForm.langEnOptionalMirror")}
+                        className={inputClass}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -576,8 +743,13 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                   <input type="number" min={1} max={30} value={affDuration} onChange={(e) => setAffDuration(+e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>{t("admin.toolboxForm.affirmLines")}</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.affirmLines")} (FR)</label>
                   <textarea value={affirmations} onChange={(e) => setAffirmations(e.target.value)} rows={4} placeholder={t("admin.toolboxForm.affirmPlaceholder")} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>{t("admin.toolboxForm.affirmLinesEnLabel")}</label>
+                  <textarea value={affirmationsEn} onChange={(e) => setAffirmationsEn(e.target.value)} rows={4} placeholder={t("admin.toolboxForm.affirmPlaceholder")} className={inputClass} />
+                  <p className="text-xs text-muted-foreground mt-1">{t("admin.toolboxForm.langEnOptionalMirror")}</p>
                 </div>
               </div>
             )}
@@ -610,29 +782,48 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
             {selectedType === "micro_practice" && (
               <div className="space-y-3">
                 <div>
-                  <label className={labelClass}>Instructions (exercise text)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.microInstructionsFr")}</label>
                   <textarea
                     value={mpInstructions}
                     onChange={(e) => setMpInstructions(e.target.value)}
                     rows={4}
-                    placeholder="Describe the exercise step by step..."
+                    placeholder={t("admin.toolboxForm.affirmPlaceholder")}
                     className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Duration (minutes)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.microInstructionsEn")}</label>
+                  <textarea
+                    value={mpInstructionsEn}
+                    onChange={(e) => setMpInstructionsEn(e.target.value)}
+                    rows={4}
+                    placeholder={t("admin.toolboxForm.langEnOptionalMirror")}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{t("admin.toolboxForm.microDurationMin")}</label>
                   <input type="number" min={1} max={60} value={mpDurationMin} onChange={(e) => setMpDurationMin(+e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Guided steps (optional, one per line)</label>
+                  <label className={labelClass}>{t("admin.toolboxForm.microStepsFr")}</label>
                   <textarea
                     value={mpStepsRaw}
                     onChange={(e) => setMpStepsRaw(e.target.value)}
                     rows={5}
-                    placeholder={"Breathe in deeply\nHold for 3 seconds\nExhale slowly"}
+                    placeholder={t("admin.toolboxForm.affirmPlaceholder")}
                     className={inputClass}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">If provided, the user will go step-by-step. Otherwise, the instruction text is shown directly.</p>
+                </div>
+                <div>
+                  <label className={labelClass}>{t("admin.toolboxForm.microStepsEn")}</label>
+                  <textarea
+                    value={mpStepsRawEn}
+                    onChange={(e) => setMpStepsRawEn(e.target.value)}
+                    rows={5}
+                    placeholder={t("admin.toolboxForm.langEnOptionalMirror")}
+                    className={inputClass}
+                  />
                 </div>
               </div>
             )}

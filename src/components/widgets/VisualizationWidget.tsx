@@ -2,11 +2,15 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Sparkles, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 
 export interface VisualizationScene {
   id: string;
   label: string;
+  label_i18n?: unknown;
   instruction: string;
+  instruction_i18n?: unknown;
   duration_sec: number;
   color?: string;
 }
@@ -141,7 +145,7 @@ function deterministicParticles(count: number) {
 }
 
 export default function VisualizationWidget({ config, title, onComplete, onAbandon }: Props) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { scenes, mode } = useMemo(() => normalizeVisualizationConfig(config), [config]);
 
   const [isRunning, setIsRunning] = useState(false);
@@ -160,6 +164,17 @@ export default function VisualizationWidget({ config, title, onComplete, onAband
     scenes.slice(0, currentIdx).reduce((s, sc) => s + sc.duration_sec, 0) + phaseProgress * currentScene.duration_sec;
 
   const sceneColor = currentScene.color ?? "hsl(270 50% 60%)";
+
+  const sceneLabelKey = `toolbox.viz.scene.${currentScene.id}.label` as const;
+  const sceneInstrKey = `toolbox.viz.scene.${currentScene.id}.instruction` as const;
+  const resolvedSceneLabel =
+    t(sceneLabelKey as any) === sceneLabelKey
+      ? pickLocalizedText(locale as Locale, (currentScene as VisualizationScene).label_i18n, currentScene.label)
+      : t(sceneLabelKey as any);
+  const resolvedSceneInstruction =
+    t(sceneInstrKey as any) === sceneInstrKey
+      ? pickLocalizedText(locale as Locale, (currentScene as VisualizationScene).instruction_i18n, currentScene.instruction)
+      : t(sceneInstrKey as any);
 
   useEffect(() => {
     if (isRunning && !hasStartedRef.current) hasStartedRef.current = true;
@@ -354,11 +369,11 @@ export default function VisualizationWidget({ config, title, onComplete, onAband
         >
           {!completed && (
             <p className="text-[9px] uppercase tracking-[0.25em] font-medium" style={{ color: sceneColor }}>
-              {(() => { const k = `toolbox.viz.scene.${currentScene.id}.label` as any; const v = t(k); return v === k ? currentScene.label : v; })()}
+              {resolvedSceneLabel}
             </p>
           )}
           <p className="text-sm text-foreground/75 italic leading-relaxed max-w-[280px]">
-            {completed ? t("toolbox.vizCarryState") : `« ${(() => { const k = `toolbox.viz.scene.${currentScene.id}.instruction` as any; const v = t(k); return v === k ? currentScene.instruction : v; })()} »`}
+            {completed ? t("toolbox.vizCarryState") : `« ${resolvedSceneInstruction} »`}
           </p>
         </motion.div>
       </AnimatePresence>

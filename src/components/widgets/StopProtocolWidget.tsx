@@ -3,11 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, ShieldAlert, ChevronRight, Check } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
+import type { Locale } from "@/i18n/translations";
+import { pickLocalizedText } from "@/lib/content-i18n";
 import { hslWithAlpha } from "@/components/widgets/VisualizationWidget";
 
 export interface StopStepLegacy {
   title: string;
   hint: string;
+  title_i18n?: unknown;
+  hint_i18n?: unknown;
 }
 
 export interface StopProtocolConfig {
@@ -47,31 +51,39 @@ function buildDefaultSteps(duration: number, t: (key: TranslationKey, params?: R
   }));
 }
 
-function legacyToSteps(legacy: StopStepLegacy[], stepDuration: number): Step[] {
-  return legacy.map((s, i) => ({
-    letter: LETTERS[i] ?? String(i + 1),
-    caption: s.title.split(/\s+/)[0] || s.title,
-    subtitle: s.title,
-    instruction: s.hint?.trim() ? s.hint : s.title,
-    color: DEFAULT_COLORS[i % DEFAULT_COLORS.length],
-    duration_sec: stepDuration,
-  }));
+function legacyToSteps(legacy: StopStepLegacy[], stepDuration: number, locale: Locale): Step[] {
+  return legacy.map((s, i) => {
+    const titleLoc = pickLocalizedText(locale, s.title_i18n as any, s.title);
+    const hintLoc = pickLocalizedText(locale, s.hint_i18n as any, s.hint);
+    return {
+      letter: LETTERS[i] ?? String(i + 1),
+      caption: titleLoc.split(/\s+/)[0] || titleLoc,
+      subtitle: titleLoc,
+      instruction: hintLoc?.trim() ? hintLoc : titleLoc,
+      color: DEFAULT_COLORS[i % DEFAULT_COLORS.length],
+      duration_sec: stepDuration,
+    };
+  });
 }
 
-function normalizeSteps(config: StopProtocolConfig, t: (key: TranslationKey, params?: Record<string, string | number>) => string): Step[] {
+function normalizeSteps(
+  config: StopProtocolConfig,
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string,
+  locale: Locale
+): Step[] {
   const stepDuration = config.step_duration_sec ?? 30;
   const raw = config.steps;
   if (Array.isArray(raw) && raw.length > 0 && raw[0] && typeof raw[0] === "object" && "title" in raw[0]) {
-    return legacyToSteps(raw as StopStepLegacy[], stepDuration);
+    return legacyToSteps(raw as StopStepLegacy[], stepDuration, locale);
   }
   return buildDefaultSteps(stepDuration, t);
 }
 
 export default function StopProtocolWidget({ config, title, onComplete, onAbandon }: Props) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const stepDuration = config.step_duration_sec ?? 30;
   const mode = config.mode === "timed" ? "timed" : "manual";
-  const steps = useMemo(() => normalizeSteps(config, t), [config, t]);
+  const steps = useMemo(() => normalizeSteps(config, t, locale as Locale), [config, t, locale]);
 
   const [isRunning, setIsRunning] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(-1);
