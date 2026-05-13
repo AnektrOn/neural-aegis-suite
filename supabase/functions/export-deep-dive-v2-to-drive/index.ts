@@ -208,13 +208,76 @@ function renderFullDataAppendix(d: any): string {
 
   lines.push("## Profil utilisateur", "```json", JSON.stringify(d.profile, null, 2), "```", "");
 
-  lines.push(`## Deep Dive — Réponses (${d.deepdive_responses.length})`, "");
+  // -------- Deep Dive (70 questions) — enriched with prompts + interpretation --------
+  const ddByCode = new Map<string, any>();
+  for (const r of d.deepdive_responses) ddByCode.set(r.question_code, r);
+
+  const arch: Record<string, { light: number; shadow: number }> = {};
+  let answered = 0;
   for (const r of d.deepdive_responses) {
-    lines.push(`### ${r.question_code}`);
-    lines.push(`- **Options:** ${(r.option_codes ?? []).join(", ") || "-"}`);
-    if (r.text_value) lines.push(`- **Texte:** ${r.text_value}`);
-    if (r.numeric_value != null) lines.push(`- **Numérique:** ${r.numeric_value}`);
-    lines.push(`- **Créée:** ${r.created_at}  ·  **MAJ:** ${r.updated_at}`, "");
+    const codes: string[] = r.option_codes ?? [];
+    if (codes.length === 0) continue;
+    answered++;
+    for (const c of codes) {
+      const hit = CATALOG_OPT_BY_CODE.get(c);
+      if (!hit) continue;
+      for (const w of hit.o.weights) {
+        const slot = (arch[w.archetype] ||= { light: 0, shadow: 0 });
+        slot[w.polarity] += w.weight;
+      }
+    }
+  }
+  const archRanking = Object.entries(arch)
+    .map(([k, v]) => ({ archetype: k, light: v.light, shadow: v.shadow, net: v.light - v.shadow, total: v.light + v.shadow }))
+    .sort((a, b) => b.total - a.total);
+
+  lines.push(`## Deep Dive — Réponses (${answered}/${CATALOG_QUESTIONS.length}) avec questions, options et pondérations`, "");
+  for (const h of CATALOG_HOUSES) {
+    const houseQs = CATALOG_QUESTIONS.filter((q) => q.house === h.number).sort((a, b) => a.position - b.position);
+    if (houseQs.length === 0) continue;
+    lines.push(`### Maison ${h.number} — ${h.label_fr} (${h.label_en})`);
+    lines.push(`_${h.theme_fr}_`, "");
+    for (const q of houseQs) {
+      const r = ddByCode.get(q.id);
+      const sel: string[] = r?.option_codes ?? [];
+      lines.push(`#### Q${q.position} · \`${q.id}\` — ${q.prompt_fr}`);
+      lines.push(`*EN:* ${q.prompt_en}`, "");
+      for (const o of q.options) {
+        const mark = sel.includes(o.id) ? "✅" : "▫️";
+        const wstr = o.weights.map((w) => `${w.archetype}/${w.polarity}=${w.weight}`).join(", ");
+        lines.push(`- ${mark} \`${o.id}\` — **FR:** ${o.label_fr}`);
+        lines.push(`  - *EN:* ${o.label_en}`);
+        lines.push(`  - *Pondération:* ${wstr || "-"}`);
+      }
+      if (r) {
+        if (r.text_value) lines.push(`- 📝 Texte libre: ${r.text_value}`);
+        if (r.numeric_value != null) lines.push(`- 🔢 Numérique: ${r.numeric_value}`);
+        lines.push(`- 🕒 Répondu: ${r.created_at}  ·  MAJ: ${r.updated_at}`);
+      } else {
+        lines.push(`- ⚠️ Non répondu`);
+      }
+      lines.push("");
+    }
+  }
+
+  lines.push("## 🧭 Interprétation Deep Dive — Scores par archétype", "");
+  if (archRanking.length === 0) {
+    lines.push("_Aucune réponse exploitable._", "");
+  } else {
+    lines.push("| Rang | Archétype | Lumière | Ombre | Net | Total |", "|---|---|---|---|---|---|");
+    archRanking.forEach((a, i) =>
+      lines.push(`| ${i + 1} | ${a.archetype} | ${a.light} | ${a.shadow} | ${a.net} | ${a.total} |`),
+    );
+    lines.push("");
+    const top3 = archRanking.slice(0, 3);
+    const shadowDom = archRanking.filter((a) => a.shadow > a.light);
+    lines.push(`**Top 3 archétypes (par poids total):** ${top3.map((a) => `${a.archetype} (net ${a.net})`).join(", ")}`);
+    if (shadowDom.length) {
+      lines.push(`**Alertes ombre (shadow > light):** ${shadowDom.map((a) => `${a.archetype} (L=${a.light}/S=${a.shadow})`).join(", ")}`);
+    } else {
+      lines.push(`**Alertes ombre:** _aucune_`);
+    }
+    lines.push("");
   }
 
   lines.push(`## Sessions d'évaluation (${d.assessment_sessions.length})`, "");
