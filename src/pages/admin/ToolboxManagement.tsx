@@ -471,6 +471,12 @@ export default function ToolboxManagement() {
                       {item.user_name} · {meta.label} · {item.duration || "—"} · {new Date(item.assigned_at).toLocaleDateString(dateLocaleTag)}
                     </p>
                   </div>
+                  <ToolboxItemPreview
+                    contentType={item.content_type}
+                    title={pickLocalizedText(locale as Locale, (item as any).title_i18n, item.title)}
+                    widgetConfig={item.widget_config}
+                    externalUrl={item.external_url}
+                  />
                   <button onClick={() => deleteAssignment(item.id)}
                     className="p-2 rounded-lg border border-border/30 text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors shrink-0"
                     title={t("admin.toolboxMgmt.removeTitle")}>
