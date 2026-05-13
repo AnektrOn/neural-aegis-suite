@@ -451,21 +451,6 @@ Deno.serve(async (req) => {
     const ddFolderId = await findOrCreateFolder(admin, clientFolderId, "DeepDiveV2");
     const uploaded = await uploadFile(ddFolderId, fileName, fileBody, mimeType);
 
-    // Also drop a companion JSON next to the markdown for full machine-readable dump
-    if (format !== "json") {
-      try {
-        const jsonName = `${ts}_${stem}.full.json`;
-        await uploadFile(
-          ddFolderId,
-          jsonName,
-          JSON.stringify({ exportType, generatedAt: new Date().toISOString(), userId, assessmentId: assessmentId ?? null, fullExport: fullData }, null, 2),
-          "application/json",
-        );
-      } catch (e) {
-        console.error("companion JSON upload failed:", e);
-      }
-    }
-
     return new Response(
       JSON.stringify({
         success: true,
