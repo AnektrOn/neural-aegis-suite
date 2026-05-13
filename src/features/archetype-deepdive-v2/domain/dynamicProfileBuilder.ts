@@ -138,8 +138,9 @@ function buildProfileFromUnified(
       ),
     }));
 
-  const topThree = sortedByIntensity.slice(0, 3).map((m) => m.archetype);
-  const narrative = buildNarrative({ topThree, survival, analysis: analysis ?? null, locale });
+  const topMajors = sortedByIntensity.slice(0, 3);
+  const topThree = topMajors.map((m) => m.archetype);
+  const narrative = buildNarrative({ topMajors, survival, analysis: analysis ?? null, locale });
 
   const labelArchs = topThree.map((a) => archLabel(a, locale)).join(" / ") || phrases.defaultProfileLabel(locale);
 
@@ -217,7 +218,10 @@ export function buildDynamicProfile(input: BuildDynamicProfileInput): SampleProf
     }));
   });
 
-  const narrative = buildNarrative({ topThree, survival, analysis, locale });
+  const topMajorsForNarrative = topThree
+    .map((arch) => majors.find((m) => m.archetype === arch))
+    .filter((m): m is SampleArchetypeScore => m !== undefined);
+  const narrative = buildNarrative({ topMajors: topMajorsForNarrative, survival, analysis, locale });
 
   const labelArchs = topThree.map((a) => archLabel(a, locale)).join(" / ") || phrases.defaultProfileLabel(locale);
 
@@ -238,59 +242,134 @@ export function buildDynamicProfile(input: BuildDynamicProfileInput): SampleProf
 /* -------------------------------------------------------------------------- */
 
 function buildNarrative(args: {
-  topThree: AnyArchetypeKey[];
+  topMajors: SampleArchetypeScore[];
   survival: SampleArchetypeScore[];
   analysis: AnalysisRow | null;
   locale: Locale;
 }): ProfileNarrative {
-  const { topThree, survival, analysis, locale } = args;
+  const { topMajors, survival, analysis, locale } = args;
 
+  const topThree = topMajors.map((m) => m.archetype);
   const labels = topThree.map((a) => archLabel(a, locale));
   const overviewLead = phrases.overviewLead(labels, locale);
 
-  const topShadow = [...survival].sort((a, b) => b.intensity - a.intensity)[0];
-  const primaryShadowTheme = topShadow && topShadow.intensity >= 0.3
-    ? get.shadowTheme(topShadow.archetype, locale)
-    : (locale === "fr" ? "Contrôle" : "Control");
+  // Survival activation: ratio-based (polarity > 50% shadow) AND has signal.
+  // This is stricter and more clinically meaningful than the legacy "intensity >= 0.3":
+  // it only flags a guardian as active when its shadow polarity actually dominates,
+  // not just because the archetype has been scored at all.
+  const activeSurvival = [...survival]
+    .filter((s) => s.intensity > 0 && s.shadow >= 0.5)
+    .sort((a, b) => b.shadow - a.shadow);
+
+  const topShadow = activeSurvival[0];
+  const fallbackShadow = locale === "fr" ? "Contrôle" : "Control";
+  const primaryShadowTheme = topShadow
+    ? (get.shadowTheme(topShadow.archetype, locale) ?? fallbackShadow)
+    : fallbackShadow;
+  const hasDominantShadow = !!topShadow;
 
   const RANKS = locale === "fr" ? RANKS_FR : RANKS_EN;
 
-  const archetypeBlocks = topThree.map((arch, i) => {
-    const intro = getArchetypeIntro(arch, locale) ?? "";
+  const archetypeBlocks = topMajors.map((major, i) => {
+    const arch = major.archetype;
+    const rank = i + 1;
+    const depth = getNarrativeDepth(rank);
     const label = archLabel(arch, locale);
+    const intro = getArchetypeIntro(arch, locale) ?? "";
+    const lr = lightRatio(major.light, major.shadow);
+
+    const tagline = get.tagline(arch, locale) ?? phrases.taglineFallback(locale);
+    const gives = get.gives(arch, locale) ?? extractFirstSentence(intro, 2);
+    const watchOutBase = get.watchout(arch, locale) ?? extractShadowSentence(intro, locale);
+    const adminFunctions = get.adminFunctions(arch, locale) ?? phrases.adminFunctionsFallback(label, locale);
+    const adminEvidence = phrases.adminEvidence(rank, DEFAULT_HOUSES[arch] ?? [], locale);
+    const adminRisksBase = get.adminRisks(arch, locale) ?? extractShadowSentence(intro, locale);
+    const adminWorkAxis = get.adminWork(arch, locale) ?? phrases.adminWorkFallback(label, locale);
+
+    if (depth === "dominant") {
+      const lrPct = Math.round(lr * 100);
+      return {
+        archetype: arch,
+        rank: RANKS[i],
+        tagline,
+        gives,
+        watchOut: locale === "fr"
+          ? `${watchOutBase} Ratio lumière actuel : ${lrPct} %.`
+          : `${watchOutBase} Current light ratio: ${lrPct}%.`,
+        adminFunctions,
+        adminEvidence,
+        adminRisks: adminRisksBase,
+        adminWorkAxis,
+      };
+    }
+
+    if (depth === "secondary") {
+      return {
+        archetype: arch,
+        rank: RANKS[i],
+        tagline,
+        gives: locale === "fr"
+          ? `${gives} Cet archétype agit ici comme ressource d'appui plutôt que comme moteur principal.`
+          : `${gives} This archetype acts here as a support resource rather than the main driver.`,
+        watchOut: watchOutBase,
+        adminFunctions,
+        adminEvidence,
+        adminRisks: locale === "fr"
+          ? `${adminRisksBase} Risque clé si le dominant se rigidifie : cet archétype peut être mobilisé défensivement.`
+          : `${adminRisksBase} Key risk if the dominant archetype rigidifies: this archetype may be recruited defensively.`,
+        adminWorkAxis,
+      };
+    }
+
+    // tertiary
     return {
       archetype: arch,
       rank: RANKS[i],
-      tagline: get.tagline(arch, locale) ?? phrases.taglineFallback(locale),
-      gives: get.gives(arch, locale) ?? extractFirstSentence(intro, 2),
-      watchOut: get.watchout(arch, locale) ?? extractShadowSentence(intro, locale),
-      adminFunctions: get.adminFunctions(arch, locale) ?? phrases.adminFunctionsFallback(label, locale),
-      adminEvidence: phrases.adminEvidence(i + 1, DEFAULT_HOUSES[arch] ?? [], locale),
-      adminRisks: get.adminRisks(arch, locale) ?? extractShadowSentence(intro, locale),
-      adminWorkAxis: get.adminWork(arch, locale) ?? phrases.adminWorkFallback(label, locale),
+      tagline,
+      gives: locale === "fr"
+        ? `${label} agit ici comme ressource tertiaire : moins structurant, mais très utile dans les contextes justes. ${gives}`
+        : `${label} acts here as a tertiary resource: less structuring, but highly useful in the right contexts. ${gives}`,
+      watchOut: locale === "fr"
+        ? `À surveiller surtout sous stress ou surcharge : ${watchOutBase}`
+        : `Main watchpoint under stress or overload: ${watchOutBase}`,
+      adminFunctions,
+      adminEvidence,
+      adminRisks: locale === "fr"
+        ? `Pattern secondaire, non central mais révélateur quand il s'active : ${adminRisksBase}`
+        : `Secondary pattern, not central but revealing when activated: ${adminRisksBase}`,
+      adminWorkAxis: locale === "fr"
+        ? `Axe d'intégration léger : ${adminWorkAxis}`
+        : `Light integration axis: ${adminWorkAxis}`,
     };
   });
 
-  const activeSurvival = survival.filter((s) => s.intensity >= 0.3);
+  // Survival labels: `${label} (${theme})` — clinically more meaningful than
+  // a raw percentage. Theme is null only for non-survival keys; in this
+  // pipeline `activeSurvival` is always survival, so the theme is defined.
+  const activeSurvivalLabels = activeSurvival.map((s) => {
+    const label = archLabel(s.archetype, locale);
+    const theme = get.shadowTheme(s.archetype, locale);
+    return theme ? `${label} (${theme})` : label;
+  });
 
-  const survivalUserParts = activeSurvival.map(
-    (s) => `**${archLabel(s.archetype, locale)}** (${Math.round(s.intensity * 100)}%)`,
-  );
   const survivalUser = activeSurvival.length === 0
     ? phrases.noActiveSurvivalUser(locale)
-    : phrases.activeSurvivalUser(survivalUserParts, locale);
+    : phrases.activeSurvivalUser(activeSurvivalLabels, locale);
 
-  const survivalAdminParts = activeSurvival.map(
-    (s) => `${archLabel(s.archetype, locale)} ${Math.round(s.intensity * 100)}%`,
-  );
   const survivalAdmin = activeSurvival.length === 0
     ? phrases.noActiveSurvivalAdmin(locale)
-    : phrases.activeSurvivalAdmin(survivalAdminParts, locale);
+    : phrases.activeSurvivalAdmin(activeSurvivalLabels, locale);
 
   const summary = locale === "en" ? (analysis?.summary_en ?? analysis?.summary_fr) : analysis?.summary_fr;
   const closingNarrativeUser = summary
     ? summary
-    : phrases.closingNarrative(labels[0] ?? "", labels[1] ?? "", labels[2] ?? "", locale);
+    : phrases.closingNarrative(
+        labels[0] ?? "",
+        labels[1] ?? "",
+        labels[2] ?? "",
+        hasDominantShadow ? primaryShadowTheme : null,
+        locale,
+      );
 
   const sourceStrengths = locale === "en" ? (analysis?.strengths_en ?? analysis?.strengths_fr) : analysis?.strengths_fr;
   const strengths = sourceStrengths?.length
@@ -307,14 +386,12 @@ function buildNarrative(args: {
     .filter(Boolean) as Array<{ title: string; description: string }>;
   const finalPractices = practices.length > 0 ? practices : phrases.defaultPractices(locale);
 
-  const activeSurvivalLabels = activeSurvival.map((s) => archLabel(s.archetype, locale));
-
   const adminDiagnostic = {
     triad: labels.join(" – ") || "—",
     resources: phrases.adminResources(locale),
     survival: activeSurvival.length === 0
       ? phrases.adminNoSurvival(locale)
-      : survivalAdminParts.join(", "),
+      : activeSurvivalLabels.join(", "),
     hypothesis: phrases.adminHypothesis(labels[0] ?? "?", labels[1] ?? "?", labels[2] ?? "?", locale),
   };
 
@@ -349,6 +426,23 @@ function estimateShadowRatio(_arch: AnyArchetypeKey, shadow: Record<string, numb
 function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0;
   return Math.max(0, Math.min(1, n));
+}
+
+type NarrativeDepth = "dominant" | "secondary" | "tertiary";
+
+function getNarrativeDepth(rank: number): NarrativeDepth {
+  if (rank <= 1) return "dominant";
+  if (rank === 2) return "secondary";
+  return "tertiary";
+}
+
+/**
+ * Returns the light share for a (light, shadow) pair.
+ * Defaults to 0.5 if the pair is empty (no signal yet).
+ */
+function lightRatio(light: number, shadow: number): number {
+  const total = light + shadow;
+  return total > 0 ? light / total : 0.5;
 }
 
 function extractFirstSentence(text: string, count = 1): string {

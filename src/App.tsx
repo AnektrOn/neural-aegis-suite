@@ -54,6 +54,7 @@ const DeepDiveSampleReport = lazy(() => import("./features/archetype-deepdive-v2
 const DeepDiveUserReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveUserReport"));
 const DeepDiveScores = lazy(() => import("./pages/DeepDiveScores"));
 const AdminDeepDive = lazy(() => import("./pages/admin/AdminDeepDive"));
+const AdminDeepDiveV2 = lazy(() => import("./pages/admin/AdminDeepDiveV2"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -127,6 +128,7 @@ const App = () => (
                               <Route path="/export" element={<AdminExport />} />
                               <Route path="/deep-dive-sample" element={<DeepDiveSampleReport />} />
                               <Route path="/deep-dive" element={<AdminDeepDive />} />
+                              <Route path="/deep-dive-v2" element={<AdminDeepDiveV2 />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
