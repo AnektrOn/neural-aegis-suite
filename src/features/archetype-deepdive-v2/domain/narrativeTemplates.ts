@@ -1,8 +1,19 @@
 /**
+ * @file narrativeTemplates.ts
  * Aegis Deep Dive (V2) — narrative templates (bilingual FR/EN).
  *
  * Pure, deterministic content used by the Deep Dive report generator.
  * No I/O, no React. Bilingual via locale-aware getters.
+ *
+ * ─── STYLE GUARDRAILS ────────────────────────────────────────────────────────
+ * ARCHETYPE_INTRO_FR/EN:
+ * - clinique utile, jamais dramatique
+ * - une énergie = une fonction distincte
+ * - décrire le mouvement lumière → ombre → intégration
+ * - éviter les phrases génériques interchangeables
+ * - chaque portrait doit pouvoir résister au "smell-check" :
+ *   si la phrase pourrait s'appliquer à 3+ autres archétypes, réécrire.
+ * ─────────────────────────────────────────────────────────────────────────────
  *
  * Public API (locale-aware):
  *   - getArchetypeIntro(arch, locale)
@@ -11,7 +22,7 @@
  *   - composeArchetypeHouse(arch, house, stats, locale)
  *   - pickTopCombos(analysis, limit)
  *
- * Backwards-compat (defaults to FR — used by legacy callers):
+ * Backwards-compat (defaults to FR — used by the i18n export script):
  *   - archetypeIntro, houseContext
  */
 
@@ -29,22 +40,53 @@ import type { Locale } from "@/i18n/translations";
 /* -------------------------------------------------------------------------- */
 
 const ARCHETYPE_INTRO_FR: Record<AnyArchetypeKey, string> = {
-  caregiver: "Le Caregiver représente ton élan naturel à nourrir, contenir et prendre soin, des personnes comme des projets. En lumière, il sait soutenir sans se sacrifier, créer un climat de sécurité, materner de façon mature. En ombre, il se sur-sacrifie, materne pour contrôler, ou s’oublie complètement. Son travail est d’équilibrer « je prends soin de toi » avec « je prends aussi soin de moi ».",
-  child: "Le Child construit ta manière de percevoir la vie, la sécurité, la loyauté et le fait de « grandir ». En lumière, il apporte innocence, créativité, confiance et capacité à recommencer. En ombre, il reste bloqué dans la dépendance, la peur de la responsabilité ou le refus de quitter des rôles infantiles. Travailler avec ce Child, c’est affiner l’équilibre entre innocence et responsabilité.",
-  creator: "Le Creator porte ta pulsion de faire exister des choses : idées, œuvres, systèmes, relations. En lumière, il canalise l’inspiration en formes concrètes, voit des possibilités où les autres voient des limites. En ombre, il se perd dans la perfection, l’auto-critique ou l’utilisation de son talent pour manipuler. Il t’apprend à assumer ton rôle de co-créateur, sans saboter tes propres œuvres.",
-  explorer: "L’Explorer est ton élan vers l’inconnu, le changement, la découverte de nouvelles perspectives. En lumière, il te permet de sortir des scripts familiaux, d’ouvrir ta vie, de trouver ta propre voie. En ombre, il fuit l’engagement, la stabilité, et confond mouvement et liberté. Il travaille à transformer la fuite en exploration consciente et assumée.",
-  healer: "Le Healer concerne ta manière de rencontrer la souffrance — la tienne et celle des autres. En lumière, il transforme blessure en ressource, écoute en profondeur, accompagne la guérison. En ombre, il se définit par ses blessures, cherche à sauver tout le monde, s’épuise. Il t’apprend à guérir avec, pas contre, ce que tu as traversé.",
-  jester: "Le Jester est ta fonction de jeu, d’humour, de renversement des perspectives. En lumière, il allège, révèle des vérités à travers le rire, fait circuler l’énergie là où tout est figé. En ombre, il se cache derrière la blague pour ne jamais se montrer, minimise tout, sabote la profondeur. Il te montre quand le rire ouvre, et quand il sert à fuir.",
-  lover: "Le Lover colore ta façon d’aimer, de désirer, d’entrer en relation avec les personnes, les projets et la vie. En lumière, il apporte présence, intensité, capacité de connexion profonde. En ombre, il tombe dans la dépendance, la recherche de validation ou le drama. Le Lover t’apprend à aimer sans te perdre, et à laisser la passion nourrir plutôt que consommer.",
-  magician: "Le Magician touche ta capacité à transformer, influencer, jouer avec les dynamiques visibles et invisibles. En lumière, il alchimise, connecte les bonnes personnes, voit les effets à long terme, fait bouger les lignes en finesse. En ombre, il manipule, garde l’avantage, retient l’information ou l’énergie pour contrôler. Son travail est de passer du pouvoir sur les autres à la maîtrise de ton propre pouvoir créateur.",
-  mystic: "Le Mystic reflète ton lien direct avec le sacré, l’invisible, le niveau symbolique de ta vie. En lumière, il perçoit les synchronicités, les signes, et fait confiance à un ordre plus vaste. En ombre, il se coupe du monde ou se perd dans les expériences intérieures sans ancrage. Il t’enseigne à vivre ta spiritualité au cœur du quotidien, pas comme une échappatoire.",
-  prostitute: "La Prostitute garde la frontière entre ce qui est à vendre et ce qui ne l’est pas. En lumière, elle protège ton intégrité : « je ne sacrifie pas mon âme, même pour la sécurité ». En ombre, elle accepte des situations qui te trahissent par peur de manquer. Elle te montre précisément à quel prix tu es encore prêt à te vendre pour rester en sécurité.",
-  rebel: "Le Rebel porte ta relation à la règle, à la norme et à l’autorité. En lumière, il défie les systèmes injustes, ouvre des voies alternatives, protège la vérité. En ombre, il casse pour casser, rejette avant de comprendre, se coupe de soutiens possibles. Son enjeu est de choisir quand la rébellion sert vraiment ton contrat, et quand elle rejoue une vieille guerre.",
-  saboteur: "Le Saboteur est le gardien de tes choix : il se manifeste surtout au moment où une vraie opportunité arrive. En lumière, il t’alerte sur les risques et t’invite à vérifier tes motivations avant d’agir. En ombre, il te coupe les jambes juste avant le pas important : procrastination, autocritique, fuite. Il t’apprend à reconnaître quand tu empêches toi-même ta propre expansion.",
-  sage: "Le Sage représente ton besoin de comprendre, de donner du sens et de transmettre. En lumière, il observe, relie, clarifie, enseigne avec humilité. En ombre, il intellectualise tout, se cache derrière le mental, ou utilise le savoir pour prendre le dessus. Il t’invite à laisser ta compréhension descendre dans la vie concrète, pas seulement dans les concepts.",
-  sovereign: "Le Sovereign structure ta façon de prendre des responsabilités, de décider et d’ordonner ta vie. En lumière, il gouverne avec clarté, justesse, sens du bien commun. En ombre, il devient contrôlant, autoritaire, obsédé par le statut ou l’image. Son travail consiste à passer d’un pouvoir centré sur l’ego à une autorité au service de ta vocation et de ton entourage.",
-  victim: "Le Victim touche à tes frontières et à ton rapport au pouvoir personnel. En lumière, il te signale quand une situation est abusive et t’aide à te positionner. En ombre, il se complaît dans l’impuissance, le ressentiment et la recherche de coupables. Son travail consiste à passer de « on me fait » à « comment je récupère ma puissance dans cette histoire ».",
-  warrior: "Le Warrior incarne ta capacité à te battre pour ce qui compte, à protéger et à tenir sous pression. En lumière, il te donne courage, endurance, sens des limites et de la justice. En ombre, il devient agressif, défensif, ou se bat contre les mauvaises choses (ton propre corps, tes alliés). Il te montre quels combats valent ton énergie et lesquels rejouent un vieux champ de bataille.",
+  caregiver:
+    "Le Caregiver représente ton élan naturel à nourrir, contenir et prendre soin — des personnes comme des projets. Dans sa forme mature, il soutient sans infantiliser et sécurise sans capturer. En ombre, il compense l'angoisse du lien par le sur-don, le sauvetage ou un soin qui contrôle plus qu'il ne libère. Son axe de maturité consiste à relier tendresse et limites, afin que le soin reste un appui plutôt qu'un mode de domination douce.",
+
+  child:
+    "Le Child construit ta manière de percevoir la sécurité, la loyauté, la dépendance et la possibilité de recommencer. En lumière, il garde vivantes l'innocence, la créativité et la capacité à faire confiance sans se naïviser. En ombre, il cherche à déléguer sa responsabilité, s'agrippe à une figure rassurante ou évite les passages de croissance qui demandent de devenir plus adulte. Son travail n'est pas de disparaître, mais de s'affiner : préserver l'élan vivant tout en apprenant à se porter soi-même.",
+
+  creator:
+    "Le Creator porte ta pulsion de faire advenir quelque chose qui n'existait pas encore. En lumière, il transforme une intuition en forme, accepte l'imperfection du processus et donne une signature réelle à ce qu'il touche. En ombre, il reporte, retouche, raffine à l'excès ou utilise son talent comme stratégie de contrôle narcissique. Son enjeu est simple et exigeant : livrer, confronter l'œuvre au réel, et laisser la création devenir relation plutôt que fantasme fermé.",
+
+  explorer:
+    "L'Explorer incarne ton mouvement vers l'inconnu, le déplacement, les nouveaux terrains de sens. En lumière, il ouvre des portes, sort des loyautés étroites et t'aide à trouver un chemin qui ne soit pas seulement hérité. En ombre, il transforme la liberté en fuite chronique, abandonne ce qui commence à demander de l'enracinement et sacralise le nouveau pour éviter l'intime. Son axe de croissance est de distinguer l'appel réel du déplacement défensif.",
+
+  healer:
+    "Le Healer concerne ta manière de rencontrer la souffrance — la tienne comme celle des autres. En lumière, il transforme l'expérience traversée en qualité de présence, d'écoute et de réparation juste. En ombre, il se laisse définir par la blessure, s'épuise à sauver, ou entretient inconsciemment le besoin d'être nécessaire pour ne pas perdre sa place. Son travail est d'apprendre à accompagner sans s'absorber, et à guérir sans faire de la douleur un centre identitaire.",
+
+  jester:
+    "Le Jester est ta capacité à relâcher la pression, renverser les angles morts et rendre une vérité dicible par le jeu. En lumière, il assouplit les rigidités, remet du vivant là où tout s'est figé, et crée un espace de respiration psychique. En ombre, il transforme l'humour en écran anti-intimité, tourne en dérision ce qui demande du sérieux, ou sabote la profondeur au moment précis où elle pourrait émerger. Il t'enseigne à distinguer l'humour qui ouvre du divertissement qui évite.",
+
+  lover:
+    "Le Lover colore ta façon d'aimer, de désirer, de t'attacher et de t'engager avec intensité. En lumière, il donne présence, chaleur, élan, capacité à goûter la relation et à rendre la vie incarnée. En ombre, il confond intensité et vérité, se dérègle dans la fusion, la dépendance ou la quête de validation affective. Son travail n'est pas de devenir tiède, mais d'aimer sans se perdre et de laisser le désir nourrir plutôt que consumer.",
+
+  magician:
+    "Le Magician touche ta capacité à transformer les dynamiques visibles et invisibles d'un système. En lumière, il voit les patterns, lit les leviers, orchestre avec finesse et rend possible un passage que d'autres ne savaient pas nommer. En ombre, il préfère l'influence discrète à l'engagement visible, retient l'information, micro-manipule ou reste en coulisses pour ne pas être entièrement exposé. Son axe de maturation est de passer du contrôle subtil à la responsabilité incarnée.",
+
+  mystic:
+    "Le Mystic reflète ton lien au sacré, au symbole, au sens profond et à ce qui dépasse la lecture purement rationnelle. En lumière, il lit les synchronicités, perçoit l'ordre derrière les événements et soutient une confiance fondamentale dans la traversée. En ombre, il se réfugie dans l'intériorité, spiritualise ce qui devrait être incarné, ou utilise le sens pour éviter le réel. Son enjeu est de faire descendre l'expérience intérieure dans la matière, les choix et les actes.",
+
+  prostitute:
+    "La Prostitute est la gardienne de ton intégrité dans les situations où la sécurité semble menacée. En lumière, elle te rend sensible au moment exact où tu t'apprêtes à négocier ta dignité, tes valeurs ou ton âme contre de la protection, de l'argent ou de l'appartenance. En ombre, elle rationalise les compromis qui te trahissent au nom du besoin de survivre. Son travail est de faire émerger un 'not for sale' concret, incarné, surtout quand la peur rend le compromis séduisant.",
+
+  rebel:
+    "Le Rebel porte ta relation à la norme, à la règle et à l'autorité. En lumière, il protège la vérité, refuse les systèmes injustes et introduit la rupture nécessaire quand tout le monde s'accommode de l'inacceptable. En ombre, il s'oppose avant d'écouter, rejoue un vieux combat contre toute structure et finit par se battre contre des formes plus que pour une valeur. Son axe de travail consiste à rendre la rupture discernée, ciblée et réellement féconde.",
+
+  saboteur:
+    "Le Saboteur est le gardien de tes choix majeurs et de ta tolérance au changement. En lumière, il t'alerte sur les angles morts, les emballements et les décisions prises trop vite. En ombre, il désorganise l'élan juste avant l'étape décisive : retard, doute corrosif, distraction, auto-disqualification. Son enjeu n'est pas d'être supprimé, mais reconnu assez tôt pour redevenir un signal de prudence plutôt qu'une force d'inhibition.",
+
+  sage:
+    "Le Sage représente ton besoin de comprendre, de relier, d'interpréter et de transmettre. En lumière, il clarifie, synthétise, donne du sens sans écraser la complexité, et transmet avec discernement. En ombre, il sur-intellectualise, remplace l'expérience par le commentaire, ou utilise le savoir comme rempart relationnel. Son travail est de laisser la pensée redevenir un service rendu à la vie plutôt qu'un lieu de retrait.",
+
+  sovereign:
+    "Le Sovereign structure ta façon de décider, d'ordonner, de gouverner et de prendre la responsabilité finale. En lumière, il donne direction, stabilité, sens du bien commun et capacité à tenir un cadre qui protège sans étouffer. En ombre, il surcontrôle, s'isole, devient défensif face au feedback ou dérive vers une autorité centrée sur l'image. Son axe de maturité est de convertir le pouvoir de contrôle en autorité de service.",
+
+  victim:
+    "Le Victim touche à tes frontières, à ton sentiment de puissance et à ta capacité à nommer l'injustice. En lumière, il t'alerte quand quelque chose te dépossède et te pousse à rétablir une limite juste. En ombre, il cristallise l'impuissance, la plainte, la dette affective ou la conviction que le changement dépend toujours des autres. Son travail consiste à transformer le vécu d'atteinte en reprise de position, pas en identité durable.",
+
+  warrior:
+    "Le Warrior incarne ta capacité à défendre ce qui compte, à tenir sous pression, à protéger un territoire et à agir avec netteté. En lumière, il apporte courage, endurance, précision et capacité à traverser l'épreuve sans se dissoudre. En ombre, il se rigidifie, attaque trop vite, vit sur le mode du combat permanent ou se retourne contre son propre corps. Il t'enseigne à choisir tes batailles pour ne pas confondre tension chronique et force réelle.",
 };
 
 /* -------------------------------------------------------------------------- */
@@ -52,175 +94,137 @@ const ARCHETYPE_INTRO_FR: Record<AnyArchetypeKey, string> = {
 /* -------------------------------------------------------------------------- */
 
 const ARCHETYPE_INTRO_EN: Record<AnyArchetypeKey, string> = {
-  caregiver: "The Caregiver represents your natural impulse to nourish, contain and care for others and projects. In light, he can support without sacrificing himself, create a climate of safety, mother in a mature way. In shadow, he over-sacrifices, mothers to control, or forgets himself completely. His work is to balance « I take care of you » with « I also take care of myself ».",
-  child: "The Child shapes how you perceive life, safety, loyalty and the process of « growing up ». In light, it brings innocence, creativity, trust and the ability to start again. In shadow, it gets stuck in dependency, fear of responsibility or refuses to leave childish roles. Working with this Child means refining the balance between innocence and responsibility.",
-  creator: "The Creator carries your drive to bring things into being: ideas, works, systems, relationships. In light, he channels inspiration into concrete forms, sees possibilities where others see limits. In shadow, he gets lost in perfectionism, self-criticism or uses his talent to manipulate. He teaches you to own your role as co-creator, without sabotaging your own works.",
-  explorer: "The Explorer is your impulse toward the unknown, change and discovering new perspectives. In light, he allows you to step out of family scripts, open your life and find your own path. In shadow, he flees commitment, stability, and confuses movement with freedom. He works to transform flight into conscious, chosen exploration.",
-  healer: "The Healer concerns how you meet suffering — yours and others'. In light, he transforms wounds into resources, listens deeply and accompanies healing. In shadow, he defines himself by his wounds, tries to save everyone, and burns out. He teaches you to heal with, not against, what you have gone through.",
-  jester: "The Jester is your function of play, humor and perspective reversal. In light, he lightens, reveals truths through laughter, and gets energy flowing where everything is stuck. In shadow, he hides behind jokes to never show himself, minimizes everything and sabotages depth. He shows you when laughter opens, and when it serves to escape.",
-  lover: "The Lover colors how you love, desire and relate to people, projects and life. In light, he brings presence, intensity and the capacity for deep connection. In shadow, he falls into dependency, seeking validation or drama. The Lover teaches you to love without losing yourself, and to let passion nourish rather than consume.",
-  magician: "The Magician touches your ability to transform, influence and play with visible and invisible dynamics. In light, he alchemizes, connects the right people, sees long-term effects and nudges change with subtlety. In shadow, he manipulates, keeps the advantage and withholds information or energy to control. His work is to move from power over others to mastery of your own creative power.",
-  mystic: "The Mystic reflects your direct link to the sacred, the invisible, the symbolic level of your life. In light, he perceives synchronicities, signs, and trusts a larger order. In shadow, he cuts himself off from the world or gets lost in inner experiences without grounding. He teaches you to live your spirituality at the heart of daily life, not as an escape.",
-  prostitute: "The Prostitute guards the boundary between what is for sale and what is not. In light, she protects your integrity: « I will not sacrifice my soul, even for security ». In shadow, she accepts situations that betray you out of fear of lack. She shows you precisely at what price you are still ready to sell yourself to remain safe.",
-  rebel: "The Rebel carries your relationship to rules, norms and authority. In light, he challenges unjust systems, opens alternative paths, protects the truth. In shadow, he rebels for the sake of rebelling, rejects before understanding, cuts himself off from possible supports. His issue is choosing when rebellion truly serves your purpose, and when it replays an old war.",
-  saboteur: "The Saboteur is the guardian of your choices: it shows up especially when a real opportunity arrives. In light, it alerts you to risks and invites you to check your motivations before acting. In shadow, it cuts your legs out just before the important step: procrastination, self-criticism, escape. It teaches you to recognize when you yourself prevent your own expansion.",
-  sage: "The Sage represents your need to understand, to give meaning and to transmit. In light, he observes, connects, clarifies and teaches with humility. In shadow, he intellectualizes everything, hides behind the mind, or uses knowledge to gain the upper hand. He invites you to let your understanding descend into concrete life, not remain only in concepts.",
-  sovereign: "The Sovereign structures how you take responsibility, decide and order your life. In light, he governs with clarity, fairness and a sense of the common good. In shadow, he becomes controlling, authoritarian, obsessed with status or image. His work is to shift from ego-centered power to an authority that serves your vocation and your circle.",
-  victim: "The Victim touches your boundaries and your relation to personal power. In light, it signals to you when a situation is abusive and helps you take a stand. In shadow, it wallows in powerlessness, resentment and the search for scapegoats. Its work is to move from « things are done to me » to « how do I reclaim my power in this story ».",
-  warrior: "The Warrior embodies your capacity to fight for what matters, to protect and to hold under pressure. In light, he gives you courage, endurance, a sense of limits and of justice. In shadow, he becomes aggressive, defensive, or fights the wrong things (your own body, your allies). He shows you which battles deserve your energy and which replay an old battlefield.",
+  caregiver:
+    "The Caregiver represents your natural impulse to nourish, contain and care — for people as much as for projects. In its mature form, it supports without infantilizing and secures without capturing. In shadow, it compensates for attachment anxiety through over-giving, rescuing, or a kind of care that controls more than it frees. Its growth axis is to bind tenderness and boundaries so that care remains support rather than soft domination.",
+
+  child:
+    "The Child shapes how you perceive safety, loyalty, dependency and the possibility of beginning again. In the light, it keeps innocence, creativity and the capacity to trust without becoming naive. In shadow, it tries to outsource responsibility, clings to a reassuring figure, or avoids developmental passages that require becoming more adult. Its task is not to disappear, but to refine itself: preserving liveliness while learning to carry itself.",
+
+  creator:
+    "The Creator carries your drive to bring into existence something that did not yet exist. In the light, it turns intuition into form, accepts the imperfection of process, and gives a real signature to what it touches. In shadow, it delays, over-refines, endlessly revises, or uses talent as a narcissistic control strategy. Its challenge is simple and demanding: ship the work, let it meet reality, and allow creation to become relationship rather than closed fantasy.",
+
+  explorer:
+    "The Explorer embodies your movement toward the unknown, displacement and new territories of meaning. In the light, it opens doors, exits narrow loyalties and helps you find a path that is not merely inherited. In shadow, it turns freedom into chronic flight, abandons what starts asking for rootedness, and sacralizes novelty in order to avoid intimacy. Its growth axis is to distinguish a real call from defensive movement.",
+
+  healer:
+    "The Healer concerns how you meet suffering — your own and that of others. In the light, it transforms lived experience into presence, listening and precise repair. In shadow, it lets itself be defined by the wound, exhausts itself saving, or unconsciously maintains the need to be needed in order to keep its place. Its work is to accompany without absorbing, and to heal without making pain into an identity center.",
+
+  jester:
+    "The Jester is your capacity to release pressure, flip blind spots and make truth speakable through play. In the light, it softens rigidities, restores life where everything has frozen, and creates psychic breathing room. In shadow, it turns humor into an anti-intimacy screen, mocks what should be taken seriously, or sabotages depth at the exact moment it could emerge. It teaches you to distinguish opening humor from avoidant entertainment.",
+
+  lover:
+    "The Lover colors the way you love, desire, attach and commit with intensity. In the light, it brings presence, warmth, momentum, relational depth and embodied aliveness. In shadow, it confuses intensity with truth and dysregulates into fusion, dependency or the pursuit of emotional validation. Its work is not to become lukewarm, but to love without losing yourself and let desire nourish rather than consume.",
+
+  magician:
+    "The Magician touches your ability to transform visible and invisible dynamics within a system. In the light, it sees patterns, reads leverage points, orchestrates with finesse and makes possible a passage others could not yet name. In shadow, it prefers discreet influence over visible commitment, withholds information, micro-manipulates, or stays backstage to avoid full exposure. Its maturation axis is moving from subtle control to embodied responsibility.",
+
+  mystic:
+    "The Mystic reflects your relationship to the sacred, symbol, deep meaning and what exceeds purely rational reading. In the light, it reads synchronicities, perceives order within events and supports a fundamental trust in the process. In shadow, it retreats into interiority, spiritualizes what should be embodied, or uses meaning to avoid reality. Its challenge is to bring inner experience down into matter, decisions and concrete acts.",
+
+  prostitute:
+    "The Prostitute is the guardian of your integrity in situations where safety feels threatened. In the light, it makes you sharply aware of the exact moment you are about to negotiate your dignity, values or soul in exchange for protection, money or belonging. In shadow, it rationalizes self-betraying compromises in the name of survival. Its work is to make a concrete, embodied 'not for sale' emerge, especially when fear makes compromise look attractive.",
+
+  rebel:
+    "The Rebel carries your relationship to norms, rules and authority. In the light, it protects truth, refuses unjust systems and introduces necessary rupture when everyone else has normalized the unacceptable. In shadow, it opposes before listening, replays an old war against any structure, and ends up fighting forms instead of fighting for a value. Its work is to make rupture discerning, targeted and genuinely generative.",
+
+  saboteur:
+    "The Saboteur is the guardian of your major choices and of your tolerance for change. In the light, it alerts you to blind spots, over-excitement and decisions made too fast. In shadow, it disorganizes your momentum just before the decisive step: delay, corrosive doubt, distraction, self-disqualification. Its purpose is not to be eradicated, but recognized early enough to become a signal of prudence rather than a force of inhibition.",
+
+  sage:
+    "The Sage represents your need to understand, connect, interpret and transmit. In the light, it clarifies, synthesizes, offers meaning without flattening complexity, and teaches with discernment. In shadow, it over-intellectualizes, replaces experience with commentary, or uses knowledge as a relational shield. Its work is to let thought become a service to life again rather than a place of withdrawal.",
+
+  sovereign:
+    "The Sovereign structures how you decide, order, govern and hold final responsibility. In the light, it brings direction, stability, a sense of the common good, and the capacity to hold a frame that protects without suffocating. In shadow, it over-controls, isolates, becomes defensive toward feedback, or drifts into image-centered authority. Its maturation axis is converting the power to control into the authority to serve.",
+
+  victim:
+    "The Victim touches your boundaries, your sense of agency and your ability to name injustice. In the light, it alerts you when something is dispossessing you and pushes you to restore a fair limit. In shadow, it crystallizes helplessness, complaint, emotional debt, or the belief that change always depends on others. Its work is to turn the experience of violation into repositioning, not into a durable identity.",
+
+  warrior:
+    "The Warrior embodies your ability to defend what matters, hold under pressure, protect a territory and act with precision. In the light, it brings courage, endurance, sharpness and the ability to move through ordeal without dissolving. In shadow, it hardens, attacks too quickly, lives in permanent combat mode, or turns against its own body. It teaches you to choose your battles so you do not confuse chronic tension with real strength.",
 };
 
 /* -------------------------------------------------------------------------- */
-/* House contexts (1..12) — FR                                                 */
+/* Helpers                                                                     */
 /* -------------------------------------------------------------------------- */
 
-const HOUSE_CONTEXT_FR: Record<number, string> = {
-  "1": "Cette maison parle de ton masque, de la façon dont tu entres dans le monde et de la première impression que tu donnes. L’archétype ici colore ton style de présence : comment ton ego s’organise, comment tu prends ou évites la place.",
-  "10": "Cette maison parle de ton sommet de potentiel, de ta vocation et de ton rôle public. L’archétype ici raconte la forme que peut prendre ta contribution au monde, et les risques de trahison de cette vocation.",
-  "11": "Domaine des collectifs, des causes, de la vision pour l’humanité. L’archétype ici colore la manière dont tu te sens relié aux mouvements, communautés et changements collectifs.",
-  "12": "Zone des peurs profondes, du karma, de ce que tu caches même à toi-même. L’archétype ici révèle les scénarios récurrents que tu revis, et la façon dont tu peux les transmuter en conscience et en surrender.",
-  "2": "Cette maison relie ton archétype à l’argent, aux possessions, à ce que tu considères comme « avoir de la valeur ». On y voit comment tu négocies entre sécurité et intégrité, et ce à quoi tu t’attaches pour te sentir en sécurité.",
-  "3": "Domaine de la parole, des choix, du lien cause-effet. L’archétype dans cette maison montre comment tu utilises ta voix, comment tu décides, comment tu gères la responsabilité de tes actes.",
-  "4": "Cette maison parle de ta famille d’origine, de ton « home » actuel et de ta sécurité émotionnelle. L’archétype ici éclaire comment tu portes ou refuses ton histoire familiale, et comment tu crées (ou non) un foyer sain pour toi.",
-  "5": "Cette maison lie l’archétype à ta créativité, à tes enfants (biologiques ou projets), à ta façon de jouer avec la vie. On y voit comment ton feu créatif s’exprime, et s’il sert la joie ou la manipulation.",
-  "6": "Domaine du travail quotidien, de la santé, de l’éthique dans la survie. L’archétype ici montre comment tu te traites dans le contexte pro, et comment tu négocies entre performance, corps et alignement.",
-  "7": "Cette maison parle de tes relations clés : couple, associations, duelles. L’archétype ici décrit comment tu co-crées ou rejoues des patterns à deux (projection, dépendance, alliance, trahison).",
-  "8": "Cette maison relie l’archétype à l’argent des autres, aux héritages, aux dettes et à l’intimité profonde. On voit comment tu gères fusion, pouvoir partagé, vulnérabilité et ressources qui ne viennent pas directement de toi.",
-  "9": "Domaine de la quête de sens, des grandes croyances, des voyages intérieurs et extérieurs. L’archétype ici montre comment tu cherches la vérité, comment tu organises ta vision du monde et du sacré.",
-};
-
-/* -------------------------------------------------------------------------- */
-/* House contexts (1..12) — EN                                                 */
-/* -------------------------------------------------------------------------- */
-
-const HOUSE_CONTEXT_EN: Record<number, string> = {
-  "1": "This House speaks about your mask, how you enter the world and the first impression you give. The archetype here colors your style of presence: how your ego organizes, how you take or avoid your place.",
-  "10": "This House speaks about your summit of potential, your vocation and your public role. The archetype here tells the form your contribution to the world can take, and the risks of betraying that vocation.",
-  "11": "Domain of collectives, causes and vision for humanity. The archetype here colors how you feel connected to movements, communities and collective change.",
-  "12": "Zone of deep fears, karma and what you hide even from yourself. The archetype here reveals recurring scenarios you replay, and how you can transmute them into awareness and surrender.",
-  "2": "This House links your archetype to money, possessions and what you consider to be « having value ». It shows how you negotiate between security and integrity, and what you cling to in order to feel safe.",
-  "3": "Domain of speech, choices and cause-effect link. The archetype in this House shows how you use your voice, how you decide, and how you handle responsibility for your actions.",
-  "4": "This House speaks about your family of origin, your current « home » and your emotional security. The archetype here illuminates how you carry or refuse your family story, and how you create (or not) a healthy home for yourself.",
-  "5": "This House links the archetype to your creativity, your children (biological or projects) and your way of playing with life. It shows how your creative fire expresses itself, and whether it serves joy or manipulation.",
-  "6": "Domain of daily work, health and ethics in survival. The archetype here shows how you treat yourself in the professional context, and how you negotiate between performance, body and alignment.",
-  "7": "This House speaks about your key relationships: couple, partnerships, duos. The archetype here describes how you co-create or replay two-person patterns (projection, dependency, alliance, betrayal).",
-  "8": "This House links the archetype to other people's money, inheritances, debts and deep intimacy. It shows how you handle fusion, shared power, vulnerability and resources that don't come directly from you.",
-  "9": "Domain of the quest for meaning, big beliefs and inner and outer journeys. The archetype here shows how you seek truth, and how you organize your vision of the world and the sacred.",
-};
-
-/* -------------------------------------------------------------------------- */
-/* Tone phrases (light/shadow ratio) — FR & EN                                 */
-/* -------------------------------------------------------------------------- */
-
-const TONE_PHRASES_FR = {
-  balanced: "Terrain de bascule : la lumière et l’ombre se disputent à parts presque égales.",
-  fullLight: "Tu opères ici principalement depuis la lumière de cet archétype.",
-  fullShadow: "Tu opères ici principalement depuis l’ombre de cet archétype.",
-  mostlyLight: "Lumière dominante, avec quelques zones d’ombre à intégrer.",
-  mostlyShadow: "Ombre dominante, avec des éclats de lumière à cultiver.",
-  none: "Aucun signal significatif sur ce thème pour l’instant.",
-};
-
-const TONE_PHRASES_EN = {
-  balanced: "Balance point: light and shadow contend in almost equal measure.",
-  fullLight: "You operate here primarily from the light of this archetype.",
-  fullShadow: "You operate here primarily from the shadow of this archetype.",
-  mostlyLight: "Dominant light, with some shadow areas to integrate.",
-  mostlyShadow: "Shadow dominant, with flashes of light to cultivate.",
-  none: "No significant signal on this topic for now.",
-};
-
-const HOUSE_LABEL = { fr: "Maison", en: "House" };
-
-/* -------------------------------------------------------------------------- */
-/* Locale-aware getters                                                        */
-/* -------------------------------------------------------------------------- */
+function clampRatio(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
 
 export function getArchetypeIntro(arch: AnyArchetypeKey, locale: Locale = "fr"): string {
   return locale === "en" ? ARCHETYPE_INTRO_EN[arch] : ARCHETYPE_INTRO_FR[arch];
 }
 
 export function getHouseContext(house: number, locale: Locale = "fr"): string {
-  return locale === "en" ? HOUSE_CONTEXT_EN[house] : HOUSE_CONTEXT_FR[house];
+  const found = HOUSES.find((h) => h.number === house);
+  if (!found) return "";
+  return locale === "en"
+    ? `${found.label_en}: ${found.theme_en}.`
+    : `${found.label_fr} : ${found.theme_fr}.`;
 }
 
 /**
- * Returns a qualitative tone phrase based on the light/shadow split of a stats
- * block. Pure function — easy to unit test.
+ * Returns a qualitative tone phrase based on the light/shadow split.
+ * Pure function — easy to unit test.
+ *
+ * 3 levels:
+ *   ≥ 0.68 → mostly light (resource)
+ *   ≥ 0.48 → mixed (reactive under stress)
+ *   <  0.48 → defensive (shadow leads when safety wavers)
  */
 export function tonePhrase(light: number, shadow: number, locale: Locale = "fr"): string {
-  const dict = locale === "en" ? TONE_PHRASES_EN : TONE_PHRASES_FR;
   const total = light + shadow;
-  if (total <= 0) return dict.none;
-  const lightRatio = light / total;
-  if (lightRatio >= 0.75) return dict.fullLight;
-  if (lightRatio >= 0.55) return dict.mostlyLight;
-  if (lightRatio >= 0.45) return dict.balanced;
-  if (lightRatio >= 0.25) return dict.mostlyShadow;
-  return dict.fullShadow;
+  const lightRatio = total > 0 ? clampRatio(light / total) : 0.5;
+
+  if (locale === "fr") {
+    if (lightRatio >= 0.68) return "Polarité majoritairement lumineuse : l'archétype agit comme ressource structurante.";
+    if (lightRatio >= 0.48) return "Polarité mixte : le potentiel est réel, mais l'ombre reste facilement réactivable sous stress.";
+    return "Polarité défensive dominante : l'ombre prend facilement la main quand la sécurité est menacée.";
+  }
+
+  if (lightRatio >= 0.68) return "Mostly light polarity: this archetype currently acts as a structuring resource.";
+  if (lightRatio >= 0.48) return "Mixed polarity: the potential is real, but the shadow remains easily reactivated under stress.";
+  return "Defensive polarity dominates: the shadow takes over easily when safety feels threatened.";
 }
-
-/* -------------------------------------------------------------------------- */
-/* Backwards-compat exports (FR — legacy)                                      */
-/* -------------------------------------------------------------------------- */
-
-export const archetypeIntro = ARCHETYPE_INTRO_FR;
-export const houseContext = HOUSE_CONTEXT_FR;
-
-/* -------------------------------------------------------------------------- */
-/* Compose helpers                                                             */
-/* -------------------------------------------------------------------------- */
 
 /**
  * Compose a full narrative block for a given (archetype × house) combo.
- * Returns null if either key is unknown.
+ * Returns an empty string if the house key is unknown.
  */
 export function composeArchetypeHouse(
   arch: AnyArchetypeKey,
   house: number,
-  stats?: HouseStats | ArchetypeStats,
+  stats: ArchetypeStats,
   locale: Locale = "fr",
-): string | null {
-  const intro = getArchetypeIntro(arch, locale);
+): string {
+  const houseStats: HouseStats | undefined = stats.byHouse?.[house];
+  if (!houseStats) return "";
+
   const context = getHouseContext(house, locale);
-  if (!intro || !context) return null;
+  const tone = tonePhrase(houseStats.light, houseStats.shadow, locale);
+  const intro = getArchetypeIntro(arch, locale);
 
-  const houseMeta = HOUSES.find((h) => h.number === house);
-  const houseLabel = HOUSE_LABEL[locale];
-  const houseName = houseMeta ? (locale === "en" ? houseMeta.label_en : houseMeta.label_fr) : null;
-  const title = houseName
-    ? `${capitalize(arch)} — ${houseLabel} ${house} : ${houseName}`
-    : `${capitalize(arch)} — ${houseLabel} ${house}`;
-
-  const tone =
-    stats && (stats.light + stats.shadow) > 0
-      ? `\n\n${tonePhrase(stats.light, stats.shadow, locale)}`
-      : "";
-
-  return `### ${title}\n\n${intro}\n\n${context}${tone}`;
+  return `${context} ${tone} ${intro}`;
 }
 
 /**
- * Picks the top (archetype × house) combos by total weight inside the house.
- * Returns up to `limit` items, sorted desc by total.
+ * Picks the top archetype keys by total weight, descending.
+ * Returns up to `limit` archetype keys.
  */
-export function pickTopCombos(
-  analysis: DeepDiveAnalysis,
-  limit = 3,
-): Array<{ archetype: AnyArchetypeKey; house: number; stats: HouseStats }> {
-  const all: Array<{ archetype: AnyArchetypeKey; house: number; stats: HouseStats }> = [];
-  for (const [arch, archStats] of Object.entries(analysis.stats) as Array<
-    [AnyArchetypeKey, ArchetypeStats]
-  >) {
-    for (const [houseStr, houseStats] of Object.entries(archStats.byHouse)) {
-      if (houseStats.total <= 0) continue;
-      all.push({ archetype: arch, house: Number(houseStr), stats: houseStats });
-    }
-  }
-  all.sort((a, b) => b.stats.total - a.stats.total);
-  return all.slice(0, limit);
+export function pickTopCombos(analysis: DeepDiveAnalysis, limit = 3): AnyArchetypeKey[] {
+  const entries = Object.entries(analysis.stats) as Array<[AnyArchetypeKey, ArchetypeStats]>;
+  return entries
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, limit)
+    .map(([key]) => key);
 }
 
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
+/* -------------------------------------------------------------------------- */
+/* Backwards-compat exports (FR — legacy / i18n script)                        */
+/* -------------------------------------------------------------------------- */
+
+export const archetypeIntro = ARCHETYPE_INTRO_FR;
+export const houseContext: Record<number, string> = Object.fromEntries(
+  HOUSES.map((h) => [h.number, `${h.label_fr} : ${h.theme_fr}.`]),
+);

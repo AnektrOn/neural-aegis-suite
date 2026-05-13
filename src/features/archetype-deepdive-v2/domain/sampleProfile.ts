@@ -270,82 +270,122 @@ export const SAMPLE_PROFILE_LEADER: SampleProfile = {
   ],
   narrative: {
     overviewLead:
-      "Tes archétypes dominants sont le Warrior, le Sovereign et le Mystique. Tu mènes par l'action et l'autorité, " +
-      "tout en cherchant un sens plus large à ce que tu construis.",
-    primaryShadowTheme: "Sur-engagement / sacrifice de soi",
+      "Tes archétypes dominants sont le Warrior, le Sovereign et le Mystique. Tu avances d'abord par la tenue, la responsabilité et le sens — avec une forte capacité à agir, porter, décider, puis à relire symboliquement ce que tu traverses.",
+
+    primaryShadowTheme:
+      "Sur-engagement défensif / sécurité obtenue par le contrôle et la tenue",
+
     archetypeBlocks: [
       {
         archetype: "warrior",
         rank: "dominant",
-        tagline: "Tient sous pression, défend ce qui est juste.",
-        gives: "Tu as une capacité à tenir sous pression, à défendre ce qui est juste pour toi et les autres au travail.",
-        watchOut: "Tendance à te battre contre ton propre corps ou à rester dans des environnements qui te usent.",
-        adminFunctions: "Combat, protection, discipline, capacité d'exécution.",
-        adminEvidence: "Forte intensité en maisons 6 & 7 ; saboteur présent en 6 ; récits de tenue malgré les coûts.",
-        adminRisks: "Confondre tenue et intégrité ; rester en posture de guerre quand le contexte demande négociation ou retrait.",
-        adminWorkAxis: "Passer du combat de survie à la protection consciente de ton énergie : choisir quels combats valent ta santé.",
+        tagline: "Protège, exécute sous pression, défend ce qui est juste — même seul.",
+        gives:
+          "Ton Warrior te donne une vraie capacité à agir dans la contrainte, à faire face sans te disperser et à protéger ce qui compte quand la pression monte. Chez toi, la force n'est pas seulement de l'énergie : c'est une structure interne, une façon d'entrer dans l'épreuve avec netteté, parfois avant même que les autres aient compris qu'il fallait agir.",
+        watchOut:
+          "Ton premier risque n'est pas le manque de force, mais son excès défensif : rester mobilisé trop longtemps, tenir au-delà du raisonnable, ou transformer la tension en mode de fonctionnement habituel. Signal précoce : fatigue normalisée, irritabilité, difficulté à déposer l'armure, impression que si tu ralentis tout se dérègle.",
+        adminFunctions:
+          "Protection, exécution sous contrainte, discipline, défense des valeurs, capacité à trancher dans l'urgence.",
+        adminEvidence:
+          "Présent dans les maisons 6 et 7 : très activé dans le travail, le devoir, les partenariats et la gestion des rapports de force. Sert de moteur principal quand la situation exige une réponse claire.",
+        adminRisks:
+          "Pattern chronique possible : identité organisée autour du fait de tenir. Le sujet peut ne plus savoir exister autrement que dans l'effort, le combat, le problème à résoudre ou la charge à porter. Risque secondaire : hostilité défensive face à ce qui ressemble à une faiblesse, y compris chez soi.",
+        adminWorkAxis:
+          "Cartographier explicitement les combats en cours : lesquels protègent une vraie valeur, lesquels rejouent un réflexe de survie. Introduire des temps de récupération comme discipline de Warrior, pas comme permission. Travailler le relâchement sans l'associer à la défaite.",
       },
       {
         archetype: "sovereign",
         rank: "secondaire",
-        tagline: "Tient le cap et la responsabilité.",
-        gives: "Tu sais incarner l'autorité, donner une direction, porter la responsabilité du collectif.",
-        watchOut: "Risque d'isolement, de rigidification du cadre, de difficulté à déléguer.",
-        adminFunctions: "Vision long terme, gouvernance, équilibre du système.",
-        adminEvidence: "Activations en maisons 1 & 10 ; ratio shadow proche de 0.45.",
-        adminRisks: "Sovereign ombre = autocrate ou marionnette ; perte de souveraineté quand le contexte attaque l'identité.",
-        adminWorkAxis: "Clarifier les contrats explicites avec ton entourage ; déléguer en gardant la responsabilité finale.",
+        tagline: "Tient le cap, gouverne avec clarté, assume la responsabilité finale.",
+        gives:
+          "Le Sovereign vient structurer la force du Warrior : il donne une vision, une hiérarchie, une capacité à tenir un cadre et à décider pour le collectif quand nécessaire. Il apporte de la verticalité à l'action — tu ne fais pas qu'agir, tu organises et tu rends l'action gouvernable.",
+        watchOut:
+          "Sous pression, ce Sovereign peut durcir le cadre au lieu de le clarifier : contrôle accru, difficulté à déléguer, sensibilité défensive au feedback, solitude décisionnelle.",
+        adminFunctions:
+          "Gouvernance, autorité de cadre, responsabilité finale, stabilisation du système.",
+        adminEvidence:
+          "Présent dans les maisons 1 et 10 : fortement lié à l'image de soi, au rôle social, à l'autorité et au sommet de responsabilité.",
+        adminRisks:
+          "Pattern chronique : si le Warrior se sent seul ou menacé, le Sovereign peut se rigidifier — l'autorité devient protection narcissique plutôt qu'instance de service. Risque de leadership protecteur mais peu perméable.",
+        adminWorkAxis:
+          "Créer une pratique de feedback réel avec 2-3 personnes capables de contester le cap sans être punies implicitement. Déléguer un segment de pouvoir de décision, pas seulement d'exécution.",
       },
       {
         archetype: "mystic",
         rank: "tertiaire",
-        tagline: "Ressource silencieuse vers le sens.",
-        gives: "Capacité à ressentir des appels intérieurs, à chercher du sens au-delà de la performance.",
-        watchOut: "Quête qui reste théorique tant que la structure (Sovereign) ne lui donne pas un cadre.",
-        adminFunctions: "Sens, dimension symbolique, lien au sacré.",
-        adminEvidence: "Intensité 0.73 en maisons 9 & 12, mais shadow modérée.",
-        adminRisks: "Spiritual bypassing utilisé pour fuir la fatigue du Warrior.",
-        adminWorkAxis: "Soutenir la quête du Mystic avec le Sovereign : structure, temps protégé, pratiques.",
+        tagline: "Perçoit la dimension symbolique de chaque expérience, habite le sens.",
+        gives:
+          "Le Mystique agit ici comme ressource de profondeur : il t'empêche de réduire la vie à la seule efficacité. Il apporte une lecture du sens, du timing, de l'intuition et des épreuves qui dépasse la logique purement tactique.",
+        watchOut:
+          "À surveiller surtout sous surcharge : risque de retrait intérieur, de quête de sens qui retarde l'acte, ou d'utilisation du spirituel pour compenser l'épuisement du Warrior.",
+        adminFunctions:
+          "Lecture symbolique, intuition structurante, capacité à relier action et signification.",
+        adminEvidence:
+          "Présent dans les maisons 9 et 12 : activé dans la quête de sens, l'inconscient, les patterns profonds et la lecture du destin.",
+        adminRisks:
+          "Pattern chronique secondaire : quand l'action devient trop dure, le Mystique peut être convoqué pour donner du sens à l'excès plutôt que pour le corriger. Le spirituel risque alors de justifier une désincarnation.",
+        adminWorkAxis:
+          "Relier chaque insight ou intuition à un micro-acte concret dans le corps, le temps ou la matière. Le Mystique doit soutenir l'incarnation, pas la remplacer.",
       },
     ],
+
     survivalUser:
-      "Tes signaux de survie pointent un Prostitute et un Child élevés, avec ombre marquée en maisons 2 (sécurité) et 1/4 " +
-      "(racines). Tu peux échanger ton énergie contre une sécurité immédiate, ou chercher une figure structurante pour " +
-      "ne pas affronter seul l'incertitude.",
+      "Tes gardiens de survie les plus actifs sont surtout la Prostitute, le Child, puis le Saboteur. Cela suggère que sous stress, la sécurité matérielle, le besoin de rester en contrôle et la peur des conséquences d'un changement peuvent fortement orienter tes choix. Ce n'est pas alarmant : ce sont des zones de protection à reconnaître plus tôt, pour qu'elles restent des signaux utiles plutôt que des automatismes.",
+
     survivalAdmin:
-      "Prostitute en maison 2 : observer les deals implicites « j'accepte X en échange de sécurité ». " +
-      "Child + Victim en maisons 1, 4, 7 : besoin de figures structurantes ; risque de désengagement passif quand le " +
-      "Warrior est épuisé. Saboteur en 6/9 alimente l'auto-sabotage santé / sens.",
+      "Lecture survival : la sécurité et l'intégrité semblent fortement liées. La Prostitute active indique une vigilance élevée autour du prix à payer pour tenir son rôle ou garder sa place ; le Child active une sensibilité à la perte de contenance ; le Saboteur peut ralentir un mouvement dès qu'il implique un coût réel ou irréversible. Axe clinique utile : aider le sujet à différencier danger réel, coût symbolique et inconfort de croissance. Ne pas dramatiser — travailler par micro-choix, contrats explicites et exposition progressive à des décisions visibles.",
+
     closingNarrativeUser:
-      "Ton ossature Warrior + Sovereign te porte loin, mais peut t'enfermer dans le « je tiens quoi qu'il arrive ». " +
-      "Le travail consiste à inviter le Mystique à donner du sens, sans laisser le Warrior payer le prix.",
+      "Tu exprimes d'abord une énergie de Warrior structurée par le Sovereign, avec un Mystique en arrière-plan qui cherche à donner du sens à l'effort. Ta force est réelle, mais elle devient pleinement mature quand elle n'a plus besoin de rester en mobilisation constante pour se sentir légitime.",
+
     strengths: [
-      "**Warrior** : capacité d'exécution et de défense.",
-      "**Sovereign** : autorité, vision long terme, sens des responsabilités.",
-      "**Mystique** : appel intérieur à du sens plus large.",
+      "**Warrior** : capacité à agir sous contrainte, à protéger et à traverser l'épreuve avec netteté.",
+      "**Sovereign** : sens du cadre, de la responsabilité et de la direction à tenir pour soi et pour les autres.",
+      "**Mystique** : lecture intuitive du sens, de la temporalité juste et des patterns profonds.",
     ],
+
     vigilance: [
-      "Ne pas confondre tenue et intégrité.",
-      "Ne pas troquer ta santé contre la sécurité du système.",
-      "Ne pas reléguer la quête de sens en activité « du dimanche ».",
+      "Ne pas organiser toute la vie autour du fait de tenir ; vérifier régulièrement si la force protège vraiment quelque chose ou si elle sert seulement à ne pas sentir la vulnérabilité.",
+      "Surveiller les compromis d'intégrité déguisés en nécessité pratique : plus le contexte met la sécurité sous pression, plus la conscience du « prix payé » doit devenir explicite.",
     ],
+
     practices: [
-      { title: "Audit énergétique hebdo", description: "Lister les combats menés cette semaine — lesquels valaient ta santé ?" },
-      { title: "Rituel de transition Warrior → Sovereign", description: "Marquer la fin de la journée par un acte délibéré qui sort du registre combat." },
-      { title: "Pratique de sens — 15 min/sem", description: "Reconnecter explicitement chaque grande décision à une valeur Mystique." },
+      {
+        title: "Cartographie des combats — 20 min/semaine",
+        description:
+          "Lister les fronts actifs et distinguer : valeur protégée, réflexe de survie, combat hérité. Fermer consciemment un combat inutile.",
+      },
+      {
+        title: "Check intégrité / sécurité — 5 min avant décision",
+        description:
+          "Avant toute décision importante : « qu'est-ce que je protège ici ? ma valeur, mon image, ou ma sécurité ? ».",
+      },
+      {
+        title: "Récupération comme discipline",
+        description:
+          "Programmer sommeil, corps, respiration ou lenteur comme devoir de Warrior, pas comme récompense après épuisement.",
+      },
+      {
+        title: "Ancrage Mystique → matière",
+        description:
+          "Après chaque insight fort, poser un acte concret dans les 24h pour éviter la dissociation entre sens et incarnation.",
+      },
     ],
+
     adminDiagnostic: {
       triad: "Warrior – Sovereign – Mystique.",
-      resources: "Healer présent ; Lover, Creator, Jester, Caregiver disponibles mais non dominants.",
-      survival: "Prostitute et Child élevés, avec ombre nette en maison 2 et maisons 1/4.",
+      resources:
+        "Healer en appui, Lover/Creator/Jester disponibles comme ressources de souplesse et d'humanisation. Rebel/Explorer/Sage/Magician moins centraux mais potentiellement mobilisables selon le contexte.",
+      survival:
+        "Prostitute + Child + Saboteur les plus sensibles. Lire ces activations comme des gardiens de sécurité, pas comme pathologie.",
       hypothesis:
-        "Profil horizontal très orienté action / autorité. Besoin d'intégrer la verticalité (Mystique, Sage) pour " +
-        "que le système ne s'épuise pas dans la tenue.",
+        "Profil de puissance, de tenue et de responsabilité. Le vrai travail n'est pas d'ajouter de la force, mais de différencier force, contrôle et intégrité. Besoin de réguler l'excès de mobilisation pour éviter que le leadership ne se rigidifie.",
     },
+
     adminContract: [
-      "Warrior + Sovereign au centre → contrat de leadership exécutif.",
-      "Mystique en ressource → invite à donner un cadre de sens explicite à l'autorité.",
-      "Prostitute en maison 2 → travail prioritaire sur les contrats économiques implicites.",
+      "Contrat central : porter, protéger et gouverner sans basculer dans le sacrifice de soi ni dans l'autoritarisme défensif.",
+      "Le sujet semble appelé à apprendre une forme d'autorité incarnée : forte, claire, mais non organisée autour de la menace permanente.",
+      "Pour AEGIS : proposer des pratiques qui convertissent la force en discernement de combat, et la responsabilité en gouvernance plutôt qu'en surcontrôle.",
     ],
   },
 };
