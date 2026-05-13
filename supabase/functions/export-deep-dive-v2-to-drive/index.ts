@@ -243,6 +243,20 @@ Deno.serve(async (req) => {
       ext = "md";
     }
 
+    // ---- Fetch ALL related data (deep dive + quiz + archetypes) ----
+    const fullData = await fetchFullDeepDiveData(admin, userId, assessmentId);
+
+    if (format === "json") {
+      // Merge into JSON
+      const parsed = JSON.parse(fileBody);
+      parsed.data = { client: parsed.data, fullExport: fullData };
+      fileBody = JSON.stringify(parsed, null, 2);
+    } else {
+      // Append a structured appendix + raw JSON dump to the markdown
+      const appendix = renderFullDataAppendix(fullData);
+      fileBody = fileBody + "\n\n" + appendix;
+    }
+
     const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
     const stem = sanitize(filenameStem || `deep-dive-v2-${exportType}-${clientName}`);
     const fileName = `${ts}_${stem}.${ext}`;
@@ -251,6 +265,21 @@ Deno.serve(async (req) => {
     const clientFolderId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
     const ddFolderId = await findOrCreateFolder(admin, clientFolderId, "DeepDiveV2");
     const uploaded = await uploadFile(ddFolderId, fileName, fileBody, mimeType);
+
+    // Also drop a companion JSON next to the markdown for full machine-readable dump
+    if (format !== "json") {
+      try {
+        const jsonName = `${ts}_${stem}.full.json`;
+        await uploadFile(
+          ddFolderId,
+          jsonName,
+          JSON.stringify({ exportType, generatedAt: new Date().toISOString(), userId, assessmentId: assessmentId ?? null, fullExport: fullData }, null, 2),
+          "application/json",
+        );
+      } catch (e) {
+        console.error("companion JSON upload failed:", e);
+      }
+    }
 
     return new Response(
       JSON.stringify({
