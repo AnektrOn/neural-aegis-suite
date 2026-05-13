@@ -77,7 +77,7 @@ export default function ToolboxItemPreview({
         <button
           type="button"
           className="text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-lg border border-border/40 text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all shrink-0 flex items-center gap-1"
-          title={t("toolbox.preview") || "Preview"}
+          title="Preview"
         >
           <Eye size={11} strokeWidth={1.5} />
           Preview
