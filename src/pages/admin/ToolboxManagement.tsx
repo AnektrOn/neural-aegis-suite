@@ -376,6 +376,13 @@ export default function ToolboxManagement() {
                         </p>
                         {jt.duration && <p className="text-xs text-muted-foreground mt-0.5">{jt.duration}</p>}
                       </div>
+                      <ToolboxItemPreview
+                        contentType="journal_prompt"
+                        title={pickCatalogTemplateDisplayTitle(locale as Locale, { title: jt.title, title_i18n: jt.title_i18n as any })}
+                        widgetConfig={{
+                          prompt: pickLocalizedText(locale as Locale, jt.prompt_text_i18n as any, jt.prompt_text),
+                        }}
+                      />
                       <button
                         onClick={() => assignJournalFromCatalog(jt.id)}
                         disabled={isAssigning || !catalogSelectedUser}
