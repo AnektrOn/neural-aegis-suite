@@ -136,6 +136,117 @@ function sanitize(s: string): string {
   return (s || "Inconnu").replace(/[\\/:*?"<>|]/g, "_").trim().slice(0, 120) || "Inconnu";
 }
 
+async function fetchFullDeepDiveData(admin: any, userId: string, assessmentId?: string) {
+  const safe = async <T,>(p: Promise<{ data: T | null; error: any }>): Promise<T | null> => {
+    try { const { data, error } = await p; if (error) console.error("query error:", error); return data ?? null; } catch (e) { console.error(e); return null; }
+  };
+
+  const profile = await safe(admin.from("profiles").select("*").eq("id", userId).maybeSingle());
+  const deepdiveResponses = await safe(admin.from("deepdive_responses").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
+
+  const sessionsQ = admin.from("assessment_sessions").select("*").eq("user_id", userId).order("created_at", { ascending: false });
+  const sessions = await safe(sessionsQ);
+
+  const sessionIds = (sessions ?? []).map((s: any) => s.id);
+  const targetSessionId = assessmentId && sessionIds.includes(assessmentId) ? assessmentId : sessionIds[0];
+
+  const responses = sessionIds.length
+    ? await safe(admin.from("assessment_responses").select("*").in("session_id", sessionIds))
+    : [];
+  const questionIds = Array.from(new Set((responses ?? []).map((r: any) => r.question_id)));
+  const optionIds = Array.from(new Set((responses ?? []).flatMap((r: any) => r.selected_option_ids ?? [])));
+
+  const questions = questionIds.length
+    ? await safe(admin.from("assessment_questions").select("*").in("id", questionIds).order("position"))
+    : [];
+  const options = optionIds.length
+    ? await safe(admin.from("assessment_options").select("*").in("id", optionIds))
+    : [];
+  const templateIds = Array.from(new Set((sessions ?? []).map((s: any) => s.template_id).filter(Boolean)));
+  const templates = templateIds.length
+    ? await safe(admin.from("assessment_templates").select("*").in("id", templateIds))
+    : [];
+
+  const archetypeScores = sessionIds.length
+    ? await safe(admin.from("archetype_scores").select("*").in("session_id", sessionIds).order("rank"))
+    : [];
+  const snapshots = await safe(admin.from("archetype_profile_snapshots").select("*").eq("user_id", userId).order("computed_at", { ascending: false }));
+  const analysisResults = await safe(admin.from("analysis_results").select("*").eq("user_id", userId).order("created_at", { ascending: false }));
+  const recommendations = await safe(admin.from("recommendation_tools").select("*").eq("user_id", userId).order("rank"));
+
+  return {
+    profile,
+    targetSessionId,
+    deepdive_responses: deepdiveResponses ?? [],
+    assessment_sessions: sessions ?? [],
+    assessment_responses: responses ?? [],
+    assessment_questions: questions ?? [],
+    assessment_options: options ?? [],
+    assessment_templates: templates ?? [],
+    archetype_scores: archetypeScores ?? [],
+    archetype_profile_snapshots: snapshots ?? [],
+    analysis_results: analysisResults ?? [],
+    recommendation_tools: recommendations ?? [],
+  };
+}
+
+function renderFullDataAppendix(d: any): string {
+  const lines: string[] = [];
+  lines.push("---", "", "# 📦 Annexe — Données complètes (Deep Dive · Quiz · Archétypes)", "");
+  lines.push(`_Généré le ${new Date().toISOString()}_`, "");
+
+  lines.push("## Profil utilisateur", "```json", JSON.stringify(d.profile, null, 2), "```", "");
+
+  lines.push(`## Deep Dive — Réponses (${d.deepdive_responses.length})`, "");
+  for (const r of d.deepdive_responses) {
+    lines.push(`### ${r.question_code}`);
+    lines.push(`- **Options:** ${(r.option_codes ?? []).join(", ") || "-"}`);
+    if (r.text_value) lines.push(`- **Texte:** ${r.text_value}`);
+    if (r.numeric_value != null) lines.push(`- **Numérique:** ${r.numeric_value}`);
+    lines.push(`- **Créée:** ${r.created_at}  ·  **MAJ:** ${r.updated_at}`, "");
+  }
+
+  lines.push(`## Sessions d'évaluation (${d.assessment_sessions.length})`, "");
+  for (const s of d.assessment_sessions) {
+    const tpl = d.assessment_templates.find((t: any) => t.id === s.template_id);
+    lines.push(`### Session ${s.id}${s.id === d.targetSessionId ? " ⭐ (cible)" : ""}`);
+    lines.push(`- **Template:** ${tpl?.title_fr ?? tpl?.slug ?? s.template_id}`);
+    lines.push(`- **Statut:** ${s.status}  ·  **Démarrée:** ${s.started_at}  ·  **Soumise:** ${s.submitted_at ?? "-"}`);
+    lines.push(`- **Durée:** ${s.duration_seconds ?? "-"}s  ·  **Confiance:** ${s.confidence_score ?? "-"}`, "");
+
+    const sResp = d.assessment_responses.filter((r: any) => r.session_id === s.id);
+    lines.push(`#### Réponses (${sResp.length})`, "");
+    for (const r of sResp) {
+      const q = d.assessment_questions.find((q: any) => q.id === r.question_id);
+      const selOpts = (r.selected_option_ids ?? []).map((oid: string) => {
+        const o = d.assessment_options.find((o: any) => o.id === oid);
+        return o ? `[${o.position}] ${o.label_fr ?? o.label_en} (w=${JSON.stringify(o.archetype_weights)} shadow=${JSON.stringify(o.shadow_weights)})` : oid;
+      });
+      lines.push(`- **Q${q?.position ?? "?"} — ${q?.prompt_fr ?? q?.prompt_en ?? r.question_id}**`);
+      lines.push(`  - House: ${q?.house ?? "-"} · Dim: ${q?.dimension ?? "-"} · Type: ${q?.question_type ?? "-"}`);
+      if (selOpts.length) lines.push(`  - Sélection:\n    - ${selOpts.join("\n    - ")}`);
+      if (r.text_value) lines.push(`  - Texte: ${r.text_value}`);
+      if (r.numeric_value != null) lines.push(`  - Numérique: ${r.numeric_value}`);
+      lines.push(`  - Raw: \`${JSON.stringify(r.raw_payload)}\``);
+    }
+    lines.push("");
+
+    const sScores = d.archetype_scores.filter((x: any) => x.session_id === s.id);
+    if (sScores.length) {
+      lines.push(`#### Scores Archétypes`, "", "| Rang | Archétype | Brut | Normalisé |", "|---|---|---|---|");
+      for (const sc of sScores) lines.push(`| ${sc.rank} | ${sc.archetype_key} | ${sc.raw_score} | ${sc.normalized_score} |`);
+      lines.push("");
+    }
+  }
+
+  lines.push(`## Snapshots de profil archétype (${d.archetype_profile_snapshots.length})`, "```json", JSON.stringify(d.archetype_profile_snapshots, null, 2), "```", "");
+  lines.push(`## Résultats d'analyse (${d.analysis_results.length})`, "```json", JSON.stringify(d.analysis_results, null, 2), "```", "");
+  lines.push(`## Recommandations (${d.recommendation_tools.length})`, "```json", JSON.stringify(d.recommendation_tools, null, 2), "```", "");
+
+  lines.push("", "---", "", "## 🗄️ Dump JSON brut complet", "```json", JSON.stringify(d, null, 2), "```");
+  return lines.join("\n");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -243,6 +354,20 @@ Deno.serve(async (req) => {
       ext = "md";
     }
 
+    // ---- Fetch ALL related data (deep dive + quiz + archetypes) ----
+    const fullData = await fetchFullDeepDiveData(admin, userId, assessmentId);
+
+    if (format === "json") {
+      // Merge into JSON
+      const parsed = JSON.parse(fileBody);
+      parsed.data = { client: parsed.data, fullExport: fullData };
+      fileBody = JSON.stringify(parsed, null, 2);
+    } else {
+      // Append a structured appendix + raw JSON dump to the markdown
+      const appendix = renderFullDataAppendix(fullData);
+      fileBody = fileBody + "\n\n" + appendix;
+    }
+
     const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
     const stem = sanitize(filenameStem || `deep-dive-v2-${exportType}-${clientName}`);
     const fileName = `${ts}_${stem}.${ext}`;
@@ -251,6 +376,21 @@ Deno.serve(async (req) => {
     const clientFolderId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
     const ddFolderId = await findOrCreateFolder(admin, clientFolderId, "DeepDiveV2");
     const uploaded = await uploadFile(ddFolderId, fileName, fileBody, mimeType);
+
+    // Also drop a companion JSON next to the markdown for full machine-readable dump
+    if (format !== "json") {
+      try {
+        const jsonName = `${ts}_${stem}.full.json`;
+        await uploadFile(
+          ddFolderId,
+          jsonName,
+          JSON.stringify({ exportType, generatedAt: new Date().toISOString(), userId, assessmentId: assessmentId ?? null, fullExport: fullData }, null, 2),
+          "application/json",
+        );
+      } catch (e) {
+        console.error("companion JSON upload failed:", e);
+      }
+    }
 
     return new Response(
       JSON.stringify({
