@@ -327,6 +327,12 @@ export default function ToolboxManagement() {
                         )}
                       </p>
                     </div>
+                    <ToolboxItemPreview
+                      contentType={tmpl.content_type}
+                      title={pickCatalogTemplateDisplayTitle(locale as Locale, { title: tmpl.title, title_i18n: tmpl.title_i18n as any })}
+                      description={pickLocalizedText(locale as Locale, tmpl.description_i18n as any, tmpl.description)}
+                      widgetConfig={tmpl.widget_config}
+                    />
                     <button
                       onClick={() => assignFromCatalog(tmpl.id)}
                       disabled={isAssigning || !catalogSelectedUser}
