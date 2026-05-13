@@ -13,6 +13,7 @@ import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import { pickLocalizedText } from "@/lib/content-i18n";
 import type { Locale } from "@/i18n/translations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
 
 interface ToolboxAssignment {
   id: string;
