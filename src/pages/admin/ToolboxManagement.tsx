@@ -13,6 +13,7 @@ import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import { pickLocalizedText } from "@/lib/content-i18n";
 import type { Locale } from "@/i18n/translations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
 
 interface ToolboxAssignment {
   id: string;
@@ -326,6 +327,12 @@ export default function ToolboxManagement() {
                         )}
                       </p>
                     </div>
+                    <ToolboxItemPreview
+                      contentType={tmpl.content_type}
+                      title={pickCatalogTemplateDisplayTitle(locale as Locale, { title: tmpl.title, title_i18n: tmpl.title_i18n as any })}
+                      description={pickLocalizedText(locale as Locale, tmpl.description_i18n as any, tmpl.description)}
+                      widgetConfig={tmpl.widget_config}
+                    />
                     <button
                       onClick={() => assignFromCatalog(tmpl.id)}
                       disabled={isAssigning || !catalogSelectedUser}
@@ -369,6 +376,13 @@ export default function ToolboxManagement() {
                         </p>
                         {jt.duration && <p className="text-xs text-muted-foreground mt-0.5">{jt.duration}</p>}
                       </div>
+                      <ToolboxItemPreview
+                        contentType="journal_prompt"
+                        title={pickCatalogTemplateDisplayTitle(locale as Locale, { title: jt.title, title_i18n: jt.title_i18n as any })}
+                        widgetConfig={{
+                          prompt: pickLocalizedText(locale as Locale, jt.prompt_text_i18n as any, jt.prompt_text),
+                        }}
+                      />
                       <button
                         onClick={() => assignJournalFromCatalog(jt.id)}
                         disabled={isAssigning || !catalogSelectedUser}
@@ -457,6 +471,12 @@ export default function ToolboxManagement() {
                       {item.user_name} · {meta.label} · {item.duration || "—"} · {new Date(item.assigned_at).toLocaleDateString(dateLocaleTag)}
                     </p>
                   </div>
+                  <ToolboxItemPreview
+                    contentType={item.content_type}
+                    title={pickLocalizedText(locale as Locale, (item as any).title_i18n, item.title)}
+                    widgetConfig={item.widget_config}
+                    externalUrl={item.external_url}
+                  />
                   <button onClick={() => deleteAssignment(item.id)}
                     className="p-2 rounded-lg border border-border/30 text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors shrink-0"
                     title={t("admin.toolboxMgmt.removeTitle")}>
