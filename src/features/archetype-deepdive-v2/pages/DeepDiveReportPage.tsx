@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   FileText, Download, User, Shield, FileDown, ChevronLeft,
-  Search, Loader2, Sparkles,
+  Search, Loader2, Sparkles, Cloud,
 } from "lucide-react";
+import { exportDeepDiveV2ToDrive } from "../services/exportDeepDiveToDrive";
 import {
   buildUserReport,
   buildAdminReport,
@@ -366,6 +367,43 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
                 >
                   <FileDown size={14} strokeWidth={1.5} />
                   {isFR ? "Exporter PDF" : "Export PDF"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={async () => {
+                    const targetUserId =
+                      mode === "admin" ? selectedSession?.user_id : user?.id;
+                    if (!targetUserId) return;
+                    try {
+                      toast({
+                        title: isFR ? "Export Drive…" : "Drive export…",
+                        description: isFR ? "Envoi en cours" : "Uploading",
+                      });
+                      const res = await exportDeepDiveV2ToDrive({
+                        userId: targetUserId,
+                        assessmentId: selectedSession?.id ?? null,
+                        exportType: tab,
+                        format: "markdown",
+                        content: activeMarkdown,
+                        filenameStem: filenameStem,
+                      });
+                      toast({
+                        title: isFR ? "Exporté sur Drive" : "Exported to Drive",
+                        description: res.fileName,
+                      });
+                    } catch (e: any) {
+                      toast({
+                        title: isFR ? "Échec de l'export Drive" : "Drive export failed",
+                        description: e?.message ?? String(e),
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  <Cloud size={14} strokeWidth={1.5} />
+                  Drive
                 </Button>
               </div>
             </div>
