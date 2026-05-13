@@ -154,6 +154,24 @@ function normalizeKey(key?: string | null) {
   return (key || "").trim() || null;
 }
 
+/** True when JSONB already has both FR and EN (non-empty). Avoids merging a single-locale legacy string into both slots. */
+function hasIndependentFrEn(i?: Record<string, string> | null): boolean {
+  if (!i || typeof i !== "object") return false;
+  const fr = String((i as any).fr ?? (i as any).FR ?? "").trim();
+  const en = String((i as any).en ?? (i as any).EN ?? "").trim();
+  return Boolean(fr && en);
+}
+
+/** Merge `*_i18n` with legacy single string; if `direct` already has FR+EN, do not blend legacy. */
+function mergeDirectAndLegacyI18n(
+  direct: Record<string, string> | null | undefined,
+  legacy: string | null | undefined
+): Record<string, string> {
+  return hasIndependentFrEn(direct ?? null)
+    ? mergeI18nObject(direct ?? null, null, null, null)
+    : mergeI18nObject(direct ?? null, null, null, legacy ?? null);
+}
+
 function mergeI18nObject(
   direct?: Record<string, string> | null,
   legacyFr?: string | null,
@@ -198,8 +216,8 @@ export async function logProgramEvent(input: ProgramEventInput) {
 }
 
 export async function createHabitTemplate(input: HabitTemplateInput, actorId: string) {
-  const nameI18n = mergeI18nObject(input.name_i18n || null, null, null, input.name);
-  const descI18n = mergeI18nObject(input.description_i18n || null, null, null, input.description ?? null);
+  const nameI18n = mergeDirectAndLegacyI18n(input.name_i18n || null, input.name);
+  const descI18n = mergeDirectAndLegacyI18n(input.description_i18n || null, input.description ?? null);
   const payload = {
     external_key: normalizeKey(input.external_key),
     name: input.name.trim(),
@@ -232,8 +250,8 @@ export async function createHabitTemplate(input: HabitTemplateInput, actorId: st
 }
 
 export async function createToolboxTemplate(input: ToolboxTemplateInput, actorId: string) {
-  const titleI18n = mergeI18nObject(input.title_i18n || null, null, null, input.title);
-  const descI18n = mergeI18nObject(input.description_i18n || null, null, null, input.description ?? null);
+  const titleI18n = mergeDirectAndLegacyI18n(input.title_i18n || null, input.title);
+  const descI18n = mergeDirectAndLegacyI18n(input.description_i18n || null, input.description ?? null);
   const payload = {
     external_key: normalizeKey(input.external_key),
     content_type: input.content_type,
@@ -268,8 +286,8 @@ export async function createToolboxTemplate(input: ToolboxTemplateInput, actorId
 }
 
 export async function createJournalPromptTemplate(input: JournalPromptTemplateInput, actorId: string) {
-  const titleI18n = mergeI18nObject(input.title_i18n || null, null, null, input.title);
-  const promptI18n = mergeI18nObject(input.prompt_text_i18n || null, null, null, input.prompt_text);
+  const titleI18n = mergeDirectAndLegacyI18n(input.title_i18n || null, input.title);
+  const promptI18n = mergeDirectAndLegacyI18n(input.prompt_text_i18n || null, input.prompt_text);
   const payload = {
     external_key: normalizeKey(input.external_key),
     title: input.title.trim(),
@@ -310,12 +328,12 @@ export async function updateHabitTemplate(
   if (input.external_key !== undefined) patch.external_key = normalizeKey(input.external_key);
   if (input.name !== undefined) patch.name = input.name.trim();
   if (input.name !== undefined || input.name_i18n !== undefined) {
-    patch.name_i18n = mergeI18nObject(input.name_i18n ?? null, null, null, input.name ?? null);
+    patch.name_i18n = mergeDirectAndLegacyI18n(input.name_i18n ?? null, input.name ?? null);
   }
   if (input.category !== undefined) patch.category = input.category.trim();
   if (input.description !== undefined) patch.description = input.description?.trim() || null;
   if (input.description !== undefined || input.description_i18n !== undefined) {
-    patch.description_i18n = mergeI18nObject(input.description_i18n ?? null, null, null, input.description ?? null);
+    patch.description_i18n = mergeDirectAndLegacyI18n(input.description_i18n ?? null, input.description ?? null);
   }
   if (input.archetype_targets !== undefined) patch.archetype_targets = asArray(input.archetype_targets);
   if (input.shadow_targets !== undefined) patch.shadow_targets = asArray(input.shadow_targets);
@@ -349,12 +367,12 @@ export async function updateToolboxTemplate(
   if (input.content_type !== undefined) patch.content_type = input.content_type;
   if (input.title !== undefined) patch.title = input.title.trim();
   if (input.title !== undefined || input.title_i18n !== undefined) {
-    patch.title_i18n = mergeI18nObject(input.title_i18n ?? null, null, null, input.title ?? null);
+    patch.title_i18n = mergeDirectAndLegacyI18n(input.title_i18n ?? null, input.title ?? null);
   }
   if (input.duration !== undefined) patch.duration = input.duration?.trim() || null;
   if (input.description !== undefined) patch.description = input.description?.trim() || null;
   if (input.description !== undefined || input.description_i18n !== undefined) {
-    patch.description_i18n = mergeI18nObject(input.description_i18n ?? null, null, null, input.description ?? null);
+    patch.description_i18n = mergeDirectAndLegacyI18n(input.description_i18n ?? null, input.description ?? null);
   }
   if (input.external_url !== undefined) patch.external_url = input.external_url?.trim() || null;
   if (input.widget_config !== undefined) patch.widget_config = input.widget_config || {};
@@ -389,11 +407,11 @@ export async function updateJournalPromptTemplate(
   if (input.external_key !== undefined) patch.external_key = normalizeKey(input.external_key);
   if (input.title !== undefined) patch.title = input.title.trim();
   if (input.title !== undefined || input.title_i18n !== undefined) {
-    patch.title_i18n = mergeI18nObject(input.title_i18n ?? null, null, null, input.title ?? null);
+    patch.title_i18n = mergeDirectAndLegacyI18n(input.title_i18n ?? null, input.title ?? null);
   }
   if (input.prompt_text !== undefined) patch.prompt_text = input.prompt_text.trim();
   if (input.prompt_text !== undefined || input.prompt_text_i18n !== undefined) {
-    patch.prompt_text_i18n = mergeI18nObject(input.prompt_text_i18n ?? null, null, null, input.prompt_text ?? null);
+    patch.prompt_text_i18n = mergeDirectAndLegacyI18n(input.prompt_text_i18n ?? null, input.prompt_text ?? null);
   }
   if (input.duration !== undefined) patch.duration = input.duration?.trim() || null;
   if (input.archetype_targets !== undefined) patch.archetype_targets = asArray(input.archetype_targets);
@@ -498,20 +516,14 @@ export async function assignToolboxTemplateToUser(params: {
     user_id: userId,
     content_type: (template as any).content_type,
     title: (template as any).title,
-    title_i18n: mergeI18nObject(
-      (template as any).title_i18n ?? null,
-      null,
-      null,
-      (template as any).title
-    ),
+    title_i18n: hasIndependentFrEn((template as any).title_i18n)
+      ? mergeI18nObject((template as any).title_i18n ?? null, null, null, null)
+      : mergeI18nObject((template as any).title_i18n ?? null, null, null, (template as any).title),
     duration: (template as any).duration,
     description: (template as any).description,
-    description_i18n: mergeI18nObject(
-      (template as any).description_i18n ?? null,
-      null,
-      null,
-      (template as any).description ?? null
-    ),
+    description_i18n: hasIndependentFrEn((template as any).description_i18n)
+      ? mergeI18nObject((template as any).description_i18n ?? null, null, null, null)
+      : mergeI18nObject((template as any).description_i18n ?? null, null, null, (template as any).description ?? null),
     external_url: (template as any).external_url,
     widget_config: (template as any).widget_config || {},
     assigned_by: actorId,
@@ -550,7 +562,9 @@ export async function assignJournalPromptTemplateToUser(params: {
     .single();
   if (tErr) throw tErr;
 
-  const promptI18n = mergeI18nObject((template as any).prompt_text_i18n ?? null, null, null, (template as any).prompt_text);
+  const promptI18n = hasIndependentFrEn((template as any).prompt_text_i18n)
+    ? mergeI18nObject((template as any).prompt_text_i18n ?? null, null, null, null)
+    : mergeI18nObject((template as any).prompt_text_i18n ?? null, null, null, (template as any).prompt_text);
 
   const { data, error } = await supabase
     .from("journal_prompts" as any)
@@ -567,7 +581,9 @@ export async function assignJournalPromptTemplateToUser(params: {
 
   // Mirror journal prompts into Toolbox so users can execute them
   // through the same widget/status flow as other toolbox items.
-  const titleI18n = mergeI18nObject((template as any).title_i18n ?? null, null, null, (template as any).title || "Journal Prompt");
+  const titleI18n = hasIndependentFrEn((template as any).title_i18n)
+    ? mergeI18nObject((template as any).title_i18n ?? null, null, null, null)
+    : mergeI18nObject((template as any).title_i18n ?? null, null, null, (template as any).title || "Journal Prompt");
 
   const { error: toolboxError } = await supabase
     .from("toolbox_assignments" as any)
@@ -616,8 +632,12 @@ export async function assignToolboxDirect(params: {
   if (contentType === "external_link" && isLikelyVideoUrl(externalUrl)) {
     throw new Error("Video links must be assigned via Bibliotheque admin.");
   }
-  const mergedTitleI18n = mergeI18nObject(titleI18n ?? null, null, null, title);
-  const mergedDescI18n = mergeI18nObject(descriptionI18n ?? null, null, null, description ?? null);
+  const mergedTitleI18n = hasIndependentFrEn(titleI18n as any)
+    ? mergeI18nObject(titleI18n ?? null, null, null, null)
+    : mergeI18nObject(titleI18n ?? null, null, null, title);
+  const mergedDescI18n = hasIndependentFrEn(descriptionI18n as any)
+    ? mergeI18nObject(descriptionI18n ?? null, null, null, null)
+    : mergeI18nObject(descriptionI18n ?? null, null, null, description ?? null);
   const { data, error } = await supabase
     .from("toolbox_assignments" as any)
     .insert({
@@ -778,7 +798,10 @@ export async function getUserAssignmentStatus(userId: string) {
 type SuggestionItem = {
   type: "toolbox_template" | "habit_template" | "journal_prompt_template";
   id: string;
+  /** Legacy single-language label (fallback). */
   title: string;
+  /** JSONB `title_i18n` or `name_i18n` for habits — used with app locale for display. */
+  title_i18n?: unknown;
   score: number;
   reason: string;
 };
@@ -838,6 +861,7 @@ export async function getArchetypeSuggestionsForUser(userId: string) {
       type: "toolbox_template",
       id: t.id,
       title: t.title,
+      title_i18n: (t as any).title_i18n,
       score,
       reason: `archetype:${archetypeHit || "none"} shadow:${shadowHit || "none"}`,
     });
@@ -855,6 +879,7 @@ export async function getArchetypeSuggestionsForUser(userId: string) {
       type: "habit_template",
       id: h.id,
       title: h.name,
+      title_i18n: (h as any).name_i18n,
       score,
       reason: `archetype:${archetypeHit || "none"} shadow:${shadowHit || "none"}`,
     });
@@ -872,6 +897,7 @@ export async function getArchetypeSuggestionsForUser(userId: string) {
       type: "journal_prompt_template",
       id: j.id,
       title: j.title,
+      title_i18n: (j as any).title_i18n,
       score,
       reason: `archetype:${archetypeHit || "none"} shadow:${shadowHit || "none"}`,
     });

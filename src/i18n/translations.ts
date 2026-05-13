@@ -384,11 +384,11 @@ export const translations = {
   "toolbox.stopStepCounter": { fr: "Étape {current} / {total}", en: "Step {current} of {total}" },
   "toolbox.stopStep1Title": { fr: "Stop", en: "Stop" },
   "toolbox.stopStep1Hint": { fr: "Interrompez ce que vous faites. Une seconde suffit pour couper l’automatisme.", en: "Pause what you’re doing. A second is enough to break autopilot." },
-  "toolbox.stopStep2Title": { fr: "Take a step back", en: "Take a step back" },
+  "toolbox.stopStep2Title": { fr: "Prenez du recul", en: "Take a step back" },
   "toolbox.stopStep2Hint": { fr: "Reculez mentalement : respirez, élargissez le cadre, décollez-vous de l’urgence immédiate.", en: "Step back mentally: breathe, widen the frame, detach from the immediate urgency." },
-  "toolbox.stopStep3Title": { fr: "Observe", en: "Observe" },
+  "toolbox.stopStep3Title": { fr: "Observez", en: "Observe" },
   "toolbox.stopStep3Hint": { fr: "Nommez ce qui est là : sensations, pensées, émotion — sans juger ni corriger.", en: "Name what’s here: sensations, thoughts, emotion — without judging or fixing." },
-  "toolbox.stopStep4Title": { fr: "Proceed", en: "Proceed" },
+  "toolbox.stopStep4Title": { fr: "Poursuivez", en: "Proceed" },
   "toolbox.stopStep4Hint": { fr: "Choisissez une prochaine action utile, alignée avec ce qui compte pour vous.", en: "Choose a useful next step aligned with what matters to you." },
   "toolbox.stopBack": { fr: "Retour", en: "Back" },
   "toolbox.stopNext": { fr: "Étape suivante", en: "Next step" },
@@ -1166,6 +1166,63 @@ export const translations = {
     fr: "Vide = question par défaut dans l'app",
     en: "Empty = app default question",
   },
+  "admin.toolboxForm.langEnOptionalMirror": {
+    fr: "Optionnel — si vide, le texte FR est utilisé pour l’anglais aussi.",
+    en: "Optional — if empty, the FR text is used for English as well.",
+  },
+  "admin.toolboxForm.vizCuesEnLabel": {
+    fr: "Consignes de visualisation (EN)",
+    en: "Visualization cues (EN)",
+  },
+  "admin.toolboxForm.vizCuesEnPlaceholder": {
+    fr: "Une ligne par scène, alignée avec les lignes FR (même nombre recommandé).",
+    en: "One cue per line, aligned with FR lines (same count recommended).",
+  },
+  "admin.toolboxForm.stopStepsLabelEn": {
+    fr: "Étapes personnalisées (EN, optionnel — « Titre — indication » par ligne)",
+    en: "Custom steps (EN, optional — \"Title — hint\" per line)",
+  },
+  "admin.toolboxForm.intentionQuestionEnLabel": {
+    fr: "Question centrale (EN)",
+    en: "Core question (EN)",
+  },
+  "admin.toolboxForm.notePromptEnLabel": {
+    fr: "Placeholder de la note (EN)",
+    en: "Note placeholder (EN)",
+  },
+  "admin.toolboxForm.affirmLinesEnLabel": {
+    fr: "Affirmations (EN, une par ligne)",
+    en: "Affirmations (EN, one per line)",
+  },
+  "admin.toolboxForm.microInstructionsFr": {
+    fr: "Instructions (FR)",
+    en: "Instructions (FR)",
+  },
+  "admin.toolboxForm.microInstructionsEn": {
+    fr: "Instructions (EN)",
+    en: "Instructions (EN)",
+  },
+  "admin.toolboxForm.microStepsFr": {
+    fr: "Étapes guidées (FR, une par ligne)",
+    en: "Guided steps (FR, one per line)",
+  },
+  "admin.toolboxForm.microStepsEn": {
+    fr: "Étapes guidées (EN, une par ligne)",
+    en: "Guided steps (EN, one per line)",
+  },
+  "admin.toolboxForm.focusTopicEnLabel": {
+    fr: "Sujet / intention (EN)",
+    en: "Topic / intention (EN)",
+  },
+  "admin.toolboxForm.errMicroInstructionsRequired": {
+    fr: "Saisissez au moins les instructions en FR ou en EN.",
+    en: "Enter instructions in FR or EN (at least one).",
+  },
+  "admin.toolboxForm.errAffirmationsRequired": {
+    fr: "Saisissez au moins une affirmation en FR ou en EN.",
+    en: "Enter at least one affirmation line in FR or EN.",
+  },
+  "admin.toolboxForm.microDurationMin": { fr: "Durée (min)", en: "Duration (min)" },
   "admin.toolboxForm.reflectionMin": { fr: "Durée de réflexion (min)", en: "Reflection time (min)" },
   "admin.toolboxForm.offerNoteAfter": { fr: "Proposer une note après le timer", en: "Offer a note after the timer" },
   "admin.toolboxForm.notePlaceholderLabel": { fr: "Placeholder de la note (optionnel)", en: "Note placeholder (optional)" },

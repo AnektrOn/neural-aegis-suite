@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, ChevronRight, CheckCircle2, Zap } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 
 /**
  * Generic widget for exercises without a dedicated widget.
@@ -9,18 +11,17 @@ import { useLanguage } from "@/i18n/LanguageContext";
  * Expected widget_config:
  * {
  *   "instructions": "Main exercise text",
- *   "duration_sec": 180,                // optional — enables timer
- *   "steps": [                          // optional — guided sequence
- *     { "text": "Step 1" },
- *     { "text": "Step 2" }
- *   ],
- *   "accent_color": "hsl(176 70% 48%)"  // optional — accent color
+ *   "instructions_i18n": { "fr": "…", "en": "…" },
+ *   "duration_sec": 180,
+ *   "steps": [ { "text": "…", "text_i18n": { "fr": "…", "en": "…" } } ],
+ *   "accent_color": "hsl(176 70% 48%)"
  * }
  */
 export interface MicroPracticeConfig {
   instructions?: string;
+  instructions_i18n?: unknown;
   duration_sec?: number;
-  steps?: Array<{ text: string }>;
+  steps?: Array<{ text: string; text_i18n?: unknown }>;
   accent_color?: string;
 }
 
@@ -34,9 +35,18 @@ interface Props {
 const DEFAULT_COLOR = "hsl(176 70% 48%)";
 
 export default function MicroPracticeWidget({ config, title, onComplete, onAbandon }: Props) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const accent = config.accent_color || DEFAULT_COLOR;
-  const hasSteps = Array.isArray(config.steps) && config.steps.length > 0;
+  const instructionsText = useMemo(
+    () => pickLocalizedText(locale as Locale, config.instructions_i18n, config.instructions),
+    [locale, config.instructions_i18n, config.instructions]
+  );
+  const localizedSteps = useMemo(() => {
+    const raw = config.steps;
+    if (!Array.isArray(raw) || raw.length === 0) return null;
+    return raw.map((s) => pickLocalizedText(locale as Locale, s.text_i18n, s.text));
+  }, [config.steps, locale]);
+  const hasSteps = localizedSteps != null && localizedSteps.length > 0;
   const hasDuration = typeof config.duration_sec === "number" && config.duration_sec > 0;
 
   const [started, setStarted] = useState(false);
@@ -95,8 +105,9 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
   };
 
   const nextStep = () => {
-    const steps = config.steps || [];
-    if (stepIdx >= steps.length - 1) {
+    const n = localizedSteps?.length ?? 0;
+    if (n === 0) return;
+    if (stepIdx >= n - 1) {
       markCompleted();
     } else {
       setStepIdx(stepIdx + 1);
@@ -120,7 +131,7 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
     return `${m}:${String(s).padStart(2, "0")}`;
   };
 
-  const currentStepText = hasSteps ? config.steps![stepIdx]?.text : null;
+  const currentStepText = hasSteps ? localizedSteps![stepIdx] : null;
 
   return (
     <div className="flex flex-col items-center space-y-5 py-4">
@@ -138,14 +149,14 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
             exit={{ opacity: 0 }}
             className="text-center space-y-3 max-w-[300px]"
           >
-            {config.instructions && (
-              <p className="text-sm text-foreground/80 leading-relaxed">{config.instructions}</p>
-            )}
+            {instructionsText ? (
+              <p className="text-sm text-foreground/80 leading-relaxed">{instructionsText}</p>
+            ) : null}
             {hasDuration && (
               <p className="text-xs text-muted-foreground">{t("toolbox.micro.duration", { time: fmtTime(totalSec) })}</p>
             )}
             {hasSteps && (
-              <p className="text-xs text-muted-foreground">{t("toolbox.micro.stepsCount", { n: config.steps!.length })}</p>
+              <p className="text-xs text-muted-foreground">{t("toolbox.micro.stepsCount", { n: localizedSteps!.length })}</p>
             )}
           </motion.div>
         ) : completed ? (
@@ -177,7 +188,7 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] uppercase tracking-[0.2em]" style={{ color: accent }}>
-                    {t("toolbox.micro.stepCounter", { current: stepIdx + 1, total: config.steps!.length })}
+                    {t("toolbox.micro.stepCounter", { current: stepIdx + 1, total: localizedSteps!.length })}
                   </span>
                   {hasDuration && (
                     <span className="text-[10px] font-mono" style={{ color: accent }}>
@@ -189,9 +200,9 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
                   {currentStepText}
                 </p>
               </div>
-            ) : config.instructions ? (
+            ) : instructionsText ? (
               <p className="text-sm text-center text-foreground/80 leading-relaxed px-2">
-                {config.instructions}
+                {instructionsText}
               </p>
             ) : null}
 
@@ -265,7 +276,7 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
                   color: accent,
                 }}
               >
-                {stepIdx >= (config.steps?.length ?? 1) - 1 ? t("toolbox.micro.finish") : t("toolbox.micro.next")}
+                {stepIdx >= (localizedSteps?.length ?? 1) - 1 ? t("toolbox.micro.finish") : t("toolbox.micro.next")}
                 <ChevronRight size={14} />
               </button>
             )}

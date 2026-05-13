@@ -9,6 +9,9 @@ import type { TranslationKey } from "@/i18n/translations";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import { assignToolboxTemplateToUser, assignJournalPromptTemplateToUser } from "@/services/programBuilderService";
+import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ToolboxAssignment {
@@ -16,6 +19,7 @@ interface ToolboxAssignment {
   user_id: string;
   content_type: string;
   title: string;
+  title_i18n?: unknown;
   duration: string | null;
   assigned_at: string;
   external_url: string | null;
@@ -27,8 +31,10 @@ interface ToolboxTemplate {
   id: string;
   content_type: string;
   title: string;
+  title_i18n?: unknown;
   duration: string | null;
   description: string | null;
+  description_i18n?: unknown;
   widget_config: any;
   is_active: boolean;
   created_at: string;
@@ -37,7 +43,9 @@ interface ToolboxTemplate {
 interface JournalTemplate {
   id: string;
   title: string;
+  title_i18n?: unknown;
   prompt_text: string;
+  prompt_text_i18n?: unknown;
   duration: string | null;
   is_active: boolean;
   created_at: string;
@@ -175,7 +183,14 @@ export default function ToolboxManagement() {
   });
   const filtered = assignments
     .filter((a) => filterType === "all" || a.content_type === filterType)
-    .filter((a) => !search || (a.user_name || "").toLowerCase().includes(search.toLowerCase()) || a.title.toLowerCase().includes(search.toLowerCase()));
+    .filter((a) => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      const titleFr = pickLocalizedText("fr", (a as any).title_i18n, a.title).toLowerCase();
+      const titleEn = pickLocalizedText("en", (a as any).title_i18n, a.title).toLowerCase();
+      const name = (a.user_name || "").toLowerCase();
+      return name.includes(q) || titleFr.includes(q) || titleEn.includes(q);
+    });
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -296,10 +311,19 @@ export default function ToolboxManagement() {
                       <meta.icon size={16} strokeWidth={1.5} className={meta.color} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{tmpl.title}</p>
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {pickCatalogTemplateDisplayTitle(locale as Locale, {
+                          title: tmpl.title,
+                          title_i18n: tmpl.title_i18n as any,
+                        })}
+                      </p>
                       <p className="text-neural-label mt-0.5">
                         {meta.label} · {tmpl.duration || "—"}
-                        {tmpl.description && <span className="ml-2 text-muted-foreground/70 truncate">{tmpl.description}</span>}
+                        {(tmpl.description || tmpl.description_i18n) && (
+                          <span className="ml-2 text-muted-foreground/70 truncate">
+                            {pickLocalizedText(locale as Locale, tmpl.description_i18n as any, tmpl.description)}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <button
@@ -334,8 +358,15 @@ export default function ToolboxManagement() {
                         <BookOpen size={16} strokeWidth={1.5} className="text-neural-accent" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{jt.title}</p>
-                        <p className="text-neural-label mt-0.5 line-clamp-2">{jt.prompt_text}</p>
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {pickCatalogTemplateDisplayTitle(locale as Locale, {
+                            title: jt.title,
+                            title_i18n: jt.title_i18n as any,
+                          })}
+                        </p>
+                        <p className="text-neural-label mt-0.5 line-clamp-2">
+                          {pickLocalizedText(locale as Locale, jt.prompt_text_i18n as any, jt.prompt_text)}
+                        </p>
                         {jt.duration && <p className="text-xs text-muted-foreground mt-0.5">{jt.duration}</p>}
                       </div>
                       <button
@@ -419,7 +450,9 @@ export default function ToolboxManagement() {
                     <meta.icon size={16} strokeWidth={1.5} className={meta.color} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {pickLocalizedText(locale as Locale, (item as any).title_i18n, item.title)}
+                    </p>
                     <p className="text-neural-label mt-0.5">
                       {item.user_name} · {meta.label} · {item.duration || "—"} · {new Date(item.assigned_at).toLocaleDateString(dateLocaleTag)}
                     </p>

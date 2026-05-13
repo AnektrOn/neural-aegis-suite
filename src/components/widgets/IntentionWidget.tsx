@@ -3,13 +3,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Target, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
+import type { Locale } from "@/i18n/translations";
+import { pickLocalizedText } from "@/lib/content-i18n";
 import { hslWithAlpha } from "@/components/widgets/VisualizationWidget";
 
 export interface IntentionConfig {
   question?: string;
+  question_i18n?: unknown;
   duration_sec?: number;
   allow_note?: boolean;
   note_prompt?: string;
+  note_prompt_i18n?: unknown;
   /** @deprecated */
   duration_min?: number;
   /** @deprecated → question */
@@ -33,7 +37,11 @@ const RINGS = [
 
 type Phase = "idle" | "reflecting" | "noting" | "done";
 
-function normalizeIntentionConfig(raw: IntentionConfig | undefined, t: (k: TranslationKey, p?: Record<string, string | number>) => string) {
+function normalizeIntentionConfig(
+  raw: IntentionConfig | undefined,
+  t: (k: TranslationKey, p?: Record<string, string | number>) => string,
+  locale: Locale
+) {
   const c = raw ?? {};
   let question = c.question?.trim();
   let durationSec = c.duration_sec;
@@ -47,17 +55,21 @@ function normalizeIntentionConfig(raw: IntentionConfig | undefined, t: (k: Trans
     }
   }
 
+  const questionResolved = pickLocalizedText(locale, c.question_i18n as any, question) || t("toolbox.intentionWidget.defaultQuestion");
+  const noteResolved =
+    pickLocalizedText(locale, c.note_prompt_i18n as any, notePrompt) || t("toolbox.intentionWidget.notePlaceholder");
+
   return {
-    question: question || t("toolbox.intentionWidget.defaultQuestion"),
+    question: questionResolved,
     duration_sec: Math.max(30, durationSec ?? 120),
     allow_note: allowNote ?? true,
-    note_prompt: notePrompt || t("toolbox.intentionWidget.notePlaceholder"),
+    note_prompt: noteResolved,
   };
 }
 
 export default function IntentionWidget({ config, title, onComplete, onAbandon }: Props) {
-  const { t } = useLanguage();
-  const cfg = useMemo(() => normalizeIntentionConfig(config, t), [config, t]);
+  const { t, locale } = useLanguage();
+  const cfg = useMemo(() => normalizeIntentionConfig(config, t, locale as Locale), [config, t, locale]);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [isRunning, setIsRunning] = useState(false);

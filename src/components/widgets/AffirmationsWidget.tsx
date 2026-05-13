@@ -1,19 +1,34 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Stars } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 interface Props {
-  config: { duration_min: number; affirmations?: string[] };
+  config: {
+    duration_min: number;
+    affirmations?: string[];
+    affirmations_i18n?: { fr: string[]; en: string[] };
+  };
   title: string;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
 
 export default function AffirmationsWidget({ config, title, onComplete, onAbandon }: Props) {
-  const { t } = useLanguage();
-  const raw = config.affirmations?.filter((a) => a.trim()) ?? [];
-  const lines = raw.length > 0 ? raw : [t("toolbox.affirmFallback")];
+  const { t, locale } = useLanguage();
+  const lines = useMemo(() => {
+    const i18n = config.affirmations_i18n;
+    if (i18n && ((i18n.fr?.length ?? 0) > 0 || (i18n.en?.length ?? 0) > 0)) {
+      const primary = locale === "fr" ? i18n.fr : i18n.en;
+      const fallback = locale === "fr" ? i18n.en : i18n.fr;
+      const pr = (primary ?? []).map((s) => s.trim()).filter(Boolean);
+      const fb = (fallback ?? []).map((s) => s.trim()).filter(Boolean);
+      if (pr.length) return pr;
+      if (fb.length) return fb;
+    }
+    const raw = config.affirmations?.map((a) => a.trim()).filter(Boolean) ?? [];
+    return raw.length > 0 ? raw : [t("toolbox.affirmFallback")];
+  }, [config.affirmations, config.affirmations_i18n, locale, t]);
 
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);

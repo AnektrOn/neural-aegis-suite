@@ -1,17 +1,23 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, RotateCcw, Eye } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { pickLocalizedText } from "@/lib/content-i18n";
+import type { Locale } from "@/i18n/translations";
 
 interface Props {
-  config: { duration_min: number; intention: string };
+  config: { duration_min: number; intention: string; intention_i18n?: unknown };
   title: string;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
 
 export default function FocusIntrospectifWidget({ config, title, onComplete, onAbandon }: Props) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const intentionDisplay = useMemo(
+    () => pickLocalizedText(locale as Locale, config.intention_i18n as any, config.intention),
+    [locale, config.intention_i18n, config.intention]
+  );
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [completed, setCompleted] = useState(false);
@@ -76,7 +82,7 @@ export default function FocusIntrospectifWidget({ config, title, onComplete, onA
       </div>
 
       <p className="text-sm text-foreground/80 italic text-center max-w-sm">
-        « {config.intention} »
+        « {intentionDisplay} »
       </p>
 
       <div className="relative w-48 h-48 flex items-center justify-center">
