@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Sparkles, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { pickLocalizedText } from "@/lib/content-i18n";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 
 export interface VisualizationScene {
@@ -26,6 +26,7 @@ export interface VisualizationConfig {
 interface Props {
   config: VisualizationConfig;
   title: string;
+  hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
@@ -144,7 +145,7 @@ function deterministicParticles(count: number) {
   }));
 }
 
-export default function VisualizationWidget({ config, title, onComplete, onAbandon }: Props) {
+export default function VisualizationWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const { scenes, mode } = useMemo(() => normalizeVisualizationConfig(config), [config]);
 
@@ -169,11 +170,11 @@ export default function VisualizationWidget({ config, title, onComplete, onAband
   const sceneInstrKey = `toolbox.viz.scene.${currentScene.id}.instruction` as const;
   const resolvedSceneLabel =
     t(sceneLabelKey as any) === sceneLabelKey
-      ? pickLocalizedText(locale as Locale, (currentScene as VisualizationScene).label_i18n, currentScene.label)
+      ? pickWidgetCatalogCopy(locale as Locale, (currentScene as VisualizationScene).label_i18n, currentScene.label)
       : t(sceneLabelKey as any);
   const resolvedSceneInstruction =
     t(sceneInstrKey as any) === sceneInstrKey
-      ? pickLocalizedText(locale as Locale, (currentScene as VisualizationScene).instruction_i18n, currentScene.instruction)
+      ? pickWidgetCatalogCopy(locale as Locale, (currentScene as VisualizationScene).instruction_i18n, currentScene.instruction)
       : t(sceneInstrKey as any);
 
   useEffect(() => {
@@ -276,10 +277,12 @@ export default function VisualizationWidget({ config, title, onComplete, onAband
           ))}
       </div>
 
-      <div className="flex items-center gap-2 text-neural-label relative z-10">
-        <Sparkles size={14} style={{ color: sceneColor }} />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label relative z-10">
+          <Sparkles size={14} style={{ color: sceneColor }} />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <div className="relative w-44 h-44 flex items-center justify-center z-10">
         {[1, 0.6, 0.3].map((opacity, i) => (

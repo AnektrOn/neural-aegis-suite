@@ -2,20 +2,22 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, RotateCcw, Eye } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { pickLocalizedText } from "@/lib/content-i18n";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 
 interface Props {
   config: { duration_min: number; intention: string; intention_i18n?: unknown };
   title: string;
+  /** When true, omit the duplicate title row (parent already shows the exercise name). */
+  hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
 
-export default function FocusIntrospectifWidget({ config, title, onComplete, onAbandon }: Props) {
+export default function FocusIntrospectifWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const intentionDisplay = useMemo(
-    () => pickLocalizedText(locale as Locale, config.intention_i18n as any, config.intention),
+    () => pickWidgetCatalogCopy(locale as Locale, config.intention_i18n as any, config.intention),
     [locale, config.intention_i18n, config.intention]
   );
   const [isRunning, setIsRunning] = useState(false);
@@ -76,10 +78,12 @@ export default function FocusIntrospectifWidget({ config, title, onComplete, onA
 
   return (
     <div className="flex flex-col items-center space-y-6 py-4">
-      <div className="flex items-center gap-2 text-neural-label">
-        <Eye size={14} className="text-neural-accent" />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label">
+          <Eye size={14} className="text-neural-accent" />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <p className="text-sm text-foreground/80 italic text-center max-w-sm">
         « {intentionDisplay} »

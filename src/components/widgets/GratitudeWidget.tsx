@@ -5,11 +5,12 @@ import { useLanguage } from "@/i18n/LanguageContext";
 interface Props {
   config: { entries_count?: number };
   title: string;
+  hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
 
-export default function GratitudeWidget({ config, title, onComplete, onAbandon }: Props) {
+export default function GratitudeWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t } = useLanguage();
   const n = Math.min(10, Math.max(1, config.entries_count ?? 3));
   const [values, setValues] = useState<string[]>(() => Array.from({ length: n }, () => ""));
@@ -50,10 +51,12 @@ export default function GratitudeWidget({ config, title, onComplete, onAbandon }
 
   return (
     <div className="flex flex-col space-y-5 py-4 max-w-md mx-auto w-full">
-      <div className="flex items-center gap-2 text-neural-label justify-center">
-        <Heart size={14} className="text-destructive" />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label justify-center">
+          <Heart size={14} className="text-destructive" />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground text-center">{t("toolbox.gratitudeIntro")}</p>
 

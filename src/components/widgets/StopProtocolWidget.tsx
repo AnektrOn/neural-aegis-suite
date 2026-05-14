@@ -4,7 +4,7 @@ import { Play, Pause, RotateCcw, ShieldAlert, ChevronRight, Check } from "lucide
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import type { Locale } from "@/i18n/translations";
-import { pickLocalizedText } from "@/lib/content-i18n";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { hslWithAlpha } from "@/components/widgets/VisualizationWidget";
 
 export interface StopStepLegacy {
@@ -24,6 +24,7 @@ export interface StopProtocolConfig {
 interface Props {
   config: StopProtocolConfig;
   title: string;
+  hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
@@ -53,8 +54,8 @@ function buildDefaultSteps(duration: number, t: (key: TranslationKey, params?: R
 
 function legacyToSteps(legacy: StopStepLegacy[], stepDuration: number, locale: Locale): Step[] {
   return legacy.map((s, i) => {
-    const titleLoc = pickLocalizedText(locale, s.title_i18n as any, s.title);
-    const hintLoc = pickLocalizedText(locale, s.hint_i18n as any, s.hint);
+    const titleLoc = pickWidgetCatalogCopy(locale, s.title_i18n as any, s.title);
+    const hintLoc = pickWidgetCatalogCopy(locale, s.hint_i18n as any, s.hint);
     return {
       letter: LETTERS[i] ?? String(i + 1),
       caption: titleLoc.split(/\s+/)[0] || titleLoc,
@@ -79,7 +80,7 @@ function normalizeSteps(
   return buildDefaultSteps(stepDuration, t);
 }
 
-export default function StopProtocolWidget({ config, title, onComplete, onAbandon }: Props) {
+export default function StopProtocolWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const stepDuration = config.step_duration_sec ?? 30;
   const mode = config.mode === "timed" ? "timed" : "manual";
@@ -176,10 +177,12 @@ export default function StopProtocolWidget({ config, title, onComplete, onAbando
 
   return (
     <div className="flex flex-col items-center space-y-5 py-4">
-      <div className="flex items-center gap-2 text-neural-label">
-        <ShieldAlert size={14} className="text-destructive" />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label">
+          <ShieldAlert size={14} className="text-destructive" />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <div className="flex items-center gap-3">
         {steps.map((step, i) => {

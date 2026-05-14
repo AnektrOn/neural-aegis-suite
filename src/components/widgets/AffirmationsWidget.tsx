@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Stars } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { Locale } from "@/i18n/translations";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 
 interface Props {
   config: {
@@ -10,24 +12,36 @@ interface Props {
     affirmations_i18n?: { fr: string[]; en: string[] };
   };
   title: string;
+  hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
 
-export default function AffirmationsWidget({ config, title, onComplete, onAbandon }: Props) {
+export default function AffirmationsWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const lines = useMemo(() => {
     const i18n = config.affirmations_i18n;
+    const rawFr = config.affirmations?.map((a) => a.trim()).filter(Boolean) ?? [];
+
     if (i18n && ((i18n.fr?.length ?? 0) > 0 || (i18n.en?.length ?? 0) > 0)) {
-      const primary = locale === "fr" ? i18n.fr : i18n.en;
-      const fallback = locale === "fr" ? i18n.en : i18n.fr;
-      const pr = (primary ?? []).map((s) => s.trim()).filter(Boolean);
-      const fb = (fallback ?? []).map((s) => s.trim()).filter(Boolean);
-      if (pr.length) return pr;
-      if (fb.length) return fb;
+      if (locale === "fr") {
+        const primary = (i18n.fr ?? []).map((s) => s.trim()).filter(Boolean);
+        const fallback = (i18n.en ?? []).map((s) => s.trim()).filter(Boolean);
+        if (primary.length) return primary;
+        if (fallback.length) return fallback;
+      } else {
+        const enLines = (i18n.en ?? []).map((s) => s.trim()).filter(Boolean);
+        if (enLines.length) return enLines;
+        const frLines = (i18n.fr ?? []).map((s) => s.trim()).filter(Boolean);
+        if (frLines.length) return frLines.map((line) => pickWidgetCatalogCopy(locale as Locale, {}, line));
+      }
     }
-    const raw = config.affirmations?.map((a) => a.trim()).filter(Boolean) ?? [];
-    return raw.length > 0 ? raw : [t("toolbox.affirmFallback")];
+
+    if (locale === "en" && rawFr.length) {
+      return rawFr.map((line) => pickWidgetCatalogCopy(locale as Locale, {}, line));
+    }
+    if (rawFr.length) return rawFr;
+    return [t("toolbox.affirmFallback")];
   }, [config.affirmations, config.affirmations_i18n, locale, t]);
 
   const [isRunning, setIsRunning] = useState(false);
@@ -85,10 +99,12 @@ export default function AffirmationsWidget({ config, title, onComplete, onAbando
 
   return (
     <div className="flex flex-col items-center space-y-6 py-4">
-      <div className="flex items-center gap-2 text-neural-label">
-        <Stars size={14} className="text-primary" />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label">
+          <Stars size={14} className="text-primary" />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground text-center max-w-sm">{t("toolbox.affirmHint")}</p>
 

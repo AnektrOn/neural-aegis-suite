@@ -5,11 +5,12 @@ import { useLanguage } from "@/i18n/LanguageContext";
 interface Props {
   config: { prompt: string };
   title: string;
+  hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
 
-export default function JournalPromptWidget({ config, title, onComplete, onAbandon }: Props) {
+export default function JournalPromptWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t } = useLanguage();
   const [body, setBody] = useState("");
   const completedRef = useRef(false);
@@ -33,10 +34,12 @@ export default function JournalPromptWidget({ config, title, onComplete, onAband
 
   return (
     <div className="flex flex-col space-y-5 py-4 max-w-lg mx-auto w-full">
-      <div className="flex items-center gap-2 text-neural-label justify-center">
-        <BookOpen size={14} className="text-neural-accent" />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label justify-center">
+          <BookOpen size={14} className="text-neural-accent" />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <div className="rounded-xl border border-border/20 bg-secondary/15 p-4">
         <p className="text-neural-label text-[10px] uppercase tracking-[0.2em] mb-2">{t("toolbox.journalPromptLabel")}</p>

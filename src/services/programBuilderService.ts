@@ -1,6 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import { bilingualPair } from "@/lib/content-i18n";
+import { hydrateToolboxWidgetConfigForPersistence } from "@/lib/toolbox-widget-config-hydrate";
+import {
+  assertToolboxDescriptionEnglishIfPresent,
+  assertToolboxTitleEnglishDistinct,
+  dedupeToolboxTextI18n,
+  finalizeToolboxTemplateI18nChunks,
+} from "@/lib/toolbox-template-bilingual";
+import { lookupCatalogFrToEn } from "@/lib/toolbox-widget-i18n";
 
 export const TOOLBOX_CONTENT_TYPES = [
   "breathwork",
@@ -252,16 +260,31 @@ export async function createHabitTemplate(input: HabitTemplateInput, actorId: st
 export async function createToolboxTemplate(input: ToolboxTemplateInput, actorId: string) {
   const titleI18n = mergeDirectAndLegacyI18n(input.title_i18n || null, input.title);
   const descI18n = mergeDirectAndLegacyI18n(input.description_i18n || null, input.description ?? null);
+  const { title_i18n, description_i18n } = finalizeToolboxTemplateI18nChunks(titleI18n, descI18n);
+  assertToolboxTitleEnglishDistinct(title_i18n, input.title);
+  assertToolboxDescriptionEnglishIfPresent(description_i18n, input.description ?? null);
+
+  const { widget_config, unresolvedPaths } = hydrateToolboxWidgetConfigForPersistence(
+    input.content_type,
+    (input.widget_config || {}) as Record<string, unknown>
+  );
+  if (unresolvedPaths.length > 0) {
+    throw new Error(
+      `widget_config : textes sans traduction EN (${unresolvedPaths.join(", ")}). ` +
+        "Ajoutez les clés *_i18n.en dans le JSON d’import ou étendez CATALOG_FR_EN_PAIRS dans src/lib/toolbox-widget-i18n.ts."
+    );
+  }
+
   const payload = {
     external_key: normalizeKey(input.external_key),
     content_type: input.content_type,
     title: input.title.trim(),
-    title_i18n: titleI18n,
+    title_i18n,
     duration: input.duration?.trim() || null,
     description: input.description?.trim() || null,
-    description_i18n: descI18n,
+    description_i18n,
     external_url: input.external_url?.trim() || null,
-    widget_config: input.widget_config || {},
+    widget_config,
     archetype_targets: asArray(input.archetype_targets),
     shadow_targets: asArray(input.shadow_targets),
     is_active: input.is_active ?? true,
@@ -362,23 +385,70 @@ export async function updateToolboxTemplate(
   input: Partial<ToolboxTemplateInput>,
   actorId: string
 ) {
+  const needsBilingual =
+    input.widget_config !== undefined ||
+    input.title !== undefined ||
+    input.title_i18n !== undefined ||
+    input.description !== undefined ||
+    input.description_i18n !== undefined;
+
+  let row: {
+    title: string;
+    title_i18n: Record<string, string> | null;
+    description: string | null;
+    description_i18n: Record<string, string> | null;
+    content_type: string;
+    widget_config: Record<string, unknown> | null;
+  } | null = null;
+  if (needsBilingual) {
+    const { data, error } = await supabase
+      .from("toolbox_templates" as any)
+      .select("title,title_i18n,description,description_i18n,content_type,widget_config")
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    row = data as any;
+  }
+
   const patch: Record<string, unknown> = {};
   if (input.external_key !== undefined) patch.external_key = normalizeKey(input.external_key);
   if (input.content_type !== undefined) patch.content_type = input.content_type;
   if (input.title !== undefined) patch.title = input.title.trim();
-  if (input.title !== undefined || input.title_i18n !== undefined) {
-    patch.title_i18n = mergeDirectAndLegacyI18n(input.title_i18n ?? null, input.title ?? null);
-  }
   if (input.duration !== undefined) patch.duration = input.duration?.trim() || null;
   if (input.description !== undefined) patch.description = input.description?.trim() || null;
-  if (input.description !== undefined || input.description_i18n !== undefined) {
-    patch.description_i18n = mergeDirectAndLegacyI18n(input.description_i18n ?? null, input.description ?? null);
-  }
   if (input.external_url !== undefined) patch.external_url = input.external_url?.trim() || null;
-  if (input.widget_config !== undefined) patch.widget_config = input.widget_config || {};
   if (input.archetype_targets !== undefined) patch.archetype_targets = asArray(input.archetype_targets);
   if (input.shadow_targets !== undefined) patch.shadow_targets = asArray(input.shadow_targets);
   if (input.is_active !== undefined) patch.is_active = input.is_active;
+
+  if (row) {
+    const titleMerged = mergeDirectAndLegacyI18n(
+      (input.title_i18n ?? row.title_i18n) as Record<string, string> | null,
+      (input.title ?? row.title) as string
+    );
+    const descMerged = mergeDirectAndLegacyI18n(
+      (input.description_i18n ?? row.description_i18n) as Record<string, string> | null,
+      (input.description ?? row.description) as string | null
+    );
+    const { title_i18n, description_i18n } = finalizeToolboxTemplateI18nChunks(titleMerged, descMerged);
+    assertToolboxTitleEnglishDistinct(title_i18n, String(input.title ?? row.title ?? ""));
+    assertToolboxDescriptionEnglishIfPresent(description_i18n, (input.description ?? row.description) as string | null);
+    patch.title_i18n = title_i18n;
+    patch.description_i18n = description_i18n;
+  }
+
+  if (input.widget_config !== undefined && row) {
+    const ct = (input.content_type ?? row.content_type) as string;
+    const { widget_config, unresolvedPaths } = hydrateToolboxWidgetConfigForPersistence(ct, input.widget_config as Record<string, unknown>);
+    if (unresolvedPaths.length > 0) {
+      throw new Error(
+        `widget_config : textes sans traduction EN (${unresolvedPaths.join(", ")}). Complétez *_i18n.en ou le catalogue FR→EN.`
+      );
+    }
+    patch.widget_config = widget_config;
+  } else if (input.widget_config !== undefined) {
+    patch.widget_config = input.widget_config || {};
+  }
 
   const { data, error } = await supabase
     .from("toolbox_templates" as any)
@@ -512,6 +582,16 @@ export async function assignToolboxTemplateToUser(params: {
     .single();
   if (tErr) throw tErr;
 
+  const { widget_config, unresolvedPaths } = hydrateToolboxWidgetConfigForPersistence(
+    (template as any).content_type,
+    ((template as any).widget_config || {}) as Record<string, unknown>
+  );
+  if (unresolvedPaths.length > 0) {
+    throw new Error(
+      `Gabarit catalogue incomplet (EN manquant sur : ${unresolvedPaths.join(", ")}). Corrigez le template avant assignation.`
+    );
+  }
+
   const assignment = {
     user_id: userId,
     content_type: (template as any).content_type,
@@ -525,7 +605,7 @@ export async function assignToolboxTemplateToUser(params: {
       ? mergeI18nObject((template as any).description_i18n ?? null, null, null, null)
       : mergeI18nObject((template as any).description_i18n ?? null, null, null, (template as any).description ?? null),
     external_url: (template as any).external_url,
-    widget_config: (template as any).widget_config || {},
+    widget_config,
     assigned_by: actorId,
     template_id: (template as any).id,
   };
@@ -585,6 +665,18 @@ export async function assignJournalPromptTemplateToUser(params: {
     ? mergeI18nObject((template as any).title_i18n ?? null, null, null, null)
     : mergeI18nObject((template as any).title_i18n ?? null, null, null, (template as any).title || "Journal Prompt");
 
+  const journalWidgetRaw = {
+    prompt: (template as any).prompt_text,
+    prompt_i18n: promptI18n,
+  };
+  const { widget_config: journalWidget, unresolvedPaths: journalUn } = hydrateToolboxWidgetConfigForPersistence(
+    "journal_prompt",
+    journalWidgetRaw as Record<string, unknown>
+  );
+  if (journalUn.length > 0) {
+    throw new Error(`Journal prompt : EN manquant (${journalUn.join(", ")}). Corrigez le gabarit.`);
+  }
+
   const { error: toolboxError } = await supabase
     .from("toolbox_assignments" as any)
     .insert({
@@ -595,10 +687,7 @@ export async function assignJournalPromptTemplateToUser(params: {
       duration: (template as any).duration || "10 min",
       description: null,
       description_i18n: {},
-      widget_config: {
-        prompt: (template as any).prompt_text,
-        prompt_i18n: promptI18n,
-      },
+      widget_config: journalWidget,
       assigned_by: actorId,
       template_id: (template as any).id,
     } as any);
@@ -638,18 +727,35 @@ export async function assignToolboxDirect(params: {
   const mergedDescI18n = hasIndependentFrEn(descriptionI18n as any)
     ? mergeI18nObject(descriptionI18n ?? null, null, null, null)
     : mergeI18nObject(descriptionI18n ?? null, null, null, description ?? null);
+  const { title_i18n: finalTitleI18n, description_i18n: finalDescI18n } = finalizeToolboxTemplateI18nChunks(
+    mergedTitleI18n,
+    mergedDescI18n
+  );
+  assertToolboxTitleEnglishDistinct(finalTitleI18n, title);
+  assertToolboxDescriptionEnglishIfPresent(finalDescI18n, description ?? null);
+
+  const { widget_config, unresolvedPaths } = hydrateToolboxWidgetConfigForPersistence(
+    contentType,
+    (widgetConfig || {}) as Record<string, unknown>
+  );
+  if (unresolvedPaths.length > 0) {
+    throw new Error(
+      `Assignation directe : widget_config incomplet (EN manquant sur ${unresolvedPaths.join(", ")}).`
+    );
+  }
+
   const { data, error } = await supabase
     .from("toolbox_assignments" as any)
     .insert({
       user_id: userId,
       content_type: contentType,
       title,
-      title_i18n: mergedTitleI18n,
+      title_i18n: finalTitleI18n,
       duration: duration || null,
       description: description || null,
-      description_i18n: mergedDescI18n,
+      description_i18n: finalDescI18n,
       external_url: externalUrl || null,
-      widget_config: widgetConfig || {},
+      widget_config,
       assigned_by: actorId,
     } as any)
     .select("*")
@@ -980,6 +1086,51 @@ export function validateToolboxCatalogPayload(payload: unknown): ValidationIssue
         issues.push({ path: `${base}.widget_config.instructions`, message: "instructions (string) est obligatoire pour micro_practice." });
       }
     }
+
+    if (
+      t.content_type &&
+      t.widget_config &&
+      typeof t.widget_config === "object" &&
+      TOOLBOX_CONTENT_TYPES.includes(t.content_type)
+    ) {
+      const titleMerged = mergeI18nObject(t.title_i18n ?? null, t.title_fr ?? null, t.title_en ?? null, t.title);
+      const descMerged = mergeI18nObject(
+        t.description_i18n ?? null,
+        t.description_fr ?? null,
+        t.description_en ?? null,
+        t.description ?? null
+      );
+      const { title_i18n, description_i18n } = finalizeToolboxTemplateI18nChunks(titleMerged, descMerged);
+      const tf = String(title_i18n.fr ?? "").trim();
+      const te = String(title_i18n.en ?? "").trim();
+      if (tf && (!te || te === tf)) {
+        issues.push({
+          path: `${base}.title_i18n`,
+          message:
+            "Titre : anglais distinct requis (title_en / title_i18n.en ou entrée dans resolveToolboxTitleEnglish / lookupCatalogFrToEn).",
+        });
+      }
+      const df = String(description_i18n.fr ?? "").trim();
+      const de = String(description_i18n.en ?? "").trim();
+      if (df && (!de || de === df)) {
+        issues.push({
+          path: `${base}.description_i18n`,
+          message:
+            "Description : anglais distinct requis (description_en / description_i18n.en ou entrée FR→EN catalogue).",
+        });
+      }
+
+      const { unresolvedPaths } = hydrateToolboxWidgetConfigForPersistence(
+        t.content_type,
+        t.widget_config as Record<string, unknown>
+      );
+      for (const path of unresolvedPaths) {
+        issues.push({
+          path: `${base}.${path}`,
+          message: `Traduction EN manquante pour ${path}. Ajoutez *_i18n.en ou étendez CATALOG_FR_EN_PAIRS (toolbox-widget-i18n.ts).`,
+        });
+      }
+    }
   });
 
   (p.habit_items || []).forEach((h, i) => {
@@ -992,6 +1143,30 @@ export function validateToolboxCatalogPayload(payload: unknown): ValidationIssue
     const base = `$.journal_items[${i}]`;
     if (!j.title?.trim()) issues.push({ path: `${base}.title`, message: "title est obligatoire." });
     if (!j.prompt_text?.trim()) issues.push({ path: `${base}.prompt_text`, message: "prompt_text est obligatoire." });
+
+    const promptMerged = mergeI18nObject(j.prompt_text_i18n ?? null, j.prompt_fr ?? null, j.prompt_en ?? null, j.prompt_text);
+    const promptFin = dedupeToolboxTextI18n(promptMerged, (fr) => lookupCatalogFrToEn(fr));
+    const pf = String(promptFin.fr ?? "").trim();
+    const pe = String(promptFin.en ?? "").trim();
+    if (pf && (!pe || pe === pf)) {
+      issues.push({
+        path: `${base}.prompt_text_i18n`,
+        message:
+          "prompt_text : anglais distinct requis (prompt_en / prompt_text_i18n.en ou entrée FR→EN catalogue).",
+      });
+    }
+
+    const titleMerged = mergeI18nObject(j.title_i18n ?? null, j.title_fr ?? null, j.title_en ?? null, j.title);
+    const { title_i18n: jt } = finalizeToolboxTemplateI18nChunks(titleMerged, mergeDirectAndLegacyI18n(null, null));
+    const jtf = String(jt.fr ?? "").trim();
+    const jte = String(jt.en ?? "").trim();
+    if (jtf && (!jte || jte === jtf)) {
+      issues.push({
+        path: `${base}.title_i18n`,
+        message:
+          "Titre journal : anglais distinct requis (title_en / title_i18n.en ou map catalogue).",
+      });
+    }
   });
 
   return issues;
