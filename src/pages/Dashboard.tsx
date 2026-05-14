@@ -59,6 +59,8 @@ const priorityBadge = (p: number): { label: string; cls: string } => {
   return { label: "P" + p, cls: "bg-transparent text-muted-foreground" };
 };
 
+const PULL_REFRESH_HINT_KEY = "aegis_pull_refresh_hint_dismissed";
+
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0 },
@@ -94,6 +96,14 @@ export default function Dashboard() {
     try { return localStorage.getItem(WELCOME_DISMISSED_KEY) === "1"; } catch { return false; }
   });
   const [showPostAssessment, setShowPostAssessment] = useState(false);
+  const [mobileLoadError, setMobileLoadError] = useState(false);
+  const [pullHintVisible, setPullHintVisible] = useState(() => {
+    try {
+      return localStorage.getItem(PULL_REFRESH_HINT_KEY) !== "1";
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -133,7 +143,7 @@ export default function Dashboard() {
       checkAndAwardBadges(user.id);
       sessionStorage.setItem("badges_checked", "1");
     }
-  }, [user, isMobile, t, locale]);
+  }, [user, isMobile, locale]);
 
   // Listen for pull-to-refresh event
   useEffect(() => {
@@ -208,6 +218,7 @@ export default function Dashboard() {
   // ── MOBILE: single consolidated load ────────────────────────────────────────
   const loadMobileData = async () => {
     setLoading(true);
+    setMobileLoadError(false);
     try {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -221,6 +232,13 @@ export default function Dashboard() {
         supabase.from("habit_completions" as any).select("assigned_habit_id, completed_date").eq("user_id", user!.id).gte("completed_date", weekStartDate),
         supabase.from("journal_entries").select("content, created_at").eq("user_id", user!.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
+
+      const batchErrors = [moodRes.error, decisionsRes.error, habitsAssignedRes.error, completionsRes.error, journalRes.error].filter(Boolean);
+      if (batchErrors.length > 0) {
+        console.error("Mobile dashboard batch errors:", batchErrors);
+        setMobileLoadError(true);
+        toast({ title: t("toast.error"), description: t("dashboard.loadError"), variant: "destructive" });
+      }
 
       // Mood avg
       const moods = (moodRes.data as any[] || []);
@@ -271,12 +289,17 @@ export default function Dashboard() {
         const templateIds = (habitsAssignedRes.data as any[]).map((a: any) => a.habit_template_id);
         const completedTodaySet = new Set(completedToday.map((c: any) => c.assigned_habit_id));
 
-        const { data: templates } = await supabase
+        const { data: templates, error: tplErr } = await supabase
           .from("habit_templates" as any)
           .select("id, name, name_i18n, category")
           .in("id", templateIds);
 
-        const tMap = new Map((templates as any[] || []).map((t: any) => [t.id, t]));
+        if (tplErr) {
+          console.error("habit_templates load", tplErr);
+          toast({ title: t("toast.error"), description: tplErr.message, variant: "destructive" });
+        }
+
+        const tMap = new Map((templates as any[] || []).map((tpl: any) => [tpl.id, tpl]));
         setMobileHabits(
           (habitsAssignedRes.data as any[]).map((a: any) => ({
             id: a.id,
@@ -293,6 +316,12 @@ export default function Dashboard() {
       }
     } catch (e) {
       console.error("Mobile dashboard load error:", e);
+      setMobileLoadError(true);
+      toast({
+        title: t("toast.error"),
+        description: t("dashboard.loadError"),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -437,8 +466,22 @@ export default function Dashboard() {
       hour < 12 ? t("dashboard.sessionMorning") : hour < 18 ? t("dashboard.sessionAfternoon") : t("dashboard.sessionEvening");
     const heroProgress = digest != null ? Math.min(100, Math.max(0, digest.habitRate)) : 75;
 
+    const digestAriaLabel =
+      digest != null
+        ? t("dashboard.digestAriaLabel", {
+            mood:
+              digest.moodTrend === "stable"
+                ? t("dashboard.stable")
+                : digest.moodTrend === "up"
+                  ? `+${digest.moodDelta}`
+                  : `−${digest.moodDelta}`,
+            habit: String(digest.habitRate),
+            streak: String(streakDays),
+          })
+        : undefined;
+
     return (
-      <div className="mobile-section-gap max-w-full pt-5">
+      <div className="mobile-section-gap max-w-full sm:max-w-lg sm:mx-auto md:max-w-2xl pt-4 sm:pt-5 md:pt-6">
         {showPostAssessment && (
           <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
         )}
@@ -450,6 +493,39 @@ export default function Dashboard() {
         )}
         {showSetupBanner && maturity && !showWelcome && (
           <SetupProgressBanner maturityProfile={maturity} />
+        )}
+        {pullHintVisible && (
+          <div className="flex items-start gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2.5 sm:px-4">
+            <p className="min-w-0 flex-1 font-barlow text-[11px] sm:text-xs leading-snug text-text-secondary">
+              {t("dashboard.pullRefreshHint")}
+            </p>
+            <button
+              type="button"
+              className="shrink-0 rounded-lg px-2.5 py-1.5 font-barlow text-[10px] font-medium uppercase tracking-wide text-primary hover:bg-primary/10"
+              onClick={() => {
+                try {
+                  localStorage.setItem(PULL_REFRESH_HINT_KEY, "1");
+                } catch {
+                  /* ignore */
+                }
+                setPullHintVisible(false);
+              }}
+            >
+              {t("dashboard.pullRefreshDismiss")}
+            </button>
+          </div>
+        )}
+        {mobileLoadError && (
+          <div className="flex flex-col gap-2 rounded-2xl border border-destructive/35 bg-destructive/10 px-3 py-3 sm:flex-row sm:items-center sm:px-4">
+            <p className="flex-1 font-barlow text-sm text-destructive">{t("dashboard.loadError")}</p>
+            <button
+              type="button"
+              className="rounded-xl border border-destructive/40 bg-background/80 px-3 py-2 font-barlow text-xs font-medium uppercase tracking-wide text-destructive hover:bg-destructive/10"
+              onClick={() => void loadMobileData()}
+            >
+              {t("dashboard.retry")}
+            </button>
+          </div>
         )}
         {/* Streak (date + AEGIS: header AppLayout) */}
         {streakDays > 0 && (
@@ -467,34 +543,37 @@ export default function Dashboard() {
             greeting={greeting}
             sessionLabel={sessionLabel}
             progress={heroProgress}
+            progressAriaLabel={t("dashboard.heroProgressAria", { n: String(Math.round(heroProgress)) })}
           />
         </div>
 
         {/* Quick Log CTA */}
         {loading ? (
-          <div className="skeleton h-[68px] rounded-2xl" />
+          <div className="skeleton h-[72px] sm:h-[76px] rounded-2xl sm:rounded-[18px]" />
         ) : (
           <motion.div {...fadeUp(0.02)}>
             <button
               type="button"
               onClick={() => setShowQuickLog(true)}
-              className="w-full flex items-center justify-between px-4 py-3.5 rounded-[14px] border border-primary/25 bg-[hsl(var(--aegis-s1))] active:scale-[0.98] active:opacity-90 transition-all duration-200 select-none"
+              className="w-full min-h-[52px] sm:min-h-[56px] flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-[18px] border border-primary/25 bg-[hsl(var(--aegis-s1))] shadow-[0_8px_28px_hsl(0_0%_0%/0.12)] sm:shadow-[0_10px_32px_hsl(0_0%_0%/0.14)] active:scale-[0.98] active:opacity-90 transition-all duration-200 select-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 shrink-0 rounded-[11px] flex items-center justify-center bg-primary/12 shadow-[inset_0_0_12px_hsl(var(--primary)/0.12)]">
+              <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl sm:rounded-[13px] flex items-center justify-center bg-primary/12 shadow-[inset_0_0_12px_hsl(var(--primary)/0.12)]">
                   <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.45)]" />
                 </div>
                 <div className="text-left min-w-0">
-                  <p className="font-barlow text-[13px] font-medium text-text-primary leading-tight">
+                  <p className="font-barlow text-[14px] sm:text-[15px] font-medium text-text-primary leading-snug">
                     {t("dashboard.mobileLogNow")}
                   </p>
-                  <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.22em] text-text-tertiary/75 mt-1">
+                  <p className="font-barlow text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.18em] sm:tracking-[0.2em] text-text-tertiary/80 mt-1">
                     {t("dashboard.mobileLogSubtitle")}
                   </p>
                 </div>
               </div>
-              <span className="text-primary/40 text-xl font-light pl-2">›</span>
+              <span className="text-primary/45 text-2xl sm:text-[26px] font-light pl-2 shrink-0" aria-hidden>
+                ›
+              </span>
             </button>
           </motion.div>
         )}
@@ -506,9 +585,9 @@ export default function Dashboard() {
 
         {/* 3 KPI pills */}
         {loading ? (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="skeleton h-[72px] rounded-[14px]" />
+              <div key={i} className="skeleton h-[78px] sm:h-[84px] rounded-2xl sm:rounded-[18px]" />
             ))}
           </div>
         ) : (
@@ -517,17 +596,19 @@ export default function Dashboard() {
             variants={mobileKpiStagger}
             initial="initial"
             animate="animate"
-            className="grid grid-cols-3 gap-2"
+            className="grid grid-cols-3 gap-2.5 sm:gap-3"
           >
             <motion.div
               variants={mobileKpiChild}
-              className="p-3 text-center rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]"
+              className="p-3.5 sm:p-4 text-center rounded-2xl sm:rounded-[18px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_4px_20px_hsl(0_0%_0%/0.08)] sm:shadow-[0_6px_24px_hsl(0_0%_0%/0.1)]"
             >
-              <p className="font-cormorant text-[22px] font-light leading-none text-primary">{stats.moodAvg}</p>
-              <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/70 mt-2">
+              <p className="font-cormorant text-[23px] sm:text-[26px] font-light leading-none text-primary tabular-nums">
+                {stats.moodAvg}
+              </p>
+              <p className="font-barlow text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/75 mt-2 sm:mt-2.5">
                 {t("mood.label")}
               </p>
-              <p className="font-barlow text-[9px] text-primary/55 mt-0.5 tabular-nums">
+              <p className="font-barlow text-[10px] sm:text-[11px] text-primary/60 mt-1 tabular-nums">
                 {digest?.moodTrend === "up"
                   ? `+${digest.moodDelta}`
                   : digest?.moodTrend === "down"
@@ -537,33 +618,33 @@ export default function Dashboard() {
             </motion.div>
             <motion.div
               variants={mobileKpiChild}
-              className="p-3 text-center rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]"
+              className="p-3.5 sm:p-4 text-center rounded-2xl sm:rounded-[18px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_4px_20px_hsl(0_0%_0%/0.08)] sm:shadow-[0_6px_24px_hsl(0_0%_0%/0.1)]"
             >
-              <p className="font-cormorant text-[22px] font-light leading-none text-foreground">
+              <p className="font-cormorant text-[23px] sm:text-[26px] font-light leading-none text-foreground tabular-nums">
                 {habitsTotal > 0 ? `${completedHabits}/${habitsTotal}` : stats.habitsDone}
               </p>
-              <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/70 mt-2">
+              <p className="font-barlow text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/75 mt-2 sm:mt-2.5">
                 {t("nav.habits")}
               </p>
-              <p className="font-barlow text-[9px] text-primary/55 mt-0.5 tabular-nums">
+              <p className="font-barlow text-[10px] sm:text-[11px] text-primary/60 mt-1 tabular-nums">
                 {digest != null ? `${digest.habitRate}%` : "—"}
               </p>
             </motion.div>
             <motion.div
               variants={mobileKpiChild}
-              className="p-3 text-center rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]"
+              className="p-3.5 sm:p-4 text-center rounded-2xl sm:rounded-[18px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_4px_20px_hsl(0_0%_0%/0.08)] sm:shadow-[0_6px_24px_hsl(0_0%_0%/0.1)]"
             >
               <p
-                className={`font-cormorant text-[22px] font-light leading-none ${
+                className={`font-cormorant text-[23px] sm:text-[26px] font-light leading-none tabular-nums ${
                   streakDays > 0 ? "text-warning" : "text-muted-foreground"
                 }`}
               >
                 {streakDays > 0 ? `${streakDays}j` : stats.openDecisions}
               </p>
-              <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/70 mt-2">
+              <p className="font-barlow text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/75 mt-2 sm:mt-2.5">
                 {streakDays > 0 ? t("dashboard.kpiStreak") : t("dashboard.kpiDecisions")}
               </p>
-              <p className="font-barlow text-[9px] text-primary/55 mt-0.5 tabular-nums">
+              <p className="font-barlow text-[10px] sm:text-[11px] text-primary/60 mt-1 tabular-nums">
                 {streakDays > 0 ? t("dashboard.kpiStreakUnit") : t("dashboard.kpiDecisionsOpen")}
               </p>
             </motion.div>
@@ -573,28 +654,30 @@ export default function Dashboard() {
 
         {/* Decisions card */}
         {loading ? (
-          <div className="skeleton h-[110px] rounded-2xl" />
+          <div className="skeleton h-[118px] sm:h-[128px] rounded-2xl sm:rounded-[18px]" />
         ) : (
           <motion.div {...fadeUp(0.04)}>
-            <div className="card-interactive ethereal-glass p-4 rounded-[14px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]">
-              <div className="flex items-center justify-between mb-3">
-                  <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
+            <div className="card-interactive ethereal-glass p-4 sm:p-5 rounded-2xl sm:rounded-[18px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_6px_28px_hsl(0_0%_0%/0.1)] sm:shadow-[0_8px_32px_hsl(0_0%_0%/0.12)]">
+              <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4 min-h-[40px] sm:min-h-[44px]">
+                  <p className="font-barlow text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/85">
                   {t("dashboard.mobileDecisionsOpen")}
                 </p>
                 <NavLink
                   to="/decisions"
-                  className="font-barlow text-[10px] text-primary/50 hover:text-primary/80 transition-colors tracking-wide"
+                  className="font-barlow text-[11px] sm:text-xs text-primary/55 hover:text-primary/85 transition-colors tracking-wide min-h-[44px] min-w-[44px] inline-flex items-center justify-end px-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {t("dashboard.mobileSeeAll")}
                 </NavLink>
               </div>
               {decisions.length === 0 ? (
-                <div className="flex flex-col items-center py-4 gap-2">
-                  <Target size={24} strokeWidth={1} className="text-muted-foreground/20" />
-                  <p className="font-barlow text-xs text-muted-foreground/40 text-center">{t("dashboard.mobileNoDecisions")}</p>
+                <div className="flex flex-col items-center py-5 sm:py-6 gap-2.5">
+                  <Target size={26} strokeWidth={1} className="text-muted-foreground/25 sm:w-7 sm:h-7" />
+                  <p className="font-barlow text-sm sm:text-[15px] text-muted-foreground/50 text-center max-w-[280px] sm:max-w-sm leading-snug">
+                    {t("dashboard.mobileNoDecisions")}
+                  </p>
                   <NavLink
                     to="/decisions"
-                    className="font-barlow text-[10px] text-primary border border-primary/20 bg-primary/5 px-3 py-1.5 rounded-lg tracking-wider uppercase hover:bg-primary/10 transition-colors mt-1"
+                    className="font-barlow text-[11px] sm:text-xs text-primary border border-primary/25 bg-primary/5 px-4 py-2.5 sm:py-3 rounded-xl tracking-wider uppercase hover:bg-primary/10 transition-colors mt-1 min-h-[44px] inline-flex items-center"
                   >
                     {t("dashboard.mobileNewDecision")}
                   </NavLink>
@@ -605,16 +688,18 @@ export default function Dashboard() {
                     {decisions.map((d: any) => {
                       const badge = priorityBadge(d.priority);
                       return (
-                        <div key={d.id} className="flex items-center justify-between gap-2 min-h-[40px] py-2.5 first:pt-0 last:pb-0">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-[5px] h-[5px] rounded-full bg-primary/85 flex-shrink-0" />
-                            <span className="font-barlow text-sm text-foreground/85 truncate">{d.name}</span>
+                        <div key={d.id} className="flex items-center justify-between gap-2 min-h-[44px] sm:min-h-[48px] py-2 sm:py-2.5 first:pt-0 last:pb-0">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary/85 flex-shrink-0" />
+                            <span className="font-barlow text-[15px] sm:text-base text-foreground/90 truncate">{d.name}</span>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {d.created_at && (
-                              <span className="font-barlow text-[9px] text-muted-foreground/45">{timeAgoLabel(d.created_at)}</span>
+                              <span className="font-barlow text-[10px] sm:text-[11px] text-muted-foreground/50 tabular-nums">
+                                {timeAgoLabel(d.created_at)}
+                              </span>
                             )}
-                            <span className={`font-barlow text-[10px] px-1.5 py-0.5 rounded-md ${badge.cls}`}>
+                            <span className={`font-barlow text-[10px] sm:text-[11px] px-2 py-0.5 rounded-md ${badge.cls}`}>
                               {badge.label}
                             </span>
                           </div>
@@ -624,9 +709,11 @@ export default function Dashboard() {
                   </div>
                   <NavLink
                     to="/decisions"
-                    className="font-barlow flex items-center gap-1.5 mt-3 pt-3 border-t border-border/40 text-[10px] text-primary/60 hover:text-primary tracking-wider uppercase transition-colors"
+                    className="font-barlow flex items-center justify-center sm:justify-start gap-1.5 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border/40 text-[11px] sm:text-xs text-primary/65 hover:text-primary tracking-wider uppercase transition-colors min-h-[44px] rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <span className="text-base leading-none">+</span>
+                    <span className="text-lg leading-none" aria-hidden>
+                      +
+                    </span>
                     <span>{t("decisions.newDecision")}</span>
                   </NavLink>
                 </>
@@ -637,20 +724,24 @@ export default function Dashboard() {
 
         {/* Habits card (inline from mobileHabits state) */}
         {loading ? (
-          <div className="skeleton h-[130px] rounded-2xl" />
+          <div className="skeleton h-[140px] sm:h-[152px] rounded-2xl sm:rounded-[18px]" />
         ) : mobileHabits.length > 0 ? (
           <motion.div {...fadeUp(0.05)}>
-            <div className="card-interactive ethereal-glass p-4 rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border-ice))]">
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
+            <div className="card-interactive ethereal-glass p-4 sm:p-5 rounded-2xl sm:rounded-[18px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border-ice))] shadow-[0_6px_28px_hsl(0_0%_0%/0.1)] sm:shadow-[0_8px_32px_hsl(0_0%_0%/0.12)]">
+              <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4 min-h-[40px] sm:min-h-[44px]">
+                <p className="font-barlow text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/85">
                   {t("dashboard.mobileHabitsToday")}
                 </p>
-                <div className="flex items-center gap-2">
-                  <span className="font-barlow text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+                <div className="flex items-center gap-2 sm:gap-2.5">
+                  <span className="font-barlow text-[11px] sm:text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-lg tabular-nums">
                     {completedHabits}/{mobileHabits.length}
                   </span>
-                  <NavLink to="/habits" className="p-1 text-muted-foreground/40 hover:text-primary transition-colors">
-                    <ArrowUpRight size={13} />
+                  <NavLink
+                    to="/habits"
+                    className="p-1 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-muted-foreground/40 hover:text-primary transition-colors cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    aria-label={t("dashboard.a11yOpenAllHabits")}
+                  >
+                    <ArrowUpRight size={13} aria-hidden />
                   </NavLink>
                 </div>
               </div>
@@ -659,12 +750,15 @@ export default function Dashboard() {
                   <button
                     key={habit.id}
                     type="button"
+                    role="checkbox"
+                    aria-checked={habit.completed}
+                    aria-label={t("dashboard.a11yToggleHabit", { name: habit.name })}
                     onClick={() => void toggleMobileHabit(habit.id)}
-                    className="flex w-full items-center gap-3 min-h-[44px] py-1 text-left rounded-lg active:opacity-90 transition-opacity"
+                    className="flex w-full items-center gap-3 min-h-[44px] py-1 text-left rounded-lg active:opacity-90 transition-opacity cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
                   >
                     <div
-                      className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-all ${
+                      className={`w-6 h-6 rounded-lg border flex items-center justify-center flex-shrink-0 transition-all ${
                         habit.completed
                           ? "border-primary/40 bg-primary/15 shadow-[inset_0_0_10px_hsl(var(--primary)/0.12)]"
                           : "border-[hsl(var(--aegis-border))]"
@@ -686,8 +780,8 @@ export default function Dashboard() {
                       )}
                     </div>
                     <span
-                      className={`font-barlow text-sm transition-colors ${
-                        habit.completed ? "line-through text-muted-foreground/45" : "text-foreground/85"
+                      className={`font-barlow text-[15px] sm:text-base transition-colors ${
+                        habit.completed ? "line-through text-muted-foreground/45" : "text-foreground/90"
                       }`}
                     >
                       {habit.name}
@@ -695,7 +789,7 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-              <div className="h-[2px] rounded-full mt-3 overflow-hidden bg-border/50">
+              <div className="h-1 sm:h-1.5 rounded-full mt-3 sm:mt-4 overflow-hidden bg-border/50">
                 <div
                   className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-primary/35 to-primary"
                   style={{
@@ -707,7 +801,7 @@ export default function Dashboard() {
           </motion.div>
         ) : (
           <motion.div {...fadeUp(0.05)}>
-            <div className="rounded-[14px] border-[0.5px] border-[hsl(var(--aegis-border-ice))] overflow-hidden">
+            <div className="rounded-2xl sm:rounded-[18px] border-[0.5px] border-[hsl(var(--aegis-border-ice))] overflow-hidden shadow-[0_6px_28px_hsl(0_0%_0%/0.08)]">
               <HabitsMiniCard userId={user!.id} />
             </div>
           </motion.div>
@@ -716,67 +810,84 @@ export default function Dashboard() {
         {/* Weekly digest (compact) */}
         {!loading && digest && (
           <motion.div {...fadeUp(0.06)}>
-            <div className="card-static ethereal-glass p-4 rounded-[14px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]">
-              <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80 mb-3">
+            <div
+              role="region"
+              aria-label={digestAriaLabel}
+              className="card-static ethereal-glass p-4 sm:p-5 rounded-2xl sm:rounded-[18px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_4px_24px_hsl(0_0%_0%/0.08)] sm:shadow-[0_6px_28px_hsl(0_0%_0%/0.1)]"
+            >
+              <p className="font-barlow text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/85 mb-3 sm:mb-4">
                 {t("dashboard.mobileThisWeek")}
               </p>
-              <div className="grid grid-cols-3 text-center">
-                <div className="px-1">
-                  <div className="flex items-center justify-center gap-1 mb-1 min-h-[22px]">
+              <div className="grid grid-cols-3 text-center gap-1 sm:gap-2">
+                <div className="px-1 sm:px-2">
+                  <div className="flex items-center justify-center gap-1 mb-1 min-h-[24px] sm:min-h-[28px]">
                     {digest.moodTrend === "stable" ? (
-                      <span className="font-barlow text-[11px] text-muted-foreground/45">{t("dashboard.stable")}</span>
+                      <span className="font-barlow text-xs sm:text-sm text-muted-foreground/55">{t("dashboard.stable")}</span>
                     ) : (
                       <>
                         <span
-                          className={`font-barlow text-sm ${
+                          className={`font-barlow text-base sm:text-lg ${
                             digest.moodTrend === "up" ? "text-chart-4" : "text-destructive"
                           }`}
                           aria-hidden
                         >
                           {digest.moodTrend === "up" ? "↑" : "↓"}
                         </span>
-                        <span className="font-barlow text-[10px] text-muted-foreground/70 tabular-nums">
+                        <span className="font-barlow text-[11px] sm:text-xs text-muted-foreground/75 tabular-nums">
                           {digest.moodTrend === "up" ? `+${digest.moodDelta}` : `−${digest.moodDelta}`}
                         </span>
                       </>
                     )}
                   </div>
-                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">{t("mood.label")}</p>
+                  <p className="font-barlow text-[10px] sm:text-[11px] text-muted-foreground/55 tracking-[0.14em] sm:tracking-[0.16em] uppercase">
+                    {t("mood.label")}
+                  </p>
                 </div>
-                <div className="border-l border-border/50 px-2">
-                  <p className="font-cormorant text-[18px] font-light text-text-primary leading-tight mb-1">
+                <div className="border-l border-border/50 px-2 sm:px-3">
+                  <p className="font-cormorant text-[20px] sm:text-[22px] font-light text-text-primary leading-tight mb-1 tabular-nums">
                     {digest.habitRate}%
                   </p>
-                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">{t("nav.habits")}</p>
+                  <p className="font-barlow text-[10px] sm:text-[11px] text-muted-foreground/55 tracking-[0.14em] sm:tracking-[0.16em] uppercase">
+                    {t("nav.habits")}
+                  </p>
                 </div>
-                <div className="border-l border-border/50 pl-2">
-                  <p className="font-cormorant text-[18px] font-light text-text-primary leading-tight mb-1">
+                <div className="border-l border-border/50 pl-2 sm:pl-3">
+                  <p className="font-cormorant text-[20px] sm:text-[22px] font-light text-text-primary leading-tight mb-1 tabular-nums">
                     {streakDays}j
                   </p>
-                  <p className="font-barlow text-[9px] text-muted-foreground/50 tracking-[0.18em] uppercase">{t("dashboard.kpiStreak")}</p>
+                  <p className="font-barlow text-[10px] sm:text-[11px] text-muted-foreground/55 tracking-[0.14em] sm:tracking-[0.16em] uppercase">
+                    {t("dashboard.kpiStreak")}
+                  </p>
                 </div>
               </div>
             </div>
           </motion.div>
         )}
 
+        {!loading && user && (
+          <motion.div {...fadeUp(0.065)} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <ScoreboardWidget compact />
+            <ScoreCard compact />
+          </motion.div>
+        )}
+
         {/* Journal preview */}
         {!loading && lastJournalEntry && (
           <motion.div {...fadeUp(0.07)}>
-            <NavLink to="/journal" className="block">
+            <NavLink to="/journal" className="block rounded-2xl sm:rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
               <div
-                className="card-interactive ethereal-glass p-4 rounded-[14px] active:scale-[0.98] transition-all duration-150 bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))]"
+                className="card-interactive ethereal-glass p-4 sm:p-5 rounded-2xl sm:rounded-[18px] active:scale-[0.98] transition-all duration-150 bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_6px_28px_hsl(0_0%_0%/0.1)]"
                 style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-barlow text-[10px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
+                <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
+                  <p className="font-barlow text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/85">
                     {t("dashboard.mobileLastEntry")}
                   </p>
-                  <span className="font-barlow text-[9px] text-muted-foreground/45">
+                  <span className="font-barlow text-[10px] sm:text-[11px] text-muted-foreground/50 tabular-nums shrink-0">
                     {timeAgoLabel(lastJournalEntry.created_at)}
                   </span>
                 </div>
-                <p className="font-cormorant text-[14px] font-light italic leading-snug line-clamp-2 text-muted-foreground">
+                <p className="font-cormorant text-[15px] sm:text-base font-light italic leading-relaxed line-clamp-3 sm:line-clamp-3 text-muted-foreground">
                   &ldquo;{lastJournalEntry.content}&rdquo;
                 </p>
               </div>
@@ -793,17 +904,17 @@ export default function Dashboard() {
   // ─── Desktop layout ─────────────────────────────────────────────────────────
   const moodTrendLabel =
     digest?.moodTrend === "up"
-      ? `+${digest.moodDelta} vs semaine`
+      ? t("dashboard.moodTrendVsWeekUp", { n: String(digest.moodDelta) })
       : digest?.moodTrend === "down"
-        ? `-${digest.moodDelta} vs semaine`
+        ? t("dashboard.moodTrendVsWeekDown", { n: String(digest.moodDelta) })
         : t("dashboard.stable");
 
 
 
 
   return (
-    <div className="min-h-full -mx-6 -mt-6 px-6 pt-6 pb-10 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-full -mx-6 -mt-6 px-5 pt-6 pb-10 sm:px-8 sm:pb-12 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
+      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6 md:space-y-7">
         {showPostAssessment && (
           <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
         )}
@@ -816,46 +927,56 @@ export default function Dashboard() {
         {showSetupBanner && maturity && !showWelcome && (
           <SetupProgressBanner maturityProfile={maturity} />
         )}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <p className="text-[10px] tracking-[0.2em] uppercase text-text-tertiary font-display">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-text-tertiary font-display">
               {format(new Date(), "EEEE d MMMM", { locale: locale === "fr" ? fr : enUS })}
             </p>
-            <h1 className="text-xl font-display text-text-primary mt-0.5 tracking-tight">Neural Dashboard</h1>
-            <p className="text-neural-label mt-2">{t("dashboard.welcome")}</p>
+            <h1 className="text-xl sm:text-2xl font-display text-text-primary mt-0.5 sm:mt-1 tracking-tight">
+              {t("dashboard.pageTitle")}
+            </h1>
+            <p className="text-neural-label mt-2 sm:mt-2.5 max-w-prose">{t("dashboard.welcome")}</p>
           </div>
           <button
             type="button"
             onClick={() => setShowQuickLog(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/15 transition-all duration-200 text-xs tracking-wide uppercase font-medium font-display shrink-0"
+            className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl border border-accent-primary/30 bg-accent-primary/10 text-accent-primary hover:bg-accent-primary/15 transition-all duration-200 text-xs sm:text-sm tracking-wide uppercase font-medium font-display shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background min-h-[44px] w-full sm:w-auto"
           >
-            <Plus size={14} strokeWidth={1.5} /> Log rapide
+            <Plus size={14} strokeWidth={1.5} aria-hidden /> {t("dashboard.quickLogCta")}
           </button>
         </div>
 
         <AssessmentCTA />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="md:col-span-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+          <div className="md:col-span-1 min-w-0">
             <AegisHealthCard score={aegisScore} previous={aegisYesterday} isLoading={aegisLoading} />
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 min-w-0">
             <MoodDecisionInsightCard userId={user?.id} />
           </div>
         </div>
 
         {highlight && !loading && (
-          <motion.div {...fadeUp(0)} className="rounded-[14px] border-[0.5px] border-[hsl(var(--aegis-border))] bg-[hsl(var(--aegis-s1))] px-5 py-4">
+          <motion.div
+            {...fadeUp(0)}
+            className="rounded-2xl sm:rounded-[18px] border-[0.5px] border-[hsl(var(--aegis-border))] bg-[hsl(var(--aegis-s1))] px-4 py-4 sm:px-6 sm:py-5 shadow-[0_4px_24px_hsl(0_0%_0%/0.08)]"
+          >
             <p className="font-display text-[10px] uppercase tracking-[0.2em] text-text-tertiary mb-1.5">
               {t("dashboard.weekInOneSentence")}
             </p>
-            <p className="text-sm leading-relaxed text-text-primary">
+            <p className="text-sm sm:text-[15px] leading-relaxed text-text-primary">
               {locale === "fr" ? highlight.story_fr : highlight.story_en}
             </p>
           </motion.div>
         )}
 
-        <motion.div className="grid grid-cols-2 md:grid-cols-5 gap-3" variants={kpiContainer} initial="initial" animate="animate">
+        <motion.div
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 md:gap-4"
+          variants={kpiContainer}
+          initial="initial"
+          animate="animate"
+        >
           {narratives.map((n) => (
             <motion.div key={n.key} variants={kpiItem}>
               <NarrativeKPICard narrative={n} />
@@ -866,8 +987,8 @@ export default function Dashboard() {
         {/* Hidden trend label (kept to avoid unused-var lint) */}
         <span className="sr-only">{moodTrendLabel}</span>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <NeuralCard className="lg:col-span-2 p-4 md:p-5" glow="blue">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          <NeuralCard className="md:col-span-2 lg:col-span-2 p-4 sm:p-5 md:p-6" glow="blue">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="mb-2 flex items-center gap-2">
@@ -890,12 +1011,12 @@ export default function Dashboard() {
               {loading ? "—" : t("dashboard.neuralMapStat", { n: String(people.length) })}
             </div>
           </NeuralCard>
-          <NeuralCard glow="purple" className="p-4 md:p-5">
+          <NeuralCard glow="purple" className="md:col-span-2 lg:col-span-1 p-4 sm:p-5 md:p-6">
             <AIInsights />
           </NeuralCard>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
           <div>{user ? <HabitsMiniCard userId={user.id} /> : null}</div>
           <ScoreboardWidget />
           <ScoreCard />

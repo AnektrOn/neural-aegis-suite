@@ -22,6 +22,8 @@ interface ToolboxAssignment {
   title: string;
   title_i18n?: unknown;
   duration: string | null;
+  description?: string | null;
+  description_i18n?: unknown;
   assigned_at: string;
   external_url: string | null;
   widget_config: any;
@@ -474,6 +476,7 @@ export default function ToolboxManagement() {
                   <ToolboxItemPreview
                     contentType={item.content_type}
                     title={pickLocalizedText(locale as Locale, (item as any).title_i18n, item.title)}
+                    description={pickLocalizedText(locale as Locale, item.description_i18n as any, item.description)}
                     widgetConfig={item.widget_config}
                     externalUrl={item.external_url}
                   />

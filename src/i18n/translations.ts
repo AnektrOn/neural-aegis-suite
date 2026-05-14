@@ -13,6 +13,8 @@ export const translations = {
   "nav.analytics": { fr: "Analytiques", en: "Analytics" },
   "nav.calendar": { fr: "Calendrier", en: "Calendar" },
   "nav.profile": { fr: "Profil", en: "Profile" },
+  "nav.installApp": { fr: "Installer l'app", en: "Install app" },
+  "nav.deepDiveScores": { fr: "Scores Deep Dive", en: "Deep Dive scores" },
   "nav.deepDive": { fr: "Deep Dive", en: "Deep Dive" },
   "deepDive.viewReport": {
     fr: "Voir mon rapport Deep Dive",
@@ -28,6 +30,8 @@ export const translations = {
   "nav.admin": { fr: "Admin", en: "Admin" },
   "nav.logout": { fr: "Se déconnecter", en: "Sign out" },
   "nav.bottom.board": { fr: "Board", en: "Board" },
+  "nav.dockMoreAria": { fr: "Autres destinations", en: "More destinations" },
+  "nav.dockMoreTitle": { fr: "Raccourcis", en: "Shortcuts" },
   "nav.section.daily": { fr: "Quotidien", en: "Daily" },
   "nav.section.reflect": { fr: "Réflexion", en: "Reflect" },
   "nav.section.insights": { fr: "Analyses", en: "Insights" },
@@ -39,6 +43,20 @@ export const translations = {
   },
   "layout.openMenu": { fr: "Ouvrir le menu", en: "Open menu" },
   "layout.closeMenu": { fr: "Fermer le menu", en: "Close menu" },
+  "layout.navSheetTitle": { fr: "Menu de navigation", en: "Navigation menu" },
+  "layout.openUtilityMenu": { fr: "Ouvrir les options du compte", en: "Open account options" },
+  "layout.mobileUtilityTitle": { fr: "Compte et appareil", en: "Account & device" },
+  "layout.mobileUtilityIntro": {
+    fr: "La navigation principale est dans le menu circulaire en bas.",
+    en: "Main navigation lives in the circular menu at the bottom.",
+  },
+  "layout.logoutConfirmTitle": { fr: "Se déconnecter ?", en: "Sign out?" },
+  "layout.logoutConfirmBody": {
+    fr: "Vous pourrez vous reconnecter à tout moment.",
+    en: "You can sign back in anytime.",
+  },
+  "layout.logoutConfirmCancel": { fr: "Annuler", en: "Cancel" },
+  "layout.logoutConfirmAction": { fr: "Déconnexion", en: "Sign out" },
 
   "dashboard.timeAgoNow": { fr: "à l'instant", en: "just now" },
   "dashboard.timeAgoHours": { fr: "il y a {n}h", en: "{n}h ago" },
@@ -465,6 +483,30 @@ export const translations = {
   "profile.profileUpdated": { fr: "Profil mis à jour", en: "Profile updated" },
   "profile.profileUpdatedDesc": { fr: "Vos modifications ont été enregistrées.", en: "Your changes have been saved." },
   "profile.saveError": { fr: "Impossible de sauvegarder.", en: "Unable to save." },
+  "profile.radialTitle": { fr: "Menu radial (mobile)", en: "Radial menu (mobile)" },
+  "profile.radialHint": {
+    fr: "Choisissez les raccourcis affichés dans le menu circulaire en bas de l’écran (1 à 14). L’ordre suit la liste ci-dessous.",
+    en: "Choose shortcuts shown in the bottom circular menu (1–14). Order follows the list below.",
+  },
+  "profile.radialReset": { fr: "Réinitialiser", en: "Reset to defaults" },
+  "profile.radialSave": { fr: "Enregistrer le menu", en: "Save menu" },
+  "profile.radialSaving": { fr: "Enregistrement...", en: "Saving..." },
+  "profile.radialSavedTitle": { fr: "Menu enregistré", en: "Menu saved" },
+  "profile.radialSavedDesc": {
+    fr: "Vos raccourcis seront mis à jour sur le dock mobile.",
+    en: "Your shortcuts will update on the mobile dock.",
+  },
+
+  "settings.sectionLabel": { fr: "Compte", en: "Account" },
+  "settings.title": { fr: "Réglages", en: "Settings" },
+  "settings.subtitle": {
+    fr: "Thème, langue et notifications pour cette application.",
+    en: "Theme, language, and notifications for this app.",
+  },
+  "settings.appearance": { fr: "Apparence", en: "Appearance" },
+  "settings.theme": { fr: "Thème clair / sombre", en: "Light / dark theme" },
+  "settings.language": { fr: "Langue", en: "Language" },
+  "settings.notifications": { fr: "Notifications push", en: "Push notifications" },
 
   // Habits
   "habits.performanceArchitecture": { fr: "Architecture de Performance", en: "Performance Architecture" },
@@ -498,6 +540,7 @@ export const translations = {
 
   // Scoreboard
   "scoreboard.yesterday": { fr: "Scoreboard d'hier", en: "Yesterday's scoreboard" },
+  "scoreboard.compactEmpty": { fr: "Aucun score hier — voir analytiques", en: "No score yesterday — see analytics" },
   "scoreboard.criteriaMet": { fr: "Critères atteints", en: "Criteria met" },
   "scoreboard.criteriaNotMet": { fr: "Non atteints", en: "Not met" },
   "scoreboard.pts": { fr: "pts", en: "pts" },
@@ -512,6 +555,7 @@ export const translations = {
 
   // Notifications
   "notifications.title": { fr: "Notifications", en: "Notifications" },
+  "notifications.openPanel": { fr: "Ouvrir les notifications", en: "Open notifications" },
   "notifications.markAllRead": { fr: "Tout marquer comme lu", en: "Mark all as read" },
   "notifications.none": { fr: "Aucune notification", en: "No notifications" },
 
@@ -607,6 +651,30 @@ export const translations = {
   },
   "dashboard.openRelationsGraph": { fr: "Ouvrir le graphe", en: "Open graph" },
   "dashboard.neuralMapStat": { fr: "{n} contacts dans votre réseau", en: "{n} contacts in your network" },
+  "dashboard.pageTitle": { fr: "Dashboard neural", en: "Neural Dashboard" },
+  "dashboard.quickLogCta": { fr: "Log rapide", en: "Quick log" },
+  "dashboard.a11yOpenAllHabits": { fr: "Ouvrir la page habitudes", en: "Open habits page" },
+  "dashboard.moodTrendVsWeekUp": { fr: "+{n} par rapport à la semaine précédente", en: "+{n} vs last week" },
+  "dashboard.moodTrendVsWeekDown": { fr: "−{n} par rapport à la semaine précédente", en: "−{n} vs last week" },
+  "dashboard.heroProgressAria": { fr: "Progression des habitudes cette semaine : {n} pour cent", en: "Habit progress this week: {n} percent" },
+  "dashboard.a11yToggleHabit": {
+    fr: "Habitude : {name}. Appuyer pour cocher ou décocher.",
+    en: "Habit: {name}. Press to toggle completion.",
+  },
+  "dashboard.pullRefreshHint": {
+    fr: "En haut de la page, tirez vers le bas pour actualiser les données.",
+    en: "At the top of the page, pull down to refresh your data.",
+  },
+  "dashboard.pullRefreshDismiss": { fr: "Compris", en: "Got it" },
+  "dashboard.loadError": {
+    fr: "Impossible de charger le tableau de bord. Vérifiez votre connexion.",
+    en: "Could not load the dashboard. Check your connection.",
+  },
+  "dashboard.retry": { fr: "Réessayer", en: "Retry" },
+  "dashboard.digestAriaLabel": {
+    fr: "Cette semaine : humeur {mood}, habitudes {habit} pour cent, série {streak} jours",
+    en: "This week: mood {mood}, habits {habit} percent, streak {streak} days",
+  },
 
   "admin.nav.placeTags": { fr: "Tags lieux", en: "Place tags" },
   "admin.nav.userPlaces": { fr: "Lieux utilisateurs", en: "User places" },

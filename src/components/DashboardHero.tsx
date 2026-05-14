@@ -3,12 +3,14 @@ interface DashboardHeroProps {
   sessionLabel: string;
   /** 0–100 */
   progress: number;
+  /** Screen reader label for the circular progress (e.g. percent this week). */
+  progressAriaLabel: string;
 }
 
 const R = 20;
 const CIRC = 2 * Math.PI * R;
 
-export default function DashboardHero({ greeting, sessionLabel, progress }: DashboardHeroProps) {
+export default function DashboardHero({ greeting, sessionLabel, progress, progressAriaLabel }: DashboardHeroProps) {
   const pct = Math.min(100, Math.max(0, progress));
   const dash = (pct / 100) * CIRC;
   const gap = CIRC - dash;
@@ -25,8 +27,12 @@ export default function DashboardHero({ greeting, sessionLabel, progress }: Dash
         <div className="h-[14px] w-[4px] rounded-[1px] bg-foreground/25" />
       </div>
 
-      <div className="absolute top-3 right-3 w-[52px] h-[52px]">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48" aria-hidden>
+      <div
+        className="absolute top-3 right-3 w-[52px] h-[52px] sm:top-4 sm:right-4 sm:w-[58px] sm:h-[58px] md:w-[62px] md:h-[62px]"
+        role="img"
+        aria-label={progressAriaLabel}
+      >
+        <svg className="w-full h-full -rotate-90 sm:scale-[1.06] md:scale-[1.1] origin-center" viewBox="0 0 48 48" aria-hidden>
           <circle
             cx="24"
             cy="24"
@@ -48,9 +54,13 @@ export default function DashboardHero({ greeting, sessionLabel, progress }: Dash
         </svg>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-8 rounded-b-[20px] dashboard-hero-fade">
-        <p className="font-barlow text-[9px] font-medium uppercase tracking-[0.28em] text-primary/90">{sessionLabel}</p>
-        <p className="font-cormorant text-[28px] font-light leading-tight tracking-tight text-primary mt-0.5">{greeting}</p>
+      <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-8 sm:px-5 sm:pb-5 sm:pt-9 md:px-6 rounded-b-[20px] dashboard-hero-fade">
+        <p className="font-barlow text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.22em] sm:tracking-[0.26em] text-primary/90">
+          {sessionLabel}
+        </p>
+        <p className="font-cormorant text-[28px] sm:text-[32px] md:text-[36px] font-light leading-[1.08] tracking-tight text-primary mt-1 sm:mt-1.5">
+          {greeting}
+        </p>
       </div>
     </div>
   );
