@@ -2,7 +2,18 @@
 // Uploads a Deep Dive V2 report (user or admin variant) to Google Drive
 // via the Lovable Google Drive connector gateway.
 //
-// Folder layout: {ROOT_FOLDER_ID}/{ClientName}/DeepDiveV2/{filename}
+// Folder layout (markdown, default):
+//   {ROOT_FOLDER_ID}/{ClientName}/DeepDiveV2/{ts}_{stem}/
+//     00-lisez-moi.md
+//     01-rapport.md
+//     02-profil.md
+//     03-deep-dive-70-questions.md
+//     04-deep-dive-70-scores.md
+//     05-quiz-30-sessions.md
+//     06-snapshots-analyses-recommandations.md
+//     07-dump-complet.json
+//
+// Legacy single-file markdown: set body.singleMarkdownFile: true
 //
 // POST body:
 //   {
@@ -13,6 +24,7 @@
 //     content?:     string                 (pre-rendered markdown)
 //     payload?:     object                 (raw JSON when format=json)
 //     filenameStem?: string                (optional override)
+//     singleMarkdownFile?: boolean         (default false for markdown)
 //   }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -24,7 +36,6 @@ type CatalogHouse = { number: number; label_fr: string; label_en: string; theme_
 
 const CATALOG_QUESTIONS: CatalogQuestion[] = (QUESTIONS_CATALOG as any).questions;
 const CATALOG_HOUSES: CatalogHouse[] = (QUESTIONS_CATALOG as any).houses;
-const CATALOG_BY_CODE = new Map(CATALOG_QUESTIONS.map((q) => [q.id, q]));
 const CATALOG_OPT_BY_CODE = new Map<string, { q: CatalogQuestion; o: CatalogOption }>();
 for (const q of CATALOG_QUESTIONS) for (const o of q.options) CATALOG_OPT_BY_CODE.set(o.id, { q, o });
 
@@ -201,14 +212,13 @@ async function fetchFullDeepDiveData(admin: any, userId: string, assessmentId?: 
   };
 }
 
-function renderFullDataAppendix(d: any): string {
-  const lines: string[] = [];
-  lines.push("---", "", "# 📦 Annexe — Données complètes (Deep Dive · Quiz · Archétypes)", "");
-  lines.push(`_Généré le ${new Date().toISOString()}_`, "");
+type DeepDiveComputed = {
+  ddByCode: Map<string, any>;
+  archRanking: { archetype: string; light: number; shadow: number; net: number; total: number }[];
+  answered: number;
+};
 
-  lines.push("## Profil utilisateur", "```json", JSON.stringify(d.profile, null, 2), "```", "");
-
-  // -------- Deep Dive (70 questions) — enriched with prompts + interpretation --------
+function computeDeepDiveFromResponses(d: any): DeepDiveComputed {
   const ddByCode = new Map<string, any>();
   for (const r of d.deepdive_responses) ddByCode.set(r.question_code, r);
 
@@ -230,6 +240,180 @@ function renderFullDataAppendix(d: any): string {
   const archRanking = Object.entries(arch)
     .map(([k, v]) => ({ archetype: k, light: v.light, shadow: v.shadow, net: v.light - v.shadow, total: v.light + v.shadow }))
     .sort((a, b) => b.total - a.total);
+
+  return { ddByCode, archRanking, answered };
+}
+
+function exportMetaComment(p: {
+  exportType: string;
+  userId: string;
+  assessmentId: string | null;
+  generatedBy: string;
+  generatedAt: string;
+}): string {
+  return [
+    `<!--`,
+    `exportType: ${p.exportType}`,
+    `generatedAt: ${p.generatedAt}`,
+    `userId: ${p.userId}`,
+    `assessmentId: ${p.assessmentId ?? "null"}`,
+    `generatedBy: ${p.generatedBy}`,
+    `-->`,
+    "",
+  ].join("\n");
+}
+
+function renderProfileMd(d: any, generatedAt: string): string {
+  const lines: string[] = [];
+  lines.push("---", "", "# Profil utilisateur", "");
+  lines.push(`_Généré le ${generatedAt}_`, "");
+  lines.push("```json", JSON.stringify(d.profile, null, 2), "```", "");
+  return lines.join("\n");
+}
+
+function renderDeepDive70QuestionsMd(d: any, computed: DeepDiveComputed, generatedAt: string): string {
+  const { ddByCode, answered } = computed;
+  const lines: string[] = [];
+  lines.push("---", "", "# Deep Dive (70) — Questions, options, pondérations, réponses", "");
+  lines.push(`_Généré le ${generatedAt} · ${answered}/${CATALOG_QUESTIONS.length} questions avec réponse_`, "");
+
+  for (const h of CATALOG_HOUSES) {
+    const houseQs = CATALOG_QUESTIONS.filter((q) => q.house === h.number).sort((a, b) => a.position - b.position);
+    if (houseQs.length === 0) continue;
+    lines.push(`## Maison ${h.number} — ${h.label_fr} (${h.label_en})`);
+    lines.push(`_${h.theme_fr}_`, "");
+    for (const q of houseQs) {
+      const r = ddByCode.get(q.id);
+      const sel: string[] = r?.option_codes ?? [];
+      lines.push(`### Q${q.position} · \`${q.id}\` — ${q.prompt_fr}`);
+      lines.push(`*EN:* ${q.prompt_en}`, "");
+      for (const o of q.options) {
+        const mark = sel.includes(o.id) ? "✅" : "▫️";
+        const wstr = o.weights.map((w) => `${w.archetype}/${w.polarity}=${w.weight}`).join(", ");
+        lines.push(`- ${mark} \`${o.id}\` — **FR:** ${o.label_fr}`);
+        lines.push(`  - *EN:* ${o.label_en}`);
+        lines.push(`  - *Pondération:* ${wstr || "-"}`);
+      }
+      if (r) {
+        if (r.text_value) lines.push(`- 📝 Texte libre: ${r.text_value}`);
+        if (r.numeric_value != null) lines.push(`- 🔢 Numérique: ${r.numeric_value}`);
+        lines.push(`- 🕒 Répondu: ${r.created_at}  ·  MAJ: ${r.updated_at}`);
+      } else {
+        lines.push(`- ⚠️ Non répondu`);
+      }
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+
+function renderDeepDive70ScoresMd(computed: DeepDiveComputed, generatedAt: string): string {
+  const { archRanking } = computed;
+  const lines: string[] = [];
+  lines.push("---", "", "# Deep Dive (70) — Interprétation (scores par archétype)", "");
+  lines.push(`_Généré le ${generatedAt}_`, "");
+
+  if (archRanking.length === 0) {
+    lines.push("_Aucune réponse exploitable._", "");
+  } else {
+    lines.push("| Rang | Archétype | Lumière | Ombre | Net | Total |", "|---|---|---|---|---|---|");
+    archRanking.forEach((a, i) =>
+      lines.push(`| ${i + 1} | ${a.archetype} | ${a.light} | ${a.shadow} | ${a.net} | ${a.total} |`),
+    );
+    lines.push("");
+    const top3 = archRanking.slice(0, 3);
+    const shadowDom = archRanking.filter((a) => a.shadow > a.light);
+    lines.push(`**Top 3 archétypes (par poids total):** ${top3.map((a) => `${a.archetype} (net ${a.net})`).join(", ")}`);
+    if (shadowDom.length) {
+      lines.push(`**Alertes ombre (shadow > light):** ${shadowDom.map((a) => `${a.archetype} (L=${a.light}/S=${a.shadow})`).join(", ")}`);
+    } else {
+      lines.push(`**Alertes ombre:** _aucune_`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+function renderQuiz30SessionsMd(d: any, generatedAt: string): string {
+  const lines: string[] = [];
+  lines.push("---", "", "# Quiz / assessment (30) — Sessions, réponses détaillées, scores", "");
+  lines.push(`_Généré le ${generatedAt}_`, "");
+  lines.push(`## Sessions (${d.assessment_sessions.length})`, "");
+
+  for (const s of d.assessment_sessions) {
+    const tpl = d.assessment_templates.find((t: any) => t.id === s.template_id);
+    lines.push(`### Session ${s.id}${s.id === d.targetSessionId ? " ⭐ (cible export)" : ""}`);
+    lines.push(`- **Template:** ${tpl?.title_fr ?? tpl?.slug ?? s.template_id}`);
+    lines.push(`- **Statut:** ${s.status}  ·  **Démarrée:** ${s.started_at}  ·  **Soumise:** ${s.submitted_at ?? "-"}`);
+    lines.push(`- **Durée:** ${s.duration_seconds ?? "-"}s  ·  **Confiance:** ${s.confidence_score ?? "-"}`, "");
+
+    const sResp = d.assessment_responses.filter((r: any) => r.session_id === s.id);
+    lines.push(`#### Réponses (${sResp.length})`, "");
+    for (const r of sResp) {
+      const q = d.assessment_questions.find((q: any) => q.id === r.question_id);
+      const selOpts = (r.selected_option_ids ?? []).map((oid: string) => {
+        const o = d.assessment_options.find((o: any) => o.id === oid);
+        return o ? `[${o.position}] ${o.label_fr ?? o.label_en} (w=${JSON.stringify(o.archetype_weights)} shadow=${JSON.stringify(o.shadow_weights)})` : oid;
+      });
+      lines.push(`- **Q${q?.position ?? "?"} — ${q?.prompt_fr ?? q?.prompt_en ?? r.question_id}**`);
+      lines.push(`  - House: ${q?.house ?? "-"} · Dim: ${q?.dimension ?? "-"} · Type: ${q?.question_type ?? "-"}`);
+      if (selOpts.length) lines.push(`  - Sélection:\n    - ${selOpts.join("\n    - ")}`);
+      if (r.text_value) lines.push(`  - Texte: ${r.text_value}`);
+      if (r.numeric_value != null) lines.push(`  - Numérique: ${r.numeric_value}`);
+      lines.push(`  - Raw: \`${JSON.stringify(r.raw_payload)}\``);
+    }
+    lines.push("");
+
+    const sScores = d.archetype_scores.filter((x: any) => x.session_id === s.id);
+    if (sScores.length) {
+      lines.push(`#### Scores archétypes (session)`, "", "| Rang | Archétype | Brut | Normalisé |", "|---|---|---|---|");
+      for (const sc of sScores) lines.push(`| ${sc.rank} | ${sc.archetype_key} | ${sc.raw_score} | ${sc.normalized_score} |`);
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+
+function renderSnapshotsAnalysesMd(d: any, generatedAt: string): string {
+  const lines: string[] = [];
+  lines.push("---", "", "# Snapshots, analyses, recommandations", "");
+  lines.push(`_Généré le ${generatedAt}_`, "");
+  lines.push(`## Snapshots de profil archétype (${d.archetype_profile_snapshots.length})`, "```json", JSON.stringify(d.archetype_profile_snapshots, null, 2), "```", "");
+  lines.push(`## Résultats d'analyse (${d.analysis_results.length})`, "```json", JSON.stringify(d.analysis_results, null, 2), "```", "");
+  lines.push(`## Recommandations (${d.recommendation_tools.length})`, "```json", JSON.stringify(d.recommendation_tools, null, 2), "```", "");
+  return lines.join("\n");
+}
+
+function renderReadmeIndexMd(p: {
+  metaComment: string;
+  generatedAt: string;
+  clientName: string;
+  bundleRelPath: string;
+  files: { name: string; role: string }[];
+}): string {
+  const lines: string[] = [];
+  lines.push(p.metaComment);
+  lines.push("# Export Aegis — index", "");
+  lines.push(`- **Client:** ${p.clientName}`);
+  lines.push(`- **Dossier Drive:** \`${p.bundleRelPath}\``);
+  lines.push(`- **Généré:** ${p.generatedAt}`, "");
+  lines.push("## Fichiers", "");
+  for (const f of p.files.filter((x) => x.name !== "00-lisez-moi.md")) {
+    lines.push(`- \`${f.name}\` — ${f.role}`);
+  }
+  lines.push("", "---", "", "*Ouvrez `01-rapport.md` pour le rapport principal (vue Obsidian).*", "");
+  return lines.join("\n");
+}
+
+/** Legacy: one markdown with report + full appendix + embedded JSON dump. */
+function renderFullDataAppendix(d: any, computed: DeepDiveComputed): string {
+  const lines: string[] = [];
+  lines.push("---", "", "# 📦 Annexe — Données complètes (Deep Dive · Quiz · Archétypes)", "");
+  lines.push(`_Généré le ${new Date().toISOString()}_`, "");
+
+  lines.push("## Profil utilisateur", "```json", JSON.stringify(d.profile, null, 2), "```", "");
+
+  const { ddByCode, archRanking, answered } = computed;
 
   lines.push(`## Deep Dive — Réponses (${answered}/${CATALOG_QUESTIONS.length}) avec questions, options et pondérations`, "");
   for (const h of CATALOG_HOUSES) {
@@ -388,77 +572,156 @@ Deno.serve(async (req) => {
       .eq("id", userId).maybeSingle();
     const clientName = sanitize(profile?.display_name || userId);
 
-    let fileBody: string;
-    let mimeType: string;
-    let ext: string;
+    const generatedAtIso = new Date().toISOString();
+    const ts = generatedAtIso.replace(/[:.]/g, "-").slice(0, 19);
+    const stem = sanitize(filenameStem || `deep-dive-v2-${exportType}-${clientName}`);
+    const singleMarkdownFile = body.singleMarkdownFile === true;
+
+    const metaComment = exportMetaComment({
+      exportType,
+      generatedAt: generatedAtIso,
+      userId,
+      assessmentId: assessmentId ?? null,
+      generatedBy: user.id,
+    });
+
+    // ---- Fetch ALL related data (deep dive + quiz + archetypes) ----
+    const fullData = await fetchFullDeepDiveData(admin, userId, assessmentId);
+    const computed = computeDeepDiveFromResponses(fullData);
+
+    const clientFolderId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
+    const ddFolderId = await findOrCreateFolder(admin, clientFolderId, "DeepDiveV2");
 
     if (format === "json") {
       const obj = payload ?? { note: "no payload provided", content: content ?? null };
-      fileBody = JSON.stringify(
+      let fileBody = JSON.stringify(
         {
           exportType,
-          generatedAt: new Date().toISOString(),
+          generatedAt: generatedAtIso,
           userId,
           assessmentId: assessmentId ?? null,
           generatedBy: user.id,
           data: obj,
         },
-        null, 2,
+        null,
+        2,
       );
-      mimeType = "application/json";
-      ext = "json";
-    } else {
-      if (typeof content !== "string" || !content.trim()) {
-        return new Response(JSON.stringify({ error: "Missing 'content' (markdown report) for format=markdown" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const meta = [
-        `<!--`,
-        `exportType: ${exportType}`,
-        `generatedAt: ${new Date().toISOString()}`,
-        `userId: ${userId}`,
-        `assessmentId: ${assessmentId ?? "null"}`,
-        `generatedBy: ${user.id}`,
-        `-->`,
-        "",
-      ].join("\n");
-      fileBody = meta + content;
-      mimeType = "text/markdown";
-      ext = "md";
-    }
-
-    // ---- Fetch ALL related data (deep dive + quiz + archetypes) ----
-    const fullData = await fetchFullDeepDiveData(admin, userId, assessmentId);
-
-    if (format === "json") {
-      // Merge into JSON
       const parsed = JSON.parse(fileBody);
       parsed.data = { client: parsed.data, fullExport: fullData };
       fileBody = JSON.stringify(parsed, null, 2);
-    } else {
-      // Append a structured appendix + raw JSON dump to the markdown
-      const appendix = renderFullDataAppendix(fullData);
-      fileBody = fileBody + "\n\n" + appendix;
+      const fileName = `${ts}_${stem}.json`;
+      const uploaded = await uploadFile(ddFolderId, fileName, fileBody, "application/json");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          exportType,
+          bundleFolder: null,
+          fileId: uploaded.id,
+          fileName: uploaded.name,
+          webViewLink: uploaded.webViewLink,
+          path: `${clientName}/DeepDiveV2/${fileName}`,
+          files: [{ id: uploaded.id, name: uploaded.name, webViewLink: uploaded.webViewLink, path: `${clientName}/DeepDiveV2/${fileName}` }],
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    const stem = sanitize(filenameStem || `deep-dive-v2-${exportType}-${clientName}`);
-    const fileName = `${ts}_${stem}.${ext}`;
+    if (typeof content !== "string" || !content.trim()) {
+      return new Response(JSON.stringify({ error: "Missing 'content' (markdown report) for format=markdown" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // {ROOT}/{ClientName}/DeepDiveV2/
-    const clientFolderId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
-    const ddFolderId = await findOrCreateFolder(admin, clientFolderId, "DeepDiveV2");
-    const uploaded = await uploadFile(ddFolderId, fileName, fileBody, mimeType);
+    if (singleMarkdownFile) {
+      const appendix = renderFullDataAppendix(fullData, computed);
+      const fileBody = metaComment + content.trim() + "\n\n" + appendix;
+      const fileName = `${ts}_${stem}.md`;
+      const uploaded = await uploadFile(ddFolderId, fileName, fileBody, "text/markdown");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          exportType,
+          bundleFolder: null,
+          fileId: uploaded.id,
+          fileName: uploaded.name,
+          webViewLink: uploaded.webViewLink,
+          path: `${clientName}/DeepDiveV2/${fileName}`,
+          files: [{ id: uploaded.id, name: uploaded.name, webViewLink: uploaded.webViewLink, path: `${clientName}/DeepDiveV2/${fileName}` }],
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
+    const bundleName = `${ts}_${stem}`;
+    const bundleFolderId = await findOrCreateFolder(admin, ddFolderId, bundleName);
+    const bundleRelPath = `${clientName}/DeepDiveV2/${bundleName}`;
+
+    const manifest: { name: string; role: string }[] = [
+      { name: "00-lisez-moi.md", role: "Index, métadonnées, liste des fichiers" },
+      { name: "01-rapport.md", role: "Rapport principal (markdown généré dans l'app)" },
+      { name: "02-profil.md", role: "Profil utilisateur (JSON)" },
+      { name: "03-deep-dive-70-questions.md", role: "Quiz 70 — chaque question, options, pondérations, réponse" },
+      { name: "04-deep-dive-70-scores.md", role: "Quiz 70 — agrégation / interprétation par archétype" },
+      { name: "05-quiz-30-sessions.md", role: "Quiz 30 — sessions, réponses détaillées, scores par session" },
+      { name: "06-snapshots-analyses-recommandations.md", role: "Snapshots, analysis_results, recommendation_tools" },
+      { name: "07-dump-complet.json", role: "Dump JSON unique (toutes les tables exportées)" },
+    ];
+
+    const pieces: { name: string; body: string; mimeType: string }[] = [
+      {
+        name: "00-lisez-moi.md",
+        body: renderReadmeIndexMd({
+          metaComment,
+          generatedAt: generatedAtIso,
+          clientName,
+          bundleRelPath,
+          files: manifest,
+        }),
+        mimeType: "text/markdown",
+      },
+      { name: "01-rapport.md", body: metaComment + content.trim(), mimeType: "text/markdown" },
+      { name: "02-profil.md", body: metaComment + renderProfileMd(fullData, generatedAtIso), mimeType: "text/markdown" },
+      {
+        name: "03-deep-dive-70-questions.md",
+        body: metaComment + renderDeepDive70QuestionsMd(fullData, computed, generatedAtIso),
+        mimeType: "text/markdown",
+      },
+      {
+        name: "04-deep-dive-70-scores.md",
+        body: metaComment + renderDeepDive70ScoresMd(computed, generatedAtIso),
+        mimeType: "text/markdown",
+      },
+      { name: "05-quiz-30-sessions.md", body: metaComment + renderQuiz30SessionsMd(fullData, generatedAtIso), mimeType: "text/markdown" },
+      {
+        name: "06-snapshots-analyses-recommandations.md",
+        body: metaComment + renderSnapshotsAnalysesMd(fullData, generatedAtIso),
+        mimeType: "text/markdown",
+      },
+      { name: "07-dump-complet.json", body: JSON.stringify(fullData, null, 2), mimeType: "application/json" },
+    ];
+
+    const uploadedList: { id: string; name: string; webViewLink: string | null; path: string }[] = [];
+    for (const p of pieces) {
+      const up = await uploadFile(bundleFolderId, p.name, p.body, p.mimeType);
+      uploadedList.push({
+        id: up.id,
+        name: up.name,
+        webViewLink: up.webViewLink,
+        path: `${bundleRelPath}/${p.name}`,
+      });
+    }
+
+    const primary = uploadedList[1] ?? uploadedList[0];
     return new Response(
       JSON.stringify({
         success: true,
         exportType,
-        fileId: uploaded.id,
-        fileName: uploaded.name,
-        webViewLink: uploaded.webViewLink,
-        path: `${clientName}/DeepDiveV2/${fileName}`,
+        bundleFolder: bundleName,
+        fileId: primary.id,
+        fileName: primary.name,
+        webViewLink: primary.webViewLink,
+        path: bundleRelPath,
+        files: uploadedList,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
