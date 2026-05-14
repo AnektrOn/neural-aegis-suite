@@ -391,7 +391,9 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
                       });
                       toast({
                         title: isFR ? "Exporté sur Drive" : "Exported to Drive",
-                        description: res.fileName,
+                        description: isFR
+                          ? `${res.files?.length ?? 1} fichier(s) · ${res.path ?? res.fileName}`
+                          : `${res.files?.length ?? 1} file(s) · ${res.path ?? res.fileName}`,
                       });
                     } catch (e: any) {
                       toast({

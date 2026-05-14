@@ -18,6 +18,18 @@ export interface ExportDeepDiveToDriveArgs {
   payload?: unknown;
   /** Optional override for the filename stem (sanitized server-side). */
   filenameStem?: string;
+  /**
+   * When true, uploads one markdown file (report + full appendix) like the legacy export.
+   * Default false: multiple files under a timestamped subfolder on Drive.
+   */
+  singleMarkdownFile?: boolean;
+}
+
+export interface DriveUploadedFile {
+  id: string;
+  name: string;
+  webViewLink: string | null;
+  path: string;
 }
 
 export interface ExportDeepDiveToDriveResult {
@@ -26,6 +38,10 @@ export interface ExportDeepDiveToDriveResult {
   fileName: string;
   webViewLink: string | null;
   exportType: DeepDiveExportType;
+  /** Subfolder name under DeepDiveV2 when using multi-file markdown export; null otherwise. */
+  bundleFolder: string | null;
+  /** All uploaded files (multi-file export); may be a single element for JSON or legacy MD. */
+  files: DriveUploadedFile[];
 }
 
 export async function exportDeepDiveV2ToDrive(
