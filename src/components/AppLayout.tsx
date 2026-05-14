@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSessionTracking } from "@/hooks/use-session-tracking";
@@ -18,12 +18,23 @@ import {
   BookOpen,
   UserCircle,
   CalendarDays,
-  Menu,
+  MoreVertical,
   FileText,
-  X,
   Library,
+  Smartphone,
+  LineChart,
+  Settings2,
 } from "lucide-react";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
+import { MobileDockCircleMenu } from "@/components/MobileDockCircleMenu";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  DEFAULT_MOBILE_RADIAL_MENU_IDS,
+  orderSelectedRadialIds,
+  radialPathIsActive,
+  RADIAL_CATALOG,
+  type MobileRadialMenuId,
+} from "@/lib/mobileRadialMenuCatalog";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
@@ -35,57 +46,18 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
 import AppFooter from "@/components/AppFooter";
 import { useNetwork } from "@/hooks/use-network";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-
-const mobileDockKeys = [
-  { to: "/", icon: LayoutDashboard, labelKey: "nav.bottom.board" as const },
-  { to: "/decisions", icon: Target, labelKey: "nav.decisions" as const },
-  { to: "/people", icon: Users, labelKey: "nav.people" as const },
-  { to: "/mood", icon: Brain, labelKey: "nav.mood" as const },
-  { to: "/habits", icon: ListChecks, labelKey: "nav.habits" as const },
-];
-
-type MobileSection = {
-  titleKey: "nav.section.daily" | "nav.section.reflect" | "nav.section.insights" | "nav.section.account";
-  items: Array<{
-    to: string;
-    icon: typeof LayoutDashboard;
-    labelKey: Parameters<ReturnType<typeof useLanguage>["t"]>[0];
-  }>;
-};
-
-const mobileMenuSections: MobileSection[] = [
-  {
-    titleKey: "nav.section.daily",
-    items: [
-      { to: "/", icon: LayoutDashboard, labelKey: "nav.dashboard" as const },
-      { to: "/mood", icon: Brain, labelKey: "nav.mood" as const },
-      { to: "/decisions", icon: Target, labelKey: "nav.decisions" as const },
-      { to: "/habits", icon: ListChecks, labelKey: "nav.habits" as const },
-    ],
-  },
-  {
-    titleKey: "nav.section.reflect",
-    items: [
-      { to: "/journal", icon: BookOpen, labelKey: "nav.journal" as const },
-      { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" as const },
-      { to: "/bibliotheque", icon: Library, labelKey: "nav.bibliotheque" as const },
-      { to: "/people", icon: Users, labelKey: "nav.people" as const },
-      { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" as const },
-    ],
-  },
-  {
-    titleKey: "nav.section.insights",
-    items: [
-      { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" as const },
-      { to: "/deep-dive", icon: FileText, labelKey: "nav.deepDive" as const },
-    ],
-  },
-  {
-    titleKey: "nav.section.account",
-    items: [{ to: "/profile", icon: UserCircle, labelKey: "nav.profile" as const }],
-  },
-];
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const navKeys = [
   { to: "/", icon: LayoutDashboard, key: "nav.dashboard" as const },
@@ -99,6 +71,9 @@ const navKeys = [
   { to: "/analytics", icon: BarChart3, key: "nav.analytics" as const },
   { to: "/calendar", icon: CalendarDays, key: "nav.calendar" as const },
   { to: "/deep-dive", icon: FileText, key: "nav.deepDive" as const },
+  { to: "/deep-dive/scores", icon: LineChart, key: "nav.deepDiveScores" as const },
+  { to: "/install", icon: Smartphone, key: "nav.installApp" as const },
+  { to: "/settings", icon: Settings2, key: "profile.settings" as const },
   { to: "/profile", icon: UserCircle, key: "nav.profile" as const },
 ];
 
@@ -119,7 +94,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
         )}
       </div>
 
-      <nav className="flex-1 flex flex-col gap-0.5 py-3 px-0 overflow-y-auto">
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto py-3 px-0">
         {navKeys.map((item) => {
           const isActive = location.pathname === item.to;
           return (
@@ -151,7 +126,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
         <Link
           to="/admin"
           onClick={onNavigate}
-          className="mx-2 mb-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-accent-warning/80 hover:text-accent-warning hover:bg-accent-warning/5 border border-transparent hover:border-accent-warning/15 transition-all"
+          className="mx-2 mb-2 flex shrink-0 items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-accent-warning/80 transition-all hover:border-accent-warning/15 hover:bg-accent-warning/5 hover:text-accent-warning"
         >
           <Shield size={16} strokeWidth={1.5} className="shrink-0" />
           {!collapsed && (
@@ -160,14 +135,16 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
         </Link>
       )}
 
-      <div className="mx-3 mb-1">
+      <div className="mx-3 mb-1 shrink-0">
         <NotificationBell />
       </div>
-      <ThemeToggle collapsed={collapsed} />
-      <LanguageSwitcher collapsed={collapsed} />
+      <div className="shrink-0">
+        <ThemeToggle collapsed={collapsed} />
+        <LanguageSwitcher collapsed={collapsed} />
+      </div>
       <button
         onClick={signOut}
-        className="mx-3 p-3 rounded-lg text-text-secondary hover:text-accent-danger hover:bg-accent-danger/5 transition-colors duration-200"
+        className="mx-3 shrink-0 rounded-lg p-3 text-text-secondary transition-colors duration-200 hover:bg-accent-danger/5 hover:text-accent-danger"
         title={t("nav.logout")}
       >
         <LogOut size={16} strokeWidth={1.5} />
@@ -178,8 +155,11 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileUtilityOpen, setMobileUtilityOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [dockRadialOpen, setDockRadialOpen] = useState(false);
+  const [radialMenuIds, setRadialMenuIds] = useState<MobileRadialMenuId[]>(DEFAULT_MOBILE_RADIAL_MENU_IDS);
   const touchStartY = useRef(0);
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -190,9 +170,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useHesitationTracking();
   const { online } = useNetwork();
 
+  const fetchRadialMenu = useCallback(async (uid: string) => {
+    const { data, error } = await supabase.from("profiles").select("mobile_radial_menu").eq("id", uid).maybeSingle();
+    if (error) {
+      console.error("mobile_radial_menu load", error);
+      return DEFAULT_MOBILE_RADIAL_MENU_IDS;
+    }
+    return orderSelectedRadialIds(data?.mobile_radial_menu);
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setRadialMenuIds(DEFAULT_MOBILE_RADIAL_MENU_IDS);
+      return;
+    }
+    let alive = true;
+    void fetchRadialMenu(user.id).then((ids) => {
+      if (alive) setRadialMenuIds(ids);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user, fetchRadialMenu]);
+
+  useEffect(() => {
+    if (!user) return;
+    const onUpdate = () => {
+      void fetchRadialMenu(user.id).then(setRadialMenuIds);
+    };
+    window.addEventListener("aegis:radial-menu-updated", onUpdate);
+    return () => window.removeEventListener("aegis:radial-menu-updated", onUpdate);
+  }, [user, fetchRadialMenu]);
+
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
   };
+
   const handleTouchEnd = (e: React.TouchEvent) => {
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
     const scrollTop = (e.currentTarget as HTMLElement).scrollTop;
@@ -214,6 +227,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       ? "calc(var(--safe-top) + var(--mobile-header-toolbar))"
       : "calc(var(--safe-top) + var(--mobile-offline-banner-height) + var(--mobile-header-toolbar))";
 
+    const radialItemsBase = radialMenuIds.map((id) => {
+      const def = RADIAL_CATALOG[id];
+      return {
+        to: def.to,
+        Icon: def.icon,
+        label: t(def.labelKey),
+        isActive: radialPathIsActive(location.pathname, def.to),
+      };
+    });
+    const radialItems =
+      isAdmin
+        ? [
+            ...radialItemsBase,
+            {
+              to: "/admin",
+              Icon: Shield,
+              label: t("nav.admin"),
+              isActive: location.pathname.startsWith("/admin"),
+            },
+          ]
+        : radialItemsBase;
+    const dockRadialHasActive = radialItems.some((item) => item.isActive);
+
     return (
       <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
         <div
@@ -229,122 +265,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <div className="relative flex min-h-[var(--mobile-header-toolbar)] items-center justify-between box-border px-4 py-3">
-            <div className="flex items-center gap-2 shrink-0">
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <button
-                    type="button"
-                    className="relative z-[60] inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl text-text-tertiary hover:text-text-secondary active:bg-bg-elevated/60 transition-all duration-200 select-none"
-                    aria-label={t("layout.openMenu")}
-                    aria-expanded={mobileMenuOpen}
-                    style={{
-                      WebkitTapHighlightColor: "transparent",
-                      touchAction: "manipulation",
-                    } as React.CSSProperties}
-                  >
-                    <Menu size={22} strokeWidth={1.5} />
-                  </button>
-                </SheetTrigger>
-                <SheetContent
-                  side="left"
-                  className="w-[88vw] max-w-[360px] p-0 bg-bg-surface border-r border-border-subtle flex flex-col [&>button.absolute]:hidden"
-                  style={{
-                    paddingTop: "var(--safe-top)",
-                    paddingBottom: "calc(1rem + var(--safe-bottom))",
-                  }}
-                >
-                  {/* Header */}
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle shrink-0">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <img src={aegisLogo} alt="Aegis" className="w-9 h-9 rounded-xl object-contain shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-cormorant text-[15px] tracking-[0.2em] text-primary truncate">AEGIS</p>
-                        <p className="text-[10px] text-text-tertiary truncate">{user?.email ?? ""}</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="p-2 rounded-lg text-text-tertiary hover:text-text-secondary"
-                      aria-label={t("layout.closeMenu")}
-                    >
-                      <X size={18} strokeWidth={1.5} />
-                    </button>
-                  </div>
-
-                  {/* Scrollable nav */}
-                  <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-                    {mobileMenuSections.map((section) => (
-                      <div key={section.titleKey}>
-                        <p className="px-3 mb-2 text-[9px] tracking-[0.22em] uppercase text-text-tertiary/70 font-medium">
-                          {t(section.titleKey)}
-                        </p>
-                        <div className="flex flex-col gap-0.5">
-                          {section.items.map((item) => {
-                            const isActive = location.pathname === item.to;
-                            return (
-                              <Link
-                                key={item.to}
-                                to={item.to}
-                                onClick={() => setMobileMenuOpen(false)}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200 ${
-                                  isActive
-                                    ? "bg-accent-primary/10 border-accent-primary/25 text-accent-primary"
-                                    : "border-transparent text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-                                }`}
-                              >
-                                <item.icon size={18} strokeWidth={1.5} className="shrink-0" />
-                                <span className="text-[12px] tracking-[0.08em] uppercase font-medium">
-                                  {t(item.labelKey)}
-                                </span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-
-                    {isAdmin && (
-                      <div>
-                        <p className="px-3 mb-2 text-[9px] tracking-[0.22em] uppercase text-accent-warning/70 font-medium">
-                          {t("nav.admin")}
-                        </p>
-                        <Link
-                          to="/admin"
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-accent-warning/15 bg-accent-warning/5 text-accent-warning hover:bg-accent-warning/10 transition-all"
-                        >
-                          <Shield size={18} strokeWidth={1.5} className="shrink-0" />
-                          <span className="text-[12px] tracking-[0.08em] uppercase font-medium">
-                            {t("nav.admin")}
-                          </span>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Footer controls */}
-                  <div className="border-t border-border-subtle/60 px-3 pt-3 space-y-2 shrink-0">
-                    <PushNotificationToggle className="w-full justify-center" />
-                    <div className="flex items-center justify-between gap-2 px-1">
-                      <ThemeToggle collapsed={false} />
-                      <LanguageSwitcher collapsed={false} />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        void signOut();
-                      }}
-                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-accent-danger/80 hover:text-accent-danger hover:bg-accent-danger/5 transition-colors duration-200"
-                    >
-                      <LogOut size={16} strokeWidth={1.5} />
-                      <span className="text-xs tracking-[0.08em] uppercase">{t("nav.logout")}</span>
-                    </button>
-                  </div>
-                </SheetContent>
-              </Sheet>
-              <img src={aegisLogo} alt="Aegis" className="w-8 h-8 rounded-lg object-contain" />
+            <div className="flex shrink-0 items-center">
+              <NavLink
+                to="/"
+                end
+                aria-label={t("nav.dashboard")}
+                className={({ isActive }) =>
+                  cn(
+                    "inline-flex h-10 w-10 min-h-[44px] min-w-[44px] select-none items-center justify-center rounded-xl transition-colors active:scale-[0.98]",
+                    isActive
+                      ? "bg-accent-primary/12 ring-1 ring-accent-primary/35"
+                      : "text-text-tertiary hover:bg-bg-elevated/70 hover:text-text-secondary active:bg-bg-elevated",
+                  )
+                }
+                style={
+                  {
+                    WebkitTapHighlightColor: "transparent",
+                    touchAction: "manipulation",
+                  } as React.CSSProperties
+                }
+              >
+                <img src={aegisLogo} alt="" className="h-8 w-8 rounded-lg object-contain" />
+              </NavLink>
             </div>
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none text-center max-w-[55%]">
               <span className="font-barlow text-[10px] font-medium text-text-tertiary/80 tracking-[0.22em] uppercase leading-tight">
@@ -354,11 +296,95 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 AEGIS
               </span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex shrink-0 items-center gap-1">
               <NotificationBell />
+              <Sheet open={mobileUtilityOpen} onOpenChange={setMobileUtilityOpen}>
+                <SheetTrigger asChild>
+                  <button
+                    type="button"
+                    className="relative z-[60] inline-flex min-h-[44px] min-w-[44px] select-none items-center justify-center rounded-xl p-2 text-text-tertiary transition-colors hover:bg-bg-elevated/70 hover:text-text-secondary active:bg-bg-elevated/80"
+                    aria-label={t("layout.openUtilityMenu")}
+                    aria-expanded={mobileUtilityOpen}
+                    aria-haspopup="dialog"
+                    style={
+                      {
+                        WebkitTapHighlightColor: "transparent",
+                        touchAction: "manipulation",
+                      } as React.CSSProperties
+                    }
+                  >
+                    <MoreVertical size={22} strokeWidth={1.5} />
+                  </button>
+                </SheetTrigger>
+                <SheetContent
+                  side="bottom"
+                  className="flex max-h-[min(88dvh,540px)] flex-col gap-0 rounded-t-[22px] border-border-subtle bg-bg-surface p-0 pb-[max(1rem,var(--safe-bottom))] pt-2 [&>button.absolute]:hidden"
+                >
+                  <SheetTitle className="sr-only">{t("layout.mobileUtilityTitle")}</SheetTitle>
+                  <div className="mx-auto h-1 w-10 shrink-0 rounded-full bg-border/60" aria-hidden />
+                  <div className="border-b border-border-subtle/80 px-5 pb-3 pt-3 text-center">
+                    <p className="font-cormorant text-[14px] tracking-[0.22em] text-primary">{t("layout.mobileUtilityTitle")}</p>
+                    <p className="mt-1 truncate px-2 text-[10px] text-text-tertiary">{user?.email ?? ""}</p>
+                    <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{t("layout.mobileUtilityIntro")}</p>
+                  </div>
+                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setMobileUtilityOpen(false)}
+                        className="flex items-center gap-3 rounded-xl border border-accent-warning/20 bg-accent-warning/5 px-3 py-3 text-accent-warning transition-colors hover:bg-accent-warning/10"
+                      >
+                        <Shield size={18} strokeWidth={1.5} className="shrink-0" />
+                        <span className="text-[12px] font-medium uppercase tracking-[0.08em]">{t("nav.admin")}</span>
+                      </Link>
+                    )}
+                    <Link
+                      to="/settings"
+                      onClick={() => setMobileUtilityOpen(false)}
+                      className={`flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors ${
+                        location.pathname === "/settings"
+                          ? "border-accent-primary/30 bg-accent-primary/10 text-accent-primary"
+                          : "border-border/40 bg-secondary/10 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+                      }`}
+                    >
+                      <Settings2 size={18} strokeWidth={1.5} className="shrink-0" />
+                      <span className="text-[12px] font-medium uppercase tracking-[0.08em]">{t("settings.title")}</span>
+                    </Link>
+                    <div className="space-y-2 rounded-xl border border-border/30 bg-secondary/5 p-3">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-text-tertiary/80">
+                        {t("settings.notifications")}
+                      </p>
+                      <PushNotificationToggle className="w-full justify-start" />
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/30 bg-secondary/5 px-3 py-3">
+                      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-text-tertiary/80">
+                        {t("settings.appearance")}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <ThemeToggle collapsed={false} />
+                        <LanguageSwitcher collapsed={false} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="shrink-0 border-t border-border-subtle/70 px-4 pb-1 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileUtilityOpen(false);
+                        setLogoutDialogOpen(true);
+                      }}
+                      className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl py-2.5 text-accent-danger/85 transition-colors hover:bg-accent-danger/10 hover:text-accent-danger"
+                    >
+                      <LogOut size={16} strokeWidth={1.5} />
+                      <span className="text-xs font-medium uppercase tracking-[0.08em]">{t("nav.logout")}</span>
+                    </button>
+                  </div>
+                </SheetContent>
+              </Sheet>
               <Link
                 to="/profile"
-                className="w-8 h-8 rounded-full bg-accent-primary/10 border border-accent-primary/25 flex items-center justify-center text-accent-primary text-[11px] font-medium font-display active:scale-95 transition-all duration-200"
+                aria-label={t("nav.profile")}
+                className="inline-flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-accent-primary/25 bg-accent-primary/10 font-display text-[11px] font-medium text-accent-primary transition-all duration-200 active:scale-95"
                 style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
               >
                 {avatarInitial}
@@ -368,10 +394,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <main
-          className="flex-1 px-3 overflow-y-auto scroll-fade-bottom"
+          className="flex-1 px-3 sm:px-5 md:px-6 overflow-y-auto scroll-fade-bottom"
           style={{
             paddingTop: mobileTopPadding,
-            paddingBottom: "calc(5rem + var(--safe-bottom))",
+            paddingBottom: "calc(4rem + var(--safe-bottom))",
           }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
@@ -385,27 +411,44 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <AppFooter />
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-bg-surface/90 backdrop-blur-xl border-t border-border-subtle pb-safe">
-          <div className="flex items-stretch justify-between h-14 px-1 gap-0.5">
-            {mobileDockKeys.map((tab) => (
-              <NavLink
-                key={tab.to}
-                to={tab.to}
-                end={tab.to === "/"}
-                className={({ isActive }) =>
-                  `flex flex-1 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 rounded-xl transition-all duration-200 ${
-                    isActive ? "text-accent-primary" : "text-text-tertiary hover:text-text-secondary"
-                  }`
-                }
-              >
-                <tab.icon size={19} strokeWidth={1.5} />
-                <span className="text-[7px] sm:text-[8px] tracking-[0.06em] uppercase font-medium text-center leading-none line-clamp-2">
-                  {t(tab.labelKey)}
-                </span>
-              </NavLink>
-            ))}
+        <div
+          role="navigation"
+          aria-label={t("nav.dockMoreAria")}
+          className={`pointer-events-none fixed inset-x-0 bottom-0 flex justify-center md:hidden ${
+            dockRadialOpen ? "z-[130]" : "z-40"
+          }`}
+        >
+          <div className="pointer-events-auto pb-[max(0.5rem,var(--safe-bottom))] pt-1">
+            <MobileDockCircleMenu
+              items={radialItems}
+              ariaLabel={t("nav.dockMoreAria")}
+              menuTitle={t("nav.dockMoreTitle")}
+              hasActiveShortcut={dockRadialHasActive}
+              onOpenChange={setDockRadialOpen}
+            />
           </div>
-        </nav>
+        </div>
+
+        <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+          <AlertDialogContent className="z-[120] max-w-[min(100vw-1.5rem,24rem)]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("layout.logoutConfirmTitle")}</AlertDialogTitle>
+              <AlertDialogDescription>{t("layout.logoutConfirmBody")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("layout.logoutConfirmCancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  setLogoutDialogOpen(false);
+                  void signOut();
+                }}
+              >
+                {t("layout.logoutConfirmAction")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
@@ -421,7 +464,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
       <aside
-        className={`fixed left-0 h-full z-30 flex flex-col bg-bg-surface border-r border-border-subtle transition-all duration-300 ease-in-out ${
+        className={`fixed left-0 z-30 flex h-full min-h-0 flex-col overflow-hidden border-r border-border-subtle bg-bg-surface transition-all duration-300 ease-in-out ${
           collapsed ? "w-[60px]" : "w-[220px]"
         } ${!online ? "top-7" : "top-0"}`}
       >

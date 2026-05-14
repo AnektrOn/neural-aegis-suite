@@ -21,9 +21,19 @@ interface Notification {
 
 /** Voir `src/lib/admin-notification-registry.ts` pour la liste des types admin vs utilisateur. */
 
+function formatNotificationTime(iso: string, locale: string): string {
+  const loc = locale === "fr" ? "fr-FR" : "en-US";
+  return new Date(iso).toLocaleDateString(loc, {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function NotificationBell() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const isMobile = useIsMobile();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
@@ -31,12 +41,17 @@ export default function NotificationBell() {
 
   const loadNotifications = useCallback(async () => {
     if (!user?.id) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
+    if (error) {
+      console.error("notifications load", error);
+      setNotifications([]);
+      return;
+    }
     setNotifications(((data as any[]) || []) as Notification[]);
   }, [user?.id]);
 
@@ -135,12 +150,7 @@ export default function NotificationBell() {
                 <p className="text-xs font-medium text-foreground">{n.title}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">{n.message}</p>
                 <p className="text-[9px] text-muted-foreground mt-1">
-                  {new Date(n.created_at).toLocaleDateString("fr-FR", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {formatNotificationTime(n.created_at, locale)}
                 </p>
               </div>
             </div>
@@ -150,19 +160,26 @@ export default function NotificationBell() {
     </>
   );
 
-  const BellButton = React.forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<"button">>(
-    ({ className, onClick, ...rest }, ref) => (
+  const BellButton = React.forwardRef<
+    HTMLButtonElement,
+    React.ComponentPropsWithoutRef<"button"> & { expanded?: boolean }
+  >(({ className, onClick, expanded, ...rest }, ref) => (
       <button
         ref={ref}
         type="button"
         {...rest}
+        aria-label={t("notifications.openPanel")}
+        aria-expanded={expanded ?? false}
         onClick={(e) => {
           setOpen((o) => !o);
           onClick?.(e);
         }}
-        className={cn("relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors", className)}
+        className={cn(
+          "relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors",
+          className
+        )}
       >
-        <Bell size={16} />
+        <Bell size={16} aria-hidden />
         {unreadCount > 0 && (
           <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-1 rounded-full bg-accent text-[8px] text-accent-foreground flex items-center justify-center font-semibold leading-none ring-2 ring-bg-surface pointer-events-none">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -178,7 +195,7 @@ export default function NotificationBell() {
     return (
       <Drawer.Root open={open} onOpenChange={setOpen}>
         <Drawer.Trigger asChild>
-          <BellButton />
+          <BellButton expanded={open} />
         </Drawer.Trigger>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[90]" />
@@ -186,7 +203,8 @@ export default function NotificationBell() {
             className="fixed bottom-0 left-0 right-0 z-[100] rounded-t-3xl bg-card border-t border-border focus:outline-none max-h-[70vh] flex flex-col"
             style={{ paddingBottom: "var(--safe-bottom)" }}
           >
-            <div className="w-10 h-1 bg-border/50 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+            <Drawer.Title className="sr-only">{t("notifications.title")}</Drawer.Title>
+            <div className="w-10 h-1 bg-border/50 rounded-full mx-auto mt-3 mb-1 shrink-0" aria-hidden />
             <div className="overflow-y-auto flex-1">
               <NotificationList />
             </div>
@@ -199,7 +217,7 @@ export default function NotificationBell() {
   // ── Desktop: absolute dropdown ──────────────────────────────────────────────
   return (
     <div ref={ref} className="relative">
-      <BellButton />
+      <BellButton expanded={open} />
       <AnimatePresence>
         {open && (
           <motion.div

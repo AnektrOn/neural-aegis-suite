@@ -1,14 +1,22 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { User, Save, Download, FileText, Smartphone, Camera, Loader2, ClipboardList } from "lucide-react";
+import { User, Save, Download, FileText, Smartphone, Camera, Loader2, ClipboardList, LayoutGrid } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { AppendixModal } from "@/features/appendix/AppendixModal";
 import AegisHealthSection from "@/components/AegisHealthSection";
 import { ProfileEvolutionSection } from "@/features/archetype-assessment/components/ProfileEvolutionSection";
+import {
+  DEFAULT_MOBILE_RADIAL_MENU_IDS,
+  MOBILE_RADIAL_CATALOG_ORDER,
+  orderSelectedRadialIds,
+  RADIAL_CATALOG,
+  type MobileRadialMenuId,
+} from "@/lib/mobileRadialMenuCatalog";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -22,6 +30,8 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [appendixOpen, setAppendixOpen] = useState(false);
+  const [radialIds, setRadialIds] = useState<MobileRadialMenuId[]>(DEFAULT_MOBILE_RADIAL_MENU_IDS);
+  const [savingRadial, setSavingRadial] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -29,12 +39,39 @@ export default function Profile() {
   }, [user]);
 
   const loadProfile = async () => {
-    const { data } = await supabase.from("profiles").select("display_name, country, timezone, avatar_url").eq("id", user!.id).single();
-    if (data) {
-      setDisplayName(data.display_name || "");
-      setCountry(data.country || "");
-      setTimezone((data as any).timezone || "Europe/Paris");
-      setAvatarUrl((data as any).avatar_url || null);
+    if (!user) return;
+    let res = await supabase
+      .from("profiles")
+      .select("display_name, country, timezone, avatar_url, mobile_radial_menu")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (res.error && res.error.message?.includes("mobile_radial_menu")) {
+      res = await supabase
+        .from("profiles")
+        .select("display_name, country, timezone, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+    }
+
+    const { data, error } = res;
+    if (error) {
+      console.error("loadProfile", error);
+      toast({
+        title: t("toast.error"),
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data) return;
+    setDisplayName(data.display_name || "");
+    setCountry(data.country || "");
+    setTimezone((data as { timezone?: string | null }).timezone || "Europe/Paris");
+    setAvatarUrl((data as { avatar_url?: string | null }).avatar_url || null);
+    const radialRaw = (data as { mobile_radial_menu?: unknown }).mobile_radial_menu;
+    if (radialRaw !== undefined) {
+      setRadialIds(orderSelectedRadialIds(radialRaw));
     }
   };
 
@@ -150,6 +187,41 @@ export default function Profile() {
     toast({ title: t("profile.exportDone"), description: t("profile.exportDoneDesc") });
   };
 
+  const toggleRadialId = (id: MobileRadialMenuId) => {
+    setRadialIds((prev) => {
+      const set = new Set(prev);
+      if (set.has(id)) {
+        if (set.size <= 1) return prev;
+        set.delete(id);
+      } else if (set.size < 14) {
+        set.add(id);
+      } else {
+        return prev;
+      }
+      return MOBILE_RADIAL_CATALOG_ORDER.filter((x) => set.has(x));
+    });
+  };
+
+  const resetRadialMenu = () => {
+    setRadialIds([...DEFAULT_MOBILE_RADIAL_MENU_IDS]);
+  };
+
+  const saveRadialMenu = async () => {
+    if (!user) return;
+    setSavingRadial(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ mobile_radial_menu: radialIds as unknown as Json })
+      .eq("id", user.id);
+    setSavingRadial(false);
+    if (error) {
+      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: t("profile.radialSavedTitle"), description: t("profile.radialSavedDesc") });
+    window.dispatchEvent(new CustomEvent("aegis:radial-menu-updated"));
+  };
+
   return (
     <div className="space-y-10 max-w-3xl">
       <div>
@@ -231,6 +303,47 @@ export default function Profile() {
           <Save size={14} />
           {saving ? t("profile.savingProfile") : t("profile.saveProfile")}
         </button>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="ethereal-glass p-8 space-y-5">
+        <div className="flex items-center gap-3 mb-1">
+          <LayoutGrid size={18} strokeWidth={1.5} className="text-primary" />
+          <div>
+            <p className="text-neural-label">{t("profile.radialTitle")}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t("profile.radialHint")}</p>
+          </div>
+        </div>
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {MOBILE_RADIAL_CATALOG_ORDER.map((id) => {
+            const def = RADIAL_CATALOG[id];
+            const checked = radialIds.includes(id);
+            const atMax = radialIds.length >= 14 && !checked;
+            const onlyOne = radialIds.length <= 1 && checked;
+            return (
+              <li key={id}>
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5 transition-colors hover:border-primary/25 disabled:opacity-50">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 rounded border-border accent-primary"
+                    checked={checked}
+                    disabled={onlyOne || atMax}
+                    onChange={() => toggleRadialId(id)}
+                  />
+                  <span className="text-sm text-foreground">{t(def.labelKey)}</span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button type="button" onClick={resetRadialMenu} className="btn-neural flex-1 border border-border/40 bg-transparent">
+            {t("profile.radialReset")}
+          </button>
+          <button type="button" onClick={saveRadialMenu} disabled={savingRadial} className="btn-neural flex-1">
+            <Save size={14} />
+            {savingRadial ? t("profile.radialSaving") : t("profile.radialSave")}
+          </button>
+        </div>
       </motion.div>
 
       <AegisHealthSection />

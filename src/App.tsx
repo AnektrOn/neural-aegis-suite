@@ -24,6 +24,7 @@ const PeopleBoard = lazy(() => import("./pages/PeopleBoard"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Settings = lazy(() => import("./pages/Settings"));
 const InstallApp = lazy(() => import("./pages/InstallApp"));
 const CalendarView = lazy(() => import("./pages/CalendarView"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -153,6 +154,7 @@ const App = () => (
                             <Route path="/people" element={<PeopleBoard />} />
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/profile" element={<Profile />} />
+                            <Route path="/settings" element={<Settings />} />
                             <Route path="/install" element={<InstallApp />} />
                             <Route path="/calendar" element={<CalendarView />} />
                             <Route path="/onboarding/assessment" element={<AssessmentFlow />} />
