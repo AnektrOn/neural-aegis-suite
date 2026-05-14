@@ -1321,7 +1321,6 @@ export type Database = {
           display_name: string | null
           id: string
           is_disabled: boolean
-          mobile_radial_menu: Json | null
           timezone: string | null
           updated_at: string
         }
@@ -1333,7 +1332,6 @@ export type Database = {
           display_name?: string | null
           id: string
           is_disabled?: boolean
-          mobile_radial_menu?: Json | null
           timezone?: string | null
           updated_at?: string
         }
@@ -1345,7 +1343,6 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_disabled?: boolean
-          mobile_radial_menu?: Json | null
           timezone?: string | null
           updated_at?: string
         }
