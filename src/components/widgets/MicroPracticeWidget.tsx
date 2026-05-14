@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, ChevronRight, CheckCircle2, Zap } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { pickLocalizedText } from "@/lib/content-i18n";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 
 /**
@@ -28,23 +28,24 @@ export interface MicroPracticeConfig {
 interface Props {
   config: MicroPracticeConfig;
   title: string;
+  hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
 
 const DEFAULT_COLOR = "hsl(176 70% 48%)";
 
-export default function MicroPracticeWidget({ config, title, onComplete, onAbandon }: Props) {
+export default function MicroPracticeWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const accent = config.accent_color || DEFAULT_COLOR;
   const instructionsText = useMemo(
-    () => pickLocalizedText(locale as Locale, config.instructions_i18n, config.instructions),
+    () => pickWidgetCatalogCopy(locale as Locale, config.instructions_i18n as any, config.instructions),
     [locale, config.instructions_i18n, config.instructions]
   );
   const localizedSteps = useMemo(() => {
     const raw = config.steps;
     if (!Array.isArray(raw) || raw.length === 0) return null;
-    return raw.map((s) => pickLocalizedText(locale as Locale, s.text_i18n, s.text));
+    return raw.map((s) => pickWidgetCatalogCopy(locale as Locale, s.text_i18n as any, s.text));
   }, [config.steps, locale]);
   const hasSteps = localizedSteps != null && localizedSteps.length > 0;
   const hasDuration = typeof config.duration_sec === "number" && config.duration_sec > 0;
@@ -135,10 +136,12 @@ export default function MicroPracticeWidget({ config, title, onComplete, onAband
 
   return (
     <div className="flex flex-col items-center space-y-5 py-4">
-      <div className="flex items-center gap-2 text-neural-label">
-        <Zap size={14} style={{ color: accent }} />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label">
+          <Zap size={14} style={{ color: accent }} />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {!started && !completed ? (

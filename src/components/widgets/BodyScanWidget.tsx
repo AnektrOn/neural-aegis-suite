@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Scan } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { Locale } from "@/i18n/translations";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 
 export interface BodyScanZone {
   id: string;
@@ -19,6 +21,7 @@ export interface BodyScanConfig {
 interface Props {
   config: BodyScanConfig;
   title: string;
+  hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
@@ -80,8 +83,8 @@ function normalizeZones(config: BodyScanConfig): BodyScanZone[] {
   return DEFAULT_BODY_SCAN_ZONES;
 }
 
-export default function BodyScanWidget({ config, title, onComplete, onAbandon }: Props) {
-  const { t } = useLanguage();
+export default function BodyScanWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+  const { t, locale } = useLanguage();
   const zones = normalizeZones(config);
   const [isRunning, setIsRunning] = useState(false);
   const [currentZoneIdx, setCurrentZoneIdx] = useState(0);
@@ -158,10 +161,12 @@ export default function BodyScanWidget({ config, title, onComplete, onAbandon }:
 
   return (
     <div className="flex flex-col items-center space-y-5 py-4">
-      <div className="flex items-center gap-2 text-neural-label">
-        <Scan size={14} className="text-primary" />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label">
+          <Scan size={14} className="text-primary" />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <div className="relative flex items-start gap-6">
         <div className="relative w-[80px] h-[200px] shrink-0">
@@ -242,7 +247,8 @@ export default function BodyScanWidget({ config, title, onComplete, onAbandon }:
                   {(() => {
                     const k = `toolbox.bodyScan.zone.${zone.id}.label` as any;
                     const v = t(k);
-                    return v === k ? zone.label : v;
+                    if (v !== k) return v;
+                    return pickWidgetCatalogCopy(locale as Locale, (zone as any).label_i18n, zone.label);
                   })()}
                 </span>
                 {isActive && (
@@ -268,7 +274,7 @@ export default function BodyScanWidget({ config, title, onComplete, onAbandon }:
           {completed ? (
             <p className="text-sm text-primary font-medium">{t("toolbox.bodyScanDone")}</p>
           ) : (
-            <p className="text-xs text-muted-foreground/80 italic leading-relaxed">« {(() => { const k = `toolbox.bodyScan.zone.${currentZone.id}.instruction` as any; const v = t(k); return v === k ? currentZone.instruction : v; })()} »</p>
+            <p className="text-xs text-muted-foreground/80 italic leading-relaxed">« {(() => { const k = `toolbox.bodyScan.zone.${currentZone.id}.instruction` as any; const v = t(k); if (v !== k) return v; return pickWidgetCatalogCopy(locale as Locale, (currentZone as any).instruction_i18n, currentZone.instruction); })()} »</p>
           )}
         </motion.div>
       </AnimatePresence>

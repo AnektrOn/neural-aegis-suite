@@ -14,6 +14,7 @@ interface BreathworkConfig {
 interface Props {
   config: BreathworkConfig;
   title: string;
+  hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
@@ -34,7 +35,7 @@ const PHASE_COLORS: Record<Phase, string> = {
   pause2: "hsl(270 50% 60%)",
 };
 
-export default function BreathworkWidget({ config, title, onComplete, onAbandon }: Props) {
+export default function BreathworkWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t } = useLanguage();
   const [isRunning, setIsRunning] = useState(false);
   const [currentCycle, setCurrentCycle] = useState(0);
@@ -135,10 +136,12 @@ export default function BreathworkWidget({ config, title, onComplete, onAbandon 
 
   return (
     <div className="flex flex-col items-center space-y-6 py-4">
-      <div className="flex items-center gap-2 text-neural-label">
-        <Wind size={14} className="text-primary" />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label">
+          <Wind size={14} className="text-primary" />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <div className="relative w-48 h-48 flex items-center justify-center">
         <motion.div

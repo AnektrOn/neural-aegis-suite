@@ -4,7 +4,7 @@ import { Play, Pause, RotateCcw, Target, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import type { Locale } from "@/i18n/translations";
-import { pickLocalizedText } from "@/lib/content-i18n";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { hslWithAlpha } from "@/components/widgets/VisualizationWidget";
 
 export interface IntentionConfig {
@@ -23,6 +23,7 @@ export interface IntentionConfig {
 interface Props {
   config: IntentionConfig;
   title: string;
+  hideTitle?: boolean;
   onComplete?: (note?: string) => void;
   onAbandon?: () => void;
 }
@@ -55,9 +56,10 @@ function normalizeIntentionConfig(
     }
   }
 
-  const questionResolved = pickLocalizedText(locale, c.question_i18n as any, question) || t("toolbox.intentionWidget.defaultQuestion");
+  const questionResolved =
+    pickWidgetCatalogCopy(locale, c.question_i18n as any, question) || t("toolbox.intentionWidget.defaultQuestion");
   const noteResolved =
-    pickLocalizedText(locale, c.note_prompt_i18n as any, notePrompt) || t("toolbox.intentionWidget.notePlaceholder");
+    pickWidgetCatalogCopy(locale, c.note_prompt_i18n as any, notePrompt) || t("toolbox.intentionWidget.notePlaceholder");
 
   return {
     question: questionResolved,
@@ -67,7 +69,7 @@ function normalizeIntentionConfig(
   };
 }
 
-export default function IntentionWidget({ config, title, onComplete, onAbandon }: Props) {
+export default function IntentionWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const cfg = useMemo(() => normalizeIntentionConfig(config, t, locale as Locale), [config, t, locale]);
 
@@ -149,10 +151,12 @@ export default function IntentionWidget({ config, title, onComplete, onAbandon }
 
   return (
     <div className="flex flex-col items-center space-y-5 py-4">
-      <div className="flex items-center gap-2 text-neural-label">
-        <Target size={14} style={{ color: COLOR }} />
-        <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-      </div>
+      {!hideTitle && (
+        <div className="flex items-center gap-2 text-neural-label">
+          <Target size={14} style={{ color: COLOR }} />
+          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {phase !== "noting" ? (

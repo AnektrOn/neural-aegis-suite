@@ -11,6 +11,7 @@ import { isLikelyVideoUrl } from "@/lib/video-links";
 import { assignToolboxTemplateToUser, assignJournalPromptTemplateToUser } from "@/services/programBuilderService";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import { pickLocalizedText } from "@/lib/content-i18n";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
@@ -324,7 +325,7 @@ export default function ToolboxManagement() {
                         {meta.label} · {tmpl.duration || "—"}
                         {(tmpl.description || tmpl.description_i18n) && (
                           <span className="ml-2 text-muted-foreground/70 truncate">
-                            {pickLocalizedText(locale as Locale, tmpl.description_i18n as any, tmpl.description)}
+                            {pickWidgetCatalogCopy(locale as Locale, tmpl.description_i18n as any, tmpl.description)}
                           </span>
                         )}
                       </p>
@@ -332,7 +333,7 @@ export default function ToolboxManagement() {
                     <ToolboxItemPreview
                       contentType={tmpl.content_type}
                       title={pickCatalogTemplateDisplayTitle(locale as Locale, { title: tmpl.title, title_i18n: tmpl.title_i18n as any })}
-                      description={pickLocalizedText(locale as Locale, tmpl.description_i18n as any, tmpl.description)}
+                      description={pickWidgetCatalogCopy(locale as Locale, tmpl.description_i18n as any, tmpl.description)}
                       widgetConfig={tmpl.widget_config}
                     />
                     <button
@@ -476,7 +477,7 @@ export default function ToolboxManagement() {
                   <ToolboxItemPreview
                     contentType={item.content_type}
                     title={pickLocalizedText(locale as Locale, (item as any).title_i18n, item.title)}
-                    description={pickLocalizedText(locale as Locale, item.description_i18n as any, item.description)}
+                    description={pickWidgetCatalogCopy(locale as Locale, item.description_i18n as any, item.description)}
                     widgetConfig={item.widget_config}
                     externalUrl={item.external_url}
                   />

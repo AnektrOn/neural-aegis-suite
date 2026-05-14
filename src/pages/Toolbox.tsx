@@ -16,7 +16,8 @@ import StopProtocolWidget from "@/components/widgets/StopProtocolWidget";
 import IntentionWidget from "@/components/widgets/IntentionWidget";
 import MicroPracticeWidget from "@/components/widgets/MicroPracticeWidget";
 import { isLikelyVideoUrl } from "@/lib/video-links";
-import { pickLocalizedText } from "@/lib/content-i18n";
+import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -224,10 +225,10 @@ export default function Toolbox() {
   };
 
   const getLocalizedTitle = (item: ToolboxItem) =>
-    pickLocalizedText(locale as Locale, item.title_i18n as any, item.title);
+    pickCatalogTemplateDisplayTitle(locale as Locale, item);
 
   const getLocalizedDescription = (item: ToolboxItem) =>
-    pickLocalizedText(locale as Locale, item.description_i18n as any, item.description);
+    pickWidgetCatalogCopy(locale as Locale, item.description_i18n as any, item.description);
 
   const renderWidget = (item: ToolboxItem) => {
     const config = item.widget_config;
@@ -247,6 +248,7 @@ export default function Toolbox() {
           <BreathworkWidget
             config={config}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -256,6 +258,7 @@ export default function Toolbox() {
           <FocusIntrospectifWidget
             config={config}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -265,6 +268,7 @@ export default function Toolbox() {
           <BodyScanWidget
             config={config ?? {}}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -275,6 +279,7 @@ export default function Toolbox() {
           <AffirmationsWidget
             config={config}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -284,6 +289,7 @@ export default function Toolbox() {
           <VisualizationWidget
             config={config ?? {}}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -293,6 +299,7 @@ export default function Toolbox() {
           <StopProtocolWidget
             config={config ?? {}}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -302,6 +309,7 @@ export default function Toolbox() {
           <IntentionWidget
             config={config ?? {}}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -311,6 +319,7 @@ export default function Toolbox() {
           <GratitudeWidget
             config={config ?? {}}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -320,6 +329,7 @@ export default function Toolbox() {
           <MicroPracticeWidget
             config={config ?? {}}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -330,9 +340,10 @@ export default function Toolbox() {
           <JournalPromptWidget
             config={{
               ...config,
-              prompt: pickLocalizedText(locale as Locale, config.prompt_i18n, config.prompt),
+              prompt: pickWidgetCatalogCopy(locale as Locale, config.prompt_i18n, config.prompt),
             }}
             title={getLocalizedTitle(item)}
+            hideTitle
             onComplete={() => recordCompletion(item.id, "completed")}
             onAbandon={() => recordCompletion(item.id, "abandoned")}
           />
@@ -410,9 +421,14 @@ export default function Toolbox() {
         if (!widget) return null;
         return (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-neural-label">{getTypeLabel(item.content_type)}</span>
-              <button onClick={() => handleCloseWidget(item.id)} className="text-muted-foreground hover:text-foreground text-xs">{t("toolbox.close")}</button>
+            <div className="flex justify-between items-start gap-3 mb-4">
+              <div className="min-w-0">
+                <p className="text-neural-label">{getTypeLabel(item.content_type)}</p>
+                <h2 className="text-sm font-medium text-foreground mt-1 tracking-wide truncate">
+                  {getLocalizedTitle(item)}
+                </h2>
+              </div>
+              <button onClick={() => handleCloseWidget(item.id)} className="text-muted-foreground hover:text-foreground text-xs shrink-0">{t("toolbox.close")}</button>
             </div>
             {widget}
           </motion.div>
