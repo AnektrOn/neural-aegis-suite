@@ -144,9 +144,7 @@ export default function PublicAssessmentFlow() {
         </Button>
       </div>
 
-      {session.step === "questions" && (
-        <MiniRadarThumb isFR={isFR} rawScores={liveRawScores} />
-      )}
+      {/* MiniRadarThumb hidden for visitors — admin only */}
 
       <div className="max-w-2xl mx-auto px-4 py-10 sm:py-16">
         {session.step === "welcome" && (
