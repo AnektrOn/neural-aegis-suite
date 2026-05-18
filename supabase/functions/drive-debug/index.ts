@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
-const ROOT = "1Gqkmqxr3EIymDFvGbC3vc7-ckEG59of8";
+const ROOT = "1S9nImUA3zt3n8byGLmixpAl75lDdjGZg";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
