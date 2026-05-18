@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Sparkles,
-  FileText,
   CreditCard,
   CalendarCheck,
-  UserPlus,
   ArrowRight,
   CheckCircle2,
   Circle,
@@ -28,8 +26,7 @@ import {
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
 
 export default function VisitorDashboard() {
-  const { user, isGuest, isAnonymous } = useAuth();
-  const showUpgrade = isGuest || isAnonymous;
+  const { user } = useAuth();
   const { t, locale } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -162,15 +159,6 @@ export default function VisitorDashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <NeuralCard className="p-5 space-y-3">
-          <FileText className="w-5 h-5 text-primary" />
-          <h3 className="font-serif">{t("visitor.reportCard.title")}</h3>
-          <p className="text-xs text-muted-foreground">{t("visitor.reportCard.desc")}</p>
-          <Button variant="outline" className="w-full" asChild disabled={!quizDone}>
-            <Link to="/visitor/report">{t("visitor.viewReport")}</Link>
-          </Button>
-        </NeuralCard>
-
-        <NeuralCard className="p-5 space-y-3">
           <CreditCard className="w-5 h-5 text-primary" />
           <h3 className="font-serif">{t("visitor.payment.title")}</h3>
           <p className="text-xs text-muted-foreground">{t("visitor.payment.desc")}</p>
@@ -179,7 +167,7 @@ export default function VisitorDashboard() {
           </Button>
         </NeuralCard>
 
-        <NeuralCard className="p-5 space-y-3 sm:col-span-2">
+        <NeuralCard className="p-5 space-y-3">
           <CalendarCheck className="w-5 h-5 text-primary" />
           <h3 className="font-serif">{t("visitor.audit.title")}</h3>
           <p className="text-xs text-muted-foreground">{t("visitor.audit.desc")}</p>
@@ -188,20 +176,6 @@ export default function VisitorDashboard() {
           </Button>
         </NeuralCard>
       </div>
-
-      {showUpgrade && (
-        <NeuralCard variant="elevated" glow="purple" className="p-5 space-y-3 text-center">
-          <UserPlus className="w-6 h-6 text-primary mx-auto" />
-          <h3 className="font-serif text-lg">{t("visitor.upgrade.title")}</h3>
-          <p className="text-sm text-muted-foreground">{t("visitor.upgrade.desc")}</p>
-          <Button className="w-full" asChild>
-            <Link to="/auth?upgrade=1">
-              {t("visitor.upgrade.cta")}
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
-          </Button>
-        </NeuralCard>
-      )}
     </div>
   );
 }
