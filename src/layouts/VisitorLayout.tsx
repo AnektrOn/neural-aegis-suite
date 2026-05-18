@@ -8,7 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function VisitorLayout() {
   const { t } = useLanguage();
-  const { isAnonymous } = useAuth();
+  const { isGuest, isAnonymous } = useAuth();
+  const visitorOnly = isGuest || isAnonymous;
 
   return (
     <div className="min-h-screen bg-bg-base flex flex-col">
@@ -33,7 +34,7 @@ export default function VisitorLayout() {
             >
               {t("visitor.nav.report")}
             </Link>
-            {!isAnonymous && (
+            {!visitorOnly && (
               <Link
                 to="/"
                 className="text-accent-primary hover:text-accent-primary/80 transition-colors uppercase tracking-wider font-display"

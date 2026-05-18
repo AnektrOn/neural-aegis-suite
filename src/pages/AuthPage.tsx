@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Sparkles } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -11,39 +11,127 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NeuralCard } from "@/components/ui/neural-card";
 import AppFooter from "@/components/AppFooter";
+import { signUpGuest, upgradeGuestToMember } from "@/lib/guestAuth";
+import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
+
+type AuthMode = "signin" | "guest" | "upgrade";
+
+const inputCls =
+  "w-full bg-bg-base border border-border-active rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all duration-200";
+
+const labelCls =
+  "text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-medium font-display block";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [linkedin, setLinkedin] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { t } = useLanguage();
-  const { user, isAnonymous } = useAuth();
+  const { user, isGuest } = useAuth();
 
-  const upgradeMode = searchParams.get("upgrade") === "1" && isAnonymous;
+  const redirectTo = searchParams.get("redirect") || "/quiz";
+  const guestFromUrl = searchParams.get("guest") === "1";
+  const upgradeFromUrl = searchParams.get("upgrade") === "1";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [mode, setMode] = useState<AuthMode>("signin");
+
+  useEffect(() => {
+    if (upgradeFromUrl && (isGuest || isAnonymousUser(user))) {
+      setMode("upgrade");
+    } else if (guestFromUrl) {
+      setMode("guest");
+    }
+  }, [upgradeFromUrl, guestFromUrl, isGuest, user]);
+
+  useEffect(() => {
+    if (user?.email && (mode === "upgrade" || mode === "guest")) {
+      setEmail(user.email);
+    }
+  }, [user?.email, mode]);
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      if (upgradeMode && user) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      navigate(isGuestUser(data.user) ? "/visitor" : "/");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ title: t("toast.error"), description: message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const ig = instagram.trim();
+    const li = linkedin.trim();
+    if (!ig && !li) {
+      toast({
+        title: t("toast.error"),
+        description: t("auth.guest.socialRequired"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signUpGuest({
+        firstName,
+        lastName,
+        email,
+        instagram: ig || undefined,
+        linkedin: li || undefined,
+      });
+      toast({
+        title: t("auth.guest.successTitle"),
+        description: t("auth.guest.successDesc"),
+      });
+      navigate(redirectTo.startsWith("/") ? redirectTo : "/quiz", { replace: true });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message === "EMAIL_ALREADY_REGISTERED") {
+        toast({
+          title: t("toast.error"),
+          description: t("auth.guest.emailExists"),
+          variant: "destructive",
+        });
+        setMode("signin");
+      } else {
+        toast({ title: t("toast.error"), description: message, variant: "destructive" });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpgrade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setLoading(true);
+    try {
+      if (isAnonymousUser(user)) {
         const { error } = await supabase.auth.updateUser({ email, password });
         if (error) throw error;
-        localStorage.setItem(`aegis_onboarded_${user.id}`, "true");
-        toast({
-          title: t("visitor.upgrade.successTitle"),
-          description: t("visitor.upgrade.successDesc"),
-        });
-        navigate("/");
-        return;
+      } else {
+        await upgradeGuestToMember(password);
       }
-
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      localStorage.setItem(`aegis_onboarded_${user.id}`, "true");
+      toast({
+        title: t("visitor.upgrade.successTitle"),
+        description: t("visitor.upgrade.successDesc"),
+      });
       navigate("/");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -52,6 +140,13 @@ export default function AuthPage() {
       setLoading(false);
     }
   };
+
+  const submitHandler =
+    mode === "guest" ? handleGuestSignup : mode === "upgrade" ? handleUpgrade : handleSignIn;
+
+  const showPasswordField = mode === "signin" || mode === "upgrade";
+  const showEmailField =
+    mode === "signin" || mode === "guest" || (mode === "upgrade" && isAnonymousUser(user));
 
   return (
     <div className="min-h-screen bg-bg-base flex flex-col p-4 relative overflow-hidden">
@@ -63,113 +158,200 @@ export default function AuthPage() {
       <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none dark:block hidden" />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-accent-primary/5 blur-3xl pointer-events-none" />
 
-      <div className="relative flex-1 w-full flex items-center justify-center">
-        <div className="w-full max-w-sm">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="flex flex-col items-center mb-10"
-        >
-          <img src={aegisLogo} alt="Aegis" className="w-52 h-52 rounded-2xl mb-5 object-contain" />
-          <h1 className="font-display text-sm tracking-[0.25em] uppercase text-text-secondary">Neural Aegis</h1>
-          <p className="text-[11px] text-text-tertiary mt-1 tracking-wide">{t("auth.tagline")}</p>
-        </motion.div>
+      <div className="relative flex-1 w-full flex items-center justify-center py-8">
+        <div className="w-full max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="flex flex-col items-center mb-8"
+          >
+            <img src={aegisLogo} alt="Aegis" className="w-40 h-40 sm:w-52 sm:h-52 rounded-2xl mb-4 object-contain" />
+            <h1 className="font-display text-sm tracking-[0.25em] uppercase text-text-secondary">Neural Aegis</h1>
+            <p className="text-[11px] text-text-tertiary mt-1 tracking-wide">{t("auth.tagline")}</p>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.05, ease: "easeOut" }}
-        >
-          <NeuralCard variant="elevated" glow="blue" className="p-6">
-            {upgradeMode && (
-              <p className="text-sm text-text-secondary mb-4 text-center">
-                {t("visitor.upgrade.authIntro")}
-              </p>
-            )}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-medium font-display block">
-                  {t("auth.email")}
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t("auth.email")}
-                  required
-                  autoComplete="email"
-                  className="w-full bg-bg-base border border-border-active rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all duration-200"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-medium font-display block">
-                  {t("auth.password")}
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t("auth.password")}
-                    required
-                    minLength={6}
-                    autoComplete={upgradeMode ? "new-password" : "current-password"}
-                    className="w-full bg-bg-base border border-border-active rounded-lg px-3 py-2.5 pr-11 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all duration-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary transition-colors duration-200"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff size={15} strokeWidth={1.5} /> : <Eye size={15} strokeWidth={1.5} />}
-                  </button>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: 0.05, ease: "easeOut" }}
+          >
+            <NeuralCard variant="elevated" glow={mode === "guest" ? "purple" : "blue"} className="p-6">
+              {mode === "upgrade" && (
+                <p className="text-sm text-text-secondary mb-4 text-center">{t("visitor.upgrade.authIntro")}</p>
+              )}
+              {mode === "guest" && (
+                <div className="mb-4 text-center space-y-1">
+                  <div className="flex items-center justify-center gap-2 text-primary">
+                    <Sparkles size={16} />
+                    <span className="text-xs uppercase tracking-[0.2em] font-display">{t("auth.guest.badge")}</span>
+                  </div>
+                  <p className="text-sm text-text-secondary">{t("auth.guest.intro")}</p>
                 </div>
-              </div>
+              )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 rounded-lg font-medium text-sm bg-accent-primary hover:bg-accent-primary/90 text-bg-base transition-all duration-200 shadow-[0_0_20px_rgba(79,142,247,0.3)] hover:shadow-[0_0_30px_rgba(79,142,247,0.4)] flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-bg-base/30 border-t-bg-base rounded-full animate-spin" />
-                ) : (
+              <form onSubmit={submitHandler} className="space-y-3">
+                {mode === "guest" && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className={labelCls}>{t("auth.guest.firstName")}</label>
+                      <input
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        required
+                        autoComplete="given-name"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className={labelCls}>{t("auth.guest.lastName")}</label>
+                      <input
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        required
+                        autoComplete="family-name"
+                        className={inputCls}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {showEmailField && (
+                  <div className="space-y-1">
+                    <label className={labelCls}>
+                      {t("auth.email")}
+                      {mode === "guest" && <span className="text-destructive ml-0.5">*</span>}
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={t("auth.email")}
+                      required
+                      autoComplete="email"
+                      readOnly={mode === "upgrade" && isGuest && !!user?.email}
+                      className={inputCls}
+                    />
+                  </div>
+                )}
+
+                {mode === "guest" && (
                   <>
-                    {upgradeMode ? t("visitor.upgrade.submit") : t("auth.signIn")}{" "}
-                    <ArrowRight size={14} strokeWidth={1.5} />
+                    <div className="space-y-1">
+                      <label className={labelCls}>{t("auth.guest.instagram")}</label>
+                      <input
+                        type="text"
+                        value={instagram}
+                        onChange={(e) => setInstagram(e.target.value)}
+                        placeholder="@votre_compte"
+                        autoComplete="off"
+                        className={inputCls}
+                      />
+                    </div>
+                    <p className="text-[10px] text-center text-text-tertiary uppercase tracking-wider">
+                      {t("auth.guest.or")}
+                    </p>
+                    <div className="space-y-1">
+                      <label className={labelCls}>{t("auth.guest.linkedin")}</label>
+                      <input
+                        type="text"
+                        value={linkedin}
+                        onChange={(e) => setLinkedin(e.target.value)}
+                        placeholder="linkedin.com/in/..."
+                        autoComplete="off"
+                        className={inputCls}
+                      />
+                    </div>
+                    <p className="text-[10px] text-text-tertiary">{t("auth.guest.socialHint")}</p>
                   </>
                 )}
-              </button>
-            </form>
 
-            {!upgradeMode && isAnonymous && (
-              <p className="text-center text-xs text-text-tertiary mt-4">
-                <button
-                  type="button"
-                  className="text-accent-primary hover:underline"
-                  onClick={() => navigate("/auth?upgrade=1")}
-                >
-                  {t("visitor.upgrade.linkFromLogin")}
-                </button>
-              </p>
-            )}
+                {showPasswordField && (
+                  <div className="space-y-1">
+                    <label className={labelCls}>{t("auth.password")}</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={t("auth.password")}
+                        required
+                        minLength={6}
+                        autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                        className={`${inputCls} pr-11`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff size={15} strokeWidth={1.5} /> : <Eye size={15} strokeWidth={1.5} />}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-            {upgradeMode && (
-              <p className="text-center text-xs text-text-tertiary mt-4">
                 <button
-                  type="button"
-                  className="hover:underline"
-                  onClick={() => navigate("/visitor")}
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 rounded-lg font-medium text-sm bg-accent-primary hover:bg-accent-primary/90 text-bg-base transition-all duration-200 shadow-[0_0_20px_rgba(79,142,247,0.3)] flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
                 >
-                  {t("visitor.backToSpace")}
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-bg-base/30 border-t-bg-base rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      {mode === "guest"
+                        ? t("auth.guest.submit")
+                        : mode === "upgrade"
+                          ? t("visitor.upgrade.submit")
+                          : t("auth.signIn")}
+                      <ArrowRight size={14} strokeWidth={1.5} />
+                    </>
+                  )}
                 </button>
-              </p>
-            )}
-          </NeuralCard>
-        </motion.div>
+              </form>
+
+              {mode === "signin" && (
+                <>
+                  <div className="relative my-5">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border/40" />
+                    </div>
+                    <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
+                      <span className="bg-bg-elevated px-2 text-text-tertiary">{t("auth.or")}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMode("guest")}
+                    className="w-full py-2.5 rounded-lg font-medium text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={14} />
+                    {t("auth.guest.cta")}
+                  </button>
+                </>
+              )}
+
+              {mode === "guest" && (
+                <p className="text-center text-xs text-text-tertiary mt-4">
+                  <button type="button" className="hover:underline" onClick={() => setMode("signin")}>
+                    {t("auth.guest.hasAccount")}
+                  </button>
+                </p>
+              )}
+
+              {mode === "upgrade" && (
+                <p className="text-center text-xs text-text-tertiary mt-4">
+                  <button type="button" className="hover:underline" onClick={() => navigate("/visitor")}>
+                    {t("visitor.backToSpace")}
+                  </button>
+                </p>
+              )}
+            </NeuralCard>
+          </motion.div>
         </div>
       </div>
       <AppFooter />

@@ -4,7 +4,7 @@ import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdminOnLogin } from "@/services/adminNotifications";
-import { isAnonymousUser } from "@/lib/authVisitor";
+import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
 
 const MOCK_AUTH = import.meta.env.VITE_MOCK_AUTH === "true";
 const MOCK_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -64,6 +64,7 @@ interface AuthContextType {
   /** Full-screen boot loader: auth bootstrap and/or forced native cold/resume timing. */
   bootScreenActive: boolean;
   isAnonymous: boolean;
+  isGuest: boolean;
   ensureAnonymousSession: () => Promise<User>;
   signOut: () => Promise<void>;
 }
@@ -74,6 +75,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   bootScreenActive: true,
   isAnonymous: false,
+  isGuest: false,
   ensureAnonymousSession: async () => {
     throw new Error("AuthProvider not mounted");
   },
@@ -158,7 +160,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         endInitialLoading();
 
-        if (event === "SIGNED_IN" && session?.user && !isAnonymousUser(session.user)) {
+        if (
+          event === "SIGNED_IN" &&
+          session?.user &&
+          !isAnonymousUser(session.user) &&
+          !isGuestUser(session.user)
+        ) {
           const loginFingerprint = `${session.user.id}:${session.access_token.slice(-12)}`;
           if (lastNotifiedLogin.current !== loginFingerprint) {
             lastNotifiedLogin.current = loginFingerprint;
@@ -186,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const bootScreenActive = loading || holdResumeBoot;
   const isAnonymous = isAnonymousUser(user);
+  const isGuest = isGuestUser(user);
 
   return (
     <AuthContext.Provider
@@ -195,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         bootScreenActive,
         isAnonymous,
+        isGuest,
         ensureAnonymousSession,
         signOut,
       }}

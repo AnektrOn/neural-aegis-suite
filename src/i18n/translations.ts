@@ -191,13 +191,44 @@ export const translations = {
   "auth.email": { fr: "Courriel", en: "Email" },
   "auth.password": { fr: "Mot de passe", en: "Password" },
   "auth.signIn": { fr: "Se connecter", en: "Sign In" },
+  "auth.or": { fr: "ou", en: "or" },
+  "auth.guest.cta": { fr: "Continuer en tant qu'invité", en: "Continue as guest" },
+  "auth.guest.badge": { fr: "Accès invité", en: "Guest access" },
+  "auth.guest.intro": {
+    fr: "Quiz gratuit et rapport Deep Dive — renseigne tes coordonnées pour commencer.",
+    en: "Free quiz and Deep Dive report — enter your details to get started.",
+  },
+  "auth.guest.firstName": { fr: "Prénom", en: "First name" },
+  "auth.guest.lastName": { fr: "Nom", en: "Last name" },
+  "auth.guest.instagram": { fr: "Instagram", en: "Instagram" },
+  "auth.guest.linkedin": { fr: "LinkedIn", en: "LinkedIn" },
+  "auth.guest.or": { fr: "ou", en: "or" },
+  "auth.guest.socialHint": {
+    fr: "Renseigne au moins Instagram ou LinkedIn.",
+    en: "Provide at least Instagram or LinkedIn.",
+  },
+  "auth.guest.socialRequired": {
+    fr: "Indique ton Instagram ou ton LinkedIn pour continuer.",
+    en: "Enter your Instagram or LinkedIn to continue.",
+  },
+  "auth.guest.submit": { fr: "Commencer le quiz gratuit", en: "Start free quiz" },
+  "auth.guest.hasAccount": { fr: "Déjà un compte ? Se connecter", en: "Already have an account? Sign in" },
+  "auth.guest.successTitle": { fr: "Bienvenue", en: "Welcome" },
+  "auth.guest.successDesc": {
+    fr: "Ton espace invité est prêt. Bon quiz !",
+    en: "Your guest space is ready. Enjoy the quiz!",
+  },
+  "auth.guest.emailExists": {
+    fr: "Cet email est déjà utilisé. Connecte-toi avec ton mot de passe.",
+    en: "This email is already registered. Sign in with your password.",
+  },
 
   // Visitor funnel
   "visitor.loading": { fr: "Chargement…", en: "Loading…" },
   "visitor.retry": { fr: "Réessayer", en: "Retry" },
   "visitor.authErrorHint": {
-    fr: "Active les connexions anonymes dans Supabase (Auth → Providers) puis réessaie.",
-    en: "Enable anonymous sign-ins in Supabase (Auth → Providers) then try again.",
+    fr: "Connecte-toi ou crée un accès invité depuis la page d'authentification.",
+    en: "Sign in or create guest access from the authentication page.",
   },
   "visitor.backToSpace": { fr: "Retour à mon espace", en: "Back to my space" },
   "visitor.saveResults": { fr: "Créer un compte pour sauvegarder", en: "Create an account to save" },
@@ -260,8 +291,8 @@ export const translations = {
   },
   "visitor.upgrade.cta": { fr: "Créer mon compte", en: "Create my account" },
   "visitor.upgrade.authIntro": {
-    fr: "Associe un email à ton profil pour le conserver et accéder à l'app complète.",
-    en: "Link an email to your profile to keep it and access the full app.",
+    fr: "Choisis un mot de passe pour activer ton compte complet et conserver ton profil archétypal.",
+    en: "Choose a password to activate your full account and keep your archetypal profile.",
   },
   "visitor.upgrade.submit": { fr: "Créer mon compte", en: "Create my account" },
   "visitor.upgrade.linkFromLogin": {
