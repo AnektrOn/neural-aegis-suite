@@ -143,7 +143,7 @@ function ArchetypeFlipCard({ archetype, rank, tagline, gives, watchOut }: Archet
 
 /* -------------------------------------------------------------------------- */
 
-export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
+export function DeepDiveUserCards({ profile, hidePractices = false }: { profile: SampleProfile; hidePractices?: boolean }) {
   const { locale } = useLanguage();
   const isFR = locale === "fr";
   const n = profile.narrative;
@@ -288,6 +288,7 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
       </Card>
 
       {/* Cards 7+ — Practices deck */}
+      {!hidePractices && (
       <div>
         <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-3">
           <Play size={14} strokeWidth={1.5} />
@@ -320,6 +321,7 @@ export function DeepDiveUserCards({ profile }: { profile: SampleProfile }) {
           })}
         </div>
       </div>
+      )}
     </div>
   );
 }
