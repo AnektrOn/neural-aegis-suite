@@ -314,8 +314,8 @@ export default function AssessmentFlow() {
         </Button>
       </div>
 
-      {/* Mini emerging-profile widget — visible while answering */}
-      {session.step === "questions" && (
+      {/* Mini emerging-profile widget — admin only */}
+      {session.step === "questions" && isAdmin && (
         <MiniRadarThumb isFR={isFR} rawScores={liveRawScores} />
       )}
 
