@@ -547,8 +547,14 @@ export default function Toolbox() {
                     )
                   ) : null}
 
-                  {isAbandoned && !isActive && (
-                    <button onClick={() => handleReload(item.id)}
+                  {latestCompletion && !isActive && (hasWidget || isExternal || !isInteractiveType) && (
+                    <button onClick={() => {
+                      if (isExternal) {
+                        window.open(item.external_url!, "_blank", "noopener,noreferrer");
+                      } else {
+                        handleReload(item.id);
+                      }
+                    }}
                       className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent hover:text-foreground transition-colors min-h-[36px] px-2">
                       <RotateCcw size={12} /> {t("toolbox.reload")}
                     </button>
