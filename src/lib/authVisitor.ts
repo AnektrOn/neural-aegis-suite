@@ -7,6 +7,17 @@ export function isAnonymousUser(user: User | null | undefined): boolean {
   return user.is_anonymous === true;
 }
 
+export function isGuestUser(user: User | null | undefined): boolean {
+  if (!user || user.is_anonymous) return false;
+  const meta = user.user_metadata as Record<string, unknown> | undefined;
+  return meta?.account_type === "guest";
+}
+
+/** Guest funnel or legacy anonymous — no full member app. */
+export function isVisitorOnlyUser(user: User | null | undefined): boolean {
+  return isAnonymousUser(user) || isGuestUser(user);
+}
+
 export function visitorOnboardedKey(userId: string): string {
   return `${VISITOR_ONBOARDED_KEY_PREFIX}${userId}`;
 }

@@ -28,7 +28,8 @@ import {
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
 
 export default function VisitorDashboard() {
-  const { user, isAnonymous } = useAuth();
+  const { user, isGuest, isAnonymous } = useAuth();
+  const showUpgrade = isGuest || isAnonymous;
   const { t, locale } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -188,7 +189,7 @@ export default function VisitorDashboard() {
         </NeuralCard>
       </div>
 
-      {isAnonymous && (
+      {showUpgrade && (
         <NeuralCard variant="elevated" glow="purple" className="p-5 space-y-3 text-center">
           <UserPlus className="w-6 h-6 text-primary mx-auto" />
           <h3 className="font-serif text-lg">{t("visitor.upgrade.title")}</h3>

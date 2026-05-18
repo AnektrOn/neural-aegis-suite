@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -36,35 +36,17 @@ function formatMinutesRemaining(remainingQuestions: number, isFR: boolean): stri
 
 export default function PublicAssessmentFlow() {
   const navigate = useNavigate();
-  const { user, ensureAnonymousSession } = useAuth();
+  const { user, loading: authLoading, bootScreenActive } = useAuth();
   const { t, locale } = useLanguage();
   const isFR = locale === "fr";
 
-  const [authReady, setAuthReady] = useState(false);
   const [loaded, setLoaded] = useState<LoadedTemplate | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        await ensureAnonymousSession();
-        if (alive) setAuthReady(true);
-      } catch (e: unknown) {
-        if (!alive) return;
-        const msg = e instanceof Error ? e.message : String(e);
-        setLoadError(msg);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [ensureAnonymousSession]);
-
-  useEffect(() => {
-    if (!authReady) return;
+    if (authLoading || bootScreenActive || !user) return;
     let alive = true;
     loadActiveTemplate()
       .then((tpl) => {
@@ -76,9 +58,13 @@ export default function PublicAssessmentFlow() {
     return () => {
       alive = false;
     };
-  }, [authReady]);
+  }, [authLoading, bootScreenActive, user]);
 
   const session = useAssessmentSession({ questions: loaded?.questions ?? [] });
+
+  if (!authLoading && !bootScreenActive && !user) {
+    return <Navigate to="/auth?guest=1&redirect=%2Fquiz" replace />;
+  }
 
   const handleStart = async () => {
     if (!user || !loaded) return;
@@ -134,7 +120,7 @@ export default function PublicAssessmentFlow() {
     );
   }
 
-  if (!authReady || !loaded || !user) {
+  if (authLoading || bootScreenActive || !loaded || !user) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
