@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Sparkles,
-  FileText,
   CreditCard,
   CalendarCheck,
-  UserPlus,
   ArrowRight,
   CheckCircle2,
   Circle,
@@ -28,8 +26,7 @@ import {
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
 
 export default function VisitorDashboard() {
-  const { user, isGuest, isAnonymous } = useAuth();
-  const showUpgrade = isGuest || isAnonymous;
+  const { user } = useAuth();
   const { t, locale } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
