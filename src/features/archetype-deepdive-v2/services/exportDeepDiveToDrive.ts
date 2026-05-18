@@ -37,6 +37,7 @@ export interface ExportDeepDiveToDriveResult {
   fileId: string;
   fileName: string;
   webViewLink: string | null;
+  path: string;
   exportType: DeepDiveExportType;
   /** Subfolder name under DeepDiveV2 when using multi-file markdown export; null otherwise. */
   bundleFolder: string | null;
