@@ -56,6 +56,7 @@ type FlowStage = "phase1" | "phase2-hub" | "phase2-category";
 export default function AssessmentFlow() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const { locale } = useLanguage();
   const isFR = locale === "fr";
 
