@@ -11,7 +11,7 @@ const corsHeaders = {
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
-const ROOT_FOLDER_ID = "1Gqkmqxr3EIymDFvGbC3vc7-ckEG59of8";
+const ROOT_FOLDER_ID = "1v1pQXrGO3Q0YUXZC9mtetApWneHs_sae";
 
 function gwHeaders(extra: Record<string, string> = {}): HeadersInit {
   const lov = Deno.env.get("LOVABLE_API_KEY");
