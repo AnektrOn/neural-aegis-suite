@@ -33,6 +33,7 @@ import { useAssessmentSession } from "../hooks/useAssessmentSession";
 import type { LoadedTemplate } from "../services/assessmentService";
 import type { ResponseValue, RuntimeQuestion } from "../domain/types";
 import { MiniRadarThumb } from "../components/MiniRadarThumb";
+import { useAdmin } from "@/hooks/use-admin";
 import {
   loadAppendix,
   loadUserResponses,
