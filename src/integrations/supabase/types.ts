@@ -270,6 +270,7 @@ export type Database = {
           computed_at: string
           dimension_scores: Json
           dominant_body: string | null
+          email: string | null
           id: string
           session_id: string | null
           shadow_scores: Json
@@ -285,6 +286,7 @@ export type Database = {
           computed_at?: string
           dimension_scores?: Json
           dominant_body?: string | null
+          email?: string | null
           id?: string
           session_id?: string | null
           shadow_scores?: Json
@@ -300,6 +302,7 @@ export type Database = {
           computed_at?: string
           dimension_scores?: Json
           dominant_body?: string | null
+          email?: string | null
           id?: string
           session_id?: string | null
           shadow_scores?: Json
