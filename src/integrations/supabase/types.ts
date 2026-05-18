@@ -1314,35 +1314,50 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type: string
           avatar_url: string | null
           company_id: string | null
           country: string | null
           created_at: string
           display_name: string | null
+          first_name: string | null
           id: string
+          instagram: string | null
           is_disabled: boolean
+          last_name: string | null
+          linkedin: string | null
           timezone: string | null
           updated_at: string
         }
         Insert: {
+          account_type?: string
           avatar_url?: string | null
           company_id?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null
+          first_name?: string | null
           id: string
+          instagram?: string | null
           is_disabled?: boolean
+          last_name?: string | null
+          linkedin?: string | null
           timezone?: string | null
           updated_at?: string
         }
         Update: {
+          account_type?: string
           avatar_url?: string | null
           company_id?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null
+          first_name?: string | null
           id?: string
+          instagram?: string | null
           is_disabled?: boolean
+          last_name?: string | null
+          linkedin?: string | null
           timezone?: string | null
           updated_at?: string
         }
