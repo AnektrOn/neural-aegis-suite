@@ -554,7 +554,7 @@ function AppendixCategoryRunner({
         </Button>
       </div>
 
-      <MiniRadarThumb isFR={isFR} rawScores={liveRawScores} />
+      {isAdmin && <MiniRadarThumb isFR={isFR} rawScores={liveRawScores} />}
 
       <div className="max-w-2xl mx-auto px-4 py-10 sm:py-16 space-y-6">
         <div>
