@@ -487,6 +487,7 @@ function AppendixCategoryRunner({
   const [idx, setIdx] = useState(0);
   const [responses, setResponses] = useState<Record<string, ResponseValue>>({});
   const [submitting, setSubmitting] = useState(false);
+  const { isAdmin } = useAdmin();
 
   const total = category.questions.length;
   const current = category.questions[idx];
