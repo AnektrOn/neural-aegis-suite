@@ -1,0 +1,1 @@
+ALTER TABLE public.archetype_profile_snapshots ADD COLUMN IF NOT EXISTS email TEXT;
