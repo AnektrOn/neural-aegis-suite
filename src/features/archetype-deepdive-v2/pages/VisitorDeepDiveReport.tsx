@@ -29,10 +29,12 @@ export default function VisitorDeepDiveReport() {
   });
 
   const reportSubject = profile?.label || (isFR ? "Ton profil" : "Your profile");
-  const userReport = useMemo(
-    () => (profile ? buildUserReport(profile, locale) : ""),
-    [profile, locale]
-  );
+  const userReport = useMemo(() => {
+    if (!profile) return "";
+    const full = buildUserReport(profile, locale);
+    // Strip "Recommended practices" / "Pratiques recommandées" section (hidden for visitors)
+    return full.replace(/\n## (?:Pratiques recommandées|Recommended practices)[\s\S]*$/m, "\n").trimEnd();
+  }, [profile, locale]);
 
   const handleExportPdf = () => {
     if (!userReport || exporting) return;
