@@ -33,6 +33,7 @@ import { useAssessmentSession } from "../hooks/useAssessmentSession";
 import type { LoadedTemplate } from "../services/assessmentService";
 import type { ResponseValue, RuntimeQuestion } from "../domain/types";
 import { MiniRadarThumb } from "../components/MiniRadarThumb";
+import { useAdmin } from "@/hooks/use-admin";
 import {
   loadAppendix,
   loadUserResponses,
@@ -55,6 +56,7 @@ type FlowStage = "phase1" | "phase2-hub" | "phase2-category";
 export default function AssessmentFlow() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const { locale } = useLanguage();
   const isFR = locale === "fr";
 
@@ -313,8 +315,8 @@ export default function AssessmentFlow() {
         </Button>
       </div>
 
-      {/* Mini emerging-profile widget — visible while answering */}
-      {session.step === "questions" && (
+      {/* Mini emerging-profile widget — admin only */}
+      {session.step === "questions" && isAdmin && (
         <MiniRadarThumb isFR={isFR} rawScores={liveRawScores} />
       )}
 
@@ -485,6 +487,7 @@ function AppendixCategoryRunner({
   const [idx, setIdx] = useState(0);
   const [responses, setResponses] = useState<Record<string, ResponseValue>>({});
   const [submitting, setSubmitting] = useState(false);
+  const { isAdmin } = useAdmin();
 
   const total = category.questions.length;
   const current = category.questions[idx];
@@ -551,7 +554,7 @@ function AppendixCategoryRunner({
         </Button>
       </div>
 
-      <MiniRadarThumb isFR={isFR} rawScores={liveRawScores} />
+      {isAdmin && <MiniRadarThumb isFR={isFR} rawScores={liveRawScores} />}
 
       <div className="max-w-2xl mx-auto px-4 py-10 sm:py-16 space-y-6">
         <div>
