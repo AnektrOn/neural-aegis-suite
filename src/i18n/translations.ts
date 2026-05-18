@@ -192,6 +192,108 @@ export const translations = {
   "auth.password": { fr: "Mot de passe", en: "Password" },
   "auth.signIn": { fr: "Se connecter", en: "Sign In" },
 
+  // Visitor funnel
+  "visitor.loading": { fr: "Chargement…", en: "Loading…" },
+  "visitor.retry": { fr: "Réessayer", en: "Retry" },
+  "visitor.authErrorHint": {
+    fr: "Active les connexions anonymes dans Supabase (Auth → Providers) puis réessaie.",
+    en: "Enable anonymous sign-ins in Supabase (Auth → Providers) then try again.",
+  },
+  "visitor.backToSpace": { fr: "Retour à mon espace", en: "Back to my space" },
+  "visitor.saveResults": { fr: "Créer un compte pour sauvegarder", en: "Create an account to save" },
+  "visitor.startQuiz": { fr: "Commencer le quiz", en: "Start the quiz" },
+  "visitor.viewReport": { fr: "Voir mon rapport Deep Dive", en: "View my Deep Dive report" },
+  "visitor.nav.quiz": { fr: "Quiz", en: "Quiz" },
+  "visitor.nav.report": { fr: "Rapport", en: "Report" },
+  "visitor.nav.app": { fr: "Application", en: "App" },
+  "visitor.dashboard.badge": { fr: "Espace visiteur", en: "Visitor space" },
+  "visitor.dashboard.title": { fr: "Ton tableau de bord", en: "Your dashboard" },
+  "visitor.dashboard.subtitle": {
+    fr: "Quiz archétypal gratuit, rapport personnalisé et prochaines étapes.",
+    en: "Free archetype quiz, personalized report and next steps.",
+  },
+  "visitor.quizStatus.title": { fr: "Quiz 30 questions", en: "30-question quiz" },
+  "visitor.quizStatus.done": { fr: "Complété — archétype dominant", en: "Completed — dominant archetype" },
+  "visitor.quizStatus.pending": {
+    fr: "Pas encore complété. ~10 min, sans email.",
+    en: "Not completed yet. ~10 min, no email required.",
+  },
+  "visitor.reportCard.title": { fr: "Rapport Deep Dive", en: "Deep Dive report" },
+  "visitor.reportCard.desc": {
+    fr: "Lecture personnalisée de tes archétypes, ombres et pratiques.",
+    en: "Personalized reading of your archetypes, shadows and practices.",
+  },
+  "visitor.report.kicker": { fr: "Ton rapport Deep Dive", en: "Your Deep Dive report" },
+  "visitor.report.subtitle": {
+    fr: "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées.",
+    en: "Personalized reading of your dominant archetypes, shadows and recommended practices.",
+  },
+  "visitor.report.loading": {
+    fr: "Construction de ton profil archétypal…",
+    en: "Building your archetypal profile…",
+  },
+  "visitor.payment.title": { fr: "Accès complet", en: "Full access" },
+  "visitor.payment.desc": {
+    fr: "Débloque l'ensemble de la suite Neural Aegis.",
+    en: "Unlock the full Neural Aegis suite.",
+  },
+  "visitor.payment.cta": { fr: "Voir les offres", en: "View offers" },
+  "visitor.payment.soonTitle": { fr: "Bientôt disponible", en: "Coming soon" },
+  "visitor.payment.soonDesc": {
+    fr: "Le paiement en ligne sera activé prochainement.",
+    en: "Online payment will be available soon.",
+  },
+  "visitor.audit.title": { fr: "Réserver un audit", en: "Book an audit" },
+  "visitor.audit.desc": {
+    fr: "Session de lecture de profil avec un coach Aegis.",
+    en: "Profile reading session with an Aegis coach.",
+  },
+  "visitor.audit.cta": { fr: "Réserver un créneau", en: "Book a slot" },
+  "visitor.audit.missingUrl": {
+    fr: "Lien de réservation non configuré (VITE_VISITOR_AUDIT_BOOKING_URL).",
+    en: "Booking link not configured (VITE_VISITOR_AUDIT_BOOKING_URL).",
+  },
+  "visitor.upgrade.title": { fr: "Ne perds pas tes résultats", en: "Don't lose your results" },
+  "visitor.upgrade.desc": {
+    fr: "Crée un compte email pour accéder à l'application complète et conserver ton profil.",
+    en: "Create an email account to access the full app and keep your profile.",
+  },
+  "visitor.upgrade.cta": { fr: "Créer mon compte", en: "Create my account" },
+  "visitor.upgrade.authIntro": {
+    fr: "Associe un email à ton profil pour le conserver et accéder à l'app complète.",
+    en: "Link an email to your profile to keep it and access the full app.",
+  },
+  "visitor.upgrade.submit": { fr: "Créer mon compte", en: "Create my account" },
+  "visitor.upgrade.linkFromLogin": {
+    fr: "Tu as déjà fait le quiz ? Crée ton compte",
+    en: "Already took the quiz? Create your account",
+  },
+  "visitor.upgrade.successTitle": { fr: "Compte créé", en: "Account created" },
+  "visitor.upgrade.successDesc": {
+    fr: "Ton profil archétypal est conservé. Bienvenue dans Neural Aegis.",
+    en: "Your archetypal profile is saved. Welcome to Neural Aegis.",
+  },
+
+  // Public quiz
+  "quiz.public.badge": { fr: "Gratuit · sans email · ~10 min", en: "Free · no email · ~10 min" },
+  "quiz.public.duration": {
+    fr: "30 questions essentielles pour révéler tes archétypes dominants.",
+    en: "30 essential questions to reveal your dominant archetypes.",
+  },
+  "quiz.public.bullet1": {
+    fr: "Résultat immédiat : rapport Deep Dive personnalisé",
+    en: "Instant result: personalized Deep Dive report",
+  },
+  "quiz.public.bullet2": {
+    fr: "Tes données restent dans ton espace visiteur",
+    en: "Your data stays in your visitor space",
+  },
+  "quiz.public.bullet3": {
+    fr: "Crée un compte plus tard pour débloquer l'app complète",
+    en: "Create an account later to unlock the full app",
+  },
+  "quiz.public.start": { fr: "Commencer gratuitement", en: "Start for free" },
+
   // General
   "general.loading": { fr: "Chargement...", en: "Loading..." },
   "general.save": { fr: "Enregistrer", en: "Save" },
@@ -1854,6 +1956,84 @@ export const translations = {
   },
   "admin.analytics.barAvgMs": { fr: "Moy. ms", en: "Avg ms" },
   "admin.analytics.lineAverage": { fr: "Moyenne", en: "Average" },
+
+  "visitor.authErrorHint": {
+    fr: "Vérifiez votre connexion et réessayez.",
+    en: "Check your connection and try again.",
+  },
+  "visitor.retry": { fr: "Réessayer", en: "Retry" },
+  "visitor.loading": { fr: "Chargement…", en: "Loading…" },
+  "visitor.backToSpace": { fr: "Retour à l'espace visiteur", en: "Back to visitor space" },
+  "visitor.startQuiz": { fr: "Commencer le quiz", en: "Start the quiz" },
+  "visitor.viewReport": { fr: "Voir le rapport", en: "View report" },
+  "visitor.saveResults": { fr: "Enregistrer mes résultats", en: "Save my results" },
+  "visitor.nav.quiz": { fr: "Quiz", en: "Quiz" },
+  "visitor.nav.report": { fr: "Rapport", en: "Report" },
+  "visitor.nav.app": { fr: "Application", en: "App" },
+  "visitor.dashboard.badge": { fr: "Espace visiteur", en: "Visitor space" },
+  "visitor.dashboard.title": { fr: "Découvrez votre profil", en: "Discover your profile" },
+  "visitor.dashboard.subtitle": {
+    fr: "Quiz archétypes et rapport Deep Dive sans compte complet.",
+    en: "Archetype quiz and Deep Dive report without a full account.",
+  },
+  "visitor.quizStatus.title": { fr: "Quiz archétypes", en: "Archetype quiz" },
+  "visitor.quizStatus.done": { fr: "Terminé", en: "Completed" },
+  "visitor.quizStatus.pending": {
+    fr: "Passez le quiz pour débloquer votre rapport.",
+    en: "Take the quiz to unlock your report.",
+  },
+  "visitor.reportCard.title": { fr: "Rapport Deep Dive", en: "Deep Dive report" },
+  "visitor.reportCard.desc": {
+    fr: "Synthèse personnalisée de vos archétypes dominants.",
+    en: "Personalized summary of your dominant archetypes.",
+  },
+  "visitor.payment.title": { fr: "Accès complet", en: "Full access" },
+  "visitor.payment.desc": {
+    fr: "Débloquez l'application Neural Aegis complète.",
+    en: "Unlock the full Neural Aegis application.",
+  },
+  "visitor.payment.cta": { fr: "Découvrir les offres", en: "See plans" },
+  "visitor.payment.soonTitle": { fr: "Bientôt disponible", en: "Coming soon" },
+  "visitor.payment.soonDesc": {
+    fr: "Le paiement en ligne sera activé prochainement.",
+    en: "Online payment will be enabled soon.",
+  },
+  "visitor.audit.title": { fr: "Audit stratégique", en: "Strategy audit" },
+  "visitor.audit.desc": {
+    fr: "Réservez un appel avec notre équipe.",
+    en: "Book a call with our team.",
+  },
+  "visitor.audit.cta": { fr: "Réserver", en: "Book" },
+  "visitor.audit.missingUrl": {
+    fr: "Lien de réservation non configuré.",
+    en: "Booking link is not configured.",
+  },
+  "visitor.upgrade.title": { fr: "Créer un compte", en: "Create an account" },
+  "visitor.upgrade.desc": {
+    fr: "Sauvegardez vos résultats et accédez à toutes les fonctionnalités.",
+    en: "Save your results and access all features.",
+  },
+  "visitor.upgrade.cta": { fr: "S'inscrire", en: "Sign up" },
+  "visitor.upgrade.authIntro": {
+    fr: "Ajoutez un email et un mot de passe pour sauvegarder vos résultats.",
+    en: "Add an email and password to save your results.",
+  },
+  "visitor.upgrade.submit": { fr: "Créer mon compte", en: "Create my account" },
+  "visitor.upgrade.successTitle": { fr: "Compte créé", en: "Account created" },
+  "visitor.upgrade.successDesc": {
+    fr: "Vos résultats sont liés à votre compte. Bienvenue dans Neural Aegis.",
+    en: "Your results are linked to your account. Welcome to Neural Aegis.",
+  },
+  "visitor.upgrade.linkFromLogin": {
+    fr: "Vous avez passé le quiz en visiteur ? Créez un compte",
+    en: "Took the quiz as a visitor? Create an account",
+  },
+  "visitor.report.kicker": { fr: "Rapport", en: "Report" },
+  "visitor.report.subtitle": {
+    fr: "Basé sur vos réponses au quiz archétypes.",
+    en: "Based on your archetype quiz answers.",
+  },
+  "visitor.report.loading": { fr: "Génération du rapport…", en: "Generating report…" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

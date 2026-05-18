@@ -1,19 +1,24 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { isAnonymousUser } from "@/lib/authVisitor";
+import { Navigate, useLocation } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import { BootLoadingScreen } from "@/components/BootLoadingScreen";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const location = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user && !isAnonymousUser(user)) {
       const key = `aegis_onboarded_${user.id}`;
       const done = localStorage.getItem(key);
       setShowOnboarding(!done);
+      setOnboardingChecked(true);
+    } else if (user) {
+      setShowOnboarding(false);
       setOnboardingChecked(true);
     }
   }, [user]);
@@ -28,6 +33,10 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (isAnonymousUser(user)) {
+    return <Navigate to="/visitor" replace state={{ from: location.pathname }} />;
   }
 
   if (showOnboarding) {

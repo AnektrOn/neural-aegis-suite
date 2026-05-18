@@ -9,9 +9,11 @@ import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import VisitorRoute from "@/components/VisitorRoute";
 import AdminRoute from "@/components/AdminRoute";
 import AppLayout from "./components/AppLayout";
 import AdminLayout from "./components/AdminLayout";
+import VisitorLayout from "./layouts/VisitorLayout";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -29,7 +31,13 @@ const InstallApp = lazy(() => import("./pages/InstallApp"));
 const CalendarView = lazy(() => import("./pages/CalendarView"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
-
+const PublicAssessmentFlow = lazy(
+  () => import("./features/archetype-assessment/pages/PublicAssessmentFlow")
+);
+const VisitorDashboard = lazy(() => import("./pages/VisitorDashboard"));
+const VisitorDeepDiveReport = lazy(
+  () => import("./features/archetype-deepdive-v2/pages/VisitorDeepDiveReport")
+);
 // Admin pages
 const CallAuditDashboard = lazy(() => import("./pages/admin/CallAuditDashboard"));
 const HabitFactory = lazy(() => import("./pages/admin/HabitFactory"));
@@ -101,6 +109,25 @@ const App = () => (
                   <Route path="/__loader" element={<BootLoadingScreen />} />
                 ) : null}
                 <Route path="/auth" element={<AuthPage />} />
+                <Route
+                  path="/quiz"
+                  element={
+                    <VisitorRoute>
+                      <PublicAssessmentFlow />
+                    </VisitorRoute>
+                  }
+                />
+                <Route
+                  path="/visitor"
+                  element={
+                    <VisitorRoute>
+                      <VisitorLayout />
+                    </VisitorRoute>
+                  }
+                >
+                  <Route index element={<VisitorDashboard />} />
+                  <Route path="report" element={<VisitorDeepDiveReport />} />
+                </Route>
                 <Route
                   path="/admin/*"
                   element={

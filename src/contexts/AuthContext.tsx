@@ -4,6 +4,7 @@ import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdminOnLogin } from "@/services/adminNotifications";
+import { isAnonymousUser } from "@/lib/authVisitor";
 
 const MOCK_AUTH = import.meta.env.VITE_MOCK_AUTH === "true";
 const MOCK_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -62,6 +63,8 @@ interface AuthContextType {
   loading: boolean;
   /** Full-screen boot loader: auth bootstrap and/or forced native cold/resume timing. */
   bootScreenActive: boolean;
+  isAnonymous: boolean;
+  ensureAnonymousSession: () => Promise<User>;
   signOut: () => Promise<void>;
 }
 
@@ -70,8 +73,23 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   bootScreenActive: true,
+  isAnonymous: false,
+  ensureAnonymousSession: async () => {
+    throw new Error("AuthProvider not mounted");
+  },
   signOut: async () => {},
 });
+
+/** Creates or returns the current Supabase session (anonymous if none). */
+export async function ensureAnonymousSession(): Promise<User> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) return session.user;
+
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error) throw error;
+  if (!data.user) throw new Error("Anonymous sign-in failed");
+  return data.user;
+}
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -140,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         endInitialLoading();
 
-        if (event === "SIGNED_IN" && session?.user) {
+        if (event === "SIGNED_IN" && session?.user && !isAnonymousUser(session.user)) {
           const loginFingerprint = `${session.user.id}:${session.access_token.slice(-12)}`;
           if (lastNotifiedLogin.current !== loginFingerprint) {
             lastNotifiedLogin.current = loginFingerprint;
@@ -167,9 +185,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const bootScreenActive = loading || holdResumeBoot;
+  const isAnonymous = isAnonymousUser(user);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, bootScreenActive, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        bootScreenActive,
+        isAnonymous,
+        ensureAnonymousSession,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
