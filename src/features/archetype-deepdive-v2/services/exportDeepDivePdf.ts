@@ -1,15 +1,13 @@
 /**
  * Branded PDF export for Deep Dive V2 reports.
  *
- * Two strategies:
- *  - DOM-based (preferred for the visitor report): rasterizes a given element
- *    with html2canvas and packs it into a multi-page A4 PDF via jsPDF. No
- *    popup — bypasses popup blockers.
- *  - Markdown-based (legacy fallback): opens a print-ready window for admins.
+ * Strategies:
+ *  - Text-based (preferred): writes structured, selectable text from a markdown
+ *    source into a multi-page A4 PDF via jsPDF. No html2canvas, no screenshots.
+ *  - Markdown-based legacy: opens a print-ready window for admins.
  */
 
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 interface ExportArgs {
   kind: "user" | "admin";
@@ -17,10 +15,11 @@ interface ExportArgs {
   profileLabel: string;
 }
 
-interface ExportElementArgs {
-  element: HTMLElement;
+interface ExportTextArgs {
+  markdown: string;
   profileLabel: string;
   kind?: "user" | "admin";
+  isFR?: boolean;
 }
 
 function slugify(s: string): string {
@@ -32,41 +31,117 @@ function slugify(s: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Strip simple markdown emphasis/code markers — keep text content only. */
+function stripInline(s: string): string {
+  return s
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1$2");
+}
+
 /**
- * Render a DOM element to a multi-page A4 PDF and trigger download.
- * No popups, works around popup blockers.
+ * Render markdown content as a clean, text-only multi-page A4 PDF.
+ * No images, no rasterized screenshots — fully selectable text.
  */
-export async function exportDeepDiveElementToPdf({
-  element,
+export function exportDeepDiveTextPdf({
+  markdown,
   profileLabel,
   kind = "user",
-}: ExportElementArgs): Promise<void> {
-  const canvas = await html2canvas(element, {
-    backgroundColor: "#010204",
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    windowWidth: element.scrollWidth,
-  });
-
+  isFR = true,
+}: ExportTextArgs): void {
   const pdf = new jsPDF("p", "mm", "a4");
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
-  const imgW = pageW;
-  const imgH = (canvas.height * imgW) / canvas.width;
-  const imgData = canvas.toDataURL("image/jpeg", 0.92);
+  const margin = 18;
+  const maxW = pageW - margin * 2;
+  let y = margin;
 
-  let heightLeft = imgH;
-  let position = 0;
+  const ensureSpace = (needed: number) => {
+    if (y + needed > pageH - margin) {
+      pdf.addPage();
+      y = margin;
+    }
+  };
 
-  pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
-  heightLeft -= pageH;
+  // Cover header
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(20);
+  pdf.setTextColor(20, 20, 30);
+  pdf.text(isFR ? "Aegis — Deep Dive" : "Aegis — Deep Dive", margin, y);
+  y += 9;
 
-  while (heightLeft > 0) {
-    position = heightLeft - imgH;
-    pdf.addPage();
-    pdf.addImage(imgData, "JPEG", 0, position, imgW, imgH);
-    heightLeft -= pageH;
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(13);
+  pdf.setTextColor(60, 60, 80);
+  const titleLines = pdf.splitTextToSize(profileLabel, maxW);
+  pdf.text(titleLines, margin, y);
+  y += titleLines.length * 6 + 2;
+
+  pdf.setFontSize(9);
+  pdf.setTextColor(130, 130, 140);
+  const stamp = `${kind === "admin" ? (isFR ? "Lecture admin" : "Admin reading") : (isFR ? "Rapport personnel" : "Personal report")} · ${new Date().toLocaleDateString(isFR ? "fr-FR" : "en-US", { year: "numeric", month: "long", day: "numeric" })}`;
+  pdf.text(stamp, margin, y);
+  y += 6;
+  pdf.setDrawColor(200, 200, 210);
+  pdf.line(margin, y, pageW - margin, y);
+  y += 6;
+
+  const lines = markdown.split(/\r?\n/);
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (!line.trim()) { y += 3; continue; }
+
+    const h = /^(#{1,3})\s+(.*)$/.exec(line);
+    if (h) {
+      const level = h[1].length;
+      const text = stripInline(h[2]);
+      const sizes = [16, 13, 11];
+      const before = [5, 4, 3];
+      const after = [3, 2, 2];
+      ensureSpace(sizes[level - 1] + before[level - 1] + after[level - 1] + 2);
+      y += before[level - 1];
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(sizes[level - 1]);
+      pdf.setTextColor(20, 20, 30);
+      const wrapped = pdf.splitTextToSize(text, maxW);
+      pdf.text(wrapped, margin, y);
+      y += wrapped.length * (sizes[level - 1] * 0.42) + after[level - 1];
+      continue;
+    }
+
+    const li = /^[-*]\s+(.*)$/.exec(line);
+    if (li) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(40, 40, 55);
+      const text = stripInline(li[1]);
+      const wrapped = pdf.splitTextToSize(text, maxW - 5);
+      ensureSpace(wrapped.length * 5 + 1);
+      pdf.text("•", margin, y);
+      pdf.text(wrapped, margin + 5, y);
+      y += wrapped.length * 5 + 1;
+      continue;
+    }
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    pdf.setTextColor(50, 50, 65);
+    const text = stripInline(line);
+    const wrapped = pdf.splitTextToSize(text, maxW);
+    ensureSpace(wrapped.length * 5 + 1);
+    pdf.text(wrapped, margin, y);
+    y += wrapped.length * 5 + 2;
+  }
+
+  // Footer on every page
+  const pageCount = (pdf as unknown as { internal: { getNumberOfPages: () => number } }).internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(8);
+    pdf.setTextColor(140, 140, 150);
+    pdf.text(`Aegis — ${profileLabel} · ${i}/${pageCount}`, pageW / 2, pageH - 8, { align: "center" });
   }
 
   const date = new Date().toISOString().slice(0, 10);
