@@ -10,20 +10,10 @@ import {
   Search, Loader2, Sparkles, Cloud,
 } from "lucide-react";
 import { exportDeepDiveV2ToDrive } from "../services/exportDeepDiveToDrive";
-import {
-  buildUserReport,
-  buildAdminReport,
-  type SampleProfile,
-} from "../domain/sampleProfile";
-import { buildDynamicProfile } from "../domain/dynamicProfileBuilder";
-import { loadUnifiedDeepDiveResult } from "../domain/loadUnifiedScores";
-import { supabase } from "@/integrations/supabase/client";
+import { buildUserReport, buildAdminReport } from "../domain/sampleProfile";
 import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
-import {
-  listAllSessionsForAdmin,
-  getLatestSubmittedSessionForUser,
-  getSessionFullDetails,
-} from "@/features/archetype-assessment/services/assessmentService";
+import { listAllSessionsForAdmin } from "@/features/archetype-assessment/services/assessmentService";
+import { useDeepDiveProfile } from "../hooks/useDeepDiveProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
@@ -72,13 +62,19 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   const [filter, setFilter] = useState("");
   const [selectedSession, setSelectedSession] = useState<AdminSessionRow | null>(null);
 
-  // Dynamic profile loading from real DB data
-  const [profile, setProfile] = useState<SampleProfile | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
-
   // Tabs (admin can flip between user / admin views)
   const [tab, setTab] = useState<"user" | "admin">(mode === "admin" ? "admin" : "user");
+
+  const userProfileLoad = useDeepDiveProfile({
+    userId: mode === "user" ? user?.id : selectedSession?.user_id,
+    sessionId: mode === "admin" ? selectedSession?.id : undefined,
+    displayName: selectedSession?.profile?.display_name ?? null,
+    locale,
+  });
+
+  const profile = mode === "admin" && !selectedSession ? null : userProfileLoad.profile;
+  const loadingProfile = userProfileLoad.loading;
+  const profileError = userProfileLoad.error;
 
   useEffect(() => {
     if (mode !== "admin") return;
@@ -103,76 +99,6 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
       (s.top_archetype ?? "").toLowerCase().includes(q),
     );
   }, [sessions, filter]);
-
-  // Load the REAL deep dive profile for the active subject (current user OR selected admin target)
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setProfile(null);
-      setProfileError(null);
-
-      let sessionId: string | null = null;
-      let displayName: string | null = null;
-
-      if (mode === "user") {
-        if (!user?.id) return;
-        const session = await getLatestSubmittedSessionForUser(user.id);
-        if (!session) {
-          if (!cancelled) setProfileError(
-            isFR
-              ? "Tu n'as pas encore complété d'évaluation. Lance l'assessment pour générer ton Deep Dive personnel."
-              : "You haven't completed an assessment yet. Run the assessment to generate your personal Deep Dive."
-          );
-          return;
-        }
-        sessionId = session.id;
-      } else {
-        if (!selectedSession) return;
-        sessionId = selectedSession.id;
-        displayName = selectedSession.profile?.display_name ?? null;
-      }
-
-      if (!sessionId) return;
-      setLoadingProfile(true);
-      try {
-        const details = await getSessionFullDetails(sessionId);
-        if (cancelled) return;
-
-        const userIdForDeep =
-          mode === "user" ? user!.id : selectedSession!.user_id;
-
-        let unified: Awaited<ReturnType<typeof loadUnifiedDeepDiveResult>> | null = null;
-        try {
-          const { count, error: countErr } = await supabase
-            .from("deepdive_responses" as any)
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", userIdForDeep);
-          if (!countErr && (count ?? 0) > 0) {
-            unified = await loadUnifiedDeepDiveResult(userIdForDeep);
-          }
-        } catch (e) {
-          console.warn("[DeepDive] unified score load failed", e);
-        }
-
-        const dynProfile = buildDynamicProfile({
-          sessionId,
-          displayName: displayName ?? details.profile?.display_name ?? null,
-          scores: (details.scores ?? []) as any,
-          analysis: (details.analysis ?? null) as any,
-          locale,
-          unified,
-        });
-        setProfile(dynProfile);
-      } catch (e: any) {
-        console.error("[DeepDive] load profile failed", e);
-        if (!cancelled) setProfileError(e?.message ?? (isFR ? "Erreur lors du chargement du profil." : "Error loading profile."));
-      } finally {
-        if (!cancelled) setLoadingProfile(false);
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, [mode, user?.id, selectedSession, locale, isFR]);
 
   const userReport = useMemo(() => (profile ? buildUserReport(profile, locale) : ""), [profile, locale]);
   const adminReport = useMemo(() => (profile ? buildAdminReport(profile, locale) : ""), [profile, locale]);

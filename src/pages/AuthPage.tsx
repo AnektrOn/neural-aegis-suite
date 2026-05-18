@@ -3,9 +3,10 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NeuralCard } from "@/components/ui/neural-card";
@@ -17,14 +18,30 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { user, isAnonymous } = useAuth();
+
+  const upgradeMode = searchParams.get("upgrade") === "1" && isAnonymous;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      if (upgradeMode && user) {
+        const { error } = await supabase.auth.updateUser({ email, password });
+        if (error) throw error;
+        localStorage.setItem(`aegis_onboarded_${user.id}`, "true");
+        toast({
+          title: t("visitor.upgrade.successTitle"),
+          description: t("visitor.upgrade.successDesc"),
+        });
+        navigate("/");
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       navigate("/");
@@ -65,6 +82,11 @@ export default function AuthPage() {
           transition={{ duration: 0.25, delay: 0.05, ease: "easeOut" }}
         >
           <NeuralCard variant="elevated" glow="blue" className="p-6">
+            {upgradeMode && (
+              <p className="text-sm text-text-secondary mb-4 text-center">
+                {t("visitor.upgrade.authIntro")}
+              </p>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-medium font-display block">
@@ -93,7 +115,7 @@ export default function AuthPage() {
                     placeholder={t("auth.password")}
                     required
                     minLength={6}
-                    autoComplete="current-password"
+                    autoComplete={upgradeMode ? "new-password" : "current-password"}
                     className="w-full bg-bg-base border border-border-active rounded-lg px-3 py-2.5 pr-11 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all duration-200"
                   />
                   <button
@@ -116,11 +138,36 @@ export default function AuthPage() {
                   <div className="w-4 h-4 border-2 border-bg-base/30 border-t-bg-base rounded-full animate-spin" />
                 ) : (
                   <>
-                    {t("auth.signIn")} <ArrowRight size={14} strokeWidth={1.5} />
+                    {upgradeMode ? t("visitor.upgrade.submit") : t("auth.signIn")}{" "}
+                    <ArrowRight size={14} strokeWidth={1.5} />
                   </>
                 )}
               </button>
             </form>
+
+            {!upgradeMode && isAnonymous && (
+              <p className="text-center text-xs text-text-tertiary mt-4">
+                <button
+                  type="button"
+                  className="text-accent-primary hover:underline"
+                  onClick={() => navigate("/auth?upgrade=1")}
+                >
+                  {t("visitor.upgrade.linkFromLogin")}
+                </button>
+              </p>
+            )}
+
+            {upgradeMode && (
+              <p className="text-center text-xs text-text-tertiary mt-4">
+                <button
+                  type="button"
+                  className="hover:underline"
+                  onClick={() => navigate("/visitor")}
+                >
+                  {t("visitor.backToSpace")}
+                </button>
+              </p>
+            )}
           </NeuralCard>
         </motion.div>
         </div>
