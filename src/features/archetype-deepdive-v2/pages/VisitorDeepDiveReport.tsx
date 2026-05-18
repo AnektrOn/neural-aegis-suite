@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -9,19 +9,18 @@ import {
   FileDown,
   Loader2,
   Sparkles,
-  ArrowRight,
   AlertTriangle,
   Globe,
 } from "lucide-react";
 import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
 import { useDeepDiveProfile } from "../hooks/useDeepDiveProfile";
-import { exportDeepDiveElementToPdf } from "../services/exportDeepDivePdf";
+import { buildUserReport } from "../domain/sampleProfile";
+import { exportDeepDiveTextPdf } from "../services/exportDeepDivePdf";
 
 export default function VisitorDeepDiveReport() {
   const { user } = useAuth();
   const { locale, setLocale, t } = useLanguage();
   const isFR = locale === "fr";
-  const reportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
   const { profile, loading, error } = useDeepDiveProfile({
@@ -30,15 +29,20 @@ export default function VisitorDeepDiveReport() {
   });
 
   const reportSubject = profile?.label || (isFR ? "Ton profil" : "Your profile");
+  const userReport = useMemo(
+    () => (profile ? buildUserReport(profile, locale) : ""),
+    [profile, locale]
+  );
 
-  const handleExportPdf = async () => {
-    if (!reportRef.current || exporting) return;
+  const handleExportPdf = () => {
+    if (!userReport || exporting) return;
     setExporting(true);
     try {
-      await exportDeepDiveElementToPdf({
-        element: reportRef.current,
+      exportDeepDiveTextPdf({
+        markdown: userReport,
         profileLabel: reportSubject,
         kind: "user",
+        isFR,
       });
     } catch (e) {
       console.error("[VisitorDeepDiveReport] export pdf failed", e);
@@ -48,11 +52,9 @@ export default function VisitorDeepDiveReport() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 pb-44 space-y-6">
+    <div className="mx-auto max-w-4xl px-4 py-8 pb-28 space-y-6">
       {/* Fixed warning banner */}
-      <div
-        className="fixed top-14 left-0 right-0 z-30 bg-accent-warning/10 border-b border-accent-warning/30 backdrop-blur-md"
-      >
+      <div className="fixed top-14 left-0 right-0 z-30 bg-accent-warning/10 border-b border-accent-warning/30 backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-4 py-2 flex items-center gap-2 text-accent-warning text-[11px] sm:text-xs">
           <AlertTriangle size={14} strokeWidth={1.5} className="shrink-0" />
           <span className="leading-snug">
@@ -123,9 +125,7 @@ export default function VisitorDeepDiveReport() {
               {isFR ? "Exporter PDF" : "Export PDF"}
             </Button>
           </div>
-          <div ref={reportRef}>
-            <DeepDiveUserCards profile={profile} hidePractices />
-          </div>
+          <DeepDiveUserCards profile={profile} hidePractices />
         </>
       )}
 
@@ -133,15 +133,9 @@ export default function VisitorDeepDiveReport() {
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-bg-base/95 backdrop-blur-md p-4"
         style={{ paddingBottom: "calc(var(--safe-bottom, 0px) + 1rem)" }}
       >
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" className="flex-1" asChild>
+        <div className="max-w-4xl mx-auto">
+          <Button variant="outline" className="w-full" asChild>
             <Link to="/visitor">{t("visitor.backToSpace")}</Link>
-          </Button>
-          <Button className="flex-1 gap-2" asChild>
-            <Link to="/auth?upgrade=1">
-              {t("visitor.saveResults")}
-              <ArrowRight size={14} />
-            </Link>
           </Button>
         </div>
       </div>
