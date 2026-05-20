@@ -26,6 +26,15 @@ export const TOOLBOX_CONTENT_TYPES = [
 
 export type ToolboxContentType = (typeof TOOLBOX_CONTENT_TYPES)[number];
 
+export const TOOLBOX_USER_DELIVERY_STATUSES = [
+  "assigned",
+  "waiting",
+  "active",
+  "inactive",
+] as const;
+
+export type ToolboxUserDeliveryStatus = (typeof TOOLBOX_USER_DELIVERY_STATUSES)[number];
+
 export interface CatalogTaggable {
   archetype_targets?: string[];
   shadow_targets?: string[];
@@ -92,15 +101,23 @@ export interface ValidationIssue {
  *
  * version: "toolbox-catalog-v1"
  *
- * Crée uniquement des templates dans le catalogue.
- * L'assignation aux users se fait ensuite manuellement depuis l'admin.
+ * Crée des gabarits catalogue (toolbox / routines / journal) et peut assigner
+ * les toolbox_items aux utilisateurs via `default_user_ids`, `user_ids` ou `assignments`.
  *
  * Chaque item dans toolbox_items correspond à un futur widget assignable.
  * Chaque item dans habit_items correspond à une routine réutilisable.
  * Chaque item dans journal_items correspond à un prompt journal réutilisable.
+ *
+ * Assignation utilisateur (toolbox_items) :
+ * - `default_user_ids` / `default_assignment_status` au niveau racine
+ * - par item : `user_ids`, `assignment_status`, ou `assignments: [{ user_id, status? }]`
+ * Statuts : assigned | waiting | active | inactive (synonymes FR : attribué, en_attente, inactif).
  */
 export interface ToolboxCatalogImportPayload {
   version: "toolbox-catalog-v1";
+  /** Appliqué aux toolbox_items qui ne définissent pas `user_ids` ni `assignments`. */
+  default_user_ids?: string[];
+  default_assignment_status?: string;
   toolbox_items?: Array<{
     external_key?: string;
     content_type: ToolboxContentType;
@@ -116,6 +133,12 @@ export interface ToolboxCatalogImportPayload {
     external_url?: string;
     widget_config: Record<string, unknown>;
     is_active?: boolean;
+    /** Surcharge les `default_user_ids` pour cet item. */
+    user_ids?: string[];
+    /** Statut par défaut pour les utilisateurs listés dans `user_ids` (ou défaut racine). */
+    assignment_status?: string;
+    /** Liste explicite user + statut (prioritaire sur `user_ids`). */
+    assignments?: Array<{ user_id: string; status?: string }>;
   }>;
   habit_items?: Array<{
     external_key?: string;
@@ -148,9 +171,11 @@ export interface ToolboxCatalogImportPayload {
 export interface ImportExecutionSummary {
   dryRun: boolean;
   createdToolboxTemplates: number;
+  createdToolboxAssignments: number;
   createdHabitTemplates: number;
   createdJournalPromptTemplates: number;
   skippedDuplicates: number;
+  skippedDuplicateToolboxAssignments: number;
   issues: ValidationIssue[];
 }
 
@@ -160,6 +185,54 @@ function asArray(v?: string[]) {
 
 function normalizeKey(key?: string | null) {
   return (key || "").trim() || null;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuidLike(id: string): boolean {
+  return UUID_RE.test((id || "").trim());
+}
+
+export function normalizeToolboxUserDeliveryStatus(raw: unknown): ToolboxUserDeliveryStatus | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim().toLowerCase().replace(/\s+/g, "_");
+  if (s === "attribué" || s === "attribue" || s === "assigned") return "assigned";
+  if (s === "en_attente" || s === "attente" || s === "waiting") return "waiting";
+  if (s === "actif" || s === "active") return "active";
+  if (s === "inactif" || s === "inactive") return "inactive";
+  if ((TOOLBOX_USER_DELIVERY_STATUSES as readonly string[]).includes(s)) return s as ToolboxUserDeliveryStatus;
+  return null;
+}
+
+export function resolveToolboxItemAssignments(
+  t: NonNullable<ToolboxCatalogImportPayload["toolbox_items"]>[number],
+  payload: ToolboxCatalogImportPayload,
+): Array<{ userId: string; status: ToolboxUserDeliveryStatus }> {
+  const rootDefault =
+    normalizeToolboxUserDeliveryStatus(payload.default_assignment_status) ?? ("active" as const);
+
+  if (Array.isArray(t.assignments)) {
+    return t.assignments
+      .filter((a) => a && typeof a.user_id === "string" && a.user_id.trim())
+      .map((a) => ({
+        userId: a.user_id.trim(),
+        status:
+          normalizeToolboxUserDeliveryStatus(a.status) ??
+          normalizeToolboxUserDeliveryStatus(t.assignment_status) ??
+          rootDefault,
+      }));
+  }
+
+  const explicit = t.user_ids;
+  const ids =
+    explicit !== undefined
+      ? explicit.map((x) => String(x).trim()).filter(Boolean)
+      : (payload.default_user_ids || []).map((x) => String(x).trim()).filter(Boolean);
+
+  const status =
+    normalizeToolboxUserDeliveryStatus(t.assignment_status) ?? rootDefault;
+
+  return ids.map((userId) => ({ userId, status }));
 }
 
 /** True when JSONB already has both FR and EN (non-empty). Avoids merging a single-locale legacy string into both slots. */
@@ -573,8 +646,9 @@ export async function assignToolboxTemplateToUser(params: {
   actorId: string;
   userId: string;
   templateId: string;
+  userDeliveryStatus?: ToolboxUserDeliveryStatus;
 }) {
-  const { actorId, userId, templateId } = params;
+  const { actorId, userId, templateId, userDeliveryStatus = "active" } = params;
   const { data: template, error: tErr } = await supabase
     .from("toolbox_templates" as any)
     .select("*")
@@ -608,6 +682,7 @@ export async function assignToolboxTemplateToUser(params: {
     widget_config,
     assigned_by: actorId,
     template_id: (template as any).id,
+    user_delivery_status: userDeliveryStatus,
   };
 
   const { data, error } = await supabase
@@ -716,8 +791,21 @@ export async function assignToolboxDirect(params: {
   descriptionI18n?: Record<string, string> | null;
   externalUrl?: string | null;
   widgetConfig?: Record<string, unknown> | null;
+  userDeliveryStatus?: ToolboxUserDeliveryStatus;
 }) {
-  const { actorId, userId, contentType, title, titleI18n, duration, description, descriptionI18n, externalUrl, widgetConfig } = params;
+  const {
+    actorId,
+    userId,
+    contentType,
+    title,
+    titleI18n,
+    duration,
+    description,
+    descriptionI18n,
+    externalUrl,
+    widgetConfig,
+    userDeliveryStatus = "active",
+  } = params;
   if (contentType === "external_link" && isLikelyVideoUrl(externalUrl)) {
     throw new Error("Video links must be assigned via Bibliotheque admin.");
   }
@@ -757,6 +845,7 @@ export async function assignToolboxDirect(params: {
       external_url: externalUrl || null,
       widget_config,
       assigned_by: actorId,
+      user_delivery_status: userDeliveryStatus,
     } as any)
     .select("*")
     .single();
@@ -1032,6 +1121,23 @@ export function validateToolboxCatalogPayload(payload: unknown): ValidationIssue
     issues.push({ path: "$", message: "Le fichier ne contient aucun item (toolbox_items, habit_items ou journal_items)." });
   }
 
+  if (
+    p.default_assignment_status !== undefined &&
+    p.default_assignment_status !== null &&
+    normalizeToolboxUserDeliveryStatus(p.default_assignment_status) === null
+  ) {
+    issues.push({
+      path: "$.default_assignment_status",
+      message: `Statut inconnu. Utilisez: ${TOOLBOX_USER_DELIVERY_STATUSES.join(", ")} (ex. assigned, waiting, active, inactive).`,
+    });
+  }
+
+  (p.default_user_ids || []).forEach((uid, i) => {
+    if (!isUuidLike(String(uid))) {
+      issues.push({ path: `$.default_user_ids[${i}]`, message: "UUID utilisateur invalide." });
+    }
+  });
+
   (p.toolbox_items || []).forEach((t, i) => {
     const base = `$.toolbox_items[${i}]`;
     if (!t.content_type || !TOOLBOX_CONTENT_TYPES.includes(t.content_type)) {
@@ -1086,6 +1192,33 @@ export function validateToolboxCatalogPayload(payload: unknown): ValidationIssue
         issues.push({ path: `${base}.widget_config.instructions`, message: "instructions (string) est obligatoire pour micro_practice." });
       }
     }
+
+    if (t.assignment_status !== undefined && t.assignment_status !== null) {
+      if (normalizeToolboxUserDeliveryStatus(t.assignment_status) === null) {
+        issues.push({
+          path: `${base}.assignment_status`,
+          message: `Statut inconnu. Utilisez: ${TOOLBOX_USER_DELIVERY_STATUSES.join(", ")}.`,
+        });
+      }
+    }
+    (t.user_ids || []).forEach((uid, j) => {
+      if (!isUuidLike(String(uid))) {
+        issues.push({ path: `${base}.user_ids[${j}]`, message: "UUID utilisateur invalide." });
+      }
+    });
+    (t.assignments || []).forEach((a, j) => {
+      if (!a?.user_id?.trim()) {
+        issues.push({ path: `${base}.assignments[${j}].user_id`, message: "user_id obligatoire." });
+      } else if (!isUuidLike(a.user_id)) {
+        issues.push({ path: `${base}.assignments[${j}].user_id`, message: "UUID utilisateur invalide." });
+      }
+      if (a.status !== undefined && a.status !== null && normalizeToolboxUserDeliveryStatus(a.status) === null) {
+        issues.push({
+          path: `${base}.assignments[${j}].status`,
+          message: `Statut inconnu. Utilisez: ${TOOLBOX_USER_DELIVERY_STATUSES.join(", ")}.`,
+        });
+      }
+    });
 
     if (
       t.content_type &&
@@ -1182,9 +1315,11 @@ export async function runToolboxCatalogImport(params: {
   const summary: ImportExecutionSummary = {
     dryRun,
     createdToolboxTemplates: 0,
+    createdToolboxAssignments: 0,
     createdHabitTemplates: 0,
     createdJournalPromptTemplates: 0,
     skippedDuplicates: 0,
+    skippedDuplicateToolboxAssignments: 0,
     issues,
   };
 
@@ -1192,6 +1327,7 @@ export async function runToolboxCatalogImport(params: {
   if (dryRun) return summary;
 
   for (const t of payload.toolbox_items || []) {
+    let templateId: string | null = null;
     const key = normalizeKey(t.external_key);
     if (key) {
       const { data: existing } = await supabase
@@ -1200,31 +1336,56 @@ export async function runToolboxCatalogImport(params: {
         .eq("external_key", key)
         .maybeSingle();
       if ((existing as any)?.id) {
+        templateId = (existing as any).id as string;
         summary.skippedDuplicates += 1;
-        continue;
       }
     }
-    await createToolboxTemplate(
-      {
-        external_key: t.external_key,
-        content_type: t.content_type,
-        title: t.title,
-        title_i18n: mergeI18nObject(t.title_i18n ?? null, t.title_fr ?? null, t.title_en ?? null, t.title),
-        duration: t.duration,
-        description: t.description,
-        description_i18n: mergeI18nObject(
-          t.description_i18n ?? null,
-          t.description_fr ?? null,
-          t.description_en ?? null,
-          t.description ?? null
-        ),
-        external_url: t.external_url,
-        widget_config: t.widget_config,
-        is_active: t.is_active ?? true,
-      },
-      actorId
-    );
-    summary.createdToolboxTemplates += 1;
+
+    if (!templateId) {
+      const created = await createToolboxTemplate(
+        {
+          external_key: t.external_key,
+          content_type: t.content_type,
+          title: t.title,
+          title_i18n: mergeI18nObject(t.title_i18n ?? null, t.title_fr ?? null, t.title_en ?? null, t.title),
+          duration: t.duration,
+          description: t.description,
+          description_i18n: mergeI18nObject(
+            t.description_i18n ?? null,
+            t.description_fr ?? null,
+            t.description_en ?? null,
+            t.description ?? null
+          ),
+          external_url: t.external_url,
+          widget_config: t.widget_config,
+          is_active: t.is_active ?? true,
+        },
+        actorId
+      );
+      templateId = (created as any).id as string;
+      summary.createdToolboxTemplates += 1;
+    }
+
+    const targets = resolveToolboxItemAssignments(t, payload);
+    for (const { userId, status } of targets) {
+      const { data: dup } = await supabase
+        .from("toolbox_assignments" as any)
+        .select("id")
+        .eq("user_id", userId)
+        .eq("template_id", templateId)
+        .maybeSingle();
+      if ((dup as any)?.id) {
+        summary.skippedDuplicateToolboxAssignments += 1;
+        continue;
+      }
+      await assignToolboxTemplateToUser({
+        actorId,
+        userId,
+        templateId,
+        userDeliveryStatus: status,
+      });
+      summary.createdToolboxAssignments += 1;
+    }
   }
 
   for (const h of payload.habit_items || []) {
@@ -1307,9 +1468,11 @@ export async function runToolboxCatalogImport(params: {
     event_type: "catalog_import_completed",
     metadata: {
       created_toolbox: summary.createdToolboxTemplates,
+      created_toolbox_assignments: summary.createdToolboxAssignments,
       created_habits: summary.createdHabitTemplates,
       created_journal: summary.createdJournalPromptTemplates,
       skipped: summary.skippedDuplicates,
+      skipped_duplicate_assignments: summary.skippedDuplicateToolboxAssignments,
     },
   });
 

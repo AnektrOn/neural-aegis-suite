@@ -5,20 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
-import BreathworkWidget from "@/components/widgets/BreathworkWidget";
-import FocusIntrospectifWidget from "@/components/widgets/FocusIntrospectifWidget";
-import BodyScanWidget from "@/components/widgets/BodyScanWidget";
-import AffirmationsWidget from "@/components/widgets/AffirmationsWidget";
-import GratitudeWidget from "@/components/widgets/GratitudeWidget";
-import JournalPromptWidget from "@/components/widgets/JournalPromptWidget";
-import VisualizationWidget from "@/components/widgets/VisualizationWidget";
-import StopProtocolWidget from "@/components/widgets/StopProtocolWidget";
-import IntentionWidget from "@/components/widgets/IntentionWidget";
-import MicroPracticeWidget from "@/components/widgets/MicroPracticeWidget";
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
+import {
+  TOOLBOX_TYPE_META,
+  canRenderToolboxWidget,
+  isInteractiveToolboxType,
+  renderToolboxWidget,
+} from "@/lib/toolbox-renderer-registry";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -34,66 +30,12 @@ interface ToolboxItem {
   external_url: string | null;
   widget_config: any;
   assigned_at: string;
+  user_delivery_status?: string | null;
 }
 
 interface CompletionRecord {
   assignment_id: string;
   status: string;
-}
-
-const typeConfigKeys: Record<string, { icon: typeof Headphones; color: string; labelKey: string }> = {
-  meditation: { icon: Headphones, color: "text-primary", labelKey: "toolbox.typeMeditation" },
-  visualization: { icon: Sparkles, color: "text-neural-accent", labelKey: "toolbox.typeVisualization" },
-  course: { icon: BookOpen, color: "text-neural-warm", labelKey: "toolbox.typeCourse" },
-  breathwork: { icon: Wind, color: "text-primary", labelKey: "toolbox.typeBreathwork" },
-  focus_introspectif: { icon: Eye, color: "text-neural-accent", labelKey: "toolbox.typeFocusIntrospectif" },
-  body_scan: { icon: Scan, color: "text-neural-warm", labelKey: "toolbox.typeBodyScan" },
-  affirmations: { icon: Stars, color: "text-primary", labelKey: "toolbox.typeAffirmations" },
-  gratitude: { icon: Heart, color: "text-destructive", labelKey: "toolbox.typeGratitude" },
-  journal_prompt: { icon: BookOpen, color: "text-neural-accent", labelKey: "toolbox.typeJournalPrompt" },
-  external_link: { icon: LinkIcon, color: "text-muted-foreground", labelKey: "toolbox.typeExternalLink" },
-  stop_protocol: { icon: ShieldAlert, color: "text-destructive", labelKey: "toolbox.typeStopProtocol" },
-  intention: { icon: Target, color: "text-primary", labelKey: "toolbox.typeIntention" },
-  micro_practice: { icon: Zap, color: "text-neural-accent", labelKey: "toolbox.typeMicroPractice" },
-};
-
-const INTERACTIVE_WIDGET_TYPES = new Set([
-  "breathwork",
-  "focus_introspectif",
-  "body_scan",
-  "visualization",
-  "affirmations",
-  "gratitude",
-  "journal_prompt",
-  "stop_protocol",
-  "intention",
-  "micro_practice",
-]);
-
-function canRenderToolboxWidget(item: ToolboxItem): boolean {
-  const c = item.widget_config;
-  switch (item.content_type) {
-    case "breathwork":
-    case "focus_introspectif":
-      return c != null;
-    case "body_scan":
-      return true;
-    case "affirmations":
-      return c != null && c.duration_min != null;
-    case "visualization":
-      return c != null;
-    case "gratitude":
-    case "stop_protocol":
-      return true;
-    case "journal_prompt":
-      return !!c?.prompt?.trim();
-    case "intention":
-      return c != null;
-    case "micro_practice":
-      return true;
-    default:
-      return false;
-  }
 }
 
 export default function Toolbox() {
@@ -113,7 +55,7 @@ export default function Toolbox() {
 
   const loadData = async () => {
     const [itemsRes, compRes] = await Promise.all([
-      supabase.from("toolbox_assignments").select("*").eq("user_id", user!.id).order("assigned_at", { ascending: false }),
+      supabase.from("toolbox_assignments").select("*").eq("user_id", user!.id).neq("user_delivery_status", "inactive").order("assigned_at", { ascending: false }),
       supabase.from("toolbox_completions" as any).select("assignment_id, status").eq("user_id", user!.id),
     ]);
     if (itemsRes.data) {
@@ -150,6 +92,22 @@ export default function Toolbox() {
       }
     }
   };
+
+  const confirmWaiting = useCallback(
+    async (assignmentId: string) => {
+      if (!user) return;
+      const { error } = await supabase.rpc("confirm_waiting_toolbox_assignment" as any, {
+        p_assignment_id: assignmentId,
+      } as any);
+      if (error) {
+        toast({ title: t("toolbox.saveError"), description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: t("toolbox.deliveryConfirmed") });
+      loadData();
+    },
+    [user, t, toast],
+  );
 
   // Get the latest completion for an item
   const getLatestCompletion = (assignmentId: string) => {
@@ -221,7 +179,7 @@ export default function Toolbox() {
 
   const getTypeLabel = (type: string) => {
     if (type === "all") return t("toolbox.filterAll");
-    return typeConfigKeys[type] ? t(typeConfigKeys[type].labelKey as any) : type;
+    return TOOLBOX_TYPE_META[type] ? t(TOOLBOX_TYPE_META[type].labelKey as any) : type;
   };
 
   const getLocalizedTitle = (item: ToolboxItem) =>
@@ -230,128 +188,15 @@ export default function Toolbox() {
   const getLocalizedDescription = (item: ToolboxItem) =>
     pickWidgetCatalogCopy(locale as Locale, item.description_i18n as any, item.description);
 
-  const renderWidget = (item: ToolboxItem) => {
-    const config = item.widget_config;
-    if (
-      !config &&
-      item.content_type !== "gratitude" &&
-      item.content_type !== "stop_protocol" &&
-      item.content_type !== "body_scan" &&
-      item.content_type !== "visualization" &&
-      item.content_type !== "intention" &&
-      item.content_type !== "micro_practice"
-    )
-      return null;
-    switch (item.content_type) {
-      case "breathwork":
-        return (
-          <BreathworkWidget
-            config={config}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      case "focus_introspectif":
-        return (
-          <FocusIntrospectifWidget
-            config={config}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      case "body_scan":
-        return (
-          <BodyScanWidget
-            config={config ?? {}}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      case "affirmations":
-        if (config?.duration_min == null) return null;
-        return (
-          <AffirmationsWidget
-            config={config}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      case "visualization":
-        return (
-          <VisualizationWidget
-            config={config ?? {}}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      case "stop_protocol":
-        return (
-          <StopProtocolWidget
-            config={config ?? {}}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      case "intention":
-        return (
-          <IntentionWidget
-            config={config ?? {}}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      case "gratitude":
-        return (
-          <GratitudeWidget
-            config={config ?? {}}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      case "micro_practice":
-        return (
-          <MicroPracticeWidget
-            config={config ?? {}}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      case "journal_prompt":
-        if (!config?.prompt?.trim()) return null;
-        return (
-          <JournalPromptWidget
-            config={{
-              ...config,
-              prompt: pickWidgetCatalogCopy(locale as Locale, config.prompt_i18n, config.prompt),
-            }}
-            title={getLocalizedTitle(item)}
-            hideTitle
-            onComplete={() => recordCompletion(item.id, "completed")}
-            onAbandon={() => recordCompletion(item.id, "abandoned")}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  const renderWidget = (item: ToolboxItem) =>
+    renderToolboxWidget({
+      item,
+      locale,
+      title: getLocalizedTitle(item),
+      hideTitle: true,
+      onComplete: () => recordCompletion(item.id, "completed"),
+      onAbandon: () => recordCompletion(item.id, "abandoned"),
+    });
 
   const dialogItem = items.find(i => i.id === completionDialog.itemId);
 
@@ -443,8 +288,8 @@ export default function Toolbox() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((item, i) => {
-            const cfg = typeConfigKeys[item.content_type] || typeConfigKeys.course;
-            const isInteractiveType = INTERACTIVE_WIDGET_TYPES.has(item.content_type);
+            const cfg = TOOLBOX_TYPE_META[item.content_type] || TOOLBOX_TYPE_META.course;
+            const isInteractiveType = isInteractiveToolboxType(item);
             const hasWidget = isInteractiveType && canRenderToolboxWidget(item);
             const isExternal = item.content_type === "external_link" && item.external_url;
             const latestCompletion = getLatestCompletion(item.id);
@@ -452,8 +297,11 @@ export default function Toolbox() {
             const isIgnored = latestCompletion?.status === "ignored";
             const isCompleted = latestCompletion?.status === "completed";
             const isActive = activeWidget === item.id;
+            const delivery = item.user_delivery_status || "active";
+            const isWaiting = delivery === "waiting";
 
             const primaryAction = () => {
+              if (isWaiting) return;
               if (isIgnored) return;
               if (latestCompletion && !isActive) return;
               if (hasWidget) {
@@ -465,6 +313,7 @@ export default function Toolbox() {
               }
             };
             const cardIsClickable =
+              !isWaiting &&
               !isIgnored &&
               (!latestCompletion || isActive) &&
               (hasWidget || isExternal || !isInteractiveType);
@@ -498,6 +347,16 @@ export default function Toolbox() {
                 <div className="flex items-start justify-between mb-4">
                   <cfg.icon size={18} strokeWidth={1.5} className={cfg.color} />
                   <div className="flex items-center gap-2">
+                    {delivery === "assigned" ? (
+                      <span className="text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border text-neural-accent border-neural-accent/30 bg-neural-accent/5">
+                        {t("toolbox.deliveryAssignedBadge")}
+                      </span>
+                    ) : null}
+                    {isWaiting ? (
+                      <span className="text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border text-amber-600 border-amber-600/30 bg-amber-500/10">
+                        {t("toolbox.deliveryWaitingBadge")}
+                      </span>
+                    ) : null}
                     {latestCompletion && (
                       <span className={`text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border ${
                         isCompleted ? "text-primary border-primary/30 bg-primary/5" :
@@ -513,11 +372,19 @@ export default function Toolbox() {
                 <p className="text-sm font-medium text-foreground mb-2">{getLocalizedTitle(item)}</p>
                 <p className="text-xs text-muted-foreground leading-relaxed flex-1">
                   {getLocalizedDescription(item) ||
-                    (typeConfigKeys[item.content_type] ? t(typeConfigKeys[item.content_type].labelKey as any) : "")}
+                    (TOOLBOX_TYPE_META[item.content_type] ? t(TOOLBOX_TYPE_META[item.content_type].labelKey as any) : "")}
                 </p>
 
                 <div className="mt-4 flex items-center gap-3 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                  {(!latestCompletion || isActive) && !isIgnored ? (
+                  {isWaiting ? (
+                    <button
+                      type="button"
+                      onClick={() => void confirmWaiting(item.id)}
+                      className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-amber-600 hover:text-foreground transition-colors min-h-[36px] px-2"
+                    >
+                      <CheckCircle2 size={12} /> {t("toolbox.confirmDelivery")}
+                    </button>
+                  ) : (!latestCompletion || isActive) && !isIgnored ? (
                     hasWidget ? (
                       <button onClick={() => setActiveWidget(isActive ? null : item.id)}
                         className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors min-h-[36px] px-2">

@@ -46,6 +46,7 @@ const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const ExecutiveDashboard = lazy(() => import("./pages/admin/ExecutiveDashboard"));
 const CompanyManagement = lazy(() => import("./pages/admin/CompanyManagement"));
 const ToolboxManagement = lazy(() => import("./pages/admin/ToolboxManagement"));
+const ToolboxWaitingConfirmation = lazy(() => import("./pages/admin/ToolboxWaitingConfirmation"));
 const VideoLibraryAdmin = lazy(() => import("./pages/admin/VideoLibraryAdmin"));
 const ProgramBuilder = lazy(() => import("./pages/admin/ProgramBuilder"));
 const AdminDecisions = lazy(() => import("./pages/admin/AdminDecisions"));
@@ -62,8 +63,10 @@ const AssessmentResults = lazy(() => import("./features/archetype-assessment/pag
 const DeepDiveSampleReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveSampleReport"));
 const DeepDiveUserReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveUserReport"));
 const DeepDiveScores = lazy(() => import("./pages/DeepDiveScores"));
+const ArchetypeCartographyReport = lazy(() => import("./pages/ArchetypeCartographyReport"));
 const AdminDeepDive = lazy(() => import("./pages/admin/AdminDeepDive"));
 const AdminDeepDiveV2 = lazy(() => import("./pages/admin/AdminDeepDiveV2"));
+const CartographyManagement = lazy(() => import("./pages/admin/CartographyManagement"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -143,6 +146,7 @@ const App = () => (
                               <Route path="/executive" element={<ExecutiveDashboard />} />
                               <Route path="/companies" element={<CompanyManagement />} />
                               <Route path="/toolbox" element={<ToolboxManagement />} />
+                              <Route path="/toolbox-waiting-confirmation" element={<ToolboxWaitingConfirmation />} />
                               <Route path="/program-builder" element={<ProgramBuilder />} />
                               <Route path="/video-library" element={<VideoLibraryAdmin />} />
                               <Route path="/decisions" element={<AdminDecisions />} />
@@ -157,6 +161,7 @@ const App = () => (
                               <Route path="/deep-dive-sample" element={<DeepDiveSampleReport />} />
                               <Route path="/deep-dive" element={<AdminDeepDive />} />
                               <Route path="/deep-dive-v2" element={<AdminDeepDiveV2 />} />
+                              <Route path="/cartography" element={<CartographyManagement />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
@@ -188,6 +193,8 @@ const App = () => (
                             <Route path="/onboarding/results" element={<AssessmentResults />} />
                             <Route path="/deep-dive" element={<DeepDiveUserReport />} />
                             <Route path="/deep-dive/scores" element={<DeepDiveScores />} />
+                            <Route path="/cartographie/:pole/:mode" element={<ArchetypeCartographyReport />} />
+                            <Route path="/cartographie/:pole" element={<ArchetypeCartographyReport />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </Suspense>

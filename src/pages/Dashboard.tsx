@@ -555,12 +555,12 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => setShowQuickLog(true)}
-              className="w-full min-h-[52px] sm:min-h-[56px] flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-[18px] border border-primary/25 bg-[hsl(var(--aegis-s1))] shadow-[0_8px_28px_hsl(0_0%_0%/0.12)] sm:shadow-[0_10px_32px_hsl(0_0%_0%/0.14)] active:scale-[0.98] active:opacity-90 transition-all duration-200 select-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="dashboard-cta select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
             >
               <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl sm:rounded-[13px] flex items-center justify-center bg-primary/12 shadow-[inset_0_0_12px_hsl(var(--primary)/0.12)]">
-                  <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.45)]" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsla(var(--aegis-warm)/0.14)] shadow-[inset_0_0_12px_hsla(var(--aegis-warm)/0.15)] sm:h-11 sm:w-11 sm:rounded-[13px]">
+                  <span className="h-2 w-2 rounded-full bg-[hsl(var(--aegis-warm))] shadow-[0_0_10px_hsla(var(--aegis-warm)/0.55)]" />
                 </div>
                 <div className="text-left min-w-0">
                   <p className="font-barlow text-[14px] sm:text-[15px] font-medium text-text-primary leading-snug">
@@ -598,10 +598,7 @@ export default function Dashboard() {
             animate="animate"
             className="grid grid-cols-3 gap-2.5 sm:gap-3"
           >
-            <motion.div
-              variants={mobileKpiChild}
-              className="p-3.5 sm:p-4 text-center rounded-2xl sm:rounded-[18px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_4px_20px_hsl(0_0%_0%/0.08)] sm:shadow-[0_6px_24px_hsl(0_0%_0%/0.1)]"
-            >
+            <motion.div variants={mobileKpiChild} className="dashboard-kpi-pill">
               <p className="font-cormorant text-[23px] sm:text-[26px] font-light leading-none text-primary tabular-nums">
                 {stats.moodAvg}
               </p>
@@ -616,10 +613,7 @@ export default function Dashboard() {
                     : "—"}
               </p>
             </motion.div>
-            <motion.div
-              variants={mobileKpiChild}
-              className="p-3.5 sm:p-4 text-center rounded-2xl sm:rounded-[18px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_4px_20px_hsl(0_0%_0%/0.08)] sm:shadow-[0_6px_24px_hsl(0_0%_0%/0.1)]"
-            >
+            <motion.div variants={mobileKpiChild} className="dashboard-kpi-pill">
               <p className="font-cormorant text-[23px] sm:text-[26px] font-light leading-none text-foreground tabular-nums">
                 {habitsTotal > 0 ? `${completedHabits}/${habitsTotal}` : stats.habitsDone}
               </p>
@@ -630,10 +624,7 @@ export default function Dashboard() {
                 {digest != null ? `${digest.habitRate}%` : "—"}
               </p>
             </motion.div>
-            <motion.div
-              variants={mobileKpiChild}
-              className="p-3.5 sm:p-4 text-center rounded-2xl sm:rounded-[18px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_4px_20px_hsl(0_0%_0%/0.08)] sm:shadow-[0_6px_24px_hsl(0_0%_0%/0.1)]"
-            >
+            <motion.div variants={mobileKpiChild} className="dashboard-kpi-pill">
               <p
                 className={`font-cormorant text-[23px] sm:text-[26px] font-light leading-none tabular-nums ${
                   streakDays > 0 ? "text-warning" : "text-muted-foreground"
@@ -657,11 +648,9 @@ export default function Dashboard() {
           <div className="skeleton h-[118px] sm:h-[128px] rounded-2xl sm:rounded-[18px]" />
         ) : (
           <motion.div {...fadeUp(0.04)}>
-            <div className="card-interactive ethereal-glass p-4 sm:p-5 rounded-2xl sm:rounded-[18px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_6px_28px_hsl(0_0%_0%/0.1)] sm:shadow-[0_8px_32px_hsl(0_0%_0%/0.12)]">
+            <div className="dashboard-panel-interactive p-4 sm:p-5">
               <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4 min-h-[40px] sm:min-h-[44px]">
-                  <p className="font-barlow text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/85">
-                  {t("dashboard.mobileDecisionsOpen")}
-                </p>
+                <p className="dashboard-section-label">{t("dashboard.mobileDecisionsOpen")}</p>
                 <NavLink
                   to="/decisions"
                   className="font-barlow text-[11px] sm:text-xs text-primary/55 hover:text-primary/85 transition-colors tracking-wide min-h-[44px] min-w-[44px] inline-flex items-center justify-end px-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -727,7 +716,7 @@ export default function Dashboard() {
           <div className="skeleton h-[140px] sm:h-[152px] rounded-2xl sm:rounded-[18px]" />
         ) : mobileHabits.length > 0 ? (
           <motion.div {...fadeUp(0.05)}>
-            <div className="card-interactive ethereal-glass p-4 sm:p-5 rounded-2xl sm:rounded-[18px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border-ice))] shadow-[0_6px_28px_hsl(0_0%_0%/0.1)] sm:shadow-[0_8px_32px_hsl(0_0%_0%/0.12)]">
+            <div className="dashboard-panel-interactive p-4 sm:p-5">
               <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4 min-h-[40px] sm:min-h-[44px]">
                 <p className="font-barlow text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/85">
                   {t("dashboard.mobileHabitsToday")}
@@ -813,7 +802,7 @@ export default function Dashboard() {
             <div
               role="region"
               aria-label={digestAriaLabel}
-              className="card-static ethereal-glass p-4 sm:p-5 rounded-2xl sm:rounded-[18px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_4px_24px_hsl(0_0%_0%/0.08)] sm:shadow-[0_6px_28px_hsl(0_0%_0%/0.1)]"
+              className="dashboard-panel p-4 sm:p-5"
             >
               <p className="font-barlow text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] sm:tracking-[0.18em] text-text-tertiary/85 mb-3 sm:mb-4">
                 {t("dashboard.mobileThisWeek")}
@@ -876,7 +865,7 @@ export default function Dashboard() {
           <motion.div {...fadeUp(0.07)}>
             <NavLink to="/journal" className="block rounded-2xl sm:rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
               <div
-                className="card-interactive ethereal-glass p-4 sm:p-5 rounded-2xl sm:rounded-[18px] active:scale-[0.98] transition-all duration-150 bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] shadow-[0_6px_28px_hsl(0_0%_0%/0.1)]"
+                className="dashboard-panel-interactive p-4 sm:p-5"
                 style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
               >
                 <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
@@ -914,7 +903,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full -mx-6 -mt-6 px-5 pt-6 pb-10 sm:px-8 sm:pb-12 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
-      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6 md:space-y-7">
+      <motion.div className="mx-auto max-w-6xl space-y-8 sm:space-y-9 md:space-y-10">
         {showPostAssessment && (
           <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
         )}
@@ -927,68 +916,69 @@ export default function Dashboard() {
         {showSetupBanner && maturity && !showWelcome && (
           <SetupProgressBanner maturityProfile={maturity} />
         )}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5">
-          <div className="min-w-0">
-            <p className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-text-tertiary font-display">
+        <header className="flex flex-col gap-5 border-b border-border/30 pb-6 sm:flex-row sm:items-end sm:justify-between sm:pb-7">
+          <div className="min-w-0 space-y-2">
+            <p className="dashboard-section-label">
               {format(new Date(), "EEEE d MMMM", { locale: locale === "fr" ? fr : enUS })}
             </p>
-            <h1 className="text-xl sm:text-2xl font-display text-text-primary mt-0.5 sm:mt-1 tracking-tight">
+            <h1 className="font-cormorant text-2xl font-light tracking-tight text-text-primary sm:text-3xl">
               {t("dashboard.pageTitle")}
             </h1>
-            <p className="text-neural-label mt-2 sm:mt-2.5 max-w-prose">{t("dashboard.welcome")}</p>
+            <p className="max-w-prose text-sm leading-relaxed text-text-secondary sm:text-base">
+              {t("dashboard.welcome")}
+            </p>
           </div>
           <button
             type="button"
             onClick={() => setShowQuickLog(true)}
-            className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl border border-accent-primary/30 bg-accent-primary/10 text-accent-primary hover:bg-accent-primary/15 transition-all duration-200 text-xs sm:text-sm tracking-wide uppercase font-medium font-display shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background min-h-[44px] w-full sm:w-auto"
+            className="dashboard-cta dashboard-cta--inline shrink-0 font-display text-xs uppercase tracking-wide text-text-primary"
           >
-            <Plus size={14} strokeWidth={1.5} aria-hidden /> {t("dashboard.quickLogCta")}
+            <Plus size={16} strokeWidth={1.5} aria-hidden />
+            <span>{t("dashboard.quickLogCta")}</span>
           </button>
-        </div>
+        </header>
 
         <AssessmentCTA />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-          <div className="md:col-span-1 min-w-0">
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-5" aria-label={t("dashboard.pageTitle")}>
+          <div className="lg:col-span-2">
             <AegisHealthCard score={aegisScore} previous={aegisYesterday} isLoading={aegisLoading} />
           </div>
-          <div className="md:col-span-2 min-w-0">
+          <div className="lg:col-span-3">
             <MoodDecisionInsightCard userId={user?.id} />
           </div>
-        </div>
+        </section>
 
         {highlight && !loading && (
-          <motion.div
-            {...fadeUp(0)}
-            className="rounded-2xl sm:rounded-[18px] border-[0.5px] border-[hsl(var(--aegis-border))] bg-[hsl(var(--aegis-s1))] px-4 py-4 sm:px-6 sm:py-5 shadow-[0_4px_24px_hsl(0_0%_0%/0.08)]"
-          >
-            <p className="font-display text-[10px] uppercase tracking-[0.2em] text-text-tertiary mb-1.5">
-              {t("dashboard.weekInOneSentence")}
-            </p>
-            <p className="text-sm sm:text-[15px] leading-relaxed text-text-primary">
+          <motion.section {...fadeUp(0)} className="dashboard-panel px-5 py-5 sm:px-7 sm:py-6">
+            <p className="dashboard-section-label mb-2">{t("dashboard.weekInOneSentence")}</p>
+            <p className="font-cormorant text-lg font-light leading-relaxed text-text-primary sm:text-xl">
               {locale === "fr" ? highlight.story_fr : highlight.story_en}
             </p>
-          </motion.div>
+          </motion.section>
         )}
 
-        <motion.div
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 md:gap-4"
-          variants={kpiContainer}
-          initial="initial"
-          animate="animate"
-        >
-          {narratives.map((n) => (
-            <motion.div key={n.key} variants={kpiItem}>
-              <NarrativeKPICard narrative={n} />
-            </motion.div>
-          ))}
-        </motion.div>
+        <section className="space-y-4">
+          <p className="dashboard-section-label">{t("dashboard.mobileThisWeek")}</p>
+          <motion.div
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4"
+            variants={kpiContainer}
+            initial="initial"
+            animate="animate"
+          >
+            {narratives.map((n) => (
+              <motion.div key={n.key} variants={kpiItem}>
+                <NarrativeKPICard narrative={n} />
+              </motion.div>
+            ))}
+          </motion.div>
+        </section>
 
         {/* Hidden trend label (kept to avoid unused-var lint) */}
         <span className="sr-only">{moodTrendLabel}</span>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          <NeuralCard className="md:col-span-2 lg:col-span-2 p-4 sm:p-5 md:p-6" glow="blue">
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
+          <NeuralCard variant="premium" className="lg:col-span-2 p-5 md:p-6" glow="blue">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="mb-2 flex items-center gap-2">
@@ -1011,17 +1001,17 @@ export default function Dashboard() {
               {loading ? "—" : t("dashboard.neuralMapStat", { n: String(people.length) })}
             </div>
           </NeuralCard>
-          <NeuralCard glow="purple" className="md:col-span-2 lg:col-span-1 p-4 sm:p-5 md:p-6">
+          <NeuralCard variant="premium" glow="purple" className="p-5 md:p-6">
             <AIInsights />
           </NeuralCard>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           <div>{user ? <HabitsMiniCard userId={user.id} /> : null}</div>
           <ScoreboardWidget />
           <ScoreCard />
-        </div>
-      </div>
+        </section>
+      </motion.div>
 
       <QuickLogModal open={showQuickLog} onClose={() => setShowQuickLog(false)} />
     </div>

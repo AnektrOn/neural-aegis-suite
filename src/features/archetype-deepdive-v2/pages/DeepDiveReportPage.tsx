@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   FileText, Download, User, Shield, FileDown, ChevronLeft,
-  Search, Loader2, Sparkles, Cloud,
+  Search, Loader2, Sparkles, Cloud, Scale,
 } from "lucide-react";
 import { exportDeepDiveV2ToDrive } from "../services/exportDeepDiveToDrive";
 import { buildUserReport, buildAdminReport } from "../domain/sampleProfile";
@@ -239,6 +240,15 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
                   ? "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."
                   : "Personalized reading of your dominant archetypes, shadows and recommended practices.")}
           </p>
+          {mode === "user" && (
+            <Link
+              to="/cartographie/balance/analyse"
+              className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[hsl(var(--aegis-warm)/0.35)] bg-[hsl(var(--aegis-warm-muted)/0.35)] px-4 py-2.5 text-xs uppercase tracking-[0.14em] text-[hsl(var(--aegis-warm))] transition-colors hover:bg-[hsl(var(--aegis-warm-muted)/0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Scale size={15} strokeWidth={1.5} aria-hidden />
+              {t("balanceReport.openFromDeepDive")}
+            </Link>
+          )}
         </header>
 
         {loadingProfile && (

@@ -108,8 +108,9 @@ export default function Bibliotheque() {
           .order("assigned_at", { ascending: false }),
         supabase
           .from("toolbox_assignments")
-          .select("id, title, title_i18n, external_url, duration, assigned_at, widget_config, content_type")
+          .select("id, title, title_i18n, external_url, duration, assigned_at, widget_config, content_type, user_delivery_status")
           .eq("user_id", user.id)
+          .neq("user_delivery_status", "inactive")
           .eq("content_type", "external_link")
           .not("external_url", "is", null)
           .order("assigned_at", { ascending: false }),

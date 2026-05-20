@@ -468,30 +468,38 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
     setSubmitting(false);
   };
 
-  const inputClass = "w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors";
-  const labelClass = "text-neural-label block mb-1.5";
+  const inputClass =
+    "flex h-11 w-full rounded-lg border border-border/60 bg-bg-elevated/80 px-3 py-2 text-base text-text-primary shadow-sm transition-colors placeholder:text-text-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base md:text-sm";
+  const labelClass = "mb-2 block text-sm font-medium text-text-primary";
 
   return (
-    <div className="space-y-4">
-      <p className="text-neural-label">{t("admin.toolboxForm.assignHeading")}</p>
-
-      {/* Widget type selector */}
-      <div className="flex flex-wrap gap-2">
-        {WIDGET_TYPES.map((wt) => (
-          <button key={wt.value} onClick={() => setSelectedType(wt.value)}
-            className={`flex items-center gap-2 text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-lg border transition-all ${
-              selectedType === wt.value ? "border-primary/40 bg-primary/5 text-primary" : "border-border/30 text-muted-foreground hover:border-primary/30 hover:text-primary"
-            }`}>
-            <wt.icon size={12} /> {wt.label}
-          </button>
-        ))}
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <p className={labelClass}>{t("admin.toolboxMgmt.filterByType")}</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {WIDGET_TYPES.map((wt) => (
+            <button
+              key={wt.value}
+              type="button"
+              onClick={() => setSelectedType(wt.value)}
+              className={`flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                selectedType === wt.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border/60 bg-bg-elevated/60 text-text-secondary hover:border-primary/30 hover:text-text-primary"
+              }`}
+            >
+              <wt.icon size={16} className="shrink-0" aria-hidden />
+              <span className="truncate">{wt.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Config forms */}
       <AnimatePresence mode="wait">
         {selectedType && (
           <motion.div key={selectedType} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="bg-secondary/10 border border-border/20 rounded-xl p-5 space-y-4">
+            className="rounded-xl border border-border/50 bg-muted/20 p-5 space-y-5 md:p-6">
 
             {selectedType === "breathwork" && (
               <>

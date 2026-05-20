@@ -39,14 +39,14 @@ export function NarrativeKPICard({ narrative, isCompact = false }: Props) {
   // ── Compact (mobile): tap to expand ────────────────────────────────────────
   if (isCompact) {
     return (
-      <div className={`p-3 text-center rounded-[14px] border-[0.5px] bg-[hsl(var(--aegis-s1))] border-[hsl(var(--aegis-border))] ${borderClass}`}>
+      <div className={`dashboard-kpi-pill ${borderClass}`}>
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
           className="w-full flex flex-col items-center gap-1 text-left focus:outline-none"
           aria-expanded={expanded}
         >
-          <span className="font-barlow text-[9px] font-medium uppercase tracking-[0.2em] text-text-tertiary/80">
+          <span className="font-barlow text-[10px] font-medium uppercase tracking-[0.12em] text-text-tertiary">
             {label}
           </span>
           <span className={`font-display text-lg ${sentimentText[narrative.sentiment]}`}>
@@ -87,7 +87,7 @@ export function NarrativeKPICard({ narrative, isCompact = false }: Props) {
 
   // ── Desktop / full ─────────────────────────────────────────────────────────
   return (
-    <NeuralCard glow="none" className={`flex flex-col gap-2 min-h-[120px] ${borderClass}`}>
+    <NeuralCard variant="premium" glow="warm" className={`flex min-h-[132px] flex-col gap-2 ${borderClass}`}>
       <div className="flex items-start justify-between gap-2">
         <span className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-display">
           {label}

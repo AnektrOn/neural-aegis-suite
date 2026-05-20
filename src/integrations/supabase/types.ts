@@ -89,6 +89,92 @@ export type Database = {
         }
         Relationships: []
       }
+      cartography_bundle_sections: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          id: string
+          markdown: string
+          report_code: string
+          section_key: string
+          sort_order: number
+          source_path: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          id?: string
+          markdown: string
+          report_code?: string
+          section_key: string
+          sort_order?: number
+          source_path?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          id?: string
+          markdown?: string
+          report_code?: string
+          section_key?: string
+          sort_order?: number
+          source_path?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartography_bundle_sections_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "cartography_bundles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cartography_bundles: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          meta: Json
+          mode: string
+          pole: string
+          published_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          meta?: Json
+          mode: string
+          pole: string
+          published_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          meta?: Json
+          mode?: string
+          pole?: string
+          published_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_messages: {
         Row: {
           body: string
@@ -1589,6 +1675,7 @@ export type Database = {
           template_id: string | null
           title: string
           title_i18n: Json
+          user_delivery_status: string
           user_id: string
           widget_config: Json | null
         }
@@ -1604,6 +1691,7 @@ export type Database = {
           template_id?: string | null
           title: string
           title_i18n?: Json
+          user_delivery_status?: string
           user_id: string
           widget_config?: Json | null
         }
@@ -1619,6 +1707,7 @@ export type Database = {
           template_id?: string | null
           title?: string
           title_i18n?: Json
+          user_delivery_status?: string
           user_id?: string
           widget_config?: Json | null
         }

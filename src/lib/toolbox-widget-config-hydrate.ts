@@ -15,6 +15,121 @@ function cloneConfig(c: Record<string, unknown>): Record<string, unknown> {
     : (JSON.parse(JSON.stringify(c)) as Record<string, unknown>);
 }
 
+type AffirmationLine = { fr: string; en: string };
+
+function parseAffirmationEntry(
+  raw: unknown,
+  i18nSlot?: { fr?: string; en?: string },
+): AffirmationLine | null {
+  let fr = "";
+  let en = "";
+
+  if (typeof raw === "string") {
+    fr = raw.trim();
+  } else if (raw && typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    fr = String(o.fr ?? o.text ?? o.label ?? "").trim();
+    en = String(o.en ?? "").trim();
+  }
+
+  if (i18nSlot?.fr?.trim()) fr = i18nSlot.fr.trim();
+  if (i18nSlot?.en?.trim()) en = i18nSlot.en.trim();
+
+  if (!fr) return null;
+  return { fr, en };
+}
+
+function i18nSlotAtIndex(rawI18n: unknown, index: number): { fr?: string; en?: string } | undefined {
+  if (Array.isArray(rawI18n)) {
+    const item = rawI18n[index];
+    if (!item || typeof item !== "object") return undefined;
+    const o = item as Record<string, unknown>;
+    return {
+      fr: typeof o.fr === "string" ? o.fr : undefined,
+      en: typeof o.en === "string" ? o.en : undefined,
+    };
+  }
+  if (rawI18n && typeof rawI18n === "object") {
+    const ai = rawI18n as { fr?: unknown[]; en?: unknown[] };
+    const frVal = Array.isArray(ai.fr) ? ai.fr[index] : undefined;
+    const enVal = Array.isArray(ai.en) ? ai.en[index] : undefined;
+    return {
+      fr: frVal != null ? String(frVal) : undefined,
+      en: enVal != null ? String(enVal) : undefined,
+    };
+  }
+  return undefined;
+}
+
+function collectAffirmationLines(out: Record<string, unknown>): AffirmationLine[] {
+  const rawI18n = out.affirmations_i18n;
+  const raw = Array.isArray(out.affirmations) ? (out.affirmations as unknown[]) : [];
+  const lines: AffirmationLine[] = [];
+
+  if (raw.length > 0) {
+    raw.forEach((item, i) => {
+      const parsed = parseAffirmationEntry(item, i18nSlotAtIndex(rawI18n, i));
+      if (parsed) lines.push(parsed);
+    });
+    return lines;
+  }
+
+  if (Array.isArray(rawI18n) && rawI18n.length > 0) {
+    rawI18n.forEach((item) => {
+      const parsed = parseAffirmationEntry(item);
+      if (parsed) lines.push(parsed);
+    });
+    return lines;
+  }
+
+  if (rawI18n && typeof rawI18n === "object" && !Array.isArray(rawI18n)) {
+    const ai = rawI18n as { fr?: unknown[]; en?: unknown[] };
+    const frFromI18n = Array.isArray(ai.fr)
+      ? ai.fr.map((x) => String(x).trim()).filter(Boolean)
+      : [];
+    const enFromI18n = Array.isArray(ai.en) ? ai.en.map((x) => String(x).trim()) : [];
+    frFromI18n.forEach((fr, i) => {
+      lines.push({ fr, en: enFromI18n[i] ?? "" });
+    });
+  }
+
+  return lines;
+}
+
+function hydrateAffirmationsWidgetConfig(
+  out: Record<string, unknown>,
+  unresolved: string[],
+): void {
+  const entries = collectAffirmationLines(out);
+  if (!entries.length) return;
+
+  const baseFr: string[] = [];
+  const builtEn: string[] = [];
+  let affirmOk = true;
+
+  for (let i = 0; i < entries.length; i++) {
+    const { fr, en } = entries[i];
+    baseFr.push(fr);
+    if (en && en !== fr) {
+      builtEn.push(en);
+      continue;
+    }
+    const mapped = lookupCatalogFrToEn(fr);
+    if (!mapped) {
+      unresolved.push(`widget_config.affirmations[${i}]`);
+      affirmOk = false;
+      builtEn.push("");
+    } else {
+      builtEn.push(mapped);
+    }
+  }
+
+  if (affirmOk) {
+    out.affirmations = baseFr;
+    out.affirmations_i18n = { fr: baseFr, en: builtEn };
+  }
+}
+
 /**
  * Complète les champs `*_i18n` du widget_config à partir des chaînes FR / legacy
  * et du dictionnaire `lookupCatalogFrToEn` (aligné sur le runtime UI).
@@ -100,38 +215,9 @@ export function hydrateToolboxWidgetConfigForPersistence(
       }
       break;
 
-    case "affirmations": {
-      const ai = out.affirmations_i18n as { fr?: unknown[]; en?: unknown[] } | undefined;
-      const frFromI18n = Array.isArray(ai?.fr) ? ai!.fr!.map((x) => String(x).trim()).filter(Boolean) : [];
-      const enFromI18n = Array.isArray(ai?.en) ? ai!.en!.map((x) => String(x).trim()) : [];
-      const legacyLines = Array.isArray(out.affirmations)
-        ? (out.affirmations as unknown[]).map((x) => String(x).trim()).filter(Boolean)
-        : [];
-      const baseFr = frFromI18n.length ? frFromI18n : legacyLines;
-      if (!baseFr.length) break;
-
-      if (
-        enFromI18n.length === baseFr.length &&
-        enFromI18n.every((e, idx) => e.length > 0 && e !== baseFr[idx])
-      ) {
-        out.affirmations_i18n = { fr: baseFr, en: enFromI18n };
-        break;
-      }
-
-      const builtEn: string[] = [];
-      let affirmOk = true;
-      for (let i = 0; i < baseFr.length; i++) {
-        const line = baseFr[i];
-        const m = lookupCatalogFrToEn(line);
-        if (!m) {
-          unresolved.push(`widget_config.affirmations[${i}]`);
-          affirmOk = false;
-        }
-        builtEn.push(m ?? "");
-      }
-      if (affirmOk) out.affirmations_i18n = { fr: baseFr, en: builtEn };
+    case "affirmations":
+      hydrateAffirmationsWidgetConfig(out, unresolved);
       break;
-    }
 
     case "journal_prompt":
       mergeOn("widget_config.prompt_i18n", out, "prompt", "prompt_i18n");
