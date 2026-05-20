@@ -431,7 +431,7 @@ export default function ProgramBuilder() {
       });
       toast({
         title: dryRun ? "Dry-run terminé" : "Import terminé",
-        description: `${summary.createdToolboxTemplates} outils, ${summary.createdHabitTemplates} routines, ${summary.createdJournalPromptTemplates} prompts créés. ${summary.skippedDuplicates} ignorés (doublons).`,
+        description: `${summary.createdToolboxTemplates} gabarits, ${summary.createdToolboxAssignments} assignations toolbox, ${summary.createdHabitTemplates} routines, ${summary.createdJournalPromptTemplates} prompts. ${summary.skippedDuplicates} gabarits existants (clé), ${summary.skippedDuplicateToolboxAssignments} assignations déjà présentes.`,
       });
       await loadAll();
     } catch (e: any) {

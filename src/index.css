@@ -84,6 +84,9 @@
     --aegis-border-ice: 215 32% 30%;
     --aegis-hero-bg: 222 26% 5%;
     --aegis-hero-fade: 222 26% 5%;
+    /* Warm premium accent (wellness gold — not fintech yellow) */
+    --aegis-warm: 38 72% 58%;
+    --aegis-warm-muted: 38 45% 22%;
   }
 
   html.light {
@@ -188,9 +191,10 @@
 .bg-aegis-gradient {
   background-color: hsl(var(--background));
   background-image:
-    radial-gradient(900px circle at 20% -10%, hsl(var(--primary) / 0.18), transparent 55%),
-    radial-gradient(700px circle at 85% 10%, hsl(var(--accent) / 0.16), transparent 55%),
-    radial-gradient(800px circle at 55% 110%, hsl(var(--secondary) / 0.14), transparent 60%);
+    radial-gradient(720px circle at 12% -8%, hsl(var(--aegis-warm) / 0.14), transparent 52%),
+    radial-gradient(900px circle at 20% -10%, hsl(var(--primary) / 0.16), transparent 55%),
+    radial-gradient(700px circle at 88% 8%, hsl(var(--neural-accent) / 0.1), transparent 50%),
+    radial-gradient(800px circle at 55% 110%, hsl(var(--secondary) / 0.12), transparent 60%);
   background-repeat: no-repeat;
 }
 
@@ -318,6 +322,87 @@ html.light ::-webkit-scrollbar-thumb:hover {
     border-color: #1e2030;
   }
 
+  /* Premium wellness dashboard — card hierarchy (ref: luxury dark UI, adapted) */
+  .dashboard-panel {
+    @apply rounded-[18px] border backdrop-blur-xl;
+    background: linear-gradient(
+      165deg,
+      hsla(var(--card) / 0.97) 0%,
+      hsla(var(--aegis-s1) / 0.94) 100%
+    );
+    border-color: hsla(var(--primary) / 0.14);
+    box-shadow:
+      0 4px 28px hsl(0 0% 0% / 0.32),
+      0 0 0 1px hsl(var(--foreground) / 0.04),
+      inset 0 1px 0 hsl(var(--foreground) / 0.05);
+  }
+
+  html.light .dashboard-panel {
+    border-color: hsla(var(--primary) / 0.2);
+    box-shadow:
+      0 8px 28px hsl(220 25% 20% / 0.08),
+      inset 0 1px 0 hsl(0 0% 100% / 0.65);
+  }
+
+  .dashboard-panel-interactive {
+    @apply dashboard-panel cursor-pointer transition-all duration-200;
+  }
+
+  .dashboard-panel-interactive:hover {
+    border-color: hsla(var(--aegis-warm) / 0.32);
+    box-shadow:
+      0 6px 32px hsl(0 0% 0% / 0.36),
+      0 0 20px hsla(var(--aegis-warm) / 0.06);
+  }
+
+  .dashboard-panel-interactive:active {
+    transform: scale(0.99);
+    opacity: 0.95;
+  }
+
+  .dashboard-cta {
+    @apply flex w-full items-center justify-between gap-3 rounded-[18px] border px-5 py-4 transition-all duration-200;
+    min-height: 3.5rem;
+    background: linear-gradient(
+      128deg,
+      hsla(var(--aegis-warm) / 0.16) 0%,
+      hsla(var(--aegis-s1) / 0.96) 48%,
+      hsla(var(--card) / 0.9) 100%
+    );
+    border-color: hsla(var(--aegis-warm) / 0.38);
+    box-shadow:
+      0 10px 36px hsl(0 0% 0% / 0.28),
+      0 0 28px hsla(var(--aegis-warm) / 0.07),
+      inset 0 1px 0 hsl(var(--foreground) / 0.06);
+  }
+
+  .dashboard-cta:hover {
+    border-color: hsla(var(--aegis-warm) / 0.5);
+    box-shadow:
+      0 12px 40px hsl(0 0% 0% / 0.32),
+      0 0 32px hsla(var(--aegis-warm) / 0.12);
+  }
+
+  .dashboard-cta:active {
+    transform: scale(0.98);
+    opacity: 0.94;
+  }
+
+  .dashboard-cta--inline {
+    @apply w-auto justify-center;
+    min-height: 2.75rem;
+    padding: 0.625rem 1.25rem;
+  }
+
+  .dashboard-section-label {
+    @apply font-barlow text-xs font-medium uppercase tracking-[0.14em] text-text-tertiary;
+  }
+
+  .dashboard-kpi-pill {
+    @apply dashboard-panel flex flex-col items-center justify-center p-3 text-center sm:p-3.5;
+    min-height: 5.5rem;
+  }
+
   .quick-log-dot {
     width: 12px;
     height: 12px;
@@ -333,13 +418,15 @@ html.light ::-webkit-scrollbar-thumb:hover {
     height: 200px;
     overflow: hidden;
     border-radius: 20px;
-    border-width: 0.5px;
+    border-width: 1px;
     border-style: solid;
     background-color: hsl(var(--aegis-hero-bg));
-    border-color: hsl(var(--aegis-border-ice) / 0.55);
+    border-color: hsla(var(--aegis-warm) / 0.22);
     box-shadow:
-      inset 0 0 80px hsl(220 55% 48% / 0.16),
-      0 0 0 1px hsl(var(--foreground) / 0.06);
+      inset 0 0 80px hsl(220 55% 48% / 0.14),
+      inset 0 -40px 60px hsla(var(--aegis-warm) / 0.06),
+      0 8px 40px hsl(0 0% 0% / 0.35),
+      0 0 0 1px hsl(var(--foreground) / 0.05);
   }
 
   @media (min-width: 640px) {
@@ -442,12 +529,13 @@ html.light ::-webkit-scrollbar-thumb:hover {
   }
 
   .dashboard-hero-ring-progress {
-    stroke: hsl(var(--primary));
-    filter: drop-shadow(0 0 2px hsl(var(--primary) / 0.4));
+    stroke: hsl(var(--aegis-warm));
+    filter: drop-shadow(0 0 4px hsl(var(--aegis-warm) / 0.45));
   }
 
   html.light .dashboard-hero-ring-progress {
-    filter: drop-shadow(0 0 5px hsl(var(--primary) / 0.3));
+    stroke: hsl(38 55% 42%);
+    filter: drop-shadow(0 0 6px hsl(38 50% 40% / 0.35));
   }
 
   .dashboard-hero-fade {
@@ -466,7 +554,15 @@ html.light ::-webkit-scrollbar-thumb:hover {
   }
 
   .mobile-section-gap {
-    @apply space-y-3.5 sm:space-y-4 md:space-y-5;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .mobile-section-gap {
+      gap: 1.5rem;
+    }
   }
 
   .skeleton {

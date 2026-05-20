@@ -4,6 +4,7 @@ import { Play, Pause, RotateCcw, ChevronRight, CheckCircle2, Zap } from "lucide-
 import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
+import type { MicroHeroPreset } from "@/lib/toolbox-slug-themes";
 
 /**
  * Generic widget for exercises without a dedicated widget.
@@ -23,6 +24,7 @@ export interface MicroPracticeConfig {
   duration_sec?: number;
   steps?: Array<{ text: string; text_i18n?: unknown }>;
   accent_color?: string;
+  hero?: MicroHeroPreset;
 }
 
 interface Props {
@@ -35,9 +37,130 @@ interface Props {
 
 const DEFAULT_COLOR = "hsl(176 70% 48%)";
 
+function MicroHeroVisual({
+  hero,
+  accent,
+  running,
+}: {
+  hero: MicroHeroPreset;
+  accent: string;
+  running: boolean;
+}) {
+  const base = "relative flex items-center justify-center w-28 h-28 mx-auto";
+  switch (hero) {
+    case "shake":
+      return (
+        <motion.div
+          className={base}
+          animate={running ? { rotate: [-2, 2, -2, 2, 0], x: [-2, 2, -2, 2, 0] } : {}}
+          transition={{ duration: 0.4, repeat: running ? Infinity : 0 }}
+        >
+          <motion.div
+            className="w-16 h-16 rounded-full border-2"
+            style={{ borderColor: accent, boxShadow: `0 0 24px color-mix(in srgb, ${accent} 40%, transparent)` }}
+          />
+        </motion.div>
+      );
+    case "flame":
+      return (
+        <motion.div
+          className={base}
+          animate={running ? { scale: [1, 1.08, 1] } : {}}
+          transition={{ duration: 1.2, repeat: Infinity }}
+        >
+          <motion.div
+            className="w-12 h-20 rounded-full"
+            style={{
+              background: `linear-gradient(to top, ${accent}, color-mix(in srgb, ${accent} 30%, transparent))`,
+              filter: `drop-shadow(0 0 12px color-mix(in srgb, ${accent} 50%, transparent))`,
+            }}
+          />
+        </motion.div>
+      );
+    case "shield":
+      return (
+        <motion.div className={base} animate={running ? { scale: [1, 1.05, 1] } : {}} transition={{ duration: 2, repeat: Infinity }}>
+          <div
+            className="w-14 h-16 rounded-t-full rounded-b-lg border-2"
+            style={{ borderColor: accent, background: `color-mix(in srgb, ${accent} 12%, transparent)` }}
+          />
+        </motion.div>
+      );
+    case "spark":
+      return (
+        <motion.div className={base}>
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 rounded-full"
+              style={{ backgroundColor: accent }}
+              animate={running ? { opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] } : { opacity: 0.4 }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }}
+              initial={{ x: Math.cos((i / 3) * Math.PI * 2) * 36, y: Math.sin((i / 3) * Math.PI * 2) * 36 }}
+            />
+          ))}
+          <motion.div className="w-10 h-10 rounded-full" style={{ background: `color-mix(in srgb, ${accent} 25%, transparent)` }} />
+        </motion.div>
+      );
+    case "ink":
+      return (
+        <motion.div className={base}>
+          <motion.div
+            className="w-20 h-1 rounded-full"
+            style={{ backgroundColor: accent }}
+            animate={running ? { width: ["20%", "100%", "20%"] } : {}}
+            transition={{ duration: 3, repeat: Infinity }}
+          />
+        </motion.div>
+      );
+    case "steps":
+      return (
+        <motion.div className={`${base} gap-1 flex-row`}>
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="w-3 rounded-sm"
+              style={{ backgroundColor: accent, height: 12 + i * 8 }}
+              animate={running ? { opacity: [0.4, 1, 0.4] } : { opacity: 0.5 }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+            />
+          ))}
+        </motion.div>
+      );
+    case "orbit":
+      return (
+        <motion.div className={base}>
+          <motion.div
+            className="absolute w-20 h-20 rounded-full border"
+            style={{ borderColor: `color-mix(in srgb, ${accent} 40%, transparent)` }}
+            animate={running ? { rotate: 360 } : {}}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.div className="w-3 h-3 rounded-full" style={{ backgroundColor: accent }} />
+        </motion.div>
+      );
+    case "pulse":
+    default:
+      return (
+        <motion.div
+          className={base}
+          animate={running ? { scale: [1, 1.12, 1] } : {}}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <motion.div
+            className="absolute inset-4 rounded-full"
+            style={{ background: `radial-gradient(circle, color-mix(in srgb, ${accent} 35%, transparent), transparent)` }}
+          />
+          <motion.div className="w-14 h-14 rounded-full border-2" style={{ borderColor: accent }} />
+        </motion.div>
+      );
+  }
+}
+
 export default function MicroPracticeWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const accent = config.accent_color || DEFAULT_COLOR;
+  const hero = config.hero ?? "pulse";
   const instructionsText = useMemo(
     () => pickWidgetCatalogCopy(locale as Locale, config.instructions_i18n as any, config.instructions),
     [locale, config.instructions_i18n, config.instructions]
@@ -142,6 +265,8 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
           <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
         </div>
       )}
+
+      <MicroHeroVisual hero={hero} accent={accent} running={started && !completed} />
 
       <AnimatePresence mode="wait">
         {!started && !completed ? (

@@ -27,7 +27,7 @@ export function AegisHealthCard({ score, previous, isLoading }: AegisHealthCardP
 
   if (isLoading || !score) {
     return (
-      <div className="ethereal-glass rounded-[14px] p-5 min-h-[160px] flex items-center justify-center">
+      <div className="dashboard-panel flex min-h-[160px] items-center justify-center p-5">
         <span className="text-[10px] tracking-[0.18em] uppercase text-text-tertiary font-display">
           {t("aegis.computing")}
         </span>
@@ -52,7 +52,7 @@ export function AegisHealthCard({ score, previous, isLoading }: AegisHealthCardP
     <button
       type="button"
       onClick={() => setExpanded((v) => !v)}
-      className="w-full text-left ethereal-glass rounded-[14px] p-5 min-h-[160px] hover:border-primary/30 transition-colors"
+      className="dashboard-panel-interactive w-full min-h-[160px] p-5 text-left"
       aria-expanded={expanded}
     >
       <div className="flex items-start justify-between mb-3">
@@ -70,7 +70,9 @@ export function AegisHealthCard({ score, previous, isLoading }: AegisHealthCardP
       </div>
 
       <div className="flex items-baseline gap-3 mb-3">
-        <span className="text-4xl font-display text-foreground tabular-nums">{overall}</span>
+        <span className="font-cormorant text-4xl font-light tabular-nums text-[hsl(var(--aegis-warm))]">
+          {overall}
+        </span>
         <span className="text-[10px] uppercase tracking-[0.18em] text-text-tertiary">/ 100</span>
       </div>
 

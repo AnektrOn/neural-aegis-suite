@@ -26,7 +26,7 @@ export function MoodDecisionInsightCard({ userId }: Props) {
   const dayLabel = (d: WeekDay | null) => (d ? DAY_LABEL[d][locale] : "—");
 
   return (
-    <NeuralCard glow="purple" className="p-5 sm:p-6">
+    <NeuralCard variant="premium" glow="purple" className="h-full p-5 sm:p-6">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-1.5 h-4 rounded-full bg-accent-secondary" />
         <h3 className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary">

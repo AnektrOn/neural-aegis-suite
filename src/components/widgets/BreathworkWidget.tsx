@@ -1,14 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from "react";
+import { motion } from "framer-motion";
 import { Play, Pause, RotateCcw, Wind } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 
-interface BreathworkConfig {
+export interface BreathworkConfig {
   cycles: number;
   breath_in_sec: number;
   pause1_sec: number;
   breath_out_sec: number;
   pause2_sec: number;
+  /** Optional coach copy (e.g. from gallery / proposals). */
+  instructions?: string;
 }
 
 interface Props {
@@ -17,6 +19,8 @@ interface Props {
   hideTitle?: boolean;
   onComplete?: () => void;
   onAbandon?: () => void;
+  /** Box breathing: animated square path; default circle scales like classic guided breath. */
+  visualVariant?: "circle" | "box";
 }
 
 type Phase = "breath_in" | "pause1" | "breath_out" | "pause2";
@@ -35,7 +39,14 @@ const PHASE_COLORS: Record<Phase, string> = {
   pause2: "hsl(270 50% 60%)",
 };
 
-export default function BreathworkWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+export default function BreathworkWidget({
+  config,
+  title,
+  hideTitle,
+  onComplete,
+  onAbandon,
+  visualVariant = "circle",
+}: Props) {
   const { t } = useLanguage();
   const [isRunning, setIsRunning] = useState(false);
   const [currentCycle, setCurrentCycle] = useState(0);
@@ -134,6 +145,62 @@ export default function BreathworkWidget({ config, title, hideTitle, onComplete,
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
+  const boxDotPosition = useMemo((): CSSProperties => {
+    const inset = 9;
+    const span = 100 - 2 * inset;
+    const p = phaseProgress;
+    switch (currentPhase) {
+      case "breath_in":
+        return {
+          left: `${inset + p * span}%`,
+          top: `${inset}%`,
+          transform: "translate(-50%, -50%)",
+        };
+      case "pause1":
+        return {
+          left: `${100 - inset}%`,
+          top: `${inset + p * span}%`,
+          transform: "translate(-50%, -50%)",
+        };
+      case "breath_out":
+        return {
+          left: `${100 - inset - p * span}%`,
+          top: `${100 - inset}%`,
+          transform: "translate(-50%, -50%)",
+        };
+      case "pause2":
+        return {
+          left: `${inset}%`,
+          top: `${100 - inset - p * span}%`,
+          transform: "translate(-50%, -50%)",
+        };
+      default:
+        return { left: `${inset}%`, top: `${inset}%`, transform: "translate(-50%, -50%)" };
+    }
+  }, [currentPhase, phaseProgress]);
+
+  const phaseCaption = (
+    <>
+      {completed ? (
+        <p className="text-sm font-medium text-primary">{t("toolbox.breath.done")}</p>
+      ) : isRunning ? (
+        <>
+          <p
+            className={visualVariant === "box" ? "text-base font-cinzel font-medium" : "text-lg font-cinzel"}
+            style={{ color: PHASE_COLORS[currentPhase] }}
+          >
+            {t(PHASE_LABEL_KEYS[currentPhase])}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {Math.ceil(currentPhaseDuration - phaseProgress * currentPhaseDuration)}s
+          </p>
+        </>
+      ) : (
+        <Wind size={visualVariant === "box" ? 22 : 24} className="text-primary/40 mx-auto" />
+      )}
+    </>
+  );
+
   return (
     <div className="flex flex-col items-center space-y-6 py-4">
       {!hideTitle && (
@@ -142,56 +209,78 @@ export default function BreathworkWidget({ config, title, hideTitle, onComplete,
           <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
         </div>
       )}
+      {config.instructions?.trim() ? (
+        <p className="max-w-sm px-2 text-center text-xs leading-relaxed text-muted-foreground">{config.instructions}</p>
+      ) : null}
 
-      <div className="relative w-48 h-48 flex items-center justify-center">
-        <motion.div
-          className="absolute inset-0 rounded-full"
-          style={{ background: `radial-gradient(circle, ${PHASE_COLORS[currentPhase]}15 0%, transparent 70%)` }}
-          animate={{ scale: getScale() }}
-          transition={{ duration: 0.05, ease: "linear" }}
-        />
-        <motion.div
-          className="w-32 h-32 rounded-full border-2 flex items-center justify-center"
-          style={{
-            borderColor: PHASE_COLORS[currentPhase],
-            boxShadow: isRunning ? `0 0 30px ${PHASE_COLORS[currentPhase]}40, inset 0 0 20px ${PHASE_COLORS[currentPhase]}10` : "none",
-          }}
-          animate={{ scale: getScale() }}
-          transition={{ duration: 0.05, ease: "linear" }}
-        >
-          <div className="text-center">
-            {completed ? (
-              <p className="text-sm font-medium text-primary">{t("toolbox.breath.done")}</p>
-            ) : isRunning ? (
-              <>
-                <p className="text-lg font-cinzel" style={{ color: PHASE_COLORS[currentPhase] }}>
-                  {t(PHASE_LABEL_KEYS[currentPhase])}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.ceil(currentPhaseDuration - phaseProgress * currentPhaseDuration)}s
-                </p>
-              </>
-            ) : (
-              <Wind size={24} className="text-primary/40" />
-            )}
+      {visualVariant === "box" ? (
+        <div className="relative w-52 h-52 flex items-center justify-center">
+          <motion.div
+            className="absolute inset-[8%] rounded-[24%] border-2"
+            style={{
+              borderColor: `${PHASE_COLORS[currentPhase]}aa`,
+              boxShadow: isRunning
+                ? `0 0 32px ${PHASE_COLORS[currentPhase]}38, inset 0 0 28px ${PHASE_COLORS[currentPhase]}14`
+                : `inset 0 0 0 1px ${PHASE_COLORS[currentPhase]}22`,
+            }}
+            animate={{
+              scale: getScale(),
+            }}
+            transition={{ duration: 0.06, ease: "linear" }}
+          />
+          <motion.div
+            className="absolute z-10 h-3 w-3 rounded-full"
+            style={{
+              ...boxDotPosition,
+              backgroundColor: PHASE_COLORS[currentPhase],
+              boxShadow: `0 0 16px ${PHASE_COLORS[currentPhase]}`,
+            }}
+            transition={{ duration: 0.05, ease: "linear" }}
+          />
+          <div className="relative z-[5] max-w-[10rem] px-3 text-center pointer-events-none">
+            {phaseCaption}
           </div>
-        </motion.div>
+        </div>
+      ) : (
+        <div className="relative flex h-48 w-48 items-center justify-center">
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            style={{ background: `radial-gradient(circle, ${PHASE_COLORS[currentPhase]}15 0%, transparent 70%)` }}
+            animate={{ scale: getScale() }}
+            transition={{ duration: 0.05, ease: "linear" }}
+          />
+          <motion.div
+            className="flex h-32 w-32 items-center justify-center rounded-full border-2"
+            style={{
+              borderColor: PHASE_COLORS[currentPhase],
+              boxShadow: isRunning ? `0 0 30px ${PHASE_COLORS[currentPhase]}40, inset 0 0 20px ${PHASE_COLORS[currentPhase]}10` : "none",
+            }}
+            animate={{ scale: getScale() }}
+            transition={{ duration: 0.05, ease: "linear" }}
+          >
+            <div className="text-center">{phaseCaption}</div>
+          </motion.div>
 
-        {phases.map((p, i) => {
-          const angle = (i / phases.length) * Math.PI * 2 - Math.PI / 2;
-          const cx = 96 + Math.cos(angle) * 88;
-          const cy = 96 + Math.sin(angle) * 88;
-          const isActive = currentPhase === p.phase;
-          return (
-            <div key={p.phase} className="absolute w-3 h-3 rounded-full transition-all duration-300"
-              style={{
-                left: cx - 6, top: cy - 6,
-                backgroundColor: isActive ? PHASE_COLORS[p.phase] : `${PHASE_COLORS[p.phase]}30`,
-                boxShadow: isActive ? `0 0 8px ${PHASE_COLORS[p.phase]}80` : "none",
-              }} />
-          );
-        })}
-      </div>
+          {phases.map((p, i) => {
+            const angle = (i / phases.length) * Math.PI * 2 - Math.PI / 2;
+            const cx = 96 + Math.cos(angle) * 88;
+            const cy = 96 + Math.sin(angle) * 88;
+            const isActive = currentPhase === p.phase;
+            return (
+              <div
+                key={p.phase}
+                className="absolute h-3 w-3 rounded-full transition-all duration-300"
+                style={{
+                  left: cx - 6,
+                  top: cy - 6,
+                  backgroundColor: isActive ? PHASE_COLORS[p.phase] : `${PHASE_COLORS[p.phase]}30`,
+                  boxShadow: isActive ? `0 0 8px ${PHASE_COLORS[p.phase]}80` : "none",
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <div className="text-center space-y-1">
         <p className="text-sm text-foreground font-medium">

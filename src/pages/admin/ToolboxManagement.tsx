@@ -1,12 +1,26 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Wind, Eye, Scan, Sparkles, Stars, Heart, BookOpen, Link as LinkIcon, Search, Trash2, Users, Package, ShieldAlert, Target, Library, Loader2, Zap } from "lucide-react";
+import {
+  Wind, Eye, Scan, Sparkles, Stars, Heart, BookOpen, Link as LinkIcon,
+  Search, Trash2, Users, Package, ShieldAlert, Target, Library, Loader2, Wrench, FileJson,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
+import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
+import ToolboxJsonImportTab from "@/components/admin/toolbox/ToolboxJsonImportTab";
+import {
+  ToolboxEmptyState,
+  ToolboxLoadingBlock,
+  ToolboxPageStat,
+  ToolboxPanel,
+  ToolboxResourceCard,
+  ToolboxSection,
+  toolboxFieldClass,
+  toolboxLabelClass,
+} from "@/components/admin/toolbox/ToolboxAdminUi";
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import { assignToolboxTemplateToUser, assignJournalPromptTemplateToUser } from "@/services/programBuilderService";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
@@ -14,11 +28,15 @@ import { pickLocalizedText } from "@/lib/content-i18n";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ToolboxAssignment {
   id: string;
   user_id: string;
+  template_id?: string | null;
+  user_delivery_status?: string | null;
   content_type: string;
   title: string;
   title_i18n?: unknown;
@@ -33,6 +51,7 @@ interface ToolboxAssignment {
 
 interface ToolboxTemplate {
   id: string;
+  external_key?: string | null;
   content_type: string;
   title: string;
   title_i18n?: unknown;
@@ -75,7 +94,21 @@ const TYPE_META_BASE: Record<string, { icon: typeof Wind; color: string; labelKe
   course: { icon: BookOpen, color: "text-neural-warm", labelKey: "admin.toolboxMgmt.type.course" },
 };
 
-const inputClass = "w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary/40 transition-colors";
+function TypeBadge({ label }: { label: string }) {
+  return (
+    <Badge variant="secondary" className="px-2.5 py-0.5 text-xs font-medium">
+      {label}
+    </Badge>
+  );
+}
+
+function DurationBadge({ duration }: { duration: string | null }) {
+  return (
+    <Badge variant="outline" className="px-2.5 py-0.5 text-xs font-normal text-muted-foreground">
+      {duration || "—"}
+    </Badge>
+  );
+}
 
 export default function ToolboxManagement() {
   const { user } = useAuth();
@@ -100,7 +133,6 @@ export default function ToolboxManagement() {
   const [filterType, setFilterType] = useState("all");
   const [loading, setLoading] = useState(true);
 
-  // Catalogue → assignation
   const [catalogSelectedUser, setCatalogSelectedUser] = useState("");
   const [catalogAssigning, setCatalogAssigning] = useState<string | null>(null);
   const [journalAssigning, setJournalAssigning] = useState<string | null>(null);
@@ -141,13 +173,13 @@ export default function ToolboxManagement() {
 
   const assignFromCatalog = async (templateId: string) => {
     if (!user || !catalogSelectedUser) {
-      toast({ title: t("toast.error"), description: "Select a user first.", variant: "destructive" });
+      toast({ title: t("toast.error"), description: t("admin.toolboxMgmt.toastPickUserCatalog"), variant: "destructive" });
       return;
     }
     setCatalogAssigning(templateId);
     try {
       await assignToolboxTemplateToUser({ actorId: user.id, userId: catalogSelectedUser, templateId });
-      toast({ title: "Assigned", description: "The tool has been assigned to the user." });
+      toast({ title: t("admin.toolboxMgmt.toastAssignedTitle"), description: t("admin.toolboxMgmt.toastAssignedDesc") });
       loadData();
     } catch (e: any) {
       toast({ title: t("toast.error"), description: e.message, variant: "destructive" });
@@ -158,13 +190,13 @@ export default function ToolboxManagement() {
 
   const assignJournalFromCatalog = async (templateId: string) => {
     if (!user || !catalogSelectedUser) {
-      toast({ title: t("toast.error"), description: "Select a user first.", variant: "destructive" });
+      toast({ title: t("toast.error"), description: t("admin.toolboxMgmt.toastPickUserCatalog"), variant: "destructive" });
       return;
     }
     setJournalAssigning(templateId);
     try {
       await assignJournalPromptTemplateToUser({ actorId: user.id, userId: catalogSelectedUser, templateId });
-      toast({ title: "Prompt assigned", description: "The journal prompt has been assigned. It will appear in the user's Toolbox." });
+      toast({ title: t("admin.toolboxMgmt.toastJournalAssignedTitle"), description: t("admin.toolboxMgmt.toastJournalAssignedDesc") });
       loadData();
     } catch (e: any) {
       toast({ title: t("toast.error"), description: e.message, variant: "destructive" });
@@ -174,7 +206,7 @@ export default function ToolboxManagement() {
   };
 
   const allTypes = ["all", ...new Set(assignments.map((a) => a.content_type))];
-  const catalogTypes = ["all", ...new Set(templates.map((t) => t.content_type))];
+  const catalogTypes = ["all", ...new Set(templates.map((tmpl) => tmpl.content_type))];
   const filteredTemplates = templates.filter((tmpl) => {
     const byCategory = catalogCategoryFilter === "all" || tmpl.content_type === catalogCategoryFilter;
     const byDuration =
@@ -185,6 +217,7 @@ export default function ToolboxManagement() {
     const toOk = !catalogCreatedTo || created <= new Date(`${catalogCreatedTo}T23:59:59`);
     return byCategory && byDuration && fromOk && toOk;
   });
+
   const filtered = assignments
     .filter((a) => filterType === "all" || a.content_type === filterType)
     .filter((a) => {
@@ -196,65 +229,167 @@ export default function ToolboxManagement() {
       return name.includes(q) || titleFr.includes(q) || titleEn.includes(q);
     });
 
+  const catalogUserName =
+    profiles.find((p) => p.id === catalogSelectedUser)?.display_name || t("users.noName");
+
+  const tabTriggerClass =
+    "h-11 rounded-md px-3 text-sm font-medium text-text-secondary data-[state=active]:bg-bg-elevated data-[state=active]:text-text-primary data-[state=active]:shadow-sm sm:px-4";
+
+  const filterChipClass = (active: boolean) =>
+    cn(
+      "h-10 rounded-lg border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      active
+        ? "border-primary bg-primary/10 text-primary"
+        : "border-border/60 bg-bg-elevated/60 text-text-secondary hover:border-primary/30 hover:text-text-primary",
+    );
+
+  const renderCatalogItem = (
+    tmpl: ToolboxTemplate,
+    isAssigning: boolean,
+    onAssign: () => void,
+  ) => {
+    const meta = TYPE_META[tmpl.content_type] || TYPE_META.course;
+    const title = pickCatalogTemplateDisplayTitle(locale as Locale, {
+      title: tmpl.title,
+      title_i18n: tmpl.title_i18n as any,
+    });
+    const description = pickWidgetCatalogCopy(locale as Locale, tmpl.description_i18n as any, tmpl.description);
+
+    return (
+      <ToolboxResourceCard
+        key={tmpl.id}
+        icon={meta.icon}
+        iconClassName={meta.color}
+        title={title}
+        badges={
+          <>
+            <TypeBadge label={meta.label} />
+            <DurationBadge duration={tmpl.duration} />
+          </>
+        }
+        description={description || null}
+        footer={
+          <>
+            <ToolboxItemPreview
+              contentType={tmpl.content_type}
+              title={title}
+              description={description}
+              widgetConfig={tmpl.widget_config}
+            />
+            <Button
+              type="button"
+              size="lg"
+              className="w-full sm:w-auto"
+              disabled={isAssigning || !catalogSelectedUser}
+              onClick={onAssign}
+            >
+              {isAssigning ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+              {t("admin.toolboxMgmt.assignAction")}
+            </Button>
+          </>
+        }
+      />
+    );
+  };
+
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div>
-        <p className="text-neural-label mb-3 text-neural-accent/60">{t("admin.toolboxMgmt.kicker")}</p>
-        <h1 className="text-neural-title text-3xl text-foreground">{t("admin.toolboxMgmt.pageTitle")}</h1>
-      </div>
+    <div className="mx-auto w-full max-w-7xl space-y-10 pb-16 md:space-y-12">
+      <header className="space-y-4 border-b border-border/40 pb-8 md:pb-10">
+        <p className="text-xs font-medium uppercase tracking-widest text-text-secondary">
+          {t("admin.toolboxMgmt.kicker")}
+        </p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-3">
+            <h1 className="text-3xl font-semibold tracking-tight text-text-primary md:text-4xl">
+              {t("admin.toolboxMgmt.pageTitle")}
+            </h1>
+            <p className="max-w-2xl text-base leading-relaxed text-text-secondary">
+              {t("admin.toolboxMgmt.pageSubtitle")}
+            </p>
+          </div>
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary md:size-16">
+            <Wrench className="size-7 md:size-8" strokeWidth={1.5} aria-hidden />
+          </div>
+        </div>
+      </header>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: t("admin.toolboxMgmt.statAssigned"), value: assignments.length, icon: Package },
-          { label: t("admin.toolboxMgmt.statUsers"), value: new Set(assignments.map((a) => a.user_id)).size, icon: Users },
-          { label: "Catalog templates", value: templates.length, icon: Library },
-        ].map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="ethereal-glass p-6">
-            <stat.icon size={16} strokeWidth={1.5} className="text-neural-accent mb-3" />
-            <p className="text-2xl font-cinzel text-foreground">{stat.value}</p>
-            <p className="text-neural-label mt-1">{stat.label}</p>
-          </motion.div>
-        ))}
-      </div>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label={t("admin.toolboxMgmt.kicker")}>
+        <ToolboxPageStat label={t("admin.toolboxMgmt.statAssigned")} value={assignments.length} icon={Package} />
+        <ToolboxPageStat
+          label={t("admin.toolboxMgmt.statUsers")}
+          value={new Set(assignments.map((a) => a.user_id)).size}
+          icon={Users}
+        />
+        <ToolboxPageStat label={t("admin.toolboxMgmt.statCatalogTemplates")} value={templates.length} icon={Library} />
+      </section>
 
-      <Tabs defaultValue="assign" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="catalog">
-            <Library className="h-3.5 w-3.5 mr-1" /> Catalog
+      <Tabs defaultValue="catalog" className="space-y-8 md:space-y-10">
+        <TabsList className="ethereal-glass grid h-auto w-full grid-cols-1 gap-2 p-2 sm:grid-cols-2 lg:grid-cols-4">
+          <TabsTrigger value="catalog" className={tabTriggerClass}>
+            <Library className="size-4 shrink-0" aria-hidden />
+            {t("admin.toolboxMgmt.tabCatalog")}
           </TabsTrigger>
-          <TabsTrigger value="assign">
-            <Package className="h-3.5 w-3.5 mr-1" /> {t("admin.toolboxMgmt.assignHeading")}
+          <TabsTrigger value="assign" className={tabTriggerClass}>
+            <Package className="size-4 shrink-0" aria-hidden />
+            {t("admin.toolboxMgmt.assignHeading")}
           </TabsTrigger>
-          <TabsTrigger value="list">
-            <Users className="h-3.5 w-3.5 mr-1" /> Active assignments
+          <TabsTrigger value="list" className={tabTriggerClass}>
+            <Users className="size-4 shrink-0" aria-hidden />
+            {t("admin.toolboxMgmt.tabActiveAssignments")}
+          </TabsTrigger>
+          <TabsTrigger value="import" className={tabTriggerClass}>
+            <FileJson className="size-4 shrink-0" aria-hidden />
+            {t("admin.toolboxMgmt.tabImport")}
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB: CATALOGUE */}
-        <TabsContent value="catalog" className="space-y-4">
-          <div className="ethereal-glass p-4 space-y-3">
-            <p className="text-sm font-medium text-foreground">Assign from the catalog</p>
-            <div>
-              <label className="text-neural-label block mb-1.5">Target user</label>
+        <TabsContent value="catalog" className="mt-0 space-y-10 focus-visible:outline-none">
+          <ToolboxPanel
+            title={t("admin.toolboxMgmt.catalogStepUser")}
+            description={t("admin.toolboxMgmt.catalogStepUserDesc")}
+            highlight={!catalogSelectedUser}
+          >
+            <div className="max-w-xl space-y-3">
+              <label htmlFor="toolbox-catalog-user" className={toolboxLabelClass}>
+                {t("admin.toolboxMgmt.catalogTargetUser")}
+              </label>
               <select
+                id="toolbox-catalog-user"
                 value={catalogSelectedUser}
                 onChange={(e) => setCatalogSelectedUser(e.target.value)}
-                className={inputClass + " sm:w-80"}
+                className={toolboxFieldClass}
               >
-                <option value="">Select a user</option>
+                <option value="">{t("admin.toolboxMgmt.catalogSelectUser")}</option>
                 {profiles.map((p) => (
                   <option key={p.id} value={p.id}>{p.display_name || t("users.noName")}</option>
                 ))}
               </select>
+              {!catalogSelectedUser ? (
+                <p className="text-sm text-accent-warning">{t("admin.toolboxMgmt.catalogNoUserHint")}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-text-primary">{catalogUserName}</span>
+                  {" — "}
+                  {t("admin.toolboxMgmt.catalogAssignTitle").toLowerCase()}
+                </p>
+              )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <label className="text-neural-label block mb-1.5">Category</label>
+          </ToolboxPanel>
+
+          <ToolboxPanel
+            title={t("admin.toolboxMgmt.catalogStepFilters")}
+            description={t("admin.toolboxMgmt.catalogStepFiltersDesc")}
+          >
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                <label htmlFor="toolbox-catalog-category" className={toolboxLabelClass}>
+                  {t("admin.toolboxMgmt.catalogCategory")}
+                </label>
                 <select
+                  id="toolbox-catalog-category"
                   value={catalogCategoryFilter}
                   onChange={(e) => setCatalogCategoryFilter(e.target.value)}
-                  className={inputClass}
+                  className={toolboxFieldClass}
                 >
                   {catalogTypes.map((type) => (
                     <option key={type} value={type}>
@@ -263,156 +398,141 @@ export default function ToolboxManagement() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="text-neural-label block mb-1.5">Duration</label>
+              <div className="space-y-2">
+                <label htmlFor="toolbox-catalog-duration" className={toolboxLabelClass}>
+                  {t("admin.toolboxMgmt.catalogDuration")}
+                </label>
                 <input
+                  id="toolbox-catalog-duration"
                   type="text"
                   value={catalogDurationFilter}
                   onChange={(e) => setCatalogDurationFilter(e.target.value)}
-                  placeholder="e.g., 10 min"
-                  className={inputClass}
+                  placeholder={t("admin.toolboxMgmt.catalogDurationPlaceholder")}
+                  className={toolboxFieldClass}
                 />
               </div>
-              <div>
-                <label className="text-neural-label block mb-1.5">Created from</label>
-                <input type="date" value={catalogCreatedFrom} onChange={(e) => setCatalogCreatedFrom(e.target.value)} className={inputClass} />
+              <div className="space-y-2">
+                <label htmlFor="toolbox-catalog-from" className={toolboxLabelClass}>
+                  {t("admin.toolboxMgmt.catalogCreatedFrom")}
+                </label>
+                <input
+                  id="toolbox-catalog-from"
+                  type="date"
+                  value={catalogCreatedFrom}
+                  onChange={(e) => setCatalogCreatedFrom(e.target.value)}
+                  className={toolboxFieldClass}
+                />
               </div>
-              <div>
-                <label className="text-neural-label block mb-1.5">Created to</label>
-                <input type="date" value={catalogCreatedTo} onChange={(e) => setCatalogCreatedTo(e.target.value)} className={inputClass} />
+              <div className="space-y-2">
+                <label htmlFor="toolbox-catalog-to" className={toolboxLabelClass}>
+                  {t("admin.toolboxMgmt.catalogCreatedTo")}
+                </label>
+                <input
+                  id="toolbox-catalog-to"
+                  type="date"
+                  value={catalogCreatedTo}
+                  onChange={(e) => setCatalogCreatedTo(e.target.value)}
+                  className={toolboxFieldClass}
+                />
               </div>
             </div>
-          </div>
+          </ToolboxPanel>
 
           {loading ? (
-            <div className="ethereal-glass p-12 flex justify-center">
-              <Loader2 className="animate-spin text-primary" />
-            </div>
-          ) : (templates.length === 0 && journalTemplates.length === 0) ? (
-            <div className="ethereal-glass p-12 text-center">
-              <Library size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-              <p className="text-muted-foreground text-sm">No templates in the catalog.</p>
-              <p className="text-xs text-muted-foreground mt-1">Import a JSON from Program Builder to create some.</p>
-            </div>
+            <ToolboxLoadingBlock message={t("admin.toolboxMgmt.loadingCatalog")} />
+          ) : templates.length === 0 && journalTemplates.length === 0 ? (
+            <ToolboxEmptyState
+              icon={Library}
+              title={t("admin.toolboxMgmt.catalogEmptyTitle")}
+              hint={t("admin.toolboxMgmt.catalogEmptyHint")}
+            />
           ) : (
-            <div className="space-y-6">
-            {/* Toolbox templates */}
-            {templates.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Tools ({filteredTemplates.length}/{templates.length})</p>
-              {filteredTemplates.map((tmpl, i) => {
-                const meta = TYPE_META[tmpl.content_type] || TYPE_META.course;
-                const isAssigning = catalogAssigning === tmpl.id;
-                return (
-                  <motion.div
-                    key={tmpl.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="ethereal-glass p-4 flex items-center gap-4"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-secondary/30 border border-border/20 flex items-center justify-center shrink-0">
-                      <meta.icon size={16} strokeWidth={1.5} className={meta.color} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {pickCatalogTemplateDisplayTitle(locale as Locale, {
-                          title: tmpl.title,
-                          title_i18n: tmpl.title_i18n as any,
-                        })}
-                      </p>
-                      <p className="text-neural-label mt-0.5">
-                        {meta.label} · {tmpl.duration || "—"}
-                        {(tmpl.description || tmpl.description_i18n) && (
-                          <span className="ml-2 text-muted-foreground/70 truncate">
-                            {pickWidgetCatalogCopy(locale as Locale, tmpl.description_i18n as any, tmpl.description)}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <ToolboxItemPreview
-                      contentType={tmpl.content_type}
-                      title={pickCatalogTemplateDisplayTitle(locale as Locale, { title: tmpl.title, title_i18n: tmpl.title_i18n as any })}
-                      description={pickWidgetCatalogCopy(locale as Locale, tmpl.description_i18n as any, tmpl.description)}
-                      widgetConfig={tmpl.widget_config}
-                    />
-                    <button
-                      onClick={() => assignFromCatalog(tmpl.id)}
-                      disabled={isAssigning || !catalogSelectedUser}
-                      className="text-[9px] uppercase tracking-[0.2em] px-4 py-2 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 flex items-center gap-1"
-                    >
-                      {isAssigning ? <Loader2 size={11} className="animate-spin" /> : null}
-                      Assign
-                    </button>
-                  </motion.div>
-                );
-              })}
-            </div>
-            )}
+            <div className="space-y-12">
+              {templates.length > 0 && (
+                <ToolboxSection
+                  title={t("admin.toolboxMgmt.catalogResults")}
+                  badge={t("admin.toolboxMgmt.catalogToolsHeading", {
+                    current: filteredTemplates.length,
+                    total: templates.length,
+                  })}
+                >
+                  <div className="grid gap-4 lg:gap-5">
+                    {filteredTemplates.map((tmpl) =>
+                      renderCatalogItem(tmpl, catalogAssigning === tmpl.id, () => assignFromCatalog(tmpl.id)),
+                    )}
+                  </div>
+                </ToolboxSection>
+              )}
 
-            {/* Journal prompt templates */}
-            {journalTemplates.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">Prompts journal ({journalTemplates.length})</p>
-                {journalTemplates.map((jt, i) => {
-                  const isAssigning = journalAssigning === jt.id;
-                  return (
-                    <motion.div
-                      key={jt.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className="ethereal-glass p-4 flex items-start gap-4"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-secondary/30 border border-border/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <BookOpen size={16} strokeWidth={1.5} className="text-neural-accent" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {pickCatalogTemplateDisplayTitle(locale as Locale, {
-                            title: jt.title,
-                            title_i18n: jt.title_i18n as any,
-                          })}
-                        </p>
-                        <p className="text-neural-label mt-0.5 line-clamp-2">
-                          {pickLocalizedText(locale as Locale, jt.prompt_text_i18n as any, jt.prompt_text)}
-                        </p>
-                        {jt.duration && <p className="text-xs text-muted-foreground mt-0.5">{jt.duration}</p>}
-                      </div>
-                      <ToolboxItemPreview
-                        contentType="journal_prompt"
-                        title={pickCatalogTemplateDisplayTitle(locale as Locale, { title: jt.title, title_i18n: jt.title_i18n as any })}
-                        widgetConfig={{
-                          prompt: pickLocalizedText(locale as Locale, jt.prompt_text_i18n as any, jt.prompt_text),
-                        }}
-                      />
-                      <button
-                        onClick={() => assignJournalFromCatalog(jt.id)}
-                        disabled={isAssigning || !catalogSelectedUser}
-                        className="text-[9px] uppercase tracking-[0.2em] px-4 py-2 rounded-lg border border-neural-accent/30 text-neural-accent hover:bg-neural-accent/5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 flex items-center gap-1 mt-1"
-                      >
-                        {isAssigning ? <Loader2 size={11} className="animate-spin" /> : null}
-                        Assign
-                      </button>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
+              {journalTemplates.length > 0 && (
+                <ToolboxSection
+                  title={t("admin.toolboxMgmt.catalogJournalHeading", { n: journalTemplates.length })}
+                >
+                  <div className="grid gap-4 lg:gap-5">
+                    {journalTemplates.map((jt) => {
+                      const isAssigning = journalAssigning === jt.id;
+                      const title = pickCatalogTemplateDisplayTitle(locale as Locale, {
+                        title: jt.title,
+                        title_i18n: jt.title_i18n as any,
+                      });
+                      const prompt = pickLocalizedText(locale as Locale, jt.prompt_text_i18n as any, jt.prompt_text);
+
+                      return (
+                        <ToolboxResourceCard
+                          key={jt.id}
+                          icon={BookOpen}
+                          iconClassName="text-neural-accent"
+                          title={title}
+                          badges={
+                            <>
+                              <TypeBadge label={TYPE_META.journal_prompt.label} />
+                              {jt.duration ? <DurationBadge duration={jt.duration} /> : null}
+                            </>
+                          }
+                          description={prompt}
+                          footer={
+                            <>
+                              <ToolboxItemPreview
+                                contentType="journal_prompt"
+                                title={title}
+                                widgetConfig={{ prompt }}
+                              />
+                              <Button
+                                type="button"
+                                size="lg"
+                                className="w-full sm:w-auto"
+                                disabled={isAssigning || !catalogSelectedUser}
+                                onClick={() => assignJournalFromCatalog(jt.id)}
+                              >
+                                {isAssigning ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+                                {t("admin.toolboxMgmt.assignAction")}
+                              </Button>
+                            </>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                </ToolboxSection>
+              )}
             </div>
           )}
         </TabsContent>
 
-        {/* TAB: ASSIGNER (formulaire manuel existant) */}
-        <TabsContent value="assign" className="space-y-4">
-          <div className="ethereal-glass p-6 space-y-4">
-            <p className="text-sm font-medium text-foreground">{t("admin.toolboxMgmt.assignHeading")}</p>
-            <div>
-              <label className="text-neural-label block mb-1.5">{t("admin.toolboxMgmt.userLabel")}</label>
+        <TabsContent value="assign" className="mt-0 space-y-8 focus-visible:outline-none">
+          <ToolboxPanel
+            title={t("admin.toolboxMgmt.assignHeading")}
+            description={t("admin.toolboxMgmt.assignCustomDesc")}
+          >
+            <div className="max-w-xl space-y-3">
+              <label htmlFor="toolbox-assign-user" className={toolboxLabelClass}>
+                {t("admin.toolboxMgmt.userLabel")}
+              </label>
               <select
+                id="toolbox-assign-user"
                 value={selectedUser || ""}
                 onChange={(e) => setSelectedUser(e.target.value || null)}
-                className="w-full sm:w-auto bg-secondary/30 border border-border/30 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary/40 transition-colors"
+                className={toolboxFieldClass}
               >
                 <option value="">{t("admin.toolboxMgmt.selectUserPlaceholder")}</option>
                 {profiles.map((p) => (
@@ -420,76 +540,153 @@ export default function ToolboxManagement() {
                 ))}
               </select>
             </div>
-            {selectedUser && (
+          </ToolboxPanel>
+
+          {selectedUser ? (
+            <div className="ethereal-glass p-5 md:p-8">
               <ToolboxAssignmentForm userId={selectedUser} onAssigned={loadData} />
-            )}
-          </div>
+            </div>
+          ) : (
+            <ToolboxEmptyState
+              icon={Users}
+              title={t("admin.toolboxMgmt.selectUserPlaceholder")}
+              hint={t("admin.toolboxMgmt.assignCustomDesc")}
+            />
+          )}
         </TabsContent>
 
-        {/* TAB: LISTE ASSIGNATIONS ACTIVES */}
-        <TabsContent value="list" className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.searchByNameOrTool")}
-                className="w-full bg-secondary/20 border border-border/20 rounded-xl pl-12 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-neural-accent/30 transition-colors" />
+        <TabsContent value="list" className="mt-0 space-y-8 focus-visible:outline-none">
+          <ToolboxPanel
+            title={t("admin.toolboxMgmt.listFiltersTitle")}
+            description={t("admin.toolboxMgmt.listFiltersDesc")}
+          >
+            <div className="space-y-5">
+              <div className="relative max-w-xl">
+                <label htmlFor="toolbox-assignments-search" className="sr-only">
+                  {t("admin.toolboxMgmt.assignmentsSearchLabel")}
+                </label>
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <input
+                  id="toolbox-assignments-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t("common.searchByNameOrTool")}
+                  autoComplete="off"
+                  className={cn(toolboxFieldClass, "pl-11")}
+                />
+              </div>
+              <div className="space-y-3">
+                <p className={toolboxLabelClass}>{t("admin.toolboxMgmt.filterByType")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {allTypes.map((typeKey) => (
+                    <button
+                      key={typeKey}
+                      type="button"
+                      onClick={() => setFilterType(typeKey)}
+                      className={filterChipClass(filterType === typeKey)}
+                    >
+                      {typeKey === "all" ? t("admin.toolboxMgmt.filterAll") : TYPE_META[typeKey]?.label || typeKey}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {allTypes.map((typeKey) => (
-                <button key={typeKey} onClick={() => setFilterType(typeKey)}
-                  className={`text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-lg border transition-all ${
-                    filterType === typeKey ? "border-primary/40 bg-primary/5 text-primary" : "border-border/30 text-muted-foreground hover:border-primary/30"
-                  }`}>
-                  {typeKey === "all" ? t("admin.toolboxMgmt.filterAll") : TYPE_META[typeKey]?.label || typeKey}
-                </button>
-              ))}
-            </div>
-          </div>
+          </ToolboxPanel>
 
-          <div className="space-y-3">
-            {loading && (
-              <div className="ethereal-glass p-12 text-center">
-                <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+          {loading ? (
+            <ToolboxLoadingBlock message={t("general.loading")} />
+          ) : filtered.length === 0 ? (
+            <ToolboxEmptyState icon={Package} title={t("common.noToolsAssigned")} />
+          ) : (
+            <div className="space-y-4">
+              <div
+                className="ethereal-glass hidden gap-4 px-6 py-3 text-xs font-medium uppercase tracking-wide text-text-secondary lg:grid"
+                style={{ gridTemplateColumns: "1fr 160px 140px 120px 140px" }}
+              >
+                <span>{t("admin.toolboxMgmt.listColumnTool")}</span>
+                <span>{t("admin.toolboxMgmt.listColumnUser")}</span>
+                <span>{t("admin.toolboxMgmt.listColumnType")}</span>
+                <span>{t("admin.toolboxMgmt.listColumnDate")}</span>
+                <span className="text-right">{t("admin.toolboxMgmt.listColumnActions")}</span>
               </div>
-            )}
-            {!loading && filtered.length === 0 && (
-              <div className="ethereal-glass p-12 text-center">
-                <Package size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
-                <p className="text-muted-foreground text-sm">{t("common.noToolsAssigned")}</p>
-              </div>
-            )}
-            {filtered.map((item, i) => {
-              const meta = TYPE_META[item.content_type] || TYPE_META.course;
-              return (
-                <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                  className="ethereal-glass p-5 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-secondary/30 border border-border/20 flex items-center justify-center shrink-0">
-                    <meta.icon size={16} strokeWidth={1.5} className={meta.color} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {pickLocalizedText(locale as Locale, (item as any).title_i18n, item.title)}
-                    </p>
-                    <p className="text-neural-label mt-0.5">
-                      {item.user_name} · {meta.label} · {item.duration || "—"} · {new Date(item.assigned_at).toLocaleDateString(dateLocaleTag)}
-                    </p>
-                  </div>
-                  <ToolboxItemPreview
-                    contentType={item.content_type}
-                    title={pickLocalizedText(locale as Locale, (item as any).title_i18n, item.title)}
-                    description={pickWidgetCatalogCopy(locale as Locale, item.description_i18n as any, item.description)}
-                    widgetConfig={item.widget_config}
-                    externalUrl={item.external_url}
-                  />
-                  <button onClick={() => deleteAssignment(item.id)}
-                    className="p-2 rounded-lg border border-border/30 text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors shrink-0"
-                    title={t("admin.toolboxMgmt.removeTitle")}>
-                    <Trash2 size={14} />
-                  </button>
-                </motion.div>
-              );
-            })}
-          </div>
+
+              <ul className="grid gap-4 lg:gap-3">
+                {filtered.map((item) => {
+                  const meta = TYPE_META[item.content_type] || TYPE_META.course;
+                  const title = pickLocalizedText(locale as Locale, (item as any).title_i18n, item.title);
+                  const dateStr = new Date(item.assigned_at).toLocaleDateString(dateLocaleTag, {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  });
+
+                  return (
+                    <li key={item.id}>
+                      <div className="ethereal-glass lg:grid lg:items-center lg:gap-4 lg:px-6 lg:py-4" style={{ gridTemplateColumns: "1fr 160px 140px 120px 140px" }}>
+                        <div className="flex gap-4 border-b border-border/40 p-5 lg:border-0 lg:p-0">
+                          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted/50 lg:hidden">
+                            <meta.icon className={cn("size-5", meta.color)} strokeWidth={1.5} aria-hidden />
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-2 lg:space-y-1">
+                            <p className="text-base font-semibold leading-snug text-text-primary">{title}</p>
+                            <div className="flex flex-wrap gap-2 lg:hidden">
+                              <TypeBadge label={meta.label} />
+                              <DurationBadge duration={item.duration} />
+                            </div>
+                            <p className="text-sm text-muted-foreground lg:hidden">
+                              {item.user_name} · {dateStr}
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="hidden truncate px-0 text-sm text-text-primary lg:block">{item.user_name}</p>
+                        <div className="hidden lg:block">
+                          <TypeBadge label={meta.label} />
+                        </div>
+                        <p className="hidden text-sm text-muted-foreground lg:block">{dateStr}</p>
+
+                        <div className="flex flex-col gap-3 border-t border-border/40 p-5 sm:flex-row sm:items-center sm:justify-end lg:border-0 lg:p-0">
+                          <ToolboxItemPreview
+                            contentType={item.content_type}
+                            title={title}
+                            description={pickWidgetCatalogCopy(locale as Locale, item.description_i18n as any, item.description)}
+                            widgetConfig={item.widget_config}
+                            externalUrl={item.external_url}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="size-11 shrink-0 text-muted-foreground hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
+                            onClick={() => deleteAssignment(item.id)}
+                            aria-label={t("admin.toolboxMgmt.removeTitle")}
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="import" className="mt-0 focus-visible:outline-none">
+          <ToolboxJsonImportTab
+            profiles={profiles}
+            templates={templates}
+            assignments={assignments.map((a) => ({
+              user_id: a.user_id,
+              template_id: a.template_id ?? null,
+            }))}
+            onImported={loadData}
+          />
         </TabsContent>
       </Tabs>
     </div>

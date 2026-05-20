@@ -95,11 +95,21 @@ const CATALOG_FR_EN_PAIRS: [string, string][] = [
     "Lift your chin slightly and breathe deeply through your nose.",
   ],
   // affirmations
+  ["Je suis capable", "I am capable"],
+  ["Je reste stable", "I stay steady"],
+  ["Je passe à l'action", "I take action"],
+  ["Je suis capable.", "I am capable."],
+  ["Je reste stable.", "I stay steady."],
+  ["Je passe à l'action.", "I take action."],
   ["Je canalise ma détermination inébranlable.", "I channel my unshakeable determination."],
   ["Mon focus est stable et puissant.", "My focus is stable and powerful."],
   ["Je suis le pilote de mon attention.", "I am the pilot of my attention."],
   ["Mon calme est ma puissance d'action.", "My calm is my power to act."],
   ["Je décide à partir de la clarté, non de l'urgence.", "I decide from clarity, not urgency."],
+  ["Je respire et j'avance avec calme.", "I breathe and move forward with calm."],
+  ["Ma présence est mon ancrage.", "My presence is my anchor."],
+  ["Je choisis la clarté avant la réaction.", "I choose clarity before reaction."],
+  ["Chaque expiration me ramène au centre.", "Each exhale brings me back to center."],
 ];
 
 const CATALOG_FR_EN: Record<string, string> = {};
