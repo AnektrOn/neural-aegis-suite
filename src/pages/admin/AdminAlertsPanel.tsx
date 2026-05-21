@@ -389,7 +389,7 @@ export default function AdminAlertsPanel() {
                   <button
                     type="button"
                     onClick={() =>
-                      navigate("/admin/analytics", {
+                      navigate("/admin/insights?tab=analytics", {
                         state: { adminAnalyticsUserId: a.user_id },
                       })
                     }

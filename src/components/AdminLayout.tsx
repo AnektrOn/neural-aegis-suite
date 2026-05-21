@@ -1,33 +1,12 @@
 import { useState } from "react";
-import { NavLink, useLocation, Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Link, useLocation } from "react-router-dom";
 import {
-  Phone,
-  Factory,
-  Users,
   ChevronLeft,
   ChevronRight,
   Zap,
   LogOut,
   ArrowLeft,
-  BarChart3,
-  Building2,
-  LayoutDashboard,
   Menu,
-  Package,
-  Target,
-  MessageSquare,
-  Trophy,
-  Bell,
-  Tag,
-  MapPin,
-  Map,
-  Sparkles,
-  AlertTriangle,
-  FileText,
-  Download,
-  Video,
-  Boxes,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -35,58 +14,39 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { PageWrapper } from "@/components/PageWrapper";
 import AppFooter from "@/components/AppFooter";
 import { useNetwork } from "@/hooks/use-network";
-
-const adminNavKeys = [
-  { to: "/admin", icon: Phone, key: "admin.nav.calls" as const },
-  { to: "/admin/habits", icon: Factory, key: "admin.nav.habits" as const },
-  { to: "/admin/users", icon: Users, key: "admin.nav.users" as const },
-  { to: "/admin/analytics", icon: BarChart3, key: "admin.nav.analytics" as const },
-  { to: "/admin/executive", icon: LayoutDashboard, key: "admin.nav.executive" as const },
-  { to: "/admin/companies", icon: Building2, key: "admin.nav.companies" as const },
-  { to: "/admin/toolbox", icon: Package, key: "admin.nav.toolbox" as const },
-  { to: "/admin/toolbox-waiting-confirmation", icon: Boxes, key: "admin.nav.toolboxWaitingConfirmation" as const },
-  { to: "/admin/video-library", icon: Video, key: "admin.nav.videoLibrary" as const },
-  { to: "/admin/decisions", icon: Target, key: "admin.nav.decisions" as const },
-  { to: "/admin/messages", icon: MessageSquare, key: "admin.nav.messages" as const },
-  { to: "/admin/scoreboard", icon: Trophy, key: "admin.nav.scoreboard" as const },
-  { to: "/admin/notification-registry", icon: Bell, key: "admin.nav.notificationRegistry" as const },
-  { to: "/admin/place-tags", icon: Tag, key: "admin.nav.placeTags" as const },
-  { to: "/admin/user-places", icon: MapPin, key: "admin.nav.userPlaces" as const },
-  { to: "/admin/assessments", icon: Sparkles, key: "admin.nav.assessments" as const },
-  { to: "/admin/cartography", icon: Map, key: "admin.nav.cartography" as const },
-  { to: "/admin/deep-dive-sample", icon: FileText, key: "admin.nav.deepDiveSample" as const },
-  { to: "/admin/deep-dive", icon: Sparkles, key: "admin.nav.deepDive" as const },
-  { to: "/admin/alerts", icon: AlertTriangle, key: "admin.nav.alerts" as const },
-  { to: "/admin/export", icon: Download, key: "admin.nav.export" as const },
-];
+import AdminSidebarNav from "@/components/admin/AdminSidebarNav";
+import { getAdminPageMeta } from "@/lib/adminNavConfig";
 
 function AdminSidebarContent({
   collapsed,
   onNavigate,
   showNotificationBell = true,
+  showSearch = false,
 }: {
   collapsed: boolean;
   onNavigate?: () => void;
   showNotificationBell?: boolean;
+  showSearch?: boolean;
 }) {
-  const location = useLocation();
   const { signOut } = useAuth();
   const { t } = useLanguage();
 
   return (
     <>
-      <div className="h-14 flex items-center px-4 border-b border-border-subtle shrink-0 gap-2">
-        <div className="w-7 h-7 rounded-lg bg-accent-warning/15 border border-accent-warning/25 flex items-center justify-center shrink-0">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border-subtle px-4">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-accent-warning/25 bg-accent-warning/15">
           <Zap size={14} strokeWidth={1.5} className="text-accent-warning" />
         </div>
         {!collapsed && (
-          <div className="flex flex-col min-w-0 gap-0.5">
-            <span className="font-display text-[10px] tracking-[0.2em] uppercase text-text-secondary truncate">Admin</span>
-            <span className="px-2 py-0.5 rounded text-[9px] tracking-widest uppercase w-fit bg-accent-warning/10 text-accent-warning border border-accent-warning/20 font-display">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate font-display text-[10px] uppercase tracking-[0.2em] text-text-secondary">
+              {t("admin.nav.adminLabel")}
+            </span>
+            <span className="w-fit rounded border border-accent-warning/20 bg-accent-warning/10 px-2 py-0.5 font-display text-[9px] uppercase tracking-widest text-accent-warning">
               Admin
             </span>
           </div>
@@ -96,51 +56,29 @@ function AdminSidebarContent({
       <Link
         to="/"
         onClick={onNavigate}
-        className="mx-2 mt-3 mb-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg-elevated transition-all duration-200"
+        className="mx-2 mb-2 mt-3 flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-text-tertiary transition-all duration-200 hover:bg-bg-elevated hover:text-text-primary"
       >
         <ArrowLeft size={16} strokeWidth={1.5} className="shrink-0" />
-        {!collapsed && <span className="text-[9px] uppercase tracking-[0.12em] font-medium">{t("admin.nav.dashboard")}</span>}
+        {!collapsed && (
+          <span className="text-[9px] font-medium uppercase tracking-[0.12em]">{t("admin.nav.dashboard")}</span>
+        )}
       </Link>
 
-      <nav className="flex-1 flex flex-col gap-0.5 px-0 overflow-y-auto pb-2">
-        {adminNavKeys.map((item) => {
-          const isActive = location.pathname === item.to;
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={onNavigate}
-              className={`relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg mx-2 transition-all duration-200 border border-transparent ${
-                isActive ? "text-accent-warning" : "text-text-tertiary hover:text-text-primary hover:bg-bg-elevated"
-              }`}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="admin-sidebar-active"
-                  className="absolute inset-0 rounded-lg bg-accent-warning/10 border border-accent-warning/25 pointer-events-none"
-                  transition={{ duration: 0.25 }}
-                />
-              )}
-              <item.icon size={16} strokeWidth={1.5} className="relative z-10 shrink-0" />
-              {!collapsed && (
-                <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.key)}</span>
-              )}
-            </NavLink>
-          );
-        })}
-      </nav>
+      <AdminSidebarNav collapsed={collapsed} onNavigate={onNavigate} showSearch={showSearch} />
 
       {showNotificationBell && (
-        <div className="mx-3 mb-2 shrink-0 flex flex-col gap-2">
+        <div className="mx-3 mb-2 flex shrink-0 flex-col gap-2">
           <NotificationBell />
           {!collapsed && <PushNotificationToggle />}
         </div>
       )}
 
       <button
+        type="button"
         onClick={signOut}
-        className="mx-3 p-3 rounded-lg text-text-secondary hover:text-accent-danger hover:bg-accent-danger/5 transition-colors duration-200"
+        className="mx-3 min-h-11 rounded-lg p-3 text-text-secondary transition-colors duration-200 hover:bg-accent-danger/5 hover:text-accent-danger"
         title={t("nav.logout")}
+        aria-label={t("nav.logout")}
       >
         <LogOut size={16} strokeWidth={1.5} />
       </button>
@@ -157,61 +95,70 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { online } = useNetwork();
   const { t } = useLanguage();
 
+  const pageMeta = getAdminPageMeta(location.pathname, location.search, t);
+  const headerTitle = pageMeta.subtitle ? `${pageMeta.title} · ${pageMeta.subtitle}` : pageMeta.title;
+
   const adminMainPaddingTop = online
     ? "calc(var(--safe-top) + var(--mobile-header-toolbar))"
     : "calc(var(--safe-top) + var(--mobile-offline-banner-height) + var(--mobile-header-toolbar))";
 
   if (isMobile) {
     return (
-      <div className="min-h-screen w-full relative z-10 bg-bg-base">
+      <div className="relative z-10 min-h-screen w-full bg-bg-base">
         <div
-          className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle"
+          className="fixed left-0 right-0 top-0 z-50 flex flex-col border-b border-border-subtle bg-bg-surface/90 backdrop-blur-xl"
           style={{ paddingTop: "var(--safe-top)" }}
         >
           {!online && (
             <div
-              className="bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2 shrink-0"
+              className="shrink-0 bg-warning px-2 py-1.5 text-center text-xs font-medium text-warning-foreground"
               role="status"
             >
               {t("layout.offlineMessage")}
             </div>
           )}
-          <div className="flex min-h-[var(--mobile-header-toolbar)] items-center justify-between box-border px-4 py-3">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="box-border flex min-h-[var(--mobile-header-toolbar)] items-center justify-between px-4 py-3">
+            <div className="flex min-w-0 items-center gap-3">
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
                   <button
                     type="button"
-                    className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors duration-200"
+                    className="min-h-11 min-w-11 rounded-lg p-2 text-text-secondary transition-colors duration-200 hover:bg-bg-elevated hover:text-text-primary"
+                    aria-label={t("admin.nav.openMenu")}
                   >
                     <Menu size={20} strokeWidth={1.5} />
                   </button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[260px] p-0 py-0 bg-bg-surface border-r border-border-subtle">
-                  <div className="py-4">
+                <SheetContent
+                  side="left"
+                  className="flex h-full w-[min(100vw,320px)] max-w-full flex-col border-r border-border-subtle bg-bg-surface p-0"
+                >
+                  <SheetTitle className="sr-only">{t("admin.nav.openMenu")}</SheetTitle>
+                  <div className="flex min-h-0 flex-1 flex-col py-2">
                     <AdminSidebarContent
                       collapsed={false}
                       onNavigate={() => setMobileOpen(false)}
                       showNotificationBell={false}
+                      showSearch
                     />
                   </div>
                 </SheetContent>
               </Sheet>
-              <div className="w-7 h-7 rounded-lg bg-accent-warning/15 border border-accent-warning/25 flex items-center justify-center shrink-0">
-                <Zap size={14} strokeWidth={1.5} className="text-accent-warning" />
+              <div className="min-w-0">
+                <p className="truncate font-display text-[10px] uppercase tracking-[0.2em] text-accent-warning">
+                  {t("admin.nav.adminLabel")}
+                </p>
+                <p className="truncate text-sm font-medium text-foreground">{headerTitle}</p>
               </div>
-              <span className="font-display text-[10px] tracking-[0.2em] uppercase text-accent-warning truncate">
-                Admin
-              </span>
             </div>
-            <div className="shrink-0 flex items-center gap-1 text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
               <PushNotificationToggle compact />
               <NotificationBell />
             </div>
           </div>
         </div>
 
-        <main className="px-4 pb-6 min-h-screen" style={{ paddingTop: adminMainPaddingTop }}>
+        <main className="min-h-screen px-4 pb-6" style={{ paddingTop: adminMainPaddingTop }}>
           <PageWrapper key={location.pathname}>{children}</PageWrapper>
           <AppFooter />
         </main>
@@ -220,34 +167,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen w-full relative z-10 bg-bg-base">
+    <div className="relative z-10 flex min-h-screen w-full bg-bg-base">
       {!online && (
         <div
-          className="fixed top-0 left-0 right-0 z-[60] bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2"
+          className="fixed left-0 right-0 top-0 z-[60] bg-warning px-2 py-1.5 text-center text-xs font-medium text-warning-foreground"
           role="status"
         >
           {t("layout.offlineMessage")}
         </div>
       )}
       <aside
-        className={`fixed left-0 h-full z-30 flex flex-col bg-bg-surface border-r border-border-subtle transition-all duration-300 ease-in-out ${
-          collapsed ? "w-[60px]" : "w-[220px]"
+        className={`fixed left-0 z-30 flex h-full flex-col border-r border-border-subtle bg-bg-surface transition-all duration-300 ease-in-out ${
+          collapsed ? "w-[60px]" : "w-[240px]"
         } ${!online ? "top-7" : "top-0"}`}
       >
         <AdminSidebarContent collapsed={collapsed} />
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-bg-elevated border border-border-active text-text-secondary hover:text-accent-warning hover:border-accent-warning/40 flex items-center justify-center transition-all duration-200 z-10 shadow-card"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="absolute -right-3 top-16 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border-active bg-bg-elevated text-text-secondary shadow-card transition-all duration-200 hover:border-accent-warning/40 hover:text-accent-warning"
+          aria-label={collapsed ? t("admin.nav.expandSidebar") : t("admin.nav.collapseSidebar")}
         >
           {collapsed ? <ChevronRight size={14} strokeWidth={1.5} /> : <ChevronLeft size={14} strokeWidth={1.5} />}
         </button>
       </aside>
 
       <main
-        className={`flex-1 min-h-screen p-6 md:p-10 transition-all duration-300 ease-in-out ${
-          collapsed ? "ml-[60px]" : "ml-[220px]"
+        className={`min-h-screen flex-1 p-6 transition-all duration-300 ease-in-out md:p-10 ${
+          collapsed ? "ml-[60px]" : "ml-[240px]"
         } ${!online ? "mt-7" : ""}`}
       >
         <PageWrapper key={location.pathname}>{children}</PageWrapper>

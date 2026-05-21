@@ -6,6 +6,7 @@ import { BootLoadingScreen } from "@/components/BootLoadingScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
+import AdminLegacyRedirect from "@/components/admin/AdminLegacyRedirect";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -42,31 +43,30 @@ const VisitorDeepDiveReport = lazy(
 const CallAuditDashboard = lazy(() => import("./pages/admin/CallAuditDashboard"));
 const HabitFactory = lazy(() => import("./pages/admin/HabitFactory"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
-const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
-const ExecutiveDashboard = lazy(() => import("./pages/admin/ExecutiveDashboard"));
 const CompanyManagement = lazy(() => import("./pages/admin/CompanyManagement"));
-const ToolboxManagement = lazy(() => import("./pages/admin/ToolboxManagement"));
-const ToolboxWaitingConfirmation = lazy(() => import("./pages/admin/ToolboxWaitingConfirmation"));
 const VideoLibraryAdmin = lazy(() => import("./pages/admin/VideoLibraryAdmin"));
-const ProgramBuilder = lazy(() => import("./pages/admin/ProgramBuilder"));
 const AdminDecisions = lazy(() => import("./pages/admin/AdminDecisions"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const ScoreboardConfig = lazy(() => import("./pages/admin/ScoreboardConfig"));
 const AdminNotificationRegistry = lazy(() => import("./pages/admin/AdminNotificationRegistry"));
-const AdminPlaceTags = lazy(() => import("./pages/admin/AdminPlaceTags"));
-const AdminUserPlaces = lazy(() => import("./pages/admin/AdminUserPlaces"));
 const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
 const AdminAlertsPanel = lazy(() => import("./pages/admin/AdminAlertsPanel"));
 const AdminExport = lazy(() => import("./pages/admin/AdminExport"));
 const AssessmentFlow = lazy(() => import("./features/archetype-assessment/pages/AssessmentFlow"));
 const AssessmentResults = lazy(() => import("./features/archetype-assessment/pages/AssessmentResults"));
-const DeepDiveSampleReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveSampleReport"));
 const DeepDiveUserReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveUserReport"));
 const DeepDiveScores = lazy(() => import("./pages/DeepDiveScores"));
 const ArchetypeCartographyReport = lazy(() => import("./pages/ArchetypeCartographyReport"));
-const AdminDeepDive = lazy(() => import("./pages/admin/AdminDeepDive"));
-const AdminDeepDiveV2 = lazy(() => import("./pages/admin/AdminDeepDiveV2"));
 const CartographyManagement = lazy(() => import("./pages/admin/CartographyManagement"));
+const Newsletter = lazy(() => import("./pages/Newsletter"));
+const NewsletterEditionPage = lazy(() => import("./pages/NewsletterEdition"));
+const NewsletterLayout = lazy(() => import("./layouts/NewsletterLayout"));
+const NewsletterManagement = lazy(() => import("./pages/admin/NewsletterManagement"));
+const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
+const AdminToolboxHub = lazy(() => import("./pages/admin/AdminToolboxHub"));
+const AdminPlacesHub = lazy(() => import("./pages/admin/AdminPlacesHub"));
+const AdminDeepDiveHub = lazy(() => import("./pages/admin/AdminDeepDiveHub"));
+const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -112,6 +112,10 @@ const App = () => (
                   <Route path="/__loader" element={<BootLoadingScreen />} />
                 ) : null}
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/newsletter" element={<NewsletterLayout />}>
+                  <Route index element={<Newsletter />} />
+                  <Route path=":slug" element={<NewsletterEditionPage />} />
+                </Route>
                 <Route
                   path="/quiz"
                   element={
@@ -139,29 +143,57 @@ const App = () => (
                         <AdminLayout>
                           <Suspense fallback={<PageLoader />}>
                             <Routes>
-                              <Route path="/" element={<CallAuditDashboard />} />
+                              <Route path="/" element={<AdminOverview />} />
+                              <Route path="/calls" element={<CallAuditDashboard />} />
                               <Route path="/habits" element={<HabitFactory />} />
                               <Route path="/users" element={<UserManagement />} />
-                              <Route path="/analytics" element={<AdminAnalytics />} />
-                              <Route path="/executive" element={<ExecutiveDashboard />} />
+                              <Route path="/insights" element={<AdminInsightsHub />} />
+                              <Route
+                                path="/analytics"
+                                element={<AdminLegacyRedirect from="/admin/analytics" />}
+                              />
+                              <Route
+                                path="/executive"
+                                element={<AdminLegacyRedirect from="/admin/executive" />}
+                              />
                               <Route path="/companies" element={<CompanyManagement />} />
-                              <Route path="/toolbox" element={<ToolboxManagement />} />
-                              <Route path="/toolbox-waiting-confirmation" element={<ToolboxWaitingConfirmation />} />
-                              <Route path="/program-builder" element={<ProgramBuilder />} />
+                              <Route path="/toolbox" element={<AdminToolboxHub />} />
+                              <Route
+                                path="/toolbox-waiting-confirmation"
+                                element={<AdminLegacyRedirect from="/admin/toolbox-waiting-confirmation" />}
+                              />
+                              <Route
+                                path="/program-builder"
+                                element={<AdminLegacyRedirect from="/admin/program-builder" />}
+                              />
+                              <Route path="/places" element={<AdminPlacesHub />} />
+                              <Route
+                                path="/place-tags"
+                                element={<AdminLegacyRedirect from="/admin/place-tags" />}
+                              />
+                              <Route
+                                path="/user-places"
+                                element={<AdminLegacyRedirect from="/admin/user-places" />}
+                              />
                               <Route path="/video-library" element={<VideoLibraryAdmin />} />
                               <Route path="/decisions" element={<AdminDecisions />} />
                               <Route path="/messages" element={<AdminMessages />} />
                               <Route path="/scoreboard" element={<ScoreboardConfig />} />
                               <Route path="/notification-registry" element={<AdminNotificationRegistry />} />
-                              <Route path="/place-tags" element={<AdminPlaceTags />} />
-                              <Route path="/user-places" element={<AdminUserPlaces />} />
                               <Route path="/assessments" element={<AdminAssessments />} />
                               <Route path="/alerts" element={<AdminAlertsPanel />} />
                               <Route path="/export" element={<AdminExport />} />
-                              <Route path="/deep-dive-sample" element={<DeepDiveSampleReport />} />
-                              <Route path="/deep-dive" element={<AdminDeepDive />} />
-                              <Route path="/deep-dive-v2" element={<AdminDeepDiveV2 />} />
+                              <Route path="/deep-dive" element={<AdminDeepDiveHub />} />
+                              <Route
+                                path="/deep-dive-sample"
+                                element={<AdminLegacyRedirect from="/admin/deep-dive-sample" />}
+                              />
+                              <Route
+                                path="/deep-dive-v2"
+                                element={<AdminLegacyRedirect from="/admin/deep-dive-v2" />}
+                              />
                               <Route path="/cartography" element={<CartographyManagement />} />
+                              <Route path="/newsletter" element={<NewsletterManagement />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>

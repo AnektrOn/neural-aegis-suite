@@ -47,7 +47,7 @@ export async function notifyAdminOnLogin(
         target: "admins",
         title: "Connexion utilisateur",
         message: `${userName} (${userEmail}) vient de se connecter.`,
-        url: "/admin/analytics",
+        url: "/admin/insights?tab=analytics",
         tag: `login-${user.id}`,
       },
     });

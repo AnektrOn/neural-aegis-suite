@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Eye, EyeOff, Sparkles } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -354,6 +354,14 @@ export default function AuthPage() {
           </motion.div>
         </div>
       </div>
+      <p className="text-center pb-4">
+        <Link
+          to="/newsletter"
+          className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary hover:text-text-secondary transition-colors duration-200 font-display"
+        >
+          {t("nav.newsletter")}
+        </Link>
+      </p>
       <AppFooter />
     </div>
   );

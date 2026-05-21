@@ -14,6 +14,7 @@ export const translations = {
   "nav.calendar": { fr: "Calendrier", en: "Calendar" },
   "nav.profile": { fr: "Profil", en: "Profile" },
   "nav.installApp": { fr: "Installer l'app", en: "Install app" },
+  "nav.newsletter": { fr: "Newsletter", en: "Newsletter" },
   "nav.deepDiveScores": { fr: "Scores Deep Dive", en: "Deep Dive scores" },
   "nav.deepDive": { fr: "Deep Dive", en: "Deep Dive" },
   "deepDive.viewReport": {
@@ -143,6 +144,23 @@ export const translations = {
   "quickLog.neuralState": { fr: "État neural", en: "Neural state" },
 
   // Admin nav
+  "admin.nav.adminLabel": { fr: "Administration", en: "Administration" },
+  "admin.nav.home": { fr: "Accueil admin", en: "Admin home" },
+  "admin.nav.openMenu": { fr: "Ouvrir le menu admin", en: "Open admin menu" },
+  "admin.nav.searchPlaceholder": { fr: "Rechercher…", en: "Search…" },
+  "admin.nav.searchEmpty": { fr: "Aucun résultat", en: "No results" },
+  "admin.nav.expandSidebar": { fr: "Déplier le menu", en: "Expand sidebar" },
+  "admin.nav.collapseSidebar": { fr: "Replier le menu", en: "Collapse sidebar" },
+  "admin.nav.section.overview": { fr: "Vue d'ensemble", en: "Overview" },
+  "admin.nav.section.operations": { fr: "Opérations", en: "Operations" },
+  "admin.nav.section.programs": { fr: "Programmes", en: "Programs" },
+  "admin.nav.section.deepDive": { fr: "Deep Dive", en: "Deep Dive" },
+  "admin.nav.section.engagement": { fr: "Engagement", en: "Engagement" },
+  "admin.nav.section.insights": { fr: "Insights", en: "Insights" },
+  "admin.nav.section.settings": { fr: "Configuration", en: "Configuration" },
+  "admin.nav.insights": { fr: "Analytiques & exécutif", en: "Analytics & executive" },
+  "admin.nav.places": { fr: "Lieux", en: "Places" },
+  "admin.nav.deepDiveHub": { fr: "Deep Dive", en: "Deep Dive" },
   "admin.nav.calls": { fr: "Audit Appels", en: "Call Audit" },
   "admin.nav.assessments": { fr: "Évaluations", en: "Assessments" },
   "admin.nav.cartography": { fr: "Cartographie", en: "Cartography" },
@@ -165,6 +183,77 @@ export const translations = {
   "admin.nav.messages": { fr: "Messagerie", en: "Messages" },
   "admin.nav.scoreboard": { fr: "Scoreboard", en: "Scoreboard" },
   "admin.nav.notificationRegistry": { fr: "Réf. notifications", en: "Notification ref" },
+
+  "admin.hub.kicker": { fr: "Espace admin", en: "Admin area" },
+  "admin.hub.toolbox.title": { fr: "Boîte à outils", en: "Toolbox" },
+  "admin.hub.toolbox.description": {
+    fr: "Gestion des assignations, validations en attente et catalogues programme.",
+    en: "Manage assignments, pending validations, and program catalogs.",
+  },
+  "admin.hub.places.title": { fr: "Lieux", en: "Places" },
+  "admin.hub.places.description": {
+    fr: "Tags de lieux et lieux partagés par les utilisateurs.",
+    en: "Place tags and user-shared locations.",
+  },
+  "admin.hub.deepDive.title": { fr: "Deep Dive", en: "Deep Dive" },
+  "admin.hub.deepDive.description": {
+    fr: "Rapports archetype, scores agrégés et rapport V2.",
+    en: "Archetype reports, aggregate scores, and V2 report.",
+  },
+  "admin.hub.insights.title": { fr: "Insights", en: "Insights" },
+  "admin.hub.insights.description": {
+    fr: "Analytiques détaillées et tableau de bord exécutif.",
+    en: "Detailed analytics and executive dashboard.",
+  },
+  "admin.hub.tab.toolboxManage": { fr: "Gestion", en: "Management" },
+  "admin.hub.tab.toolboxWaiting": { fr: "En attente", en: "Waiting" },
+  "admin.hub.tab.toolboxProgram": { fr: "Program Builder", en: "Program Builder" },
+  "admin.hub.tab.placesTags": { fr: "Tags", en: "Tags" },
+  "admin.hub.tab.placesUsers": { fr: "Lieux utilisateurs", en: "User places" },
+  "admin.hub.tab.deepDiveReport": { fr: "Rapport", en: "Report" },
+  "admin.hub.tab.deepDiveScores": { fr: "Scores", en: "Scores" },
+  "admin.hub.tab.deepDiveReportV2": { fr: "Rapport V2", en: "Report V2" },
+  "admin.hub.tab.insightsAnalytics": { fr: "Analytiques", en: "Analytics" },
+  "admin.hub.tab.insightsExecutive": { fr: "Exécutif", en: "Executive" },
+
+  "admin.overview.kicker": { fr: "Administration", en: "Administration" },
+  "admin.overview.title": { fr: "Accueil admin", en: "Admin home" },
+  "admin.overview.subtitle": {
+    fr: "Accédez rapidement aux sections par domaine.",
+    en: "Quick access to sections by domain.",
+  },
+  "admin.overview.card.overview": { fr: "Vue d'ensemble", en: "Overview" },
+  "admin.overview.card.overviewDesc": { fr: "Cette page d'accueil.", en: "This home page." },
+  "admin.overview.card.operations": { fr: "Opérations", en: "Operations" },
+  "admin.overview.card.operationsDesc": {
+    fr: "Appels, utilisateurs, entreprises, habitudes, alertes, export.",
+    en: "Calls, users, companies, habits, alerts, export.",
+  },
+  "admin.overview.card.programs": { fr: "Programmes", en: "Programs" },
+  "admin.overview.card.programsDesc": {
+    fr: "Toolbox, vidéos, cartographie et évaluations.",
+    en: "Toolbox, videos, cartography, and assessments.",
+  },
+  "admin.overview.card.deepDive": { fr: "Deep Dive", en: "Deep Dive" },
+  "admin.overview.card.deepDiveDesc": {
+    fr: "Rapports et scores archetype.",
+    en: "Archetype reports and scores.",
+  },
+  "admin.overview.card.engagement": { fr: "Engagement", en: "Engagement" },
+  "admin.overview.card.engagementDesc": {
+    fr: "Décisions, messagerie, newsletter et scoreboard.",
+    en: "Decisions, messaging, newsletter, and scoreboard.",
+  },
+  "admin.overview.card.insights": { fr: "Insights", en: "Insights" },
+  "admin.overview.card.insightsDesc": {
+    fr: "Analytiques et tableau exécutif.",
+    en: "Analytics and executive board.",
+  },
+  "admin.overview.card.settings": { fr: "Configuration", en: "Configuration" },
+  "admin.overview.card.settingsDesc": {
+    fr: "Lieux et référentiel notifications.",
+    en: "Places and notification registry.",
+  },
 
   "admin.notificationRegistry.title": {
     fr: "Référentiel des notifications admin",
@@ -2346,6 +2435,232 @@ export const translations = {
     en: "Based on your archetype quiz answers.",
   },
   "visitor.report.loading": { fr: "Génération du rapport…", en: "Generating report…" },
+
+  // Newsletter
+  "newsletter.badge": { fr: "Lettre Neural", en: "Neural Letter" },
+  "newsletter.title": {
+    fr: "Restez connecté à votre évolution",
+    en: "Stay connected to your evolution",
+  },
+  "newsletter.subtitle": {
+    fr: "Insights archétypaux, rituels d'intégration et annonces exclusives — une fois par mois, sans bruit.",
+    en: "Archetypal insights, integration rituals, and exclusive updates — once a month, no noise.",
+  },
+  "newsletter.blogTitle": {
+    fr: "Lettre Neural",
+    en: "Neural Letter",
+  },
+  "newsletter.blogSubtitle": {
+    fr: "Articles importés depuis l'admin (Markdown). Les e-mails ne contiennent qu'un brief.",
+    en: "Articles imported from admin (Markdown). Emails only include a brief.",
+  },
+  "newsletter.blogArticles": { fr: "Articles", en: "Articles" },
+  "newsletter.readArticle": { fr: "Lire l'article", en: "Read article" },
+  "newsletter.readingTime": { fr: "{min} min de lecture", en: "{min} min read" },
+  "newsletter.adminHint": {
+    fr: "En tant qu'admin, vous recevez les mêmes contenus que la communauté.",
+    en: "As an admin, you receive the same content as the community.",
+  },
+  "newsletter.benefitsAria": {
+    fr: "Avantages de l'abonnement",
+    en: "Subscription benefits",
+  },
+  "newsletter.benefit1Title": { fr: "Clarté archétypale", en: "Archetypal clarity" },
+  "newsletter.benefit1Desc": {
+    fr: "Synthèses et micro-pratiques alignées sur votre pôle dominant.",
+    en: "Syntheses and micro-practices aligned with your dominant pole.",
+  },
+  "newsletter.benefit2Title": { fr: "Neuro-rituels", en: "Neuro-rituals" },
+  "newsletter.benefit2Desc": {
+    fr: "Exercices courts pour ancrer vos décisions et votre humeur.",
+    en: "Short exercises to anchor your decisions and mood.",
+  },
+  "newsletter.benefit3Title": { fr: "Agenda Nomos", en: "Nomos agenda" },
+  "newsletter.benefit3Desc": {
+    fr: "Sessions live, ateliers et fenêtres d'audit en avant-première.",
+    en: "Live sessions, workshops, and audit windows shared early.",
+  },
+  "newsletter.benefit4Title": { fr: "Protocole discret", en: "Quiet protocol" },
+  "newsletter.benefit4Desc": {
+    fr: "Une édition mensuelle. Désabonnement en un clic.",
+    en: "One monthly edition. One-click unsubscribe.",
+  },
+  "newsletter.formLabel": { fr: "Inscription", en: "Subscribe" },
+  "newsletter.email": { fr: "Adresse e-mail", en: "Email address" },
+  "newsletter.emailPlaceholder": {
+    fr: "vous@exemple.com",
+    en: "you@example.com",
+  },
+  "newsletter.consent": {
+    fr: "J'accepte de recevoir la newsletter Neural Aegis et je peux me désabonner à tout moment.",
+    en: "I agree to receive the Neural Aegis newsletter and can unsubscribe at any time.",
+  },
+  "newsletter.consentRequired": {
+    fr: "Veuillez accepter pour vous inscrire.",
+    en: "Please accept to subscribe.",
+  },
+  "newsletter.submit": { fr: "S'inscrire", en: "Subscribe" },
+  "newsletter.submitting": { fr: "Inscription…", en: "Subscribing…" },
+  "newsletter.invalidEmail": {
+    fr: "Adresse e-mail invalide.",
+    en: "Invalid email address.",
+  },
+  "newsletter.successTitle": { fr: "Bienvenue", en: "Welcome" },
+  "newsletter.successDesc": {
+    fr: "Vous êtes inscrit·e. La prochaine édition arrive bientôt.",
+    en: "You're subscribed. The next edition is on its way.",
+  },
+  "newsletter.alreadyTitle": { fr: "Déjà inscrit·e", en: "Already subscribed" },
+  "newsletter.alreadyDesc": {
+    fr: "Vous recevrez la prochaine édition à cette adresse.",
+    en: "You'll receive the next edition at this address.",
+  },
+  "newsletter.unsubscribe": { fr: "Se désabonner", en: "Unsubscribe" },
+  "newsletter.unsubscribeAria": {
+    fr: "Se désabonner de la newsletter",
+    en: "Unsubscribe from the newsletter",
+  },
+  "newsletter.unsubscribedTitle": { fr: "Désabonné", en: "Unsubscribed" },
+  "newsletter.unsubscribedDesc": {
+    fr: "Vous ne recevrez plus d'e-mails de notre part.",
+    en: "You will no longer receive emails from us.",
+  },
+  "newsletter.unsubscribeFailed": {
+    fr: "Impossible de se désabonner. Réessayez.",
+    en: "Could not unsubscribe. Please try again.",
+  },
+  "newsletter.resubscribeHint": {
+    fr: "Vous vous étiez désabonné·e — réinscrivez-vous ci-dessus.",
+    en: "You had unsubscribed — resubscribe above.",
+  },
+  "newsletter.privacy": {
+    fr: "Données utilisées uniquement pour l'envoi. Jamais revendues.",
+    en: "Data used only for delivery. Never resold.",
+  },
+  "newsletter.nav.aria": { fr: "Navigation newsletter", en: "Newsletter navigation" },
+  "newsletter.nav.signIn": { fr: "Connexion", en: "Sign in" },
+  "newsletter.nav.visitor": { fr: "Espace visiteur", en: "Visitor space" },
+  "newsletter.nav.app": { fr: "Application", en: "App" },
+  "newsletter.successDescEmail": {
+    fr: "Une notification e-mail de confirmation vous a été envoyée. Les éditions complètes sont dans l'app.",
+    en: "A confirmation email notification was sent. Full editions are in the app.",
+  },
+  "newsletter.inAppHint": {
+    fr: "Les éditions complètes sont lues ici, dans l'application. Les e-mails ne contiennent qu'un bref résumé.",
+    en: "Full editions are read here in the app. Emails only contain a short brief.",
+  },
+  "newsletter.editionsAria": { fr: "Éditions publiées", en: "Published editions" },
+  "newsletter.editionsTitle": { fr: "Éditions", en: "Editions" },
+  "newsletter.backToHub": { fr: "Espace newsletter", en: "Newsletter hub" },
+  "newsletter.editionNotFound": {
+    fr: "Cette édition n'existe pas ou n'est pas encore publiée.",
+    en: "This edition does not exist or is not published yet.",
+  },
+  "newsletter.publishedOn": {
+    fr: "Publié le {date}",
+    en: "Published on {date}",
+  },
+  "newsletter.editionEmpty": {
+    fr: "Contenu à venir.",
+    en: "Content coming soon.",
+  },
+  "newsletter.adminManage": { fr: "Gérer les éditions", en: "Manage editions" },
+  "admin.nav.newsletter": { fr: "Newsletter", en: "Newsletter" },
+  "newsletter.admin.kicker": { fr: "Administration", en: "Administration" },
+  "newsletter.admin.title": { fr: "Éditions newsletter", en: "Newsletter editions" },
+  "newsletter.admin.subtitle": {
+    fr: "Importez des fichiers .md (blog). Publiez : l'article s'affiche dans l'app, l'e-mail envoie uniquement le brief.",
+    en: "Import .md files (blog). Publish: article shows in the app, email sends only the brief.",
+  },
+  "newsletter.admin.importTitle": { fr: "Importer Markdown", en: "Import Markdown" },
+  "newsletter.admin.importDesc": {
+    fr: "Un fichier .md par langue ou un ZIP / dossier. Le design de lecture sera ajusté une fois votre MD final fourni.",
+    en: "One .md file per language or a ZIP / folder. Reading design will be tuned once you provide the final MD.",
+  },
+  "newsletter.admin.importFormat": {
+    fr: `---
+slug: mon-article
+title_fr: / title_en:
+excerpt_fr: / excerpt_en:  ← brief (e-mail)
+date: 2026-05-21
+locale: fr
+---
+# Corps de l'article (app uniquement)`,
+    en: `---
+slug: my-article
+title_fr: / title_en:
+excerpt_fr: / excerpt_en:  ← brief (email)
+date: 2026-05-21
+locale: en
+---
+# Article body (app only)`,
+  },
+  "newsletter.admin.importFile": { fr: "Fichier .md", en: ".md file" },
+  "newsletter.admin.importFolder": { fr: "Dossier", en: "Folder" },
+  "newsletter.admin.importZip": { fr: "Archive .zip", en: ".zip archive" },
+  "newsletter.admin.downloadTemplate": { fr: "Modèle .md", en: ".md template" },
+  "newsletter.admin.importLoading": { fr: "Analyse…", en: "Parsing…" },
+  "newsletter.admin.importNoMd": { fr: "Aucun fichier .md trouvé.", en: "No .md files found." },
+  "newsletter.admin.importInvalid": {
+    fr: "Import invalide (slug, titre ou corps manquant).",
+    en: "Invalid import (missing slug, title, or body).",
+  },
+  "newsletter.admin.importSaved": {
+    fr: "Article importé en brouillon.",
+    en: "Article imported as draft.",
+  },
+  "newsletter.admin.importSaveDraft": { fr: "Enregistrer le brouillon", en: "Save draft" },
+  "newsletter.admin.importSaving": { fr: "Enregistrement…", en: "Saving…" },
+  "newsletter.admin.importBodyStats": {
+    fr: "Corps MD — FR : {fr} car. · EN : {en} car.",
+    en: "MD body — FR: {fr} chars · EN: {en} chars",
+  },
+  "newsletter.admin.publishPanel": { fr: "Publication", en: "Publish" },
+  "newsletter.admin.selectEdition": {
+    fr: "Sélectionnez un article importé.",
+    en: "Select an imported article.",
+  },
+  "newsletter.admin.alreadyPublished": {
+    fr: "Déjà publié. Réimportez une nouvelle édition pour un nouvel envoi.",
+    en: "Already published. Import a new edition for another send.",
+  },
+  "newsletter.admin.excerptHint": {
+    fr: "Brief — notification e-mail & cloche (max. ~280 car.)",
+    en: "Brief — email notification & bell (max. ~280 chars)",
+  },
+  "newsletter.admin.bodyHint": {
+    fr: "Contenu complet — visible uniquement dans l'app",
+    en: "Full content — app only",
+  },
+  "newsletter.admin.publishedDesc": {
+    fr: "{count} notification(s) e-mail en file · les comptes avec l'app reçoivent aussi une alerte in-app.",
+    en: "{count} email notification(s) queued · accounts with the app also get an in-app alert.",
+  },
+  "newsletter.admin.hubLink": { fr: "Lien public", en: "Public link" },
+  "newsletter.admin.publishSend": { fr: "Publier et envoyer", en: "Publish & send" },
+  "newsletter.admin.publishing": { fr: "Envoi…", en: "Sending…" },
+  "newsletter.admin.preview": { fr: "Aperçu", en: "Preview" },
+  "newsletter.admin.new": { fr: "Nouvelle édition", en: "New edition" },
+  "newsletter.admin.list": { fr: "Éditions existantes", en: "Existing editions" },
+  "newsletter.admin.empty": { fr: "Aucune édition pour l'instant.", en: "No editions yet." },
+  "newsletter.admin.required": {
+    fr: "Slug et titres FR/EN requis.",
+    en: "Slug and FR/EN titles are required.",
+  },
+  "newsletter.admin.saveFailed": {
+    fr: "Enregistrement impossible.",
+    en: "Could not save.",
+  },
+  "newsletter.admin.saved": { fr: "Enregistré", en: "Saved" },
+  "newsletter.admin.publishFailed": {
+    fr: "Publication impossible.",
+    en: "Could not publish.",
+  },
+  "newsletter.admin.published": { fr: "Publié", en: "Published" },
+  "newsletter.admin.emailNote": {
+    fr: "E-mails via SMTP de votre hébergeur (contact@protocolenomos.com) : secrets SMTP_HOST, SMTP_USER, SMTP_PASSWORD + APP_BASE_URL. Pas de Resend. Sans SMTP, seules les notifications in-app partent.",
+    en: "Emails via your host SMTP (contact@protocolenomos.com): SMTP_HOST, SMTP_USER, SMTP_PASSWORD + APP_BASE_URL secrets. No Resend. Without SMTP, only in-app notifications are sent.",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

@@ -57,7 +57,7 @@ export const ADMIN_NOTIFICATION_DEFINITIONS: readonly AdminNotificationDefinitio
     source: "postgres_trigger",
     origin: "notify_admin_journal_entry",
     detail: "AFTER INSERT sur journal_entries",
-    defaultLink: "/admin/analytics",
+    defaultLink: "/admin/insights?tab=analytics",
     emailChannel: "optional_resend",
   },
   {
@@ -66,7 +66,7 @@ export const ADMIN_NOTIFICATION_DEFINITIONS: readonly AdminNotificationDefinitio
     source: "postgres_trigger",
     origin: "notify_admin_mood_entry",
     detail: "AFTER INSERT sur mood_entries",
-    defaultLink: "/admin/analytics",
+    defaultLink: "/admin/insights?tab=analytics",
     emailChannel: "none",
   },
   {
@@ -93,7 +93,7 @@ export const ADMIN_NOTIFICATION_DEFINITIONS: readonly AdminNotificationDefinitio
     source: "postgres_trigger",
     origin: "notify_admin_people_contact_created",
     detail: "AFTER INSERT sur people_contacts",
-    defaultLink: "/admin/analytics",
+    defaultLink: "/admin/insights?tab=analytics",
     emailChannel: "none",
   },
   {
@@ -102,7 +102,7 @@ export const ADMIN_NOTIFICATION_DEFINITIONS: readonly AdminNotificationDefinitio
     source: "postgres_trigger",
     origin: "notify_admin_relation_quality_entry",
     detail: "AFTER INSERT sur relation_quality_history",
-    defaultLink: "/admin/analytics",
+    defaultLink: "/admin/insights?tab=analytics",
     emailChannel: "none",
   },
   {
@@ -131,7 +131,7 @@ export const ADMIN_NOTIFICATION_DEFINITIONS: readonly AdminNotificationDefinitio
     source: "edge_function",
     origin: "send-email-notification (admin_login_alert)",
     detail: "Auth SIGNED_IN + invoke client ; in-app pour chaque admin",
-    defaultLink: "/admin/analytics",
+    defaultLink: "/admin/insights?tab=analytics",
     emailChannel: "optional_resend",
   },
   {

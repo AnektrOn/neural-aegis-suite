@@ -24,6 +24,7 @@ import {
   Smartphone,
   LineChart,
   Settings2,
+  Mail,
 } from "lucide-react";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { MobileDockCircleMenu } from "@/components/MobileDockCircleMenu";
@@ -73,6 +74,7 @@ const navKeys = [
   { to: "/deep-dive", icon: FileText, key: "nav.deepDive" as const },
   { to: "/deep-dive/scores", icon: LineChart, key: "nav.deepDiveScores" as const },
   { to: "/install", icon: Smartphone, key: "nav.installApp" as const },
+  { to: "/newsletter", icon: Mail, key: "nav.newsletter" as const },
   { to: "/settings", icon: Settings2, key: "profile.settings" as const },
   { to: "/profile", icon: UserCircle, key: "nav.profile" as const },
 ];

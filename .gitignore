@@ -14,7 +14,9 @@ dist-ssr
 
 # Env & signing (mobile / production)
 .env
+.env.local
 .env.production
+.env.production.local
 android/keystore.properties
 android/keystore/*.keystore
 android/keystore/*.jks

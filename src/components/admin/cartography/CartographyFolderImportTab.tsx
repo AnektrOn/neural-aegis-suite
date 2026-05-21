@@ -12,7 +12,10 @@ import {
   basename,
   type FolderImportPreview,
 } from "@/lib/cartography-folder-import";
-import { importCartographyFolder } from "@/services/cartographyService";
+import {
+  importCartographyFolder,
+  resolveCartographyTargetUserId,
+} from "@/services/cartographyService";
 import {
   ToolboxEmptyState,
   ToolboxPanel,
@@ -30,12 +33,19 @@ interface CartographyFolderImportTabProps {
   onImported: () => void;
 }
 
-const MYSS_TREE = `Myss/
+const IMPORT_TREE = `Myss/                    → mode Analyse
   2026-05/
     ⚖️ BALANCE/   → 7 fichiers
     🌑 SHADOW/    → 7 fichiers
     🌕 LIGHT/     → 7 fichiers
-  (Echols/ est ignoré automatiquement)`;
+
+HIGH_RES_ANALYSIS/       → mode Clinique
+  2026-05/
+    ⚖️ BALANCE/   → P01·RES…, etc.
+    🌑 SHADOW/
+    🌕 LIGHT/
+
+(Echols/ ignoré — remplacé par HIGH_RES_ANALYSIS)`;
 
 export default function CartographyFolderImportTab({
   profiles,
@@ -52,12 +62,13 @@ export default function CartographyFolderImportTab({
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const effectiveUserId = preview?.manifest?.user_id || selectedUserId;
+  const effectiveUserId = resolveCartographyTargetUserId(preview?.manifest ?? null, selectedUserId);
+  const selectedProfile = profiles.find((p) => p.id === selectedUserId);
 
   const runPreview = useCallback(async (entries: Array<{ path: string; content: string }>) => {
     setLoadingPreview(true);
     try {
-      setPreview(previewCartographyFolder(entries, { mode: "analyse" }));
+      setPreview(previewCartographyFolder(entries));
     } finally {
       setLoadingPreview(false);
     }
@@ -100,18 +111,27 @@ export default function CartographyFolderImportTab({
     try {
       const result = await importCartographyFolder({
         createdBy: user.id,
-        manifest: preview.manifest
-          ? { ...preview.manifest, user_id: effectiveUserId! }
-          : { user_id: effectiveUserId!, publish: publishOnImport },
+        manifest: {
+          ...(preview.manifest ?? {}),
+          user_id: effectiveUserId!,
+          publish: publishOnImport,
+          meta: {
+            ...(preview.manifest?.meta ?? {}),
+            user_value:
+              (preview.manifest?.meta?.user_value as string | undefined) ??
+              selectedProfile?.display_name ??
+              undefined,
+          },
+        },
         files: preview.files,
-        defaultUserId: selectedUserId,
+        defaultUserId: effectiveUserId!,
         publish: publishOnImport,
       });
       toast({
         title: isFR ? "Import terminé" : "Import done",
         description: isFR
-          ? `${result.bundlesUpserted} rapports (Balance, Ombre, Lumière) · ${result.sectionsUpserted} fichiers.`
-          : `${result.bundlesUpserted} reports, ${result.sectionsUpserted} files.`,
+          ? `Lié à ${selectedProfile?.display_name ?? effectiveUserId}. ${result.bundlesUpserted} rapports · ${result.sectionsUpserted} fichiers. Le client doit se connecter avec CE compte.`
+          : `Linked to ${selectedProfile?.display_name ?? effectiveUserId}. ${result.bundlesUpserted} reports.`,
       });
       setPreview(null);
       onImported();
@@ -129,20 +149,23 @@ export default function CartographyFolderImportTab({
   return (
     <div className="space-y-6">
       <ToolboxPanel
-        title={isFR ? "Votre dossier Myss — sans rien renommer" : "Your Myss folder — no renaming"}
+        title={isFR ? "Dossiers Myss + HIGH_RES_ANALYSIS" : "Myss + HIGH_RES_ANALYSIS folders"}
         description={
           isFR
-            ? "Zippez ou sélectionnez le dossier parent. Seul Myss/ est importé ; Echols/ est ignoré."
-            : "Zip or select the parent folder. Only Myss/ is imported; Echols/ is skipped."
+            ? "Zippez le dossier parent : Myss/ → analyse, HIGH_RES_ANALYSIS/ → clinique. Echols/ est ignoré."
+            : "Zip the parent folder: Myss/ → analysis, HIGH_RES_ANALYSIS/ → clinical. Echols/ is skipped."
         }
       >
         <pre className="overflow-x-auto rounded-lg border border-border-subtle/60 bg-black/20 p-4 text-xs leading-relaxed text-text-secondary whitespace-pre">
-          {MYSS_TREE}
+          {IMPORT_TREE}
         </pre>
         <ul className="mt-4 space-y-1 text-xs text-text-tertiary">
-          <li>00-Cartographie_Integrale… → onglet Cartographie</li>
-          <li>GLOBAL-MYSS-ANALYSE… → Synthèse globale</li>
-          <li>P01·ARC… à P05·INT… → Rapports détaillés</li>
+          <li>
+            <strong>Myss</strong> : 00-Cartographie… · GLOBAL-MYSS… · P01·ARC… → P05
+          </li>
+          <li>
+            <strong>HIGH_RES_ANALYSIS</strong> : P01·RES… · GLOBAL-ECHOLS… (clinique)
+          </li>
         </ul>
       </ToolboxPanel>
 
@@ -208,15 +231,27 @@ export default function CartographyFolderImportTab({
 
       {preview && !loadingPreview && (
         <ToolboxPanel title={isFR ? "3. Importer" : "3. Import"}>
-          {preview.myssLayout && (
+          {(preview.myssLayout || preview.highResLayout) && (
             <p className="mb-3 text-sm text-success">
-              {isFR
-                ? `Format Myss détecté — ${preview.files.length} fichier(s), ${preview.bundleKeys.length} rapport(s) : ${preview.bundleKeys.join(", ")}`
-                : `Myss layout — ${preview.files.length} files`}
+              {isFR ? "Formats détectés :" : "Detected:"}{" "}
+              {preview.myssLayout && "Myss (analyse)"}
+              {preview.myssLayout && preview.highResLayout && " · "}
+              {preview.highResLayout && "HIGH_RES_ANALYSIS (clinique)"}
+              {" — "}
+              {preview.files.length} {isFR ? "fichier(s)" : "file(s)"} →{" "}
+              {preview.bundleKeys.join(", ")}
               {preview.skippedOutsideMyss > 0 &&
                 (isFR
-                  ? ` · ${preview.skippedOutsideMyss} fichier(s) hors Myss ignoré(s) (ex. Echols)`
-                  : ` · ${preview.skippedOutsideMyss} skipped outside Myss`)}
+                  ? ` · ${preview.skippedOutsideMyss} hors dossiers ignoré(s)`
+                  : ` · ${preview.skippedOutsideMyss} skipped`)}
+            </p>
+          )}
+
+          {selectedProfile && (
+            <p className="mb-3 rounded-lg border border-[hsl(var(--aegis-warm)/0.3)] bg-[hsl(var(--aegis-warm-muted)/0.25)] px-3 py-2 text-sm text-text-primary">
+              {isFR ? "Sera enregistré pour :" : "Will save for:"}{" "}
+              <strong>{selectedProfile.display_name}</strong>
+              <span className="block text-xs text-text-tertiary mt-1 font-mono">{selectedUserId}</span>
             </p>
           )}
 

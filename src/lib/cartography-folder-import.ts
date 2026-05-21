@@ -3,7 +3,7 @@ import type { AnalysisMode, ArchetypePole } from "@/lib/archetype-cartography/ty
 export type CartographySectionKey = "cartographie" | "guardians" | "synthesis" | "detailed";
 
 export interface CartographyManifest {
-  user_id: string;
+  user_id?: string;
   publish?: boolean;
   meta?: {
     title?: string;
@@ -34,6 +34,8 @@ export interface FolderImportPreview {
   bundleKeys: string[];
   /** true si import format Myss/2026-05/… détecté */
   myssLayout: boolean;
+  /** true si import format HIGH_RES_ANALYSIS/… détecté (mode clinique) */
+  highResLayout: boolean;
   skippedOutsideMyss: number;
 }
 
@@ -60,6 +62,8 @@ const MODE_ALIASES: Record<string, AnalysisMode> = {
 
 const SKIP_PATH_PARTS = new Set(["__macosx", ".ds_store", "node_modules"]);
 const MYSS_SEGMENT = /(^|\/)myss(\/|$)/i;
+const HIGH_RES_SEGMENT = /(^|\/)high_res_analysis(\/|$)/i;
+/** Ancien dossier clinique — ignoré au profit de HIGH_RES_ANALYSIS */
 const ECHOLS_SEGMENT = /(^|\/)echols(\/|$)/i;
 
 const FLAT_FILE_RE =
@@ -74,12 +78,29 @@ export function basename(path: string): string {
   return parts[parts.length - 1] ?? path;
 }
 
-function isUnderMyss(rel: string): boolean {
+export function isUnderMyss(rel: string): boolean {
   return MYSS_SEGMENT.test(normalizePath(rel));
+}
+
+export function isUnderHighResAnalysis(rel: string): boolean {
+  return HIGH_RES_SEGMENT.test(normalizePath(rel));
+}
+
+function isUnderAllowedPoleFolder(rel: string): boolean {
+  return isUnderMyss(rel) || isUnderHighResAnalysis(rel);
 }
 
 function isUnderEchols(rel: string): boolean {
   return ECHOLS_SEGMENT.test(normalizePath(rel));
+}
+
+export function resolveModeFromImportPath(
+  rel: string,
+  defaults?: CartographyImportDefaults,
+): AnalysisMode {
+  if (isUnderHighResAnalysis(rel)) return "clinique";
+  if (isUnderMyss(rel)) return "analyse";
+  return defaults?.mode ?? "analyse";
 }
 
 function parsePoleSegment(seg: string): ArchetypePole | null {
@@ -132,7 +153,7 @@ function classifyMyssFilename(filename: string): {
   if (/^00[-·.]?CARTOGRAPHIE/i.test(base) || /CARTOGRAPHIE_INTEGRALE/i.test(upper)) {
     return { sectionKey: "cartographie", reportCode: "", sortOrder: 10 };
   }
-  if (/GLOBAL[-·.]?MYSS/i.test(upper) || /^GLOBAL[-·.]/i.test(base)) {
+  if (/GLOBAL[-·.]?MYSS/i.test(upper) || /^GLOBAL[-·.]?MYSS/i.test(base)) {
     return { sectionKey: "synthesis", reportCode: "", sortOrder: 30 };
   }
 
@@ -147,6 +168,48 @@ function classifyMyssFilename(filename: string): {
   }
 
   return classifyMarkdownFilename(filename);
+}
+
+/** Fichiers HIGH_RES_ANALYSIS : P01·RES·…, GLOBAL-ECHOLS / HIGH-RES… */
+function classifyClinicalFilename(filename: string): {
+  sectionKey: CartographySectionKey;
+  reportCode: string;
+  sortOrder: number;
+} {
+  const base = filename.replace(/\.md$/i, "");
+  const upper = base.toUpperCase();
+
+  if (/^00[-·.]?CARTOGRAPHIE/i.test(base) || /CARTOGRAPHIE_INTEGRALE/i.test(upper)) {
+    return { sectionKey: "cartographie", reportCode: "", sortOrder: 10 };
+  }
+  if (
+    /GLOBAL[-·.]?(ECHOLS|HIGH[-·_]?RES|CLINICAL|RES)/i.test(upper) ||
+    /^GLOBAL[-·.]/i.test(base)
+  ) {
+    return { sectionKey: "synthesis", reportCode: "", sortOrder: 30 };
+  }
+
+  const pMatch = base.match(/^P0?([1-5])\b/i);
+  if (pMatch) {
+    const n = pMatch[1];
+    return {
+      sectionKey: "detailed",
+      reportCode: `p0${n}`,
+      sortOrder: 100 + Number(n),
+    };
+  }
+
+  return classifyMarkdownFilename(filename);
+}
+
+function classifyPoleFolderFilename(filename: string, mode: AnalysisMode): {
+  sectionKey: CartographySectionKey;
+  reportCode: string;
+  sortOrder: number;
+} {
+  return mode === "clinique"
+    ? classifyClinicalFilename(filename)
+    : classifyMyssFilename(filename);
 }
 
 export function classifyMarkdownFilename(filename: string): {
@@ -184,11 +247,13 @@ function titleFromMarkdown(md: string, fallback: string): string | null {
   return m?.[1]?.trim() ?? fallback;
 }
 
-function parseMyssMarkdownEntry(
+function parsePoleFolderMarkdownEntry(
   rel: string,
   content: string,
   defaults?: CartographyImportDefaults,
 ): ParsedCartographyFile | null {
+  if (!isUnderAllowedPoleFolder(rel)) return null;
+
   const parts = normalizePath(rel).split("/").filter(Boolean);
   const name = basename(rel);
 
@@ -204,8 +269,8 @@ function parseMyssMarkdownEntry(
   if (!pole && defaults?.pole) pole = defaults.pole;
   if (!pole) return null;
 
-  const mode: AnalysisMode = defaults?.mode ?? "analyse";
-  const { sectionKey, reportCode, sortOrder } = classifyMyssFilename(name);
+  const mode = resolveModeFromImportPath(rel, defaults);
+  const { sectionKey, reportCode, sortOrder } = classifyPoleFolderFilename(name, mode);
 
   return {
     relativePath: rel,
@@ -288,11 +353,11 @@ function parseMarkdownEntry(
   rel: string,
   content: string,
   defaults: CartographyImportDefaults | undefined,
-  myssOnly: boolean,
+  poleFolderLayout: boolean,
 ): ParsedCartographyFile | null {
-  if (myssOnly || isUnderMyss(rel)) {
-    if (!isUnderMyss(rel)) return null;
-    return parseMyssMarkdownEntry(rel, content, defaults);
+  if (poleFolderLayout || isUnderAllowedPoleFolder(rel)) {
+    if (!isUnderAllowedPoleFolder(rel)) return null;
+    return parsePoleFolderMarkdownEntry(rel, content, defaults);
   }
   return parseLegacyMarkdownEntry(rel, content, defaults);
 }
@@ -319,6 +384,29 @@ function buildMyssMetaHint(files: ParsedCartographyFile[]): Partial<CartographyM
   };
 }
 
+function buildHighResMetaHint(files: ParsedCartographyFile[]): Partial<CartographyManifest["meta"]> {
+  const period = files.map((f) => extractPeriodFromPath(f.relativePath)).find(Boolean);
+  return {
+    title: "Cartographie Archétypale Intégrale",
+    subtitle: period ? `HIGH_RES_ANALYSIS · ${period}` : "HIGH_RES_ANALYSIS · Clinique",
+    user_label: "Utilisateur",
+    stage: "Analyse clinique haute résolution",
+  };
+}
+
+function extractUserHintFromFilenames(files: ParsedCartographyFile[]): string | undefined {
+  for (const f of files) {
+    const name = basename(f.relativePath);
+    const globalMyss = name.match(/GLOBAL-MYSS-ANALYSE-([^·.]+)/i)?.[1];
+    if (globalMyss) return globalMyss;
+    const globalClinical = name.match(/GLOBAL[-·.]?(?:ECHOLS|HIGH[-·_]?RES)[-·.]?([^·.]+)/i)?.[1];
+    if (globalClinical) return globalClinical;
+    const pRes = name.match(/^P0?\d[-·.]?RES[-·.](?:ECHOLS|HIGH[-·_]?RES)?[-·.]?([^·.]+)/i)?.[1];
+    if (pRes) return pRes;
+  }
+  return undefined;
+}
+
 export function previewCartographyFolder(
   entries: Array<{ path: string; content: string }>,
   defaults?: CartographyImportDefaults,
@@ -329,7 +417,10 @@ export function previewCartographyFolder(
   let skippedOutsideMyss = 0;
 
   const hasMyssFiles = entries.some((e) => isUnderMyss(e.path));
+  const hasHighResFiles = entries.some((e) => isUnderHighResAnalysis(e.path));
   const myssLayout = hasMyssFiles;
+  const highResLayout = hasHighResFiles;
+  const poleFolderLayout = myssLayout || highResLayout;
 
   for (const entry of entries) {
     const rel = normalizePath(entry.path);
@@ -339,7 +430,7 @@ export function previewCartographyFolder(
 
     if (isUnderEchols(rel)) continue;
 
-    if (myssLayout && !isUnderMyss(rel)) {
+    if (poleFolderLayout && !isUnderAllowedPoleFolder(rel)) {
       if (lower.endsWith(".md")) skippedOutsideMyss++;
       continue;
     }
@@ -353,13 +444,13 @@ export function previewCartographyFolder(
 
     if (!lower.endsWith(".md")) continue;
 
-    const parsed = parseMarkdownEntry(rel, entry.content, defaults, myssLayout);
+    const parsed = parseMarkdownEntry(rel, entry.content, defaults, poleFolderLayout);
     if (parsed) {
       files.push(parsed);
-    } else if (!myssLayout) {
+    } else if (!poleFolderLayout) {
       issues.push({
         path: rel,
-        message: `Non reconnu (essayez le format Myss/…/BALANCE/fichier.md)`,
+        message: `Non reconnu (essayez Myss/… ou HIGH_RES_ANALYSIS/…/BALANCE/fichier.md)`,
       });
     }
   }
@@ -367,25 +458,39 @@ export function previewCartographyFolder(
   if (files.length === 0 && !manifest) {
     issues.push({
       path: "(import)",
-      message: myssLayout
-        ? "Aucun .md sous Myss/. Vérifiez que le zip contient Myss/2026-05/⚖️ BALANCE/…"
-        : "Aucun fichier reconnu. Déposez le dossier Myss tel quel, ou utilisez balance-analyse-cartographie.md",
+      message: poleFolderLayout
+        ? "Aucun .md sous Myss/ ou HIGH_RES_ANALYSIS/. Vérifiez Myss/2026-05/⚖️ BALANCE/… ou HIGH_RES_ANALYSIS/…"
+        : "Aucun fichier reconnu. Déposez Myss (analyse) et/ou HIGH_RES_ANALYSIS (clinique), ou balance-analyse-cartographie.md",
     });
   }
 
-  if (myssLayout && files.length > 0 && !manifest) {
+  if (poleFolderLayout && files.length > 0 && !manifest) {
     const period = extractPeriodFromPath(files[0].relativePath);
+    const userHint = extractUserHintFromFilenames(files);
+    const hasClinical = files.some((f) => f.mode === "clinique");
+    const hasAnalyse = files.some((f) => f.mode === "analyse");
+    const metaHint =
+      hasClinical && !hasAnalyse
+        ? buildHighResMetaHint(files)
+        : hasAnalyse && !hasClinical
+          ? buildMyssMetaHint(files)
+          : {
+              ...buildMyssMetaHint(files),
+              subtitle: period
+                ? `Myss + HIGH_RES · ${period}`
+                : "Myss · Analyse + HIGH_RES_ANALYSIS · Clinique",
+            };
     manifest = {
-      user_id: "",
       meta: {
-        ...buildMyssMetaHint(files),
+        ...metaHint,
         date: period ? `${period}-01` : undefined,
+        user_value: userHint,
       },
-    };
+    } as CartographyManifest;
   }
 
   const bundleKeys = [...new Set(files.map((f) => `${f.pole}-${f.mode}`))];
-  return { manifest, files, issues, bundleKeys, myssLayout, skippedOutsideMyss };
+  return { manifest, files, issues, bundleKeys, myssLayout, highResLayout, skippedOutsideMyss };
 }
 
 export async function readFolderFromFileList(

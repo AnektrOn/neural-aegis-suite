@@ -154,12 +154,40 @@ export interface ImportCartographyFolderResult {
   bundleIds: string[];
 }
 
+/** Ignore manifest user_id vide (aperçu Myss met "" avant choix admin). */
+export function resolveCartographyTargetUserId(
+  manifest: CartographyManifest | null | undefined,
+  defaultUserId?: string,
+): string | null {
+  const fromManifest = manifest?.user_id?.trim();
+  if (fromManifest) return fromManifest;
+  const fromDefault = defaultUserId?.trim();
+  if (fromDefault) return fromDefault;
+  return null;
+}
+
 export async function importCartographyFolder(
   input: ImportCartographyFolderInput,
 ): Promise<ImportCartographyFolderResult> {
-  const userId = input.manifest?.user_id ?? input.defaultUserId;
+  const userId = resolveCartographyTargetUserId(input.manifest, input.defaultUserId);
   if (!userId) {
-    throw new Error("user_id requis (manifest.json ou sélection utilisateur).");
+    throw new Error("Choisissez un utilisateur dans la liste avant d'importer.");
+  }
+
+  const { data: profile, error: profileErr } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profileErr) {
+    console.error("[cartography] profile lookup", profileErr.message);
+    throw new Error(profileErr.message);
+  }
+  if (!profile) {
+    throw new Error(
+      "Utilisateur introuvable dans profiles. Vérifiez que vous avez sélectionné le bon compte.",
+    );
   }
 
   const grouped = new Map<string, ParsedCartographyFile[]>();
@@ -170,7 +198,14 @@ export async function importCartographyFolder(
   }
 
   const publish = input.publish ?? input.manifest?.publish ?? false;
-  const metaBase = input.manifest?.meta ?? {};
+  const metaBase = {
+    ...(input.manifest?.meta ?? {}),
+    user_label: (input.manifest?.meta?.user_label as string) ?? "Utilisateur",
+    user_value:
+      (input.manifest?.meta?.user_value as string) ??
+      profile.display_name ??
+      profile.id.slice(0, 8),
+  };
   const bundleIds: string[] = [];
   let sectionsUpserted = 0;
 

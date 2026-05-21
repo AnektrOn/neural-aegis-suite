@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Scale,
   Sun,
   Moon,
   ChevronLeft,
-  Sparkles,
   BookOpen,
   FileText,
   Layers,
@@ -15,7 +14,6 @@ import {
 import { PageWrapper } from "@/components/PageWrapper";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { NeuralCard } from "@/components/ui/neural-card";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,8 +26,14 @@ import {
 } from "@/lib/archetype-cartography/registry";
 import { POLE_THEMES } from "@/lib/archetype-cartography/pole-theme";
 import { CartographyEmptyState } from "@/components/archetype-balance/CartographyEmptyState";
-import { CartographyMarkdownPanel } from "@/components/archetype-balance/CartographyMarkdownPanel";
 import {
+  CartographyMarkdownFallback,
+  CartographyStructuredReport,
+} from "@/components/archetype-balance/CartographyStructuredReport";
+import { parseBundleToDisplay } from "@/lib/cartography-markdown-parse";
+import { useAdmin } from "@/hooks/use-admin";
+import {
+  fetchCartographyBundleAdmin,
   fetchPublishedCartographyBundle,
   type DbCartographyBundle,
 } from "@/services/cartographyService";
@@ -53,8 +57,10 @@ function metaString(meta: Record<string, unknown>, key: string, fallback = ""): 
 
 export default function ArchetypeCartographyReport() {
   const { pole: poleParam, mode: modeParam } = useParams<{ pole?: string; mode?: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const { t, locale } = useLanguage();
   const isFR = locale === "fr";
 
@@ -72,11 +78,20 @@ export default function ArchetypeCartographyReport() {
     }
   }, [poleParam, navigate]);
 
+  const previewUserId = searchParams.get("user");
+  const targetUserId =
+    isAdmin && previewUserId ? previewUserId : user?.id ?? null;
+
   useEffect(() => {
-    if (!user) return;
+    if (!targetUserId) return;
     let cancelled = false;
     setLoading(true);
-    fetchPublishedCartographyBundle(user.id, pole, mode)
+    const load =
+      isAdmin && previewUserId
+        ? fetchCartographyBundleAdmin(targetUserId, pole, mode)
+        : fetchPublishedCartographyBundle(targetUserId, pole, mode);
+
+    load
       .then((data) => {
         if (!cancelled) setBundle(data);
       })
@@ -86,7 +101,7 @@ export default function ArchetypeCartographyReport() {
     return () => {
       cancelled = true;
     };
-  }, [user, pole, mode]);
+  }, [targetUserId, pole, mode, isAdmin, previewUserId]);
 
   const grouped = useMemo(() => {
     if (!bundle) return null;
@@ -100,6 +115,11 @@ export default function ArchetypeCartographyReport() {
       detailed,
     };
   }, [bundle]);
+
+  const display = useMemo(
+    () => (bundle ? parseBundleToDisplay(bundle) : null),
+    [bundle],
+  );
 
   useEffect(() => {
     if (!grouped) return;
@@ -118,8 +138,9 @@ export default function ArchetypeCartographyReport() {
   };
 
   const meta = bundle?.meta ?? {};
+  const headerMeta = display?.meta;
   const formattedDate = useMemo(() => {
-    const d = metaString(meta, "date");
+    const d = headerMeta?.date || metaString(meta, "date");
     if (!d) return "—";
     try {
       return new Date(d).toLocaleDateString(isFR ? "fr-FR" : "en-US", {
@@ -130,7 +151,7 @@ export default function ArchetypeCartographyReport() {
     } catch {
       return d;
     }
-  }, [meta, isFR]);
+  }, [meta, headerMeta, isFR]);
 
   const hasContent = bundle && bundle.sections.length > 0;
   const poleLabel = theme[isFR ? "labelFr" : "labelEn"];
@@ -145,6 +166,14 @@ export default function ArchetypeCartographyReport() {
           <ChevronLeft size={16} strokeWidth={1.5} aria-hidden />
           {t("balanceReport.back")}
         </Link>
+
+        {isAdmin && previewUserId && (
+          <p className="mb-3 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs text-text-secondary">
+            {isFR
+              ? "Aperçu admin — rapport du user_id dans l'URL (brouillon ou publié)."
+              : "Admin preview — report for user_id in URL (draft or published)."}
+          </p>
+        )}
 
         <div className="mb-4 space-y-2">
           <p className="text-[10px] font-display uppercase tracking-[0.22em] text-text-tertiary">
@@ -213,7 +242,7 @@ export default function ArchetypeCartographyReport() {
           <CartographyEmptyState pole={pole} mode={mode} locale={locale} />
         )}
 
-        {!loading && hasContent && bundle && grouped && (
+        {!loading && hasContent && bundle && grouped && display && (
           <>
             <header
               className={cn(
@@ -233,26 +262,27 @@ export default function ArchetypeCartographyReport() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-[10px] font-display uppercase tracking-[0.28em] text-text-tertiary">
-                    {metaString(meta, "subtitle", `${poleLabel} · ${mode}`)}
+                    {headerMeta?.subtitle || metaString(meta, "subtitle", `${poleLabel} · ${mode}`)}
                   </p>
                   <h1 className="mt-1 font-display text-xl uppercase tracking-[0.08em] text-text-primary sm:text-2xl">
-                    {metaString(meta, "title", t("cartography.defaultTitle"))}
+                    {headerMeta?.title || metaString(meta, "title", t("cartography.defaultTitle"))}
                   </h1>
                 </div>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <MetaItem
-                  label={metaString(meta, "user_label", isFR ? "Utilisateur" : "User")}
-                  value={metaString(meta, "user_value", "—")}
+                  label={headerMeta?.userLabel || metaString(meta, "user_label", isFR ? "Utilisateur" : "User")}
+                  value={headerMeta?.userValue || metaString(meta, "user_value", "—")}
                 />
                 <MetaItem label={isFR ? "Date" : "Date"} value={formattedDate} />
                 <MetaItem
                   label={isFR ? "Stade" : "Stage"}
-                  value={metaString(meta, "stage", "—")}
+                  value={headerMeta?.stage || metaString(meta, "stage", "—")}
                 />
               </div>
               <Badge variant="outline" className={cn("mt-4 text-[10px] uppercase tracking-[0.15em]", theme.badgeClass)}>
-                {t("balanceReport.pole")} {metaString(meta, "pole_label", poleLabel.toUpperCase())}
+                {t("balanceReport.pole")}{" "}
+                {headerMeta?.poleLabel || metaString(meta, "pole_label", poleLabel.toUpperCase())}
               </Badge>
             </header>
 
@@ -292,40 +322,48 @@ export default function ArchetypeCartographyReport() {
                 )}
               </TabsList>
 
-              <TabsContent value="cartographie" className="mt-5 space-y-4">
-                <SectionLabel text={t("balanceReport.housesTitle")} />
-                {grouped.cartographie.map((s) => (
-                  <SectionCard key={s.id} title={s.title}>
-                    <CartographyMarkdownPanel markdown={s.markdown} />
-                  </SectionCard>
-                ))}
+              <TabsContent value="cartographie" className="mt-0">
+                {display.houses.length > 0 ? (
+                  <CartographyStructuredReport display={display} activeTab="cartographie" />
+                ) : (
+                  grouped.cartographie.map((s) => (
+                    <CartographyMarkdownFallback key={s.id} markdown={s.markdown} title={s.title} />
+                  ))
+                )}
               </TabsContent>
 
-              <TabsContent value="guardians" className="mt-5 space-y-4">
-                <SectionLabel text={t("balanceReport.guardiansTitle")} />
-                {grouped.guardians.map((s) => (
-                  <SectionCard key={s.id} title={s.title}>
-                    <CartographyMarkdownPanel markdown={s.markdown} />
-                  </SectionCard>
-                ))}
+              <TabsContent value="guardians" className="mt-0">
+                {display.guardians.length > 0 ? (
+                  <CartographyStructuredReport display={display} activeTab="guardians" />
+                ) : (
+                  grouped.guardians.map((s) => (
+                    <CartographyMarkdownFallback key={s.id} markdown={s.markdown} title={s.title} />
+                  ))
+                )}
               </TabsContent>
 
-              <TabsContent value="synthesis" className="mt-5 space-y-4">
-                <SectionLabel text={t("cartography.synthesisIntro")} />
-                {grouped.synthesis.map((s) => (
-                  <SectionCard key={s.id} title={s.title}>
-                    <CartographyMarkdownPanel markdown={s.markdown} />
-                  </SectionCard>
-                ))}
+              <TabsContent value="synthesis" className="mt-0">
+                {display.synthesis.length > 0 ? (
+                  <CartographyStructuredReport display={display} activeTab="synthesis" />
+                ) : (
+                  grouped.synthesis.map((s) => (
+                    <CartographyMarkdownFallback key={s.id} markdown={s.markdown} title={s.title} />
+                  ))
+                )}
               </TabsContent>
 
-              <TabsContent value="detailed" className="mt-5 space-y-4">
-                <SectionLabel text={t("cartography.detailedIntro")} />
-                {grouped.detailed.map((s) => (
-                  <SectionCard key={s.id} title={s.title ?? s.reportCode.toUpperCase()}>
-                    <CartographyMarkdownPanel markdown={s.markdown} />
-                  </SectionCard>
-                ))}
+              <TabsContent value="detailed" className="mt-0">
+                {display.detailedReports.length > 0 ? (
+                  <CartographyStructuredReport display={display} activeTab="detailed" />
+                ) : (
+                  grouped.detailed.map((s) => (
+                    <CartographyMarkdownFallback
+                      key={s.id}
+                      markdown={s.markdown}
+                      title={s.title ?? s.reportCode.toUpperCase()}
+                    />
+                  ))
+                )}
               </TabsContent>
             </Tabs>
           </>
@@ -341,27 +379,5 @@ function MetaItem({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] uppercase tracking-[0.18em] text-text-tertiary">{label}</p>
       <p className="mt-1 text-sm text-text-primary">{value}</p>
     </div>
-  );
-}
-
-function SectionLabel({ text }: { text: string }) {
-  return (
-    <div className="mb-3 flex items-center gap-2">
-      <Sparkles size={14} strokeWidth={1.5} className="text-text-tertiary" aria-hidden />
-      <h2 className="text-xs font-display uppercase tracking-[0.2em] text-text-tertiary">{text}</h2>
-    </div>
-  );
-}
-
-function SectionCard({ title, children }: { title: string | null; children: ReactNode }) {
-  return (
-    <NeuralCard variant="premium" glow="warm" className="p-4 sm:p-5">
-      {title && (
-        <h3 className="mb-4 font-display text-sm uppercase tracking-[0.1em] text-text-primary">
-          {title}
-        </h3>
-      )}
-      {children}
-    </NeuralCard>
   );
 }

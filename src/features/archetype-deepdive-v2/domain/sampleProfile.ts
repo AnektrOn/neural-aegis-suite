@@ -3,7 +3,7 @@
  *
  * Reference data used to:
  *   - drive the user-facing report page (`/deep-dive`)
- *   - drive the admin report page (`/admin/deep-dive-sample`) where the admin
+ *   - drive the admin report page (`/admin/deep-dive?tab=report`) where the admin
  *     can pick which client profile to inspect.
  *
  * Pure data + pure builders. No I/O.

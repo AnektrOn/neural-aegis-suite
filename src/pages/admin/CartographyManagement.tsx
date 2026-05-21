@@ -189,6 +189,9 @@ export default function CartographyManagement() {
                       {isFR ? "Mis à jour" : "Updated"}{" "}
                       {new Date(b.updated_at).toLocaleString(isFR ? "fr-FR" : "en-US")}
                     </p>
+                    <p className="text-[10px] font-mono text-text-tertiary mt-1 truncate">
+                      user_id: {selectedUserId}
+                    </p>
                   </div>
                   <Badge variant={b.status === "published" ? "default" : "outline"}>
                     {b.status === "published" ? (isFR ? "Publié" : "Published") : isFR ? "Brouillon" : "Draft"}
@@ -204,11 +207,11 @@ export default function CartographyManagement() {
                   </Button>
                   <Button variant="ghost" size="sm" asChild>
                     <Link
-                      to={`/cartographie/${poleToPath(pole)}/${modeToPath(mode)}`}
+                      to={`/cartographie/${poleToPath(pole)}/${modeToPath(mode)}?user=${selectedUserId}`}
                       className="gap-1"
                     >
                       <Eye size={14} aria-hidden />
-                      {isFR ? "Aperçu user" : "User preview"}
+                      {isFR ? "Aperçu" : "Preview"}
                     </Link>
                   </Button>
                   <Button variant="ghost" size="sm" asChild>
