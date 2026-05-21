@@ -34,8 +34,8 @@ export function CartographyEmptyState({ pole, mode, locale }: CartographyEmptySt
       </h2>
       <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-text-secondary">
         {isFR
-          ? `Le rapport ${modeLabel} · Pôle ${poleLabel} n'est pas encore disponible. Seul le rapport Balance · Analyse est chargé pour l'instant.`
-          : `The ${modeLabel} · ${poleLabel} pole report is not available yet. Only the Balance · Analysis report is loaded for now.`}
+          ? `Aucun rapport publié pour ce compte (${poleLabel} · ${modeLabel}). Vérifiez en admin que l'import a bien ciblé VOTRE utilisateur et que « Publier » était coché.`
+          : `No published report for this account (${poleLabel} · ${modeLabel}). Check admin import used YOUR user and Publish was enabled.`}
       </p>
     </NeuralCard>
   );

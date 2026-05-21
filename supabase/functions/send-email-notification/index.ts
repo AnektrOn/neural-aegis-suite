@@ -17,7 +17,8 @@ async function sendWithResend({
   html: string;
 }) {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "Aegis <notifications@aegis.local>";
+  const fromEmail =
+    Deno.env.get("RESEND_FROM_EMAIL")?.trim() || "Protocol Nomos <contact@protocolenomos.com>";
 
   if (!resendApiKey) {
     console.warn("RESEND_API_KEY is not set. Email is logged only.");

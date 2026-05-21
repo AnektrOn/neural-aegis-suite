@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,6 +35,7 @@ function formatNotificationTime(iso: string, locale: string): string {
 export default function NotificationBell() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
@@ -141,7 +143,13 @@ export default function NotificationBell() {
         notifications.map((n) => (
           <button
             key={n.id}
-            onClick={() => markRead(n.id)}
+            onClick={() => {
+              void markRead(n.id);
+              if (n.link) {
+                setOpen(false);
+                navigate(n.link);
+              }
+            }}
             className={`w-full text-left p-3 border-b border-border/50 hover:bg-secondary/20 transition-colors ${!n.is_read ? "bg-primary/5" : ""}`}
           >
             <div className="flex items-start gap-2">

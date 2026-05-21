@@ -448,7 +448,7 @@ export default function AdminAlerts() {
   };
 
   const openAnalytics = (userId: string) => {
-    navigate("/admin/analytics", { state: { adminAnalyticsUserId: userId } });
+    navigate("/admin/insights?tab=analytics", { state: { adminAnalyticsUserId: userId } });
   };
 
   if (loading) {

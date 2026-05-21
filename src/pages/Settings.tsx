@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-import { Settings2 } from "lucide-react";
+import { Settings2, Mail } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
@@ -47,6 +49,24 @@ export default function Settings() {
       >
         <p className="text-neural-label">{t("settings.notifications")}</p>
         <PushNotificationToggle className="w-full justify-center sm:justify-start" />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="ethereal-glass flex flex-col gap-4 p-8 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="flex items-start gap-3">
+          <Mail size={20} strokeWidth={1.5} className="text-primary shrink-0" aria-hidden />
+          <div>
+            <p className="text-neural-label">{t("nav.newsletter")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("newsletter.subtitle")}</p>
+          </div>
+        </div>
+        <Button asChild variant="outline" className="min-h-[44px] shrink-0">
+          <Link to="/newsletter">{t("newsletter.submit")}</Link>
+        </Button>
       </motion.div>
     </div>
   );

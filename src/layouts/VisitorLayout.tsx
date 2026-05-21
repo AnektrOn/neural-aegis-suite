@@ -34,6 +34,12 @@ export default function VisitorLayout() {
             >
               {t("visitor.nav.report")}
             </Link>
+            <Link
+              to="/newsletter"
+              className="text-text-secondary hover:text-text-primary transition-colors uppercase tracking-wider font-display"
+            >
+              {t("nav.newsletter")}
+            </Link>
             {!visitorOnly && (
               <Link
                 to="/"
