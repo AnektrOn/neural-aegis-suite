@@ -89,92 +89,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cartography_bundle_sections: {
-        Row: {
-          bundle_id: string
-          created_at: string
-          id: string
-          markdown: string
-          report_code: string
-          section_key: string
-          sort_order: number
-          source_path: string | null
-          title: string | null
-          updated_at: string
-        }
-        Insert: {
-          bundle_id: string
-          created_at?: string
-          id?: string
-          markdown: string
-          report_code?: string
-          section_key: string
-          sort_order?: number
-          source_path?: string | null
-          title?: string | null
-          updated_at?: string
-        }
-        Update: {
-          bundle_id?: string
-          created_at?: string
-          id?: string
-          markdown?: string
-          report_code?: string
-          section_key?: string
-          sort_order?: number
-          source_path?: string | null
-          title?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cartography_bundle_sections_bundle_id_fkey"
-            columns: ["bundle_id"]
-            isOneToOne: false
-            referencedRelation: "cartography_bundles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cartography_bundles: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: string
-          meta: Json
-          mode: string
-          pole: string
-          published_at: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          id?: string
-          meta?: Json
-          mode: string
-          pole: string
-          published_at?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          meta?: Json
-          mode?: string
-          pole?: string
-          published_at?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       admin_messages: {
         Row: {
           body: string
@@ -765,6 +679,92 @@ export type Database = {
         }
         Relationships: []
       }
+      cartography_bundle_sections: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          id: string
+          markdown: string
+          report_code: string
+          section_key: string
+          sort_order: number
+          source_path: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          id?: string
+          markdown: string
+          report_code?: string
+          section_key: string
+          sort_order?: number
+          source_path?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          id?: string
+          markdown?: string
+          report_code?: string
+          section_key?: string
+          sort_order?: number
+          source_path?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartography_bundle_sections_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "cartography_bundles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cartography_bundles: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          meta: Json
+          mode: string
+          pole: string
+          published_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          meta?: Json
+          mode: string
+          pole: string
+          published_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          meta?: Json
+          mode?: string
+          pole?: string
+          published_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           country: string | null
@@ -783,6 +783,69 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      content_type_definitions: {
+        Row: {
+          category: string
+          config_schema: Json
+          created_at: string
+          created_by: string | null
+          default_title_en: string
+          default_title_fr: string
+          description_en: string | null
+          description_fr: string | null
+          icon: string
+          id: string
+          label_en: string
+          label_fr: string
+          renderer_kind: string
+          sample_config: Json
+          slug: string
+          status: string
+          ui_blueprint: Json
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          config_schema?: Json
+          created_at?: string
+          created_by?: string | null
+          default_title_en?: string
+          default_title_fr?: string
+          description_en?: string | null
+          description_fr?: string | null
+          icon?: string
+          id?: string
+          label_en: string
+          label_fr: string
+          renderer_kind?: string
+          sample_config?: Json
+          slug: string
+          status?: string
+          ui_blueprint?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          config_schema?: Json
+          created_at?: string
+          created_by?: string | null
+          default_title_en?: string
+          default_title_fr?: string
+          description_en?: string | null
+          description_fr?: string | null
+          icon?: string
+          id?: string
+          label_en?: string
+          label_fr?: string
+          renderer_kind?: string
+          sample_config?: Json
+          slug?: string
+          status?: string
+          ui_blueprint?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1293,6 +1356,134 @@ export type Database = {
           token?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      newsletter_editions: {
+        Row: {
+          body_en: string
+          body_fr: string
+          created_at: string
+          created_by: string | null
+          email_sent_at: string | null
+          excerpt_en: string
+          excerpt_fr: string
+          id: string
+          published_at: string | null
+          slug: string
+          status: string
+          title_en: string
+          title_fr: string
+          updated_at: string
+        }
+        Insert: {
+          body_en?: string
+          body_fr?: string
+          created_at?: string
+          created_by?: string | null
+          email_sent_at?: string | null
+          excerpt_en?: string
+          excerpt_fr?: string
+          id?: string
+          published_at?: string | null
+          slug: string
+          status?: string
+          title_en: string
+          title_fr: string
+          updated_at?: string
+        }
+        Update: {
+          body_en?: string
+          body_fr?: string
+          created_at?: string
+          created_by?: string | null
+          email_sent_at?: string | null
+          excerpt_en?: string
+          excerpt_fr?: string
+          id?: string
+          published_at?: string | null
+          slug?: string
+          status?: string
+          title_en?: string
+          title_fr?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      newsletter_email_queue: {
+        Row: {
+          created_at: string
+          edition_id: string | null
+          error_message: string | null
+          id: string
+          kind: string
+          locale: string
+          recipient_email: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          edition_id?: string | null
+          error_message?: string | null
+          id?: string
+          kind: string
+          locale?: string
+          recipient_email: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          edition_id?: string | null
+          error_message?: string | null
+          id?: string
+          kind?: string
+          locale?: string
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_email_queue_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          locale: string
+          source: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          locale?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          locale?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2032,11 +2223,111 @@ export type Database = {
         }
         Relationships: []
       }
+      widget_proposals: {
+        Row: {
+          content_type_slug: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          description_i18n: Json
+          external_url: string | null
+          id: string
+          published_assignment_ids: string[]
+          published_template_id: string | null
+          reasoning: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          selected_user_ids: string[]
+          source: string
+          status: string
+          suggested_user_ids: string[]
+          title: string
+          title_i18n: Json
+          updated_at: string
+          widget_config: Json
+        }
+        Insert: {
+          content_type_slug: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          description_i18n?: Json
+          external_url?: string | null
+          id?: string
+          published_assignment_ids?: string[]
+          published_template_id?: string | null
+          reasoning?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selected_user_ids?: string[]
+          source?: string
+          status?: string
+          suggested_user_ids?: string[]
+          title: string
+          title_i18n?: Json
+          updated_at?: string
+          widget_config?: Json
+        }
+        Update: {
+          content_type_slug?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          description_i18n?: Json
+          external_url?: string | null
+          id?: string
+          published_assignment_ids?: string[]
+          published_template_id?: string | null
+          reasoning?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selected_user_ids?: string[]
+          source?: string
+          status?: string
+          suggested_user_ids?: string[]
+          title?: string
+          title_i18n?: Json
+          updated_at?: string
+          widget_config?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "widget_proposals_content_type_slug_fkey"
+            columns: ["content_type_slug"]
+            isOneToOne: false
+            referencedRelation: "content_type_definitions"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "widget_proposals_published_template_id_fkey"
+            columns: ["published_template_id"]
+            isOneToOne: false
+            referencedRelation: "toolbox_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      confirm_waiting_toolbox_assignment: {
+        Args: { p_assignment_id: string }
+        Returns: boolean
+      }
+      dispatch_newsletter_email_queue: {
+        Args: { p_limit?: number }
+        Returns: undefined
+      }
+      enqueue_newsletter_edition_emails: {
+        Args: { p_edition_id: string }
+        Returns: number
+      }
+      enqueue_newsletter_welcome_email: {
+        Args: { p_email: string; p_locale?: string }
+        Returns: undefined
+      }
       export_to_drive_async: {
         Args: {
           p_category: string
@@ -2062,6 +2353,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      notify_newsletter_edition_in_app: {
+        Args: { p_edition_id: string }
+        Returns: number
+      }
+      notify_newsletter_welcome_in_app: {
+        Args: { p_locale?: string; p_user_id: string }
+        Returns: undefined
+      }
+      publish_newsletter_edition: {
+        Args: { p_edition_id: string }
+        Returns: Json
+      }
       refresh_archetype_scores_by_user: { Args: never; Returns: undefined }
       send_admin_push: {
         Args: {
@@ -2072,6 +2375,11 @@ export type Database = {
         }
         Returns: undefined
       }
+      subscribe_newsletter: {
+        Args: { p_email: string; p_locale?: string; p_source?: string }
+        Returns: Json
+      }
+      unsubscribe_newsletter: { Args: { p_email: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"
