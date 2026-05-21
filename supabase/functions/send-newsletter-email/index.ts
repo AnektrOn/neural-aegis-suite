@@ -83,11 +83,12 @@ async function sendWithSmtp({
     return { sent: false, provider: "none" };
   }
 
+  // Port 465 = TLS implicite (tls: true). Port 587 = STARTTLS (tls: false).
   const client = new SMTPClient({
     connection: {
       hostname: smtp.host,
       port: smtp.port,
-      tls: smtp.port !== 465,
+      tls: smtp.port === 465,
       auth: {
         username: smtp.user,
         password: smtp.password,
