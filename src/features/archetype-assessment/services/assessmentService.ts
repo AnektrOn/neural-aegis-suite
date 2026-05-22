@@ -86,6 +86,18 @@ export async function loadActiveTemplate(): Promise<LoadedTemplate> {
   return { template, questions };
 }
 
+/** Guest / public funnel: core onboarding quiz only (30 questions, not Deep Dive 70). */
+export const GUEST_QUIZ_QUESTION_LIMIT = 30;
+
+export async function loadGuestQuizTemplate(): Promise<LoadedTemplate> {
+  const loaded = await loadActiveTemplate();
+  const core = loaded.questions
+    .filter((q) => q.is_required !== false)
+    .filter((q) => (q.meta as { is_appendix?: boolean } | undefined)?.is_appendix !== true)
+    .slice(0, GUEST_QUIZ_QUESTION_LIMIT);
+  return { ...loaded, questions: core };
+}
+
 async function fetchQuestions(
   templateId: string,
   opts: { appendix?: boolean } = {}

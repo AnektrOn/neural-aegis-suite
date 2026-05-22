@@ -1,5 +1,14 @@
 import { useCallback, useState } from "react";
-import { FileText, FolderOpen, FileArchive, Upload, Loader2, Download } from "lucide-react";
+import {
+  FileText,
+  FolderOpen,
+  FileArchive,
+  Upload,
+  Loader2,
+  Download,
+  ClipboardPaste,
+} from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -28,8 +37,15 @@ export default function NewsletterMarkdownImport({ onImported }: NewsletterMarkd
   const { toast } = useToast();
 
   const [preview, setPreview] = useState<NewsletterImportPreview | null>(null);
+  const [pasteContent, setPasteContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const IMPORT_INFO_ISSUES = new Set([
+    "excerpt_auto_generated",
+    "excerpt_inferred_from_article",
+    "format_inferred_from_markdown",
+  ]);
 
   const runPreview = useCallback((entries: Array<{ path: string; content: string }>) => {
     setPreview(mergeNewsletterMarkdownEntries(entries));
@@ -86,6 +102,19 @@ export default function NewsletterMarkdownImport({ onImported }: NewsletterMarkd
     }
   };
 
+  const onPastePreview = () => {
+    const trimmed = pasteContent.trim();
+    if (!trimmed) {
+      toast({
+        title: t("toast.error"),
+        description: t("newsletter.admin.importPasteEmpty"),
+        variant: "destructive",
+      });
+      return;
+    }
+    runPreview([{ path: "paste.md", content: trimmed }]);
+  };
+
   const downloadTemplate = () => {
     const blob = new Blob([NEWSLETTER_MD_TEMPLATE], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -98,7 +127,9 @@ export default function NewsletterMarkdownImport({ onImported }: NewsletterMarkd
 
   const saveDraft = async () => {
     if (!user?.id || !preview?.edition.slug) return;
-    const blocking = preview.issues.filter((i) => !i.startsWith("excerpt_auto"));
+    const blocking = preview.issues.filter(
+      (i) => !IMPORT_INFO_ISSUES.has(i) && !i.startsWith("excerpt_auto"),
+    );
     if (blocking.some((i) => i === "slug_required" || i === "title_fr_required" || i === "body_required")) {
       toast({
         title: t("toast.error"),
@@ -148,6 +179,29 @@ export default function NewsletterMarkdownImport({ onImported }: NewsletterMarkd
       <pre className="text-[10px] text-text-tertiary bg-bg-base/80 border border-border-subtle rounded-lg p-3 overflow-x-auto font-mono leading-relaxed">
         {t("newsletter.admin.importFormat")}
       </pre>
+
+      <div className="space-y-3">
+        <p className="text-xs font-medium text-text-secondary flex items-center gap-2">
+          <ClipboardPaste size={14} aria-hidden />
+          {t("newsletter.admin.importPaste")}
+        </p>
+        <Textarea
+          value={pasteContent}
+          onChange={(e) => setPasteContent(e.target.value)}
+          placeholder={t("newsletter.admin.importPastePlaceholder")}
+          className="min-h-[200px] font-mono text-xs leading-relaxed resize-y"
+          spellCheck={false}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          className="min-h-[44px]"
+          disabled={loading}
+          onClick={onPastePreview}
+        >
+          {t("newsletter.admin.importPastePreview")}
+        </Button>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <label className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-border-active bg-bg-base text-sm text-text-primary hover:bg-bg-elevated transition-colors duration-200 cursor-pointer">
@@ -199,7 +253,11 @@ export default function NewsletterMarkdownImport({ onImported }: NewsletterMarkd
           {preview.issues.length > 0 && (
             <ul className="text-xs text-amber-600/90 dark:text-amber-400/90 space-y-1">
               {preview.issues.map((issue) => (
-                <li key={issue}>{issue}</li>
+                <li key={issue}>
+                  {IMPORT_INFO_ISSUES.has(issue) || issue.startsWith("excerpt_auto")
+                    ? `ℹ ${issue}`
+                    : issue}
+                </li>
               ))}
             </ul>
           )}

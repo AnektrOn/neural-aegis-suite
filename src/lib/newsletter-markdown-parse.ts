@@ -1,17 +1,7 @@
 /**
- * Import newsletter « blog » depuis fichiers .md (frontmatter YAML + corps).
- *
- * Exemple :
- * ---
- * slug: lettre-mai-2026
- * title_fr: Titre
- * title_en: Title
- * excerpt_fr: Brief pour e-mail / notif
- * excerpt_en: Brief for email / notif
- * locale: fr
- * date: 2026-05-21
- * ---
- * # Contenu Markdown…
+ * Import newsletter « blog » depuis fichiers .md
+ * — avec frontmatter YAML (recommandé admin)
+ * — ou article brut : # titre + > accroche + corps (comme les exports Notion/Obsidian)
  */
 
 export type NewsletterLocale = "fr" | "en";
@@ -35,6 +25,10 @@ export interface NewsletterImportPreview {
 }
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
+const ACCROCHE_RE = /^\*\*Accroche\s*:\*\*\s*/i;
+const PROTOCOLE_LINK_PLACEHOLDER_RE =
+  /\*\*\[Lien vers le Protocole Nomos\]\*\*|\[Lien vers le Protocole Nomos\]/gi;
+const DEFAULT_PROTOCOLE_LINK = "https://aegis.humancatalystbeacon.com";
 
 function slugify(input: string): string {
   return input
@@ -44,6 +38,22 @@ function slugify(input: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function stripMarkdownInline(text: string): string {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^#+\s*/, "")
+    .trim();
+}
+
+function normalizeArticleBody(body: string): string {
+  return body.replace(
+    PROTOCOLE_LINK_PLACEHOLDER_RE,
+    `[Protocole Nomos](${DEFAULT_PROTOCOLE_LINK})`,
+  );
 }
 
 function parseYamlLine(line: string): { key: string; value: string } | null {
@@ -85,6 +95,72 @@ function localeFromMeta(meta: Record<string, string>, path: string): NewsletterL
   return fromPath ?? "fr";
 }
 
+/** Infère titre, brief et slug depuis un .md sans frontmatter. */
+export function inferMetadataFromMarkdownBody(
+  rawBody: string,
+  options?: { fallbackSlug?: string; sourcePath?: string },
+): {
+  titleFr: string;
+  excerptFr: string;
+  slug: string;
+  bodyFr: string;
+} {
+  const normalized = normalizeArticleBody(rawBody.replace(/^\uFEFF/, "").trim());
+  const lines = normalized.split(/\r?\n/);
+
+  let titleFr = "";
+  let excerptFr = "";
+  const keptLines: string[] = [];
+  let i = 0;
+
+  while (i < lines.length && !lines[i].trim()) i++;
+
+  if (/^#\s+/.test(lines[i] ?? "")) {
+    titleFr = stripMarkdownInline(lines[i].replace(/^#\s+/, ""));
+    i++;
+  }
+
+  while (i < lines.length && !lines[i].trim()) i++;
+
+  if ((lines[i] ?? "").startsWith(">")) {
+    const quoteParts: string[] = [];
+    while (i < lines.length && lines[i].startsWith(">")) {
+      let line = lines[i].replace(/^>\s*/, "");
+      line = line.replace(ACCROCHE_RE, "");
+      quoteParts.push(stripMarkdownInline(line));
+      i++;
+    }
+    excerptFr = quoteParts.join(" ").replace(/\s+/g, " ").trim();
+  }
+
+  while (i < lines.length && !lines[i].trim()) i++;
+  keptLines.push(...lines.slice(i));
+
+  let bodyFr = keptLines.join("\n").trim();
+
+  if (!excerptFr) {
+    const para = bodyFr
+      .split(/\n\n+/)
+      .map((p) => p.trim())
+      .find((p) => p && !p.startsWith("#") && !p.startsWith("---"));
+    if (para) {
+      excerptFr = stripMarkdownInline(para).slice(0, 280);
+    }
+  }
+
+  if (!titleFr && options?.fallbackSlug) {
+    titleFr = options.fallbackSlug.replace(/[-_]/g, " ");
+  }
+
+  const slug =
+    slugify(titleFr) ||
+    slugify(options?.fallbackSlug ?? "") ||
+    slugify(options?.sourcePath?.split("/").pop()?.replace(/\.md$/i, "") ?? "") ||
+    "edition";
+
+  return { titleFr, excerptFr, slug, bodyFr };
+}
+
 /** Parse un fichier .md (frontmatter optionnel). */
 export function parseNewsletterMarkdownFile(
   content: string,
@@ -107,13 +183,34 @@ function buildEditionFromMetaAndBody(
   path: string,
   locale: NewsletterLocale,
 ): Partial<ParsedNewsletterMarkdown> {
-  const titleFr = meta.title_fr || meta.title || "";
+  const pathSlug = slugify(path.split("/").pop()?.replace(/\.md$/i, "") ?? "");
+  const inferred = inferMetadataFromMarkdownBody(body, {
+    fallbackSlug: pathSlug || undefined,
+    sourcePath: path,
+  });
+
+  const titleFr = meta.title_fr || meta.title || inferred.titleFr;
   const titleEn = meta.title_en || meta.title || titleFr;
-  const excerptFr = meta.excerpt_fr || meta.excerpt || meta.description || "";
+  const excerptFr =
+    meta.excerpt_fr || meta.excerpt || meta.description || inferred.excerptFr;
   const excerptEn = meta.excerpt_en || meta.excerpt || meta.description || excerptFr;
-  const slugRaw = meta.slug || meta.id || path.split("/").pop()?.replace(/\.md$/i, "") || "";
+  let slugRaw = meta.slug || meta.id || "";
+  if (!slugRaw) {
+    if (inferred.titleFr && !(meta.title_fr || meta.title)) {
+      slugRaw = inferred.slug;
+    } else if (meta.title_fr || meta.title) {
+      slugRaw = slugify(meta.title_fr || meta.title);
+    } else {
+      slugRaw = inferred.slug || pathSlug;
+    }
+  }
   const slug = slugify(slugRaw);
   const dateRaw = meta.date || meta.published_at || meta.published || "";
+
+  const bodyStored =
+    meta.title_fr || meta.title || meta.slug
+      ? normalizeArticleBody(body)
+      : inferred.bodyFr;
 
   const partial: Partial<ParsedNewsletterMarkdown> = {
     slug,
@@ -126,9 +223,9 @@ function buildEditionFromMetaAndBody(
   };
 
   if (locale === "en") {
-    partial.bodyEn = body;
+    partial.bodyEn = bodyStored;
   } else {
-    partial.bodyFr = body;
+    partial.bodyFr = bodyStored;
   }
 
   return partial;
@@ -156,7 +253,8 @@ export function mergeNewsletterMarkdownEntries(
     const loc = localeFromMeta(meta, entry.path);
     const part = buildEditionFromMetaAndBody(meta, body, entry.path, loc);
 
-    if (!part.slug) {
+    const slug = part.slug || slugify(entry.path);
+    if (!slug) {
       issues.push(`missing_slug:${entry.path}`);
       continue;
     }
@@ -164,7 +262,7 @@ export function mergeNewsletterMarkdownEntries(
     if (!merged.slug) {
       merged = {
         ...merged,
-        slug: part.slug,
+        slug,
         titleFr: part.titleFr || merged.titleFr,
         titleEn: part.titleEn || merged.titleEn,
         excerptFr: part.excerptFr || merged.excerptFr,
@@ -177,11 +275,11 @@ export function mergeNewsletterMarkdownEntries(
     }
 
     if (loc === "en") {
-      merged.bodyEn = body;
+      merged.bodyEn = part.bodyEn ?? "";
       if (part.titleEn) merged.titleEn = part.titleEn;
       if (part.excerptEn) merged.excerptEn = part.excerptEn;
     } else {
-      merged.bodyFr = body;
+      merged.bodyFr = part.bodyFr ?? "";
       if (part.titleFr) merged.titleFr = part.titleFr;
       if (part.excerptFr) merged.excerptFr = part.excerptFr;
     }
@@ -190,12 +288,21 @@ export function mergeNewsletterMarkdownEntries(
   if (!merged.slug) issues.push("slug_required");
   if (!merged.titleFr.trim()) issues.push("title_fr_required");
   if (!merged.bodyFr.trim() && !merged.bodyEn.trim()) issues.push("body_required");
+
   if (!merged.excerptFr.trim() && !merged.excerptEn.trim()) {
     const briefSource = merged.bodyFr.trim() || merged.bodyEn.trim();
-    const auto = briefSource.replace(/^#+\s+/gm, "").replace(/\n+/g, " ").trim().slice(0, 280);
-    merged.excerptFr = merged.excerptFr || auto;
-    merged.excerptEn = merged.excerptEn || auto;
+    const auto = stripMarkdownInline(briefSource).slice(0, 280);
+    merged.excerptFr = auto;
+    merged.excerptEn = auto;
     issues.push("excerpt_auto_generated");
+  }
+
+  const hasFrontmatter = entries.some((e) =>
+    FRONTMATTER_RE.test(e.content.replace(/^\uFEFF/, "").trim()),
+  );
+  if (!hasFrontmatter) {
+    issues.push("format_inferred_from_markdown");
+    if (merged.excerptFr.trim()) issues.push("excerpt_inferred_from_article");
   }
 
   return { edition: merged, issues, files };
@@ -229,7 +336,9 @@ export async function readNewsletterMdFromFileList(
   return entries;
 }
 
-export async function readNewsletterMdZip(file: File): Promise<Array<{ path: string; content: string }>> {
+export async function readNewsletterMdZip(
+  file: File,
+): Promise<Array<{ path: string; content: string }>> {
   const JSZip = (await import("jszip")).default;
   const zip = await JSZip.loadAsync(file);
   const entries: Array<{ path: string; content: string }> = [];
@@ -246,22 +355,28 @@ export async function readNewsletterMdZip(file: File): Promise<Array<{ path: str
 }
 
 export const NEWSLETTER_MD_TEMPLATE = `---
-slug: lettre-exemple-2026
+slug: grand-malentendu-succes
 title_fr: Titre de l'édition
 title_en: Edition title
-excerpt_fr: Brief affiché dans l'e-mail et la notification (pas le corps complet).
-excerpt_en: Brief shown in email and push (not the full article).
+excerpt_fr: Brief pour l'e-mail et la notification (obligatoire pour l'envoi).
+excerpt_en: Brief for email and notification.
 date: 2026-05-21
 locale: fr
 ---
 
-# Titre principal
+# Titre affiché dans l'app
 
-Votre contenu Markdown ici. Les **gras**, listes et citations sont supportés.
+> **Accroche :** Phrase d'accroche optionnelle (sinon = 1er paragraphe).
 
-> Citation ou encadré
+Corps de l'article en Markdown…
 
-## Section
+**[Lien vers le Protocole Nomos]**
+`;
 
-Paragraphe suivant…
+/** Exemple d'article brut (sans frontmatter) — import automatique. */
+export const NEWSLETTER_RAW_ARTICLE_EXAMPLE = `# Le grand malentendu : Quand le succès devient une erreur système.
+
+> **Accroche :** Votre succès est peut-être le signe que vous avez définitivement accepté la boucle.
+
+Contenu de l'article…
 `;

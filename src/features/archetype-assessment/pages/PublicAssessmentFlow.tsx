@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import {
-  loadActiveTemplate,
+  loadGuestQuizTemplate,
   createSession,
   submitSession,
 } from "../services/assessmentService";
@@ -48,11 +48,10 @@ export default function PublicAssessmentFlow() {
   useEffect(() => {
     if (authLoading || bootScreenActive || !user) return;
     let alive = true;
-    loadActiveTemplate()
+    loadGuestQuizTemplate()
       .then((tpl) => {
         if (!alive) return;
-        const required = tpl.questions.filter((q) => q.is_required !== false);
-        setLoaded({ ...tpl, questions: required });
+        setLoaded(tpl);
       })
       .catch((e) => alive && setLoadError(e.message ?? "Erreur de chargement"));
     return () => {

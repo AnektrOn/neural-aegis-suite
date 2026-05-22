@@ -158,7 +158,7 @@ export default function Newsletter() {
     : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10 sm:py-14 space-y-10">
+    <div className="max-w-3xl lg:max-w-[44rem] mx-auto px-4 sm:px-6 py-10 sm:py-14 space-y-10">
       <motion.header {...motionProps} className="space-y-4 text-center sm:text-left">
         <Badge
           variant="outline"
@@ -212,23 +212,31 @@ export default function Newsletter() {
                     to={newsletterEditionPath(ed.slug)}
                     className="block group min-h-[44px]"
                   >
-                    <article className="rounded-[18px] border border-border-subtle/80 bg-bg-surface/50 p-5 sm:p-6 transition-all duration-200 group-hover:border-accent-primary/35 group-hover:bg-bg-elevated/40">
+                    <article className="relative overflow-hidden rounded-[20px] border border-border-subtle/80 bg-gradient-to-br from-bg-surface/80 via-bg-elevated/40 to-bg-base/60 p-5 sm:p-7 transition-all duration-200 group-hover:border-[hsl(var(--aegis-warm)/0.35)] group-hover:shadow-[0_8px_32px_hsl(var(--aegis-warm)/0.06)]">
+                      <div
+                        className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        aria-hidden
+                        style={{
+                          background:
+                            "radial-gradient(circle, hsl(var(--aegis-warm) / 0.12), transparent 70%)",
+                        }}
+                      />
                       {date && (
-                        <time className="text-[10px] uppercase tracking-[0.18em] font-display text-text-tertiary">
+                        <time className="relative text-[10px] uppercase tracking-[0.18em] font-display text-[hsl(var(--aegis-warm)/0.85)]">
                           {date}
                         </time>
                       )}
-                      <h3 className="mt-2 font-display text-xl sm:text-2xl text-foreground leading-snug group-hover:text-accent-primary transition-colors duration-200">
+                      <h3 className="relative mt-3 font-display text-xl sm:text-2xl text-foreground leading-snug group-hover:text-[hsl(var(--aegis-warm))] transition-colors duration-200 text-balance">
                         {title}
                       </h3>
                       {excerpt && (
-                        <p className="mt-3 text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                        <p className="relative mt-4 text-sm text-muted-foreground leading-relaxed line-clamp-3 border-l-2 border-[hsl(var(--aegis-warm)/0.25)] pl-3">
                           {excerpt}
                         </p>
                       )}
-                      <span className="mt-4 inline-flex items-center gap-1 text-[11px] uppercase tracking-wider font-display text-accent-primary">
+                      <span className="relative mt-5 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-display text-[hsl(var(--aegis-warm))]">
                         {t("newsletter.readArticle")}
-                        <ChevronRight size={14} aria-hidden />
+                        <ChevronRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
                       </span>
                     </article>
                   </Link>
@@ -273,7 +281,12 @@ export default function Newsletter() {
         })}
       </motion.section>
 
-      <motion.div {...motionProps} transition={{ delay: prefersReducedMotion ? 0 : 0.14 }}>
+      <motion.div
+        id="subscribe"
+        {...motionProps}
+        transition={{ delay: prefersReducedMotion ? 0 : 0.14 }}
+        className="scroll-mt-24"
+      >
         <NeuralCard variant="premium" className="p-6 sm:p-8 space-y-6">
           {subscribed || existingStatus === "active" ? (
             <div className="text-center space-y-4 py-4">

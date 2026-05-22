@@ -28,9 +28,9 @@ export default function NewsletterLayout() {
         : t("newsletter.nav.signIn");
 
   return (
-    <div className="min-h-screen bg-bg-base flex flex-col">
+    <div className="min-h-screen bg-bg-base flex flex-col newsletter-layout">
       <header className="sticky top-0 z-40 border-b border-border/40 bg-bg-base/80 backdrop-blur-md">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+        <div className="max-w-3xl lg:max-w-[44rem] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           <Link to="/newsletter" className="flex items-center gap-2 shrink-0 min-h-[44px]">
             <img
               src={aegisLogo}
@@ -86,7 +86,7 @@ export default function NewsletterLayout() {
         <Outlet />
       </main>
 
-      <div className="max-w-3xl mx-auto w-full px-4 pb-8">
+      <div className="max-w-3xl lg:max-w-[44rem] mx-auto w-full px-4 sm:px-6 pb-8">
         <AppFooter />
       </div>
     </div>
