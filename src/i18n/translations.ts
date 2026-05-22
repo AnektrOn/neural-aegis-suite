@@ -340,8 +340,8 @@ export const translations = {
   "auth.guest.cta": { fr: "Continuer en tant qu'invité", en: "Continue as guest" },
   "auth.guest.badge": { fr: "Accès invité", en: "Guest access" },
   "auth.guest.intro": {
-    fr: "Quiz gratuit et rapport Deep Dive — renseigne tes coordonnées pour commencer.",
-    en: "Free quiz and Deep Dive report — enter your details to get started.",
+    fr: "Quiz gratuit de 30 questions et rapport personnalisé — renseigne tes coordonnées pour commencer.",
+    en: "Free 30-question quiz and personalized report — enter your details to get started.",
   },
   "auth.guest.firstName": { fr: "Prénom", en: "First name" },
   "auth.guest.lastName": { fr: "Nom", en: "Last name" },
@@ -367,6 +367,32 @@ export const translations = {
     fr: "Cet email est déjà utilisé. Connecte-toi avec ton mot de passe.",
     en: "This email is already registered. Sign in with your password.",
   },
+  "auth.guest.successDescNewsletter": {
+    fr: "Tu peux t'inscrire à la newsletter et lire les éditions dans l'app.",
+    en: "You can subscribe to the newsletter and read editions in the app.",
+  },
+  "auth.newsletter.badge": { fr: "Newsletter", en: "Newsletter" },
+  "auth.newsletter.intro": {
+    fr: "Inscription à la Lettre Neural — pas besoin de passer le quiz. Email et prénom suffisent.",
+    en: "Neural Letter signup — no quiz required. Email and first name are enough.",
+  },
+  "auth.newsletter.skipAccount": {
+    fr: "Voir la newsletter sans créer de compte",
+    en: "View newsletter without an account",
+  },
+  "auth.newsletter.submit": {
+    fr: "Continuer vers la newsletter",
+    en: "Continue to newsletter",
+  },
+  "auth.newsletter.cta": {
+    fr: "Lettre Neural — sans quiz",
+    en: "Neural Letter — no quiz",
+  },
+  "auth.newsletter.cardTitle": { fr: "Lettre Neural", en: "Neural Letter" },
+  "auth.newsletter.cardDesc": {
+    fr: "Articles et inscription — indépendant du quiz archétypes.",
+    en: "Articles and signup — separate from the archetype quiz.",
+  },
 
   // Visitor funnel
   "visitor.loading": { fr: "Chargement…", en: "Loading…" },
@@ -378,7 +404,7 @@ export const translations = {
   "visitor.backToSpace": { fr: "Retour à mon espace", en: "Back to my space" },
   "visitor.saveResults": { fr: "Créer un compte pour sauvegarder", en: "Create an account to save" },
   "visitor.startQuiz": { fr: "Commencer le quiz", en: "Start the quiz" },
-  "visitor.viewReport": { fr: "Voir mon rapport Deep Dive", en: "View my Deep Dive report" },
+  "visitor.viewReport": { fr: "Voir mon rapport", en: "View my report" },
   "visitor.nav.quiz": { fr: "Quiz", en: "Quiz" },
   "visitor.nav.report": { fr: "Rapport", en: "Report" },
   "visitor.nav.app": { fr: "Application", en: "App" },
@@ -394,15 +420,15 @@ export const translations = {
     fr: "Pas encore complété. ~10 min, sans email.",
     en: "Not completed yet. ~10 min, no email required.",
   },
-  "visitor.reportCard.title": { fr: "Rapport Deep Dive", en: "Deep Dive report" },
+  "visitor.reportCard.title": { fr: "Rapport archétypes", en: "Archetype report" },
   "visitor.reportCard.desc": {
     fr: "Lecture personnalisée de tes archétypes, ombres et pratiques.",
     en: "Personalized reading of your archetypes, shadows and practices.",
   },
-  "visitor.report.kicker": { fr: "Ton rapport Deep Dive", en: "Your Deep Dive report" },
+  "visitor.report.kicker": { fr: "Ton rapport archétypes", en: "Your archetype report" },
   "visitor.report.subtitle": {
-    fr: "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées.",
-    en: "Personalized reading of your dominant archetypes, shadows and recommended practices.",
+    fr: "Basé sur tes 30 réponses au quiz — archétypes dominants et ombres.",
+    en: "Based on your 30 quiz answers — dominant archetypes and shadows.",
   },
   "visitor.report.loading": {
     fr: "Construction de ton profil archétypal…",
@@ -457,8 +483,8 @@ export const translations = {
     en: "30 essential questions to reveal your dominant archetypes.",
   },
   "quiz.public.bullet1": {
-    fr: "Résultat immédiat : rapport Deep Dive personnalisé",
-    en: "Instant result: personalized Deep Dive report",
+    fr: "Résultat immédiat : rapport personnalisé (30 questions)",
+    en: "Instant result: personalized report (30 questions)",
   },
   "quiz.public.bullet2": {
     fr: "Tes données restent dans ton espace visiteur",
@@ -2374,19 +2400,19 @@ export const translations = {
   "visitor.dashboard.badge": { fr: "Espace visiteur", en: "Visitor space" },
   "visitor.dashboard.title": { fr: "Découvrez votre profil", en: "Discover your profile" },
   "visitor.dashboard.subtitle": {
-    fr: "Quiz archétypes et rapport Deep Dive sans compte complet.",
-    en: "Archetype quiz and Deep Dive report without a full account.",
+    fr: "Quiz, Lettre Neural ou les deux — choisis ton parcours.",
+    en: "Quiz, Neural Letter, or both — choose your path.",
   },
-  "visitor.quizStatus.title": { fr: "Quiz archétypes", en: "Archetype quiz" },
-  "visitor.quizStatus.done": { fr: "Terminé", en: "Completed" },
+  "visitor.quizStatus.title": { fr: "Quiz 30 questions", en: "30-question quiz" },
+  "visitor.quizStatus.done": { fr: "Complété — archétype dominant", en: "Completed — dominant archetype" },
   "visitor.quizStatus.pending": {
-    fr: "Passez le quiz pour débloquer votre rapport.",
-    en: "Take the quiz to unlock your report.",
+    fr: "Pas encore complété. ~10 min, 30 questions.",
+    en: "Not completed yet. ~10 min, 30 questions.",
   },
-  "visitor.reportCard.title": { fr: "Rapport Deep Dive", en: "Deep Dive report" },
+  "visitor.reportCard.title": { fr: "Rapport archétypes", en: "Archetype report" },
   "visitor.reportCard.desc": {
-    fr: "Synthèse personnalisée de vos archétypes dominants.",
-    en: "Personalized summary of your dominant archetypes.",
+    fr: "Synthèse personnalisée à partir de tes 30 réponses.",
+    en: "Personalized summary from your 30 answers.",
   },
   "visitor.payment.title": { fr: "Accès complet", en: "Full access" },
   "visitor.payment.desc": {
@@ -2429,10 +2455,10 @@ export const translations = {
     fr: "Vous avez passé le quiz en visiteur ? Créez un compte",
     en: "Took the quiz as a visitor? Create an account",
   },
-  "visitor.report.kicker": { fr: "Rapport", en: "Report" },
+  "visitor.report.kicker": { fr: "Ton rapport archétypes", en: "Your archetype report" },
   "visitor.report.subtitle": {
-    fr: "Basé sur vos réponses au quiz archétypes.",
-    en: "Based on your archetype quiz answers.",
+    fr: "Basé sur tes 30 réponses au quiz — archétypes dominants et ombres.",
+    en: "Based on your 30 quiz answers — dominant archetypes and shadows.",
   },
   "visitor.report.loading": { fr: "Génération du rapport…", en: "Generating report…" },
 
@@ -2564,6 +2590,18 @@ export const translations = {
     fr: "Contenu à venir.",
     en: "Content coming soon.",
   },
+  "newsletter.editionCtaTitle": {
+    fr: "Recevoir les prochaines lettres",
+    en: "Get the next editions",
+  },
+  "newsletter.editionCtaDesc": {
+    fr: "L'e-mail ne contient qu'un brief — l'article complet reste ici, dans Neural Aegis.",
+    en: "Email sends only a brief — the full article stays here in Neural Aegis.",
+  },
+  "newsletter.editionCtaButton": {
+    fr: "S'abonner à la lettre",
+    en: "Subscribe to the letter",
+  },
   "newsletter.adminManage": { fr: "Gérer les éditions", en: "Manage editions" },
   "admin.nav.newsletter": { fr: "Newsletter", en: "Newsletter" },
   "newsletter.admin.kicker": { fr: "Administration", en: "Administration" },
@@ -2574,27 +2612,41 @@ export const translations = {
   },
   "newsletter.admin.importTitle": { fr: "Importer Markdown", en: "Import Markdown" },
   "newsletter.admin.importDesc": {
-    fr: "Un fichier .md par langue ou un ZIP / dossier. Le design de lecture sera ajusté une fois votre MD final fourni.",
-    en: "One .md file per language or a ZIP / folder. Reading design will be tuned once you provide the final MD.",
+    fr: "Collez votre article, importez un .md, un dossier ou un ZIP. Sans frontmatter : titre (#), accroche (>) et slug sont déduits automatiquement.",
+    en: "Paste your article, or import a .md file, folder, or ZIP. Without frontmatter: title (#), hook (>), and slug are inferred automatically.",
   },
   "newsletter.admin.importFormat": {
-    fr: `---
+    fr: `Option A — article brut :
+# Titre
+> **Accroche :** Brief e-mail
+Corps…
+
+Option B — frontmatter :
+---
 slug: mon-article
-title_fr: / title_en:
-excerpt_fr: / excerpt_en:  ← brief (e-mail)
-date: 2026-05-21
-locale: fr
+excerpt_fr: brief e-mail
+---`,
+    en: `Option A — raw article:
+# Title
+> **Hook:** Email brief
+Body…
+
+Option B — frontmatter:
 ---
-# Corps de l'article (app uniquement)`,
-    en: `---
 slug: my-article
-title_fr: / title_en:
-excerpt_fr: / excerpt_en:  ← brief (email)
-date: 2026-05-21
-locale: en
----
-# Article body (app only)`,
+excerpt_fr: email brief
+---`,
   },
+  "newsletter.admin.importPaste": { fr: "Coller le Markdown", en: "Paste Markdown" },
+  "newsletter.admin.importPastePlaceholder": {
+    fr: "# Titre de l'article\n\n> **Accroche :** …\n\nCorps…",
+    en: "# Article title\n\n> **Hook:** …\n\nBody…",
+  },
+  "newsletter.admin.importPasteEmpty": {
+    fr: "Collez du Markdown avant d'analyser.",
+    en: "Paste Markdown before parsing.",
+  },
+  "newsletter.admin.importPastePreview": { fr: "Analyser", en: "Parse preview" },
   "newsletter.admin.importFile": { fr: "Fichier .md", en: ".md file" },
   "newsletter.admin.importFolder": { fr: "Dossier", en: "Folder" },
   "newsletter.admin.importZip": { fr: "Archive .zip", en: ".zip archive" },

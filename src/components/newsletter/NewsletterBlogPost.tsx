@@ -1,6 +1,7 @@
-import ReactMarkdown from "react-markdown";
+import { Calendar, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { NewsletterMarkdownBody } from "@/components/newsletter/NewsletterMarkdownBody";
 
 function estimateReadingMinutes(markdown: string): number {
   const words = markdown.trim().split(/\s+/).filter(Boolean).length;
@@ -15,9 +16,6 @@ export interface NewsletterBlogPostProps {
   className?: string;
 }
 
-/**
- * Rendu article « blog » — design de base à affiner quand le MD final est fourni.
- */
 export function NewsletterBlogPost({
   title,
   excerpt,
@@ -37,56 +35,64 @@ export function NewsletterBlogPost({
     : null;
 
   return (
-    <article className={cn("newsletter-blog", className)}>
-      <header className="newsletter-blog-hero relative overflow-hidden rounded-[20px] border border-border-subtle/80 bg-gradient-to-br from-bg-elevated via-bg-surface to-bg-base px-6 py-10 sm:px-10 sm:py-12">
+    <article className={cn("newsletter-article", className)}>
+      <header className="newsletter-article-hero relative">
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          className="pointer-events-none absolute -inset-x-4 -top-8 bottom-0 sm:-inset-x-8"
           aria-hidden
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 60% at 20% 0%, hsl(var(--aegis-warm) / 0.12), transparent 55%), radial-gradient(ellipse 60% 50% at 100% 100%, hsl(var(--primary) / 0.08), transparent 50%)",
-          }}
-        />
-        <div className="relative space-y-4">
-          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-accent-primary">
-            {t("newsletter.badge")}
-          </p>
-          <h1 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] leading-[1.15] tracking-tight text-foreground max-w-3xl">
+        >
+          <div
+            className="absolute inset-0 rounded-[28px] opacity-90"
+            style={{
+              background:
+                "radial-gradient(ellipse 90% 70% at 50% -10%, hsl(var(--aegis-warm) / 0.14), transparent 58%), radial-gradient(ellipse 50% 40% at 100% 20%, hsl(var(--primary) / 0.06), transparent 50%), linear-gradient(180deg, hsl(var(--card) / 0.55) 0%, transparent 100%)",
+            }}
+          />
+          <div className="absolute inset-0 rounded-[28px] border border-border-subtle/50 bg-bg-elevated/30 backdrop-blur-sm" />
+        </div>
+
+        <div className="relative px-6 py-12 sm:px-10 sm:py-14 lg:px-12 lg:py-16">
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            <span className="inline-flex items-center rounded-full border border-[hsl(var(--aegis-warm)/0.35)] bg-[hsl(var(--aegis-warm-muted)/0.4)] px-3 py-1 font-display text-[10px] uppercase tracking-[0.2em] text-[hsl(var(--aegis-warm))]">
+              {t("newsletter.badge")}
+            </span>
+          </div>
+
+          <h1 className="font-display text-[1.75rem] sm:text-[2.25rem] lg:text-[2.65rem] font-medium leading-[1.12] tracking-tight text-foreground text-balance max-w-[20ch] sm:max-w-none">
             {title}
           </h1>
+
           {excerpt && (
-            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl border-l-2 border-accent-primary/40 pl-4">
+            <p className="mt-8 max-w-2xl text-lg sm:text-xl leading-relaxed text-muted-foreground font-light border-l-[3px] border-[hsl(var(--aegis-warm)/0.5)] pl-5 sm:pl-6">
               {excerpt}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] uppercase tracking-wider font-display text-text-tertiary pt-2">
-            {dateLabel && <span>{dateLabel}</span>}
-            <span aria-hidden>·</span>
-            <span>{t("newsletter.readingTime", { min: String(readingMin) })}</span>
+
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            {dateLabel && (
+              <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle/80 bg-bg-base/60 px-3 py-1.5 text-[11px] font-display uppercase tracking-wider text-text-tertiary">
+                <Calendar size={13} className="text-[hsl(var(--aegis-warm)/0.8)]" aria-hidden />
+                <time dateTime={publishedAt ?? undefined}>{dateLabel}</time>
+              </span>
+            )}
+            <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle/80 bg-bg-base/60 px-3 py-1.5 text-[11px] font-display uppercase tracking-wider text-text-tertiary">
+              <Clock size={13} className="text-[hsl(var(--aegis-warm)/0.8)]" aria-hidden />
+              {t("newsletter.readingTime", { min: String(readingMin) })}
+            </span>
           </div>
         </div>
       </header>
 
-      <div className="newsletter-blog-body mt-10 sm:mt-12 px-1 sm:px-2">
+      <div className="newsletter-article-body relative mt-4 sm:mt-6">
         <div
-          className={cn(
-            "prose prose-base sm:prose-lg dark:prose-invert max-w-none",
-            "prose-headings:font-display prose-headings:font-medium prose-headings:tracking-tight prose-headings:text-foreground",
-            "prose-h2:mt-12 prose-h2:mb-4 prose-h2:text-2xl",
-            "prose-h3:mt-8 prose-h3:text-xl",
-            "prose-p:text-text-secondary prose-p:leading-[1.75]",
-            "prose-strong:text-foreground prose-strong:font-medium",
-            "prose-blockquote:border-l-[3px] prose-blockquote:border-[hsl(var(--aegis-warm)/0.55)]",
-            "prose-blockquote:bg-bg-surface/60 prose-blockquote:rounded-r-xl prose-blockquote:py-1 prose-blockquote:pl-5",
-            "prose-blockquote:not-italic prose-blockquote:text-text-secondary",
-            "prose-li:text-text-secondary prose-li:marker:text-accent-primary",
-            "prose-a:text-[hsl(var(--aegis-warm))] prose-a:no-underline hover:prose-a:underline",
-            "prose-hr:border-border-subtle prose-hr:my-12",
-            "prose-img:rounded-xl prose-img:border prose-img:border-border-subtle",
-          )}
-        >
-          <ReactMarkdown>{markdown}</ReactMarkdown>
-        </div>
+          className="pointer-events-none absolute left-0 top-0 bottom-0 w-px hidden lg:block"
+          aria-hidden
+          style={{
+            background:
+              "linear-gradient(180deg, transparent, hsl(var(--border) / 0.5) 15%, hsl(var(--border) / 0.5) 85%, transparent)",
+          }}
+        />
+        <NewsletterMarkdownBody markdown={markdown} className="lg:pl-8" />
       </div>
     </article>
   );

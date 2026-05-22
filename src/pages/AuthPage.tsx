@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, Eye, EyeOff, Sparkles } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,10 @@ import { NeuralCard } from "@/components/ui/neural-card";
 import AppFooter from "@/components/AppFooter";
 import { signUpGuest, upgradeGuestToMember } from "@/lib/guestAuth";
 import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
+import {
+  isNewsletterRedirect,
+  resolveGuestRedirect,
+} from "@/lib/authRedirect";
 
 type AuthMode = "signin" | "guest" | "upgrade";
 
@@ -37,7 +41,9 @@ export default function AuthPage() {
   const { t } = useLanguage();
   const { user, isGuest } = useAuth();
 
-  const redirectTo = searchParams.get("redirect") || "/quiz";
+  const redirectParam = searchParams.get("redirect");
+  const redirectTo = resolveGuestRedirect(redirectParam);
+  const newsletterIntent = isNewsletterRedirect(redirectParam);
   const guestFromUrl = searchParams.get("guest") === "1";
   const upgradeFromUrl = searchParams.get("upgrade") === "1";
 
@@ -56,6 +62,13 @@ export default function AuthPage() {
       setEmail(user.email);
     }
   }, [user?.email, mode]);
+
+  useEffect(() => {
+    if (!user || !redirectParam?.trim()) return;
+    const path = redirectParam.trim();
+    if (!path.startsWith("/")) return;
+    navigate(path, { replace: true });
+  }, [user, redirectParam, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +89,7 @@ export default function AuthPage() {
     e.preventDefault();
     const ig = instagram.trim();
     const li = linkedin.trim();
-    if (!ig && !li) {
+    if (!newsletterIntent && !ig && !li) {
       toast({
         title: t("toast.error"),
         description: t("auth.guest.socialRequired"),
@@ -96,9 +109,11 @@ export default function AuthPage() {
       });
       toast({
         title: t("auth.guest.successTitle"),
-        description: t("auth.guest.successDesc"),
+        description: newsletterIntent
+          ? t("auth.guest.successDescNewsletter")
+          : t("auth.guest.successDesc"),
       });
-      navigate(redirectTo.startsWith("/") ? redirectTo : "/quiz", { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       if (message === "EMAIL_ALREADY_REGISTERED") {
@@ -181,12 +196,28 @@ export default function AuthPage() {
                 <p className="text-sm text-text-secondary mb-4 text-center">{t("visitor.upgrade.authIntro")}</p>
               )}
               {mode === "guest" && (
-                <div className="mb-4 text-center space-y-1">
+                <div className="mb-4 text-center space-y-3">
                   <div className="flex items-center justify-center gap-2 text-primary">
-                    <Sparkles size={16} />
-                    <span className="text-xs uppercase tracking-[0.2em] font-display">{t("auth.guest.badge")}</span>
+                    {newsletterIntent ? (
+                      <Mail size={16} aria-hidden />
+                    ) : (
+                      <Sparkles size={16} aria-hidden />
+                    )}
+                    <span className="text-xs uppercase tracking-[0.2em] font-display">
+                      {newsletterIntent ? t("auth.newsletter.badge") : t("auth.guest.badge")}
+                    </span>
                   </div>
-                  <p className="text-sm text-text-secondary">{t("auth.guest.intro")}</p>
+                  <p className="text-sm text-text-secondary">
+                    {newsletterIntent ? t("auth.newsletter.intro") : t("auth.guest.intro")}
+                  </p>
+                  {newsletterIntent && (
+                    <Link
+                      to="/newsletter"
+                      className="inline-flex min-h-[44px] items-center justify-center text-xs uppercase tracking-wider font-display text-accent-primary hover:text-accent-primary/80 transition-colors duration-200"
+                    >
+                      {t("auth.newsletter.skipAccount")}
+                    </Link>
+                  )}
                 </div>
               )}
 
@@ -237,7 +268,7 @@ export default function AuthPage() {
                   </div>
                 )}
 
-                {mode === "guest" && (
+                {mode === "guest" && !newsletterIntent && (
                   <>
                     <div className="space-y-1">
                       <label className={labelCls}>{t("auth.guest.instagram")}</label>
@@ -304,7 +335,9 @@ export default function AuthPage() {
                   ) : (
                     <>
                       {mode === "guest"
-                        ? t("auth.guest.submit")
+                        ? newsletterIntent
+                          ? t("auth.newsletter.submit")
+                          : t("auth.guest.submit")
                         : mode === "upgrade"
                           ? t("visitor.upgrade.submit")
                           : t("auth.signIn")}
@@ -327,11 +360,18 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() => setMode("guest")}
-                    className="w-full py-2.5 rounded-lg font-medium text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
+                    className="w-full min-h-[44px] py-2.5 rounded-lg font-medium text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
                   >
-                    <Sparkles size={14} />
+                    <Sparkles size={14} aria-hidden />
                     {t("auth.guest.cta")}
                   </button>
+                  <Link
+                    to="/newsletter"
+                    className="w-full min-h-[44px] py-2.5 rounded-lg font-medium text-sm border border-border-active text-text-primary hover:bg-bg-elevated/60 transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    <Mail size={14} aria-hidden />
+                    {t("auth.newsletter.cta")}
+                  </Link>
                 </>
               )}
 

@@ -7,7 +7,9 @@ import {
   ArrowRight,
   CheckCircle2,
   Circle,
+  Mail,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
@@ -111,6 +113,22 @@ export default function VisitorDashboard() {
         </h1>
         <p className="text-sm text-muted-foreground">{t("visitor.dashboard.subtitle")}</p>
       </header>
+
+      <NeuralCard variant="elevated" glow="warm" className="p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <Mail className="w-5 h-5 text-accent-primary shrink-0 mt-0.5" aria-hidden />
+          <div className="flex-1 min-w-0">
+            <h2 className="font-serif text-lg">{t("auth.newsletter.cardTitle")}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{t("auth.newsletter.cardDesc")}</p>
+          </div>
+        </div>
+        <Button asChild className="w-full min-h-[44px]">
+          <Link to="/newsletter">
+            {t("auth.newsletter.cta")}
+            <ArrowRight className="w-4 h-4 ml-2" aria-hidden />
+          </Link>
+        </Button>
+      </NeuralCard>
 
       <NeuralCard variant="elevated" glow="blue" className="p-5 space-y-4">
         <div className="flex items-start gap-3">

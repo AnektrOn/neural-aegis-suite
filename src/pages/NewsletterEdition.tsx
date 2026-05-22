@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
+import { NeuralCard } from "@/components/ui/neural-card";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { NewsletterBlogPost } from "@/components/newsletter/NewsletterBlogPost";
 import { Button } from "@/components/ui/button";
@@ -71,25 +72,60 @@ export default function NewsletterEditionPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
-      <motion.div {...motionProps} className="mb-8">
-        <Link
-          to={newsletterHubPath()}
-          className="inline-flex items-center gap-2 text-xs uppercase tracking-wider text-text-secondary hover:text-text-primary transition-colors duration-200 font-display min-h-[44px]"
-        >
-          <ArrowLeft size={16} aria-hidden />
-          {t("newsletter.backToHub")}
-        </Link>
-      </motion.div>
+    <div className="newsletter-edition-page relative min-h-[60vh]">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-[min(520px,55vh)] opacity-80"
+        aria-hidden
+        style={{
+          background:
+            "radial-gradient(ellipse 100% 80% at 50% -20%, hsl(var(--aegis-warm) / 0.08), transparent 70%)",
+        }}
+      />
 
-      <motion.div {...motionProps} transition={{ delay: prefersReducedMotion ? 0 : 0.06 }}>
-        <NewsletterBlogPost
-          title={title}
-          excerpt={excerpt}
-          markdown={body || t("newsletter.editionEmpty")}
-          publishedAt={edition.publishedAt}
-        />
-      </motion.div>
+      <div className="relative max-w-3xl lg:max-w-[44rem] mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16">
+        <motion.div {...motionProps} className="mb-8 sm:mb-10">
+          <Link
+            to={newsletterHubPath()}
+            className="inline-flex items-center gap-2 rounded-full border border-border-subtle/70 bg-bg-surface/40 px-4 py-2 text-[11px] uppercase tracking-wider text-text-secondary hover:text-text-primary hover:border-[hsl(var(--aegis-warm)/0.35)] transition-all duration-200 font-display min-h-[44px]"
+          >
+            <ArrowLeft size={16} aria-hidden />
+            {t("newsletter.backToHub")}
+          </Link>
+        </motion.div>
+
+        <motion.div {...motionProps} transition={{ delay: prefersReducedMotion ? 0 : 0.06 }}>
+          <NewsletterBlogPost
+            title={title}
+            excerpt={excerpt}
+            markdown={body || t("newsletter.editionEmpty")}
+            publishedAt={edition.publishedAt}
+          />
+        </motion.div>
+
+        <motion.footer
+          {...motionProps}
+          transition={{ delay: prefersReducedMotion ? 0 : 0.12 }}
+          className="mt-16 sm:mt-20"
+        >
+          <NeuralCard variant="elevated" glow="warm" className="p-6 sm:p-8 text-center space-y-4">
+            <div
+              className="mx-auto w-12 h-12 rounded-2xl bg-[hsl(var(--aegis-warm-muted)/0.5)] border border-[hsl(var(--aegis-warm)/0.25)] flex items-center justify-center"
+              aria-hidden
+            >
+              <Mail size={22} className="text-[hsl(var(--aegis-warm))]" strokeWidth={1.5} />
+            </div>
+            <p className="font-display text-sm uppercase tracking-[0.12em] text-foreground">
+              {t("newsletter.editionCtaTitle")}
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
+              {t("newsletter.editionCtaDesc")}
+            </p>
+            <Button asChild className="min-h-[44px]">
+              <Link to={`${newsletterHubPath()}#subscribe`}>{t("newsletter.editionCtaButton")}</Link>
+            </Button>
+          </NeuralCard>
+        </motion.footer>
+      </div>
     </div>
   );
 }

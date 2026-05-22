@@ -2,7 +2,21 @@ import { describe, it, expect } from "vitest";
 import {
   mergeNewsletterMarkdownEntries,
   parseNewsletterMarkdownFile,
+  inferMetadataFromMarkdownBody,
 } from "./newsletter-markdown-parse";
+
+const GRAND_MALENTENDU_MD = `# Le grand malentendu : Quand le succès devient une erreur système.
+
+> **Accroche :** Votre succès est peut-être le signe que vous avez définitivement accepté la boucle.
+
+Posez-vous la question, une bonne fois pour toutes : faites-vous la différence entre l'accomplissement et le succès ?
+
+### Pourquoi l'élite est en burn-out technique ?
+
+**[Lien vers le Protocole Nomos]**
+
+#SystemicArchitecture #SuccesVsAccomplissement
+`;
 
 describe("newsletter-markdown-parse", () => {
   it("parses frontmatter and body", () => {
@@ -34,5 +48,30 @@ excerpt_fr: Un brief court
     expect(preview.edition.bodyEn).toContain("EN body");
     expect(preview.edition.titleFr).toBe("FR Title");
     expect(preview.edition.titleEn).toBe("EN Title");
+  });
+
+  it("infers title, excerpt and slug from raw article without frontmatter", () => {
+    const inferred = inferMetadataFromMarkdownBody(GRAND_MALENTENDU_MD);
+    expect(inferred.titleFr).toContain("grand malentendu");
+    expect(inferred.excerptFr).toContain("accepté la boucle");
+    expect(inferred.slug).toBe(
+      "le-grand-malentendu-quand-le-succes-devient-une-erreur-systeme",
+    );
+    expect(inferred.bodyFr).not.toMatch(/^#\s+Le grand malentendu/);
+    expect(inferred.bodyFr).toContain("Protocole Nomos");
+    expect(inferred.bodyFr).not.toContain("> **Accroche");
+  });
+
+  it("merges raw markdown file into importable edition", () => {
+    const preview = mergeNewsletterMarkdownEntries([
+      { path: "grand-malentendu.md", content: GRAND_MALENTENDU_MD },
+    ]);
+    expect(preview.edition.slug).toBe(
+      "le-grand-malentendu-quand-le-succes-devient-une-erreur-systeme",
+    );
+    expect(preview.edition.titleFr).toContain("grand malentendu");
+    expect(preview.edition.excerptFr).toContain("accepté la boucle");
+    expect(preview.edition.bodyFr.length).toBeGreaterThan(100);
+    expect(preview.issues).toContain("format_inferred_from_markdown");
   });
 });
