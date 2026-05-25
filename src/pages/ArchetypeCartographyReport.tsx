@@ -27,7 +27,7 @@ import {
 import { POLE_THEMES } from "@/lib/archetype-cartography/pole-theme";
 import { CartographyEmptyState } from "@/components/archetype-balance/CartographyEmptyState";
 import {
-  CartographyMarkdownFallback,
+  CartographyFileList,
   CartographyStructuredReport,
 } from "@/components/archetype-balance/CartographyStructuredReport";
 import { parseBundleToDisplay } from "@/lib/cartography-markdown-parse";
@@ -158,7 +158,7 @@ export default function ArchetypeCartographyReport() {
 
   return (
     <PageWrapper className="pb-24">
-      <div className="relative mx-auto max-w-3xl px-4 pt-2 sm:px-6">
+      <div className="relative mx-auto w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl px-4 pt-2 sm:px-6 lg:px-8">
         <Link
           to="/deep-dive"
           className="mb-4 inline-flex min-h-[44px] items-center gap-2 rounded-md px-1 -ml-1 text-xs uppercase tracking-[0.18em] text-text-tertiary transition-colors hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -287,83 +287,79 @@ export default function ArchetypeCartographyReport() {
             </header>
 
             <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTab)} className="mt-6">
-              <TabsList className="flex h-auto w-full flex-wrap gap-1 rounded-xl bg-white/[0.04] p-1">
+              <TabsList className="flex h-auto w-full gap-1 rounded-xl bg-white/[0.04] p-1.5">
                 {grouped.cartographie.length > 0 && (
-                  <TabsTrigger value="cartographie" className="min-h-[44px] gap-2 rounded-lg">
+                  <TabsTrigger
+                    value="cartographie"
+                    className="min-h-[44px] flex-1 gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--aegis-s1))] data-[state=active]:shadow-sm"
+                  >
                     <Layers size={14} aria-hidden />
-                    <span className="text-xs uppercase tracking-[0.1em]">
+                    <span className="text-[11px] uppercase tracking-[0.08em] sm:text-xs">
                       {t("cartography.tabCartography")}
                     </span>
                   </TabsTrigger>
                 )}
                 {grouped.guardians.length > 0 && (
-                  <TabsTrigger value="guardians" className="min-h-[44px] gap-2 rounded-lg">
+                  <TabsTrigger
+                    value="guardians"
+                    className="min-h-[44px] flex-1 gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--aegis-s1))] data-[state=active]:shadow-sm"
+                  >
                     <Users size={14} aria-hidden />
-                    <span className="text-xs uppercase tracking-[0.1em]">
+                    <span className="text-[11px] uppercase tracking-[0.08em] sm:text-xs">
                       {t("balanceReport.tabGuardians")}
                     </span>
                   </TabsTrigger>
                 )}
                 {grouped.synthesis.length > 0 && (
-                  <TabsTrigger value="synthesis" className="min-h-[44px] gap-2 rounded-lg">
+                  <TabsTrigger
+                    value="synthesis"
+                    className="min-h-[44px] flex-1 gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--aegis-s1))] data-[state=active]:shadow-sm"
+                  >
                     <BookOpen size={14} aria-hidden />
-                    <span className="text-xs uppercase tracking-[0.1em]">
+                    <span className="text-[11px] uppercase tracking-[0.08em] sm:text-xs">
                       {t("cartography.tabSynthesis")}
                     </span>
                   </TabsTrigger>
                 )}
                 {grouped.detailed.length > 0 && (
-                  <TabsTrigger value="detailed" className="min-h-[44px] gap-2 rounded-lg">
+                  <TabsTrigger
+                    value="detailed"
+                    className="min-h-[44px] flex-1 gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--aegis-s1))] data-[state=active]:shadow-sm"
+                  >
                     <FileText size={14} aria-hidden />
-                    <span className="text-xs uppercase tracking-[0.1em]">
+                    <span className="text-[11px] uppercase tracking-[0.08em] sm:text-xs">
                       {t("cartography.tabDetailed")}
                     </span>
                   </TabsTrigger>
                 )}
               </TabsList>
 
-              <TabsContent value="cartographie" className="mt-0">
+              <TabsContent value="cartographie" className="mt-4">
+                <TabIntro text={t("cartography.tabCartographyHint")} />
                 {display.houses.length > 0 ? (
                   <CartographyStructuredReport display={display} activeTab="cartographie" />
                 ) : (
-                  grouped.cartographie.map((s) => (
-                    <CartographyMarkdownFallback key={s.id} markdown={s.markdown} title={s.title} />
-                  ))
+                  <CartographyFileList sections={grouped.cartographie} kind="cartographie" />
                 )}
               </TabsContent>
 
-              <TabsContent value="guardians" className="mt-0">
+              <TabsContent value="guardians" className="mt-4">
+                <TabIntro text={t("balanceReport.guardiansIntro")} />
                 {display.guardians.length > 0 ? (
                   <CartographyStructuredReport display={display} activeTab="guardians" />
                 ) : (
-                  grouped.guardians.map((s) => (
-                    <CartographyMarkdownFallback key={s.id} markdown={s.markdown} title={s.title} />
-                  ))
+                  <CartographyFileList sections={grouped.guardians} kind="guardians" />
                 )}
               </TabsContent>
 
-              <TabsContent value="synthesis" className="mt-0">
-                {display.synthesis.length > 0 ? (
-                  <CartographyStructuredReport display={display} activeTab="synthesis" />
-                ) : (
-                  grouped.synthesis.map((s) => (
-                    <CartographyMarkdownFallback key={s.id} markdown={s.markdown} title={s.title} />
-                  ))
-                )}
+              <TabsContent value="synthesis" className="mt-4">
+                <TabIntro text={t("cartography.synthesisIntro")} />
+                <CartographyFileList sections={grouped.synthesis} kind="synthesis" />
               </TabsContent>
 
-              <TabsContent value="detailed" className="mt-0">
-                {display.detailedReports.length > 0 ? (
-                  <CartographyStructuredReport display={display} activeTab="detailed" />
-                ) : (
-                  grouped.detailed.map((s) => (
-                    <CartographyMarkdownFallback
-                      key={s.id}
-                      markdown={s.markdown}
-                      title={s.title ?? s.reportCode.toUpperCase()}
-                    />
-                  ))
-                )}
+              <TabsContent value="detailed" className="mt-4">
+                <TabIntro text={t("cartography.detailedIntro")} />
+                <CartographyFileList sections={grouped.detailed} kind="detailed" />
               </TabsContent>
             </Tabs>
           </>
@@ -379,5 +375,11 @@ function MetaItem({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] uppercase tracking-[0.18em] text-text-tertiary">{label}</p>
       <p className="mt-1 text-sm text-text-primary">{value}</p>
     </div>
+  );
+}
+
+function TabIntro({ text }: { text: string }) {
+  return (
+    <p className="mb-4 text-sm leading-relaxed text-text-tertiary">{text}</p>
   );
 }

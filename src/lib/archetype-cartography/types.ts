@@ -32,7 +32,22 @@ export type TextBlock =
   | { type: "p"; text: string }
   | { type: "quote"; text: string }
   | { type: "list"; items: string[]; ordered?: boolean }
-  | { type: "labeled"; label: string; text: string };
+  | { type: "labeled"; label: string; text: string }
+  | { type: "table"; headers: string[]; rows: string[][] }
+  | { type: "mermaid"; source: string };
+
+export interface DocumentFrontmatter {
+  lines: Record<string, string>;
+}
+
+export interface ParsedMarkdownDocument {
+  title: string | null;
+  subtitle: string | null;
+  frontmatter: DocumentFrontmatter | null;
+  intro: TextBlock[];
+  sections: ReportSection[];
+  footer: string | null;
+}
 
 export interface ReportSection {
   id: string;

@@ -25,6 +25,7 @@ import {
   LineChart,
   Settings2,
   Mail,
+  Sparkles,
 } from "lucide-react";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { MobileDockCircleMenu } from "@/components/MobileDockCircleMenu";
@@ -67,6 +68,7 @@ const navKeys = [
   { to: "/habits", icon: ListChecks, key: "nav.habits" as const },
   { to: "/journal", icon: BookOpen, key: "nav.journal" as const },
   { to: "/toolbox", icon: Headphones, key: "nav.toolbox" as const },
+  { to: "/pulse", icon: Sparkles, key: "nav.pulse" as const },
   { to: "/bibliotheque", icon: Library, key: "nav.bibliotheque" as const },
   { to: "/people", icon: Users, key: "nav.people" as const },
   { to: "/analytics", icon: BarChart3, key: "nav.analytics" as const },

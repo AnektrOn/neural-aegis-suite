@@ -1,0 +1,128 @@
+[
+  {
+    "external_key": "pulse_mentalism_filter",
+    "principle": "MENTALISM",
+    "sort_order": 1,
+    "time_label": "2 MIN",
+    "is_active": true,
+    "archetype_targets": ["sage", "mystic", "magician"],
+    "title": {
+      "fr": "Le Filtre de la Réalité",
+      "en": "The Reality Filter"
+    },
+    "format": {
+      "fr": "MICRO-CONCEPT",
+      "en": "MICRO-CONCEPT"
+    },
+    "problem": {
+      "fr": "Pourquoi deux personnes vivent la même journée mais l'une est heureuse et l'autre misérable ?",
+      "en": "Why do two people live the same day yet one is happy and the other miserable?"
+    },
+    "bullets": {
+      "fr": [
+        "Le cerveau supprime 90% des infos.",
+        "Le rôle du Système Réticulé Activateur."
+      ],
+      "en": [
+        "The brain filters out 90% of information.",
+        "The role of the Reticular Activating System."
+      ]
+    },
+    "course_content": {
+      "fr": {
+        "hook": "Ton cerveau est comme un videur de boîte de nuit très strict.",
+        "concept": "À chaque seconde, des millions d'informations bombardent tes sens. Si ton cerveau traitait tout, il grillerait. Il utilise donc un 'filtre' (le SRA) basé sur tes croyances. Si tu es convaincu que 'la journée va être pourrie', ton videur intérieur ne laissera entrer que les preuves qui confirment cela (le métro en retard, le café renversé), et ignorera le reste.",
+        "action": "Aujourd'hui, pirate ton videur : donne-lui l'ordre strict de trouver 3 choses positives, même minuscules. Note-les ce soir."
+      },
+      "en": {
+        "hook": "Your brain is like a very strict nightclub bouncer.",
+        "concept": "Every second, millions of signals hit your senses. If your brain processed everything, it would overload. It uses a 'filter' (the RAS) shaped by your beliefs. If you are convinced 'today will be awful', your inner bouncer only lets in evidence that confirms it (late train, spilled coffee) and ignores the rest.",
+        "action": "Today, hack your bouncer: give it a strict order to find 3 positive things, however small. Write them down tonight."
+      }
+    }
+  },
+  {
+    "external_key": "pulse_polarity_emotions",
+    "principle": "POLARITY",
+    "sort_order": 2,
+    "time_label": "1 MIN",
+    "is_active": true,
+    "archetype_targets": ["warrior", "rebel", "sovereign"],
+    "title": {
+      "fr": "Le curseur des émotions",
+      "en": "The emotion slider"
+    },
+    "format": {
+      "fr": "HACK MENTAL",
+      "en": "MENTAL HACK"
+    },
+    "problem": {
+      "fr": "Comment arrêter de se sentir paralysé par la peur avant de passer à l'action ?",
+      "en": "How do you stop feeling paralyzed by fear before taking action?"
+    },
+    "bullets": {
+      "fr": [
+        "Peur et Excitation : même énergie, pôle différent.",
+        "La technique du glissement mental."
+      ],
+      "en": [
+        "Fear and excitement: same energy, different pole.",
+        "The mental sliding technique."
+      ]
+    },
+    "course_content": {
+      "fr": {
+        "hook": "Ton corps ne fait pas la différence entre la peur et l'excitation.",
+        "concept": "Rythme cardiaque qui s'accélère, mains moites, papillons dans le ventre... Les symptômes physiques de la peur et de l'excitation extrême sont exactement les mêmes. La seule différence est l'étiquette mentale que tu colles dessus. La loi de la Polarité dit que ce sont les deux extrémités de la même ligne.",
+        "action": "La prochaine fois que tu as le trac, arrête de te dire 'J'ai peur'. Dis à haute voix : 'Wow, je suis vraiment excité par ce qui va se passer !'. Le cerveau va changer de pôle."
+      },
+      "en": {
+        "hook": "Your body cannot tell fear from excitement.",
+        "concept": "Racing heart, sweaty palms, butterflies... The physical symptoms of fear and extreme excitement are exactly the same. The only difference is the mental label you attach. The law of Polarity says they are two ends of the same line.",
+        "action": "Next time you feel stage fright, stop saying 'I'm afraid'. Say out loud: 'Wow, I'm really excited about what's coming!' Your brain will shift poles."
+      }
+    }
+  },
+  {
+    "external_key": "pulse_vibration_media_diet",
+    "principle": "VIBRATION",
+    "sort_order": 3,
+    "time_label": "3 MIN",
+    "is_active": true,
+    "archetype_targets": ["healer", "caregiver", "mystic"],
+    "title": {
+      "fr": "La Diète Médiatique",
+      "en": "The Media Diet"
+    },
+    "format": {
+      "fr": "DÉFI EXPRESS",
+      "en": "EXPRESS CHALLENGE"
+    },
+    "problem": {
+      "fr": "Tu te sens souvent vidé de ton énergie après avoir scrollé sur ton téléphone ?",
+      "en": "Do you often feel drained after scrolling on your phone?"
+    },
+    "bullets": {
+      "fr": [
+        "Les pensées ont une signature vibratoire.",
+        "L'impact des 'Doomscrolling'."
+      ],
+      "en": [
+        "Thoughts have a vibrational signature.",
+        "The impact of doomscrolling."
+      ]
+    },
+    "course_content": {
+      "fr": {
+        "hook": "L'information que tu consommes est la nourriture de ton esprit.",
+        "concept": "La loi de la vibration implique que tu t'accordes à la fréquence de ce que tu observes. Regarder des drames, des clashs ou des actualités anxiogènes abaisse mécaniquement ta propre fréquence. Tu deviens un récepteur pour la négativité ambiante.",
+        "action": "Règle des 24h : Désabonne-toi de 3 comptes qui te font te sentir mal, en colère ou insuffisant. Remplace-les par 1 compte qui te fait rire ou t'inspire."
+      },
+      "en": {
+        "hook": "The information you consume is food for your mind.",
+        "concept": "The law of vibration means you tune to the frequency of what you observe. Watching drama, conflict, or anxiety-inducing news mechanically lowers your own frequency. You become a receiver for ambient negativity.",
+        "action": "24-hour rule: Unfollow 3 accounts that make you feel bad, angry, or inadequate. Replace them with 1 account that makes you laugh or inspires you."
+      }
+    }
+  }
+]

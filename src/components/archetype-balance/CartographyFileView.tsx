@@ -1,0 +1,312 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FileText, Layers, BookOpen, Sparkles, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { NeuralCard } from "@/components/ui/neural-card";
+import { cn } from "@/lib/utils";
+import { parseUniversalMarkdownDocument } from "@/lib/cartography-document-parse";
+import { sectionTitleParts } from "./BalanceRichText";
+import { ReportSectionPanel } from "./ReportSectionPanel";
+import { ReportContentBlocks } from "./ReportContentBlocks";
+
+type FileKind = "cartographie" | "synthesis" | "detailed" | "guardians";
+
+const KIND_CONFIG: Record<
+  FileKind,
+  { glow: "warm" | "purple"; icon: typeof Layers; accent: string; border: string }
+> = {
+  cartographie: {
+    glow: "warm",
+    icon: Layers,
+    accent: "text-[hsl(var(--aegis-warm))]",
+    border: "border-[hsl(var(--aegis-warm))]",
+  },
+  synthesis: {
+    glow: "warm",
+    icon: BookOpen,
+    accent: "text-[hsl(var(--aegis-warm))]",
+    border: "border-[hsl(var(--aegis-warm))]",
+  },
+  detailed: {
+    glow: "purple",
+    icon: FileText,
+    accent: "text-[hsl(var(--neural-accent))]",
+    border: "border-[hsl(var(--neural-accent))]",
+  },
+  guardians: {
+    glow: "purple",
+    icon: Sparkles,
+    accent: "text-[hsl(var(--neural-accent))]",
+    border: "border-[hsl(var(--neural-accent))]",
+  },
+};
+
+function extractNavLabel(title: string, index: number): { short: string; full: string } {
+  const { num, label } = sectionTitleParts(title);
+  if (num) {
+    const short = label.length > 22 ? `${num} · ${label.slice(0, 20)}…` : `${num} · ${label}`;
+    return { short, full: title };
+  }
+  const short = title.length > 24 ? `${index} · ${title.slice(0, 20)}…` : `${index} · ${title}`;
+  return { short, full: title };
+}
+
+export function CartographyFileView({
+  markdown,
+  title,
+  reportCode,
+  kind = "cartographie",
+}: {
+  markdown: string;
+  title?: string | null;
+  reportCode?: string;
+  kind?: FileKind;
+}) {
+  const doc = parseUniversalMarkdownDocument(markdown);
+  const cfg = KIND_CONFIG[kind];
+  const Icon = cfg.icon;
+  const displayTitle = title ?? doc.title ?? reportCode?.toUpperCase() ?? "Rapport";
+  const codeLabel = reportCode?.match(/p0?(\d)/i)?.[0]?.toUpperCase();
+  const [activeSection, setActiveSection] = useState(doc.sections[0]?.id ?? "");
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const isLongDoc = doc.sections.length >= 2 || kind === "synthesis";
+  const sectionVariant = isLongDoc ? "flat" : "card";
+  const sectionCollapsible = !isLongDoc;
+
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(doc.sections.map((s, i) => [s.id, i === 0])),
+  );
+
+  useEffect(() => {
+    setOpenSections(Object.fromEntries(doc.sections.map((s, i) => [s.id, i === 0])));
+    setActiveSection(doc.sections[0]?.id ?? "");
+  }, [markdown]);
+
+  const allExpanded = useMemo(
+    () => doc.sections.every((s) => openSections[s.id] !== false),
+    [doc.sections, openSections],
+  );
+
+  useEffect(() => {
+    if (doc.sections.length < 2) return;
+    const elements = doc.sections
+      .map((s) => document.getElementById(s.id))
+      .filter(Boolean) as HTMLElement[];
+    if (!elements.length) return;
+
+    observerRef.current?.disconnect();
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => (b.intersectionRatio ?? 0) - (a.intersectionRatio ?? 0));
+        const id = visible[0]?.target.id;
+        if (id) setActiveSection(id);
+      },
+      { rootMargin: "-15% 0px -60% 0px", threshold: [0, 0.2, 0.5] },
+    );
+    for (const el of elements) observerRef.current.observe(el);
+    return () => observerRef.current?.disconnect();
+  }, [doc.sections]);
+
+  const scrollToSection = (id: string) => {
+    setActiveSection(id);
+    if (sectionCollapsible) {
+      setOpenSections((prev) => ({ ...prev, [id]: true }));
+    }
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const toggleAllSections = () => {
+    const next = !allExpanded;
+    setOpenSections(Object.fromEntries(doc.sections.map((s) => [s.id, next])));
+  };
+
+  return (
+    <article className="scroll-mt-[calc(var(--safe-top)+9rem)]">
+      <NeuralCard variant="premium" glow={cfg.glow} className="overflow-hidden p-0">
+        <header className="relative border-b border-border-subtle/40 px-4 py-5 sm:px-6 sm:py-6">
+          <div className="flex items-start gap-4">
+            <span
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border-subtle/40 bg-black/20",
+                cfg.accent,
+              )}
+            >
+              <Icon size={20} strokeWidth={1.5} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              {codeLabel && (
+                <span
+                  className={cn(
+                    "inline-block rounded-md border border-border-subtle/40 bg-black/15 px-2 py-0.5 font-display text-[10px] uppercase tracking-[0.18em]",
+                    cfg.accent,
+                  )}
+                >
+                  {codeLabel}
+                </span>
+              )}
+              <h2 className="mt-1 font-display text-base leading-snug text-text-primary sm:text-lg">
+                {displayTitle}
+              </h2>
+            </div>
+          </div>
+        </header>
+
+        <div
+          className={cn(
+            doc.sections.length > 1 && "lg:grid lg:grid-cols-[minmax(12rem,14rem)_1fr] lg:items-start",
+          )}
+        >
+          {doc.sections.length > 1 && (
+            <>
+              {/* Desktop — navigation latérale */}
+              <nav
+                className="sticky top-[calc(var(--safe-top)+3.5rem)] z-10 hidden max-h-[calc(100vh-6rem)] flex-col overflow-y-auto border-b border-border-subtle/25 bg-[hsl(var(--aegis-s1))]/96 px-4 py-4 backdrop-blur-md lg:flex lg:border-b-0 lg:border-r lg:px-3 lg:py-5"
+                aria-label="Sections du rapport"
+              >
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-display uppercase tracking-[0.14em] text-text-tertiary">
+                    {doc.sections.length} sections
+                  </p>
+                  {sectionCollapsible && (
+                    <button
+                      type="button"
+                      onClick={toggleAllSections}
+                      className="inline-flex min-h-[32px] items-center gap-1 rounded-md px-1.5 text-[10px] uppercase tracking-[0.08em] text-text-tertiary transition-colors hover:bg-white/[0.04] hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      title={allExpanded ? "Tout replier" : "Tout ouvrir"}
+                    >
+                      {allExpanded ? (
+                        <ChevronsDownUp size={13} aria-hidden />
+                      ) : (
+                        <ChevronsUpDown size={13} aria-hidden />
+                      )}
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1">
+                  {doc.sections.map((s, i) => {
+                    const { short, full } = extractNavLabel(s.title, i + 1);
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        title={full}
+                        onClick={() => scrollToSection(s.id)}
+                        className={cn(
+                          "min-h-[44px] rounded-lg border px-3 py-2.5 text-left text-xs font-display leading-snug tracking-[0.02em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          activeSection === s.id
+                            ? cn("bg-white/[0.08] text-text-primary", cfg.border, "border-opacity-40")
+                            : "border-transparent text-text-tertiary hover:bg-white/[0.04]",
+                        )}
+                        aria-current={activeSection === s.id ? "true" : undefined}
+                      >
+                        {short}
+                      </button>
+                    );
+                  })}
+                </div>
+              </nav>
+
+              {/* Mobile / tablette — navigation horizontale */}
+              <nav
+                className="sticky top-[calc(var(--safe-top)+3.5rem)] z-10 border-b border-border-subtle/25 bg-[hsl(var(--aegis-s1))]/96 px-4 py-2 backdrop-blur-md sm:px-6 lg:hidden"
+                aria-label="Sections du rapport"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-display uppercase tracking-[0.14em] text-text-tertiary">
+                    {doc.sections.length} sections
+                  </p>
+                  {sectionCollapsible && (
+                    <button
+                      type="button"
+                      onClick={toggleAllSections}
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-2 text-[10px] uppercase tracking-[0.1em] text-text-tertiary transition-colors hover:bg-white/[0.04] hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {allExpanded ? (
+                        <>
+                          <ChevronsDownUp size={13} aria-hidden />
+                          Tout replier
+                        </>
+                      ) : (
+                        <>
+                          <ChevronsUpDown size={13} aria-hidden />
+                          Tout ouvrir
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                  {doc.sections.map((s, i) => {
+                    const { short, full } = extractNavLabel(s.title, i + 1);
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        title={full}
+                        onClick={() => scrollToSection(s.id)}
+                        className={cn(
+                          "shrink-0 min-h-[44px] max-w-[220px] truncate rounded-lg border px-3 py-2 text-left text-[11px] font-display tracking-[0.04em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:max-w-[280px]",
+                          activeSection === s.id
+                            ? cn("bg-white/[0.08] text-text-primary", cfg.border, "border-opacity-40")
+                            : "border-transparent text-text-tertiary hover:bg-white/[0.04]",
+                        )}
+                        aria-current={activeSection === s.id ? "true" : undefined}
+                      >
+                        {short}
+                      </button>
+                    );
+                  })}
+                </div>
+              </nav>
+            </>
+          )}
+
+          <div
+            className={cn(
+              "min-w-0 px-4 py-5 sm:px-6 sm:py-6",
+              sectionVariant === "flat" ? "space-y-8" : "space-y-4",
+            )}
+          >
+          {doc.intro.length > 0 && (
+            <div className="rounded-xl border border-[hsl(var(--aegis-warm)/0.12)] bg-[hsl(var(--aegis-warm-muted)/0.08)] p-4 sm:p-5">
+              <p className="mb-3 text-[10px] font-display uppercase tracking-[0.16em] text-[hsl(var(--aegis-warm))]">
+                Introduction
+              </p>
+              <ReportContentBlocks blocks={doc.intro} />
+            </div>
+          )}
+
+          {doc.sections.map((section, i) => (
+            <ReportSectionPanel
+              key={section.id}
+              section={section}
+              index={i + 1}
+              defaultOpen={i === 0}
+              accentClass={cfg.border}
+              collapsible={sectionCollapsible}
+              variant={sectionVariant}
+              open={sectionCollapsible ? openSections[section.id] : undefined}
+              onOpenChange={
+                sectionCollapsible
+                  ? (v) => setOpenSections((prev) => ({ ...prev, [section.id]: v }))
+                  : undefined
+              }
+            />
+          ))}
+
+          {doc.sections.length === 0 && doc.intro.length === 0 && (
+            <p className="py-8 text-center text-sm text-text-tertiary">Contenu vide.</p>
+          )}
+
+          {doc.footer && (
+            <p className="border-t border-border-subtle/25 pt-4 text-center text-[10px] uppercase tracking-[0.16em] text-text-tertiary">
+              {doc.footer}
+            </p>
+          )}
+          </div>
+        </div>
+      </NeuralCard>
+    </article>
+  );
+}

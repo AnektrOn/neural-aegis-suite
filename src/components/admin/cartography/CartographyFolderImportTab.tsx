@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { AnalysisMode } from "@/lib/archetype-cartography/types";
 import {
   previewCartographyFolder,
   readFolderFromFileList,
@@ -33,19 +34,21 @@ interface CartographyFolderImportTabProps {
   onImported: () => void;
 }
 
-const IMPORT_TREE = `Myss/                    → mode Analyse
-  2026-05/
-    ⚖️ BALANCE/   → 7 fichiers
-    🌑 SHADOW/    → 7 fichiers
-    🌕 LIGHT/     → 7 fichiers
+const IMPORT_TREE = `analysis/                → mode Analyse
+  Myss/
+    2026-05/
+      ⚖️ BALANCE/   → 7 fichiers
+      🌑 SHADOW/    → 7 fichiers
+      🌕 LIGHT/     → 7 fichiers
 
-HIGH_RES_ANALYSIS/       → mode Clinique
-  2026-05/
-    ⚖️ BALANCE/   → P01·RES…, etc.
-    🌑 SHADOW/
-    🌕 LIGHT/
+high-res/                → mode Clinique
+  Myss/
+    2026-05/
+      ⚖️ BALANCE/   → 7 fichiers
+      🌑 SHADOW/
+      🌕 LIGHT/
 
-(Echols/ ignoré — remplacé par HIGH_RES_ANALYSIS)`;
+Ou zip un seul des deux + sélection du mode`;
 
 export default function CartographyFolderImportTab({
   profiles,
@@ -57,6 +60,7 @@ export default function CartographyFolderImportTab({
   const isFR = locale === "fr";
 
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [importMode, setImportMode] = useState<AnalysisMode>("analyse");
   const [publishOnImport, setPublishOnImport] = useState(true);
   const [preview, setPreview] = useState<FolderImportPreview | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -65,14 +69,17 @@ export default function CartographyFolderImportTab({
   const effectiveUserId = resolveCartographyTargetUserId(preview?.manifest ?? null, selectedUserId);
   const selectedProfile = profiles.find((p) => p.id === selectedUserId);
 
-  const runPreview = useCallback(async (entries: Array<{ path: string; content: string }>) => {
-    setLoadingPreview(true);
-    try {
-      setPreview(previewCartographyFolder(entries));
-    } finally {
-      setLoadingPreview(false);
-    }
-  }, []);
+  const runPreview = useCallback(
+    async (entries: Array<{ path: string; content: string }>) => {
+      setLoadingPreview(true);
+      try {
+        setPreview(previewCartographyFolder(entries, { mode: importMode }));
+      } finally {
+        setLoadingPreview(false);
+      }
+    },
+    [importMode],
+  );
 
   const onFolderPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files;
@@ -149,11 +156,11 @@ export default function CartographyFolderImportTab({
   return (
     <div className="space-y-6">
       <ToolboxPanel
-        title={isFR ? "Dossiers Myss + HIGH_RES_ANALYSIS" : "Myss + HIGH_RES_ANALYSIS folders"}
+        title={isFR ? "Structure des dossiers" : "Folder structure"}
         description={
           isFR
-            ? "Zippez le dossier parent : Myss/ → analyse, HIGH_RES_ANALYSIS/ → clinique. Echols/ est ignoré."
-            : "Zip the parent folder: Myss/ → analysis, HIGH_RES_ANALYSIS/ → clinical. Echols/ is skipped."
+            ? "analysis/Myss/ → analyse · high-res/Myss/ → clinique. Ou zippez un seul et choisissez le mode."
+            : "analysis/Myss/ → analysis · high-res/Myss/ → clinical. Or zip one and select the mode."
         }
       >
         <pre className="overflow-x-auto rounded-lg border border-border-subtle/60 bg-black/20 p-4 text-xs leading-relaxed text-text-secondary whitespace-pre">
@@ -161,10 +168,10 @@ export default function CartographyFolderImportTab({
         </pre>
         <ul className="mt-4 space-y-1 text-xs text-text-tertiary">
           <li>
-            <strong>Myss</strong> : 00-Cartographie… · GLOBAL-MYSS… · P01·ARC… → P05
+            <strong>analysis/Myss</strong> : 00-Cartographie… · GLOBAL-MYSS… · P01·ARC… → P05
           </li>
           <li>
-            <strong>HIGH_RES_ANALYSIS</strong> : P01·RES… · GLOBAL-ECHOLS… (clinique)
+            <strong>high-res/Myss</strong> : mêmes noms de fichiers → mode clinique
           </li>
         </ul>
       </ToolboxPanel>
@@ -187,7 +194,46 @@ export default function CartographyFolderImportTab({
         </label>
       </ToolboxPanel>
 
-      <ToolboxPanel title={isFR ? "2. Déposer le zip ou le dossier" : "2. Drop zip or folder"}>
+      <ToolboxPanel title={isFR ? "2. Mode d'import" : "2. Import mode"}>
+        <div className="flex gap-2">
+          {(["analyse", "clinique"] as const).map((m) => {
+            const active = importMode === m;
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setImportMode(m);
+                  setPreview(null);
+                }}
+                className={cn(
+                  "flex-1 min-h-[44px] rounded-lg border px-4 py-2 text-sm font-medium uppercase tracking-[0.08em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  active
+                    ? m === "analyse"
+                      ? "border-[hsl(var(--aegis-warm)/0.5)] bg-[hsl(var(--aegis-warm-muted)/0.4)] text-[hsl(var(--aegis-warm))]"
+                      : "border-[hsl(var(--neural-accent)/0.5)] bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--neural-accent))]"
+                    : "border-border-subtle/50 bg-white/[0.03] text-text-tertiary hover:bg-white/[0.06]",
+                )}
+              >
+                {m === "analyse"
+                  ? isFR ? "Analyse (Myss)" : "Analysis (Myss)"
+                  : isFR ? "Clinique (HIGH_RES)" : "Clinical (HIGH_RES)"}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-text-tertiary">
+        {importMode === "analyse"
+          ? isFR
+            ? "Les fichiers seront importés en mode Analyse. Dossier type : analysis/Myss/"
+            : "Files will be imported as Analysis. Typical folder: analysis/Myss/"
+          : isFR
+            ? "Les fichiers seront importés en mode Clinique. Dossier type : high-res/Myss/"
+            : "Files will be imported as Clinical. Typical folder: high-res/Myss/"}
+        </p>
+      </ToolboxPanel>
+
+      <ToolboxPanel title={isFR ? "3. Déposer le zip ou le dossier" : "3. Drop zip or folder"}>
         <div className="flex flex-wrap gap-3">
           <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-[hsl(var(--aegis-warm)/0.35)] bg-[hsl(var(--aegis-warm-muted)/0.3)] px-4 py-2 text-sm font-medium text-[hsl(var(--aegis-warm))]">
             <FileArchive size={16} strokeWidth={1.5} aria-hidden />
@@ -230,13 +276,13 @@ export default function CartographyFolderImportTab({
       )}
 
       {preview && !loadingPreview && (
-        <ToolboxPanel title={isFR ? "3. Importer" : "3. Import"}>
+        <ToolboxPanel title={isFR ? "4. Importer" : "4. Import"}>
           {(preview.myssLayout || preview.highResLayout) && (
             <p className="mb-3 text-sm text-success">
               {isFR ? "Formats détectés :" : "Detected:"}{" "}
-              {preview.myssLayout && "Myss (analyse)"}
-              {preview.myssLayout && preview.highResLayout && " · "}
-              {preview.highResLayout && "HIGH_RES_ANALYSIS (clinique)"}
+              {preview.myssLayout && !preview.highResLayout && "Myss (analyse)"}
+              {preview.highResLayout && !preview.myssLayout && "high-res (clinique)"}
+              {preview.myssLayout && preview.highResLayout && "analysis + high-res (auto)"}
               {" — "}
               {preview.files.length} {isFR ? "fichier(s)" : "file(s)"} →{" "}
               {preview.bundleKeys.join(", ")}
@@ -267,7 +313,7 @@ export default function CartographyFolderImportTab({
                 ✓ {basename(f.relativePath)}
                 <span className="text-text-tertiary">
                   {" "}
-                  → {f.pole} / {f.sectionKey}
+                  → {f.pole} / {f.mode} / {f.sectionKey}
                   {f.reportCode ? ` (${f.reportCode})` : ""}
                 </span>
               </li>
@@ -280,7 +326,9 @@ export default function CartographyFolderImportTab({
             ) : (
               <Upload size={16} strokeWidth={1.5} aria-hidden />
             )}
-            {isFR ? "Importer les 3 pôles (Myss)" : "Import Myss (3 poles)"}
+            {importMode === "analyse"
+              ? isFR ? "Importer — Analyse (Myss)" : "Import — Analysis (Myss)"
+              : isFR ? "Importer — Clinique (HIGH_RES)" : "Import — Clinical (HIGH_RES)"}
           </Button>
 
           {!selectedUserId && (
@@ -297,8 +345,8 @@ export default function CartographyFolderImportTab({
           title={isFR ? "Prêt" : "Ready"}
           hint={
             isFR
-              ? "Utilisateur + zip du dossier parent (avec Myss/ dedans)."
-              : "User + zip of parent folder (containing Myss/)."
+              ? "Utilisateur + mode (Analyse ou Clinique) + zip du dossier."
+              : "User + mode (Analysis or Clinical) + zip of the folder."
           }
         />
       )}

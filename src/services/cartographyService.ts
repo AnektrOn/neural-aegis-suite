@@ -249,34 +249,59 @@ export async function importCartographyFolder(
 
     bundleIds.push(bundle.id);
 
+    // Supprimer TOUTES les anciennes sections de ce bundle avant ré-import
     const { error: delErr } = await supabase
       .from("cartography_bundle_sections")
       .delete()
       .eq("bundle_id", bundle.id);
 
     if (delErr) {
-      console.error("[cartography] clear sections", delErr.message);
-      throw new Error(delErr.message);
+      // Si RLS bloque le delete, on tente un upsert à la place
+      console.warn("[cartography] delete sections blocked, using upsert", delErr.message);
+
+      for (const f of groupFiles) {
+        const { error: singleErr } = await supabase
+          .from("cartography_bundle_sections")
+          .upsert(
+            {
+              bundle_id: bundle.id,
+              section_key: f.sectionKey,
+              report_code: f.reportCode,
+              title: f.title,
+              markdown: f.markdown,
+              sort_order: f.sortOrder,
+              source_path: f.relativePath,
+            },
+            { onConflict: "bundle_id,section_key,report_code" },
+          );
+        if (singleErr) {
+          console.error("[cartography] upsert section", singleErr.message);
+          throw new Error(singleErr.message);
+        }
+      }
+    } else {
+      // Delete OK → insert fresh
+      const rows = groupFiles.map((f) => ({
+        bundle_id: bundle.id,
+        section_key: f.sectionKey,
+        report_code: f.reportCode,
+        title: f.title,
+        markdown: f.markdown,
+        sort_order: f.sortOrder,
+        source_path: f.relativePath,
+      }));
+
+      const { error: secErr } = await supabase
+        .from("cartography_bundle_sections")
+        .insert(rows);
+
+      if (secErr) {
+        console.error("[cartography] insert sections", secErr.message);
+        throw new Error(secErr.message);
+      }
     }
 
-    const rows = groupFiles.map((f) => ({
-      bundle_id: bundle.id,
-      section_key: f.sectionKey,
-      report_code: f.reportCode,
-      title: f.title,
-      markdown: f.markdown,
-      sort_order: f.sortOrder,
-      source_path: f.relativePath,
-    }));
-
-    const { error: secErr } = await supabase.from("cartography_bundle_sections").insert(rows);
-
-    if (secErr) {
-      console.error("[cartography] insert sections", secErr.message);
-      throw new Error(secErr.message);
-    }
-
-    sectionsUpserted += rows.length;
+    sectionsUpserted += groupFiles.length;
   }
 
   await supabase.from("admin_import_runs").insert({

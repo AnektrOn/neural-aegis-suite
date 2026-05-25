@@ -56,6 +56,7 @@ const AssessmentFlow = lazy(() => import("./features/archetype-assessment/pages/
 const AssessmentResults = lazy(() => import("./features/archetype-assessment/pages/AssessmentResults"));
 const DeepDiveUserReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveUserReport"));
 const DeepDiveScores = lazy(() => import("./pages/DeepDiveScores"));
+const PulsePage = lazy(() => import("./features/aegis-pulse/pages/PulsePage"));
 const ArchetypeCartographyReport = lazy(() => import("./pages/ArchetypeCartographyReport"));
 const CartographyManagement = lazy(() => import("./pages/admin/CartographyManagement"));
 const Newsletter = lazy(() => import("./pages/Newsletter"));
@@ -67,6 +68,7 @@ const AdminToolboxHub = lazy(() => import("./pages/admin/AdminToolboxHub"));
 const AdminPlacesHub = lazy(() => import("./pages/admin/AdminPlacesHub"));
 const AdminDeepDiveHub = lazy(() => import("./pages/admin/AdminDeepDiveHub"));
 const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
+const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -166,6 +168,7 @@ const App = () => (
                                 path="/program-builder"
                                 element={<AdminLegacyRedirect from="/admin/program-builder" />}
                               />
+                              <Route path="/pulse" element={<AdminPulseHub />} />
                               <Route path="/places" element={<AdminPlacesHub />} />
                               <Route
                                 path="/place-tags"
@@ -214,6 +217,7 @@ const App = () => (
                             <Route path="/habits" element={<HabitTracker />} />
                             <Route path="/journal" element={<Journal />} />
                             <Route path="/toolbox" element={<Toolbox />} />
+                            <Route path="/pulse" element={<PulsePage />} />
                             <Route path="/bibliotheque" element={<Bibliotheque />} />
                             <Route path="/people" element={<PeopleBoard />} />
                             <Route path="/analytics" element={<Analytics />} />

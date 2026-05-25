@@ -1,4 +1,5 @@
 import type { AnalysisMode, ArchetypePole } from "@/lib/archetype-cartography/types";
+import { sanitizeCartographyMarkdown } from "@/lib/cartography-document-parse";
 
 export type CartographySectionKey = "cartographie" | "guardians" | "synthesis" | "detailed";
 
@@ -60,11 +61,38 @@ const MODE_ALIASES: Record<string, AnalysisMode> = {
   clinical: "clinique",
 };
 
-const SKIP_PATH_PARTS = new Set(["__macosx", ".ds_store", "node_modules"]);
+const SKIP_PATH_PARTS = new Set([
+  "__macosx",
+  ".ds_store",
+  "node_modules",
+  "promptnotebooklm",
+  "notebooklm",
+]);
+
+function normalizePathSegment(seg: string): string {
+  return seg
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function shouldSkipCartographyPath(rel: string): boolean {
+  const lower = normalizePath(rel);
+  if (lower.includes("notebooklm")) return true;
+  const name = basename(lower);
+  if (/^prompt[-_]?video/i.test(name)) return true;
+  if (/^prompt[-_]/i.test(name) && /overview|notebook/i.test(name)) return true;
+  const segments = lower.split("/");
+  return segments.some((s) => SKIP_PATH_PARTS.has(normalizePathSegment(s)));
+}
 const MYSS_SEGMENT = /(^|\/)myss(\/|$)/i;
-const HIGH_RES_SEGMENT = /(^|\/)high_res_analysis(\/|$)/i;
-/** Ancien dossier clinique — ignoré au profit de HIGH_RES_ANALYSIS */
+/** Parent folders: high-res/, 03_HIGH_RES_ANALYSIS/, HIGH_RES_ANALYSIS/, etc. */
+const HIGH_RES_PARENT_SEGMENT = /(^|\/)(\d+[-_])?high[-_]?res([-_]analysis)?(\/|$)/i;
+/** Ancien dossier clinique — ignoré au profit de high-res */
 const ECHOLS_SEGMENT = /(^|\/)echols(\/|$)/i;
+/** Parent "analysis/" au-dessus de Myss/ → analyse explicite */
+const ANALYSIS_PARENT_SEGMENT = /(^|\/)analysis(\/|$)/i;
 
 const FLAT_FILE_RE =
   /^(balance|lumiere|lumière|light|ombre|shadow)[-_.](analyse|analysis|clinique|clinical)[-_.](.+)\.md$/i;
@@ -82,25 +110,40 @@ export function isUnderMyss(rel: string): boolean {
   return MYSS_SEGMENT.test(normalizePath(rel));
 }
 
-export function isUnderHighResAnalysis(rel: string): boolean {
-  return HIGH_RES_SEGMENT.test(normalizePath(rel));
+/** high-res/Myss/… ou HIGH_RES_ANALYSIS/… */
+export function isUnderHighRes(rel: string): boolean {
+  return HIGH_RES_PARENT_SEGMENT.test(normalizePath(rel));
+}
+
+/** analysis/Myss/… */
+function isUnderAnalysisParent(rel: string): boolean {
+  return ANALYSIS_PARENT_SEGMENT.test(normalizePath(rel));
 }
 
 function isUnderAllowedPoleFolder(rel: string): boolean {
-  return isUnderMyss(rel) || isUnderHighResAnalysis(rel);
+  return isUnderMyss(rel) || isUnderHighRes(rel);
 }
 
 function isUnderEchols(rel: string): boolean {
   return ECHOLS_SEGMENT.test(normalizePath(rel));
 }
 
+/**
+ * Priorité :
+ * 1. Mode explicite (sélecteur admin)
+ * 2. Parent high-res/ → clinique
+ * 3. Parent analysis/ → analyse
+ * 4. Myss seul → analyse
+ */
 export function resolveModeFromImportPath(
   rel: string,
   defaults?: CartographyImportDefaults,
 ): AnalysisMode {
-  if (isUnderHighResAnalysis(rel)) return "clinique";
+  if (defaults?.mode) return defaults.mode;
+  if (isUnderHighRes(rel)) return "clinique";
+  if (isUnderAnalysisParent(rel)) return "analyse";
   if (isUnderMyss(rel)) return "analyse";
-  return defaults?.mode ?? "analyse";
+  return "analyse";
 }
 
 function parsePoleSegment(seg: string): ArchetypePole | null {
@@ -243,8 +286,13 @@ export function classifyMarkdownFilename(filename: string): {
 }
 
 function titleFromMarkdown(md: string, fallback: string): string | null {
-  const m = md.match(/^#\s+(.+)$/m);
+  const cleaned = sanitizeCartographyMarkdown(md);
+  const m = cleaned.match(/^#\s+(.+)$/m) ?? cleaned.match(/^([⚖️🌑🌕]?\s*[^\n#]{8,})/m);
   return m?.[1]?.trim() ?? fallback;
+}
+
+function prepareImportMarkdown(content: string): string {
+  return sanitizeCartographyMarkdown(content);
 }
 
 function parsePoleFolderMarkdownEntry(
@@ -252,8 +300,6 @@ function parsePoleFolderMarkdownEntry(
   content: string,
   defaults?: CartographyImportDefaults,
 ): ParsedCartographyFile | null {
-  if (!isUnderAllowedPoleFolder(rel)) return null;
-
   const parts = normalizePath(rel).split("/").filter(Boolean);
   const name = basename(rel);
 
@@ -279,7 +325,7 @@ function parsePoleFolderMarkdownEntry(
     sectionKey,
     reportCode,
     title: titleFromMarkdown(content, name),
-    markdown: content.trim(),
+    markdown: prepareImportMarkdown(content),
     sortOrder,
   };
 }
@@ -313,7 +359,7 @@ function parseLegacyMarkdownEntry(
       sectionKey,
       reportCode,
       title: titleFromMarkdown(content, name),
-      markdown: content.trim(),
+      markdown: prepareImportMarkdown(content),
       sortOrder,
     };
   }
@@ -344,7 +390,7 @@ function parseLegacyMarkdownEntry(
     sectionKey,
     reportCode,
     title: titleFromMarkdown(content, sectionName),
-    markdown: content.trim(),
+    markdown: prepareImportMarkdown(content),
     sortOrder,
   };
 }
@@ -355,9 +401,9 @@ function parseMarkdownEntry(
   defaults: CartographyImportDefaults | undefined,
   poleFolderLayout: boolean,
 ): ParsedCartographyFile | null {
-  if (poleFolderLayout || isUnderAllowedPoleFolder(rel)) {
-    if (!isUnderAllowedPoleFolder(rel)) return null;
-    return parsePoleFolderMarkdownEntry(rel, content, defaults);
+  if (poleFolderLayout || isUnderAllowedPoleFolder(rel) || defaults?.mode) {
+    const result = parsePoleFolderMarkdownEntry(rel, content, defaults);
+    if (result) return result;
   }
   return parseLegacyMarkdownEntry(rel, content, defaults);
 }
@@ -417,20 +463,21 @@ export function previewCartographyFolder(
   let skippedOutsideMyss = 0;
 
   const hasMyssFiles = entries.some((e) => isUnderMyss(e.path));
-  const hasHighResFiles = entries.some((e) => isUnderHighResAnalysis(e.path));
+  const hasHighResFiles = entries.some((e) => isUnderHighRes(e.path));
   const myssLayout = hasMyssFiles;
   const highResLayout = hasHighResFiles;
   const poleFolderLayout = myssLayout || highResLayout;
+  const hasExplicitMode = Boolean(defaults?.mode);
 
   for (const entry of entries) {
     const rel = normalizePath(entry.path);
     const lower = rel.toLowerCase();
-    if (SKIP_PATH_PARTS.has(lower.split("/")[0]?.toLowerCase() ?? "")) continue;
+    if (shouldSkipCartographyPath(rel)) continue;
     if (lower.includes("/__macosx/") || lower.endsWith(".ds_store")) continue;
 
     if (isUnderEchols(rel)) continue;
 
-    if (poleFolderLayout && !isUnderAllowedPoleFolder(rel)) {
+    if (poleFolderLayout && !hasExplicitMode && !isUnderAllowedPoleFolder(rel)) {
       if (lower.endsWith(".md")) skippedOutsideMyss++;
       continue;
     }
@@ -458,13 +505,15 @@ export function previewCartographyFolder(
   if (files.length === 0 && !manifest) {
     issues.push({
       path: "(import)",
-      message: poleFolderLayout
-        ? "Aucun .md sous Myss/ ou HIGH_RES_ANALYSIS/. Vérifiez Myss/2026-05/⚖️ BALANCE/… ou HIGH_RES_ANALYSIS/…"
-        : "Aucun fichier reconnu. Déposez Myss (analyse) et/ou HIGH_RES_ANALYSIS (clinique), ou balance-analyse-cartographie.md",
+      message: defaults?.mode
+        ? `Aucun .md reconnu pour le mode ${defaults.mode}. Vérifiez que le dossier contient ⚖️ BALANCE/, 🌑 SHADOW/ ou 🌕 LIGHT/ avec des fichiers .md`
+        : poleFolderLayout
+          ? "Aucun .md sous Myss/ ou HIGH_RES_ANALYSIS/. Vérifiez Myss/2026-05/⚖️ BALANCE/… ou HIGH_RES_ANALYSIS/…"
+          : "Aucun fichier reconnu. Déposez Myss (analyse) et/ou HIGH_RES_ANALYSIS (clinique), ou balance-analyse-cartographie.md",
     });
   }
 
-  if (poleFolderLayout && files.length > 0 && !manifest) {
+  if ((poleFolderLayout || hasExplicitMode) && files.length > 0 && !manifest) {
     const period = extractPeriodFromPath(files[0].relativePath);
     const userHint = extractUserHintFromFilenames(files);
     const hasClinical = files.some((f) => f.mode === "clinique");
