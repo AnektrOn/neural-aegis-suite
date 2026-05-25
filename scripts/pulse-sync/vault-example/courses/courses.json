@@ -1,0 +1,64 @@
+[
+  {
+    "external_key": "course_mentalism_filter",
+    "principle": "MENTALISM",
+    "archetype_targets": ["sage", "mystic", "magician"],
+    "difficulty": "beginner",
+    "estimated_minutes": 5,
+    "sort_order": 1,
+    "is_active": true,
+    "title": {
+      "fr": "Le Filtre de la Réalité",
+      "en": "The Reality Filter"
+    },
+    "description": {
+      "fr": "Comprends comment ton cerveau filtre la réalité et apprends à reprogrammer ce filtre.",
+      "en": "Understand how your brain filters reality and learn to reprogram that filter."
+    },
+    "cards": ["pulse_mentalism_filter"],
+    "sections": [
+      {
+        "section_type": "hook",
+        "content": {
+          "fr": "Ton cerveau est comme un videur de boîte de nuit très strict.",
+          "en": "Your brain is like a very strict nightclub bouncer."
+        }
+      },
+      {
+        "section_type": "concept",
+        "content": {
+          "fr": "À chaque seconde, des millions d'informations bombardent tes sens...",
+          "en": "Every second, millions of pieces of information bombard your senses..."
+        }
+      },
+      {
+        "section_type": "exercise",
+        "content": {
+          "fr": "Ferme les yeux pendant 30 secondes. Pense à la couleur rouge...",
+          "en": "Close your eyes for 30 seconds. Think of the color red..."
+        }
+      },
+      {
+        "section_type": "reflection",
+        "content": {
+          "fr": "Quelles sont les 3 croyances les plus fortes que tu portes ?",
+          "en": "What are the 3 strongest beliefs you carry?"
+        }
+      },
+      {
+        "section_type": "action",
+        "content": {
+          "fr": "Aujourd'hui, pirate ton videur : trouve 3 choses positives.",
+          "en": "Today, hack your bouncer: find 3 positive things."
+        }
+      },
+      {
+        "section_type": "quote",
+        "content": {
+          "fr": "« Le Tout est Esprit ; l'Univers est Mental. » — Le Kybalion",
+          "en": "\"The All is Mind; the Universe is Mental.\" — The Kybalion"
+        }
+      }
+    ]
+  }
+]

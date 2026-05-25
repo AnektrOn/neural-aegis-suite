@@ -132,10 +132,6 @@ export const BALANCE_ANALYSE_SYNTHESIS: ReportSection[] = [
         type: "p",
         text: 'Le sujet "note" atteint sa pleine maturité lorsqu\'il cesse de lutter contre ses peurs pour les mettre au service de son Mandat d\'Intercession. Sa balance est l\'état de **Souveraineté Stable** : il est le terminal où le Sacré s\'incarne avec précision, force et élégance. Il ne subit plus ses archétypes ; il orchestre une symphonie de puissance où même l\'ombre contribue à la clarté du tout.',
       },
-      {
-        type: "p",
-        text: "*Document scellé pour archivage et ingestion par NotebookLM.*",
-      },
     ],
   },
 ];

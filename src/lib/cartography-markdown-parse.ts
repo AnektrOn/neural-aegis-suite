@@ -7,6 +7,7 @@ import type {
   TextBlock,
 } from "@/lib/archetype-cartography/types";
 import type { DbCartographyBundle } from "@/services/cartographyService";
+import { parseMarkdownBlocks as parseDocumentMarkdownBlocks } from "@/lib/cartography-document-parse";
 
 const ZODIAC = "♈♉♊♋♌♍♎♏♐♑♒♓";
 
@@ -127,80 +128,7 @@ export function parseGuardiansFromMarkdown(markdown: string): CartographyGuardia
 }
 
 export function parseMarkdownBlocks(text: string): TextBlock[] {
-  const blocks: TextBlock[] = [];
-  const lines = text.split("\n");
-  let i = 0;
-
-  const flushParagraph = (buf: string[]) => {
-    const joined = buf.join(" ").trim();
-    if (joined) blocks.push({ type: "p", text: joined });
-    buf.length = 0;
-  };
-
-  let paraBuf: string[] = [];
-  let listBuf: string[] | null = null;
-  let listOrdered = false;
-
-  const flushList = () => {
-    if (listBuf?.length) {
-      blocks.push({ type: "list", items: [...listBuf], ordered: listOrdered });
-    }
-    listBuf = null;
-    listOrdered = false;
-  };
-
-  while (i < lines.length) {
-    const raw = lines[i];
-    const line = raw.trim();
-    i++;
-
-    if (!line || line === "---") {
-      flushParagraph(paraBuf);
-      flushList();
-      continue;
-    }
-
-    if (line.startsWith("#")) continue;
-
-    if (line.startsWith(">")) {
-      flushParagraph(paraBuf);
-      flushList();
-      blocks.push({ type: "quote", text: line.replace(/^>\s?/, "").trim() });
-      continue;
-    }
-
-    const labeled = line.match(/^\*\*([^*]+)\*\*\s*:?\s*(.+)$/);
-    if (labeled && labeled[1].length < 48) {
-      flushParagraph(paraBuf);
-      flushList();
-      blocks.push({ type: "labeled", label: labeled[1].trim(), text: labeled[2].trim() });
-      continue;
-    }
-
-    const ul = line.match(/^[-*]\s+(.+)$/);
-    const ol = line.match(/^\d+\.\s+(.+)$/);
-    if (ul || ol) {
-      flushParagraph(paraBuf);
-      const item = (ul?.[1] ?? ol?.[1])!.trim();
-      if (!listBuf) {
-        listBuf = [];
-        listOrdered = Boolean(ol);
-      } else if (listOrdered !== Boolean(ol)) {
-        flushList();
-        listBuf = [];
-        listOrdered = Boolean(ol);
-      }
-      listBuf.push(item);
-      continue;
-    }
-
-    flushList();
-    paraBuf.push(line);
-  }
-
-  flushParagraph(paraBuf);
-  flushList();
-  return blocks;
+  return parseDocumentMarkdownBlocks(text);
 }
 
 function parseSectionBody(body: string): { blocks: TextBlock[]; subsections: ReportSection[] } {

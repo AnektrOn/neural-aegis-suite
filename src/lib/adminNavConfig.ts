@@ -20,11 +20,13 @@ import {
   MapPin,
   FileText,
   Home,
+  Zap,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
 export type AdminHubTabId =
   | "manage"
+  | "stats"
   | "waiting"
   | "program"
   | "tags"
@@ -33,7 +35,8 @@ export type AdminHubTabId =
   | "scores"
   | "reportV2"
   | "analytics"
-  | "executive";
+  | "executive"
+  | "import";
 
 export type AdminNavLinkItem = {
   kind: "link";
@@ -109,6 +112,20 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
           { id: "manage", labelKey: "admin.hub.tab.toolboxManage" },
           { id: "waiting", labelKey: "admin.hub.tab.toolboxWaiting" },
           { id: "program", labelKey: "admin.hub.tab.toolboxProgram" },
+        ],
+      },
+      {
+        kind: "hub",
+        to: "/admin/pulse",
+        icon: Zap,
+        labelKey: "admin.nav.pulse",
+        titleKey: "admin.hub.pulse.title",
+        descriptionKey: "admin.hub.pulse.description",
+        defaultTab: "manage",
+        tabs: [
+          { id: "manage", labelKey: "admin.hub.tab.pulseManage" },
+          { id: "stats", labelKey: "admin.hub.tab.pulseStats" },
+          { id: "import", labelKey: "admin.hub.tab.pulseImport" },
         ],
       },
       { kind: "link", to: "/admin/video-library", icon: Video, labelKey: "admin.nav.videoLibrary" },

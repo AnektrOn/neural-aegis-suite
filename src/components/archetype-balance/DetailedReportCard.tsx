@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { ChevronDown, FileText } from "lucide-react";
+import { FileText, ChevronDown } from "lucide-react";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { cn } from "@/lib/utils";
 import type { DetailedReport } from "@/lib/archetype-cartography/types";
-import { ReportSectionAccordion } from "./ReportSectionAccordion";
+import { ReportSectionPanel } from "./ReportSectionPanel";
 
 export function DetailedReportCard({
   report,
-  defaultOpen = false,
+  defaultOpen = true,
 }: {
   report: DetailedReport;
   defaultOpen?: boolean;
@@ -20,31 +20,28 @@ export function DetailedReportCard({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex w-full min-h-[44px] items-start gap-3 p-4 text-left transition-colors hover:bg-white/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex w-full min-h-[52px] items-center gap-4 border-b border-border-subtle/40 bg-gradient-to-br from-white/[0.04] to-transparent px-4 py-4 text-left transition-colors hover:bg-white/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-6"
           aria-expanded={open}
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[hsl(var(--neural-accent)/0.3)] bg-[hsl(var(--sidebar-accent))]">
-            <FileText
-              size={16}
-              strokeWidth={1.5}
-              className="text-[hsl(var(--neural-accent))]"
-              aria-hidden
-            />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[hsl(var(--neural-accent)/0.3)] bg-[hsl(var(--sidebar-accent))]">
+            <FileText size={18} strokeWidth={1.5} className="text-[hsl(var(--neural-accent))]" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-display uppercase tracking-[0.22em] text-[hsl(var(--neural-accent))]">
+            <span className="font-display text-[10px] uppercase tracking-[0.22em] text-[hsl(var(--neural-accent))]">
               {report.code}
-            </p>
-            <h3 className="mt-1 font-display text-sm uppercase tracking-[0.08em] text-text-primary sm:text-base">
+            </span>
+            <h3 className="mt-0.5 font-display text-base leading-snug text-text-primary">
               {report.title}
             </h3>
-            <p className="mt-1 text-xs text-text-tertiary">{report.subtitle}</p>
+            {report.subtitle && (
+              <p className="mt-1 text-xs text-text-tertiary">{report.subtitle}</p>
+            )}
           </div>
           <ChevronDown
             size={18}
             strokeWidth={1.5}
             className={cn(
-              "mt-1 shrink-0 text-text-tertiary transition-transform duration-200",
+              "shrink-0 text-text-tertiary transition-transform duration-200",
               open && "rotate-180",
             )}
             aria-hidden
@@ -52,17 +49,18 @@ export function DetailedReportCard({
         </button>
 
         {open && (
-          <div className="space-y-3 border-t border-border-subtle/60 px-4 pb-4 pt-3">
+          <div className="space-y-4 px-4 py-5 sm:px-6">
             {report.sections.map((section, i) => (
-              <ReportSectionAccordion
+              <ReportSectionPanel
                 key={section.id}
                 section={section}
+                index={i + 1}
                 defaultOpen={i === 0}
-                depth={1}
+                accentClass="border-[hsl(var(--neural-accent))]"
               />
             ))}
             {report.footer && (
-              <p className="pt-2 text-center text-[10px] uppercase tracking-[0.2em] text-text-tertiary">
+              <p className="border-t border-border-subtle/30 pt-4 text-center text-[10px] uppercase tracking-[0.18em] text-text-tertiary">
                 {report.footer}
               </p>
             )}
