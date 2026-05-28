@@ -1,11 +1,4 @@
-export type RunePrincipleCode =
-  | "MENTALISM"
-  | "CORRESPONDENCE"
-  | "VIBRATION"
-  | "POLARITY"
-  | "RHYTHM"
-  | "CAUSE_EFFECT"
-  | "GENDER";
+export type RunePrincipleCode = string;
 
 export type SwipeAction = "assimilated" | "ignored";
 
@@ -65,6 +58,7 @@ export interface PulseCard {
   format: string;
   courseContent: PulseCourseContent;
   swipedAt?: string;
+  isCourseCompleted?: boolean;
 }
 
 export interface RuneProgress {
@@ -72,8 +66,14 @@ export interface RuneProgress {
   principleName: string;
   pulsesToUnlock: number;
   pulsesCount: number;
+  totalCards: number;
   isUnlocked: boolean;
   unlockedAt: string | null;
+  bgClass: string;
+  textClass: string;
+  glyphSvg: string | null;
+  collectionCode: string | null;
+  collectionName: string | null;
 }
 
 export interface SwipeResult {

@@ -69,6 +69,7 @@ const AdminPlacesHub = lazy(() => import("./pages/admin/AdminPlacesHub"));
 const AdminDeepDiveHub = lazy(() => import("./pages/admin/AdminDeepDiveHub"));
 const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
+const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -197,6 +198,7 @@ const App = () => (
                               />
                               <Route path="/cartography" element={<CartographyManagement />} />
                               <Route path="/newsletter" element={<NewsletterManagement />} />
+                              <Route path="/guest-preview" element={<AdminGuestPreview />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>

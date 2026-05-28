@@ -32,6 +32,7 @@ interface RawDeckCard {
   format: string;
   course_content: PulseCourseContent;
   swiped_at?: string;
+  is_course_completed?: boolean;
 }
 
 interface RawRuneProgress {
@@ -39,8 +40,14 @@ interface RawRuneProgress {
   principle_name: string;
   pulses_to_unlock: number;
   pulses_count: number;
+  total_cards: number;
   is_unlocked: boolean;
   unlocked_at: string | null;
+  bg_class?: string;
+  text_class?: string;
+  glyph_svg?: string | null;
+  collection_code?: string | null;
+  collection_name?: string | null;
 }
 
 function asPrincipleCode(code: string): RunePrincipleCode {
@@ -70,6 +77,7 @@ function mapCard(row: RawDeckCard): PulseCard {
     format: row.format,
     courseContent: row.course_content ?? {},
     swipedAt: row.swiped_at,
+    isCourseCompleted: row.is_course_completed ?? false,
   };
 }
 
@@ -79,8 +87,14 @@ function mapRune(row: RawRuneProgress): RuneProgress {
     principleName: row.principle_name,
     pulsesToUnlock: row.pulses_to_unlock,
     pulsesCount: row.pulses_count,
+    totalCards: row.total_cards ?? 0,
     isUnlocked: row.is_unlocked,
     unlockedAt: row.unlocked_at,
+    bgClass: row.bg_class ?? "from-slate-900 to-black",
+    textClass: row.text_class ?? "text-slate-200",
+    glyphSvg: row.glyph_svg ?? null,
+    collectionCode: row.collection_code ?? null,
+    collectionName: row.collection_name ?? null,
   };
 }
 
@@ -236,6 +250,34 @@ export async function fetchPulseCourse(
     return { ok: true, course };
   } catch (err) {
     console.error("fetchPulseCourse:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "unknown",
+    };
+  }
+}
+
+export async function completeCard(
+  cardId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const { data, error } = await supabase.rpc("complete_aegis_card" as never, {
+      p_card_id: cardId,
+    } as never);
+
+    if (error) {
+      console.error("complete_aegis_card:", error.message);
+      return { ok: false, error: error.message };
+    }
+
+    const result = data as { ok: boolean; error?: string } | null;
+    if (!result?.ok) {
+      return { ok: false, error: result?.error ?? "unknown" };
+    }
+
+    return { ok: true };
+  } catch (err) {
+    console.error("completeCard:", err);
     return {
       ok: false,
       error: err instanceof Error ? err.message : "unknown",

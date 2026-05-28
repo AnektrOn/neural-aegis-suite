@@ -10,6 +10,9 @@ const PulseUserStats = lazy(() =>
 const PulseJsonImport = lazy(() =>
   import("./pulse/PulseJsonImport").then((m) => ({ default: m.PulseJsonImport })),
 );
+const PulseRuneManager = lazy(() =>
+  import("./pulse/PulseRuneManager").then((m) => ({ default: m.PulseRuneManager })),
+);
 
 function HubPanelLoader() {
   return (
@@ -40,6 +43,11 @@ export default function AdminPulseHub() {
         import: (
           <Suspense fallback={<HubPanelLoader />}>
             <PulseJsonImport onImported={onImported} />
+          </Suspense>
+        ),
+        runes: (
+          <Suspense fallback={<HubPanelLoader />}>
+            <PulseRuneManager />
           </Suspense>
         ),
       }}
