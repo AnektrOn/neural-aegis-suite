@@ -15,6 +15,7 @@ import {
   Smartphone,
   UserCircle,
   Settings2,
+  Sparkles,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
@@ -26,6 +27,7 @@ export const MOBILE_RADIAL_CATALOG_ORDER = [
   "people",
   "habits",
   "toolbox",
+  "pulse",
   "bibliotheque",
   "journal",
   "analytics",
@@ -46,6 +48,7 @@ export const DEFAULT_MOBILE_RADIAL_MENU_IDS: MobileRadialMenuId[] = [
   "decisions",
   "mood",
   "people",
+  "pulse",
   "toolbox",
   "bibliotheque",
 ];
@@ -62,6 +65,7 @@ export const RADIAL_CATALOG: Record<
   people: { to: "/people", icon: Users, labelKey: "nav.people" },
   habits: { to: "/habits", icon: ListChecks, labelKey: "nav.habits" },
   toolbox: { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" },
+  pulse: { to: "/pulse", icon: Sparkles, labelKey: "nav.pulse" },
   bibliotheque: { to: "/bibliotheque", icon: Library, labelKey: "nav.bibliotheque" },
   journal: { to: "/journal", icon: PenLine, labelKey: "nav.journal" },
   analytics: { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" },

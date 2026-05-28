@@ -299,6 +299,7 @@ export interface PulseSwipeLogEntry {
   principle_name: string;
   action: "assimilated" | "ignored";
   swiped_at: string;
+  completed_at: string | null;
 }
 
 export interface UserRuneProgress {
@@ -306,6 +307,7 @@ export interface UserRuneProgress {
   principle_name: string;
   pulses_to_unlock: number;
   pulses_count: number;
+  total_cards: number;
   is_unlocked: boolean;
   unlocked_at: string | null;
 }
@@ -335,7 +337,7 @@ export async function fetchPulseSwipeLog(
 
 export async function fetchUserRuneProgress(userId: string): Promise<{
   runes: UserRuneProgress[];
-  swipes: { assimilated: number; ignored: number; total: number };
+  swipes: { assimilated: number; ignored: number; completed: number; total: number };
 } | null> {
   try {
     const { data, error } = await supabase.rpc("get_pulse_admin_user_runes" as never, {
@@ -350,13 +352,13 @@ export async function fetchUserRuneProgress(userId: string): Promise<{
     const result = data as {
       ok: boolean;
       runes?: UserRuneProgress[];
-      swipes?: { assimilated: number; ignored: number; total: number };
+      swipes?: { assimilated: number; ignored: number; completed: number; total: number };
     } | null;
 
     if (!result?.ok) return null;
     return {
       runes: result.runes ?? [],
-      swipes: result.swipes ?? { assimilated: 0, ignored: 0, total: 0 },
+      swipes: result.swipes ?? { assimilated: 0, ignored: 0, completed: 0, total: 0 },
     };
   } catch {
     return null;

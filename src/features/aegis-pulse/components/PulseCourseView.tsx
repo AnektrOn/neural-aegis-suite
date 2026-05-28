@@ -1,19 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { X, CheckCircle2, ArrowRight, Zap, BookOpen, Lightbulb, MessageCircle, Quote } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import type { RunePrincipleCode, PulseCard, PulseCourse, CourseSectionType } from "../domain/types";
-import { fetchPulseCourse, completePulseCourse } from "../services/pulseService";
+import type { PulseCard, PulseCourse, CourseSectionType } from "../domain/types";
+import { fetchPulseCourse, completePulseCourse, completeCard } from "../services/pulseService";
+import { getRuneAccent } from "../domain/runeAccent";
 import { SacredGeometry } from "./SacredGeometry";
-
-const PRINCIPLE_ACCENT: Record<RunePrincipleCode, string> = {
-  MENTALISM: "217 91% 60%",
-  CORRESPONDENCE: "250 70% 68%",
-  VIBRATION: "158 64% 52%",
-  POLARITY: "38 92% 56%",
-  RHYTHM: "200 80% 60%",
-  CAUSE_EFFECT: "0 70% 60%",
-  GENDER: "280 60% 65%",
-};
 
 const SECTION_META: Record<CourseSectionType, { icon: typeof Zap; labelKey: string }> = {
   hook: { icon: Quote, labelKey: "pulse.sectionHook" },
@@ -37,7 +28,7 @@ export function PulseCourseView({ card, onClose, onComplete }: PulseCourseViewPr
   const [course, setCourse] = useState<PulseCourse | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const accent = PRINCIPLE_ACCENT[card.principleCode];
+  const accent = getRuneAccent(card.principleCode);
   const hasCourseId = Boolean(card.courseId);
 
   useEffect(() => {
@@ -51,11 +42,12 @@ export function PulseCourseView({ card, onClose, onComplete }: PulseCourseViewPr
 
   const handleComplete = useCallback(async () => {
     setShowCelebration(true);
+    await completeCard(card.id);
     if (course) {
       await completePulseCourse(course.id);
     }
     setTimeout(() => onComplete(), 1500);
-  }, [course, onComplete]);
+  }, [card.id, course, onComplete]);
 
   const renderInlineCourse = () => {
     const { hook, concept, action } = card.courseContent;
@@ -194,11 +186,11 @@ export function PulseCourseView({ card, onClose, onComplete }: PulseCourseViewPr
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-5 hide-scrollbar relative z-10" style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom, 0px))" }}>
-        <div className="max-w-md md:max-w-lg mx-auto space-y-6 sm:space-y-8 mt-4">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-5 md:px-8 hide-scrollbar relative z-10" style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="max-w-md md:max-w-xl lg:max-w-2xl mx-auto space-y-6 sm:space-y-8 md:space-y-10 mt-4">
           <div className="flex flex-col items-center text-center space-y-4 sm:space-y-5">
             <div
-              className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 flex items-center justify-center"
+              className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 flex items-center justify-center"
               style={{ filter: `drop-shadow(0 0 20px hsla(${accent} / 0.2))` }}
             >
               <SacredGeometry type={card.principleCode} />
@@ -238,7 +230,7 @@ export function PulseCourseView({ card, onClose, onComplete }: PulseCourseViewPr
           background: "linear-gradient(to top, hsl(var(--background)), hsl(var(--background) / 0.95) 60%, transparent)",
         }}
       >
-        <div className="max-w-md md:max-w-lg mx-auto">
+        <div className="max-w-md md:max-w-xl lg:max-w-2xl mx-auto">
           <button
             type="button"
             onClick={handleComplete}

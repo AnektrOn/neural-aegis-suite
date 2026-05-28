@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Library, X, CheckCircle2, RefreshCw, AlertCircle } from "lucide-react";
+import { Library, X, CheckCircle2, RefreshCw, AlertCircle, Hexagon } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { PulseCard, SwipeAction } from "../domain/types";
 import { recordPulseSwipe, recyclePulseIgnored, fetchPulseDiagnostic, type PulseDiagnostic } from "../services/pulseService";
@@ -7,8 +7,11 @@ import { usePulseDeck } from "../hooks/usePulseDeck";
 import { usePulseGrimoire } from "../hooks/usePulseGrimoire";
 import { SwipeableCard } from "../components/SwipeableCard";
 import { PulseGrimoire } from "../components/PulseGrimoire";
+import { PulseRuneTracker } from "../components/PulseRuneTracker";
 import { PulseCourseView } from "../components/PulseCourseView";
 import { SacredGeometry } from "../components/SacredGeometry";
+
+type PulseView = "deck" | "grimoire" | "runes";
 
 export default function PulsePage() {
   const { t } = useLanguage();
@@ -16,7 +19,7 @@ export default function PulsePage() {
   const { state: grimoireState, reload: reloadGrimoire } = usePulseGrimoire();
 
   const [localCards, setLocalCards] = useState<PulseCard[]>([]);
-  const [showLibrary, setShowLibrary] = useState(false);
+  const [activeView, setActiveView] = useState<PulseView>("deck");
   const [activeCourse, setActiveCourse] = useState<PulseCard | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -101,20 +104,30 @@ export default function PulsePage() {
         onComplete={() => {
           setActiveCourse(null);
           showNotification(t("pulse.wisdomIntegrated"));
+          void reloadGrimoire();
         }}
       />
     );
   }
 
-  if (showLibrary) {
+  if (activeView === "grimoire") {
     return (
       <PulseGrimoire
         state={grimoireState}
-        onClose={() => setShowLibrary(false)}
+        onClose={() => setActiveView("deck")}
         onOpenCourse={(card) => {
-          setShowLibrary(false);
+          setActiveView("deck");
           setActiveCourse(card);
         }}
+      />
+    );
+  }
+
+  if (activeView === "runes") {
+    return (
+      <PulseRuneTracker
+        state={grimoireState}
+        onClose={() => setActiveView("deck")}
       />
     );
   }
@@ -131,15 +144,22 @@ export default function PulsePage() {
       />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vw] max-w-[700px] max-h-[700px] rounded-full blur-[100px] pointer-events-none bg-[hsla(var(--neural-glow)/0.04)]" />
 
-      <nav className="w-full px-4 sm:px-5 py-4 flex justify-between items-center z-50 relative">
-        <div className="w-11 h-11" />
+      <nav className="w-full px-4 sm:px-5 md:px-6 py-4 flex justify-between items-center z-50 relative">
+        <button
+          type="button"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors rounded-full"
+          onClick={() => setActiveView("runes")}
+          aria-label={t("pulse.runeTrackerTitle")}
+        >
+          <Hexagon size={20} strokeWidth={1.5} />
+        </button>
         <h1 className="font-barlow text-xs font-medium uppercase tracking-[0.2em] text-text-secondary">
           {t("pulse.title")}
         </h1>
         <button
           type="button"
           className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors relative rounded-full"
-          onClick={() => setShowLibrary(true)}
+          onClick={() => setActiveView("grimoire")}
           aria-label={t("pulse.grimoireTitle")}
         >
           <Library size={20} strokeWidth={1.5} />
@@ -151,7 +171,7 @@ export default function PulsePage() {
         </button>
       </nav>
 
-      <main className="flex-1 flex flex-col items-center justify-center relative z-10 px-4 sm:px-6 w-full max-w-md md:max-w-lg mx-auto pb-10">
+      <main className="flex-1 flex flex-col items-center justify-center relative z-10 px-4 sm:px-6 md:px-8 w-full max-w-md md:max-w-xl lg:max-w-2xl mx-auto pb-10">
         {deckState.status === "loading" && localCards.length === 0 && (
           <div className="flex justify-center py-24">
             <div className="w-6 h-6 border-2 border-border-subtle border-t-accent-primary rounded-full animate-spin" />
@@ -172,7 +192,7 @@ export default function PulsePage() {
         )}
 
         {deckState.status !== "error" && (
-          <div className="relative w-full aspect-[3/4] max-h-[500px] sm:max-h-[550px] md:max-h-[600px]">
+          <div className="relative w-full aspect-[3/4] max-h-[65dvh] sm:max-h-[70dvh] md:max-h-[75dvh]">
             {localCards.length > 0 ? (
               localCards.map((card, index) => {
                 if (index > 2) return null;
@@ -254,19 +274,19 @@ export default function PulsePage() {
         )}
 
         {localCards.length > 0 && (
-          <div className="flex items-center justify-center gap-10 sm:gap-12 mt-6 sm:mt-8">
+          <div className="flex items-center justify-center gap-10 sm:gap-14 md:gap-16 mt-6 sm:mt-8">
             <button
               type="button"
               onClick={() => forceSwipe("left")}
               disabled={isSwiping}
-              className="w-12 h-12 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-text-secondary hover:text-text-primary hover:border-muted-foreground transition-all disabled:opacity-30 active:scale-95"
+              className="w-12 h-12 md:w-14 md:h-14 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-text-secondary hover:text-text-primary hover:border-muted-foreground transition-all disabled:opacity-30 active:scale-95"
               aria-label={t("pulse.swipeIgnore")}
             >
               <X size={22} strokeWidth={1.5} />
             </button>
             <button
               type="button"
-              onClick={() => setShowLibrary(true)}
+              onClick={() => setActiveView("grimoire")}
               className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-text-secondary hover:text-accent-primary transition-colors rounded-full"
               aria-label={t("pulse.grimoireTitle")}
             >
@@ -276,7 +296,7 @@ export default function PulsePage() {
               type="button"
               onClick={() => forceSwipe("right")}
               disabled={isSwiping}
-              className="w-12 h-12 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-accent-primary hover:bg-accent-primary/10 hover:border-accent-primary/30 transition-all disabled:opacity-30 active:scale-95"
+              className="w-12 h-12 md:w-14 md:h-14 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-accent-primary hover:bg-accent-primary/10 hover:border-accent-primary/30 transition-all disabled:opacity-30 active:scale-95"
               aria-label={t("pulse.swipeAssimilate")}
             >
               <CheckCircle2 size={22} strokeWidth={1.5} />

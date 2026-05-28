@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, ThumbsUp, ThumbsDown, Sparkles } from "lucide-react";
+import { RefreshCw, ThumbsUp, ThumbsDown, Sparkles, CheckCircle2 } from "lucide-react";
 import {
   ToolboxSection,
   ToolboxEmptyState,
@@ -50,7 +50,7 @@ export function PulseUserStats() {
   const [cardFilter, setCardFilter] = useState<string>("all");
   const [log, setLog] = useState<PulseSwipeLogEntry[]>([]);
   const [runes, setRunes] = useState<UserRuneProgress[]>([]);
-  const [swipeSummary, setSwipeSummary] = useState({ assimilated: 0, ignored: 0, total: 0 });
+  const [swipeSummary, setSwipeSummary] = useState({ assimilated: 0, ignored: 0, completed: 0, total: 0 });
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -78,6 +78,7 @@ export function PulseUserStats() {
       setSwipeSummary({
         assimilated: entries.filter((e) => e.action === "assimilated").length,
         ignored: entries.filter((e) => e.action === "ignored").length,
+        completed: entries.filter((e) => e.completed_at != null).length,
         total: entries.length,
       });
     }
@@ -90,12 +91,14 @@ export function PulseUserStats() {
 
   const totalYes = log.filter((e) => e.action === "assimilated").length;
   const totalNo = log.filter((e) => e.action === "ignored").length;
+  const totalCompleted = userId ? swipeSummary.completed : log.filter((e) => e.completed_at != null).length;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <ToolboxPageStat label="Swipes YES" value={userId ? swipeSummary.assimilated : totalYes} icon={ThumbsUp} />
         <ToolboxPageStat label="Swipes NO" value={userId ? swipeSummary.ignored : totalNo} icon={ThumbsDown} />
+        <ToolboxPageStat label="Cours validés" value={totalCompleted} icon={CheckCircle2} />
         <ToolboxPageStat
           label="Runes débloquées"
           value={runes.filter((r) => r.is_unlocked).length}
@@ -146,24 +149,28 @@ export function PulseUserStats() {
       </ToolboxSection>
 
       {userId && runes.length > 0 && (
-        <ToolboxSection title="Progression Runes" badge={`${runes.filter((r) => r.is_unlocked).length}/7`}>
+        <ToolboxSection title="Progression Runes" badge={`${runes.filter((r) => r.is_unlocked).length}/${runes.length}`}>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
             {runes.map((rune) => {
-              const pct = Math.min((rune.pulses_count / rune.pulses_to_unlock) * 100, 100);
+              const total = rune.total_cards ?? 0;
+              const pct = total > 0 ? Math.min((rune.pulses_count / total) * 100, 100) : 0;
+              const isEmpty = total === 0 && rune.pulses_count === 0;
               return (
                 <div
                   key={rune.principle_code}
                   className={`p-3 rounded-lg border text-center ${
-                    rune.is_unlocked
-                      ? "border-green-400/30 bg-green-400/5"
-                      : "border-border-subtle bg-bg-elevated/30"
+                    isEmpty
+                      ? "border-border-subtle/50 bg-bg-elevated/10 opacity-50"
+                      : rune.is_unlocked
+                        ? "border-green-400/30 bg-green-400/5"
+                        : "border-border-subtle bg-bg-elevated/30"
                   }`}
                 >
                   <p className={`text-[10px] font-mono uppercase tracking-wider mb-1 ${RUNE_COLORS[rune.principle_code] ?? ""}`}>
                     {rune.principle_code}
                   </p>
                   <p className="text-lg font-semibold text-text-primary">
-                    {rune.pulses_count}/{rune.pulses_to_unlock}
+                    {rune.pulses_count}/{total}
                   </p>
                   <div className="w-full h-1 rounded-full bg-border mt-2 overflow-hidden">
                     <div
@@ -171,11 +178,13 @@ export function PulseUserStats() {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  {rune.is_unlocked && (
+                  {isEmpty ? (
+                    <p className="mt-2 text-[9px] text-muted-foreground">Aucune carte</p>
+                  ) : rune.is_unlocked ? (
                     <Badge variant="outline" className="mt-2 text-[9px] text-green-400 border-green-400/30">
                       Débloquée
                     </Badge>
-                  )}
+                  ) : null}
                 </div>
               );
             })}
@@ -205,6 +214,7 @@ export function PulseUserStats() {
                   <th className="px-3 py-2.5 font-medium">Carte</th>
                   <th className="px-3 py-2.5 font-medium">Rune</th>
                   <th className="px-3 py-2.5 font-medium">Action</th>
+                  <th className="px-3 py-2.5 font-medium">Complété</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-subtle">
@@ -235,6 +245,16 @@ export function PulseUserStats() {
                         <Badge className="bg-red-500/15 text-red-400 border-red-400/30 hover:bg-red-500/15">
                           ✗ NO
                         </Badge>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {entry.completed_at ? (
+                        <span className="flex items-center gap-1.5 text-xs text-green-400">
+                          <CheckCircle2 className="size-3.5" />
+                          {formatDate(entry.completed_at)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
                   </tr>

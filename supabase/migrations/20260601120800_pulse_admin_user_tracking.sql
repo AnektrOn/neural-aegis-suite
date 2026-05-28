@@ -36,7 +36,8 @@ BEGIN
       p.code AS principle_code,
       public.resolve_i18n(p.name_i18n, 'fr') AS principle_name,
       i.action::text AS action,
-      i.created_at AS swiped_at
+      i.created_at AS swiped_at,
+      i.completed_at
     FROM public.aegis_user_card_interactions i
     JOIN public.aegis_synapse_cards c ON c.id = i.card_id
     JOIN public.aegis_rune_principles p ON p.id = c.principle_id
@@ -84,7 +85,11 @@ BEGIN
       COALESCE(urp.pulses_count, 0) AS pulses_count,
       (COALESCE(urp.pulses_count, 0) >= p.pulses_to_unlock) AS is_unlocked,
       urp.unlocked_at,
-      p.sort_order
+      p.sort_order,
+      (SELECT COUNT(*)::int
+       FROM public.aegis_synapse_cards sc
+       WHERE sc.principle_id = p.id
+         AND sc.is_active = true) AS total_cards
     FROM public.aegis_rune_principles p
     LEFT JOIN public.aegis_user_rune_progress urp
       ON urp.user_id = p_user_id AND urp.principle_id = p.id
@@ -95,6 +100,7 @@ BEGIN
   SELECT jsonb_build_object(
     'assimilated', COUNT(*) FILTER (WHERE i.action = 'assimilated'),
     'ignored',     COUNT(*) FILTER (WHERE i.action = 'ignored'),
+    'completed',   COUNT(*) FILTER (WHERE i.completed_at IS NOT NULL),
     'total',       COUNT(*)
   )
   INTO _swipes

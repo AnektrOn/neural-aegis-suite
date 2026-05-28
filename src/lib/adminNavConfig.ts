@@ -21,6 +21,7 @@ import {
   FileText,
   Home,
   Zap,
+  Eye,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
@@ -36,7 +37,8 @@ export type AdminHubTabId =
   | "reportV2"
   | "analytics"
   | "executive"
-  | "import";
+  | "import"
+  | "runes";
 
 export type AdminNavLinkItem = {
   kind: "link";
@@ -126,11 +128,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
           { id: "manage", labelKey: "admin.hub.tab.pulseManage" },
           { id: "stats", labelKey: "admin.hub.tab.pulseStats" },
           { id: "import", labelKey: "admin.hub.tab.pulseImport" },
+          { id: "runes", labelKey: "admin.hub.tab.pulseRunes" },
         ],
       },
       { kind: "link", to: "/admin/video-library", icon: Video, labelKey: "admin.nav.videoLibrary" },
       { kind: "link", to: "/admin/cartography", icon: Map, labelKey: "admin.nav.cartography" },
       { kind: "link", to: "/admin/assessments", icon: Sparkles, labelKey: "admin.nav.assessments" },
+      { kind: "link", to: "/admin/guest-preview", icon: Eye, labelKey: "admin.nav.guestPreview" },
     ],
   },
   {

@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { FileText, RotateCw, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import type { RunePrincipleCode, PulseCard } from "../domain/types";
+import type { PulseCard } from "../domain/types";
+import { getRuneAccent } from "../domain/runeAccent";
 import { SacredGeometry } from "./SacredGeometry";
-
-const PRINCIPLE_ACCENT: Record<RunePrincipleCode, string> = {
-  MENTALISM: "217 91% 60%",
-  CORRESPONDENCE: "250 70% 68%",
-  VIBRATION: "158 64% 52%",
-  POLARITY: "38 92% 56%",
-  RHYTHM: "200 80% 60%",
-  CAUSE_EFFECT: "0 70% 60%",
-  GENDER: "280 60% 65%",
-};
 
 interface SwipeableCardProps {
   card: PulseCard;
@@ -29,7 +20,7 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const accent = PRINCIPLE_ACCENT[card.principleCode];
+  const accent = getRuneAccent(card.principleCode);
 
   const SWIPE_THRESHOLD = typeof window !== "undefined" && window.innerWidth < 400 ? 80 : 120;
   const ROTATION_MULTIPLIER = 0.05;
@@ -126,7 +117,7 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
               <>
                 <div
                   className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center transition-opacity duration-150"
-                  style={{ opacity: likeOpacity, background: `hsla(${PRINCIPLE_ACCENT.POLARITY} / 0.06)` }}
+                  style={{ opacity: likeOpacity, background: `hsla(${accent} / 0.06)` }}
                 >
                   <div
                     className="font-cormorant tracking-widest text-2xl sm:text-3xl rounded-xl px-5 sm:px-6 py-2 rotate-[-15deg] backdrop-blur-md"
@@ -169,12 +160,12 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
                 style={{ background: `radial-gradient(circle at 50% 40%, hsla(${accent} / 0.5), transparent 70%)` }}
               />
               <div
-                className="w-32 h-32 sm:w-40 sm:h-40 md:w-44 md:h-44 mb-5 sm:mb-8"
-                style={{ filter: `drop-shadow(0 0 18px hsla(${accent} / 0.18))` }}
+                className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-48 lg:h-48 mb-5 sm:mb-8"
+                style={{ filter: `drop-shadow(0 0 18px rgba(251,191,36,0.25))` }}
               >
-                <SacredGeometry type={card.principleCode} />
+                <SacredGeometry type={card.principleCode} glowIntensity={1} />
               </div>
-              <h2 className="font-cormorant text-lg sm:text-xl md:text-[22px] text-center leading-tight mb-2 text-text-primary">
+              <h2 className="font-cormorant text-lg sm:text-xl md:text-2xl lg:text-[26px] text-center leading-tight mb-2 text-text-primary">
                 {card.title}
               </h2>
               <div className="w-10 h-[1px] mt-3 sm:mt-4 mb-2" style={{ background: `hsla(${accent} / 0.25)` }} />
@@ -202,7 +193,7 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
               </div>
             </div>
 
-            <div className="px-4 sm:px-6 py-4 sm:py-6 flex-1 flex flex-col overflow-y-auto relative">
+            <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 flex-1 flex flex-col overflow-y-auto relative">
               <div className="mb-6 sm:mb-8">
                 <h3 className="font-barlow text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground mb-2 sm:mb-3">
                   {t("pulse.question")}
