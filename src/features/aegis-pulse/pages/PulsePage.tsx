@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Library, X, CheckCircle2, RefreshCw, AlertCircle, Hexagon } from "lucide-react";
+import { Library, X, CheckCircle2, RefreshCw, AlertCircle, Hexagon, HelpCircle } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { PulseCard, SwipeAction } from "../domain/types";
 import { recordPulseSwipe, recyclePulseIgnored, fetchPulseDiagnostic, type PulseDiagnostic } from "../services/pulseService";
 import { usePulseDeck } from "../hooks/usePulseDeck";
@@ -9,12 +10,15 @@ import { SwipeableCard } from "../components/SwipeableCard";
 import { PulseGrimoire } from "../components/PulseGrimoire";
 import { PulseRuneTracker } from "../components/PulseRuneTracker";
 import { PulseCourseView } from "../components/PulseCourseView";
+import { PulseOnboarding } from "../components/PulseOnboarding";
 import { SacredGeometry } from "../components/SacredGeometry";
+import { isPulseOnboarded, markPulseOnboarded } from "../lib/pulseOnboarding";
 
 type PulseView = "deck" | "grimoire" | "runes";
 
 export default function PulsePage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const { state: deckState, reload: reloadDeck } = usePulseDeck();
   const { state: grimoireState, reload: reloadGrimoire } = usePulseGrimoire();
 
@@ -25,6 +29,23 @@ export default function PulsePage() {
   const [isSwiping, setIsSwiping] = useState(false);
   const [isRecycling, setIsRecycling] = useState(false);
   const [diag, setDiag] = useState<PulseDiagnostic | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setOnboardingChecked(true);
+      setShowOnboarding(false);
+      return;
+    }
+    setShowOnboarding(!isPulseOnboarded(user.id));
+    setOnboardingChecked(true);
+  }, [user?.id]);
+
+  const completeOnboarding = useCallback(() => {
+    if (user?.id) markPulseOnboarded(user.id);
+    setShowOnboarding(false);
+  }, [user?.id]);
 
   useEffect(() => {
     if (deckState.status === "ready") {
@@ -96,6 +117,18 @@ export default function PulsePage() {
     setIsRecycling(false);
   }, [reloadDeck, showNotification, t]);
 
+  if (!onboardingChecked) {
+    return (
+      <div className="min-h-[calc(100vh-8rem)] bg-bg-base flex items-center justify-center -m-4 md:-m-6 rounded-[18px]">
+        <div className="w-6 h-6 border-2 border-border-subtle border-t-accent-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (showOnboarding) {
+    return <PulseOnboarding onComplete={completeOnboarding} />;
+  }
+
   if (activeCourse) {
     return (
       <PulseCourseView
@@ -153,9 +186,19 @@ export default function PulsePage() {
         >
           <Hexagon size={20} strokeWidth={1.5} />
         </button>
-        <h1 className="font-barlow text-xs font-medium uppercase tracking-[0.2em] text-text-secondary">
-          {t("pulse.title")}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-barlow text-xs font-medium uppercase tracking-[0.2em] text-text-secondary">
+            {t("pulse.title")}
+          </h1>
+          <button
+            type="button"
+            onClick={() => setShowOnboarding(true)}
+            className="w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center text-muted-foreground hover:text-text-secondary transition-colors rounded-full"
+            aria-label={t("pulse.showGuide")}
+          >
+            <HelpCircle size={16} strokeWidth={1.5} />
+          </button>
+        </div>
         <button
           type="button"
           className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors relative rounded-full"

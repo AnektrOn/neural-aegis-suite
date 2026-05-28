@@ -30,7 +30,7 @@ import {
   CartographyFileList,
   CartographyStructuredReport,
 } from "@/components/archetype-balance/CartographyStructuredReport";
-import { parseBundleToDisplay } from "@/lib/cartography-markdown-parse";
+import { parseBundleToDisplay, isCartographyIndexMarkdown, detectCartographyContentLocale } from "@/lib/cartography-markdown-parse";
 import { useAdmin } from "@/hooks/use-admin";
 import {
   fetchCartographyBundleAdmin,
@@ -108,12 +108,23 @@ export default function ArchetypeCartographyReport() {
     const detailed = bundle.sections
       .filter((s) => s.sectionKey === "detailed" && s.reportCode)
       .sort((a, b) => a.sortOrder - b.sortOrder);
+    const cartographie = bundle.sections.filter(
+      (s) =>
+        s.sectionKey === "cartographie" &&
+        !isCartographyIndexMarkdown(s.markdown, s.title),
+    );
     return {
-      cartographie: bundle.sections.filter((s) => s.sectionKey === "cartographie"),
+      cartographie,
       guardians: bundle.sections.filter((s) => s.sectionKey === "guardians"),
       synthesis: bundle.sections.filter((s) => s.sectionKey === "synthesis"),
       detailed,
     };
+  }, [bundle]);
+
+  const contentLocale = useMemo(() => {
+    if (!bundle) return "fr" as const;
+    const sample = bundle.sections.map((s) => s.markdown).join("\n");
+    return detectCartographyContentLocale(sample, bundle.meta);
   }, [bundle]);
 
   const display = useMemo(
@@ -129,12 +140,15 @@ export default function ArchetypeCartographyReport() {
     else if (grouped.guardians.length) setMainTab("guardians");
   }, [grouped]);
 
+  const adminUserQuery =
+    isAdmin && previewUserId ? `?user=${encodeURIComponent(previewUserId)}` : "";
+
   const goPole = (p: ArchetypePole) => {
-    navigate(`/cartographie/${poleToPath(p)}/${modeToPath(mode)}`);
+    navigate(`/cartographie/${poleToPath(p)}/${modeToPath(mode)}${adminUserQuery}`);
   };
 
   const goMode = (m: AnalysisMode) => {
-    navigate(`/cartographie/${poleToPath(pole)}/${modeToPath(m)}`);
+    navigate(`/cartographie/${poleToPath(pole)}/${modeToPath(m)}${adminUserQuery}`);
   };
 
   const meta = bundle?.meta ?? {};
@@ -169,9 +183,18 @@ export default function ArchetypeCartographyReport() {
 
         {isAdmin && previewUserId && (
           <p className="mb-3 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs text-text-secondary">
-            {isFR
-              ? "Aperçu admin — rapport du user_id dans l'URL (brouillon ou publié)."
-              : "Admin preview — report for user_id in URL (draft or published)."}
+            {t("cartography.adminPreviewBanner")}
+          </p>
+        )}
+
+        {locale !== contentLocale && (
+          <p className="mb-3 rounded-lg border border-[hsl(var(--aegis-warm)/0.25)] bg-[hsl(var(--aegis-warm-muted)/0.15)] px-3 py-2 text-xs text-text-secondary">
+            {t("cartography.contentLanguageNotice", {
+              language:
+                contentLocale === "fr"
+                  ? t("cartography.contentLanguageFr")
+                  : t("cartography.contentLanguageEn"),
+            })}
           </p>
         )}
 

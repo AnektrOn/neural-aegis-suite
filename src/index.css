@@ -91,25 +91,26 @@
 
   html.light {
     color-scheme: light;
-    --background: 30 20% 96%;
-    --foreground: 20 10% 15%;
-    --card: 30 15% 92%;
-    --card-foreground: 20 10% 15%;
-    --popover: 30 15% 94%;
-    --popover-foreground: 20 10% 15%;
-    --primary: 24 15% 20%;
+    /* Higher-contrast light theme: clearer surface hierarchy + readable text */
+    --background: 30 25% 98%;
+    --foreground: 20 12% 14%;
+    --card: 30 22% 94%;
+    --card-foreground: 20 12% 14%;
+    --popover: 30 20% 92%;
+    --popover-foreground: 20 12% 14%;
+    --primary: 24 22% 22%;
     --primary-foreground: 30 20% 96%;
-    --primary-hover: 24 15% 10%;
-    --primary-muted: 30 10% 88%;
-    --secondary: 30 20% 80%;
+    --primary-hover: 24 22% 14%;
+    --primary-muted: 30 18% 90%;
+    --secondary: 30 18% 82%;
     --secondary-foreground: 24 15% 20%;
-    --secondary-hover: 30 20% 75%;
-    --muted: 30 15% 88%;
-    --muted-foreground: 20 5% 45%;
-    --accent: 15 25% 55%;
+    --secondary-hover: 30 18% 76%;
+    --muted: 30 16% 90%;
+    --muted-foreground: 20 10% 34%;
+    --accent: 15 28% 52%;
     --accent-foreground: 30 20% 96%;
-    --accent-hover: 15 25% 45%;
-    --accent-muted: 15 20% 90%;
+    --accent-hover: 15 28% 42%;
+    --accent-muted: 15 18% 90%;
     --destructive: 0 30% 45%;
     --destructive-foreground: 0 0% 100%;
     --destructive-muted: 0 20% 94%;
@@ -122,21 +123,21 @@
     --info: 200 15% 50%;
     --info-foreground: 0 0% 100%;
     --info-muted: 200 20% 94%;
-    --border: 30 10% 85%;
-    --input: 30 10% 85%;
-    --ring: 24 15% 20%;
+    --border: 24 12% 78%;
+    --input: 24 12% 78%;
+    --ring: 24 22% 22%;
 
-    --sidebar-background: 30 20% 96%;
-    --sidebar-foreground: 20 10% 15%;
-    --sidebar-primary: 24 15% 20%;
+    --sidebar-background: 30 25% 98%;
+    --sidebar-foreground: 20 12% 14%;
+    --sidebar-primary: 24 22% 22%;
     --sidebar-primary-foreground: 30 20% 96%;
-    --sidebar-accent: 30 15% 92%;
-    --sidebar-accent-foreground: 20 10% 15%;
-    --sidebar-border: 30 10% 85%;
-    --sidebar-ring: 24 15% 20%;
+    --sidebar-accent: 30 22% 94%;
+    --sidebar-accent-foreground: 20 12% 14%;
+    --sidebar-border: 24 12% 78%;
+    --sidebar-ring: 24 22% 22%;
 
-    --neural-glow: 24 15% 20%;
-    --neural-accent: 15 25% 55%;
+    --neural-glow: 24 22% 22%;
+    --neural-accent: 15 28% 52%;
     --neural-warm: 35 40% 60%;
     --void: 30 20% 96%;
 
