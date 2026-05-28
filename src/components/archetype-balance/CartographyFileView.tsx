@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, Layers, BookOpen, Sparkles, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { parseUniversalMarkdownDocument } from "@/lib/cartography-document-parse";
 import { sectionTitleParts } from "./BalanceRichText";
 import { ReportSectionPanel } from "./ReportSectionPanel";
@@ -60,10 +61,11 @@ export function CartographyFileView({
   reportCode?: string;
   kind?: FileKind;
 }) {
+  const { t } = useLanguage();
   const doc = parseUniversalMarkdownDocument(markdown);
   const cfg = KIND_CONFIG[kind];
   const Icon = cfg.icon;
-  const displayTitle = title ?? doc.title ?? reportCode?.toUpperCase() ?? "Rapport";
+  const displayTitle = title ?? doc.title ?? reportCode?.toUpperCase() ?? t("cartography.fileDefaultTitle");
   const codeLabel = reportCode?.match(/p0?(\d)/i)?.[0]?.toUpperCase();
   const [activeSection, setActiveSection] = useState(doc.sections[0]?.id ?? "");
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -162,18 +164,22 @@ export function CartographyFileView({
               {/* Desktop — navigation latérale */}
               <nav
                 className="sticky top-[calc(var(--safe-top)+3.5rem)] z-10 hidden max-h-[calc(100vh-6rem)] flex-col overflow-y-auto border-b border-border-subtle/25 bg-[hsl(var(--aegis-s1))]/96 px-4 py-4 backdrop-blur-md lg:flex lg:border-b-0 lg:border-r lg:px-3 lg:py-5"
-                aria-label="Sections du rapport"
+                aria-label={t("cartography.fileSectionsNav")}
               >
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <p className="text-[10px] font-display uppercase tracking-[0.14em] text-text-tertiary">
-                    {doc.sections.length} sections
+                    {t("cartography.fileSectionCount", { count: doc.sections.length })}
                   </p>
                   {sectionCollapsible && (
                     <button
                       type="button"
                       onClick={toggleAllSections}
                       className="inline-flex min-h-[32px] items-center gap-1 rounded-md px-1.5 text-[10px] uppercase tracking-[0.08em] text-text-tertiary transition-colors hover:bg-white/[0.04] hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      title={allExpanded ? "Tout replier" : "Tout ouvrir"}
+                      title={
+                        allExpanded
+                          ? t("cartography.fileCollapseAll")
+                          : t("cartography.fileExpandAll")
+                      }
                     >
                       {allExpanded ? (
                         <ChevronsDownUp size={13} aria-hidden />
@@ -210,11 +216,11 @@ export function CartographyFileView({
               {/* Mobile / tablette — navigation horizontale */}
               <nav
                 className="sticky top-[calc(var(--safe-top)+3.5rem)] z-10 border-b border-border-subtle/25 bg-[hsl(var(--aegis-s1))]/96 px-4 py-2 backdrop-blur-md sm:px-6 lg:hidden"
-                aria-label="Sections du rapport"
+                aria-label={t("cartography.fileSectionsNav")}
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <p className="text-[10px] font-display uppercase tracking-[0.14em] text-text-tertiary">
-                    {doc.sections.length} sections
+                    {t("cartography.fileSectionCount", { count: doc.sections.length })}
                   </p>
                   {sectionCollapsible && (
                     <button
@@ -225,12 +231,12 @@ export function CartographyFileView({
                       {allExpanded ? (
                         <>
                           <ChevronsDownUp size={13} aria-hidden />
-                          Tout replier
+                          {t("cartography.fileCollapseAll")}
                         </>
                       ) : (
                         <>
                           <ChevronsUpDown size={13} aria-hidden />
-                          Tout ouvrir
+                          {t("cartography.fileExpandAll")}
                         </>
                       )}
                     </button>
@@ -271,7 +277,7 @@ export function CartographyFileView({
           {doc.intro.length > 0 && (
             <div className="rounded-xl border border-[hsl(var(--aegis-warm)/0.12)] bg-[hsl(var(--aegis-warm-muted)/0.08)] p-4 sm:p-5">
               <p className="mb-3 text-[10px] font-display uppercase tracking-[0.16em] text-[hsl(var(--aegis-warm))]">
-                Introduction
+                {t("cartography.fileIntro")}
               </p>
               <ReportContentBlocks blocks={doc.intro} />
             </div>
@@ -296,7 +302,7 @@ export function CartographyFileView({
           ))}
 
           {doc.sections.length === 0 && doc.intro.length === 0 && (
-            <p className="py-8 text-center text-sm text-text-tertiary">Contenu vide.</p>
+            <p className="py-8 text-center text-sm text-text-tertiary">{t("cartography.fileEmpty")}</p>
           )}
 
           {doc.footer && (

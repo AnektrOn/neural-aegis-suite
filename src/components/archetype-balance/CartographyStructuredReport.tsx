@@ -93,11 +93,12 @@ export function CartographyFileList({
   sections: SectionRow[];
   kind: FileKind;
 }) {
+  const { t } = useLanguage();
   const [activeId, setActiveId] = useState(sections[0]?.id ?? "");
 
   if (!sections.length) {
     return (
-      <p className="mt-8 text-center text-sm text-text-tertiary">Aucun contenu importé.</p>
+      <p className="mt-8 text-center text-sm text-text-tertiary">{t("cartography.fileNoImport")}</p>
     );
   }
 
@@ -109,12 +110,12 @@ export function CartographyFileList({
       {multi && (
         <div className="mb-4">
           <p className="mb-2 text-[10px] font-display uppercase tracking-[0.16em] text-text-tertiary">
-            {sections.length} documents — choisissez un rapport
+            {t("cartography.fileDocPicker", { count: sections.length })}
           </p>
           <nav
             className="flex gap-1 overflow-x-auto rounded-xl bg-white/[0.04] p-1"
             role="tablist"
-            aria-label="Fichiers du rapport"
+            aria-label={t("cartography.fileDocNav")}
           >
             {sections.map((s) => {
               const selected = s.id === active.id;

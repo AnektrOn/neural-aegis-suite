@@ -17,7 +17,7 @@ export function PageWrapper({
     <motion.div
       className={className}
       variants={pageVariants}
-      initial="initial"
+      initial={false}
       animate="animate"
       exit="exit"
     >

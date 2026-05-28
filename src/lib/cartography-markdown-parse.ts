@@ -12,7 +12,7 @@ import { parseMarkdownBlocks as parseDocumentMarkdownBlocks } from "@/lib/cartog
 const ZODIAC = "♈♉♊♋♌♍♎♏♐♑♒♓";
 
 const HOUSE_HEADING_RE =
-  /^###\s+(?:([♈♉♊♋♌♍♎♏♐♑♒♓])\s+)?Maison\s+(\d+)\s*[—–-]\s*(.+)$/gim;
+  /^#{2,4}\s+(?:([♈♉♊♋♌♍♎♏♐♑♒♓])\s+)?Maison\s+(\d+)\s*[—–-]\s*(.+)$/gim;
 
 const GUARDIAN_HEADING_RE = /^###\s+(?!Maison\s+\d)(.+)$/gim;
 
@@ -308,33 +308,75 @@ export function parseMetaFromMarkdown(
   };
 }
 
+const INDEX_MARKERS_RE =
+  /STRUCTURE DU DOSSIER|FOLDER STRUCTURE|Ce répertoire contient|This directory contains|ordre de lecture est strict|reading order is strict/i;
+
+const HAS_MAISON_HEADING_RE = /^#{2,4}\s+(?:[♈♉♊♋♌♍♎♏♐♑♒♓]\s+)?Maison\s+\d/im;
+
+/** Fichier 00-README = table des matières interne, pas le rapport utilisateur. */
+export function isCartographyIndexMarkdown(markdown: string, _title?: string | null): boolean {
+  if (HAS_MAISON_HEADING_RE.test(markdown)) return false;
+  if (POLE_LINE_RE.test(markdown)) return false;
+  return INDEX_MARKERS_RE.test(markdown.slice(0, 1500));
+}
+
+function joinSectionMarkdown(
+  sections: DbCartographyBundle["sections"],
+  sectionKey: DbCartographyBundle["sections"][number]["sectionKey"],
+  skipIndex = false,
+): string {
+  return sections
+    .filter((s) => s.sectionKey === sectionKey)
+    .filter((s) => !skipIndex || !isCartographyIndexMarkdown(s.markdown, s.title))
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((s) => s.markdown)
+    .join("\n\n");
+}
+
+function findHousesInMarkdownSources(...sources: string[]): {
+  houses: CartographyHouse[];
+  guardiansPart: string;
+} {
+  for (const md of sources) {
+    if (!md.trim()) continue;
+    const { housesPart, guardiansPart } = splitCartographyAndGuardians(md);
+    const houses = parseHousesFromMarkdown(housesPart);
+    if (houses.length > 0) return { houses, guardiansPart };
+  }
+  return { houses: [], guardiansPart: "" };
+}
+
+export function detectCartographyContentLocale(
+  markdown: string,
+  meta?: Record<string, unknown>,
+): "fr" | "en" {
+  const fromMeta = meta?.content_locale;
+  if (fromMeta === "en" || fromMeta === "fr") return fromMeta;
+  const sample = markdown.slice(0, 4000).toLowerCase();
+  const frScore =
+    (sample.match(/\b(le|la|les|des|du|une|est|pour|avec|contient|répertoire)\b/g) ?? []).length;
+  const enScore =
+    (sample.match(/\b(the|and|for|with|this|are|is|contains|directory|folder)\b/g) ?? []).length;
+  return enScore > frScore ? "en" : "fr";
+}
+
 /** Transforme un bundle DB en structure d'affichage riche (Myss, flat, legacy). */
 export function parseBundleToDisplay(bundle: DbCartographyBundle): ParsedCartographyDisplay {
   const poleLabel =
     (typeof bundle.meta.pole_label === "string" ? bundle.meta.pole_label : "") ||
     bundle.pole.toUpperCase();
 
-  const cartographieMd = bundle.sections
-    .filter((s) => s.sectionKey === "cartographie")
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((s) => s.markdown)
-    .join("\n\n");
+  const cartographieMd = joinSectionMarkdown(bundle.sections, "cartographie", true);
 
-  const guardiansMd = bundle.sections
-    .filter((s) => s.sectionKey === "guardians")
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((s) => s.markdown)
-    .join("\n\n");
+  const guardiansMd = joinSectionMarkdown(bundle.sections, "guardians");
 
-  const synthesisMd = bundle.sections
-    .filter((s) => s.sectionKey === "synthesis")
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((s) => s.markdown)
-    .join("\n\n");
+  const synthesisMd = joinSectionMarkdown(bundle.sections, "synthesis");
 
-  const { housesPart, guardiansPart } = splitCartographyAndGuardians(cartographieMd);
-  const houses = parseHousesFromMarkdown(housesPart);
-  const guardiansFromCarto = parseGuardiansFromMarkdown(guardiansPart);
+  const { houses, guardiansPart: guardiansFromCartoPart } = findHousesInMarkdownSources(
+    cartographieMd,
+    synthesisMd,
+  );
+  const guardiansFromCarto = parseGuardiansFromMarkdown(guardiansFromCartoPart);
   const guardiansFromFile = parseGuardiansFromMarkdown(guardiansMd);
   const guardians = guardiansFromFile.length ? guardiansFromFile : guardiansFromCarto;
 

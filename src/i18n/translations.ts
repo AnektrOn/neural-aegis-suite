@@ -95,6 +95,69 @@ export const translations = {
     en: "No ignored cards to reload",
   },
   "pulse.retry": { fr: "Réessayer", en: "Retry" },
+
+  "pulse.onboarding.badge": { fr: "Guide Pulse", en: "Pulse guide" },
+  "pulse.onboarding.start": { fr: "Commencer à swiper", en: "Start swiping" },
+  "pulse.onboarding.flipHint": {
+    fr: "Recto → question · Verso → enseignement",
+    en: "Front → question · Back → teaching",
+  },
+  "pulse.showGuide": { fr: "Voir le guide", en: "View guide" },
+  "pulse.onboarding.step1.title": { fr: "Bienvenue dans Pulse", en: "Welcome to Pulse" },
+  "pulse.onboarding.step1.description": {
+    fr: "Micro-apprentissage en cartes, lié à vos runes hermétiques.",
+    en: "Card-based micro-learning tied to your hermetic runes.",
+  },
+  "pulse.onboarding.step1.detail": {
+    fr: "Chaque carte est un fragment de sagesse. Swipez pour décider, assimilez pour progresser et débloquer des runes.",
+    en: "Each card is a fragment of wisdom. Swipe to decide, assimilate to progress and unlock runes.",
+  },
+  "pulse.onboarding.step2.title": { fr: "Swipez pour décider", en: "Swipe to decide" },
+  "pulse.onboarding.step2.description": {
+    fr: "À droite : Assimiler · À gauche : Ignorer",
+    en: "Right: Assimilate · Left: Ignore",
+  },
+  "pulse.onboarding.step2.detail": {
+    fr: "Glissez la carte horizontalement ou utilisez les boutons en bas de l'écran. Assimiler enregistre le fragment et fait avancer la rune associée.",
+    en: "Drag the card horizontally or use the buttons at the bottom. Assimilating saves the fragment and advances the linked rune.",
+  },
+  "pulse.onboarding.step3.title": { fr: "Dévoilez la carte", en: "Reveal the card" },
+  "pulse.onboarding.step3.description": {
+    fr: "Tapez sur la carte pour la retourner.",
+    en: "Tap the card to flip it over.",
+  },
+  "pulse.onboarding.step3.detail": {
+    fr: "Le recto pose la question ; le verso détaille l'enseignement (problème, points clés, citation). Lisez avant de swiper.",
+    en: "The front poses the question; the back shows the teaching (problem, key points, quote). Read before you swipe.",
+  },
+  "pulse.onboarding.step4.title": { fr: "Le Grimoire", en: "The Grimoire" },
+  "pulse.onboarding.step4.description": {
+    fr: "Retrouvez vos fragments assimilés.",
+    en: "Find your assimilated fragments.",
+  },
+  "pulse.onboarding.step4.detail": {
+    fr: "Icône bibliothèque en haut à droite. Ouvrez une carte pour le cours complet (accroche, concept, action) et intégrez le savoir.",
+    en: "Library icon at the top right. Open a card for the full course (hook, concept, action) and integrate the knowledge.",
+  },
+  "pulse.onboarding.step5.title": { fr: "Runes & Glyphes", en: "Runes & Glyphs" },
+  "pulse.onboarding.step5.description": {
+    fr: "Suivez votre progression symbolique.",
+    en: "Track your symbolic progression.",
+  },
+  "pulse.onboarding.step5.detail": {
+    fr: "Icône hexagone en haut à gauche. Un glyphe regroupe plusieurs runes : chaque assimilation remplit une rune ; quand toutes sont débloquées, le glyphe s'illumine.",
+    en: "Hexagon icon at the top left. A glyph groups several runes: each assimilation fills a rune; when all are unlocked, the glyph lights up.",
+  },
+  "pulse.onboarding.step6.title": { fr: "Fin de cycle", en: "End of cycle" },
+  "pulse.onboarding.step6.description": {
+    fr: "Deck vide ? Rechargez les cartes ignorées.",
+    en: "Empty deck? Reload ignored cards.",
+  },
+  "pulse.onboarding.step6.detail": {
+    fr: "Quand il n'y a plus de cartes, utilisez « Recharger les cartes ignorées » pour revoir uniquement celles que vous avez passées à gauche.",
+    en: "When no cards remain, use \"Reload ignored cards\" to revisit only those you swiped left.",
+  },
+
   "deepDive.viewReport": {
     fr: "Voir mon rapport Deep Dive",
     en: "View my Deep Dive report",
@@ -154,6 +217,29 @@ export const translations = {
     fr: "Cartographie archétypale",
     en: "Archetypal cartography",
   },
+  "cartography.adminPreviewBanner": {
+    fr: "Aperçu admin — rapport du user_id dans l'URL (brouillon ou publié).",
+    en: "Admin preview — report for user_id in URL (draft or published).",
+  },
+  "cartography.contentLanguageNotice": {
+    fr: "Le contenu du rapport est affiché dans la langue des fichiers importés ({language}). Changer la langue de l'interface ne traduit pas le texte du rapport.",
+    en: "Report content is shown in the language of the imported source files ({language}). Changing the interface language does not translate report text.",
+  },
+  "cartography.contentLanguageFr": { fr: "français", en: "French" },
+  "cartography.contentLanguageEn": { fr: "anglais", en: "English" },
+  "cartography.fileIntro": { fr: "Introduction", en: "Introduction" },
+  "cartography.fileEmpty": { fr: "Contenu vide.", en: "Empty content." },
+  "cartography.fileSectionsNav": { fr: "Sections du rapport", en: "Report sections" },
+  "cartography.fileCollapseAll": { fr: "Tout replier", en: "Collapse all" },
+  "cartography.fileExpandAll": { fr: "Tout ouvrir", en: "Expand all" },
+  "cartography.fileSectionCount": { fr: "{count} sections", en: "{count} sections" },
+  "cartography.fileNoImport": { fr: "Aucun contenu importé.", en: "No imported content." },
+  "cartography.fileDocPicker": {
+    fr: "{count} documents — choisissez un rapport",
+    en: "{count} documents — choose a report",
+  },
+  "cartography.fileDocNav": { fr: "Fichiers du rapport", en: "Report files" },
+  "cartography.fileDefaultTitle": { fr: "Rapport", en: "Report" },
 
   "assessmentCta.title": { fr: "Découvrez vos archétypes", en: "Discover your archetypes" },
   "assessmentCta.body": {
@@ -246,6 +332,53 @@ export const translations = {
   "admin.nav.calls": { fr: "Audit Appels", en: "Call Audit" },
   "admin.nav.assessments": { fr: "Évaluations", en: "Assessments" },
   "admin.nav.cartography": { fr: "Cartographie", en: "Cartography" },
+  "admin.cartography.kicker": { fr: "Admin · Cartographie", en: "Admin · Cartography" },
+  "admin.cartography.title": { fr: "Rapports cartographie", en: "Cartography reports" },
+  "admin.cartography.description": {
+    fr: "Consultez la cartographie de tous les utilisateurs, importez de nouveaux rapports et gérez la publication.",
+    en: "Browse every user's cartography, import new reports, and manage publishing.",
+  },
+  "admin.cartography.tabAllUsers": { fr: "Tous les utilisateurs", en: "All users" },
+  "admin.cartography.tabImport": { fr: "Import dossier", en: "Folder import" },
+  "admin.cartography.search": { fr: "Rechercher", en: "Search" },
+  "admin.cartography.searchPlaceholder": {
+    fr: "Nom, pôle, mode, statut…",
+    en: "Name, pole, mode, status…",
+  },
+  "admin.cartography.userFilter": { fr: "Utilisateur", en: "User" },
+  "admin.cartography.allUsers": { fr: "— Tous —", en: "— All —" },
+  "admin.cartography.stats": {
+    fr: "{reports} rapport(s) · {users} utilisateur(s) avec cartographie",
+    en: "{reports} report(s) · {users} user(s) with cartography",
+  },
+  "admin.cartography.noReports": { fr: "Aucun rapport trouvé.", en: "No reports found." },
+  "admin.cartography.updated": { fr: "Mis à jour", en: "Updated" },
+  "admin.cartography.view": { fr: "Voir", en: "View" },
+  "admin.cartography.openNewTab": {
+    fr: "Ouvrir dans un nouvel onglet",
+    en: "Open in new tab",
+  },
+  "admin.cartography.publish": { fr: "Publier", en: "Publish" },
+  "admin.cartography.unpublish": { fr: "Dépublier", en: "Unpublish" },
+  "admin.cartography.published": { fr: "Publié", en: "Published" },
+  "admin.cartography.draft": { fr: "Brouillon", en: "Draft" },
+  "admin.cartography.loadUsersError": {
+    fr: "Impossible de charger les utilisateurs.",
+    en: "Unable to load users.",
+  },
+  "admin.cartography.deleteUser": {
+    fr: "Supprimer la cartographie",
+    en: "Delete cartography",
+  },
+  "admin.cartography.deleteUserConfirm": {
+    fr: "Supprimer toute la cartographie de {user} ? ({count} rapport(s)). Vous pourrez réimporter proprement.",
+    en: "Delete all cartography for {user}? ({count} report(s)). You can re-import cleanly.",
+  },
+  "admin.cartography.deleted": { fr: "Cartographie supprimée", en: "Cartography deleted" },
+  "admin.cartography.deletedDetail": {
+    fr: "{count} rapport(s) supprimé(s).",
+    en: "{count} report(s) deleted.",
+  },
   "admin.nav.deepDiveSample": { fr: "Rapport Deep Dive", en: "Deep Dive Report" },
   "admin.nav.deepDive": { fr: "Deep Dive — Scores", en: "Deep Dive — Scores" },
   "admin.nav.habits": { fr: "Habitudes", en: "Habits" },
@@ -559,6 +692,18 @@ export const translations = {
   "visitor.report.loading": {
     fr: "Construction de ton profil archétypal…",
     en: "Building your archetypal profile…",
+  },
+  "visitor.report.exportPdf": { fr: "Exporter PDF", en: "Export PDF" },
+  "visitor.report.exportJpeg": { fr: "Exporter JPEG", en: "Export JPEG" },
+  "visitor.report.exportPdfSuccess": { fr: "PDF téléchargé", en: "PDF downloaded" },
+  "visitor.report.exportPdfSuccessDesc": {
+    fr: "Le rapport texte (sélectionnable) a été enregistré sur votre appareil.",
+    en: "The text report (selectable) was saved to your device.",
+  },
+  "visitor.report.exportJpegSuccess": { fr: "JPEG téléchargé", en: "JPEG downloaded" },
+  "visitor.report.exportJpegSuccessDesc": {
+    fr: "Capture mobile (390px) en thème clair, haute résolution.",
+    en: "Mobile capture (390px) in light theme, high resolution.",
   },
   "visitor.payment.title": { fr: "Accès complet", en: "Full access" },
   "visitor.payment.desc": {

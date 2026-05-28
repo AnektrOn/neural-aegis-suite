@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { FolderOpen, FileArchive, Loader2, Upload, CheckCircle2 } from "lucide-react";
+import { FolderOpen, FileArchive, Loader2, Upload, CheckCircle2, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -16,6 +16,8 @@ import {
 import {
   importCartographyFolder,
   resolveCartographyTargetUserId,
+  deleteCartographyForUser,
+  type CartographyBundleListItem,
 } from "@/services/cartographyService";
 import {
   ToolboxEmptyState,
@@ -31,6 +33,7 @@ interface Profile {
 
 interface CartographyFolderImportTabProps {
   profiles: Profile[];
+  bundles?: CartographyBundleListItem[];
   onImported: () => void;
 }
 
@@ -52,11 +55,12 @@ Ou zip un seul des deux + sélection du mode`;
 
 export default function CartographyFolderImportTab({
   profiles,
+  bundles = [],
   onImported,
 }: CartographyFolderImportTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { locale } = useLanguage();
+  const { t, locale } = useLanguage();
   const isFR = locale === "fr";
 
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -65,9 +69,13 @@ export default function CartographyFolderImportTab({
   const [preview, setPreview] = useState<FolderImportPreview | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const effectiveUserId = resolveCartographyTargetUserId(preview?.manifest ?? null, selectedUserId);
   const selectedProfile = profiles.find((p) => p.id === selectedUserId);
+  const existingBundleCount = selectedUserId
+    ? bundles.filter((b) => b.userId === selectedUserId).length
+    : 0;
 
   const runPreview = useCallback(
     async (entries: Array<{ path: string; content: string }>) => {
@@ -111,6 +119,37 @@ export default function CartographyFolderImportTab({
     Boolean(effectiveUserId) &&
     (preview?.files.length ?? 0) > 0 &&
     blockingIssues.length === 0;
+
+  const handleDeleteExisting = async () => {
+    if (!selectedUserId || existingBundleCount === 0) return;
+    const userLabel = selectedProfile?.display_name ?? selectedUserId.slice(0, 8);
+    const confirmed = window.confirm(
+      t("admin.cartography.deleteUserConfirm", {
+        user: userLabel,
+        count: existingBundleCount,
+      }),
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      const count = await deleteCartographyForUser(selectedUserId);
+      toast({
+        title: t("admin.cartography.deleted"),
+        description: t("admin.cartography.deletedDetail", { count }),
+      });
+      setPreview(null);
+      onImported();
+    } catch (err) {
+      toast({
+        title: t("toast.error"),
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleImport = async () => {
     if (!user || !preview || !canImport) return;
@@ -192,6 +231,30 @@ export default function CartographyFolderImportTab({
             ))}
           </select>
         </label>
+        {selectedUserId && existingBundleCount > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <p className="text-xs text-text-tertiary">
+              {isFR
+                ? `${existingBundleCount} rapport(s) existant(s) pour cet utilisateur.`
+                : `${existingBundleCount} existing report(s) for this user.`}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={deleting}
+              onClick={handleDeleteExisting}
+            >
+              {deleting ? (
+                <Loader2 size={14} className="animate-spin" aria-hidden />
+              ) : (
+                <Trash2 size={14} aria-hidden />
+              )}
+              {t("admin.cartography.deleteUser")}
+            </Button>
+          </div>
+        )}
       </ToolboxPanel>
 
       <ToolboxPanel title={isFR ? "2. Mode d'import" : "2. Import mode"}>

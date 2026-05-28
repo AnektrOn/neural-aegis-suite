@@ -199,7 +199,10 @@ export function PulseJsonImport({ onImported }: { onImported: () => void }) {
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === "string") {
-          entries.push({ name: file.name, content: reader.result });
+          entries.push({
+            name: (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name,
+            content: reader.result,
+          });
         }
         loaded++;
         if (loaded === validFiles.length) {

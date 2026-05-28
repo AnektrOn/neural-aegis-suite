@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AnalysisMode, ArchetypePole } from "@/lib/archetype-cartography/types";
+import { detectCartographyContentLocale } from "@/lib/cartography-markdown-parse";
 import type {
   CartographyManifest,
   ParsedCartographyFile,
@@ -223,6 +224,9 @@ export async function importCartographyFolder(
     const meta = {
       ...metaBase,
       pole_label: poleLabels[pole] ?? poleLabel,
+      content_locale: detectCartographyContentLocale(
+        groupFiles.map((f) => f.markdown).join("\n"),
+      ),
     };
 
     const { data: bundle, error: bundleErr } = await supabase
@@ -346,10 +350,58 @@ export async function setCartographyBundleStatus(
   }
 }
 
-export async function listCartographyBundlesForUser(userId: string) {
+export interface CartographyBundleListItem {
+  id: string;
+  userId: string;
+  pole: string;
+  mode: string;
+  status: string;
+  meta: Record<string, unknown>;
+  publishedAt: string | null;
+  updatedAt: string;
+}
+
+function mapBundleListRow(row: {
+  id: string;
+  user_id: string;
+  pole: string;
+  mode: string;
+  status: string;
+  meta: unknown;
+  published_at: string | null;
+  updated_at: string;
+}): CartographyBundleListItem {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    pole: row.pole,
+    mode: row.mode,
+    status: row.status,
+    meta: (row.meta as Record<string, unknown>) ?? {},
+    publishedAt: row.published_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** Admin : tous les bundles (tous utilisateurs). */
+export async function listAllCartographyBundles(): Promise<CartographyBundleListItem[]> {
   const { data, error } = await supabase
     .from("cartography_bundles")
-    .select("id, pole, mode, status, meta, published_at, updated_at")
+    .select("id, user_id, pole, mode, status, meta, published_at, updated_at")
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("[cartography] list all bundles", error.message);
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(mapBundleListRow);
+}
+
+export async function listCartographyBundlesForUser(userId: string): Promise<CartographyBundleListItem[]> {
+  const { data, error } = await supabase
+    .from("cartography_bundles")
+    .select("id, user_id, pole, mode, status, meta, published_at, updated_at")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
@@ -357,5 +409,24 @@ export async function listCartographyBundlesForUser(userId: string) {
     console.error("[cartography] list bundles", error.message);
     throw new Error(error.message);
   }
-  return data ?? [];
+  return (data ?? []).map(mapBundleListRow);
+}
+
+/** Admin : supprime tous les bundles (et sections en cascade) d'un utilisateur. */
+export async function deleteCartographyForUser(userId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("delete_cartography_for_user", {
+    p_user_id: userId,
+  });
+
+  if (error) {
+    console.error("[cartography] delete user bundles", error.message);
+    throw new Error(error.message);
+  }
+
+  const result = data as { ok?: boolean; error?: string; deleted?: number } | null;
+  if (!result?.ok) {
+    throw new Error(result?.error ?? "Échec suppression cartographie");
+  }
+
+  return result.deleted ?? 0;
 }

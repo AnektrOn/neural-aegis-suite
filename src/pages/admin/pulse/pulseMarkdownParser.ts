@@ -190,16 +190,23 @@ function parseCourseBody(body: string): Record<string, { hook?: string; concept?
   let currentKey: string | null = null;
   let currentLines: string[] = [];
 
+  // Aligné sur sync-obsidian.mjs : # Hook FR · # Hook — FR · # Hook (FR)
+  const headingRe =
+    /^#{1,3}[ \t]+(Hook|Concept|Action)(?:[ \t]*(?:\(?(FR|EN)\)?|[—–-][ \t]*(FR|EN)|:[ \t]*(FR|EN)|[ \t]+(FR|EN)))?[ \t]*$/i;
+
   for (const line of lines) {
-    const headingMatch = line.match(
-      /^#{1,3}\s+(Hook|Concept|Action)\s*(?:\(?(FR|EN)\)?|--|—|:)?\s*$/i,
-    );
+    const headingMatch = line.match(headingRe);
     if (headingMatch) {
+      const locale = (headingMatch[2] || headingMatch[3] || headingMatch[4] || headingMatch[5] || "")
+        .toLowerCase();
+      if (locale !== "fr" && locale !== "en") {
+        if (currentKey) currentLines.push(line);
+        continue;
+      }
       if (currentKey) {
         sections[currentKey] = currentLines.join("\n").trim();
       }
       const section = headingMatch[1].toLowerCase();
-      const locale = headingMatch[2].toLowerCase();
       currentKey = `${section}_${locale}`;
       currentLines = [];
     } else {
@@ -231,6 +238,12 @@ function parseCourseBody(body: string): Record<string, { hook?: string; concept?
 interface ParseResult {
   card: PulseCardImportPayload | null;
   errors: string[];
+}
+
+function isCourseFile(meta: Record<string, unknown> | null): boolean {
+  if (!meta) return false;
+  const type = typeof meta.type === "string" ? meta.type.toLowerCase() : "";
+  return type === "course" || Array.isArray(meta.cards);
 }
 
 function validateAndBuild(
@@ -313,7 +326,7 @@ function validateAndBuild(
       content_type: contentType,
       sort_order: (meta.sort_order as number) ?? 0,
       time_label: (meta.time_label as string) ?? "2 MIN",
-      is_active: true,
+      is_active: meta.is_active !== false,
       title: meta.title as Record<string, string>,
       format: (meta.format as Record<string, string>) ?? { fr: "MICRO-CONCEPT", en: "MICRO-CONCEPT" },
       problem: meta.problem as Record<string, string>,
@@ -337,30 +350,58 @@ export interface MarkdownParseResult {
  * Parse a single `.md` file content (Obsidian frontmatter + body).
  */
 export function parseMarkdownCard(rawContent: string, fileName: string): ParseResult {
-  const { meta, body } = parseFrontmatter(rawContent);
-  if (isLikelyIndexFile(fileName, meta)) {
-    return {
-      card: null,
-      errors: [
-        `${fileName}: fichier index archétype ignoré — importez les cartes numérotées (001-xxx.md).`,
-      ],
-    };
-  }
-  if (!meta) {
-    return { card: null, errors: consolidatedErrors(fileName, null) };
-  }
+  try {
+    const { meta, body } = parseFrontmatter(rawContent);
+    if (isLikelyIndexFile(fileName, meta)) {
+      return {
+        card: null,
+        errors: [
+          `${fileName}: fichier index archétype ignoré — importez les cartes numérotées (001-xxx.md).`,
+        ],
+      };
+    }
+    if (isCourseFile(meta)) {
+      return {
+        card: null,
+        errors: [
+          `${fileName}: fichier course (type: course) — n'est pas une carte Pulse. ` +
+            `Importez les fichiers cartes (001-xxx.md dans MENTALISM/, POLARITY/, etc.).`,
+        ],
+      };
+    }
+    if (!meta) {
+      return { card: null, errors: consolidatedErrors(fileName, null) };
+    }
 
-  const courseContent = parseCourseBody(body);
-  return validateAndBuild(meta, courseContent, fileName);
+    const courseContent = parseCourseBody(body);
+    return validateAndBuild(meta, courseContent, fileName);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { card: null, errors: [`${fileName}: erreur de parsing — ${msg}`] };
+  }
 }
 
 function parseMarkdownSegment(rawContent: string, label: string): ParseResult {
-  const { meta, body } = parseFrontmatter(rawContent);
-  if (!meta) {
-    return { card: null, errors: consolidatedErrors(label, null) };
+  try {
+    const { meta, body } = parseFrontmatter(rawContent);
+    if (isCourseFile(meta)) {
+      return {
+        card: null,
+        errors: [
+          `${label}: fichier course (type: course) — n'est pas une carte Pulse. ` +
+            `Importez les fichiers cartes (001-xxx.md).`,
+        ],
+      };
+    }
+    if (!meta) {
+      return { card: null, errors: consolidatedErrors(label, null) };
+    }
+    const courseContent = parseCourseBody(body);
+    return validateAndBuild(meta, courseContent, label);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { card: null, errors: [`${label}: erreur de parsing — ${msg}`] };
   }
-  const courseContent = parseCourseBody(body);
-  return validateAndBuild(meta, courseContent, label);
 }
 
 /**
