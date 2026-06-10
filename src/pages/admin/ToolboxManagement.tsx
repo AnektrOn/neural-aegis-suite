@@ -110,7 +110,11 @@ function DurationBadge({ duration }: { duration: string | null }) {
   );
 }
 
-export default function ToolboxManagement() {
+type ToolboxManagementProps = {
+  viewMode?: "full" | "assignments";
+};
+
+export default function ToolboxManagement({ viewMode = "full" }: ToolboxManagementProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t, locale } = useLanguage();
@@ -323,6 +327,131 @@ export default function ToolboxManagement() {
         <ToolboxPageStat label={t("admin.toolboxMgmt.statCatalogTemplates")} value={templates.length} icon={Library} />
       </section>
 
+      {viewMode === "assignments" ? (
+        <div className="space-y-8 md:space-y-10">
+          <ToolboxPanel
+            title={t("admin.toolboxMgmt.listFiltersTitle")}
+            description={t("admin.toolboxMgmt.listFiltersDesc")}
+          >
+            <div className="space-y-5">
+              <div className="relative max-w-xl">
+                <label htmlFor="toolbox-assignments-search" className="sr-only">
+                  {t("admin.toolboxMgmt.assignmentsSearchLabel")}
+                </label>
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <input
+                  id="toolbox-assignments-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t("common.searchByNameOrTool")}
+                  autoComplete="off"
+                  className={cn(toolboxFieldClass, "pl-11")}
+                />
+              </div>
+              <div className="space-y-3">
+                <p className={toolboxLabelClass}>{t("admin.toolboxMgmt.filterByType")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {allTypes.map((typeKey) => (
+                    <button
+                      key={typeKey}
+                      type="button"
+                      onClick={() => setFilterType(typeKey)}
+                      className={filterChipClass(filterType === typeKey)}
+                    >
+                      {typeKey === "all" ? t("admin.toolboxMgmt.filterAll") : TYPE_META[typeKey]?.label || typeKey}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </ToolboxPanel>
+
+          {loading ? (
+            <ToolboxLoadingBlock message={t("general.loading")} />
+          ) : filtered.length === 0 ? (
+            <ToolboxEmptyState icon={Package} title={t("common.noToolsAssigned")} />
+          ) : (
+            <div className="space-y-4">
+              <div
+                className="ethereal-glass hidden gap-4 px-6 py-3 text-xs font-medium uppercase tracking-wide text-text-secondary lg:grid"
+                style={{ gridTemplateColumns: "1fr 160px 140px 120px 140px" }}
+              >
+                <span>{t("admin.toolboxMgmt.listColumnTool")}</span>
+                <span>{t("admin.toolboxMgmt.listColumnUser")}</span>
+                <span>{t("admin.toolboxMgmt.listColumnType")}</span>
+                <span>{t("admin.toolboxMgmt.listColumnDate")}</span>
+                <span className="text-right">{t("admin.toolboxMgmt.listColumnActions")}</span>
+              </div>
+
+              <ul className="grid gap-4 lg:gap-3">
+                {filtered.map((item) => {
+                  const meta = TYPE_META[item.content_type] || TYPE_META.course;
+                  const title = pickLocalizedText(locale as Locale, (item as any).title_i18n, item.title);
+                  const dateStr = new Date(item.assigned_at).toLocaleDateString(dateLocaleTag, {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  });
+
+                  return (
+                    <li key={item.id}>
+                      <div className="ethereal-glass lg:grid lg:items-center lg:gap-4 lg:px-6 lg:py-4" style={{ gridTemplateColumns: "1fr 160px 140px 120px 140px" }}>
+                        <div className="flex gap-4 border-b border-border/40 p-5 lg:border-0 lg:p-0">
+                          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted/50 lg:hidden">
+                            <meta.icon className={cn("size-5", meta.color)} strokeWidth={1.5} aria-hidden />
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-2 lg:space-y-1">
+                            <p className="text-base font-semibold leading-snug text-text-primary">{title}</p>
+                            <div className="flex flex-wrap gap-2 lg:hidden">
+                              <TypeBadge label={meta.label} />
+                              <DurationBadge duration={item.duration} />
+                            </div>
+                            <p className="text-sm text-muted-foreground lg:hidden">
+                              {item.user_name} · {dateStr}
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="hidden truncate px-0 text-sm text-text-primary lg:block">{item.user_name}</p>
+                        <div className="hidden lg:block">
+                          <TypeBadge label={meta.label} />
+                        </div>
+                        <p className="hidden text-sm text-muted-foreground lg:block">{dateStr}</p>
+
+                        <div className="flex flex-col gap-3 border-t border-border/40 p-5 sm:flex-row sm:items-center sm:justify-end lg:border-0 lg:p-0">
+                          <ToolboxItemPreview
+                            contentType={item.content_type}
+                            title={title}
+                            description={pickWidgetCatalogCopy(locale as Locale, item.description_i18n as any, item.description)}
+                            widgetConfig={item.widget_config}
+                            externalUrl={item.external_url}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="size-11 shrink-0 text-muted-foreground hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
+                            onClick={() => deleteAssignment(item.id)}
+                            aria-label={t("admin.toolboxMgmt.removeTitle")}
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {viewMode === "full" ? (
       <Tabs defaultValue="catalog" className="space-y-8 md:space-y-10">
         <TabsList className="ethereal-glass grid h-auto w-full grid-cols-1 gap-2 p-2 sm:grid-cols-2 lg:grid-cols-4">
           <TabsTrigger value="catalog" className={tabTriggerClass}>
@@ -689,6 +818,7 @@ export default function ToolboxManagement() {
           />
         </TabsContent>
       </Tabs>
+      ) : null}
     </div>
   );
 }

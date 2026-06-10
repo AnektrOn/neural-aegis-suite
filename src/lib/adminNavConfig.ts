@@ -27,6 +27,8 @@ import type { TranslationKey } from "@/i18n/translations";
 
 export type AdminHubTabId =
   | "manage"
+  | "studio"
+  | "assignments"
   | "stats"
   | "waiting"
   | "program"
@@ -109,11 +111,10 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         labelKey: "admin.nav.toolbox",
         titleKey: "admin.hub.toolbox.title",
         descriptionKey: "admin.hub.toolbox.description",
-        defaultTab: "manage",
+        defaultTab: "studio",
         tabs: [
-          { id: "manage", labelKey: "admin.hub.tab.toolboxManage" },
-          { id: "waiting", labelKey: "admin.hub.tab.toolboxWaiting" },
-          { id: "program", labelKey: "admin.hub.tab.toolboxProgram" },
+          { id: "studio", labelKey: "admin.hub.tab.toolboxStudio" },
+          { id: "assignments", labelKey: "admin.hub.tab.toolboxAssignments" },
         ],
       },
       {
@@ -222,8 +223,8 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
 
 /** Legacy paths → new hub URLs (query tab preserved where applicable). */
 export const ADMIN_LEGACY_REDIRECTS: Record<string, string> = {
-  "/admin/toolbox-waiting-confirmation": "/admin/toolbox?tab=waiting",
-  "/admin/program-builder": "/admin/toolbox?tab=program",
+  "/admin/toolbox-waiting-confirmation": "/admin/toolbox?tab=studio",
+  "/admin/program-builder": "/admin/toolbox?tab=studio",
   "/admin/place-tags": "/admin/places?tab=tags",
   "/admin/user-places": "/admin/places?tab=userPlaces",
   "/admin/deep-dive-sample": "/admin/deep-dive?tab=report",
@@ -252,9 +253,19 @@ export function getNavItemByPath(pathname: string): AdminNavItem | undefined {
   return undefined;
 }
 
+const TOOLBOX_TAB_ALIASES: Record<string, AdminHubTabId> = {
+  manage: "studio",
+  waiting: "studio",
+  program: "studio",
+};
+
 export function resolveHubTab(hub: AdminNavHubItem, tabParam: string | null): AdminHubTabId {
-  const valid = hub.tabs.some((t) => t.id === tabParam);
-  if (tabParam && valid) return tabParam as AdminHubTabId;
+  const normalized =
+    hub.to === "/admin/toolbox" && tabParam
+      ? TOOLBOX_TAB_ALIASES[tabParam] ?? tabParam
+      : tabParam;
+  const valid = hub.tabs.some((t) => t.id === normalized);
+  if (normalized && valid) return normalized as AdminHubTabId;
   return hub.defaultTab;
 }
 

@@ -4,29 +4,17 @@ import { motion } from "framer-motion";
 import { useSessionTracking } from "@/hooks/use-session-tracking";
 import { useHesitationTracking } from "@/hooks/use-hesitation-tracking";
 import {
-  LayoutDashboard,
-  Brain,
-  Target,
-  ListChecks,
-  Headphones,
-  Users,
   ChevronLeft,
   ChevronRight,
   LogOut,
   Shield,
-  BarChart3,
-  BookOpen,
-  UserCircle,
-  CalendarDays,
   MoreVertical,
-  FileText,
-  Library,
-  Smartphone,
-  LineChart,
   Settings2,
-  Mail,
-  Sparkles,
 } from "lucide-react";
+import AppCommandPalette from "@/components/AppCommandPalette";
+import DesktopTopBar from "@/components/DesktopTopBar";
+import QuickLogModal from "@/components/QuickLogModal";
+import { APP_NAV_SECTIONS } from "@/lib/appNavConfig";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { MobileDockCircleMenu } from "@/components/MobileDockCircleMenu";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,61 +49,26 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const NAV_GROUPS = [
-  {
-    label: "Quotidien",
-    items: [
-      { to: "/", icon: LayoutDashboard, key: "nav.dashboard" as const },
-      { to: "/mood", icon: Brain, key: "nav.mood" as const },
-      { to: "/habits", icon: ListChecks, key: "nav.habits" as const },
-      { to: "/journal", icon: BookOpen, key: "nav.journal" as const },
-      { to: "/decisions", icon: Target, key: "nav.decisions" as const },
-    ],
-  },
-  {
-    label: "Analyse",
-    items: [
-      { to: "/analytics", icon: BarChart3, key: "nav.analytics" as const },
-      { to: "/pulse", icon: Sparkles, key: "nav.pulse" as const },
-      { to: "/deep-dive", icon: FileText, key: "nav.deepDive" as const },
-      { to: "/deep-dive/scores", icon: LineChart, key: "nav.deepDiveScores" as const },
-      { to: "/people", icon: Users, key: "nav.people" as const },
-      { to: "/calendar", icon: CalendarDays, key: "nav.calendar" as const },
-    ],
-  },
-  {
-    label: "Ressources",
-    items: [
-      { to: "/toolbox", icon: Headphones, key: "nav.toolbox" as const },
-      { to: "/bibliotheque", icon: Library, key: "nav.bibliotheque" as const },
-      { to: "/newsletter", icon: Mail, key: "nav.newsletter" as const },
-      { to: "/install", icon: Smartphone, key: "nav.installApp" as const },
-      { to: "/settings", icon: Settings2, key: "nav.settings" as const },
-      { to: "/profile", icon: UserCircle, key: "nav.account" as const },
-    ],
-  },
-];
-
 function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const location = useLocation();
   const { signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const { t } = useLanguage();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    Quotidien: true,
-    Analyse: false,
-    Ressources: false,
+    daily: true,
+    analysis: false,
+    resources: false,
   });
 
-  const toggleGroup = (label: string) => {
-    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  const toggleGroup = (id: string) => {
+    setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   // Auto-expand group containing active route
   useEffect(() => {
-    const match = NAV_GROUPS.find((g) => g.items.some((i) => i.to === location.pathname));
+    const match = APP_NAV_SECTIONS.find((g) => g.items.some((i) => i.to === location.pathname));
     if (match) {
-      setOpenGroups((prev) => ({ ...prev, [match.label]: true }));
+      setOpenGroups((prev) => ({ ...prev, [match.id]: true }));
     }
   }, [location.pathname]);
 
@@ -131,18 +84,18 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2 px-0">
-        {NAV_GROUPS.map((group) => {
-          const isOpen = collapsed || openGroups[group.label];
+        {APP_NAV_SECTIONS.map((group) => {
+          const isOpen = collapsed || openGroups[group.id];
           return (
-            <div key={group.label} className="mb-1">
+            <div key={group.id} className="mb-1">
               {!collapsed && (
                 <button
                   type="button"
-                  onClick={() => toggleGroup(group.label)}
+                  onClick={() => toggleGroup(group.id)}
                   aria-expanded={isOpen}
                   className="w-full flex items-center gap-1 px-4 py-1.5 text-[9px] font-display tracking-[0.22em] uppercase text-text-tertiary/50 hover:text-text-tertiary transition-colors"
                 >
-                  <span className="flex-1 text-left">{group.label}</span>
+                  <span className="flex-1 text-left">{t(group.labelKey)}</span>
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>
                     <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -171,7 +124,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                         )}
                         <item.icon size={16} strokeWidth={1.5} className="relative z-10 shrink-0" aria-hidden />
                         {!collapsed && (
-                          <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.key)}</span>
+                          <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.labelKey)}</span>
                         )}
                       </NavLink>
                     );
@@ -220,6 +173,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [dockRadialOpen, setDockRadialOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [radialMenuIds, setRadialMenuIds] = useState<MobileRadialMenuId[]>(DEFAULT_MOBILE_RADIAL_MENU_IDS);
   const touchStartY = useRef(0);
   const location = useLocation();
@@ -266,6 +221,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
   };
+
+  const openQuickLog = useCallback(() => {
+    setQuickLogOpen(true);
+    window.dispatchEvent(new CustomEvent("aegis:open-quicklog"));
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isMobile]);
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
@@ -546,9 +518,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           collapsed ? "ml-[60px]" : "ml-[220px]"
         } ${!online ? "mt-7" : ""}`}
       >
+        <DesktopTopBar
+          pathname={location.pathname}
+          onOpenCommand={() => setCommandOpen(true)}
+          onQuickLog={openQuickLog}
+        />
         <PageWrapper key={location.pathname}>{children}</PageWrapper>
         <AppFooter />
       </main>
+
+      <AppCommandPalette
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        onQuickLog={openQuickLog}
+      />
+      <QuickLogModal open={quickLogOpen} onClose={() => setQuickLogOpen(false)} />
     </div>
   );
 }

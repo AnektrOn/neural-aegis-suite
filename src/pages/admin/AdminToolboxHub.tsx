@@ -1,9 +1,8 @@
 import { lazy, Suspense } from "react";
 import AdminHubShell from "@/components/admin/AdminHubShell";
 
-const ToolboxManagement = lazy(() => import("./ToolboxManagement"));
-const ToolboxWaitingConfirmation = lazy(() => import("./ToolboxWaitingConfirmation"));
-const ProgramBuilder = lazy(() => import("./ProgramBuilder"));
+const ToolboxStudio = lazy(() => import("./ToolboxStudio"));
+const ToolboxAssignments = lazy(() => import("./ToolboxAssignments"));
 
 function HubPanelLoader() {
   return (
@@ -18,19 +17,29 @@ export default function AdminToolboxHub() {
     <AdminHubShell
       pathname="/admin/toolbox"
       panels={{
+        studio: (
+          <Suspense fallback={<HubPanelLoader />}>
+            <ToolboxStudio />
+          </Suspense>
+        ),
+        assignments: (
+          <Suspense fallback={<HubPanelLoader />}>
+            <ToolboxAssignments />
+          </Suspense>
+        ),
         manage: (
           <Suspense fallback={<HubPanelLoader />}>
-            <ToolboxManagement />
+            <ToolboxStudio />
           </Suspense>
         ),
         waiting: (
           <Suspense fallback={<HubPanelLoader />}>
-            <ToolboxWaitingConfirmation />
+            <ToolboxStudio />
           </Suspense>
         ),
         program: (
           <Suspense fallback={<HubPanelLoader />}>
-            <ProgramBuilder />
+            <ToolboxStudio />
           </Suspense>
         ),
       }}

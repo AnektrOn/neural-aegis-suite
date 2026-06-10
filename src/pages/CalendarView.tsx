@@ -86,13 +86,55 @@ export default function CalendarView() {
 
   const selectedData = selectedDay ? monthData.get(selectedDay) : null;
 
+  const dayDetailContent = selectedDay ? (
+    <>
+      <p className="text-neural-label mb-4">
+        {new Date(selectedDay + "T00:00:00").toLocaleDateString("fr-FR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })}
+      </p>
+      {selectedData ? (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-secondary/20 rounded-xl p-4 text-center">
+            <Brain size={16} className="text-primary mx-auto mb-2" />
+            <p className="text-lg font-cinzel text-foreground">{selectedData.mood ?? "—"}</p>
+            <p className="text-neural-label">{t("nav.mood")}</p>
+          </div>
+          <div className="bg-secondary/20 rounded-xl p-4 text-center">
+            <ListChecks size={16} className="text-emerald-500 mx-auto mb-2" />
+            <p className="text-lg font-cinzel text-foreground">{selectedData.habits}</p>
+            <p className="text-neural-label">{t("nav.habits")}</p>
+          </div>
+          <div className="bg-secondary/20 rounded-xl p-4 text-center">
+            <Target size={16} className="text-amber-500 mx-auto mb-2" />
+            <p className="text-lg font-cinzel text-foreground">{selectedData.decisions}</p>
+            <p className="text-neural-label">{t("calendar.legendDecisions")}</p>
+          </div>
+          <div className="bg-secondary/20 rounded-xl p-4 text-center">
+            <BookOpen size={16} className="text-violet-500 mx-auto mb-2" />
+            <p className="text-lg font-cinzel text-foreground">{selectedData.journal}</p>
+            <p className="text-neural-label">{t("nav.journal")}</p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground text-center py-4">{t("common.noActivityToday")}</p>
+      )}
+    </>
+  ) : (
+    <p className="text-sm text-muted-foreground text-center py-8">{t("calendar.selectDay")}</p>
+  );
+
   return (
-    <div className="space-y-10 max-w-5xl">
+    <div className="mx-auto w-full max-w-7xl space-y-10">
       <div>
         <p className="text-neural-label mb-3">Vue d'ensemble</p>
         <h1 className="text-neural-title text-3xl text-foreground">Calendrier</h1>
       </div>
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-3 sm:p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -169,40 +211,20 @@ export default function CalendarView() {
         </div>
       </motion.div>
 
-      {/* Selected day detail */}
-      {selectedDay && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
-          <p className="text-neural-label mb-4">
-            {new Date(selectedDay + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-          </p>
-          {selectedData ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-secondary/20 rounded-xl p-4 text-center">
-                <Brain size={16} className="text-primary mx-auto mb-2" />
-                <p className="text-lg font-cinzel text-foreground">{selectedData.mood ?? "—"}</p>
-                <p className="text-neural-label">{t("nav.mood")}</p>
-              </div>
-              <div className="bg-secondary/20 rounded-xl p-4 text-center">
-                <ListChecks size={16} className="text-emerald-500 mx-auto mb-2" />
-                <p className="text-lg font-cinzel text-foreground">{selectedData.habits}</p>
-                <p className="text-neural-label">{t("nav.habits")}</p>
-              </div>
-              <div className="bg-secondary/20 rounded-xl p-4 text-center">
-                <Target size={16} className="text-amber-500 mx-auto mb-2" />
-                <p className="text-lg font-cinzel text-foreground">{selectedData.decisions}</p>
-                <p className="text-neural-label">{t("calendar.legendDecisions")}</p>
-              </div>
-              <div className="bg-secondary/20 rounded-xl p-4 text-center">
-                <BookOpen size={16} className="text-violet-500 mx-auto mb-2" />
-                <p className="text-lg font-cinzel text-foreground">{selectedData.journal}</p>
-                <p className="text-neural-label">{t("nav.journal")}</p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">{t("common.noActivityToday")}</p>
-          )}
+      <div className="ethereal-glass hidden p-6 lg:sticky lg:top-24 lg:block">
+        {dayDetailContent}
+      </div>
+      </div>
+
+      {selectedDay ? (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="ethereal-glass p-6 lg:hidden"
+        >
+          {dayDetailContent}
         </motion.div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -37,14 +37,16 @@ function archColor(key: AnyArchetypeKey): string {
 
 interface PersonaIdentityViewProps {
   profile: SampleProfile;
+  displayName?: string;
 }
 
-export function PersonaIdentityView({ profile }: PersonaIdentityViewProps) {
+export function PersonaIdentityView({ profile, displayName }: PersonaIdentityViewProps) {
   const { locale, t } = useLanguage();
   const isFR = locale === "fr";
   const reduceMotion = useReducedMotion();
   const n = profile.narrative;
-  const { name, classTitle } = parseProfileLabel(profile.label);
+  const { name: labelName, classTitle } = parseProfileLabel(profile.label);
+  const name = displayName?.trim() || labelName || null;
   const triad = n.archetypeBlocks;
 
   const fade = reduceMotion

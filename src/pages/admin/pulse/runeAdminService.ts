@@ -45,7 +45,7 @@ export async function listRuneCollections(): Promise<RuneCollectionRow[]> {
 export async function listRunePrinciples(): Promise<RunePrincipleRow[]> {
   const { data, error } = await supabase
     .from("aegis_rune_principles" as never)
-    .select("*, aegis_rune_collections(code)" as never)
+    .select("*" as never)
     .order("sort_order" as never, { ascending: true });
 
   if (error) {
@@ -53,14 +53,22 @@ export async function listRunePrinciples(): Promise<RunePrincipleRow[]> {
     return [];
   }
 
-  return ((data as never[]) ?? []).map((row: never) => {
-    const r = row as Record<string, unknown>;
-    const coll = r.aegis_rune_collections as Record<string, unknown> | null;
-    return {
-      ...r,
-      collection_code: coll?.code as string | undefined,
-    } as RunePrincipleRow;
-  });
+  const principles = (data ?? []) as RunePrincipleRow[];
+  if (principles.length === 0) return principles;
+
+  const { data: collections } = await supabase
+    .from("aegis_rune_collections" as never)
+    .select("id, code" as never);
+
+  const codeById = new Map<string, string>();
+  for (const c of (collections as { id: string; code: string }[]) ?? []) {
+    codeById.set(c.id, c.code);
+  }
+
+  return principles.map((r) => ({
+    ...r,
+    collection_code: r.collection_id ? codeById.get(r.collection_id) : undefined,
+  }));
 }
 
 export async function upsertCollection(

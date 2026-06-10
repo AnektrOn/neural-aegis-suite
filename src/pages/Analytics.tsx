@@ -104,7 +104,7 @@ export default function Analytics() {
   const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px", color: "hsl(var(--foreground))" };
 
   return (
-    <div className="space-y-10 max-w-6xl">
+    <div className="space-y-10 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">Centre d'Intelligence</p>

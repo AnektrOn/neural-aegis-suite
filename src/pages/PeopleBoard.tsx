@@ -868,7 +868,7 @@ export default function PeopleBoard() {
 
   return (
     <div
-      className={`space-y-5 ${isMobile ? "pb-44" : "pb-32"} ${view === "neural" || view === "places" ? "max-w-7xl" : "max-w-6xl"}`}
+      className={`mx-auto w-full space-y-5 ${isMobile ? "pb-44" : "pb-32"} max-w-7xl`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">

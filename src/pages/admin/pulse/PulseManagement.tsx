@@ -11,6 +11,8 @@ import {
   UserPlus,
   CheckCheck,
   X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import UserPicker from "@/features/admin-export/UserPicker";
 import {
@@ -33,10 +35,14 @@ import {
   bulkClearUserAssignment,
   fetchPulseCardStats,
   fetchProfileOptions,
+  fetchUserRuneProgress,
+  fetchPulseSwipeLog,
   type PulseCardRow,
   type PulseCardSwipeStats,
   type ProfileOption,
 } from "./pulseAdminService";
+import { PulseCardContentPreview } from "./PulseCardContentPreview";
+import { cardsInUserScope } from "./pulseAdminScope";
 
 const PRINCIPLES_COLORS: Record<string, string> = {
   MENTALISM: "text-violet-400 border-violet-400/30",
@@ -69,6 +75,12 @@ export function PulseManagement() {
   const [bulkAssignUsers, setBulkAssignUsers] = useState<string[]>([]);
   const [showAssignPanel, setShowAssignPanel] = useState(false);
   const [bulkWorking, setBulkWorking] = useState(false);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [userSwipeSummary, setUserSwipeSummary] = useState<{
+    assimilated: number;
+    ignored: number;
+  } | null>(null);
+  const [userCardStats, setUserCardStats] = useState<Map<string, PulseCardSwipeStats>>(new Map());
 
   const profileMap = useMemo(
     () => new Map(profiles.map((p) => [p.id, p])),
@@ -90,8 +102,85 @@ export function PulseManagement() {
 
   useEffect(() => { load(); }, [load]);
 
-  const totalActive = cards.filter((c) => c.is_active).length;
-  const principles = [...new Set(cards.map((c) => c.principle_code).filter(Boolean))];
+  const isUserScoped =
+    userFilter !== "all" && userFilter !== "unassigned";
+
+  useEffect(() => {
+    if (!isUserScoped) {
+      setUserSwipeSummary(null);
+      setUserCardStats(new Map());
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      const [progress, log] = await Promise.all([
+        fetchUserRuneProgress(userFilter),
+        fetchPulseSwipeLog(userFilter),
+      ]);
+      if (cancelled) return;
+
+      setUserSwipeSummary(
+        progress?.swipes
+          ? { assimilated: progress.swipes.assimilated, ignored: progress.swipes.ignored }
+          : { assimilated: 0, ignored: 0 },
+      );
+
+      const map = new Map<string, PulseCardSwipeStats>();
+      for (const entry of log) {
+        const existing = map.get(entry.card_id) ?? {
+          card_id: entry.card_id,
+          external_key: entry.external_key,
+          yes_count: 0,
+          no_count: 0,
+          total_swipes: 0,
+        };
+        if (entry.action === "assimilated") existing.yes_count += 1;
+        else existing.no_count += 1;
+        existing.total_swipes += 1;
+        map.set(entry.card_id, existing);
+      }
+      setUserCardStats(map);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userFilter, isUserScoped]);
+
+  const scopeCards = useMemo(
+    () => cardsInUserScope(cards, userFilter),
+    [cards, userFilter],
+  );
+
+  const displayStats = isUserScoped ? userCardStats : stats;
+
+  const totalActive = scopeCards.filter((c) => c.is_active).length;
+  const principles = [...new Set(scopeCards.map((c) => c.principle_code).filter(Boolean))];
+
+  const { totalYes, totalNo } = useMemo(() => {
+    if (isUserScoped && userSwipeSummary) {
+      return {
+        totalYes: userSwipeSummary.assimilated,
+        totalNo: userSwipeSummary.ignored,
+      };
+    }
+    let yes = 0;
+    let no = 0;
+    for (const card of scopeCards) {
+      const s = stats.get(card.id);
+      if (s) {
+        yes += s.yes_count;
+        no += s.no_count;
+      }
+    }
+    return { totalYes: yes, totalNo: no };
+  }, [isUserScoped, userSwipeSummary, scopeCards, stats]);
+
+  const selectedUserLabel = isUserScoped
+    ? profileLabel(profileMap, userFilter)
+    : null;
 
   const usersWithCards = useMemo(() => {
     const ids = new Set<string>();
@@ -102,13 +191,6 @@ export function PulseManagement() {
       profileLabel(profileMap, a).localeCompare(profileLabel(profileMap, b)),
     );
   }, [cards, profileMap]);
-
-  let totalYes = 0;
-  let totalNo = 0;
-  for (const s of stats.values()) {
-    totalYes += s.yes_count;
-    totalNo += s.no_count;
-  }
 
   const filtered = cards
     .filter((c) => {
@@ -129,7 +211,7 @@ export function PulseManagement() {
       }
 
       if (swipeFilter !== "all") {
-        const s = stats.get(c.id);
+        const s = displayStats.get(c.id);
         const yes = s?.yes_count ?? 0;
         const no = s?.no_count ?? 0;
         const total = s?.total_swipes ?? 0;
@@ -144,14 +226,14 @@ export function PulseManagement() {
     })
     .sort((a, b) => {
       if (sortBy === "yes-desc") {
-        return (stats.get(b.id)?.yes_count ?? 0) - (stats.get(a.id)?.yes_count ?? 0);
+        return (displayStats.get(b.id)?.yes_count ?? 0) - (displayStats.get(a.id)?.yes_count ?? 0);
       }
       if (sortBy === "no-desc") {
-        return (stats.get(b.id)?.no_count ?? 0) - (stats.get(a.id)?.no_count ?? 0);
+        return (displayStats.get(b.id)?.no_count ?? 0) - (displayStats.get(a.id)?.no_count ?? 0);
       }
       if (sortBy === "ratio") {
-        const rA = stats.get(a.id);
-        const rB = stats.get(b.id);
+        const rA = displayStats.get(a.id);
+        const rB = displayStats.get(b.id);
         const ratioA = rA && rA.total_swipes > 0 ? rA.yes_count / rA.total_swipes : -1;
         const ratioB = rB && rB.total_swipes > 0 ? rB.yes_count / rB.total_swipes : -1;
         return ratioB - ratioA;
@@ -254,11 +336,18 @@ export function PulseManagement() {
     }
   };
 
-  const draftCount = cards.length - totalActive;
+  const draftCount = scopeCards.length - totalActive;
+
+  const statsScopeLabel =
+    userFilter === "all"
+      ? "Tous les users"
+      : userFilter === "unassigned"
+        ? "Cartes universelles"
+        : selectedUserLabel ?? "User";
 
   return (
     <div className="space-y-6">
-      {draftCount > 0 && (
+      {draftCount > 0 && userFilter === "all" && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 rounded-xl border border-amber-400/30 bg-amber-400/5">
           <div className="flex items-center gap-2 flex-1">
             <EyeOff className="size-5 text-amber-400 shrink-0" />
@@ -276,13 +365,20 @@ export function PulseManagement() {
         </div>
       )}
 
+      {userFilter !== "all" ? (
+        <p className="text-xs text-muted-foreground">
+          Stats pour : <span className="text-cyan-400 font-medium">{statsScopeLabel}</span>
+          {isUserScoped ? " · swipes de cet utilisateur uniquement" : " · swipes agrégés (tous users)"}
+        </p>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <ToolboxPageStat label="Total cartes" value={cards.length} icon={RefreshCw} />
+        <ToolboxPageStat label="Total cartes" value={scopeCards.length} icon={RefreshCw} />
         <ToolboxPageStat label="Actives" value={totalActive} icon={Eye} />
         <ToolboxPageStat label="Drafts" value={draftCount} icon={EyeOff} />
         <ToolboxPageStat label="Principes" value={principles.length} icon={Search} />
-        <ToolboxPageStat label="Swipes YES" value={totalYes} icon={ThumbsUp} />
-        <ToolboxPageStat label="Swipes NO" value={totalNo} icon={ThumbsDown} />
+        <ToolboxPageStat label={isUserScoped ? "YES (user)" : "Swipes YES"} value={totalYes} icon={ThumbsUp} />
+        <ToolboxPageStat label={isUserScoped ? "NO (user)" : "Swipes NO"} value={totalNo} icon={ThumbsDown} />
       </div>
 
       <ToolboxSection title="Catalogue Pulse" badge={`${filtered.length} carte(s)`}>
@@ -437,15 +533,17 @@ export function PulseManagement() {
           <div className="space-y-2">
             {filtered.map((card) => {
               const isSelected = selectedIds.has(card.id);
+              const isExpanded = expandedCardId === card.id;
               return (
                 <div
                   key={card.id}
-                  className={`flex items-center gap-3 p-3 md:p-4 rounded-lg border transition-colors ${
+                  className={`rounded-lg border transition-colors ${
                     isSelected
                       ? "bg-primary/5 border-primary/30"
                       : "bg-bg-elevated/50 border-border-subtle hover:border-border"
                   }`}
                 >
+                  <div className="flex items-center gap-3 p-3 md:p-4">
                   <input
                     type="checkbox"
                     checked={isSelected}
@@ -503,7 +601,7 @@ export function PulseManagement() {
                   </div>
 
                   {(() => {
-                    const s = stats.get(card.id);
+                    const s = displayStats.get(card.id);
                     if (!s || s.total_swipes === 0) return (
                       <span className="text-[10px] text-muted-foreground/50 shrink-0 mr-2">—</span>
                     );
@@ -522,6 +620,15 @@ export function PulseManagement() {
                   })()}
 
                   <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setExpandedCardId(isExpanded ? null : card.id)}
+                      title={isExpanded ? "Masquer le contenu" : "Voir le contenu"}
+                      className="h-9 w-9"
+                    >
+                      {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                    </Button>
                     <div className="flex flex-col items-center gap-0.5">
                       <Switch
                         checked={card.is_active}
@@ -543,6 +650,13 @@ export function PulseManagement() {
                       <Trash2 className="size-4" />
                     </Button>
                   </div>
+                  </div>
+
+                  {isExpanded ? (
+                    <div className="px-3 pb-3 md:px-4 md:pb-4 pt-0">
+                      <PulseCardContentPreview card={card} />
+                    </div>
+                  ) : null}
                 </div>
               );
             })}

@@ -1479,6 +1479,151 @@ export async function runToolboxCatalogImport(params: {
   return summary;
 }
 
+export type ToolboxDistributionMode = "catalog" | "individual" | "group" | "global";
+
+export interface ToolboxDistributionInput {
+  mode: ToolboxDistributionMode;
+  userId?: string;
+  userIds?: string[];
+  companyId?: string;
+  locale?: "fr" | "en" | "all";
+  assignmentStatus?: ToolboxUserDeliveryStatus;
+}
+
+const DISTRIBUTION_CHUNK = 20;
+
+function matchesGlobalLocale(country: string | null, locale: "fr" | "en" | "all"): boolean {
+  if (locale === "all") return true;
+  const c = (country || "").trim().toLowerCase();
+  const isFr =
+    !c || c === "fr" || c === "france" || c.includes("français") || c.includes("french");
+  return locale === "fr" ? isFr : Boolean(c) && !isFr;
+}
+
+export async function resolveDistributionUserIds(
+  dist: ToolboxDistributionInput,
+): Promise<string[]> {
+  if (dist.mode === "catalog") return [];
+
+  if (dist.mode === "individual") {
+    const id = (dist.userId || "").trim();
+    if (!isUuidLike(id)) throw new Error("UUID utilisateur requis.");
+    return [id];
+  }
+
+  if (dist.mode === "group") {
+    if (dist.companyId && isUuidLike(dist.companyId)) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("company_id", dist.companyId)
+        .eq("is_disabled", false);
+      if (error) throw error;
+      return (data || []).map((p: { id: string }) => p.id);
+    }
+    const ids = [...new Set((dist.userIds || []).map((x) => x.trim()).filter(isUuidLike))];
+    if (!ids.length) throw new Error("Sélectionnez au moins un utilisateur ou une entreprise.");
+    return ids;
+  }
+
+  const locale = dist.locale ?? "all";
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, country")
+    .eq("is_disabled", false);
+  if (error) throw error;
+  return (data || [])
+    .filter((p: { country: string | null }) => matchesGlobalLocale(p.country, locale))
+    .map((p: { id: string }) => p.id);
+}
+
+export async function previewDistributionUserCount(dist: ToolboxDistributionInput): Promise<number> {
+  return (await resolveDistributionUserIds(dist)).length;
+}
+
+export async function distributeToolboxToUsers(params: {
+  actorId: string;
+  templateId: string;
+  userIds: string[];
+  userDeliveryStatus?: ToolboxUserDeliveryStatus;
+  distributionMetadata?: Record<string, unknown>;
+}): Promise<{ created: number; skipped: number; assignmentIds: string[] }> {
+  const { actorId, templateId, userIds, userDeliveryStatus = "active", distributionMetadata } =
+    params;
+  const unique = [...new Set(userIds.filter(isUuidLike))];
+  let created = 0;
+  let skipped = 0;
+  const assignmentIds: string[] = [];
+
+  for (let i = 0; i < unique.length; i += DISTRIBUTION_CHUNK) {
+    const chunk = unique.slice(i, i + DISTRIBUTION_CHUNK);
+    const chunkResults = await Promise.all(
+      chunk.map(async (userId) => {
+        const { data: dup } = await supabase
+          .from("toolbox_assignments" as any)
+          .select("id")
+          .eq("user_id", userId)
+          .eq("template_id", templateId)
+          .maybeSingle();
+        if ((dup as any)?.id) return { kind: "skipped" as const };
+        const data = await assignToolboxTemplateToUser({
+          actorId,
+          userId,
+          templateId,
+          userDeliveryStatus,
+        });
+        return { kind: "created" as const, id: (data as any).id as string };
+      }),
+    );
+    for (const r of chunkResults) {
+      if (r.kind === "skipped") skipped += 1;
+      else {
+        created += 1;
+        assignmentIds.push(r.id);
+      }
+    }
+  }
+
+  if (created > 0) {
+    await logProgramEvent({
+      actor_id: actorId,
+      entity_type: "toolbox_assignment",
+      event_type: "distributed_batch",
+      metadata: {
+        template_id: templateId,
+        created,
+        skipped,
+        ...distributionMetadata,
+      },
+    });
+  }
+
+  return { created, skipped, assignmentIds };
+}
+
+export async function distributeToolboxContent(params: {
+  actorId: string;
+  templateId: string;
+  distribution: ToolboxDistributionInput;
+}): Promise<{ created: number; skipped: number; userCount: number }> {
+  const userIds = await resolveDistributionUserIds(params.distribution);
+  if (params.distribution.mode === "catalog" || userIds.length === 0) {
+    return { created: 0, skipped: 0, userCount: 0 };
+  }
+  const result = await distributeToolboxToUsers({
+    actorId: params.actorId,
+    templateId: params.templateId,
+    userIds,
+    userDeliveryStatus: params.distribution.assignmentStatus ?? "active",
+    distributionMetadata: {
+      mode: params.distribution.mode,
+      locale: params.distribution.locale,
+      company_id: params.distribution.companyId,
+    },
+  });
+  return { ...result, userCount: userIds.length };
+}
+
 /** @deprecated Use runToolboxCatalogImport instead */
 export async function runProgramImport(params: {
   payload: ToolboxCatalogImportPayload;

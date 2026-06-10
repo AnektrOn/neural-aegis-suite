@@ -266,7 +266,7 @@ export default function Dashboard() {
 
 
   return (
-    <div className="min-h-full -mx-6 -mt-6 px-5 pt-6 pb-10 sm:px-8 sm:pb-12 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
+    <div className="min-h-full -mx-6 px-5 pb-10 sm:px-8 sm:pb-12 md:-mx-10 md:px-10 bg-aegis-gradient">
       <motion.div className="mx-auto max-w-6xl space-y-8 sm:space-y-9 md:space-y-10">
         {showPostAssessment && (
           <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
