@@ -1,23 +1,45 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Stars } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale } from "@/i18n/translations";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
+import type { ToolboxCompletionPayload, ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
 
 interface Props {
   config: {
-    duration_min: number;
+    duration_min?: number;
+    duration_sec?: number;
     affirmations?: string[];
     affirmations_i18n?: { fr: string[]; en: string[] };
   };
   title: string;
   hideTitle?: boolean;
-  onComplete?: () => void;
-  onAbandon?: () => void;
+  sessionKey?: string;
+  onComplete?: ToolboxOnComplete;
+  onAbandon?: ToolboxOnAbandon;
 }
 
-export default function AffirmationsWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+function resolveAffirmationsTotalSec(config: Props["config"]): number {
+  if (typeof config.duration_sec === "number" && config.duration_sec > 0) {
+    return Math.floor(config.duration_sec);
+  }
+  if (typeof config.duration_min === "number" && config.duration_min > 0) {
+    return config.duration_min * 60;
+  }
+  return 180;
+}
+
+export default function AffirmationsWidget({
+  config,
+  title,
+  hideTitle,
+  sessionKey,
+  onComplete,
+  onAbandon,
+}: Props) {
   const { t, locale } = useLanguage();
   const lines = useMemo(() => {
     const i18n = config.affirmations_i18n;
@@ -44,58 +66,55 @@ export default function AffirmationsWidget({ config, title, hideTitle, onComplet
     return [t("toolbox.affirmFallback")];
   }, [config.affirmations, config.affirmations_i18n, locale, t]);
 
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [completed, setCompleted] = useState(false);
-  const hasStartedRef = useRef(false);
-  const completedRef = useRef(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const totalSeconds = Math.max(1, config.duration_min * 60);
-  const segment = totalSeconds / lines.length;
-  const idx = completed ? lines.length - 1 : Math.min(Math.floor(elapsed / segment), lines.length - 1);
+  const totalSeconds = resolveAffirmationsTotalSec(config);
+  const segmentSec = Math.max(1, totalSeconds / Math.max(1, lines.length));
+  const markCompletedRef = useRef<() => void>(() => {});
+  const elapsedRef = useRef(0);
+
+  const {
+    elapsedSec: elapsed,
+    isRunning,
+    completed,
+    toggleRunning,
+    reset,
+    hasStartedRef,
+    completedRef,
+  } = usePersistedExerciseTimer({
+    sessionKey,
+    totalSeconds,
+    onComplete: () => markCompletedRef.current(),
+  });
+
+  elapsedRef.current = elapsed;
+
+  const markCompleted = useCallback(() => {
+    completedRef.current = true;
+    onComplete?.({
+      elapsedSec: elapsedRef.current,
+      durationBudgetSec: totalSeconds,
+    });
+  }, [completedRef, onComplete, totalSeconds]);
+
+  const handleAbandon = useCallback(() => {
+    onAbandon?.({
+      elapsedSec: elapsedRef.current,
+      durationBudgetSec: totalSeconds,
+    });
+  }, [onAbandon, totalSeconds]);
 
   useEffect(() => {
-    if (isRunning && !hasStartedRef.current) hasStartedRef.current = true;
-  }, [isRunning]);
+    markCompletedRef.current = markCompleted;
+  }, [markCompleted]);
 
-  useEffect(() => {
-    return () => {
-      if (hasStartedRef.current && !completedRef.current) onAbandon?.();
-    };
-  }, []);
+  useWidgetAbandonGuard(hasStartedRef, completedRef, handleAbandon);
 
-  useEffect(() => {
-    if (!isRunning) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-    intervalRef.current = setInterval(() => {
-      setElapsed((prev) => {
-        if (prev + 1 >= totalSeconds) {
-          setIsRunning(false);
-          setCompleted(true);
-          completedRef.current = true;
-          onComplete?.();
-          return totalSeconds;
-        }
-        return prev + 1;
-      });
-    }, 1000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isRunning, totalSeconds, onComplete]);
-
-  const reset = () => {
-    setIsRunning(false);
-    setElapsed(0);
-    setCompleted(false);
-    completedRef.current = false;
-    hasStartedRef.current = false;
-  };
-
+  const idx = completed ? lines.length - 1 : Math.min(Math.floor(elapsed / segmentSec), lines.length - 1);
+  const segmentElapsed = Math.min(segmentSec, Math.max(0, elapsed - idx * segmentSec));
   const progress = elapsed / totalSeconds;
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const formatTime = (s: number) => {
+    const sec = Math.max(0, Math.floor(s));
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  };
 
   return (
     <div className="flex flex-col items-center space-y-6 py-4">
@@ -127,14 +146,23 @@ export default function AffirmationsWidget({ config, title, hideTitle, onComplet
         <div className="h-full rounded-full bg-primary/50 transition-all duration-1000" style={{ width: `${progress * 100}%` }} />
       </div>
 
-      <p className="text-neural-label text-xs">
-        {completed ? t("toolbox.affirmDone") : `${formatTime(elapsed)} / ${formatTime(totalSeconds)} · ${idx + 1}/${lines.length}`}
+      <p className="text-neural-label text-xs text-center leading-relaxed">
+        {completed ? (
+          t("toolbox.affirmDone")
+        ) : (
+          <>
+            {formatTime(segmentElapsed)} / {formatTime(segmentSec)} · {idx + 1}/{lines.length}
+            <span className="block text-[10px] text-muted-foreground/70 mt-1">
+              {formatTime(elapsed)} / {formatTime(totalSeconds)} {t("toolbox.affirmTotalSuffix")}
+            </span>
+          </>
+        )}
       </p>
 
       <div className="flex gap-3">
         <button
           type="button"
-          onClick={() => setIsRunning(!isRunning)}
+          onClick={toggleRunning}
           className="w-12 h-12 rounded-2xl border border-primary/30 bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
           disabled={completed}
         >

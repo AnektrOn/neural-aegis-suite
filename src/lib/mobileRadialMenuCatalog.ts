@@ -19,8 +19,11 @@ import {
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
-/** Stable ids stored in DB and used in the profile editor. */
+/** Stable ids stored in DB and used in the settings radial editor. */
 export const MOBILE_RADIAL_CATALOG_ORDER = [
+  "persona",
+  "profile",
+  "settings",
   "home",
   "decisions",
   "mood",
@@ -32,17 +35,15 @@ export const MOBILE_RADIAL_CATALOG_ORDER = [
   "journal",
   "analytics",
   "calendar",
-  "deep_dive_scores",
   "deep_dive",
+  "deep_dive_scores",
   "install",
-  "profile",
-  "settings",
 ] as const;
 
 export type MobileRadialMenuId = (typeof MOBILE_RADIAL_CATALOG_ORDER)[number];
 
 export const DEFAULT_MOBILE_RADIAL_MENU_IDS: MobileRadialMenuId[] = [
-  "profile",
+  "persona",
   "settings",
   "home",
   "decisions",
@@ -70,23 +71,45 @@ export const RADIAL_CATALOG: Record<
   journal: { to: "/journal", icon: PenLine, labelKey: "nav.journal" },
   analytics: { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" },
   calendar: { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" },
-  deep_dive_scores: { to: "/deep-dive/scores", icon: LineChart, labelKey: "nav.deepDiveScores" },
   deep_dive: { to: "/deep-dive", icon: FileText, labelKey: "nav.deepDive" },
+  deep_dive_scores: { to: "/deep-dive/scores", icon: LineChart, labelKey: "nav.deepDiveScores" },
   install: { to: "/install", icon: Smartphone, labelKey: "nav.installApp" },
-  profile: { to: "/profile", icon: UserCircle, labelKey: "nav.profile" },
-  settings: { to: "/settings", icon: Settings2, labelKey: "settings.title" },
+  persona: { to: "/persona", icon: Sparkles, labelKey: "nav.profile" },
+  profile: { to: "/profile", icon: UserCircle, labelKey: "nav.account" },
+  settings: { to: "/settings", icon: Settings2, labelKey: "nav.settings" },
 };
 
 const MAX_RADIAL = 14;
 const MIN_RADIAL = 1;
 
+/** Pre–Persona split default (profile pointed at account hub). */
+const LEGACY_DEFAULT_RADIAL = [
+  "profile",
+  "settings",
+  "home",
+  "decisions",
+  "mood",
+  "people",
+  "pulse",
+  "toolbox",
+  "bibliotheque",
+] as const;
+
+function isLegacyDefaultRadial(saved: string[]): boolean {
+  return (
+    saved.length === LEGACY_DEFAULT_RADIAL.length &&
+    LEGACY_DEFAULT_RADIAL.every((id, i) => saved[i] === id)
+  );
+}
+
 /** Normalize DB / API value into a non-empty ordered list of ids (falls back to default). */
 export function orderSelectedRadialIds(saved: unknown): MobileRadialMenuId[] {
   if (!Array.isArray(saved) || saved.length === 0) return [...DEFAULT_MOBILE_RADIAL_MENU_IDS];
+  const rawStrings = saved.filter((x): x is string => typeof x === "string");
+  if (isLegacyDefaultRadial(rawStrings)) return [...DEFAULT_MOBILE_RADIAL_MENU_IDS];
   const out: MobileRadialMenuId[] = [];
   const seen = new Set<string>();
-  for (const raw of saved) {
-    if (typeof raw !== "string") continue;
+  for (const raw of rawStrings) {
     if (!ALLOWED.has(raw) || seen.has(raw)) continue;
     seen.add(raw);
     out.push(raw as MobileRadialMenuId);

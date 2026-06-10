@@ -1,4 +1,6 @@
 import { motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -13,9 +15,11 @@ export function PageWrapper({
   children: React.ReactNode;
   className?: string;
 }) {
+  const isMobile = useIsMobile();
+
   return (
     <motion.div
-      className={className}
+      className={cn(isMobile && "pb-3", className)}
       variants={pageVariants}
       initial={false}
       animate="animate"

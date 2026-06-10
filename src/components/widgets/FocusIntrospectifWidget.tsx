@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, RotateCcw, Eye } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
+import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import type { Locale } from "@/i18n/translations";
 
 interface Props {
@@ -10,66 +12,48 @@ interface Props {
   title: string;
   /** When true, omit the duplicate title row (parent already shows the exercise name). */
   hideTitle?: boolean;
-  onComplete?: () => void;
-  onAbandon?: () => void;
+  sessionKey?: string;
+  onComplete?: (payload?: { elapsedSec: number; durationBudgetSec?: number }) => void;
+  onAbandon?: (payload?: { elapsedSec: number; durationBudgetSec?: number }) => void;
 }
 
-export default function FocusIntrospectifWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+export default function FocusIntrospectifWidget({
+  config,
+  title,
+  hideTitle,
+  sessionKey,
+  onComplete,
+  onAbandon,
+}: Props) {
   const { t, locale } = useLanguage();
   const intentionDisplay = useMemo(
     () => pickWidgetCatalogCopy(locale as Locale, config.intention_i18n as any, config.intention),
     [locale, config.intention_i18n, config.intention]
   );
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [completed, setCompleted] = useState(false);
-  const hasStartedRef = useRef(false);
-  const completedRef = useRef(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const totalSeconds = config.duration_min * 60;
+  const elapsedRef = useRef(0);
 
-  useEffect(() => {
-    if (isRunning && !hasStartedRef.current) {
-      hasStartedRef.current = true;
-    }
-  }, [isRunning]);
+  const {
+    elapsedSec: elapsed,
+    isRunning,
+    completed,
+    toggleRunning,
+    reset,
+    hasStartedRef,
+    completedRef,
+  } = usePersistedExerciseTimer({
+    sessionKey,
+    totalSeconds,
+    onComplete: () =>
+      onComplete?.({
+        elapsedSec: elapsedRef.current,
+        durationBudgetSec: totalSeconds,
+      }),
+  });
 
-  // Notify parent on abandon (unmount while started but not completed)
-  useEffect(() => {
-    return () => {
-      if (hasStartedRef.current && !completedRef.current) {
-        onAbandon?.();
-      }
-    };
-  }, []);
+  elapsedRef.current = elapsed;
 
-  useEffect(() => {
-    if (!isRunning) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-    intervalRef.current = setInterval(() => {
-      setElapsed(prev => {
-        if (prev + 1 >= totalSeconds) {
-          setIsRunning(false);
-          setCompleted(true);
-          completedRef.current = true;
-          onComplete?.();
-          return totalSeconds;
-        }
-        return prev + 1;
-      });
-    }, 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, totalSeconds]);
-
-  const reset = () => {
-    setIsRunning(false);
-    setElapsed(0);
-    setCompleted(false);
-    completedRef.current = false;
-    hasStartedRef.current = false;
-  };
+  useWidgetAbandonGuard(hasStartedRef, completedRef, onAbandon);
 
   const remaining = totalSeconds - elapsed;
   const progress = elapsed / totalSeconds;
@@ -137,7 +121,7 @@ export default function FocusIntrospectifWidget({ config, title, hideTitle, onCo
       </div>
 
       <div className="flex gap-3">
-        <button onClick={() => setIsRunning(!isRunning)}
+        <button onClick={toggleRunning}
           className="w-12 h-12 rounded-2xl border border-neural-accent/30 bg-neural-accent/10 flex items-center justify-center text-neural-accent hover:bg-neural-accent/20 transition-colors"
           disabled={completed}>
           {isRunning ? <Pause size={18} /> : <Play size={18} />}

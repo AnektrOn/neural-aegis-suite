@@ -1,4 +1,5 @@
 import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 /** Desktop landscape — readable when shared */
 const DESKTOP_EXPORT_WIDTH_PX = 1280;
@@ -7,31 +8,35 @@ const MAX_CANVAS_TILE_HEIGHT_PX = 8000;
 const REFLOW_MS = 500;
 
 const CAPTURE_STYLE_ID = "deep-dive-jpeg-capture-styles";
+/** Matches :root dark theme — hsl(200 35% 7%) */
+const EXPORT_DARK_BG = "#0c1218";
 
 /**
- * Self-contained export palette on the report root (no html.light toggle).
- * Fixes washed-out text and invisible glass cards when forcing a light capture.
+ * Dark-theme export palette on the report root.
+ * Keeps the on-screen Neural & Ethereal look; only fixes html2canvas issues
+ * (backdrop-blur, flip 3D, recharts sizing).
  */
 const CAPTURE_CSS = `
   #deep-dive-report-export.deep-dive-jpeg-capture-active {
-    --background: 30 25% 97%;
-    --foreground: 20 12% 12%;
-    --card: 30 20% 99%;
-    --card-foreground: 20 12% 12%;
-    --popover: 30 20% 96%;
-    --popover-foreground: 20 12% 12%;
-    --muted-foreground: 20 8% 32%;
-    --border: 30 12% 78%;
-    --primary: 24 22% 22%;
-    --primary-foreground: 30 20% 96%;
+    --background: 200 35% 7%;
+    --foreground: 24 48% 95%;
+    --card: 201 28% 12%;
+    --card-foreground: 24 48% 90%;
+    --popover: 201 28% 15%;
+    --popover-foreground: 24 48% 95%;
+    --muted-foreground: 24 10% 60%;
+    --border: 201 28% 20%;
+    --primary: 24 48% 65%;
+    --primary-foreground: 200 35% 7%;
+    --warning: 35 90% 60%;
 
     width: ${DESKTOP_EXPORT_WIDTH_PX}px !important;
     max-width: ${DESKTOP_EXPORT_WIDTH_PX}px !important;
     margin: 0 !important;
     padding: 32px 36px 48px !important;
     box-sizing: border-box !important;
-    background: hsl(30 25% 97%) !important;
-    color: hsl(20 12% 12%) !important;
+    background: ${EXPORT_DARK_BG} !important;
+    color: hsl(24 48% 95%) !important;
   }
 
   #deep-dive-report-export.deep-dive-jpeg-capture-active [data-export-hide],
@@ -44,55 +49,46 @@ const CAPTURE_CSS = `
     backdrop-filter: none !important;
   }
 
-  #deep-dive-report-export.deep-dive-jpeg-capture-active .neural-card,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="backdrop-blur"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-white/"] {
-    background: hsl(30 18% 99%) !important;
-    border-color: hsl(30 12% 78%) !important;
-    box-shadow: 0 2px 14px hsl(20 10% 15% / 0.08) !important;
+  /* Glass cards — solid dark surfaces (blur cannot be rasterized) */
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .neural-card:not([class*="from-"]),
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="backdrop-blur"]:not([class*="from-"]),
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-white/"]:not([class*="from-"]) {
+    background: hsl(201 28% 13% / 0.96) !important;
+    border-color: hsl(201 28% 22% / 0.9) !important;
+    box-shadow: 0 4px 24px hsl(200 35% 4% / 0.45) !important;
   }
 
-  #deep-dive-report-export.deep-dive-jpeg-capture-active .text-text-primary,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active h1,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active h2,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active h3,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active h4,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active strong {
-    color: hsl(20 12% 10%) !important;
+  /* Archetype gradient cards — preserve accent glow on dark base */
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="from-indigo-"] {
+    background: linear-gradient(to bottom right, rgba(99, 102, 241, 0.14), hsl(201 28% 12%)) !important;
+    border-color: rgba(129, 140, 248, 0.35) !important;
   }
-
-  #deep-dive-report-export.deep-dive-jpeg-capture-active .text-text-secondary,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active p,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active li,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active span:not([class*="rounded-full"]) {
-    color: hsl(20 8% 22%) !important;
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="from-sky-"] {
+    background: linear-gradient(to bottom right, rgba(56, 189, 248, 0.12), hsl(201 28% 12%)) !important;
+    border-color: rgba(56, 189, 248, 0.35) !important;
   }
-
-  #deep-dive-report-export.deep-dive-jpeg-capture-active .text-text-tertiary,
-  #deep-dive-report-export.deep-dive-jpeg-capture-active .text-muted-foreground {
-    color: hsl(20 6% 38%) !important;
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="from-emerald-"] {
+    background: linear-gradient(to bottom right, rgba(52, 211, 153, 0.12), hsl(201 28% 12%)) !important;
+    border-color: rgba(52, 211, 153, 0.35) !important;
   }
-
-  /* Accent chips designed for dark UI — darken for export */
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-indigo-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-sky-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-emerald-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-rose-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-amber-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-fuchsia-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-teal-"] {
-    color: hsl(20 12% 18%) !important;
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="from-rose-"] {
+    background: linear-gradient(to bottom right, rgba(251, 113, 133, 0.12), hsl(201 28% 12%)) !important;
+    border-color: rgba(251, 113, 133, 0.35) !important;
   }
-
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-indigo-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-sky-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-emerald-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-rose-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-amber-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-fuchsia-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-teal-"],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-white/"] {
-    background-color: hsl(30 15% 92%) !important;
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="from-amber-"] {
+    background: linear-gradient(to bottom right, rgba(251, 191, 36, 0.12), hsl(201 28% 12%)) !important;
+    border-color: rgba(251, 191, 36, 0.35) !important;
+  }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="from-fuchsia-"] {
+    background: linear-gradient(to bottom right, rgba(232, 121, 249, 0.12), hsl(201 28% 12%)) !important;
+    border-color: rgba(232, 121, 249, 0.35) !important;
+  }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="from-teal-"] {
+    background: linear-gradient(to bottom right, rgba(45, 212, 191, 0.12), hsl(201 28% 12%)) !important;
+    border-color: rgba(45, 212, 191, 0.35) !important;
+  }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="from-white"] {
+    background: linear-gradient(to bottom right, hsl(201 28% 16%), hsl(201 28% 11%)) !important;
   }
 
   /* Flip cards — both faces stacked (html2canvas breaks 3D) */
@@ -121,12 +117,30 @@ const CAPTURE_CSS = `
     -webkit-backface-visibility: visible !important;
     overflow: visible !important;
     height: auto !important;
+    min-height: 0 !important;
     display: block !important;
   }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .flip-face > *,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .flip-face-back > * {
+    -webkit-backface-visibility: visible !important;
+    backface-visibility: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
   #deep-dive-report-export.deep-dive-jpeg-capture-active .flip-face-back {
-    border-top: 1px solid hsl(30 12% 78%) !important;
+    border-top: 2px dashed hsl(201 28% 28%) !important;
     padding-top: 14px !important;
-    margin-top: 0 !important;
+    margin-top: 8px !important;
+  }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .flip-face-back::before {
+    content: "Verso";
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: hsl(24 10% 52%);
+    margin-bottom: 8px;
+    font-family: system-ui, sans-serif;
   }
 
   /* Recharts — fixed box, no responsive scaling that breaks html2canvas */
@@ -198,7 +212,14 @@ function stackFlipCardFaces(root: HTMLElement): void {
       f.style.transform = "none";
       f.style.backfaceVisibility = "visible";
       f.style.height = "auto";
+      f.style.minHeight = "0";
       f.style.display = "block";
+      f.querySelectorAll(":scope > *").forEach((child) => {
+        const c = child as HTMLElement;
+        c.style.backfaceVisibility = "visible";
+        c.style.height = "auto";
+        c.style.minHeight = "0";
+      });
     });
     card.style.perspective = "none";
     card.style.minHeight = "auto";
@@ -287,7 +308,7 @@ async function captureReport(source: HTMLElement): Promise<HTMLCanvasElement> {
     const height = Math.max(source.scrollHeight, source.offsetHeight);
 
     return html2canvas(source, {
-      backgroundColor: "#f7f4f1",
+      backgroundColor: EXPORT_DARK_BG,
       scale: EXPORT_SCALE,
       useCORS: true,
       logging: false,
@@ -329,7 +350,7 @@ async function captureReportTiled(source: HTMLElement): Promise<HTMLCanvasElemen
     for (let y = 0; y < totalHeight; y += MAX_CANVAS_TILE_HEIGHT_PX) {
       const tileHeight = Math.min(MAX_CANVAS_TILE_HEIGHT_PX, totalHeight - y);
       const tile = await html2canvas(source, {
-        backgroundColor: "#f7f4f1",
+        backgroundColor: EXPORT_DARK_BG,
         scale: EXPORT_SCALE,
         useCORS: true,
         logging: false,
@@ -352,29 +373,132 @@ async function captureReportTiled(source: HTMLElement): Promise<HTMLCanvasElemen
   }
 }
 
-export async function exportDeepDiveJpeg(
+function buildExportFilename(stem: string, kind: string, ext: string, part?: number): string {
+  const date = new Date().toISOString().slice(0, 10);
+  const safe = slugify(stem) || "deep-dive";
+  const suffix = part != null ? `-part-${part}` : "";
+  return `aegis-deepdive-${kind}-${safe}-${date}${suffix}.${ext}`;
+}
+
+async function captureAllTiles(element: HTMLElement): Promise<HTMLCanvasElement[]> {
+  const height = Math.max(element.scrollHeight, element.offsetHeight);
+  if (height <= MAX_CANVAS_TILE_HEIGHT_PX) {
+    return [await captureReport(element)];
+  }
+  return captureReportTiled(element);
+}
+
+function stitchTiles(tiles: HTMLCanvasElement[]): HTMLCanvasElement {
+  if (tiles.length === 1) return tiles[0];
+  const width = tiles[0].width;
+  const totalHeight = tiles.reduce((sum, t) => sum + t.height, 0);
+  const stitched = document.createElement("canvas");
+  stitched.width = width;
+  stitched.height = totalHeight;
+  const ctx = stitched.getContext("2d")!;
+  ctx.fillStyle = EXPORT_DARK_BG;
+  ctx.fillRect(0, 0, width, totalHeight);
+  let offsetY = 0;
+  for (const tile of tiles) {
+    ctx.drawImage(tile, 0, offsetY);
+    offsetY += tile.height;
+  }
+  return stitched;
+}
+
+function canvasToPagedPdf(canvas: HTMLCanvasElement, pdf: jsPDF, marginMm = 8): void {
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const contentW = pageW - marginMm * 2;
+  const contentH = pageH - marginMm * 2;
+  const imgWmm = contentW;
+  const imgHmm = (canvas.height / canvas.width) * imgWmm;
+  const sliceHmm = contentH;
+  const totalPages = Math.max(1, Math.ceil(imgHmm / sliceHmm));
+
+  for (let page = 0; page < totalPages; page++) {
+    if (page > 0) pdf.addPage();
+    pdf.setFillColor(12, 18, 24);
+    pdf.rect(0, 0, pageW, pageH, "F");
+
+    const srcY = (page * sliceHmm / imgHmm) * canvas.height;
+    const srcH = Math.min((sliceHmm / imgHmm) * canvas.height, canvas.height - srcY);
+
+    const slice = document.createElement("canvas");
+    slice.width = canvas.width;
+    slice.height = Math.ceil(srcH);
+    const ctx = slice.getContext("2d")!;
+    ctx.fillStyle = EXPORT_DARK_BG;
+    ctx.fillRect(0, 0, slice.width, slice.height);
+    ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+
+    const renderHmm = (srcH / canvas.width) * imgWmm;
+    pdf.addImage(slice.toDataURL("image/png"), "PNG", marginMm, marginMm, imgWmm, renderHmm);
+  }
+}
+
+export interface DeepDiveVisualExportOpts {
+  kind?: "user" | "admin";
+  isFR?: boolean;
+}
+
+export async function exportDeepDivePng(
   element: HTMLElement,
   profileLabel: string,
-  _isFR = true,
+  opts: DeepDiveVisualExportOpts = {},
 ): Promise<void> {
-  const date = new Date().toISOString().slice(0, 10);
-  const stem = slugify(profileLabel) || "deep-dive";
-  const height = Math.max(element.scrollHeight, element.offsetHeight);
+  const kind = opts.kind ?? "user";
+  const tiles = await captureAllTiles(element);
 
-  if (height <= MAX_CANVAS_TILE_HEIGHT_PX) {
-    const canvas = await captureReport(element);
+  if (tiles.length === 1) {
     triggerDownload(
-      canvas.toDataURL("image/jpeg", 0.94),
-      `aegis-deepdive-desktop-${stem}-${date}.jpg`,
+      tiles[0].toDataURL("image/png"),
+      buildExportFilename(profileLabel, kind, "png"),
     );
     return;
   }
 
-  const tiles = await captureReportTiled(element);
+  tiles.forEach((canvas, idx) => {
+    triggerDownload(
+      canvas.toDataURL("image/png"),
+      buildExportFilename(profileLabel, kind, "png", idx + 1),
+    );
+  });
+}
+
+export async function exportDeepDiveVisualPdf(
+  element: HTMLElement,
+  profileLabel: string,
+  opts: DeepDiveVisualExportOpts = {},
+): Promise<void> {
+  const kind = opts.kind ?? "user";
+  const tiles = await captureAllTiles(element);
+  const stitched = stitchTiles(tiles);
+  const pdf = new jsPDF("p", "mm", "a4");
+  canvasToPagedPdf(stitched, pdf);
+  pdf.save(buildExportFilename(profileLabel, kind, "pdf"));
+}
+
+export async function exportDeepDiveJpeg(
+  element: HTMLElement,
+  profileLabel: string,
+  opts: DeepDiveVisualExportOpts = {},
+): Promise<void> {
+  const kind = opts.kind ?? "user";
+  const tiles = await captureAllTiles(element);
+
+  if (tiles.length === 1) {
+    triggerDownload(
+      tiles[0].toDataURL("image/jpeg", 0.94),
+      buildExportFilename(profileLabel, kind, "jpg"),
+    );
+    return;
+  }
+
   tiles.forEach((canvas, idx) => {
     triggerDownload(
       canvas.toDataURL("image/jpeg", 0.94),
-      `aegis-deepdive-desktop-${stem}-${date}-part-${idx + 1}.jpg`,
+      buildExportFilename(profileLabel, kind, "jpg", idx + 1),
     );
   });
 }

@@ -126,17 +126,17 @@ export default function MoodTracker() {
     return (
       <div className="space-y-6 max-w-full pt-2">
         <div>
-          <p className="text-neural-label mb-2">{t("mood.emotionalIntelligence")}</p>
-          <h1 className="font-display text-2xl uppercase tracking-[0.15em] text-text-primary">Historique</h1>
+          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">{t("mood.emotionalIntelligence")}</p>
+          <h1 className="font-cormorant text-3xl font-light text-text-primary tracking-tight">{t("mood.frequency")}</h1>
         </div>
 
-        <NeuralCard variant="default" glow="none" className="p-4 text-center">
+        <NeuralCard variant="default" glow="none" className="glass-card p-4 text-center border-0">
           <p className="text-sm text-text-secondary">
             Pour logger rapidement, utilisez{" "}
             <button
               type="button"
               onClick={() => navigate("/", { state: { openQuickLog: true } })}
-              className="text-accent-primary underline-offset-2 underline font-medium"
+              className="text-primary underline-offset-2 underline font-medium"
             >
               Logger maintenant
             </button>{" "}
@@ -144,30 +144,35 @@ export default function MoodTracker() {
           </p>
         </NeuralCard>
 
-        {weekHistory.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-            <NeuralCard glow="purple" className="p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-1.5 h-4 rounded-full bg-accent-secondary" />
-                <h2 className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary">{t("mood.weeklyFrequency")}</h2>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+          <NeuralCard glow="none" className="glass-card p-4 border-0">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1.5 h-4 rounded-full bg-primary" />
+              <h2 className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary">{t("mood.weeklyFrequency")}</h2>
+            </div>
+            {chartData.every((e) => e.mood === 0) ? (
+              <div className="flex flex-col items-center justify-center h-40 gap-2 text-center">
+                <p className="font-cormorant text-lg font-light text-text-tertiary/70 italic">Votre historique émotionnel commence ici</p>
+                <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">Loggez depuis le Dashboard</p>
               </div>
+            ) : (
               <div className="h-40 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                    <CartesianGrid vertical={false} stroke="#1E2030" strokeDasharray="0" />
-                    <XAxis dataKey="day" tick={{ fill: "#4A4E6A", fontSize: 9 }} axisLine={false} tickLine={false} interval={0} />
-                    <YAxis tick={{ fill: "#4A4E6A", fontSize: 9 }} domain={[0, 10]} axisLine={false} tickLine={false} width={28} />
+                    <CartesianGrid vertical={false} stroke="hsl(var(--border)/0.3)" strokeDasharray="0" />
+                    <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} axisLine={false} tickLine={false} interval={0} />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} domain={[0, 10]} axisLine={false} tickLine={false} width={28} />
                     <Bar dataKey="mood" radius={[4, 4, 0, 0]} maxBarSize={28}>
                       {chartData.map((entry, i) => (
-                        <Cell key={i} fill={entry.mood > 0 ? moodBarColor(entry.mood) : "#1E2030"} fillOpacity={entry.mood > 0 ? 0.85 : 0.35} />
+                        <Cell key={i} fill={entry.mood > 0 ? moodBarColor(entry.mood) : "hsl(var(--border))"} fillOpacity={entry.mood > 0 ? 0.85 : 0.35} />
                       ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </NeuralCard>
-          </motion.div>
-        )}
+            )}
+          </NeuralCard>
+        </motion.div>
       </div>
     );
   }
@@ -175,8 +180,8 @@ export default function MoodTracker() {
   return (
     <div className="space-y-10 max-w-5xl">
       <div>
-        <p className="text-neural-label mb-3">{t("mood.emotionalIntelligence")}</p>
-        <h1 className="font-display text-2xl sm:text-3xl text-text-primary uppercase tracking-[0.12em]">{t("mood.frequency")}</h1>
+        <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">{t("mood.emotionalIntelligence")}</p>
+        <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">{t("mood.frequency")}</h1>
       </div>
 
       <NeuralCard glow="purple" className="relative p-4 sm:p-8">
@@ -268,25 +273,38 @@ export default function MoodTracker() {
         </button>
       </NeuralCard>
 
-      <NeuralCard glow="none" className="p-6 sm:p-8">
+      <NeuralCard glow="none" className="glass-card p-6 sm:p-8">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-1.5 h-4 rounded-full bg-accent-primary" />
+          <div className="w-1.5 h-4 rounded-full bg-primary" />
           <p className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary">{t("mood.weeklyMap")}</p>
         </div>
+        {chartData.every(e => e.mood === 0) ? (
+          <div className="flex flex-col items-center justify-center h-56 gap-3 text-center">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden className="text-primary/20">
+              <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M16 28c1.5-3 4-5 8-5s6.5 2 8 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="18" cy="20" r="2" fill="currentColor" />
+              <circle cx="30" cy="20" r="2" fill="currentColor" />
+            </svg>
+            <p className="font-cormorant text-xl font-light text-text-tertiary/70 italic">Votre historique émotionnel commence ici</p>
+            <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">Loggez votre premier mood</p>
+          </div>
+        ) : (
         <div className="h-56 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
-              <CartesianGrid vertical={false} stroke="#1E2030" strokeDasharray="0" />
-              <XAxis dataKey="day" tick={{ fill: "#4A4E6A", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#4A4E6A", fontSize: 10 }} domain={[0, 10]} axisLine={false} tickLine={false} width={32} />
+              <CartesianGrid vertical={false} stroke="hsl(var(--border)/0.3)" strokeDasharray="0" />
+              <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} domain={[0, 10]} axisLine={false} tickLine={false} width={32} />
               <Bar dataKey="mood" radius={[4, 4, 0, 0]} maxBarSize={32}>
                 {chartData.map((entry, i) => (
-                  <Cell key={i} fill={entry.mood > 0 ? moodBarColor(entry.mood) : "#1E2030"} fillOpacity={entry.mood > 0 ? 0.85 : 0.4} />
+                  <Cell key={i} fill={entry.mood > 0 ? moodBarColor(entry.mood) : "hsl(var(--border))"} fillOpacity={entry.mood > 0 ? 0.85 : 0.4} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
+        )}
       </NeuralCard>
     </div>
   );

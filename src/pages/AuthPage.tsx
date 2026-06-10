@@ -17,6 +17,7 @@ import {
   isNewsletterRedirect,
   resolveGuestRedirect,
 } from "@/lib/authRedirect";
+import { postLoginPath } from "@/lib/welcomeHud";
 
 type AuthMode = "signin" | "guest" | "upgrade";
 
@@ -76,7 +77,7 @@ export default function AuthPage() {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      navigate(isGuestUser(data.user) ? "/visitor" : "/");
+      navigate(postLoginPath(isGuestUser(data.user)));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       toast({ title: t("toast.error"), description: message, variant: "destructive" });
@@ -147,7 +148,7 @@ export default function AuthPage() {
         title: t("visitor.upgrade.successTitle"),
         description: t("visitor.upgrade.successDesc"),
       });
-      navigate("/");
+      navigate(postLoginPath(false));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       toast({ title: t("toast.error"), description: message, variant: "destructive" });
@@ -164,14 +165,15 @@ export default function AuthPage() {
     mode === "signin" || mode === "guest" || (mode === "upgrade" && isAnonymousUser(user));
 
   return (
-    <div className="min-h-screen bg-bg-base flex flex-col p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-aegis-gradient flex flex-col p-4 relative overflow-hidden">
       <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
         <LanguageSwitcher />
         <ThemeToggle collapsed />
       </div>
 
-      <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none dark:block hidden" />
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-accent-primary/5 blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary/6 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full bg-neural-accent/4 blur-3xl pointer-events-none" />
 
       <div className="relative flex-1 w-full flex items-center justify-center py-8">
         <div className="w-full max-w-md">
@@ -183,7 +185,7 @@ export default function AuthPage() {
           >
             <img src={aegisLogo} alt="Aegis" className="w-40 h-40 sm:w-52 sm:h-52 rounded-2xl mb-4 object-contain" />
             <h1 className="font-display text-sm tracking-[0.25em] uppercase text-text-secondary">Neural Aegis</h1>
-            <p className="text-[11px] text-text-tertiary mt-1 tracking-wide">{t("auth.tagline")}</p>
+            <p className="font-cormorant text-lg font-light italic text-primary/70 mt-1 tracking-wide">{t("auth.tagline")}</p>
           </motion.div>
 
           <motion.div
@@ -191,7 +193,7 @@ export default function AuthPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, delay: 0.05, ease: "easeOut" }}
           >
-            <NeuralCard variant="elevated" glow={mode === "guest" ? "purple" : "blue"} className="p-6">
+            <NeuralCard variant="elevated" glow={mode === "guest" ? "purple" : "warm"} className="glass-card p-6 border-0">
               {mode === "upgrade" && (
                 <p className="text-sm text-text-secondary mb-4 text-center">{t("visitor.upgrade.authIntro")}</p>
               )}
@@ -328,7 +330,7 @@ export default function AuthPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 rounded-lg font-medium text-sm bg-accent-primary hover:bg-accent-primary/90 text-bg-base transition-all duration-200 shadow-[0_0_20px_rgba(79,142,247,0.3)] flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
+                  className="w-full py-2.5 rounded-lg font-medium text-sm bg-primary hover:bg-primary-hover text-primary-foreground transition-all duration-200 shadow-[0_0_20px_hsl(var(--primary)/0.3)] hover:shadow-[0_0_28px_hsl(var(--primary)/0.45)] hover:scale-[1.01] flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-bg-base/30 border-t-bg-base rounded-full animate-spin" />

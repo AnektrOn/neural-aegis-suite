@@ -17,8 +17,7 @@ import {
 import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
 import { useDeepDiveProfile } from "../hooks/useDeepDiveProfile";
 import { buildUserReport } from "../domain/sampleProfile";
-import { exportDeepDiveTextPdf } from "../services/exportDeepDivePdf";
-import { exportDeepDiveJpeg } from "../services/exportDeepDiveScreenshot";
+import { exportDeepDiveVisualPdf, exportDeepDivePng } from "../services/exportDeepDiveScreenshot";
 
 export default function VisitorDeepDiveReport() {
   const { user } = useAuth();
@@ -27,7 +26,7 @@ export default function VisitorDeepDiveReport() {
   const { toast } = useToast();
   const exportRef = useRef<HTMLDivElement>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [exportingJpeg, setExportingJpeg] = useState(false);
+  const [exportingPng, setExportingPng] = useState(false);
 
   const { profile, loading, error } = useDeepDiveProfile({
     userId: user?.id,
@@ -42,16 +41,12 @@ export default function VisitorDeepDiveReport() {
     return full.replace(/\n## (?:Pratiques recommandées|Recommended practices)[\s\S]*$/m, "\n").trimEnd();
   }, [profile, locale]);
 
-  const handleExportPdf = () => {
-    if (!userReport?.trim() || exportingPdf || exportingJpeg) return;
+  const handleExportPdf = async () => {
+    const el = exportRef.current;
+    if (!el || !profile || exportingPdf || exportingPng) return;
     setExportingPdf(true);
     try {
-      exportDeepDiveTextPdf({
-        markdown: userReport,
-        profileLabel: reportSubject,
-        kind: "user",
-        isFR,
-      });
+      await exportDeepDiveVisualPdf(el, reportSubject, { kind: "user", isFR });
       toast({
         title: t("visitor.report.exportPdfSuccess"),
         description: t("visitor.report.exportPdfSuccessDesc"),
@@ -68,25 +63,25 @@ export default function VisitorDeepDiveReport() {
     }
   };
 
-  const handleExportJpeg = async () => {
+  const handleExportPng = async () => {
     const el = exportRef.current;
-    if (!el || !profile || exportingPdf || exportingJpeg) return;
-    setExportingJpeg(true);
+    if (!el || !profile || exportingPdf || exportingPng) return;
+    setExportingPng(true);
     try {
-      await exportDeepDiveJpeg(el, reportSubject, isFR);
+      await exportDeepDivePng(el, reportSubject, { kind: "user", isFR });
       toast({
-        title: t("visitor.report.exportJpegSuccess"),
-        description: t("visitor.report.exportJpegSuccessDesc"),
+        title: t("visitor.report.exportPngSuccess"),
+        description: t("visitor.report.exportPngSuccessDesc"),
       });
     } catch (e) {
-      console.error("[VisitorDeepDiveReport] export jpeg failed", e);
+      console.error("[VisitorDeepDiveReport] export png failed", e);
       toast({
         title: t("toast.error"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
     } finally {
-      setExportingJpeg(false);
+      setExportingPng(false);
     }
   };
 
@@ -98,8 +93,8 @@ export default function VisitorDeepDiveReport() {
           <AlertTriangle size={14} strokeWidth={1.5} className="shrink-0" />
           <span className="leading-snug">
             {isFR
-              ? "Vos résultats ne seront plus accessibles si vous quittez la page. Exportez en PDF ou JPEG avant de partir."
-              : "Your results will no longer be accessible once you leave this page. Export as PDF or JPEG before leaving."}
+              ? "Vos résultats ne seront plus accessibles si vous quittez la page. Exportez en PDF ou PNG avant de partir."
+              : "Your results will no longer be accessible once you leave this page. Export as PDF or PNG before leaving."}
           </span>
         </div>
       </div>
@@ -111,8 +106,8 @@ export default function VisitorDeepDiveReport() {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExportPdf}
-            disabled={exportingPdf || exportingJpeg || !userReport?.trim()}
+            onClick={() => void handleExportPdf()}
+            disabled={exportingPdf || exportingPng}
             className="gap-2"
           >
             {exportingPdf ? (
@@ -125,16 +120,16 @@ export default function VisitorDeepDiveReport() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => void handleExportJpeg()}
-            disabled={exportingPdf || exportingJpeg}
+            onClick={() => void handleExportPng()}
+            disabled={exportingPdf || exportingPng}
             className="gap-2"
           >
-            {exportingJpeg ? (
+            {exportingPng ? (
               <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
             ) : (
               <ImageDown size={14} strokeWidth={1.5} />
             )}
-            {t("visitor.report.exportJpeg")}
+            {t("visitor.report.exportPng")}
           </Button>
         </div>
       )}

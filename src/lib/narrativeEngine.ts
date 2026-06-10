@@ -21,8 +21,18 @@ export interface NarrativeContext {
   aegisScoreDelta: number;
 }
 
+export type KPIKey = "mood" | "decisions" | "habits" | "relations" | "journal";
+
+export const KPI_PAGE_ROUTES: Record<KPIKey, string> = {
+  mood: "/mood",
+  decisions: "/decisions",
+  habits: "/habits",
+  relations: "/people",
+  journal: "/journal",
+};
+
 export interface KPINarrative {
-  key: "mood" | "decisions" | "habits" | "relations" | "journal";
+  key: KPIKey;
   metric: string;
   label_fr: string;
   label_en: string;

@@ -606,25 +606,31 @@ export type Database = {
         Row: {
           assigned_at: string
           assigned_by: string
-          habit_template_id: string
+          duration_override_min: number | null
+          habit_template_id: string | null
           id: string
           is_active: boolean
+          toolbox_assignment_id: string | null
           user_id: string
         }
         Insert: {
           assigned_at?: string
           assigned_by: string
-          habit_template_id: string
+          duration_override_min?: number | null
+          habit_template_id?: string | null
           id?: string
           is_active?: boolean
+          toolbox_assignment_id?: string | null
           user_id: string
         }
         Update: {
           assigned_at?: string
           assigned_by?: string
-          habit_template_id?: string
+          duration_override_min?: number | null
+          habit_template_id?: string | null
           id?: string
           is_active?: boolean
+          toolbox_assignment_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1916,6 +1922,8 @@ export type Database = {
         Row: {
           assignment_id: string
           completed_at: string
+          duration_budget_min: number | null
+          elapsed_sec: number | null
           feedback: string | null
           id: string
           status: string
@@ -1924,6 +1932,8 @@ export type Database = {
         Insert: {
           assignment_id: string
           completed_at?: string
+          duration_budget_min?: number | null
+          elapsed_sec?: number | null
           feedback?: string | null
           id?: string
           status: string
@@ -1932,6 +1942,8 @@ export type Database = {
         Update: {
           assignment_id?: string
           completed_at?: string
+          duration_budget_min?: number | null
+          elapsed_sec?: number | null
           feedback?: string | null
           id?: string
           status?: string
@@ -2312,9 +2324,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_habit_template_to_tracker: {
+        Args: { p_template_id: string }
+        Returns: Json
+      }
+      add_toolbox_assignment_to_habits: {
+        Args: { p_toolbox_assignment_id: string }
+        Returns: Json
+      }
       confirm_waiting_toolbox_assignment: {
         Args: { p_assignment_id: string }
         Returns: boolean
+      }
+      remove_habit_from_tracker: {
+        Args: { p_assignment_id: string }
+        Returns: Json
+      }
+      remove_toolbox_assignment_from_habits: {
+        Args: { p_toolbox_assignment_id: string }
+        Returns: Json
+      }
+      set_habit_duration_override: {
+        Args: { p_assignment_id: string; p_duration_min: number | null }
+        Returns: Json
       }
       dispatch_newsletter_email_queue: {
         Args: { p_limit?: number }

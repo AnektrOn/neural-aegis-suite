@@ -177,7 +177,7 @@ export async function getLatestSnapshot(
   return data ? rowToSnapshot(data as Record<string, unknown>) : null;
 }
 
-async function fetchSnapshot(id: string): Promise<ArchetypeProfileSnapshot> {
+export async function getSnapshotById(id: string): Promise<ArchetypeProfileSnapshot> {
   const { data, error } = await supabase
     .from(TABLE as never)
     .select("*")
@@ -185,6 +185,10 @@ async function fetchSnapshot(id: string): Promise<ArchetypeProfileSnapshot> {
     .single();
   if (error) throw error;
   return rowToSnapshot(data as Record<string, unknown>);
+}
+
+async function fetchSnapshot(id: string): Promise<ArchetypeProfileSnapshot> {
+  return getSnapshotById(id);
 }
 
 export async function compareSnapshots(

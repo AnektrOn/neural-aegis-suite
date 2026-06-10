@@ -11,8 +11,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 const COLORS = [
-  "hsl(180, 70%, 50%)", "hsl(270, 50%, 55%)", "hsl(35, 80%, 55%)",
-  "hsl(120, 40%, 50%)", "hsl(0, 70%, 50%)", "hsl(220, 70%, 60%)",
+  "hsl(var(--primary))",       // amber/peach
+  "hsl(var(--secondary))",     // soft secondary
+  "hsl(24 72% 58%)",           // amber warm
+  "hsl(var(--success))",       // success green
+  "hsl(var(--destructive))",   // danger red
+  "hsl(220, 70%, 60%)",        // blue accent
 ];
 
 export default function Analytics() {
@@ -103,16 +107,16 @@ export default function Analytics() {
     <div className="space-y-10 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <p className="text-neural-label mb-3">Centre d'Intelligence</p>
-          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">Analytiques</h1>
+          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">Centre d'Intelligence</p>
+          <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">Analytiques</h1>
         </div>
         <ExportPDFButton targetRef={reportRef as React.RefObject<HTMLDivElement>} filename="rapport-analytiques" />
       </div>
 
-      <div ref={reportRef} className="space-y-10">
+      <div ref={reportRef} className="space-y-8">
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-4 sm:p-8">
-        <p className="text-neural-label mb-6">Humeur sur 30 jours</p>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-4 sm:p-8">
+        <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">Humeur sur 30 jours</p>
         <div className="h-48 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={moodData}>
@@ -127,8 +131,8 @@ export default function Analytics() {
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ethereal-glass p-8">
-          <p className="text-neural-label mb-6">Tendances Sommeil & Stress</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-8">
+          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">Tendances Sommeil & Stress</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sleepStressData}>
@@ -144,8 +148,8 @@ export default function Analytics() {
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="ethereal-glass p-8">
-          <p className="text-neural-label mb-6">Repas par jour</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-8">
+          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">Repas par jour</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={sleepStressData}>
@@ -162,7 +166,7 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-1 ethereal-glass p-8">
-          <p className="text-neural-label mb-6">{t("analytics.habitCompletion7d")}</p>
+          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">{t("analytics.habitCompletion7d")}</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={habitData}>
@@ -176,8 +180,8 @@ export default function Analytics() {
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="ethereal-glass p-8 flex flex-col items-center justify-center">
-          <p className="text-neural-label mb-6">{t("analytics.avgCompletionRate")}</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card p-8 flex flex-col items-center justify-center">
+          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">{t("analytics.avgCompletionRate")}</p>
           <div className="h-48 w-48">
             <ResponsiveContainer width="100%" height="100%">
               <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={habitRadialData} startAngle={90} endAngle={-270}>
@@ -190,8 +194,8 @@ export default function Analytics() {
           </p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="ethereal-glass p-8">
-          <p className="text-neural-label mb-6">{t("analytics.decisionsOverview")}</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-8">
+          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">{t("analytics.decisionsOverview")}</p>
           {decisionPieData.length > 0 ? (
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
@@ -211,7 +215,7 @@ export default function Analytics() {
             </div>
           )}
           <div className="text-center mt-2">
-            <p className="text-neural-label">{t("analytics.avgPriority")}</p>
+            <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70">{t("analytics.avgPriority")}</p>
             <p className="text-lg font-cinzel text-foreground">{decisionData.avgPriority}/5</p>
           </div>
         </motion.div>

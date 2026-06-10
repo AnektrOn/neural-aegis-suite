@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { resolveSequenceFromElapsed } from "@/lib/exercise-sequence-position";
+import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
+import { shouldTreatUnmountAsAbandon } from "@/lib/widget-lifecycle";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Sparkles, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -21,14 +26,17 @@ export interface VisualizationConfig {
   /** @deprecated Legacy admin format */
   duration_min?: number;
   cues?: string[];
+  duration_sec?: number;
+  time_budget_mode?: boolean;
 }
 
 interface Props {
   config: VisualizationConfig;
   title: string;
   hideTitle?: boolean;
-  onComplete?: () => void;
-  onAbandon?: () => void;
+  sessionKey?: string;
+  onComplete?: ToolboxOnComplete;
+  onAbandon?: ToolboxOnAbandon;
 }
 
 /** "hsl(H S% L%)" -> "hsl(H S% L% / alpha)" */
@@ -145,9 +153,18 @@ function deterministicParticles(count: number) {
   }));
 }
 
-export default function VisualizationWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+export default function VisualizationWidget({
+  config,
+  title,
+  hideTitle,
+  sessionKey,
+  onComplete,
+  onAbandon,
+}: Props) {
   const { t, locale } = useLanguage();
   const { scenes, mode } = useMemo(() => normalizeVisualizationConfig(config), [config]);
+  const budgetMode = config.time_budget_mode === true && (config.duration_sec ?? 0) > 0;
+  const budgetSec = budgetMode ? Math.max(1, config.duration_sec ?? 1) : 0;
 
   const [isRunning, setIsRunning] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -156,13 +173,71 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
   const hasStartedRef = useRef(false);
   const completedRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const markCompletedRef = useRef<() => void>(() => {});
 
   const particles = useMemo(() => deterministicParticles(18), []);
-
-  const currentScene = scenes[Math.min(currentIdx, scenes.length - 1)];
   const totalSeconds = Math.max(1, scenes.reduce((s, sc) => s + sc.duration_sec, 0));
-  const elapsedSeconds =
-    scenes.slice(0, currentIdx).reduce((s, sc) => s + sc.duration_sec, 0) + phaseProgress * currentScene.duration_sec;
+  const segments = useMemo(
+    () => scenes.map((sc) => ({ id: sc.id, durationSec: sc.duration_sec })),
+    [scenes],
+  );
+
+  const elapsedRef = useRef(0);
+
+  const persistedTimer = usePersistedExerciseTimer({
+    sessionKey: mode === "timed" || budgetMode ? sessionKey : undefined,
+    totalSeconds: budgetMode ? budgetSec : totalSeconds,
+    onComplete:
+      budgetMode
+        ? () => markCompletedRef.current()
+        : mode === "timed"
+          ? () => onComplete?.()
+          : undefined,
+  });
+
+  elapsedRef.current = persistedTimer.elapsedSec;
+
+  const markCompleted = useCallback(() => {
+    setCompleted(true);
+    completedRef.current = true;
+    persistedTimer.completedRef.current = true;
+    onComplete?.({
+      elapsedSec: elapsedRef.current,
+      durationBudgetSec: budgetMode ? budgetSec : totalSeconds,
+    });
+  }, [budgetMode, budgetSec, onComplete, totalSeconds, persistedTimer.completedRef]);
+
+  useEffect(() => {
+    markCompletedRef.current = markCompleted;
+  }, [markCompleted]);
+
+  const timedPosition = useMemo(
+    () => (mode === "timed" && !budgetMode ? resolveSequenceFromElapsed(persistedTimer.elapsedSec, segments) : null),
+    [mode, budgetMode, persistedTimer.elapsedSec, segments],
+  );
+
+  const currentIdxResolved =
+    budgetMode ? currentIdx : mode === "timed" && timedPosition ? timedPosition.index : currentIdx;
+  const phaseProgressResolved =
+    budgetMode ? 0 : mode === "timed" && timedPosition ? timedPosition.phaseProgress : phaseProgress;
+  const completedResolved = budgetMode
+    ? completed || persistedTimer.completed
+    : mode === "timed"
+      ? persistedTimer.completed
+      : completed;
+  const isRunningResolved = budgetMode || mode === "timed" ? persistedTimer.isRunning : isRunning;
+  const elapsedSeconds = budgetMode || mode === "timed"
+    ? persistedTimer.elapsedSec
+    : scenes.slice(0, currentIdx).reduce((s, sc) => s + sc.duration_sec, 0) +
+      phaseProgress * scenes[Math.min(currentIdx, scenes.length - 1)].duration_sec;
+
+  if (scenes.length === 0) {
+    return (
+      <p className="text-center text-sm text-muted-foreground py-6">{t("toolbox.unavailableConfig")}</p>
+    );
+  }
+
+  const currentScene = scenes[Math.min(currentIdxResolved, scenes.length - 1)];
 
   const sceneColor = currentScene.color ?? "hsl(270 50% 60%)";
 
@@ -178,33 +253,62 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
       : t(sceneInstrKey as any);
 
   useEffect(() => {
+    if (mode === "timed") {
+      if (persistedTimer.isRunning || persistedTimer.elapsedSec > 0) hasStartedRef.current = true;
+      if (persistedTimer.completed) completedRef.current = true;
+      return;
+    }
     if (isRunning && !hasStartedRef.current) hasStartedRef.current = true;
-  }, [isRunning]);
+  }, [mode, isRunning, persistedTimer.isRunning, persistedTimer.elapsedSec, persistedTimer.completed]);
+
+  useWidgetAbandonGuard(
+    budgetMode || mode === "timed" ? persistedTimer.hasStartedRef : hasStartedRef,
+    budgetMode || mode === "timed" ? persistedTimer.completedRef : completedRef,
+    budgetMode ? undefined : onAbandon,
+  );
 
   useEffect(() => {
+    if (!budgetMode) return;
     return () => {
-      if (hasStartedRef.current && !completedRef.current) onAbandon?.();
+      if (
+        persistedTimer.hasStartedRef.current &&
+        !persistedTimer.completedRef.current &&
+        shouldTreatUnmountAsAbandon()
+      ) {
+        onAbandon?.({
+          elapsedSec: elapsedRef.current,
+          durationBudgetSec: budgetSec,
+        });
+      }
     };
-  }, []);
+  }, [budgetMode, budgetSec, onAbandon, persistedTimer.hasStartedRef, persistedTimer.completedRef]);
 
   const advanceScene = useCallback(() => {
     hasStartedRef.current = true;
+    persistedTimer.hasStartedRef.current = true;
+    if (budgetMode && !persistedTimer.isRunning && persistedTimer.elapsedSec === 0) {
+      persistedTimer.setRunning(true);
+    }
     setCurrentIdx((idx) => {
       const nextIdx = idx + 1;
       if (nextIdx >= scenes.length) {
-        setIsRunning(false);
-        setCompleted(true);
-        completedRef.current = true;
-        onComplete?.();
+        if (budgetMode) {
+          markCompletedRef.current();
+        } else {
+          setIsRunning(false);
+          setCompleted(true);
+          completedRef.current = true;
+          onComplete?.();
+        }
         return idx;
       }
       setPhaseProgress(0);
       return nextIdx;
     });
-  }, [scenes.length, onComplete]);
+  }, [budgetMode, scenes.length, onComplete, persistedTimer]);
 
   useEffect(() => {
-    if (!isRunning || mode === "manual") {
+    if (mode !== "manual" || !isRunning) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       return;
     }
@@ -226,6 +330,15 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
   }, [isRunning, currentScene.duration_sec, currentScene.id, mode, advanceScene]);
 
   const reset = useCallback(() => {
+    if (budgetMode || mode === "timed") {
+      persistedTimer.reset();
+      setCurrentIdx(0);
+      setPhaseProgress(0);
+      setCompleted(false);
+      completedRef.current = false;
+      hasStartedRef.current = false;
+      return;
+    }
     setIsRunning(false);
     setCurrentIdx(0);
     setPhaseProgress(0);
@@ -233,13 +346,13 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
     completedRef.current = false;
     hasStartedRef.current = false;
     if (intervalRef.current) clearInterval(intervalRef.current);
-  }, []);
+  }, [budgetMode, mode, persistedTimer]);
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-  const overallProgress = elapsedSeconds / totalSeconds;
-  const remaining = mode === "timed" ? totalSeconds - elapsedSeconds : null;
+  const overallProgress = elapsedSeconds / (budgetMode ? budgetSec : totalSeconds);
+  const remaining = budgetMode || mode === "timed" ? (budgetMode ? budgetSec : totalSeconds) - elapsedSeconds : null;
 
   const borderSoft = hslWithAlpha(sceneColor, 0.4);
   const fillSoft = hslWithAlpha(sceneColor, 0.12);
@@ -250,7 +363,7 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
   return (
     <div className="flex flex-col items-center space-y-5 py-4 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        {isRunning &&
+        {isRunningResolved &&
           particles.map((p) => (
             <motion.div
               key={p.id}
@@ -293,10 +406,10 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
               width: `${60 + i * 25}%`,
               height: `${60 + i * 25}%`,
               border: `1px solid ${sceneColor}`,
-              opacity: isRunning ? opacity * 0.4 : 0,
+              opacity: isRunningResolved ? opacity * 0.4 : 0,
             }}
             animate={
-              isRunning
+              isRunningResolved
                 ? {
                     scale: [1, 1.06, 1],
                     opacity: [opacity * 0.2, opacity * 0.5, opacity * 0.2],
@@ -317,13 +430,13 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
           style={{
             background: `radial-gradient(circle, ${hslWithAlpha(sceneColor, 0.15)} 0%, ${orbInner} 60%, transparent 100%)`,
             border: `1.5px solid ${orbBorder}`,
-            boxShadow: isRunning ? `0 0 40px ${orbGlow}, inset 0 0 20px ${hslWithAlpha(sceneColor, 0.06)}` : "none",
+            boxShadow: isRunningResolved ? `0 0 40px ${orbGlow}, inset 0 0 20px ${hslWithAlpha(sceneColor, 0.06)}` : "none",
           }}
-          animate={isRunning ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+          animate={isRunningResolved ? { scale: [1, 1.05, 1] } : { scale: 1 }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         >
           <div className="text-center">
-            {completed ? (
+            {completedResolved ? (
               <p className="text-xs font-cinzel" style={{ color: sceneColor }}>
                 ✦
               </p>
@@ -331,7 +444,7 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
               <div>
                 <p className="text-lg font-cinzel text-foreground">{formatTime(Math.max(0, remaining))}</p>
                 <p className="text-[9px] text-muted-foreground mt-0.5">
-                  {isRunning ? t("toolbox.vizRunning") : t("toolbox.vizReady")}
+                  {isRunningResolved ? t("toolbox.vizRunning") : t("toolbox.vizReady")}
                 </p>
               </div>
             ) : (
@@ -349,12 +462,12 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
               key={scene.id}
               className="transition-all duration-500"
               style={{
-                width: i === currentIdx && !completed ? 20 : 6,
+                width: i === currentIdxResolved && !completedResolved ? 20 : 6,
                 height: 6,
                 borderRadius: 3,
                 backgroundColor:
-                  i < currentIdx || completed ? c : i === currentIdx ? c : "hsl(220 10% 25%)",
-                opacity: i > currentIdx && !completed ? 0.3 : 1,
+                  i < currentIdxResolved || completedResolved ? c : i === currentIdxResolved ? c : "hsl(220 10% 25%)",
+                opacity: i > currentIdxResolved && !completedResolved ? 0.3 : 1,
               }}
             />
           );
@@ -363,40 +476,40 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
 
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentScene.id + String(completed)}
+          key={currentScene.id + String(completedResolved)}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.5 }}
           className="text-center z-10 px-4 space-y-2"
         >
-          {!completed && (
+          {!completedResolved && (
             <p className="text-[9px] uppercase tracking-[0.25em] font-medium" style={{ color: sceneColor }}>
               {resolvedSceneLabel}
             </p>
           )}
           <p className="text-sm text-foreground/75 italic leading-relaxed max-w-[280px]">
-            {completed ? t("toolbox.vizCarryState") : `« ${resolvedSceneInstruction} »`}
+            {completedResolved ? t("toolbox.vizCarryState") : `« ${resolvedSceneInstruction} »`}
           </p>
         </motion.div>
       </AnimatePresence>
 
-      {mode === "timed" && !completed && (
+      {(budgetMode || mode === "timed") && !completedResolved && !budgetMode && (
         <div className="w-full max-w-[260px] space-y-1.5 z-10">
           <div className="flex justify-between text-[9px] text-muted-foreground">
-            <span>{t("toolbox.vizSceneProgress", { current: currentIdx + 1, total: scenes.length })}</span>
-            <span>{Math.round(phaseProgress * 100)}%</span>
+            <span>{t("toolbox.vizSceneProgress", { current: currentIdxResolved + 1, total: scenes.length })}</span>
+            <span>{Math.round(phaseProgressResolved * 100)}%</span>
           </div>
           <div className="w-full h-0.5 rounded-full bg-secondary/40 overflow-hidden">
             <motion.div
               className="h-full rounded-full transition-all"
-              style={{ backgroundColor: sceneColor, width: `${phaseProgress * 100}%` }}
+              style={{ backgroundColor: sceneColor, width: `${phaseProgressResolved * 100}%` }}
             />
           </div>
         </div>
       )}
 
-      {mode === "timed" && (
+      {(budgetMode || mode === "timed") && (
         <div className="w-full max-w-[260px] h-1 rounded-full bg-secondary overflow-hidden z-10">
           <motion.div
             className="h-full rounded-full"
@@ -409,13 +522,13 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
         </div>
       )}
 
-      <div className="flex gap-3 z-10">
-        {mode === "timed" ? (
+      <div className="flex gap-3 z-10 flex-wrap justify-center">
+        {budgetMode ? (
           <>
             <button
               type="button"
-              onClick={() => setIsRunning(!isRunning)}
-              disabled={completed}
+              onClick={persistedTimer.toggleRunning}
+              disabled={completedResolved}
               className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors hover:opacity-90"
               style={{
                 borderColor: borderSoft,
@@ -423,7 +536,45 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
                 color: sceneColor,
               }}
             >
-              {isRunning ? <Pause size={18} /> : <Play size={18} />}
+              {isRunningResolved ? <Pause size={18} /> : <Play size={18} />}
+            </button>
+            {!completedResolved && (
+              <button
+                type="button"
+                onClick={advanceScene}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border text-sm font-medium transition-all active:scale-95"
+                style={{
+                  borderColor: borderSoft,
+                  backgroundColor: fillSoft,
+                  color: sceneColor,
+                }}
+              >
+                {currentIdx >= scenes.length - 1 ? t("toolbox.micro.finish") : t("toolbox.vizManualNext")}
+                <ChevronRight size={14} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={reset}
+              className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+            >
+              <RotateCcw size={18} />
+            </button>
+          </>
+        ) : mode === "timed" ? (
+          <>
+            <button
+              type="button"
+              onClick={persistedTimer.toggleRunning}
+              disabled={completedResolved}
+              className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors hover:opacity-90"
+              style={{
+                borderColor: borderSoft,
+                backgroundColor: fillSoft,
+                color: sceneColor,
+              }}
+            >
+              {isRunningResolved ? <Pause size={18} /> : <Play size={18} />}
             </button>
             <button
               type="button"
@@ -435,7 +586,7 @@ export default function VisualizationWidget({ config, title, hideTitle, onComple
           </>
         ) : (
           <>
-            {!completed && (
+            {!completedResolved && (
               <button
                 type="button"
                 onClick={advanceScene}

@@ -61,24 +61,39 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const navKeys = [
-  { to: "/", icon: LayoutDashboard, key: "nav.dashboard" as const },
-  { to: "/mood", icon: Brain, key: "nav.mood" as const },
-  { to: "/decisions", icon: Target, key: "nav.decisions" as const },
-  { to: "/habits", icon: ListChecks, key: "nav.habits" as const },
-  { to: "/journal", icon: BookOpen, key: "nav.journal" as const },
-  { to: "/toolbox", icon: Headphones, key: "nav.toolbox" as const },
-  { to: "/pulse", icon: Sparkles, key: "nav.pulse" as const },
-  { to: "/bibliotheque", icon: Library, key: "nav.bibliotheque" as const },
-  { to: "/people", icon: Users, key: "nav.people" as const },
-  { to: "/analytics", icon: BarChart3, key: "nav.analytics" as const },
-  { to: "/calendar", icon: CalendarDays, key: "nav.calendar" as const },
-  { to: "/deep-dive", icon: FileText, key: "nav.deepDive" as const },
-  { to: "/deep-dive/scores", icon: LineChart, key: "nav.deepDiveScores" as const },
-  { to: "/install", icon: Smartphone, key: "nav.installApp" as const },
-  { to: "/newsletter", icon: Mail, key: "nav.newsletter" as const },
-  { to: "/settings", icon: Settings2, key: "profile.settings" as const },
-  { to: "/profile", icon: UserCircle, key: "nav.profile" as const },
+const NAV_GROUPS = [
+  {
+    label: "Quotidien",
+    items: [
+      { to: "/", icon: LayoutDashboard, key: "nav.dashboard" as const },
+      { to: "/mood", icon: Brain, key: "nav.mood" as const },
+      { to: "/habits", icon: ListChecks, key: "nav.habits" as const },
+      { to: "/journal", icon: BookOpen, key: "nav.journal" as const },
+      { to: "/decisions", icon: Target, key: "nav.decisions" as const },
+    ],
+  },
+  {
+    label: "Analyse",
+    items: [
+      { to: "/analytics", icon: BarChart3, key: "nav.analytics" as const },
+      { to: "/pulse", icon: Sparkles, key: "nav.pulse" as const },
+      { to: "/deep-dive", icon: FileText, key: "nav.deepDive" as const },
+      { to: "/deep-dive/scores", icon: LineChart, key: "nav.deepDiveScores" as const },
+      { to: "/people", icon: Users, key: "nav.people" as const },
+      { to: "/calendar", icon: CalendarDays, key: "nav.calendar" as const },
+    ],
+  },
+  {
+    label: "Ressources",
+    items: [
+      { to: "/toolbox", icon: Headphones, key: "nav.toolbox" as const },
+      { to: "/bibliotheque", icon: Library, key: "nav.bibliotheque" as const },
+      { to: "/newsletter", icon: Mail, key: "nav.newsletter" as const },
+      { to: "/install", icon: Smartphone, key: "nav.installApp" as const },
+      { to: "/settings", icon: Settings2, key: "nav.settings" as const },
+      { to: "/profile", icon: UserCircle, key: "nav.account" as const },
+    ],
+  },
 ];
 
 function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
@@ -86,6 +101,23 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   const { signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const { t } = useLanguage();
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    Quotidien: true,
+    Analyse: false,
+    Ressources: false,
+  });
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  // Auto-expand group containing active route
+  useEffect(() => {
+    const match = NAV_GROUPS.find((g) => g.items.some((i) => i.to === location.pathname));
+    if (match) {
+      setOpenGroups((prev) => ({ ...prev, [match.label]: true }));
+    }
+  }, [location.pathname]);
 
   return (
     <>
@@ -98,30 +130,55 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
         )}
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto py-3 px-0">
-        {navKeys.map((item) => {
-          const isActive = location.pathname === item.to;
+      <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2 px-0">
+        {NAV_GROUPS.map((group) => {
+          const isOpen = collapsed || openGroups[group.label];
           return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={onNavigate}
-              className={`relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg mx-2 transition-all duration-200 border border-transparent ${
-                isActive ? "text-accent-primary" : "text-text-tertiary hover:text-text-primary hover:bg-bg-elevated"
-              }`}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className="absolute inset-0 rounded-lg bg-accent-primary/10 border border-accent-primary/20 pointer-events-none"
-                  transition={{ duration: 0.25 }}
-                />
-              )}
-              <item.icon size={16} strokeWidth={1.5} className="relative z-10 shrink-0" />
+            <div key={group.label} className="mb-1">
               {!collapsed && (
-                <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.key)}</span>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.label)}
+                  aria-expanded={isOpen}
+                  className="w-full flex items-center gap-1 px-4 py-1.5 text-[9px] font-display tracking-[0.22em] uppercase text-text-tertiary/50 hover:text-text-tertiary transition-colors"
+                >
+                  <span className="flex-1 text-left">{group.label}</span>
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>
+                    <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
               )}
-            </NavLink>
+              {isOpen && (
+                <div className="flex flex-col gap-0.5 pb-1">
+                  {group.items.map((item) => {
+                    const isActive = location.pathname === item.to;
+                    return (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        onClick={onNavigate}
+                        aria-current={isActive ? "page" : undefined}
+                        className={`relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg mx-2 transition-all duration-200 border border-transparent ${
+                          isActive ? "text-accent-primary" : "text-text-tertiary hover:text-text-primary hover:bg-bg-elevated"
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="sidebar-active"
+                            className="absolute inset-0 rounded-lg bg-accent-primary/10 border border-accent-primary/20 pointer-events-none"
+                            transition={{ duration: 0.25 }}
+                          />
+                        )}
+                        <item.icon size={16} strokeWidth={1.5} className="relative z-10 shrink-0" aria-hidden />
+                        {!collapsed && (
+                          <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.key)}</span>
+                        )}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>
@@ -227,10 +284,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       .toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" })
       .toUpperCase();
 
-    const mobileTopPadding = online
-      ? "calc(var(--safe-top) + var(--mobile-header-toolbar))"
-      : "calc(var(--safe-top) + var(--mobile-offline-banner-height) + var(--mobile-header-toolbar))";
-
     const radialItemsBase = radialMenuIds.map((id) => {
       const def = RADIAL_CATALOG[id];
       return {
@@ -268,7 +321,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {t("layout.offlineMessage")}
             </div>
           )}
-          <div className="relative flex min-h-[var(--mobile-header-toolbar)] items-center justify-between box-border px-4 py-3">
+          <div className="relative flex h-[var(--mobile-header-toolbar)] shrink-0 items-center justify-between box-border px-4">
             <div className="flex shrink-0 items-center">
               <NavLink
                 to="/"
@@ -386,7 +439,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </SheetContent>
               </Sheet>
               <Link
-                to="/profile"
+                to="/persona"
                 aria-label={t("nav.profile")}
                 className="inline-flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-accent-primary/25 bg-accent-primary/10 font-display text-[11px] font-medium text-accent-primary transition-all duration-200 active:scale-95"
                 style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
@@ -398,10 +451,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <main
-          className="flex-1 px-3 sm:px-5 md:px-6 overflow-y-auto scroll-fade-bottom"
+          className={cn(
+            "mobile-main-scroll flex-1 overflow-y-auto px-3 sm:px-5 md:px-6",
+            !online && "mobile-main-scroll--offline",
+          )}
           style={{
-            paddingTop: mobileTopPadding,
-            paddingBottom: "calc(4rem + var(--safe-bottom))",
+            paddingTop: online
+              ? "var(--mobile-main-padding-top)"
+              : "var(--mobile-main-padding-top-offline)",
+            paddingBottom: "var(--mobile-dock-padding)",
           }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
@@ -484,7 +542,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main
-        className={`flex-1 min-h-screen p-6 md:p-10 transition-all duration-300 ease-in-out ${
+        className={`flex-1 min-h-screen p-6 md:p-10 transition-all duration-300 ease-in-out bg-aegis-gradient ${
           collapsed ? "ml-[60px]" : "ml-[220px]"
         } ${!online ? "mt-7" : ""}`}
       >

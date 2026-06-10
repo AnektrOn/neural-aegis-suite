@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { memo, useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, ArrowUpRight } from "lucide-react";
@@ -35,7 +35,7 @@ interface HabitCompletionRow {
   assigned_habit_id: string;
 }
 
-export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
+const HabitsMiniCardBase = function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
   const { toast } = useToast();
   const { t, locale } = useLanguage();
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -174,4 +174,6 @@ export default function HabitsMiniCard({ userId }: HabitsMiniCardProps) {
       </NeuralCard>
     </motion.div>
   );
-}
+};
+
+export default memo(HabitsMiniCardBase);

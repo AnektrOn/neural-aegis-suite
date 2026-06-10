@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   FileText, Download, User, Shield, FileDown, ChevronLeft,
-  Search, Loader2, Sparkles,
+  Search, Loader2, Sparkles, ImageDown,
 } from "lucide-react";
 import {
   buildUserReport,
@@ -17,7 +17,7 @@ import {
 import { buildDynamicProfile } from "../domain/dynamicProfileBuilder";
 import { loadUnifiedDeepDiveResult } from "../domain/loadUnifiedScores";
 import { supabase } from "@/integrations/supabase/client";
-import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
+import { exportDeepDiveVisualPdf, exportDeepDivePng } from "../services/exportDeepDiveScreenshot";
 import {
   listAllSessionsForAdmin,
   getLatestSubmittedSessionForUser,
@@ -89,6 +89,9 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
 
   // Tabs (admin can flip between user / admin views)
   const [tab, setTab] = useState<"user" | "admin">(mode === "admin" ? "admin" : "user");
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingPng, setExportingPng] = useState(false);
 
   useEffect(() => {
     if (mode !== "admin") return;
@@ -231,6 +234,55 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
   const activeMarkdown = tab === "user" ? userReport : adminReport;
   const reportSubject = selectedSession?.profile?.display_name || profile?.label || "Deep Dive";
   const filenameStem = `deep-dive-${(reportSubject || "rapport").replace(/\s+/g, "-").toLowerCase()}-${tab}`;
+
+  const handleExportPdf = async () => {
+    const el = exportRef.current;
+    if (!el || !profile || exportingPdf || exportingPng) return;
+    setExportingPdf(true);
+    try {
+      await exportDeepDiveVisualPdf(el, reportSubject, { kind: tab, isFR });
+      toast({
+        title: isFR ? "PDF téléchargé" : "PDF downloaded",
+        description: isFR
+          ? "Rapport visuel en thème sombre, cartes recto/verso incluses."
+          : "Visual report in dark theme, front/back cards included.",
+      });
+    } catch (e: unknown) {
+      console.error("[DeepDive V2] export pdf failed", e);
+      toast({
+        title: isFR ? "Erreur" : "Error",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  const handleExportPng = async () => {
+    const el = exportRef.current;
+    if (!el || !profile || exportingPdf || exportingPng) return;
+    setExportingPng(true);
+    try {
+      await exportDeepDivePng(el, reportSubject, { kind: tab, isFR });
+      toast({
+        title: isFR ? "PNG téléchargé" : "PNG downloaded",
+        description: isFR
+          ? "Capture haute résolution du rapport complet."
+          : "High-resolution capture of the full report.",
+      });
+    } catch (e: unknown) {
+      console.error("[DeepDive V2] export png failed", e);
+      toast({
+        title: isFR ? "Erreur" : "Error",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setExportingPng(false);
+    }
+  };
+
   const overlapCount = assessmentTopThree.filter((a) => deepDiveTopThree.includes(a)).length;
   const comparisonV2 = useMemo(() => {
     if (mode !== "admin" || !selectedSession || !profile) return null;
@@ -358,49 +410,6 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
           </button>
         )}
 
-        <header className="space-y-2">
-          <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
-            <FileText size={14} strokeWidth={1.5} />
-            {mode === "admin"
-              ? (isFR ? "Deep Dive — Lecture admin" : "Deep Dive — Admin reading")
-              : (isFR ? "Ton rapport Deep Dive" : "Your Deep Dive report")}
-          </div>
-          <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
-            {reportSubject}
-          </h1>
-          <p className="text-sm text-text-secondary">
-            {mode === "admin"
-              ? (isFR
-                  ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triade : ${profile.label}.` : ""}`
-                  : `Assessment submitted on ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triad: ${profile.label}.` : ""}`)
-              : (isFR
-                  ? "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."
-                  : "Personalized reading of your dominant archetypes, shadows and recommended practices.")}
-          </p>
-          {mode === "admin" && selectedSession && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <Badge variant="outline" className="border-white/10 text-text-secondary">
-                {`Assessment top3: ${assessmentTopThree.length > 0 ? assessmentTopThree.join(", ") : "—"}`}
-              </Badge>
-              <Badge variant="outline" className="border-white/10 text-text-secondary">
-                {`DeepDive top3: ${deepDiveTopThree.length > 0 ? deepDiveTopThree.join(", ") : "—"}`}
-              </Badge>
-              <Badge
-                variant="outline"
-                className={
-                  overlapCount >= 2
-                    ? "border-primary/30 text-primary"
-                    : overlapCount === 1
-                      ? "border-accent-warning/30 text-accent-warning"
-                      : "border-white/10 text-text-tertiary"
-                }
-              >
-                {isFR ? `Recouvrement: ${overlapCount}/3` : `Overlap: ${overlapCount}/3`}
-              </Badge>
-            </div>
-          )}
-        </header>
-
         {loadingProfile && (
           <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
             <Loader2 size={20} strokeWidth={1.5} className="animate-spin mx-auto mb-3 text-text-tertiary" />
@@ -417,7 +426,7 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
 
         {!loadingProfile && !profileError && profile && (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "user" | "admin")}>
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center justify-between gap-3 flex-wrap" data-export-hide>
               <TabsList>
                 <TabsTrigger value="user" className="gap-2">
                   <User size={14} strokeWidth={1.5} /> {isFR ? "Vue Utilisateur" : "User view"}
@@ -442,30 +451,88 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    exportDeepDivePdf({
-                      kind: tab,
-                      markdown: activeMarkdown,
-                      profileLabel: reportSubject,
-                    })
-                  }
+                  onClick={() => void handleExportPdf()}
+                  disabled={exportingPdf || exportingPng}
                   className="gap-2"
                 >
-                  <FileDown size={14} strokeWidth={1.5} />
+                  {exportingPdf ? (
+                    <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                  ) : (
+                    <FileDown size={14} strokeWidth={1.5} />
+                  )}
                   {isFR ? "Exporter PDF" : "Export PDF"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleExportPng()}
+                  disabled={exportingPdf || exportingPng}
+                  className="gap-2"
+                >
+                  {exportingPng ? (
+                    <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                  ) : (
+                    <ImageDown size={14} strokeWidth={1.5} />
+                  )}
+                  PNG
                 </Button>
               </div>
             </div>
 
-            <TabsContent value="user" className="mt-4">
-              <DeepDiveUserCards profile={profile} />
-            </TabsContent>
+            <div ref={exportRef} id="deep-dive-report-export" className="space-y-6 mt-4">
+              <header className="space-y-2">
+                <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
+                  <FileText size={14} strokeWidth={1.5} />
+                  {mode === "admin"
+                    ? (isFR ? "Deep Dive — Lecture admin" : "Deep Dive — Admin reading")
+                    : (isFR ? "Ton rapport Deep Dive" : "Your Deep Dive report")}
+                </div>
+                <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
+                  {reportSubject}
+                </h1>
+                <p className="text-sm text-text-secondary">
+                  {mode === "admin"
+                    ? (isFR
+                        ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triade : ${profile.label}.` : ""}`
+                        : `Assessment submitted on ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triad: ${profile.label}.` : ""}`)
+                    : (isFR
+                        ? "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."
+                        : "Personalized reading of your dominant archetypes, shadows and recommended practices.")}
+                </p>
+                {mode === "admin" && selectedSession && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant="outline" className="border-white/10 text-text-secondary">
+                      {`Assessment top3: ${assessmentTopThree.length > 0 ? assessmentTopThree.join(", ") : "—"}`}
+                    </Badge>
+                    <Badge variant="outline" className="border-white/10 text-text-secondary">
+                      {`DeepDive top3: ${deepDiveTopThree.length > 0 ? deepDiveTopThree.join(", ") : "—"}`}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={
+                        overlapCount >= 2
+                          ? "border-primary/30 text-primary"
+                          : overlapCount === 1
+                            ? "border-accent-warning/30 text-accent-warning"
+                            : "border-white/10 text-text-tertiary"
+                      }
+                    >
+                      {isFR ? `Recouvrement: ${overlapCount}/3` : `Overlap: ${overlapCount}/3`}
+                    </Badge>
+                  </div>
+                )}
+              </header>
 
-            {mode === "admin" && (
-              <TabsContent value="admin" className="mt-4">
-                <DeepDiveAdminCardsV2 profile={profile} comparisonV2={comparisonV2} />
+              <TabsContent value="user" className="mt-0">
+                <DeepDiveUserCards profile={profile} />
               </TabsContent>
-            )}
+
+              {mode === "admin" && (
+                <TabsContent value="admin" className="mt-0">
+                  <DeepDiveAdminCardsV2 profile={profile} comparisonV2={comparisonV2} />
+                </TabsContent>
+              )}
+            </div>
           </Tabs>
         )}
       </div>

@@ -1,26 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { User, Save, Download, FileText, Smartphone, Camera, Loader2, ClipboardList, LayoutGrid } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { User, Save, Camera, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { AppendixModal } from "@/features/appendix/AppendixModal";
-import AegisHealthSection from "@/components/AegisHealthSection";
-import { ProfileEvolutionSection } from "@/features/archetype-assessment/components/ProfileEvolutionSection";
-import {
-  DEFAULT_MOBILE_RADIAL_MENU_IDS,
-  MOBILE_RADIAL_CATALOG_ORDER,
-  orderSelectedRadialIds,
-  RADIAL_CATALOG,
-  type MobileRadialMenuId,
-} from "@/lib/mobileRadialMenuCatalog";
 
+/** Account settings only — identity & AEGIS score live on /persona; app prefs on /settings */
 export default function Profile() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { t } = useLanguage();
   const [displayName, setDisplayName] = useState("");
   const [country, setCountry] = useState("");
@@ -28,33 +16,20 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [appendixOpen, setAppendixOpen] = useState(false);
-  const [radialIds, setRadialIds] = useState<MobileRadialMenuId[]>(DEFAULT_MOBILE_RADIAL_MENU_IDS);
-  const [savingRadial, setSavingRadial] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (user) loadProfile();
+    if (user) void loadProfile();
   }, [user]);
 
   const loadProfile = async () => {
     if (!user) return;
-    let res = await supabase
+    const { data, error } = await supabase
       .from("profiles")
-      .select("display_name, country, timezone, avatar_url, mobile_radial_menu")
+      .select("display_name, country, timezone, avatar_url")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (res.error && res.error.message?.includes("mobile_radial_menu")) {
-      res = await supabase
-        .from("profiles")
-        .select("display_name, country, timezone, avatar_url")
-        .eq("id", user.id)
-        .maybeSingle();
-    }
-
-    const { data, error } = res;
     if (error) {
       console.error("loadProfile", error);
       toast({
@@ -69,10 +44,6 @@ export default function Profile() {
     setCountry(data.country || "");
     setTimezone((data as { timezone?: string | null }).timezone || "Europe/Paris");
     setAvatarUrl((data as { avatar_url?: string | null }).avatar_url || null);
-    const radialRaw = (data as { mobile_radial_menu?: unknown }).mobile_radial_menu;
-    if (radialRaw !== undefined) {
-      setRadialIds(orderSelectedRadialIds(radialRaw));
-    }
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +72,10 @@ export default function Profile() {
 
   const saveProfile = async () => {
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ display_name: displayName, country, timezone } as any).eq("id", user!.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: displayName, country, timezone } as any)
+      .eq("id", user!.id);
     setSaving(false);
     if (error) {
       toast({ title: t("toast.error"), description: t("profile.saveError"), variant: "destructive" });
@@ -110,133 +84,26 @@ export default function Profile() {
     }
   };
 
-  const exportData = async () => {
-    if (!user) return;
-    setExporting(true);
-
-    const [moodRes, decRes, habRes, journalRes, contactsRes] = await Promise.all([
-      supabase.from("mood_entries" as any).select("*").eq("user_id", user.id).order("logged_at", { ascending: false }),
-      supabase.from("decisions" as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("habit_completions" as any).select("*").eq("user_id", user.id).order("completed_date", { ascending: false }),
-      supabase.from("journal_entries").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("people_contacts" as any).select("*").eq("user_id", user.id),
-    ]);
-
-    const sections: string[] = [];
-
-    // Mood entries
-    const moods = (moodRes.data as any[]) || [];
-    if (moods.length > 0) {
-      sections.push("=== HUMEUR ===");
-      sections.push("Date,Valeur,Sommeil,Stress,Repas");
-      moods.forEach((m) => {
-        sections.push(`${m.logged_at},${m.value},${m.sleep ?? ""},${m.stress ?? ""},${m.meals_count ?? ""}`);
-      });
-    }
-
-    // Decisions
-    const decs = (decRes.data as any[]) || [];
-    if (decs.length > 0) {
-      sections.push("\n=== DECISIONS ===");
-      sections.push("Date,Nom,Statut,Priorité,Responsabilité");
-      decs.forEach((d) => {
-        sections.push(`${d.created_at},"${d.name}",${d.status},${d.priority},${d.responsibility}`);
-      });
-    }
-
-    // Habits
-    const habits = (habRes.data as any[]) || [];
-    if (habits.length > 0) {
-      sections.push("\n=== HABITUDES COMPLÉTÉES ===");
-      sections.push("Date,Habitude ID");
-      habits.forEach((h) => {
-        sections.push(`${h.completed_date},${h.assigned_habit_id}`);
-      });
-    }
-
-    // Journal
-    const journals = (journalRes.data as any[]) || [];
-    if (journals.length > 0) {
-      sections.push("\n=== JOURNAL ===");
-      sections.push("Date,Titre,Contenu,Tags,Humeur");
-      journals.forEach((j) => {
-        sections.push(`${j.created_at},"${j.title || ""}","${j.content.replace(/"/g, '""')}","${(j.tags || []).join(";")}",${j.mood_score ?? ""}`);
-      });
-    }
-
-    // Contacts
-    const contacts = (contactsRes.data as any[]) || [];
-    if (contacts.length > 0) {
-      sections.push("\n=== CONTACTS ===");
-      sections.push(t("profile.csvHeader"));
-      contacts.forEach((c) => {
-        sections.push(`"${c.name}","${c.role || ""}",${c.quality},"${c.insight || ""}"`);
-      });
-    }
-
-    const csvContent = sections.join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `aegis-export-${new Date().toISOString().split("T")[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-
-    setExporting(false);
-    toast({ title: t("profile.exportDone"), description: t("profile.exportDoneDesc") });
-  };
-
-  const toggleRadialId = (id: MobileRadialMenuId) => {
-    setRadialIds((prev) => {
-      const set = new Set(prev);
-      if (set.has(id)) {
-        if (set.size <= 1) return prev;
-        set.delete(id);
-      } else if (set.size < 14) {
-        set.add(id);
-      } else {
-        return prev;
-      }
-      return MOBILE_RADIAL_CATALOG_ORDER.filter((x) => set.has(x));
-    });
-  };
-
-  const resetRadialMenu = () => {
-    setRadialIds([...DEFAULT_MOBILE_RADIAL_MENU_IDS]);
-  };
-
-  const saveRadialMenu = async () => {
-    if (!user) return;
-    setSavingRadial(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ mobile_radial_menu: radialIds as unknown as Json })
-      .eq("id", user.id);
-    setSavingRadial(false);
-    if (error) {
-      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: t("profile.radialSavedTitle"), description: t("profile.radialSavedDesc") });
-    window.dispatchEvent(new CustomEvent("aegis:radial-menu-updated"));
-  };
-
   return (
-    <div className="space-y-10 max-w-3xl">
+    <div className="space-y-8 max-w-3xl">
       <div>
-        <p className="text-neural-label mb-3">{t("profile.settings")}</p>
-        <h1 className="text-neural-title text-3xl text-foreground">{t("profile.myProfile")}</h1>
+        <p className="text-neural-label mb-3">{t("profile.accountLabel")}</p>
+        <h1 className="text-neural-title text-3xl text-foreground">{t("profile.accountTitle")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("profile.accountSubtitle")}</p>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-8 space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="ethereal-glass p-8 space-y-6"
+      >
         <div className="flex items-center gap-4 mb-2">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingAvatar}
             className="relative w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden group hover:border-primary/40 transition-colors disabled:opacity-50"
-            aria-label="Changer la photo de profil"
+            aria-label={t("profile.changeAvatar")}
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -260,7 +127,16 @@ export default function Profile() {
           />
           <div>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
-            <p className="text-neural-label mt-1">{t("profile.memberSince", { date: user?.created_at ? new Date(user.created_at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "—" })}</p>
+            <p className="text-neural-label mt-1">
+              {t("profile.memberSince", {
+                date: user?.created_at
+                  ? new Date(user.created_at).toLocaleDateString("fr-FR", {
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "—",
+              })}
+            </p>
           </div>
         </div>
 
@@ -292,8 +168,31 @@ export default function Profile() {
               onChange={(e) => setTimezone(e.target.value)}
               className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/30 transition-colors"
             >
-              {["Europe/Paris", "Europe/London", "Europe/Berlin", "Europe/Madrid", "Europe/Rome", "Europe/Brussels", "Europe/Zurich", "Europe/Amsterdam", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Toronto", "America/Montreal", "Asia/Tokyo", "Asia/Shanghai", "Asia/Dubai", "Africa/Casablanca", "Africa/Tunis", "Pacific/Noumea"].map(tz => (
-                <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
+              {[
+                "Europe/Paris",
+                "Europe/London",
+                "Europe/Berlin",
+                "Europe/Madrid",
+                "Europe/Rome",
+                "Europe/Brussels",
+                "Europe/Zurich",
+                "Europe/Amsterdam",
+                "America/New_York",
+                "America/Chicago",
+                "America/Denver",
+                "America/Los_Angeles",
+                "America/Toronto",
+                "America/Montreal",
+                "Asia/Tokyo",
+                "Asia/Shanghai",
+                "Asia/Dubai",
+                "Africa/Casablanca",
+                "Africa/Tunis",
+                "Pacific/Noumea",
+              ].map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz.replace(/_/g, " ")}
+                </option>
               ))}
             </select>
           </div>
@@ -304,104 +203,6 @@ export default function Profile() {
           {saving ? t("profile.savingProfile") : t("profile.saveProfile")}
         </button>
       </motion.div>
-
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="ethereal-glass p-8 space-y-5">
-        <div className="flex items-center gap-3 mb-1">
-          <LayoutGrid size={18} strokeWidth={1.5} className="text-primary" />
-          <div>
-            <p className="text-neural-label">{t("profile.radialTitle")}</p>
-            <p className="text-sm text-muted-foreground mt-1">{t("profile.radialHint")}</p>
-          </div>
-        </div>
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {MOBILE_RADIAL_CATALOG_ORDER.map((id) => {
-            const def = RADIAL_CATALOG[id];
-            const checked = radialIds.includes(id);
-            const atMax = radialIds.length >= 14 && !checked;
-            const onlyOne = radialIds.length <= 1 && checked;
-            return (
-              <li key={id}>
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5 transition-colors hover:border-primary/25 disabled:opacity-50">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 shrink-0 rounded border-border accent-primary"
-                    checked={checked}
-                    disabled={onlyOne || atMax}
-                    onChange={() => toggleRadialId(id)}
-                  />
-                  <span className="text-sm text-foreground">{t(def.labelKey)}</span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <button type="button" onClick={resetRadialMenu} className="btn-neural flex-1 border border-border/40 bg-transparent">
-            {t("profile.radialReset")}
-          </button>
-          <button type="button" onClick={saveRadialMenu} disabled={savingRadial} className="btn-neural flex-1">
-            <Save size={14} />
-            {savingRadial ? t("profile.radialSaving") : t("profile.radialSave")}
-          </button>
-        </div>
-      </motion.div>
-
-      <AegisHealthSection />
-
-      <ProfileEvolutionSection />
-
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ethereal-glass p-8">
-        <div className="flex items-center gap-3 mb-4">
-          <FileText size={18} strokeWidth={1.5} className="text-primary" />
-          <p className="text-neural-label">{t("profile.dataExport")}</p>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">
-          {t("profile.exportDescription")}
-        </p>
-        <button onClick={exportData} disabled={exporting} className="btn-neural w-full">
-          <Download size={14} />
-          {exporting ? t("profile.exporting") : t("profile.exportButton")}
-        </button>
-      </motion.div>
-
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="ethereal-glass p-8">
-        <div className="flex items-center gap-3 mb-4">
-          <ClipboardList size={18} strokeWidth={1.5} className="text-primary" />
-          <p className="text-neural-label">{t("appendix.title")}</p>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">
-          {t("appendix.description")}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <button onClick={() => setAppendixOpen(true)} className="btn-neural flex-1">
-            <ClipboardList size={14} />
-            {t("appendix.cta")}
-          </button>
-          <button
-            onClick={() => navigate("/deep-dive/scores")}
-            className="btn-neural flex-1"
-          >
-            <ClipboardList size={14} />
-            {t("appendix.viewScores")}
-          </button>
-        </div>
-      </motion.div>
-
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="ethereal-glass p-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Smartphone size={18} strokeWidth={1.5} className="text-primary" />
-          <p className="text-neural-label">{t("install.title")}</p>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">
-          {t("install.onboardingDesc")}
-        </p>
-        <button onClick={() => navigate("/install")} className="btn-neural w-full">
-          <Smartphone size={14} />
-          {t("install.title")}
-        </button>
-      </motion.div>
-
-      <AppendixModal open={appendixOpen} onOpenChange={setAppendixOpen} />
     </div>
   );
 }

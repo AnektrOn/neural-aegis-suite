@@ -133,7 +133,7 @@ function AdminArchetypeFlipCard({
               </div>
             </div>
 
-            <div className="mt-3 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display opacity-60">
+            <div className="flip-export-hide mt-3 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.25em] text-text-tertiary font-display opacity-60">
               <RotateCcw size={11} strokeWidth={1.5} /> {isFR ? "Risques & axe de travail" : "Risks & work axis"}
             </div>
           </Card>
