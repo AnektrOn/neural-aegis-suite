@@ -57,7 +57,7 @@ export function PersonaTrackingStrip({ stats }: PersonaTrackingStripProps) {
       <p className="mb-2.5 px-1 font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
         {t("persona.glimpse.tracking")}
       </p>
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="grid grid-cols-2 gap-2">
         <TrackingPill
           to="/decisions"
           value={stats.pendingDecisions}
@@ -73,10 +73,10 @@ export function PersonaTrackingStrip({ stats }: PersonaTrackingStripProps) {
         />
         <TrackingPill
           to="/toolbox"
-          value={stats.toolboxWaiting}
+          value={stats.toolboxTodo}
           label={t("persona.glimpse.trackToolbox")}
           icon={<Wrench size={14} strokeWidth={1.5} aria-hidden />}
-          highlight={stats.toolboxWaiting > 0}
+          highlight={stats.toolboxTodo > 0}
         />
         <TrackingPill
           to="/pulse"

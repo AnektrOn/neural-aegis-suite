@@ -65,6 +65,29 @@ export interface LoadedTemplate {
 /* Template & questions                                                       */
 /* -------------------------------------------------------------------------- */
 
+async function loadTemplateBySlug(slug: string): Promise<LoadedTemplate> {
+  const { data: tpl, error: tplErr } = await supabase
+    .from("assessment_templates" as any)
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (tplErr) throw tplErr;
+  if (!tpl) throw new Error(`No active assessment template found for slug "${slug}"`);
+
+  const template = tpl as unknown as TemplateRow;
+
+  let questions = await fetchQuestions(template.id);
+
+  if (questions.length === 0) {
+    await seedQuestions(template.id);
+    questions = await fetchQuestions(template.id);
+  }
+
+  return { template, questions };
+}
+
 /** Load active template + its questions/options. Seeds questions/options on first call. */
 export async function loadActiveTemplate(): Promise<LoadedTemplate> {
   const { data: tpl, error: tplErr } = await supabase
@@ -80,10 +103,8 @@ export async function loadActiveTemplate(): Promise<LoadedTemplate> {
 
   const template = tpl as unknown as TemplateRow;
 
-  // Fetch questions
   let questions = await fetchQuestions(template.id);
 
-  // Auto-seed if empty (single source of truth = TS domain seed)
   if (questions.length === 0) {
     await seedQuestions(template.id);
     questions = await fetchQuestions(template.id);
@@ -96,7 +117,7 @@ export async function loadActiveTemplate(): Promise<LoadedTemplate> {
 export const GUEST_QUIZ_QUESTION_LIMIT = 30;
 
 export async function loadGuestQuizTemplate(): Promise<LoadedTemplate> {
-  const loaded = await loadActiveTemplate();
+  const loaded = await loadTemplateBySlug(TEMPLATE_SLUG);
   const core = loaded.questions
     .filter((q) => q.is_required !== false)
     .filter((q) => (q.meta as { is_appendix?: boolean } | undefined)?.is_appendix !== true)

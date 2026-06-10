@@ -74,6 +74,7 @@ export function PulseRuneManager() {
   const [collections, setCollections] = useState<RuneCollectionRow[]>([]);
   const [runes, setRunes] = useState<RunePrincipleRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [collFilter, setCollFilter] = useState<string>("all");
   const [expandedColl, setExpandedColl] = useState<Set<string>>(new Set());
@@ -83,6 +84,7 @@ export function PulseRuneManager() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     const [colls, principles] = await Promise.all([
       listRuneCollections(),
       listRunePrinciples(),
@@ -90,6 +92,11 @@ export function PulseRuneManager() {
     setCollections(colls);
     setRunes(principles);
     setExpandedColl(new Set(colls.map((c) => c.id)));
+    if (colls.length === 0 && principles.length === 0) {
+      setLoadError(
+        "Aucune rune chargée. Vérifiez que les migrations Pulse (aegis_runes_schema, rune_collections) sont appliquées sur Supabase.",
+      );
+    }
     setLoading(false);
   }, []);
 
@@ -211,6 +218,12 @@ export function PulseRuneManager() {
 
   return (
     <div className="space-y-6">
+      {loadError && !loading ? (
+        <p className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+          {loadError}
+        </p>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <ToolboxPageStat label="Collections" value={collections.length} icon={Layers} />
         <ToolboxPageStat label="Total runes" value={runes.length} icon={Sparkles} />

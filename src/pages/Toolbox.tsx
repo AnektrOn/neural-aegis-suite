@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import { motion } from "framer-motion";
-import { useLocation } from "react-router-dom";
-import { Play, Headphones, Eye, BookOpen, Wind, Sparkles, Stars, Heart, Scan, Link as LinkIcon, ExternalLink, CheckCircle2, XCircle, EyeOff, RotateCcw, ShieldAlert, Target, Zap, ListChecks, Loader2 } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Play, ExternalLink, CheckCircle2, XCircle, ListChecks, Loader2, Library, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -49,75 +49,61 @@ interface CompletionRecord {
   status: string;
 }
 
-type HabitLinkFilter = "all" | "in_habits" | "not_in_habits";
+type MainView = "todo" | "all" | "history";
 
 export default function Toolbox() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t, locale } = useLanguage();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [, startTransition] = useTransition();
+  const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ToolboxItem[]>([]);
   const [completions, setCompletions] = useState<CompletionRecord[]>([]);
   const [habitLinks, setHabitLinks] = useState<ToolboxHabitLink[]>([]);
   const [activeWidget, setActiveWidget] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "abandoned" | "ignored" | "pending">("all");
-  const [habitFilter, setHabitFilter] = useState<HabitLinkFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [mainView, setMainView] = useState<MainView>("todo");
   const [habitLinkBusy, setHabitLinkBusy] = useState<string | null>(null);
   const [completionDialog, setCompletionDialog] = useState<{ open: boolean; itemId: string | null; status: string }>({ open: false, itemId: null, status: "" });
 
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const [itemsRes, compRes, links] = await Promise.all([
+        supabase
+          .from("toolbox_assignments")
+          .select("*")
+          .eq("user_id", user.id)
+          .neq("user_delivery_status", "inactive")
+          .order("assigned_at", { ascending: false }),
+        supabase
+          .from("toolbox_completions" as any)
+          .select("assignment_id, status")
+          .eq("user_id", user.id),
+        fetchToolboxHabitLinks(user.id),
+      ]);
+      setHabitLinks(links);
+      if (itemsRes.data) setItems(itemsRes.data as ToolboxItem[]);
+      setCompletions((compRes.data || []) as unknown as CompletionRecord[]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user) void loadData();
-  }, [user]);
+  }, [user, loadData]);
 
   useEffect(() => {
     const openId = (location.state as { openToolboxId?: string } | null)?.openToolboxId;
     if (openId && items.some((i) => i.id === openId)) {
       setActiveWidget(openId);
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, items]);
-
-  const loadData = async () => {
-    const [itemsRes, compRes, links] = await Promise.all([
-      supabase.from("toolbox_assignments").select("*").eq("user_id", user!.id).neq("user_delivery_status", "inactive").order("assigned_at", { ascending: false }),
-      supabase.from("toolbox_completions" as any).select("assignment_id, status").eq("user_id", user!.id),
-      fetchToolboxHabitLinks(user!.id),
-    ]);
-    setHabitLinks(links);
-    if (itemsRes.data) {
-      const filteredItems = (itemsRes.data as ToolboxItem[]).filter(
-        (item) => !(item.content_type === "external_link" && isLikelyVideoUrl(item.external_url))
-      );
-      setItems(filteredItems as any);
-    }
-    const comps = (compRes.data || []) as unknown as CompletionRecord[];
-    setCompletions(comps);
-
-    // Auto-detect ignored items (assigned >24h ago, never opened, no completion)
-    if (itemsRes.data && user) {
-      const now = Date.now();
-      const completedIds = new Set(comps.map(c => c.assignment_id));
-      const ignoredCandidates = (itemsRes.data as ToolboxItem[]).filter(item => {
-        if (completedIds.has(item.id)) return false;
-        const assignedAge = now - new Date(item.assigned_at).getTime();
-        return assignedAge > 24 * 60 * 60 * 1000;
-      });
-      for (const item of ignoredCandidates) {
-        await supabase.from("toolbox_completions" as any).upsert(
-          {
-            assignment_id: item.id,
-            user_id: user.id,
-            status: "ignored",
-          } as any,
-          { onConflict: "assignment_id", ignoreDuplicates: true }
-        );
-      }
-      if (ignoredCandidates.length > 0) {
-        const { data: freshComps } = await supabase.from("toolbox_completions" as any).select("assignment_id, status").eq("user_id", user!.id);
-        if (freshComps) setCompletions(freshComps as unknown as CompletionRecord[]);
-      }
-    }
-  };
+  }, [location.state, location.pathname, items, navigate]);
 
   const confirmWaiting = useCallback(
     async (assignmentId: string) => {
@@ -130,9 +116,9 @@ export default function Toolbox() {
         return;
       }
       toast({ title: t("toolbox.deliveryConfirmed") });
-      loadData();
+      void loadData();
     },
-    [user, t, toast],
+    [user, t, toast, loadData],
   );
 
   // Get the latest completion for an item
@@ -180,9 +166,7 @@ export default function Toolbox() {
     }
   }, [user, t, toast]);
 
-  // Reload an abandoned tool = clear the "reloaded" flag so user can retry
-  // We DON'T delete the old completion — we just allow a new attempt
-  const handleReload = (itemId: string) => {
+  const handleRedo = (itemId: string) => {
     setActiveWidget(itemId);
     toast({ title: t("toolbox.toolReloaded"), description: t("toolbox.reloadHint") });
   };
@@ -203,8 +187,6 @@ export default function Toolbox() {
   const activeHabitLinkIds = new Set(
     habitLinks.filter((l) => l.is_active).map((l) => l.toolbox_assignment_id),
   );
-  const inHabitsCount = items.filter((i) => activeHabitLinkIds.has(i.id)).length;
-
   const isInHabits = (itemId: string) => activeHabitLinkIds.has(itemId);
 
   const toggleHabitLink = async (itemId: string) => {
@@ -231,14 +213,54 @@ export default function Toolbox() {
     }
   };
 
-  const filtered = items
-    .filter((i) => filter === "all" || i.content_type === filter)
-    .filter((i) => statusFilter === "all" || getItemStatus(i.id) === statusFilter)
-    .filter((i) => {
-      if (habitFilter === "in_habits") return isInHabits(i.id);
-      if (habitFilter === "not_in_habits") return !isInHabits(i.id);
-      return true;
-    });
+  const todoCount = useMemo(
+    () =>
+      items.filter((i) => {
+        if ((i.user_delivery_status || "active") === "waiting") return true;
+        const s = getItemStatus(i.id);
+        return s === "pending";
+      }).length,
+    [items, completions],
+  );
+
+  const doneCount = useMemo(
+    () => completions.filter((c) => c.status === "completed").length,
+    [completions],
+  );
+
+  const waitingCount = useMemo(
+    () => items.filter((i) => (i.user_delivery_status || "active") === "waiting").length,
+    [items],
+  );
+
+  const filtered = useMemo(() => {
+    return items
+      .filter((i) => typeFilter === "all" || i.content_type === typeFilter)
+      .filter((i) => {
+        const status = getItemStatus(i.id);
+        const waiting = (i.user_delivery_status || "active") === "waiting";
+        if (mainView === "todo") {
+          if (waiting) return true;
+          return status === "pending";
+        }
+        if (mainView === "history") {
+          return status === "completed" || status === "abandoned" || status === "ignored";
+        }
+        return true;
+      });
+  }, [items, typeFilter, mainView, completions]);
+
+  const featuredItem = useMemo(() => {
+    const waiting = filtered.find((i) => (i.user_delivery_status || "active") === "waiting");
+    if (waiting) return waiting;
+    return filtered.find((i) => getItemStatus(i.id) === "pending") ?? null;
+  }, [filtered, completions]);
+
+  const gridItems = useMemo(
+    () => (featuredItem ? filtered.filter((i) => i.id !== featuredItem.id) : filtered),
+    [filtered, featuredItem],
+  );
+
   const types = ["all", ...new Set(items.map((i) => i.content_type))];
 
   const getTypeLabel = (type: string) => {
@@ -271,76 +293,65 @@ export default function Toolbox() {
         <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">{t("toolbox.title")}</h1>
       </div>
 
-      {/* Stats bar */}
-      {items.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {[
-            { label: t("toolbox.total"), value: allCompletionStats.total, icon: Headphones, color: "text-muted-foreground" },
-            { label: t("toolbox.inHabitsCount"), value: inHabitsCount, icon: ListChecks, color: "text-neural-accent" },
-            { label: t("toolbox.completed"), value: allCompletionStats.completed, icon: CheckCircle2, color: "text-primary" },
-            { label: t("toolbox.abandoned"), value: allCompletionStats.abandoned, icon: XCircle, color: "text-destructive" },
-            { label: t("toolbox.ignored"), value: allCompletionStats.ignored, icon: EyeOff, color: "text-muted-foreground" },
-          ].map((s) => (
-            <div key={s.label} className="glass-card p-4 text-center">
-              <s.icon size={16} strokeWidth={1.5} className={`${s.color} mx-auto mb-2`} />
-              <p className="font-cormorant text-2xl font-light text-foreground">{s.value}</p>
-              <p className="font-display text-[10px] tracking-[0.14em] uppercase text-text-tertiary/70 mt-0.5">{s.label}</p>
-            </div>
+      {items.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span className="rounded-full border border-primary/25 bg-primary/5 px-3 py-1 text-primary">
+            {t("toolbox.statsTodoChip", { n: String(todoCount) })}
+          </span>
+          <span className="rounded-full border border-border/50 px-3 py-1">
+            {t("toolbox.statsDoneChip", { n: String(doneCount) })}
+          </span>
+        </div>
+      ) : null}
+
+      {waitingCount > 0 ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+          {t("toolbox.waitingBanner")}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-2 flex-wrap" role="tablist" aria-label={t("toolbox.title")}>
+          {(
+            [
+              { key: "todo" as const, label: t("toolbox.viewTodo") },
+              { key: "all" as const, label: t("toolbox.viewAll") },
+              { key: "history" as const, label: t("toolbox.viewHistory") },
+            ] as const
+          ).map((entry) => (
+            <button
+              key={entry.key}
+              type="button"
+              role="tab"
+              aria-selected={mainView === entry.key}
+              onClick={() => startTransition(() => setMainView(entry.key))}
+              className={cn(
+                "min-h-[44px] rounded-full border px-4 py-2 text-[10px] uppercase tracking-[0.22em] transition-colors",
+                mainView === entry.key
+                  ? "border-primary/35 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/20",
+              )}
+            >
+              {entry.label}
+            </button>
           ))}
         </div>
-      )}
-
-      <div className="flex gap-2 flex-wrap">
-        {types.map((f) => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`text-[9px] uppercase tracking-[0.3em] px-4 py-2 rounded-full border transition-all ${
-              filter === f ? "text-primary border-primary/30 bg-primary/5" : "text-muted-foreground border-border hover:border-muted-foreground/30"
-            }`}>
-            {getTypeLabel(f)}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        {[
-          { key: "all" as const, label: t("toolbox.statusFilterAll") },
-          { key: "completed" as const, label: t("toolbox.completed") },
-          { key: "abandoned" as const, label: t("toolbox.abandoned") },
-          { key: "ignored" as const, label: t("toolbox.ignored") },
-          { key: "pending" as const, label: t("toolbox.pending") },
-        ].map((entry) => (
-          <button
-            key={entry.key}
-            onClick={() => setStatusFilter(entry.key)}
-            className={`text-[9px] uppercase tracking-[0.3em] px-4 py-2 rounded-full border transition-all ${
-              statusFilter === entry.key
-                ? "text-primary border-primary/30 bg-primary/5"
-                : "text-muted-foreground border-border hover:border-muted-foreground/30"
-            }`}
+        <label className="flex min-h-[44px] flex-col gap-1 sm:min-w-[200px]">
+          <span className="font-display text-[9px] uppercase tracking-[0.2em] text-text-tertiary/70">
+            {t("toolbox.filterType")}
+          </span>
+          <select
+            value={typeFilter}
+            onChange={(e) => startTransition(() => setTypeFilter(e.target.value))}
+            className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-sm"
           >
-            {entry.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        {[
-          { key: "all" as const, label: t("toolbox.habitFilterAll") },
-          { key: "in_habits" as const, label: t("toolbox.habitFilterInHabits") },
-          { key: "not_in_habits" as const, label: t("toolbox.habitFilterNotInHabits") },
-        ].map((entry) => (
-          <button
-            key={entry.key}
-            onClick={() => setHabitFilter(entry.key)}
-            className={`text-[9px] uppercase tracking-[0.3em] px-4 py-2 rounded-full border transition-all ${
-              habitFilter === entry.key
-                ? "text-neural-accent border-neural-accent/30 bg-neural-accent/5"
-                : "text-muted-foreground border-border hover:border-muted-foreground/30"
-            }`}
-          >
-            {entry.label}
-          </button>
-        ))}
+            {types.map((f) => (
+              <option key={f} value={f}>
+                {getTypeLabel(f)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {/* Active widget overlay */}
@@ -365,7 +376,14 @@ export default function Toolbox() {
         );
       })()}
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="ethereal-glass h-48 animate-pulse rounded-2xl" />
+          ))}
+          <p className="sr-only">{t("toolbox.loading")}</p>
+        </div>
+      ) : filtered.length === 0 && !featuredItem ? (
         <div className="glass-card p-14 text-center">
           <div className="mx-auto mb-5 text-primary/20 w-14 h-14">
             <svg viewBox="0 0 56 56" fill="none" aria-hidden>
@@ -374,16 +392,53 @@ export default function Toolbox() {
               <path d="M28 20c4.4 0 8 3.6 8 8s-3.6 8-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </div>
-          <p className="font-cormorant text-xl font-light italic text-text-tertiary/70 mb-2">Votre coach personnel se prépare</p>
+          <p className="font-cormorant text-xl font-light italic text-text-tertiary/70 mb-2">{t("toolbox.emptyCoachPrep")}</p>
           <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">{t("toolbox.noContentAssigned")}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((item, i) => {
+        <div className="space-y-6">
+          {featuredItem && mainView === "todo" ? (
+            <motion.article
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="ethereal-glass relative overflow-hidden rounded-2xl border border-primary/25 p-6 sm:p-8"
+            >
+              <p className="font-display text-[10px] uppercase tracking-[0.24em] text-primary mb-2">
+                {t("toolbox.featuredToday")}
+              </p>
+              <h2 className="font-cormorant text-2xl sm:text-3xl font-light text-foreground mb-3">
+                {getLocalizedTitle(featuredItem)}
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-xl mb-6">
+                {getLocalizedDescription(featuredItem) || getTypeLabel(featuredItem.content_type)}
+              </p>
+              {(featuredItem.user_delivery_status || "active") === "waiting" ? (
+                <button
+                  type="button"
+                  onClick={() => void confirmWaiting(featuredItem.id)}
+                  className="min-h-[44px] rounded-full border border-amber-500/40 bg-amber-500/10 px-5 text-[10px] uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200"
+                >
+                  {t("toolbox.confirmDelivery")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setActiveWidget(featuredItem.id)}
+                  className="min-h-[44px] rounded-full border border-primary/40 bg-primary/10 px-5 text-[10px] uppercase tracking-[0.22em] text-primary"
+                >
+                  {t("toolbox.launch")}
+                </button>
+              )}
+            </motion.article>
+          ) : null}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {gridItems.map((item, i) => {
             const cfg = TOOLBOX_TYPE_META[item.content_type] || TOOLBOX_TYPE_META.course;
             const isInteractiveType = isInteractiveToolboxType(item);
             const hasWidget = isInteractiveType && canRenderToolboxWidget(item);
             const isExternal = item.content_type === "external_link" && item.external_url;
+            const isVideoLink = Boolean(isExternal && item.external_url && isLikelyVideoUrl(item.external_url));
             const latestCompletion = getLatestCompletion(item.id);
             const isAbandoned = latestCompletion?.status === "abandoned";
             const isIgnored = latestCompletion?.status === "ignored";
@@ -393,14 +448,18 @@ export default function Toolbox() {
             const isWaiting = delivery === "waiting";
             const linkedToHabits = isInHabits(item.id);
             const habitBusy = habitLinkBusy === item.id;
+            const canLaunch = hasWidget || (!isInteractiveType && !isVideoLink) || (isExternal && !isVideoLink);
 
             const primaryAction = () => {
-              if (isWaiting) return;
-              if (isIgnored) return;
-              if (latestCompletion && !isActive) return;
+              if (isWaiting || isIgnored) return;
+              if (isCompleted && !isActive) {
+                handleRedo(item.id);
+                return;
+              }
+              if (latestCompletion && !isActive && !isCompleted) return;
               if (hasWidget) {
                 setActiveWidget(isActive ? null : item.id);
-              } else if (isExternal) {
+              } else if (isExternal && !isVideoLink) {
                 window.open(item.external_url!, "_blank", "noopener,noreferrer");
               } else if (!isInteractiveType) {
                 setActiveWidget(item.id);
@@ -409,8 +468,8 @@ export default function Toolbox() {
             const cardIsClickable =
               !isWaiting &&
               !isIgnored &&
-              (!latestCompletion || isActive) &&
-              (hasWidget || isExternal || !isInteractiveType);
+              (isCompleted || !latestCompletion || isActive) &&
+              (canLaunch || isVideoLink);
 
             return (
               <motion.div

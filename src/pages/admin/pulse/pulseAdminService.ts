@@ -312,6 +312,216 @@ export interface UserRuneProgress {
   unlocked_at: string | null;
 }
 
+export interface PulseUserOverviewRow {
+  user_id: string;
+  user_name: string;
+  assimilated: number;
+  ignored: number;
+  completed: number;
+  total_swipes: number;
+  runes_unlocked: number;
+  last_swipe_at: string | null;
+}
+
+export interface PulseUsersOverviewFilters {
+  search?: string;
+  activity?: "all" | "active" | "inactive";
+  principleCode?: string | null;
+  cardId?: string | null;
+  minAssimilated?: number;
+  minRunesUnlocked?: number;
+  sort?: "last_activity_desc" | "assimilated_desc" | "runes_desc" | "name_asc";
+  limit?: number;
+  offset?: number;
+}
+
+export interface PulseUsersOverviewResult {
+  users: PulseUserOverviewRow[];
+  total: number;
+  limit: number;
+  offset: number;
+  source?: "rpc" | "fallback";
+  warning?: string;
+}
+
+async function fetchPulseUsersOverviewFallback(
+  filters: PulseUsersOverviewFilters,
+): Promise<PulseUsersOverviewResult> {
+  const limit = filters.limit ?? 100;
+  const offset = filters.offset ?? 0;
+  const principleCode = filters.principleCode?.trim() || null;
+  const cardId = filters.cardId ?? null;
+  const searchQ = filters.search?.trim().toLowerCase() || "";
+  const activity = filters.activity ?? "all";
+  const minAssimilated = filters.minAssimilated ?? 0;
+  const minRunes = filters.minRunesUnlocked ?? 0;
+  const sort = filters.sort ?? "last_activity_desc";
+
+  const [profiles, swipeEntries] = await Promise.all([
+    fetchProfileOptions(),
+    fetchPulseSwipeLog(null, cardId),
+  ]);
+
+  const filteredSwipes = principleCode
+    ? swipeEntries.filter((e) => e.principle_code === principleCode)
+    : swipeEntries;
+
+  type SwipeAgg = {
+    assimilated: number;
+    ignored: number;
+    completed: number;
+    total_swipes: number;
+    last_swipe_at: string | null;
+  };
+
+  const swipeByUser = new Map<string, SwipeAgg>();
+  for (const entry of filteredSwipes) {
+    const agg = swipeByUser.get(entry.user_id) ?? {
+      assimilated: 0,
+      ignored: 0,
+      completed: 0,
+      total_swipes: 0,
+      last_swipe_at: null,
+    };
+    if (entry.action === "assimilated") agg.assimilated += 1;
+    else agg.ignored += 1;
+    if (entry.completed_at) agg.completed += 1;
+    agg.total_swipes += 1;
+    if (!agg.last_swipe_at || entry.swiped_at > agg.last_swipe_at) {
+      agg.last_swipe_at = entry.swiped_at;
+    }
+    swipeByUser.set(entry.user_id, agg);
+  }
+
+  const runeByUser = new Map<string, number>();
+  const { data: runeRows, error: runeError } = await supabase
+    .from("aegis_user_rune_progress" as never)
+    .select(
+      "user_id, pulses_count, unlocked_at, aegis_rune_principles!inner(pulses_to_unlock, is_active)" as never,
+    );
+
+  if (runeError) {
+    console.error("fetchPulseUsersOverviewFallback runes:", runeError.message);
+  } else {
+    for (const row of (runeRows as {
+      user_id: string;
+      pulses_count: number | null;
+      unlocked_at: string | null;
+      aegis_rune_principles: { pulses_to_unlock: number; is_active: boolean } | null;
+    }[]) ?? []) {
+      const principle = row.aegis_rune_principles;
+      if (!principle?.is_active) continue;
+      const unlocked =
+        row.unlocked_at != null ||
+        (row.pulses_count ?? 0) >= (principle.pulses_to_unlock ?? 0);
+      if (unlocked) {
+        runeByUser.set(row.user_id, (runeByUser.get(row.user_id) ?? 0) + 1);
+      }
+    }
+  }
+
+  let rows: PulseUserOverviewRow[] = profiles.map((profile) => {
+    const swipes = swipeByUser.get(profile.id);
+    return {
+      user_id: profile.id,
+      user_name: profile.display_name?.trim() || profile.id,
+      assimilated: swipes?.assimilated ?? 0,
+      ignored: swipes?.ignored ?? 0,
+      completed: swipes?.completed ?? 0,
+      total_swipes: swipes?.total_swipes ?? 0,
+      runes_unlocked: runeByUser.get(profile.id) ?? 0,
+      last_swipe_at: swipes?.last_swipe_at ?? null,
+    };
+  });
+
+  if (searchQ) {
+    rows = rows.filter(
+      (row) =>
+        row.user_name.toLowerCase().includes(searchQ) ||
+        row.user_id.toLowerCase().includes(searchQ),
+    );
+  }
+  if (activity === "active") rows = rows.filter((row) => row.total_swipes > 0);
+  if (activity === "inactive") rows = rows.filter((row) => row.total_swipes === 0);
+  if (cardId) rows = rows.filter((row) => row.total_swipes > 0);
+  rows = rows.filter(
+    (row) => row.assimilated >= minAssimilated && row.runes_unlocked >= minRunes,
+  );
+
+  rows.sort((a, b) => {
+    if (sort === "name_asc") return a.user_name.localeCompare(b.user_name);
+    if (sort === "assimilated_desc") {
+      return b.assimilated - a.assimilated || a.user_name.localeCompare(b.user_name);
+    }
+    if (sort === "runes_desc") {
+      return b.runes_unlocked - a.runes_unlocked || a.user_name.localeCompare(b.user_name);
+    }
+    const aTime = a.last_swipe_at ?? "";
+    const bTime = b.last_swipe_at ?? "";
+    return bTime.localeCompare(aTime) || a.user_name.localeCompare(b.user_name);
+  });
+
+  const total = rows.length;
+  return {
+    users: rows.slice(offset, offset + limit),
+    total,
+    limit,
+    offset,
+    source: "fallback",
+    warning:
+      "Mode dégradé : historique limité aux 200 derniers swipes. Appliquez la migration get_pulse_admin_users_overview pour des stats complètes.",
+  };
+}
+
+export async function fetchPulseUsersOverview(
+  filters: PulseUsersOverviewFilters = {},
+): Promise<PulseUsersOverviewResult> {
+  const empty: PulseUsersOverviewResult = { users: [], total: 0, limit: 100, offset: 0 };
+  try {
+    const { data, error } = await supabase.rpc("get_pulse_admin_users_overview" as never, {
+      p_search: filters.search?.trim() || null,
+      p_activity: filters.activity ?? "all",
+      p_principle_code: filters.principleCode?.trim() || null,
+      p_card_id: filters.cardId ?? null,
+      p_min_assimilated: filters.minAssimilated ?? 0,
+      p_min_runes_unlocked: filters.minRunesUnlocked ?? 0,
+      p_sort: filters.sort ?? "last_activity_desc",
+      p_limit: filters.limit ?? 100,
+      p_offset: filters.offset ?? 0,
+    } as never);
+
+    if (error) {
+      console.error("get_pulse_admin_users_overview:", error.message);
+      return fetchPulseUsersOverviewFallback(filters);
+    }
+
+    const result = data as {
+      ok: boolean;
+      error?: string;
+      users?: PulseUserOverviewRow[];
+      total?: number;
+      limit?: number;
+      offset?: number;
+    } | null;
+
+    if (!result?.ok) {
+      console.error("get_pulse_admin_users_overview:", result?.error ?? "unknown");
+      return fetchPulseUsersOverviewFallback(filters);
+    }
+
+    return {
+      users: result.users ?? [],
+      total: result.total ?? 0,
+      limit: result.limit ?? 100,
+      offset: result.offset ?? 0,
+      source: "rpc",
+    };
+  } catch (err) {
+    console.error("fetchPulseUsersOverview:", err);
+    return fetchPulseUsersOverviewFallback(filters);
+  }
+}
+
 export async function fetchPulseSwipeLog(
   userId?: string | null,
   cardId?: string | null,

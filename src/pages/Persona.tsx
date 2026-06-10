@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { PageWrapper } from "@/components/PageWrapper";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { usePersonaProfile } from "@/features/persona/hooks/usePersonaProfile";
 import { PersonaProfileScreen } from "@/features/persona/components/PersonaProfileScreen";
+import { PersonaDesktopScreen } from "@/features/persona/components/PersonaDesktopScreen";
 import {
   fetchPersonaTrackingStats,
   type PersonaTrackingStats,
@@ -18,6 +20,7 @@ export default function Persona() {
   const { user, loading: authLoading } = useAuth();
   const { locale, t } = useLanguage();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const isFR = locale === "fr";
 
   const [displayName, setDisplayName] = useState<string | undefined>();
@@ -148,9 +151,15 @@ export default function Persona() {
     );
   }
 
+  const screenProps = { profile, displayName, tracking };
+
   return (
     <div className="min-h-full -mx-6 -mt-6 md:-mx-10 md:-mt-10 bg-aegis-gradient">
-      <PersonaProfileScreen profile={profile} displayName={displayName} tracking={tracking} />
+      {isMobile ? (
+        <PersonaProfileScreen {...screenProps} />
+      ) : (
+        <PersonaDesktopScreen {...screenProps} />
+      )}
     </div>
   );
 }
