@@ -12,7 +12,13 @@ import {
   detectConsistencyWarning,
 } from "../domain/scoringEngine";
 import { selectTopTools } from "../domain/recommendationEngine";
-import { createSnapshot } from "./snapshotService";
+import {
+  createSnapshot,
+  getSnapshotById,
+  getSnapshotHistory,
+  type ArchetypeProfileSnapshot,
+} from "./snapshotService";
+import { loadUnifiedDeepDiveResult } from "@/features/archetype-deepdive-v2/domain/loadUnifiedScores";
 import type {
   AnalysisResult,
   ArchetypeKey,
@@ -366,13 +372,38 @@ export async function submitAppendixResponses(opts: {
 /* Sessions                                                                   */
 /* -------------------------------------------------------------------------- */
 
+/** Tagged on admin “fast quiz” — must not override real user assessment results. */
+export const SESSION_SOURCE_ADMIN_GUEST_PREVIEW = "admin_guest_preview";
+
+export function isAdminGuestPreviewSession(session: {
+  client_meta?: Record<string, unknown> | null;
+}): boolean {
+  return session.client_meta?.source === SESSION_SOURCE_ADMIN_GUEST_PREVIEW;
+}
+
+async function sessionIdsWithAdminAutoFill(sessionIds: string[]): Promise<Set<string>> {
+  if (sessionIds.length === 0) return new Set();
+  const { data, error } = await supabase
+    .from("assessment_responses" as any)
+    .select("session_id")
+    .in("session_id", sessionIds)
+    .eq("text_value", "Admin auto-fill");
+  if (error) throw error;
+  return new Set(((data as { session_id: string }[]) ?? []).map((r) => r.session_id));
+}
+
 export async function createSession(
   userId: string,
-  templateId: string
+  templateId: string,
+  clientMeta?: Record<string, unknown>,
 ): Promise<string> {
   const { data, error } = await supabase
     .from("assessment_sessions" as any)
-    .insert({ user_id: userId, template_id: templateId })
+    .insert({
+      user_id: userId,
+      template_id: templateId,
+      client_meta: clientMeta ?? {},
+    })
     .select("id")
     .single();
   if (error) throw error;
@@ -575,17 +606,483 @@ export async function getSessionShadowSignals(sessionId: string) {
   return ((data as any)?.shadow_signals ?? {}) as Record<string, number>;
 }
 
-export async function getLatestSubmittedSessionForUser(userId: string) {
+export interface GetLatestSessionOptions {
+  /** When true, includes admin guest-preview fast-quiz sessions (admin hub status only). */
+  includePreviewSessions?: boolean;
+}
+
+/** Guest fast-quiz / wrong restore: Mystic + Sage + Warrior without Healer. */
+export function isPollutedAssessmentTriad(top: string[]): boolean {
+  if (top.length < 3) return false;
+  return (
+    top.includes("mystic") &&
+    top.includes("sage") &&
+    top.includes("warrior") &&
+    !top.includes("healer")
+  );
+}
+
+export function sessionMatchesPreferredTriad(
+  top: string[],
+  preferred: ArchetypeKey[],
+): boolean {
+  if (top.length < 3 || preferred.length < 3) return false;
+  return preferred.every((k) => top.includes(k));
+}
+
+export async function getSessionTopArchetypes(sessionId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("archetype_scores" as any)
+    .select("archetype_key")
+    .eq("session_id", sessionId)
+    .order("rank", { ascending: true })
+    .limit(3);
+  if (error) throw error;
+  const fromScores = ((data as { archetype_key: string }[]) ?? []).map((r) => r.archetype_key);
+  if (fromScores.length >= 3) return fromScores;
+
+  const { data: analysis } = await supabase
+    .from("analysis_results" as any)
+    .select("top_archetypes")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  return ((analysis as { top_archetypes?: string[] } | null)?.top_archetypes ?? []).slice(0, 3);
+}
+
+async function deleteSessionsByIds(sessionIds: string[]): Promise<void> {
+  if (sessionIds.length === 0) return;
+  await supabase.from("assessment_responses" as any).delete().in("session_id", sessionIds);
+  await supabase.from("archetype_scores" as any).delete().in("session_id", sessionIds);
+  await supabase.from("analysis_results" as any).delete().in("session_id", sessionIds);
+  await supabase.from("recommendation_tools" as any).delete().in("session_id", sessionIds);
+  await supabase.from("assessment_sessions" as any).delete().in("id", sessionIds);
+}
+
+/** Remove preview / polluted / wrong-triad sessions so recovery can run. */
+export async function purgeWrongAssessmentSessions(
+  userId: string,
+  options?: { preferredTriad?: ArchetypeKey[] },
+): Promise<number> {
+  const { data: sessions, error } = await supabase
+    .from("assessment_sessions" as any)
+    .select("id, client_meta, status")
+    .eq("user_id", userId)
+    .eq("status", "submitted");
+  if (error) throw error;
+  const rows = (sessions as { id: string; client_meta?: Record<string, unknown> }[]) ?? [];
+  if (rows.length === 0) return 0;
+
+  const autoFillIds = await sessionIdsWithAdminAutoFill(rows.map((r) => r.id));
+  const toDelete: string[] = [];
+
+  for (const s of rows) {
+    if (isAdminGuestPreviewSession(s) || autoFillIds.has(s.id)) {
+      toDelete.push(s.id);
+      continue;
+    }
+    const top = await getSessionTopArchetypes(s.id);
+    if (isPollutedAssessmentTriad(top)) {
+      toDelete.push(s.id);
+      continue;
+    }
+    if (
+      options?.preferredTriad?.length &&
+      !sessionMatchesPreferredTriad(top, options.preferredTriad)
+    ) {
+      toDelete.push(s.id);
+    }
+  }
+
+  const unique = [...new Set(toDelete)];
+  await deleteSessionsByIds(unique);
+  return unique.length;
+}
+
+export async function getLatestSubmittedSessionForUser(
+  userId: string,
+  options?: GetLatestSessionOptions,
+) {
   const { data, error } = await supabase
     .from("assessment_sessions" as any)
     .select("*")
     .eq("user_id", userId)
     .eq("status", "submitted")
     .order("submitted_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(25);
   if (error) throw error;
-  return data as any | null;
+  const rows = (data as any[]) ?? [];
+  if (rows.length === 0) return null;
+  if (options?.includePreviewSessions) return rows[0];
+
+  const autoFillIds = await sessionIdsWithAdminAutoFill(rows.map((r) => r.id));
+  for (const s of rows) {
+    if (isAdminGuestPreviewSession(s) || autoFillIds.has(s.id)) continue;
+    const top = await getSessionTopArchetypes(s.id);
+    if (isPollutedAssessmentTriad(top)) continue;
+    return s;
+  }
+  return null;
+}
+
+/** Delete only admin guest-preview sessions (tagged or legacy auto-fill). */
+/** Fast-quiz pollution pattern (Mystic / Sage / Warrior, no Healer). */
+function isLikelyGuestPreviewSnapshot(snap: ArchetypeProfileSnapshot): boolean {
+  const top = snap.top_archetypes.slice(0, 3).map((t) => t.key);
+  return (
+    top.includes("mystic") &&
+    top.includes("sage") &&
+    top.includes("warrior") &&
+    !top.includes("healer")
+  );
+}
+
+function snapshotMatchesTriad(
+  snap: ArchetypeProfileSnapshot,
+  triad: ArchetypeKey[],
+): boolean {
+  const top = snap.top_archetypes.slice(0, 3).map((t) => t.key as ArchetypeKey);
+  if (top.length < 3) return false;
+  const want = new Set(triad);
+  return top.every((k) => want.has(k)) && triad.every((k) => top.includes(k));
+}
+
+function snapshotTriadOverlap(
+  snap: ArchetypeProfileSnapshot,
+  triad: ArchetypeKey[],
+): number {
+  const top = snap.top_archetypes.slice(0, 3).map((t) => t.key as ArchetypeKey);
+  return triad.filter((k) => top.includes(k)).length;
+}
+
+/**
+ * Best core_assessment snapshot when sessions were wiped.
+ * Prefers Mystic/Sage/Healer over guest fast-quiz (Mystic/Sage/Warrior).
+ */
+export async function getRestorableCoreSnapshot(
+  userId: string,
+  options?: { preferredTriad?: ArchetypeKey[]; ignoreExistingSession?: boolean },
+): Promise<ArchetypeProfileSnapshot | null> {
+  if (!options?.ignoreExistingSession) {
+    const real = await getLatestSubmittedSessionForUser(userId);
+    if (real) return null;
+  }
+
+  const all = await getSnapshotHistory(userId);
+  if (options?.preferredTriad?.length) {
+    const exactAll = all.find((s) => snapshotMatchesTriad(s, options.preferredTriad!));
+    if (exactAll) return exactAll;
+  }
+
+  const core = all.filter((s) => s.trigger_event === "core_assessment");
+  if (core.length === 0) {
+    const withHealer = all.filter((s) =>
+      s.top_archetypes.slice(0, 3).some((t) => t.key === "healer"),
+    );
+    return withHealer[withHealer.length - 1] ?? null;
+  }
+
+  const nonPreview = core.filter((s) => !isLikelyGuestPreviewSnapshot(s));
+  const pool = nonPreview.length > 0 ? nonPreview : core;
+
+  if (options?.preferredTriad?.length) {
+    const exact = pool.find((s) => snapshotMatchesTriad(s, options.preferredTriad!));
+    if (exact) return exact;
+    const best = pool.reduce((a, b) =>
+      snapshotTriadOverlap(b, options.preferredTriad!) >
+      snapshotTriadOverlap(a, options.preferredTriad!)
+        ? b
+        : a,
+    );
+    if (snapshotTriadOverlap(best, options.preferredTriad) >= 2) return best;
+  }
+
+  const withHealer = pool.filter((s) =>
+    s.top_archetypes.slice(0, 3).some((t) => t.key === "healer"),
+  );
+  if (withHealer.length > 0) return withHealer[withHealer.length - 1];
+
+  if (pool.length >= 2) return pool[pool.length - 1];
+  return pool[0] ?? null;
+}
+
+/** Rebuild session from deepdive_responses (not deleted by guest reset). */
+export async function restoreCoreAssessmentFromUnified(
+  userId: string,
+): Promise<string | null> {
+  const { count, error: countErr } = await supabase
+    .from("deepdive_responses" as any)
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if (countErr) throw countErr;
+  if (!count || count === 0) return null;
+
+  const unified = await loadUnifiedDeepDiveResult(userId);
+  const ranked = unified.archetypes
+    .filter((a) => a.total > 0)
+    .map((a, i) => ({
+      key: a.archetype as ArchetypeKey,
+      score: a.intensity,
+      rank: i + 1,
+    }));
+  if (ranked.length === 0) return null;
+
+  const loaded = await loadActiveTemplate();
+  const sessionId = await createSession(userId, loaded.template.id, {
+    restored_from_unified: true,
+    restored_at: new Date().toISOString(),
+    deepdive_answer_count: count,
+  });
+
+  const scoreRows = ranked.map((s) => ({
+    session_id: sessionId,
+    user_id: userId,
+    archetype_key: s.key,
+    raw_score: s.score,
+    normalized_score: s.score,
+    rank: s.rank,
+  }));
+  const { error: sErr } = await supabase
+    .from("archetype_scores" as any)
+    .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
+  if (sErr) throw sErr;
+
+  const topKeys = unified.topThree.length > 0 ? unified.topThree : ranked.slice(0, 3).map((s) => s.key);
+
+  const { error: aErr } = await supabase.from("analysis_results" as any).upsert(
+    {
+      session_id: sessionId,
+      user_id: userId,
+      top_archetypes: topKeys,
+      dimension_scores: {},
+      shadow_signals: {},
+      strengths_fr: [],
+      strengths_en: [],
+      watchouts_fr: [],
+      watchouts_en: [],
+      summary_fr: null,
+      summary_en: null,
+    },
+    { onConflict: "session_id" },
+  );
+  if (aErr) throw aErr;
+
+  const { error: upErr } = await supabase
+    .from("assessment_sessions" as any)
+    .update({
+      status: "submitted",
+      submitted_at: unified.computedAt,
+      client_meta: { restored_from_unified: true },
+    })
+    .eq("id", sessionId);
+  if (upErr) throw upErr;
+
+  return sessionId;
+}
+
+export async function tryRecoverUserAssessment(
+  userId: string,
+  options?: { preferredTriad?: ArchetypeKey[] },
+): Promise<string | null> {
+  await deleteAdminGuestPreviewSessions(userId);
+  await purgeWrongAssessmentSessions(userId, options);
+
+  const existing = await getLatestSubmittedSessionForUser(userId);
+  if (existing) {
+    const top = await getSessionTopArchetypes(existing.id);
+    if (
+      !options?.preferredTriad?.length ||
+      sessionMatchesPreferredTriad(top, options.preferredTriad)
+    ) {
+      return existing.id;
+    }
+    await deleteSessionsByIds([existing.id]);
+  }
+
+  const backup = await getRestorableCoreSnapshot(userId, {
+    ...options,
+    ignoreExistingSession: true,
+  });
+  if (backup) {
+    try {
+      const id = await restoreCoreAssessmentFromSnapshot(userId, backup.id);
+      const top = await getSessionTopArchetypes(id);
+      if (
+        !options?.preferredTriad?.length ||
+        sessionMatchesPreferredTriad(top, options.preferredTriad)
+      ) {
+        return id;
+      }
+      await deleteSessionsByIds([id]);
+    } catch (e) {
+      console.warn("[Assessment] snapshot restore failed", e);
+    }
+  }
+
+  try {
+    const unifiedId = await restoreCoreAssessmentFromUnified(userId);
+    if (!unifiedId) return null;
+    const top = await getSessionTopArchetypes(unifiedId);
+    if (
+      !options?.preferredTriad?.length ||
+      sessionMatchesPreferredTriad(top, options.preferredTriad)
+    ) {
+      return unifiedId;
+    }
+    await deleteSessionsByIds([unifiedId]);
+  } catch (e) {
+    console.warn("[Assessment] unified restore failed", e);
+  }
+
+  return null;
+}
+
+export async function restoreFromSnapshotId(
+  userId: string,
+  snapshotId: string,
+): Promise<string> {
+  await deleteAdminGuestPreviewSessions(userId);
+  await purgeWrongAssessmentSessions(userId);
+  return restoreCoreAssessmentFromSnapshot(userId, snapshotId);
+}
+
+/** Rebuild assessment_sessions + scores + analysis from an append-only snapshot. */
+export async function restoreCoreAssessmentFromSnapshot(
+  userId: string,
+  snapshotId: string,
+): Promise<string> {
+  const snapshot = await getSnapshotById(snapshotId);
+  if (snapshot.user_id !== userId) {
+    throw new Error("Snapshot does not belong to this user.");
+  }
+
+  const loaded = await loadActiveTemplate();
+  const sessionId = await createSession(userId, loaded.template.id, {
+    restored_from_snapshot: snapshotId,
+    restored_at: new Date().toISOString(),
+  });
+
+  const ranked = Object.entries(snapshot.all_scores)
+    .map(([key, score]) => ({ key, score: Number(score) }))
+    .filter((s) => Number.isFinite(s.score))
+    .sort((a, b) => b.score - a.score)
+    .map((s, i) => ({ ...s, rank: i + 1 }));
+
+  if (ranked.length > 0) {
+    const scoreRows = ranked.map((s) => ({
+      session_id: sessionId,
+      user_id: userId,
+      archetype_key: s.key,
+      raw_score: s.score,
+      normalized_score: s.score,
+      rank: s.rank,
+    }));
+    const { error: sErr } = await supabase
+      .from("archetype_scores" as any)
+      .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
+    if (sErr) throw sErr;
+  }
+
+  const topKeys =
+    snapshot.top_archetypes.length > 0
+      ? snapshot.top_archetypes.map((t) => t.key)
+      : ranked.slice(0, 3).map((s) => s.key);
+
+  const { error: aErr } = await supabase.from("analysis_results" as any).upsert(
+    {
+      session_id: sessionId,
+      user_id: userId,
+      top_archetypes: topKeys,
+      dimension_scores: snapshot.dimension_scores ?? {},
+      shadow_signals: snapshot.shadow_scores ?? {},
+      strengths_fr: [],
+      strengths_en: [],
+      watchouts_fr: [],
+      watchouts_en: [],
+      summary_fr: null,
+      summary_en: null,
+    },
+    { onConflict: "session_id" },
+  );
+  if (aErr) throw aErr;
+
+  const { error: upErr } = await supabase
+    .from("assessment_sessions" as any)
+    .update({
+      status: "submitted",
+      submitted_at: snapshot.computed_at,
+      client_meta: {
+        restored_from_snapshot: snapshotId,
+        snapshot_version: snapshot.snapshot_version,
+      },
+    })
+    .eq("id", sessionId);
+  if (upErr) throw upErr;
+
+  return sessionId;
+}
+
+export async function deleteAdminGuestPreviewSessions(userId: string): Promise<number> {
+  const { data: sessions, error } = await supabase
+    .from("assessment_sessions" as any)
+    .select("id, client_meta")
+    .eq("user_id", userId);
+  if (error) throw error;
+  const rows = (sessions as { id: string; client_meta?: Record<string, unknown> }[]) ?? [];
+  if (rows.length === 0) return 0;
+
+  const autoFillIds = await sessionIdsWithAdminAutoFill(rows.map((r) => r.id));
+  const previewIds = rows
+    .filter((s) => isAdminGuestPreviewSession(s) || autoFillIds.has(s.id))
+    .map((s) => s.id);
+  if (previewIds.length === 0) return 0;
+
+  await deleteSessionsByIds(previewIds);
+  return previewIds.length;
+}
+
+export interface RecoveryDiagnostics {
+  submittedSessions: number;
+  currentTopTriad: string[];
+  snapshotCount: number;
+  snapshots: Array<{ id: string; version: number; at: string; top: string }>;
+  deepdiveResponseCount: number;
+}
+
+export async function getRecoveryDiagnostics(userId: string): Promise<RecoveryDiagnostics> {
+  const [sessionsRes, snaps, ddCount] = await Promise.all([
+    supabase
+      .from("assessment_sessions" as any)
+      .select("id")
+      .eq("user_id", userId)
+      .eq("status", "submitted"),
+    getSnapshotHistory(userId),
+    supabase
+      .from("deepdive_responses" as any)
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId),
+  ]);
+
+  const sessionIds = ((sessionsRes.data as { id: string }[]) ?? []).map((s) => s.id);
+  let currentTopTriad: string[] = [];
+  if (sessionIds.length > 0) {
+    const latest = await getLatestSubmittedSessionForUser(userId, {
+      includePreviewSessions: true,
+    });
+    if (latest) currentTopTriad = await getSessionTopArchetypes(latest.id);
+  }
+
+  return {
+    submittedSessions: sessionIds.length,
+    currentTopTriad,
+    snapshotCount: snaps.length,
+    snapshots: snaps.map((s) => ({
+      id: s.id,
+      version: s.snapshot_version,
+      at: s.computed_at,
+      top: s.top_archetypes.map((t) => t.key).join(" / "),
+    })),
+    deepdiveResponseCount: ddCount.count ?? 0,
+  };
 }
 
 export async function getSessionFullDetails(sessionId: string) {

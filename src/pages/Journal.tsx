@@ -109,10 +109,10 @@ export default function Journal() {
     <div className="space-y-8 max-w-4xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <p className="text-neural-label mb-1">{t("journal.introspection")}</p>
-          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">{t("journal.title")}</h1>
+          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">{t("journal.introspection")}</p>
+          <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">{t("journal.title")}</h1>
         </div>
-        <button onClick={() => { resetForm(); setShowNew(true); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm shrink-0 self-start sm:self-auto">
+        <button onClick={() => { resetForm(); setShowNew(true); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_16px_hsl(var(--primary)/0.25)] text-sm font-medium shrink-0 self-start sm:self-auto">
           <Plus size={16} /> {t("journal.newEntry")}
         </button>
       </div>
@@ -120,12 +120,12 @@ export default function Journal() {
       {/* Search & filter */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("journal.search")} className="w-full pl-9 pr-3 py-2 rounded-xl bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("journal.search")} aria-label={t("journal.search")} className="w-full pl-9 pr-3 py-2.5 rounded-full bg-card/60 border border-border/40 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 placeholder:text-muted-foreground/40" />
         </div>
-        <div className="flex gap-1 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           {allTags.map(tag => (
-            <button key={tag} onClick={() => setFilterTag(filterTag === tag ? null : tag)} className={`px-2 py-1 rounded-lg text-xs transition-colors ${filterTag === tag ? "bg-primary/20 text-primary" : "bg-secondary/30 text-muted-foreground hover:text-foreground"}`}>
+            <button key={tag} onClick={() => setFilterTag(filterTag === tag ? null : tag)} className={`px-3 py-1 rounded-full font-display text-[10px] tracking-widest uppercase transition-all duration-200 ${filterTag === tag ? "bg-primary/20 text-primary border border-primary/30" : "bg-card/40 border border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/20"}`}>
               #{tag}
             </button>
           ))}
@@ -170,15 +170,16 @@ export default function Journal() {
       </AnimatePresence>
 
       {/* Entries list */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm">{t("journal.noEntries")}</p>
+          <div className="glass-card text-center py-14 px-8">
+            <BookOpen size={36} strokeWidth={1} className="mx-auto mb-4 text-primary/20" />
+            <p className="font-cormorant text-xl font-light italic text-text-tertiary/70 mb-2">Chaque pensée mérite d'être consignée</p>
+            <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">{t("journal.noEntries")}</p>
           </div>
         )}
         {filtered.map((entry, i) => (
-          <motion.div key={entry.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="ethereal-glass p-5 group">
+          <motion.div key={entry.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-5 group hover:border-primary/20 transition-colors">
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-2">
                 {entry.mood_score && <span className="text-lg">{MOOD_EMOJIS[entry.mood_score - 1]}</span>}

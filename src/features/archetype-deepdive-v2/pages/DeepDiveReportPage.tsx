@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
@@ -8,11 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   FileText, Download, User, Shield, FileDown, ChevronLeft,
-  Search, Loader2, Sparkles, Cloud, Scale,
+  Search, Loader2, Sparkles, Cloud, Scale, ImageDown,
 } from "lucide-react";
 import { exportDeepDiveV2ToDrive } from "../services/exportDeepDiveToDrive";
 import { buildUserReport, buildAdminReport } from "../domain/sampleProfile";
-import { exportDeepDivePdf } from "../services/exportDeepDivePdf";
+import { exportDeepDiveVisualPdf, exportDeepDivePng } from "../services/exportDeepDiveScreenshot";
 import { listAllSessionsForAdmin } from "@/features/archetype-assessment/services/assessmentService";
 import { useDeepDiveProfile } from "../hooks/useDeepDiveProfile";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,6 +65,9 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
 
   // Tabs (admin can flip between user / admin views)
   const [tab, setTab] = useState<"user" | "admin">(mode === "admin" ? "admin" : "user");
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingPng, setExportingPng] = useState(false);
 
   const userProfileLoad = useDeepDiveProfile({
     userId: mode === "user" ? user?.id : selectedSession?.user_id,
@@ -117,6 +120,54 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   const activeMarkdown = tab === "user" ? userReport : adminReport;
   const reportSubject = selectedSession?.profile?.display_name || profile?.label || "Deep Dive";
   const filenameStem = `deep-dive-${(reportSubject || "rapport").replace(/\s+/g, "-").toLowerCase()}-${tab}`;
+
+  const handleExportPdf = async () => {
+    const el = exportRef.current;
+    if (!el || !profile || exportingPdf || exportingPng) return;
+    setExportingPdf(true);
+    try {
+      await exportDeepDiveVisualPdf(el, reportSubject, { kind: tab, isFR });
+      toast({
+        title: isFR ? "PDF téléchargé" : "PDF downloaded",
+        description: isFR
+          ? "Rapport visuel en thème sombre, cartes recto/verso incluses."
+          : "Visual report in dark theme, front/back cards included.",
+      });
+    } catch (e: unknown) {
+      console.error("[DeepDive] export pdf failed", e);
+      toast({
+        title: isFR ? "Erreur" : "Error",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  const handleExportPng = async () => {
+    const el = exportRef.current;
+    if (!el || !profile || exportingPdf || exportingPng) return;
+    setExportingPng(true);
+    try {
+      await exportDeepDivePng(el, reportSubject, { kind: tab, isFR });
+      toast({
+        title: isFR ? "PNG téléchargé" : "PNG downloaded",
+        description: isFR
+          ? "Capture haute résolution du rapport complet."
+          : "High-resolution capture of the full report.",
+      });
+    } catch (e: unknown) {
+      console.error("[DeepDive] export png failed", e);
+      toast({
+        title: isFR ? "Erreur" : "Error",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setExportingPng(false);
+    }
+  };
 
   /* ------------------------------------------------------------------ */
   /* Admin LIST view (no user selected yet)                              */
@@ -221,36 +272,6 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
           </button>
         )}
 
-        <header className="space-y-2">
-          <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
-            <FileText size={14} strokeWidth={1.5} />
-            {mode === "admin"
-              ? (isFR ? "Deep Dive — Lecture admin" : "Deep Dive — Admin reading")
-              : (isFR ? "Ton rapport Deep Dive" : "Your Deep Dive report")}
-          </div>
-          <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
-            {reportSubject}
-          </h1>
-          <p className="text-sm text-text-secondary">
-            {mode === "admin"
-              ? (isFR
-                  ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triade : ${profile.label}.` : ""}`
-                  : `Assessment submitted on ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triad: ${profile.label}.` : ""}`)
-              : (isFR
-                  ? "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."
-                  : "Personalized reading of your dominant archetypes, shadows and recommended practices.")}
-          </p>
-          {mode === "user" && (
-            <Link
-              to="/cartographie/balance/analyse"
-              className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[hsl(var(--aegis-warm)/0.35)] bg-[hsl(var(--aegis-warm-muted)/0.35)] px-4 py-2.5 text-xs uppercase tracking-[0.14em] text-[hsl(var(--aegis-warm))] transition-colors hover:bg-[hsl(var(--aegis-warm-muted)/0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Scale size={15} strokeWidth={1.5} aria-hidden />
-              {t("balanceReport.openFromDeepDive")}
-            </Link>
-          )}
-        </header>
-
         {loadingProfile && (
           <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
             <Loader2 size={20} strokeWidth={1.5} className="animate-spin mx-auto mb-3 text-text-tertiary" />
@@ -267,7 +288,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
 
         {!loadingProfile && !profileError && profile && (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "user" | "admin")}>
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center justify-between gap-3 flex-wrap" data-export-hide>
               <TabsList>
                 <TabsTrigger value="user" className="gap-2">
                   <User size={14} strokeWidth={1.5} /> {isFR ? "Vue Utilisateur" : "User view"}
@@ -292,17 +313,30 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    exportDeepDivePdf({
-                      kind: tab,
-                      markdown: activeMarkdown,
-                      profileLabel: reportSubject,
-                    })
-                  }
+                  onClick={() => void handleExportPdf()}
+                  disabled={exportingPdf || exportingPng}
                   className="gap-2"
                 >
-                  <FileDown size={14} strokeWidth={1.5} />
+                  {exportingPdf ? (
+                    <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                  ) : (
+                    <FileDown size={14} strokeWidth={1.5} />
+                  )}
                   {isFR ? "Exporter PDF" : "Export PDF"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleExportPng()}
+                  disabled={exportingPdf || exportingPng}
+                  className="gap-2"
+                >
+                  {exportingPng ? (
+                    <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                  ) : (
+                    <ImageDown size={14} strokeWidth={1.5} />
+                  )}
+                  PNG
                 </Button>
                 <Button
                   variant="outline"
@@ -346,15 +380,48 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
               </div>
             </div>
 
-            <TabsContent value="user" className="mt-4">
-              <DeepDiveUserCards profile={profile} />
-            </TabsContent>
+            <div ref={exportRef} id="deep-dive-report-export" className="space-y-6 mt-4">
+              <header className="space-y-2">
+                <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
+                  <FileText size={14} strokeWidth={1.5} />
+                  {mode === "admin"
+                    ? (isFR ? "Deep Dive — Lecture admin" : "Deep Dive — Admin reading")
+                    : (isFR ? "Ton rapport Deep Dive" : "Your Deep Dive report")}
+                </div>
+                <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
+                  {reportSubject}
+                </h1>
+                <p className="text-sm text-text-secondary">
+                  {mode === "admin"
+                    ? (isFR
+                        ? `Évaluation soumise le ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triade : ${profile.label}.` : ""}`
+                        : `Assessment submitted on ${fmtDate(selectedSession?.submitted_at ?? null, locale)}.${profile ? ` Triad: ${profile.label}.` : ""}`)
+                    : (isFR
+                        ? "Lecture personnalisée de tes archétypes dominants, ombres et pratiques recommandées."
+                        : "Personalized reading of your dominant archetypes, shadows and recommended practices.")}
+                </p>
+                {mode === "user" && (
+                  <Link
+                    to="/cartographie/balance/analyse"
+                    data-export-hide
+                    className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[hsl(var(--aegis-warm)/0.35)] bg-[hsl(var(--aegis-warm-muted)/0.35)] px-4 py-2.5 text-xs uppercase tracking-[0.14em] text-[hsl(var(--aegis-warm))] transition-colors hover:bg-[hsl(var(--aegis-warm-muted)/0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Scale size={15} strokeWidth={1.5} aria-hidden />
+                    {t("balanceReport.openFromDeepDive")}
+                  </Link>
+                )}
+              </header>
 
-            {mode === "admin" && (
-              <TabsContent value="admin" className="mt-4">
-                <DeepDiveAdminCards profile={profile} />
+              <TabsContent value="user" className="mt-0">
+                <DeepDiveUserCards profile={profile} />
               </TabsContent>
-            )}
+
+              {mode === "admin" && (
+                <TabsContent value="admin" className="mt-0">
+                  <DeepDiveAdminCards profile={profile} />
+                </TabsContent>
+              )}
+            </div>
           </Tabs>
         )}
       </div>

@@ -17,6 +17,7 @@ import DecisionMatrixWidget from "@/components/widgets/toolbox/DecisionMatrixWid
 import EmpathyPerspectiveWidget from "@/components/widgets/toolbox/EmpathyPerspectiveWidget";
 import ShadowCheckinWidget from "@/components/widgets/toolbox/ShadowCheckinWidget";
 import type { Locale } from "@/i18n/translations";
+import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { getBuiltinToolboxContentTypeDefinition, type ToolboxContentTypeDefinition } from "@/lib/toolbox-content-type-definitions";
 import {
@@ -24,6 +25,8 @@ import {
   isResolverMappedSlug,
   resolveToolboxWidget,
 } from "@/lib/toolbox-widget-resolver";
+import { resolveToolboxContentSlug } from "@/lib/toolbox-content-slug";
+import { overlayHabitDurationOnWidgetConfig } from "@/lib/toolbox-widget-duration";
 
 export interface ToolboxRenderableItem {
   id?: string;
@@ -75,11 +78,16 @@ const NATIVE_WIDGET_TYPES = new Set([
   "micro_practice",
 ]);
 
+function itemSlug(item: ToolboxRenderableItem): string {
+  const raw = item.content_type_slug || item.content_type;
+  return resolveToolboxContentSlug(raw, item.widget_config);
+}
+
 export function isInteractiveToolboxType(
   item: ToolboxRenderableItem,
   definitionsBySlug: Record<string, ToolboxContentTypeDefinition> = {},
 ): boolean {
-  const slug = item.content_type_slug || item.content_type;
+  const slug = itemSlug(item);
   if (slug === "external_link") return false;
   if (NATIVE_WIDGET_TYPES.has(slug)) return true;
   if (isResolverMappedSlug(slug)) return true;
@@ -91,7 +99,7 @@ export function canRenderToolboxWidget(
   item: ToolboxRenderableItem,
   definitionsBySlug: Record<string, ToolboxContentTypeDefinition> = {},
 ): boolean {
-  const slug = item.content_type_slug || item.content_type;
+  const slug = itemSlug(item);
   const c = item.widget_config;
 
   if (slug === "external_link") {
@@ -104,7 +112,11 @@ export function canRenderToolboxWidget(
       case "focus_introspectif":
         return c != null;
       case "affirmations":
-        return c != null && c.duration_min != null;
+        return (
+          c != null &&
+          (c.duration_min != null ||
+            (typeof c.duration_sec === "number" && c.duration_sec > 0))
+        );
       case "journal_prompt":
         return !!c?.prompt?.trim();
       case "intention":
@@ -122,8 +134,9 @@ interface RenderArgs {
   locale: Locale;
   title: string;
   hideTitle?: boolean;
-  onComplete?: () => void;
-  onAbandon?: () => void;
+  sessionKey?: string;
+  onComplete?: ToolboxOnComplete;
+  onAbandon?: ToolboxOnAbandon;
   definitionsBySlug?: Record<string, ToolboxContentTypeDefinition>;
   fallbackForExternalLink?: ReactNode;
 }
@@ -133,11 +146,16 @@ function renderResolved(
   args: RenderArgs,
 ): ReactNode {
   if (!resolved) return null;
-  const { title, hideTitle, onComplete, onAbandon } = args;
+  const { title, hideTitle, onComplete, onAbandon, item } = args;
+  const sessionKey = args.sessionKey ?? widgetSessionKey(item);
   const noop = () => {};
   const safeOnComplete = onComplete ?? noop;
   const safeOnAbandon = onAbandon ?? noop;
-  const cfg = resolved.config;
+  const itemCfg =
+    item.widget_config && typeof item.widget_config === "object"
+      ? (item.widget_config as Record<string, unknown>)
+      : undefined;
+  const cfg = overlayHabitDurationOnWidgetConfig(resolved.config, itemCfg);
 
   switch (resolved.kind) {
     case "breathwork":
@@ -187,6 +205,7 @@ function renderResolved(
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -197,6 +216,7 @@ function renderResolved(
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -207,6 +227,7 @@ function renderResolved(
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -217,6 +238,7 @@ function renderResolved(
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -278,11 +300,16 @@ function renderResolved(
   }
 }
 
+function widgetSessionKey(item: ToolboxRenderableItem): string | undefined {
+  return item.id ? `toolbox:${item.id}` : undefined;
+}
+
 export function renderToolboxWidget({
   item,
   locale,
   title,
   hideTitle,
+  sessionKey: sessionKeyOverride,
   onComplete,
   onAbandon,
   definitionsBySlug = {},
@@ -292,7 +319,8 @@ export function renderToolboxWidget({
   const cfg = item.widget_config ?? {};
   const safeOnComplete = onComplete ?? noop;
   const safeOnAbandon = onAbandon ?? noop;
-  const slug = item.content_type_slug || item.content_type;
+  const sessionKey = sessionKeyOverride ?? widgetSessionKey(item);
+  const slug = itemSlug(item);
 
   switch (slug) {
     case "breathwork":
@@ -301,6 +329,7 @@ export function renderToolboxWidget({
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -311,6 +340,7 @@ export function renderToolboxWidget({
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -321,17 +351,24 @@ export function renderToolboxWidget({
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
       );
     case "affirmations":
-      if (cfg?.duration_min == null) return null;
+      if (
+        cfg?.duration_min == null &&
+        !(typeof cfg.duration_sec === "number" && cfg.duration_sec > 0)
+      ) {
+        return null;
+      }
       return (
         <AffirmationsWidget
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -342,6 +379,7 @@ export function renderToolboxWidget({
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -352,6 +390,7 @@ export function renderToolboxWidget({
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -362,6 +401,7 @@ export function renderToolboxWidget({
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -382,6 +422,7 @@ export function renderToolboxWidget({
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
         />
@@ -420,6 +461,7 @@ export function renderToolboxWidget({
           locale,
           title,
           hideTitle,
+          sessionKey,
           onComplete,
           onAbandon,
           definitionsBySlug,
@@ -433,6 +475,7 @@ export function renderToolboxWidget({
           config={cfg}
           title={title}
           hideTitle={hideTitle}
+          sessionKey={sessionKey}
           onComplete={safeOnComplete}
           onAbandon={safeOnAbandon}
           blueprint={def?.ui_blueprint}

@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock3, Play, Pause } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, Clock3, Play, Pause, RotateCcw, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
+import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
+import { shouldTreatUnmountAsAbandon } from "@/lib/widget-lifecycle";
 
 type BlockType =
   | "markdown"
@@ -21,8 +25,9 @@ interface Props {
   config: Record<string, unknown>;
   title: string;
   hideTitle?: boolean;
-  onComplete?: () => void;
-  onAbandon?: () => void;
+  sessionKey?: string;
+  onComplete?: ToolboxOnComplete;
+  onAbandon?: ToolboxOnAbandon;
   blueprint?: { blocks?: BlockType[] } | Record<string, unknown>;
 }
 
@@ -47,10 +52,17 @@ function toStringArray(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function fmtTime(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export default function ComposedRendererV1({
   config,
   title,
   hideTitle,
+  sessionKey,
   onComplete,
   onAbandon,
   blueprint,
@@ -61,6 +73,9 @@ export default function ComposedRendererV1({
   const [notes, setNotes] = useState("");
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [fields, setFields] = useState<Record<string, string>>({});
+  const [started, setStarted] = useState(false);
+  const [stepIdx, setStepIdx] = useState(0);
+  const markCompletedRef = useRef<() => void>(() => {});
 
   const instructions = useMemo(
     () =>
@@ -82,14 +97,50 @@ export default function ComposedRendererV1({
     [config.fields],
   );
   const durationSec = Math.max(0, readNumber(config.duration_sec, 0));
+  const budgetMode = config.time_budget_mode === true && durationSec > 0;
+  const hasSteps = steps.length > 0;
   const blocks: BlockType[] = Array.isArray(
     (blueprint as { blocks?: BlockType[] } | undefined)?.blocks,
   )
     ? ((blueprint as { blocks?: BlockType[] }).blocks as BlockType[])
-    : ["markdown", "step_list", "timer"];
+    : budgetMode && hasSteps
+      ? ["markdown", "step_list"]
+      : ["markdown", "step_list", "timer"];
+
+  const timer = usePersistedExerciseTimer({
+    sessionKey: budgetMode ? sessionKey : undefined,
+    totalSeconds: Math.max(1, durationSec || 1),
+    onComplete: budgetMode ? () => markCompletedRef.current() : undefined,
+  });
+
+  const markCompleted = useCallback(() => {
+    timer.completedRef.current = true;
+    onComplete?.({
+      elapsedSec: budgetMode ? timer.elapsedSec : elapsed,
+      durationBudgetSec: budgetMode ? durationSec : undefined,
+    });
+  }, [budgetMode, timer, elapsed, durationSec, onComplete]);
 
   useEffect(() => {
-    if (!isRunning || durationSec <= 0) return;
+    markCompletedRef.current = markCompleted;
+  }, [markCompleted]);
+
+  useWidgetAbandonGuard(timer.hasStartedRef, timer.completedRef, budgetMode ? undefined : onAbandon);
+
+  useEffect(() => {
+    if (!budgetMode) return;
+    return () => {
+      if (timer.hasStartedRef.current && !timer.completedRef.current && shouldTreatUnmountAsAbandon()) {
+        onAbandon?.({
+          elapsedSec: timer.elapsedSec,
+          durationBudgetSec: durationSec,
+        });
+      }
+    };
+  }, [budgetMode, timer.elapsedSec, durationSec, onAbandon, timer.hasStartedRef, timer.completedRef]);
+
+  useEffect(() => {
+    if (budgetMode || !isRunning || durationSec <= 0) return;
     const id = setInterval(() => {
       setElapsed((value) => {
         const next = value + 1;
@@ -103,7 +154,138 @@ export default function ComposedRendererV1({
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [durationSec, isRunning, onComplete]);
+  }, [durationSec, isRunning, onComplete, budgetMode]);
+
+  const sessionDone = budgetMode && (timer.completed || timer.completedRef.current);
+
+  const startBudget = () => {
+    timer.hasStartedRef.current = true;
+    setStarted(true);
+    timer.setRunning(true);
+  };
+
+  const nextStep = () => {
+    if (stepIdx >= steps.length - 1) {
+      markCompleted();
+    } else {
+      setStepIdx(stepIdx + 1);
+    }
+  };
+
+  const resetBudget = () => {
+    setStarted(false);
+    setStepIdx(0);
+    timer.reset();
+  };
+
+  if (budgetMode) {
+    const remaining = Math.max(0, durationSec - timer.elapsedSec);
+    const progress = durationSec > 0 ? Math.min(timer.elapsedSec / durationSec, 1) : 0;
+    const currentStep = hasSteps ? steps[stepIdx] : null;
+
+    return (
+      <div className="flex flex-col items-center space-y-5 py-4">
+        {!hideTitle && <h3 className="text-sm font-medium text-foreground">{title}</h3>}
+
+        {!started && !sessionDone ? (
+          <div className="text-center space-y-3 max-w-[300px]">
+            {instructions ? (
+              <p className="text-sm text-muted-foreground leading-relaxed">{instructions}</p>
+            ) : null}
+            <p className="text-xs text-muted-foreground">{t("toolbox.micro.totalBudget", { time: fmtTime(durationSec) })}</p>
+            {hasSteps && (
+              <p className="text-xs text-muted-foreground">{t("toolbox.micro.stepsCount", { n: steps.length })}</p>
+            )}
+          </div>
+        ) : sessionDone ? (
+          <div className="text-center space-y-2">
+            <CheckCircle2 size={32} className="mx-auto text-primary" />
+            <p className="text-sm font-medium text-foreground">{t("toolbox.micro.done")}</p>
+            <p className="text-xs text-muted-foreground">{t("toolbox.micro.elapsed", { time: fmtTime(timer.elapsedSec) })}</p>
+          </div>
+        ) : (
+          <div className="w-full max-w-[300px] space-y-4">
+            {currentStep ? (
+              <div className="rounded-2xl border border-border/30 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                    {t("toolbox.micro.stepCounter", { current: stepIdx + 1, total: steps.length })}
+                  </span>
+                  <span className="text-[10px] font-mono text-primary">{fmtTime(remaining)}</span>
+                </div>
+                <p className="text-sm text-foreground/85 leading-relaxed">{currentStep}</p>
+              </div>
+            ) : instructions ? (
+              <p className="text-sm text-center text-foreground/80 leading-relaxed px-2">{instructions}</p>
+            ) : null}
+            <div className="space-y-1">
+              <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
+                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress * 100}%` }} />
+              </div>
+              <div className="flex justify-between text-[9px] text-muted-foreground">
+                <span>{fmtTime(timer.elapsedSec)}</span>
+                <span>{t("toolbox.micro.totalBudgetShort", { time: fmtTime(durationSec) })}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 flex-wrap justify-center">
+          {!started && !sessionDone ? (
+            <button
+              type="button"
+              onClick={startBudget}
+              className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] px-4 py-2.5 rounded border border-primary/30 text-primary"
+            >
+              <Play size={12} /> {t("toolbox.launch")}
+            </button>
+          ) : sessionDone ? (
+            <button
+              type="button"
+              onClick={resetBudget}
+              className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground"
+            >
+              <RotateCcw size={18} />
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => timer.toggleRunning()}
+                className="w-12 h-12 rounded-2xl border border-primary/30 flex items-center justify-center text-primary"
+              >
+                {timer.isRunning ? <Pause size={18} /> : <Play size={18} />}
+              </button>
+              {hasSteps && (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] px-4 py-2.5 rounded border border-primary/30 text-primary"
+                >
+                  {stepIdx >= steps.length - 1 ? t("toolbox.micro.finish") : t("toolbox.micro.next")}
+                  <ChevronRight size={12} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={markCompleted}
+                className="text-[10px] uppercase tracking-[0.2em] px-3 py-2 rounded border border-border/40 text-muted-foreground"
+              >
+                {t("toolbox.micro.finishEarly")}
+              </button>
+              <button
+                type="button"
+                onClick={resetBudget}
+                className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground"
+              >
+                <RotateCcw size={18} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const renderBlock = (block: BlockType) => {
     switch (block) {

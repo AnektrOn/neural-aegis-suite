@@ -195,7 +195,7 @@ export function DeepDiveUserCards({ profile, hidePractices = false }: { profile:
             <Compass size={14} strokeWidth={1.5} />
             {isFR ? "Tes archétypes majeurs" : "Your major archetypes"}
           </div>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary/70 font-display hidden sm:inline">
+          <span className="flip-export-hide text-[10px] uppercase tracking-[0.2em] text-text-tertiary/70 font-display hidden sm:inline">
             {isFR ? "Touche une carte pour la retourner" : "Tap a card to flip it"}
           </span>
         </div>

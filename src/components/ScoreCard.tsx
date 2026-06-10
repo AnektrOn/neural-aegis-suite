@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { memo, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Flame, Star, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ type ScoreCardProps = {
   compact?: boolean;
 };
 
-export default function ScoreCard({ compact = false }: ScoreCardProps) {
+const ScoreCardBase = function ScoreCard({ compact = false }: ScoreCardProps) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [score, setScore] = useState(0);
@@ -184,4 +184,6 @@ export default function ScoreCard({ compact = false }: ScoreCardProps) {
       )}
     </motion.div>
   );
-}
+};
+
+export default memo(ScoreCardBase);

@@ -98,10 +98,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pageMeta = getAdminPageMeta(location.pathname, location.search, t);
   const headerTitle = pageMeta.subtitle ? `${pageMeta.title} · ${pageMeta.subtitle}` : pageMeta.title;
 
-  const adminMainPaddingTop = online
-    ? "calc(var(--safe-top) + var(--mobile-header-toolbar))"
-    : "calc(var(--safe-top) + var(--mobile-offline-banner-height) + var(--mobile-header-toolbar))";
-
   if (isMobile) {
     return (
       <div className="relative z-10 min-h-screen w-full bg-bg-base">
@@ -117,7 +113,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {t("layout.offlineMessage")}
             </div>
           )}
-          <div className="box-border flex min-h-[var(--mobile-header-toolbar)] items-center justify-between px-4 py-3">
+          <div className="box-border flex h-[var(--mobile-header-toolbar)] shrink-0 items-center justify-between px-4">
             <div className="flex min-w-0 items-center gap-3">
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
@@ -158,7 +154,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        <main className="min-h-screen px-4 pb-6" style={{ paddingTop: adminMainPaddingTop }}>
+        <main
+          className={`mobile-main-scroll min-h-screen px-4 pb-6${online ? "" : " mobile-main-scroll--offline"}`}
+        >
           <PageWrapper key={location.pathname}>{children}</PageWrapper>
           <AppFooter />
         </main>

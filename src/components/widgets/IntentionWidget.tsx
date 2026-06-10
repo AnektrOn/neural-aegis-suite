@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Target, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -24,6 +25,7 @@ interface Props {
   config: IntentionConfig;
   title: string;
   hideTitle?: boolean;
+  sessionKey?: string;
   onComplete?: (note?: string) => void;
   onAbandon?: () => void;
 }
@@ -48,6 +50,10 @@ function normalizeIntentionConfig(
   let durationSec = c.duration_sec;
   let allowNote = c.allow_note;
   let notePrompt = c.note_prompt?.trim();
+
+  if (durationSec == null && typeof c.duration_min === "number") {
+    durationSec = c.duration_min * 60;
+  }
 
   if (typeof c.duration_min === "number" && c.duration_sec == null && !c.question) {
     durationSec = c.duration_min * 60;
@@ -87,14 +93,18 @@ export default function IntentionWidget({ config, title, hideTitle, onComplete, 
   const progress = elapsed / totalSeconds;
 
   useEffect(() => {
+    setElapsed(0);
+    setIsRunning(false);
+    setPhase("idle");
+    hasStartedRef.current = false;
+    completedRef.current = false;
+  }, [totalSeconds]);
+
+  useEffect(() => {
     if (isRunning && !hasStartedRef.current) hasStartedRef.current = true;
   }, [isRunning]);
 
-  useEffect(() => {
-    return () => {
-      if (hasStartedRef.current && !completedRef.current) onAbandon?.();
-    };
-  }, []);
+  useWidgetAbandonGuard(hasStartedRef, completedRef, onAbandon);
 
   useEffect(() => {
     if (!isRunning) {

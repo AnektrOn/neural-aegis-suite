@@ -1,9 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Scan } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale } from "@/i18n/translations";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
+import { resolveSequenceFromElapsed } from "@/lib/exercise-sequence-position";
+import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 
 export interface BodyScanZone {
   id: string;
@@ -22,6 +25,7 @@ interface Props {
   config: BodyScanConfig;
   title: string;
   hideTitle?: boolean;
+  sessionKey?: string;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
@@ -83,73 +87,42 @@ function normalizeZones(config: BodyScanConfig): BodyScanZone[] {
   return DEFAULT_BODY_SCAN_ZONES;
 }
 
-export default function BodyScanWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+export default function BodyScanWidget({
+  config,
+  title,
+  hideTitle,
+  sessionKey,
+  onComplete,
+  onAbandon,
+}: Props) {
   const { t, locale } = useLanguage();
   const zones = normalizeZones(config);
-  const [isRunning, setIsRunning] = useState(false);
-  const [currentZoneIdx, setCurrentZoneIdx] = useState(0);
-  const [phaseProgress, setPhaseProgress] = useState(0);
-  const [completedZones, setCompletedZones] = useState<Set<string>>(new Set());
-  const [completed, setCompleted] = useState(false);
-  const hasStartedRef = useRef(false);
-  const completedRef = useRef(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const currentZone = zones[Math.min(currentZoneIdx, zones.length - 1)];
   const totalSeconds = Math.max(1, zones.reduce((s, z) => s + z.duration_sec, 0));
-  const elapsedSeconds =
-    zones.slice(0, currentZoneIdx).reduce((s, z) => s + z.duration_sec, 0) + phaseProgress * currentZone.duration_sec;
+  const segments = useMemo(
+    () => zones.map((z) => ({ id: z.id, durationSec: z.duration_sec })),
+    [zones],
+  );
 
-  useEffect(() => {
-    if (isRunning && !hasStartedRef.current) hasStartedRef.current = true;
-  }, [isRunning]);
+  const {
+    elapsedSec: elapsedSeconds,
+    isRunning,
+    completed,
+    toggleRunning,
+    reset,
+    hasStartedRef,
+    completedRef,
+  } = usePersistedExerciseTimer({ sessionKey, totalSeconds, onComplete });
 
-  useEffect(() => {
-    return () => {
-      if (hasStartedRef.current && !completedRef.current) onAbandon?.();
-    };
-  }, []);
+  useWidgetAbandonGuard(hasStartedRef, completedRef, onAbandon);
 
-  useEffect(() => {
-    if (!isRunning) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-    const tickMs = 50;
-    intervalRef.current = setInterval(() => {
-      setPhaseProgress((prev) => {
-        const next = prev + tickMs / (currentZone.duration_sec * 1000);
-        if (next >= 1) {
-          const nextIdx = currentZoneIdx + 1;
-          setCompletedZones((cz) => new Set([...cz, currentZone.id]));
-          if (nextIdx >= zones.length) {
-            setIsRunning(false);
-            setCompleted(true);
-            completedRef.current = true;
-            onComplete?.();
-            return 1;
-          }
-          setCurrentZoneIdx(nextIdx);
-          return 0;
-        }
-        return next;
-      });
-    }, tickMs);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isRunning, currentZoneIdx, currentZone, zones.length, onComplete]);
-
-  const reset = useCallback(() => {
-    setIsRunning(false);
-    setCurrentZoneIdx(0);
-    setPhaseProgress(0);
-    setCompletedZones(new Set());
-    setCompleted(false);
-    completedRef.current = false;
-    hasStartedRef.current = false;
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  }, []);
+  const position = useMemo(
+    () => resolveSequenceFromElapsed(elapsedSeconds, segments),
+    [elapsedSeconds, segments],
+  );
+  const currentZoneIdx = position.index;
+  const phaseProgress = position.phaseProgress;
+  const completedZones = position.completedIds;
+  const currentZone = zones[Math.min(currentZoneIdx, zones.length - 1)];
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -312,7 +285,7 @@ export default function BodyScanWidget({ config, title, hideTitle, onComplete, o
       <div className="flex gap-3">
         <button
           type="button"
-          onClick={() => setIsRunning(!isRunning)}
+          onClick={toggleRunning}
           disabled={completed}
           className="w-12 h-12 rounded-2xl border border-primary/30 bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
         >

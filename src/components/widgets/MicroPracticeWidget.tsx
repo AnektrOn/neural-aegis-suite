@@ -1,23 +1,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, ChevronRight, CheckCircle2, Zap } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 import type { MicroHeroPreset } from "@/lib/toolbox-slug-themes";
+import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
+import { shouldTreatUnmountAsAbandon } from "@/lib/widget-lifecycle";
 
-/**
- * Generic widget for exercises without a dedicated widget.
- *
- * Expected widget_config:
- * {
- *   "instructions": "Main exercise text",
- *   "instructions_i18n": { "fr": "…", "en": "…" },
- *   "duration_sec": 180,
- *   "steps": [ { "text": "…", "text_i18n": { "fr": "…", "en": "…" } } ],
- *   "accent_color": "hsl(176 70% 48%)"
- * }
- */
 export interface MicroPracticeConfig {
   instructions?: string;
   instructions_i18n?: unknown;
@@ -25,14 +17,16 @@ export interface MicroPracticeConfig {
   steps?: Array<{ text: string; text_i18n?: unknown }>;
   accent_color?: string;
   hero?: MicroHeroPreset;
+  time_budget_mode?: boolean;
 }
 
 interface Props {
   config: MicroPracticeConfig;
   title: string;
   hideTitle?: boolean;
-  onComplete?: () => void;
-  onAbandon?: () => void;
+  sessionKey?: string;
+  onComplete?: ToolboxOnComplete;
+  onAbandon?: ToolboxOnAbandon;
 }
 
 const DEFAULT_COLOR = "hsl(176 70% 48%)";
@@ -157,13 +151,20 @@ function MicroHeroVisual({
   }
 }
 
-export default function MicroPracticeWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+export default function MicroPracticeWidget({
+  config,
+  title,
+  hideTitle,
+  sessionKey,
+  onComplete,
+  onAbandon,
+}: Props) {
   const { t, locale } = useLanguage();
   const accent = config.accent_color || DEFAULT_COLOR;
   const hero = config.hero ?? "pulse";
   const instructionsText = useMemo(
     () => pickWidgetCatalogCopy(locale as Locale, config.instructions_i18n as any, config.instructions),
-    [locale, config.instructions_i18n, config.instructions]
+    [locale, config.instructions_i18n, config.instructions],
   );
   const localizedSteps = useMemo(() => {
     const raw = config.steps;
@@ -171,61 +172,55 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
     return raw.map((s) => pickWidgetCatalogCopy(locale as Locale, s.text_i18n as any, s.text));
   }, [config.steps, locale]);
   const hasSteps = localizedSteps != null && localizedSteps.length > 0;
-  const hasDuration = typeof config.duration_sec === "number" && config.duration_sec > 0;
+  const totalSec = Math.max(0, config.duration_sec ?? 0);
+  const hasDuration = totalSec > 0;
 
   const [started, setStarted] = useState(false);
-  const [completed, setCompleted] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
-  const [running, setRunning] = useState(false);
+  const markCompletedRef = useRef<() => void>(() => {});
 
-  const hasStartedRef = useRef(false);
-  const completedRef = useRef(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timer = usePersistedExerciseTimer({
+    sessionKey: hasDuration ? sessionKey : undefined,
+    totalSeconds: Math.max(1, totalSec || 1),
+    onComplete: hasDuration ? () => markCompletedRef.current() : undefined,
+  });
 
-  const totalSec = config.duration_sec ?? 0;
+  const { elapsedSec: elapsed, isRunning: running, completed, toggleRunning, reset: resetTimer, hasStartedRef, completedRef } = timer;
+
+  const markCompleted = useCallback(() => {
+    completedRef.current = true;
+    onComplete?.({
+      elapsedSec: elapsed,
+      durationBudgetSec: hasDuration ? totalSec : undefined,
+    });
+  }, [completedRef, elapsed, hasDuration, onComplete, totalSec]);
+
+  useEffect(() => {
+    markCompletedRef.current = markCompleted;
+  }, [markCompleted]);
+
   const remaining = Math.max(0, totalSec - elapsed);
   const progress = totalSec > 0 ? Math.min(elapsed / totalSec, 1) : 0;
 
   useEffect(() => {
-    return () => {
-      if (hasStartedRef.current && !completedRef.current) onAbandon?.();
-    };
-  }, []);
+    if (running || elapsed > 0) hasStartedRef.current = true;
+  }, [running, elapsed, hasStartedRef]);
 
   useEffect(() => {
-    if (!running) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-    intervalRef.current = setInterval(() => {
-      setElapsed((prev) => {
-        const next = prev + 1;
-        if (hasDuration && next >= totalSec) {
-          if (!hasSteps) {
-            markCompleted();
-          }
-          return totalSec;
-        }
-        return next;
-      });
-    }, 1000);
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (hasStartedRef.current && !completedRef.current && shouldTreatUnmountAsAbandon()) {
+        onAbandon?.({
+          elapsedSec: elapsed,
+          durationBudgetSec: hasDuration ? totalSec : undefined,
+        });
+      }
     };
-  }, [running, hasDuration, hasSteps, totalSec]);
-
-  const markCompleted = useCallback(() => {
-    setRunning(false);
-    setCompleted(true);
-    completedRef.current = true;
-    onComplete?.();
-  }, [onComplete]);
+  }, [elapsed, hasDuration, onAbandon, totalSec, hasStartedRef, completedRef]);
 
   const start = () => {
     hasStartedRef.current = true;
     setStarted(true);
-    if (hasDuration) setRunning(true);
+    if (hasDuration) timer.setRunning(true);
   };
 
   const nextStep = () => {
@@ -240,13 +235,8 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
 
   const reset = () => {
     setStarted(false);
-    setCompleted(false);
     setStepIdx(0);
-    setElapsed(0);
-    setRunning(false);
-    hasStartedRef.current = false;
-    completedRef.current = false;
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    resetTimer();
   };
 
   const fmtTime = (sec: number) => {
@@ -256,6 +246,7 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
   };
 
   const currentStepText = hasSteps ? localizedSteps![stepIdx] : null;
+  const sessionDone = completed || completedRef.current;
 
   return (
     <div className="flex flex-col items-center space-y-5 py-4">
@@ -266,10 +257,10 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
         </div>
       )}
 
-      <MicroHeroVisual hero={hero} accent={accent} running={started && !completed} />
+      <MicroHeroVisual hero={hero} accent={accent} running={started && !sessionDone} />
 
       <AnimatePresence mode="wait">
-        {!started && !completed ? (
+        {!started && !sessionDone ? (
           <motion.div
             key="idle"
             initial={{ opacity: 0 }}
@@ -281,13 +272,17 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
               <p className="text-sm text-foreground/80 leading-relaxed">{instructionsText}</p>
             ) : null}
             {hasDuration && (
-              <p className="text-xs text-muted-foreground">{t("toolbox.micro.duration", { time: fmtTime(totalSec) })}</p>
+              <p className="text-xs text-muted-foreground">
+                {hasSteps
+                  ? t("toolbox.micro.totalBudget", { time: fmtTime(totalSec) })
+                  : t("toolbox.micro.duration", { time: fmtTime(totalSec) })}
+              </p>
             )}
             {hasSteps && (
               <p className="text-xs text-muted-foreground">{t("toolbox.micro.stepsCount", { n: localizedSteps!.length })}</p>
             )}
           </motion.div>
-        ) : completed ? (
+        ) : sessionDone ? (
           <motion.div
             key="done"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -296,6 +291,9 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
           >
             <CheckCircle2 size={32} className="mx-auto" style={{ color: accent }} />
             <p className="text-sm font-medium text-foreground">{t("toolbox.micro.done")}</p>
+            {hasDuration && (
+              <p className="text-xs text-muted-foreground">{t("toolbox.micro.elapsed", { time: fmtTime(elapsed) })}</p>
+            )}
           </motion.div>
         ) : (
           <motion.div
@@ -324,14 +322,10 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-foreground/85 leading-relaxed">
-                  {currentStepText}
-                </p>
+                <p className="text-sm text-foreground/85 leading-relaxed">{currentStepText}</p>
               </div>
             ) : instructionsText ? (
-              <p className="text-sm text-center text-foreground/80 leading-relaxed px-2">
-                {instructionsText}
-              </p>
+              <p className="text-sm text-center text-foreground/80 leading-relaxed px-2">{instructionsText}</p>
             ) : null}
 
             {hasDuration && (
@@ -346,7 +340,7 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
                 </div>
                 <div className="flex justify-between text-[9px] text-muted-foreground">
                   <span>{fmtTime(elapsed)}</span>
-                  <span>{fmtTime(totalSec)}</span>
+                  <span>{t("toolbox.micro.totalBudgetShort", { time: fmtTime(totalSec) })}</span>
                 </div>
               </div>
             )}
@@ -355,7 +349,7 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
       </AnimatePresence>
 
       <div className="flex gap-3">
-        {!started && !completed ? (
+        {!started && !sessionDone ? (
           <button
             type="button"
             onClick={start}
@@ -369,7 +363,7 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
             <Play size={14} />
             {t("toolbox.micro.start")}
           </button>
-        ) : completed ? (
+        ) : sessionDone ? (
           <button
             type="button"
             onClick={reset}
@@ -378,11 +372,11 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
             <RotateCcw size={18} />
           </button>
         ) : (
-          <div className="flex gap-3">
-            {hasDuration && !hasSteps && (
+          <div className="flex gap-3 flex-wrap justify-center">
+            {hasDuration && (
               <button
                 type="button"
-                onClick={() => setRunning(!running)}
+                onClick={toggleRunning}
                 className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors"
                 style={{
                   borderColor: `color-mix(in srgb, ${accent} 40%, transparent)`,
@@ -421,6 +415,15 @@ export default function MicroPracticeWidget({ config, title, hideTitle, onComple
               >
                 <CheckCircle2 size={14} />
                 {t("toolbox.micro.markDone")}
+              </button>
+            )}
+            {(hasSteps || hasDuration) && (
+              <button
+                type="button"
+                onClick={markCompleted}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] uppercase tracking-[0.18em] border border-border/30 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t("toolbox.micro.finishEarly")}
               </button>
             )}
             <button

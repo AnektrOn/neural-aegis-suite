@@ -9,7 +9,7 @@ export const decisionFieldClass =
 
 export const decisionLabelClass = "text-sm font-medium text-foreground";
 
-const panelClass = "ethereal-glass";
+const panelClass = "glass-card border-0";
 
 export function DecisionPageStat({
   label,

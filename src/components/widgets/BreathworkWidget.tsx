@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, RotateCcw, Wind } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { resolveCyclicSequenceFromElapsed } from "@/lib/exercise-sequence-position";
+import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 
 export interface BreathworkConfig {
   cycles: number;
@@ -17,6 +20,7 @@ interface Props {
   config: BreathworkConfig;
   title: string;
   hideTitle?: boolean;
+  sessionKey?: string;
   onComplete?: () => void;
   onAbandon?: () => void;
   /** Box breathing: animated square path; default circle scales like classic guided breath. */
@@ -43,18 +47,12 @@ export default function BreathworkWidget({
   config,
   title,
   hideTitle,
+  sessionKey,
   onComplete,
   onAbandon,
   visualVariant = "circle",
 }: Props) {
   const { t } = useLanguage();
-  const [isRunning, setIsRunning] = useState(false);
-  const [currentCycle, setCurrentCycle] = useState(0);
-  const [currentPhase, setCurrentPhase] = useState<Phase>("breath_in");
-  const [phaseProgress, setPhaseProgress] = useState(0);
-  const [completed, setCompleted] = useState(false);
-  const hasStartedRef = useRef(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const phases: { phase: Phase; duration: number }[] = ([
     { phase: "breath_in" as Phase, duration: config.breath_in_sec },
@@ -63,74 +61,39 @@ export default function BreathworkWidget({
     { phase: "pause2" as Phase, duration: config.pause2_sec },
   ] as { phase: Phase; duration: number }[]).filter(p => p.duration > 0);
 
-  const currentPhaseDuration = phases.find(p => p.phase === currentPhase)?.duration || 4;
+  const cyclicPhases = useMemo(
+    () => phases.map((p) => ({ phase: p.phase, durationSec: p.duration })),
+    [phases],
+  );
+
   const totalCycleTime = phases.reduce((sum, p) => sum + p.duration, 0);
   const totalTime = totalCycleTime * config.cycles;
 
-  const elapsed = currentCycle * totalCycleTime + 
-    phases.slice(0, phases.findIndex(p => p.phase === currentPhase)).reduce((s, p) => s + p.duration, 0) +
-    phaseProgress * currentPhaseDuration;
+  const {
+    elapsedSec: elapsed,
+    isRunning,
+    completed,
+    toggleRunning,
+    reset,
+    hasStartedRef,
+    completedRef,
+  } = usePersistedExerciseTimer({
+    sessionKey,
+    totalSeconds: totalTime,
+    onComplete,
+  });
 
-  // Track that user started the exercise
-  useEffect(() => {
-    if (isRunning && !hasStartedRef.current) {
-      hasStartedRef.current = true;
-    }
-  }, [isRunning]);
+  useWidgetAbandonGuard(hasStartedRef, completedRef, onAbandon);
 
-  // Notify parent on abandon (unmount while started but not completed)
-  useEffect(() => {
-    return () => {
-      if (hasStartedRef.current && !completed) {
-        onAbandon?.();
-      }
-    };
-  }, []); // intentionally empty — cleanup only
+  const position = useMemo(
+    () => resolveCyclicSequenceFromElapsed(elapsed, cyclicPhases, config.cycles),
+    [elapsed, cyclicPhases, config.cycles],
+  );
 
-  const reset = useCallback(() => {
-    setIsRunning(false);
-    setCurrentCycle(0);
-    setCurrentPhase("breath_in");
-    setPhaseProgress(0);
-    setCompleted(false);
-    hasStartedRef.current = false;
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  }, []);
-
-  useEffect(() => {
-    if (!isRunning) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-
-    const tickMs = 50;
-    intervalRef.current = setInterval(() => {
-      setPhaseProgress(prev => {
-        const next = prev + tickMs / (currentPhaseDuration * 1000);
-        if (next >= 1) {
-          const currentIdx = phases.findIndex(p => p.phase === currentPhase);
-          const nextIdx = currentIdx + 1;
-          if (nextIdx < phases.length) {
-            setCurrentPhase(phases[nextIdx].phase);
-          } else {
-            const nextCycle = currentCycle + 1;
-            if (nextCycle >= config.cycles) {
-              setIsRunning(false);
-              setCompleted(true);
-              onComplete?.();
-              return 1;
-            }
-            setCurrentCycle(nextCycle);
-            setCurrentPhase(phases[0].phase);
-          }
-          return 0;
-        }
-        return next;
-      });
-    }, tickMs);
-
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, currentPhase, currentCycle, currentPhaseDuration, config.cycles, phases]);
+  const currentCycle = position.cycle;
+  const currentPhase = position.phase;
+  const phaseProgress = position.phaseProgress;
+  const currentPhaseDuration = phases.find(p => p.phase === currentPhase)?.duration || 4;
 
   const getScale = () => {
     if (!isRunning && !completed) return 1;
@@ -296,7 +259,7 @@ export default function BreathworkWidget({
       </div>
 
       <div className="flex gap-3">
-        <button onClick={() => setIsRunning(!isRunning)}
+        <button onClick={toggleRunning}
           className="w-12 h-12 rounded-2xl border border-primary/30 bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors glow-node"
           disabled={completed}>
           {isRunning ? <Pause size={18} /> : <Play size={18} />}

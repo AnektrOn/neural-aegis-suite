@@ -8,23 +8,34 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
 import { useLanguage } from "@/i18n/LanguageContext";
 
-export default function AegisHealthSection() {
+interface AegisHealthSectionProps {
+  /** Persona glimpse: tighter card, no ethereal-glass */
+  variant?: "default" | "compact";
+}
+
+export default function AegisHealthSection({ variant = "default" }: AegisHealthSectionProps) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { score, trend, isLoading } = useAegisHealthScore(user?.id);
+  const compact = variant === "compact";
+  const shellClass = compact ? "glass-card rounded-2xl p-4 space-y-4" : "ethereal-glass p-8 space-y-6";
+  const titleKey = compact ? "aegis.title" : "aegis.profileTitle";
 
   if (isLoading && !score) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="ethereal-glass p-8"
+        className={shellClass}
       >
-        <p className="text-neural-label">{t("aegis.computing")}</p>
+        <p className="font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          {t("aegis.computing")}
+        </p>
       </motion.div>
     );
   }
@@ -50,24 +61,31 @@ export default function AegisHealthSection() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.05 }}
-      className="ethereal-glass p-8 space-y-6"
+      className={shellClass}
     >
-      <div className="flex items-center gap-3">
-        <Activity size={18} strokeWidth={1.5} className="text-primary" />
-        <p className="text-neural-label">{t("aegis.profileTitle")}</p>
+      <div className="flex items-center gap-2">
+        <Activity size={compact ? 16 : 18} strokeWidth={1.5} className="text-primary" />
+        <p className="font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          {t(titleKey)}
+        </p>
       </div>
 
-      <div className="flex items-baseline gap-3">
-        <span className="text-5xl font-display text-foreground tabular-nums">
+      <div className="flex items-baseline gap-2">
+        <span
+          className={cn(
+            "font-display text-foreground tabular-nums",
+            compact ? "text-4xl" : "text-5xl",
+          )}
+        >
           {Math.round(Number(score.overall_score))}
         </span>
-        <span className="text-xs uppercase tracking-[0.18em] text-text-tertiary">/ 100</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">/ 100</span>
       </div>
 
-      <p className="text-sm text-muted-foreground">{t("aegis.explainer")}</p>
+      {!compact ? <p className="text-sm text-muted-foreground">{t("aegis.explainer")}</p> : null}
 
       {chartData.length > 1 && (
-        <div className="h-32 -mx-2">
+        <div className={cn(compact ? "h-24 -mx-1" : "h-32 -mx-2")}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <XAxis
@@ -104,11 +122,11 @@ export default function AegisHealthSection() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+      <div className={cn("grid grid-cols-2 sm:grid-cols-3 gap-2", !compact && "gap-3 pt-2")}>
         {dims.map((d) => (
           <div key={d.key} className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-text-secondary">{d.label}</span>
+              <span className="text-[10px] text-muted-foreground">{d.label}</span>
               <span className="text-[11px] font-display tabular-nums text-foreground">
                 {Math.round(d.value)}
               </span>

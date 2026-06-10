@@ -5,6 +5,7 @@ import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyAdminOnLogin } from "@/services/adminNotifications";
 import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
+import { hasActiveToolboxSession } from "@/lib/toolbox-session-storage";
 
 const MOCK_AUTH = import.meta.env.VITE_MOCK_AUTH === "true";
 const MOCK_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -109,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const subPromise = App.addListener("appStateChange", ({ isActive }) => {
       if (!isActive) return;
+      if (hasActiveToolboxSession()) return;
       if (resumeBootTimerRef.current) clearTimeout(resumeBootTimerRef.current);
       setHoldResumeBoot(true);
       const ms = nativeResumeBootMs();

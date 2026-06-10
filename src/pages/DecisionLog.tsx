@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Target, Clock, ArrowUpRight, Plus, X, Save, AlertTriangle, CheckCircle2, CalendarClock,
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Target, CheckCircle2, CalendarClock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import RadialSlider from "@/components/RadialSlider";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useDecisionJournal } from "@/hooks/useDecisionJournal";
+import { formatDecisionDuration, type DecisionRecord } from "@/lib/decisionAnalytics";
+import { DecisionDashboard } from "@/components/decisions/DecisionDashboard";
+import { DecisionQuickForm, DecisionQuickAddFab } from "@/components/decisions/DecisionQuickForm";
 import {
   DecisionCard,
   DecisionEmptyState,
   DecisionMetaBadge,
-  DecisionPageStat,
   DecisionSection,
   decisionFieldClass,
   decisionLabelClass,
@@ -20,35 +20,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
-interface Decision {
-  id: string;
-  name: string;
-  priority: number;
-  time_to_decide: string | null;
-  responsibility: number;
-  status: string;
-  created_at: string;
-  decided_at: string | null;
-  deferred_until: string | null;
-}
+type TabId = "dashboard" | "journal";
+type FilterId = "all" | "pending" | "decided" | "deferred";
 
 const priorityTone = (p: number) => {
   if (p >= 5) return "text-primary border-primary/30 bg-primary/5";
   if (p >= 3) return "text-neural-warm border-neural-warm/30 bg-neural-warm/5";
   return "text-muted-foreground";
-};
-
-const formatDuration = (createdAt: string, decidedAt: string) => {
-  const diff = new Date(decidedAt).getTime() - new Date(createdAt).getTime();
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}j ${hours % 24}h`;
-  if (hours > 0) return `${hours}h`;
-  const minutes = Math.floor(diff / (1000 * 60));
-  return `${minutes}min`;
 };
 
 function statusButtonClass(status: string, active: boolean) {
@@ -64,275 +49,266 @@ export default function DecisionLog() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t, locale } = useLanguage();
+  const isMobile = useIsMobile();
   const dateLocale = locale === "fr" ? "fr-FR" : "en-US";
 
-  const [decisions, setDecisions] = useState<Decision[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", priority: 3.0, responsibility: 5.0 });
+  const statusLabels = useMemo(
+    () => ({
+      pending: t("decisions.statusPending"),
+      decided: t("decisions.statusDecided"),
+      deferred: t("decisions.statusDeferred"),
+    }),
+    [t],
+  );
+
+  const {
+    decisions,
+    analytics,
+    isLoading,
+    createMutation,
+    updateStatusMutation,
+  } = useDecisionJournal(user?.id, statusLabels, dateLocale);
+
+  const [activeTab, setActiveTab] = useState<TabId>("dashboard");
+  const [filter, setFilter] = useState<FilterId>("pending");
+  const [showQuickForm, setShowQuickForm] = useState(!isMobile);
 
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
-    decisionId: string | null;
-    decisionName: string;
+    decision: DecisionRecord | null;
     targetStatus: string;
     deferredUntil: string;
-    createdAt: string;
-  }>({
-    open: false,
-    decisionId: null,
-    decisionName: "",
-    targetStatus: "",
-    deferredUntil: "",
-    createdAt: "",
-  });
+  }>({ open: false, decision: null, targetStatus: "", deferredUntil: "" });
 
-  useEffect(() => {
-    if (user) loadDecisions();
-  }, [user]);
+  const filtered = useMemo(() => {
+    if (filter === "all") return decisions;
+    return decisions.filter((d) => d.status === filter);
+  }, [decisions, filter]);
 
-  const loadDecisions = async () => {
-    const { data } = await supabase
-      .from("decisions")
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false });
-    if (data) setDecisions(data as Decision[]);
-  };
+  const formatShortDate = (iso: string) =>
+    new Date(iso).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    const { error } = await supabase.from("decisions").insert({
-      user_id: user.id,
-      name: form.name,
-      priority: Math.round(form.priority),
-      responsibility: Math.round(form.responsibility),
-    } as any);
-    if (error) {
-      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
-    } else {
+  const handleQuickCreate = async (data: { name: string; priority: number; responsibility: number }) => {
+    try {
+      await createMutation.mutateAsync(data);
       toast({ title: t("decisions.decisionRecorded") });
-      setShowForm(false);
-      setForm({ name: "", priority: 3.0, responsibility: 5.0 });
-      loadDecisions();
+      setShowQuickForm(false);
+      setActiveTab("journal");
+      setFilter("pending");
+    } catch (e) {
+      toast({
+        title: t("toast.error"),
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
     }
   };
 
-  const requestStatusChange = (d: Decision, status: string) => {
+  const requestStatusChange = (d: DecisionRecord, status: string) => {
     if (d.status === status) return;
-    setConfirmModal({
-      open: true,
-      decisionId: d.id,
-      decisionName: d.name,
-      targetStatus: status,
-      deferredUntil: "",
-      createdAt: d.created_at,
-    });
+    if (status === "decided" || status === "deferred") {
+      setConfirmModal({ open: true, decision: d, targetStatus: status, deferredUntil: "" });
+      return;
+    }
+    void applyStatusChange(d, status);
   };
 
-  const confirmStatusChange = async () => {
-    if (!confirmModal.decisionId) return;
-    const updates: Record<string, string> = { status: confirmModal.targetStatus };
-
-    if (confirmModal.targetStatus === "decided") {
-      const now = new Date().toISOString();
-      updates.decided_at = now;
-      updates.time_to_decide = formatDuration(confirmModal.createdAt, now);
-    }
-
-    if (confirmModal.targetStatus === "deferred" && confirmModal.deferredUntil) {
-      updates.deferred_until = new Date(confirmModal.deferredUntil).toISOString();
-    }
-
-    const { error } = await supabase.from("decisions").update(updates).eq("id", confirmModal.decisionId);
-    if (error) {
-      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
-    } else {
+  const applyStatusChange = async (
+    d: DecisionRecord,
+    status: string,
+    deferredUntil?: string,
+  ) => {
+    try {
+      await updateStatusMutation.mutateAsync({
+        id: d.id,
+        status,
+        createdAt: d.created_at,
+        deferredUntil,
+      });
       const statusKey = {
         pending: "decisions.statusPending",
         decided: "decisions.statusDecided",
         deferred: "decisions.statusDeferred",
       } as const;
       toast({
-        title: `${t("decisions.statusUpdated")}: ${t(statusKey[confirmModal.targetStatus as keyof typeof statusKey])}`,
+        title: `${t("decisions.statusUpdated")}: ${t(statusKey[status as keyof typeof statusKey])}`,
+      });
+    } catch (e) {
+      toast({
+        title: t("toast.error"),
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
       });
     }
-    setConfirmModal({
-      open: false,
-      decisionId: null,
-      decisionName: "",
-      targetStatus: "",
-      deferredUntil: "",
-      createdAt: "",
-    });
-    loadDecisions();
   };
 
-  const openCount = decisions.filter((d) => d.status === "pending").length;
-  const decidedThisWeek = decisions.filter((d) => {
-    if (d.status !== "decided") return false;
-    const week = new Date();
-    week.setDate(week.getDate() - 7);
-    return new Date(d.created_at) > week;
-  }).length;
-
-  const statusLabels: Record<string, string> = {
-    pending: t("decisions.statusPending"),
-    decided: t("decisions.statusDecided"),
-    deferred: t("decisions.statusDeferred"),
+  const confirmStatusChange = async () => {
+    if (!confirmModal.decision) return;
+    await applyStatusChange(
+      confirmModal.decision,
+      confirmModal.targetStatus,
+      confirmModal.deferredUntil || undefined,
+    );
+    setConfirmModal({ open: false, decision: null, targetStatus: "", deferredUntil: "" });
   };
 
-  const formatShortDate = (iso: string) =>
-    new Date(iso).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
+  const filterPills: { id: FilterId; label: string }[] = [
+    { id: "all", label: t("decisions.filterAll") },
+    { id: "pending", label: t("decisions.filterPending") },
+    { id: "decided", label: t("decisions.filterDecided") },
+    { id: "deferred", label: t("decisions.filterDeferred") },
+  ];
+
+  const tabClass = (id: TabId) =>
+    cn(
+      "min-h-11 flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+      activeTab === id
+        ? "border-primary/35 bg-primary/10 text-primary"
+        : "border-border/40 bg-card/30 text-muted-foreground hover:border-primary/20",
+    );
+
+  if (isLoading && decisions.length === 0) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="size-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-8 pb-16 md:space-y-10">
-      <header className="space-y-4 border-b border-border/40 pb-6 md:pb-8">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1 space-y-2">
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              {t("decisions.cognitiveArchitecture")}
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-              {t("decisions.journalTitle")}
-            </h1>
-            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-              {t("decisions.pageSubtitle")}
-            </p>
-          </div>
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="size-11 shrink-0 rounded-xl md:hidden"
-            onClick={() => setShowForm(!showForm)}
-            aria-label={showForm ? t("general.cancel") : t("decisions.newDecision")}
-          >
-            {showForm ? <X className="size-5" aria-hidden /> : <Plus className="size-5" aria-hidden />}
-          </Button>
+    <div className="mx-auto w-full max-w-5xl space-y-6 pb-24 md:space-y-8 md:pb-16">
+      <header className="space-y-4 border-b border-border/30 pb-6">
+        <div className="space-y-1.5">
+          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70">
+            {t("decisions.cognitiveArchitecture")}
+          </p>
+          <h1 className="font-cormorant text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+            {t("decisions.journalTitle")}
+          </h1>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{t("decisions.pageSubtitle")}</p>
         </div>
-        <Button
-          type="button"
-          className="hidden w-full sm:w-auto md:inline-flex"
-          onClick={() => setShowForm(!showForm)}
-        >
-          {showForm ? (
-            <>
-              <X className="size-4" aria-hidden /> {t("general.cancel")}
-            </>
-          ) : (
-            <>
-              <Plus className="size-4" aria-hidden /> {t("decisions.newDecision")}
-            </>
-          )}
-        </Button>
+
+        <div className="flex gap-2" role="tablist" aria-label={t("decisions.journalTitle")}>
+          <button type="button" role="tab" aria-selected={activeTab === "dashboard"} className={tabClass("dashboard")} onClick={() => setActiveTab("dashboard")}>
+            {t("decisions.tabDashboard")}
+          </button>
+          <button type="button" role="tab" aria-selected={activeTab === "journal"} className={tabClass("journal")} onClick={() => setActiveTab("journal")}>
+            {t("decisions.tabJournal")}
+            {analytics.pendingCount > 0 && (
+              <span className="ml-1.5 inline-flex min-w-[1.25rem] justify-center rounded-full bg-warning/20 px-1.5 text-[10px] font-semibold text-warning">
+                {analytics.pendingCount}
+              </span>
+            )}
+          </button>
+        </div>
       </header>
 
-      <AnimatePresence mode="wait">
-        {showForm && (
-          <motion.form
-            key="decision-form"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            onSubmit={handleCreate}
-            className="ethereal-glass space-y-6 p-5 md:p-8"
-          >
-            <h2 className="text-base font-semibold text-foreground">{t("decisions.newFormSection")}</h2>
-            <div className="space-y-2">
-              <label htmlFor="decision-name" className={decisionLabelClass}>
-                {t("decisions.decisionName")}
-              </label>
-              <input
-                id="decision-name"
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-                placeholder={t("decisions.placeholder")}
-                className={decisionFieldClass}
-              />
-            </div>
-            <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-12">
-              <RadialSlider
-                value={form.priority}
-                onChange={(v) => setForm({ ...form, priority: v })}
-                min={0}
-                max={5}
-                step={0.1}
-                size={120}
-                label={t("decisions.priority")}
-                color="hsl(var(--neural-warm))"
-              />
-              <RadialSlider
-                value={form.responsibility}
-                onChange={(v) => setForm({ ...form, responsibility: v })}
-                min={0}
-                max={10}
-                step={0.1}
-                size={120}
-                label={t("decisions.weight")}
-                color="hsl(var(--primary))"
-              />
-            </div>
-            <Button type="submit" className="mx-auto w-full sm:w-auto">
-              <Save className="size-4" aria-hidden />
-              {t("general.save")}
-            </Button>
-          </motion.form>
-        )}
-      </AnimatePresence>
+      {activeTab === "dashboard" && (
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+          <DecisionDashboard
+            analytics={analytics}
+            locale={locale}
+            labels={{
+              total: t("decisions.totalDecisions"),
+              open: t("decisions.openDecisions"),
+              week: t("decisions.decidedThisWeek"),
+              deferred: t("decisions.deferredCount"),
+              chartStatus: t("decisions.chartStatus"),
+              chartWeekly: t("decisions.chartWeekly"),
+              chartPriority: t("decisions.chartPriority"),
+              avgResolution: t("decisions.avgResolution"),
+              oldestPending: t("decisions.oldestPending"),
+              emptyCharts: t("decisions.emptyCharts"),
+            }}
+          />
+        </motion.div>
+      )}
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" aria-label={t("decisions.cognitiveArchitecture")}>
-        <DecisionPageStat label={t("decisions.totalDecisions")} value={decisions.length} icon={Target} />
-        <DecisionPageStat label={t("decisions.openDecisions")} value={openCount} icon={Clock} />
-        <DecisionPageStat label={t("decisions.decidedThisWeek")} value={decidedThisWeek} icon={ArrowUpRight} />
-      </section>
-
-      <DecisionSection title={t("decisions.listSection")}>
-        {decisions.length === 0 ? (
-          <DecisionEmptyState icon={Target} title={t("decisions.noDecisions")} />
-        ) : (
-          <ul className="grid gap-4 md:gap-5">
-            {decisions.map((d, i) => (
-              <motion.li
-                key={d.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.4) }}
+      {activeTab === "journal" && (
+        <motion.div
+          className="space-y-5"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <AnimatePresence>
+            {showQuickForm && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
               >
-                <DecisionCard
-                  footer={
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {t("decisions.statusActions")}
-                      </p>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        {(["pending", "decided", "deferred"] as const).map((s) => (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => requestStatusChange(d, s)}
-                            aria-label={`${t("decisions.statusActions")}: ${statusLabels[s]}`}
-                            aria-pressed={d.status === s}
-                            className={cn(
-                              "min-h-11 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                              statusButtonClass(s, d.status === s),
-                            )}
-                          >
-                            {statusLabels[s]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  }
-                >
-                  <div className="space-y-4">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 flex-1 space-y-3">
+                <DecisionQuickForm
+                  onSubmit={handleQuickCreate}
+                  isPending={createMutation.isPending}
+                  labels={{
+                    title: t("decisions.quickAdd"),
+                    name: t("decisions.decisionName"),
+                    placeholder: t("decisions.placeholder"),
+                    priority: t("decisions.priority"),
+                    save: t("general.save"),
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="flex flex-wrap gap-2">
+            {filterPills.map((pill) => (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => setFilter(pill.id)}
+                aria-pressed={filter === pill.id}
+                className={cn(
+                  "min-h-10 rounded-full border px-3.5 py-2 font-display text-[10px] tracking-[0.14em] uppercase transition-colors",
+                  filter === pill.id
+                    ? "border-primary/35 bg-primary/10 text-primary"
+                    : "border-border/40 text-muted-foreground hover:border-primary/20",
+                )}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
+
+          <DecisionSection title={t("decisions.listSection")}>
+            {filtered.length === 0 ? (
+              <DecisionEmptyState icon={Target} title={t("decisions.noDecisions")} />
+            ) : (
+              <ul className="grid gap-3 md:gap-4">
+                {filtered.map((d, i) => (
+                  <motion.li
+                    key={d.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(i * 0.03, 0.25) }}
+                  >
+                    <DecisionCard
+                      footer={
+                        <div className="grid grid-cols-3 gap-2">
+                          {(["pending", "decided", "deferred"] as const).map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              disabled={updateStatusMutation.isPending}
+                              onClick={() => requestStatusChange(d, s)}
+                              aria-pressed={d.status === s}
+                              className={cn(
+                                "min-h-11 rounded-lg border px-2 py-2 text-xs font-medium transition-colors sm:text-sm",
+                                statusButtonClass(s, d.status === s),
+                              )}
+                            >
+                              {statusLabels[s]}
+                            </button>
+                          ))}
+                        </div>
+                      }
+                    >
+                      <div className="space-y-3">
                         <h3
                           className={cn(
-                            "text-base font-semibold leading-snug md:text-lg",
+                            "text-base font-semibold leading-snug",
                             d.status === "decided"
                               ? "text-muted-foreground/50 line-through"
                               : "text-foreground",
@@ -344,9 +320,6 @@ export default function DecisionLog() {
                           <DecisionMetaBadge>{formatShortDate(d.created_at)}</DecisionMetaBadge>
                           <DecisionMetaBadge className={priorityTone(d.priority)}>
                             {t("decisions.priority")} {d.priority}
-                          </DecisionMetaBadge>
-                          <DecisionMetaBadge variant="secondary">
-                            {t("decisions.weight")} {d.responsibility}/10
                           </DecisionMetaBadge>
                           {d.status === "decided" && d.time_to_decide ? (
                             <DecisionMetaBadge className="border-primary/30 bg-primary/5 text-primary">
@@ -362,22 +335,18 @@ export default function DecisionLog() {
                           ) : null}
                         </div>
                       </div>
-                      <div className="flex shrink-0 gap-6 sm:gap-8">
-                        <div className="text-center">
-                          <p className="text-lg font-semibold tabular-nums text-foreground">
-                            {d.time_to_decide || "—"}
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">{t("decisions.speed")}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </DecisionCard>
-              </motion.li>
-            ))}
-          </ul>
-        )}
-      </DecisionSection>
+                    </DecisionCard>
+                  </motion.li>
+                ))}
+              </ul>
+            )}
+          </DecisionSection>
+        </motion.div>
+      )}
+
+      {activeTab === "journal" && isMobile && !showQuickForm && (
+        <DecisionQuickAddFab onClick={() => setShowQuickForm(true)} label={t("decisions.newDecision")} />
+      )}
 
       <Dialog
         open={confirmModal.open}
@@ -385,7 +354,7 @@ export default function DecisionLog() {
           if (!open) setConfirmModal((m) => ({ ...m, open: false }));
         }}
       >
-        <DialogContent className="ethereal-glass border-border/30 sm:max-w-md">
+        <DialogContent className="glass-card border-border/30 sm:max-w-md">
           <DialogHeader className="space-y-2 text-left">
             <DialogTitle className="flex items-center gap-2 text-lg text-foreground">
               {confirmModal.targetStatus === "decided" ? (
@@ -393,35 +362,24 @@ export default function DecisionLog() {
                   <CheckCircle2 className="size-5 text-primary" aria-hidden />
                   {t("decisions.confirmDecision")}
                 </>
-              ) : confirmModal.targetStatus === "deferred" ? (
+              ) : (
                 <>
                   <CalendarClock className="size-5 text-neural-warm" aria-hidden />
                   {t("decisions.deferDecision")}
                 </>
-              ) : (
-                <>
-                  <AlertTriangle className="size-5 text-neural-warm" aria-hidden />
-                  {t("decisions.putBackPending")}
-                </>
               )}
             </DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed">{confirmModal.decisionName}</DialogDescription>
+            <DialogDescription className="text-sm leading-relaxed">
+              {confirmModal.decision?.name}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 py-2">
-            {confirmModal.targetStatus === "decided" && (
-              <div className="ethereal-glass space-y-1 p-5 text-center">
+            {confirmModal.targetStatus === "decided" && confirmModal.decision && (
+              <div className="glass-card space-y-1 border-0 p-5 text-center">
                 <p className="text-sm text-muted-foreground">{t("decisions.reflectionTime")}</p>
-                <p className="text-2xl font-semibold text-primary">
-                  {formatDuration(confirmModal.createdAt, new Date().toISOString())}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t("decisions.sinceDate", {
-                    date: new Date(confirmModal.createdAt).toLocaleDateString(dateLocale, {
-                      day: "numeric",
-                      month: "short",
-                    }),
-                  })}
+                <p className="font-cormorant text-3xl font-light text-primary">
+                  {formatDecisionDuration(confirmModal.decision.created_at, new Date().toISOString())}
                 </p>
               </div>
             )}
@@ -439,24 +397,16 @@ export default function DecisionLog() {
                   min={new Date().toISOString().split("T")[0]}
                   className={decisionFieldClass}
                 />
-                <p className="text-xs leading-relaxed text-muted-foreground">{t("decisions.deferHint")}</p>
+                <p className="text-xs text-muted-foreground">{t("decisions.deferHint")}</p>
               </div>
             )}
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setConfirmModal((m) => ({ ...m, open: false }))}
-              >
+              <Button type="button" variant="outline" onClick={() => setConfirmModal((m) => ({ ...m, open: false }))}>
                 {t("general.cancel")}
               </Button>
-              <Button type="button" onClick={confirmStatusChange}>
-                {confirmModal.targetStatus === "decided"
-                  ? t("general.confirm")
-                  : confirmModal.targetStatus === "deferred"
-                    ? t("decisions.defer")
-                    : t("general.confirm")}
+              <Button type="button" onClick={confirmStatusChange} disabled={updateStatusMutation.isPending}>
+                {t("general.confirm")}
               </Button>
             </div>
           </div>

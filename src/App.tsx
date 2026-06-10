@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +18,8 @@ import VisitorLayout from "./layouts/VisitorLayout";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Welcome = lazy(() => import("./pages/Welcome"));
+const Persona = lazy(() => import("./pages/Persona"));
 const MoodTracker = lazy(() => import("./pages/MoodTracker"));
 const DecisionLog = lazy(() => import("./pages/DecisionLog"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
@@ -90,14 +92,30 @@ function PageLoader() {
 /** Global boot overlay (auth + native cold/resume): also covers `/auth` before session is known. */
 function AuthBootGate({ children }: { children: React.ReactNode }) {
   const { bootScreenActive } = useAuth();
-  if (bootScreenActive) {
+  const [appReady, setAppReady] = useState(false);
+
+  useEffect(() => {
+    if (!bootScreenActive) setAppReady(true);
+  }, [bootScreenActive]);
+
+  if (!appReady && bootScreenActive) {
     return (
       <div className="relative z-[100] min-h-screen">
         <BootLoadingScreen />
       </div>
     );
   }
-  return <>{children}</>;
+
+  return (
+    <>
+      {children}
+      {bootScreenActive && (
+        <div className="fixed inset-0 z-[100]">
+          <BootLoadingScreen />
+        </div>
+      )}
+    </>
+  );
 }
 
 const App = () => (
@@ -207,6 +225,16 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/welcome"
+                  element={
+                    <ProtectedRoute>
+                      <Suspense fallback={<PageLoader />}>
+                        <Welcome />
+                      </Suspense>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/*"
                   element={
                     <ProtectedRoute>
@@ -214,6 +242,7 @@ const App = () => (
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
                             <Route path="/" element={<Dashboard />} />
+                            <Route path="/persona" element={<Persona />} />
                             <Route path="/mood" element={<MoodTracker />} />
                             <Route path="/decisions" element={<DecisionLog />} />
                             <Route path="/habits" element={<HabitTracker />} />

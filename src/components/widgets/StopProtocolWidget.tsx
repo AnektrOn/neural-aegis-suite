@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, ShieldAlert, ChevronRight, Check } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -6,6 +8,8 @@ import type { TranslationKey } from "@/i18n/translations";
 import type { Locale } from "@/i18n/translations";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { hslWithAlpha } from "@/components/widgets/VisualizationWidget";
+import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
+import { shouldTreatUnmountAsAbandon } from "@/lib/widget-lifecycle";
 
 export interface StopStepLegacy {
   title: string;
@@ -17,6 +21,8 @@ export interface StopStepLegacy {
 export interface StopProtocolConfig {
   mode?: "timed" | "manual";
   step_duration_sec?: number;
+  duration_sec?: number;
+  time_budget_mode?: boolean;
   /** Legacy admin format: “title — hint” */
   steps?: StopStepLegacy[];
 }
@@ -25,8 +31,9 @@ interface Props {
   config: StopProtocolConfig;
   title: string;
   hideTitle?: boolean;
-  onComplete?: () => void;
-  onAbandon?: () => void;
+  sessionKey?: string;
+  onComplete?: ToolboxOnComplete;
+  onAbandon?: ToolboxOnAbandon;
 }
 
 interface Step {
@@ -80,10 +87,18 @@ function normalizeSteps(
   return buildDefaultSteps(stepDuration, t);
 }
 
-export default function StopProtocolWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+function fmtTime(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+export default function StopProtocolWidget({ config, title, hideTitle, sessionKey, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const stepDuration = config.step_duration_sec ?? 30;
-  const mode = config.mode === "timed" ? "timed" : "manual";
+  const budgetMode = config.time_budget_mode === true && (config.duration_sec ?? 0) > 0;
+  const budgetSec = budgetMode ? Math.max(1, config.duration_sec ?? 1) : 0;
+  const mode = budgetMode ? "manual" : config.mode === "timed" ? "timed" : "manual";
   const steps = useMemo(() => normalizeSteps(config, t, locale as Locale), [config, t, locale]);
 
   const [isRunning, setIsRunning] = useState(false);
@@ -94,28 +109,68 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
   const hasStartedRef = useRef(false);
   const completedRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const markCompletedRef = useRef<() => void>(() => {});
+
+  const timer = usePersistedExerciseTimer({
+    sessionKey: budgetMode ? sessionKey : undefined,
+    totalSeconds: budgetSec,
+    onComplete: budgetMode ? () => markCompletedRef.current() : undefined,
+  });
 
   const currentStep = currentIdx >= 0 ? steps[currentIdx] : null;
   const started = currentIdx >= 0;
 
   useEffect(() => {
-    if (isRunning && !hasStartedRef.current) hasStartedRef.current = true;
-  }, [isRunning]);
+    if (isRunning || (budgetMode && (timer.isRunning || timer.elapsedSec > 0))) {
+      hasStartedRef.current = true;
+    }
+  }, [isRunning, budgetMode, timer.isRunning, timer.elapsedSec]);
+
+  const finishSession = useCallback(
+    (elapsedSec: number) => {
+      setIsRunning(false);
+      setCompleted(true);
+      completedRef.current = true;
+      timer.completedRef.current = true;
+      onComplete?.({
+        elapsedSec,
+        durationBudgetSec: budgetMode ? budgetSec : undefined,
+      });
+    },
+    [budgetMode, budgetSec, onComplete, timer.completedRef],
+  );
+
+  const markCompleted = useCallback(() => {
+    const elapsed = budgetMode ? timer.elapsedSec : Math.floor(
+      steps.slice(0, currentIdx + 1).reduce((s, st) => s + st.duration_sec, 0) +
+        phaseProgress * (currentStep?.duration_sec ?? stepDuration),
+    );
+    finishSession(elapsed);
+  }, [budgetMode, timer.elapsedSec, steps, currentIdx, phaseProgress, currentStep, stepDuration, finishSession]);
 
   useEffect(() => {
+    markCompletedRef.current = markCompleted;
+  }, [markCompleted]);
+
+  useWidgetAbandonGuard(hasStartedRef, completedRef, budgetMode ? undefined : onAbandon);
+
+  useEffect(() => {
+    if (!budgetMode) return;
     return () => {
-      if (hasStartedRef.current && !completedRef.current) onAbandon?.();
+      if (hasStartedRef.current && !completedRef.current && shouldTreatUnmountAsAbandon()) {
+        onAbandon?.({
+          elapsedSec: timer.elapsedSec,
+          durationBudgetSec: budgetSec,
+        });
+      }
     };
-  }, []);
+  }, [budgetMode, timer.elapsedSec, budgetSec, onAbandon]);
 
   const advance = useCallback(() => {
     const nextIdx = currentIdx + 1;
     if (nextIdx >= steps.length) {
       setCompletedSteps((prev) => new Set([...prev, currentIdx]));
-      setIsRunning(false);
-      setCompleted(true);
-      completedRef.current = true;
-      onComplete?.();
+      markCompleted();
     } else {
       if (currentIdx >= 0) {
         setCompletedSteps((prev) => new Set([...prev, currentIdx]));
@@ -123,10 +178,10 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
       setCurrentIdx(nextIdx);
       setPhaseProgress(0);
     }
-  }, [currentIdx, steps.length, onComplete]);
+  }, [currentIdx, steps.length, markCompleted]);
 
   useEffect(() => {
-    if (!isRunning || mode === "manual" || currentIdx < 0) {
+    if (budgetMode || !isRunning || mode === "manual" || currentIdx < 0) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       return;
     }
@@ -145,13 +200,17 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, currentIdx, mode, stepDuration, advance, steps]);
+  }, [budgetMode, isRunning, currentIdx, mode, stepDuration, advance, steps]);
 
   const start = () => {
     hasStartedRef.current = true;
     setCurrentIdx(0);
     setPhaseProgress(0);
-    if (mode === "timed") setIsRunning(true);
+    if (budgetMode) {
+      timer.setRunning(true);
+    } else if (mode === "timed") {
+      setIsRunning(true);
+    }
   };
 
   const reset = useCallback(() => {
@@ -162,18 +221,24 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
     setCompleted(false);
     completedRef.current = false;
     hasStartedRef.current = false;
+    if (budgetMode) timer.reset();
     if (intervalRef.current) clearInterval(intervalRef.current);
-  }, []);
+  }, [budgetMode, timer]);
 
   const remaining = currentStep ? Math.ceil(currentStep.duration_sec * (1 - phaseProgress)) : stepDuration;
 
-  const totalSeconds = Math.max(1, steps.reduce((s, st) => s + st.duration_sec, 0));
-  const elapsedSeconds =
-    (currentIdx >= 0 ? steps.slice(0, currentIdx).reduce((s, st) => s + st.duration_sec, 0) : 0) +
-    phaseProgress * (currentStep?.duration_sec ?? stepDuration);
+  const totalSeconds = budgetMode
+    ? budgetSec
+    : Math.max(1, steps.reduce((s, st) => s + st.duration_sec, 0));
+  const elapsedSeconds = budgetMode
+    ? timer.elapsedSec
+    : (currentIdx >= 0 ? steps.slice(0, currentIdx).reduce((s, st) => s + st.duration_sec, 0) : 0) +
+      phaseProgress * (currentStep?.duration_sec ?? stepDuration);
   const overallProgress = elapsedSeconds / totalSeconds;
 
   const totalMinRounded = Math.round(totalSeconds / 60);
+  const budgetRemaining = budgetMode ? Math.max(0, budgetSec - timer.elapsedSec) : 0;
+  const sessionDone = completed || completedRef.current || (budgetMode && timer.completed);
 
   return (
     <div className="flex flex-col items-center space-y-5 py-4">
@@ -187,7 +252,7 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
       <div className="flex items-center gap-3">
         {steps.map((step, i) => {
           const isDone = completedSteps.has(i);
-          const isActive = currentIdx === i && !completed;
+          const isActive = currentIdx === i && !sessionDone;
           return (
             <motion.div
               key={step.letter + String(i)}
@@ -223,7 +288,7 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
       </div>
 
       <AnimatePresence mode="wait">
-        {!started && !completed ? (
+        {!started && !sessionDone ? (
           <motion.div
             key="idle"
             initial={{ opacity: 0 }}
@@ -233,10 +298,12 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
           >
             <p className="text-sm text-muted-foreground">{t("toolbox.stopV2.idleTitle")}</p>
             <p className="text-xs text-muted-foreground/50">
-              {t("toolbox.stopV2.idleMeta", { n: steps.length, min: totalMinRounded })}
+              {budgetMode
+                ? t("toolbox.micro.totalBudget", { time: fmtTime(budgetSec) })
+                : t("toolbox.stopV2.idleMeta", { n: steps.length, min: totalMinRounded })}
             </p>
           </motion.div>
-        ) : completed ? (
+        ) : sessionDone ? (
           <motion.div
             key="done"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -245,6 +312,9 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
           >
             <p className="text-sm font-cinzel text-primary">{t("toolbox.stopV2.doneTitle")}</p>
             <p className="text-xs text-muted-foreground/60">{t("toolbox.stopV2.doneSubtitle")}</p>
+            {budgetMode && (
+              <p className="text-xs text-muted-foreground">{t("toolbox.micro.elapsed", { time: fmtTime(timer.elapsedSec) })}</p>
+            )}
           </motion.div>
         ) : currentStep ? (
           <motion.div
@@ -263,14 +333,19 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
               <span className="text-[9px] uppercase tracking-[0.2em] font-medium" style={{ color: currentStep.color }}>
                 {currentStep.subtitle}
               </span>
-              {mode === "timed" && (
+              {mode === "timed" && !budgetMode && (
                 <span className="ml-auto text-[10px] font-cinzel" style={{ color: currentStep.color }}>
                   {remaining}s
                 </span>
               )}
+              {budgetMode && (
+                <span className="ml-auto text-[10px] font-mono" style={{ color: currentStep.color }}>
+                  {fmtTime(budgetRemaining)}
+                </span>
+              )}
             </div>
             <p className="text-xs text-foreground/75 italic leading-relaxed">« {currentStep.instruction} »</p>
-            {mode === "timed" && (
+            {mode === "timed" && !budgetMode && (
               <div className="w-full h-0.5 rounded-full bg-white/5 overflow-hidden mt-2">
                 <motion.div
                   className="h-full rounded-full"
@@ -284,11 +359,15 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
         ) : null}
       </AnimatePresence>
 
-      {mode === "timed" && started && !completed && (
+      {(mode === "timed" || budgetMode) && started && !sessionDone && (
         <div className="w-full max-w-[260px] space-y-1">
           <div className="flex justify-between text-[9px] text-muted-foreground">
             <span>{t("toolbox.stopV2.stepOverall", { current: currentIdx + 1, total: steps.length })}</span>
-            <span>{t("toolbox.stopV2.secondsLeft", { n: Math.ceil(totalSeconds - elapsedSeconds) })}</span>
+            <span>
+              {budgetMode
+                ? t("toolbox.micro.totalBudgetShort", { time: fmtTime(budgetSec) })
+                : t("toolbox.stopV2.secondsLeft", { n: Math.ceil(totalSeconds - elapsedSeconds) })}
+            </span>
           </div>
           <div className="w-full h-1 rounded-full bg-secondary overflow-hidden">
             <motion.div
@@ -304,7 +383,7 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
       )}
 
       <div className="flex gap-3">
-        {!started && !completed ? (
+        {!started && !sessionDone ? (
           <button
             type="button"
             onClick={start}
@@ -318,7 +397,7 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
             <ShieldAlert size={14} />
             {t("toolbox.stopV2.startButton")}
           </button>
-        ) : completed ? (
+        ) : sessionDone ? (
           <button
             type="button"
             onClick={reset}
@@ -328,7 +407,20 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
           </button>
         ) : (
           <>
-            {mode === "timed" ? (
+            {budgetMode ? (
+              <button
+                type="button"
+                onClick={() => timer.toggleRunning()}
+                className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors hover:opacity-90"
+                style={{
+                  borderColor: currentStep ? hslWithAlpha(currentStep.color, 0.4) : undefined,
+                  backgroundColor: currentStep ? hslWithAlpha(currentStep.color, 0.1) : undefined,
+                  color: currentStep?.color,
+                }}
+              >
+                {timer.isRunning ? <Pause size={18} /> : <Play size={18} />}
+              </button>
+            ) : mode === "timed" ? (
               <button
                 type="button"
                 onClick={() => setIsRunning(!isRunning)}
@@ -342,6 +434,21 @@ export default function StopProtocolWidget({ config, title, hideTitle, onComplet
                 {isRunning ? <Pause size={18} /> : <Play size={18} />}
               </button>
             ) : (
+              <button
+                type="button"
+                onClick={advance}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95 border"
+                style={{
+                  borderColor: currentStep ? hslWithAlpha(currentStep.color, 0.4) : undefined,
+                  backgroundColor: currentStep ? hslWithAlpha(currentStep.color, 0.1) : undefined,
+                  color: currentStep?.color,
+                }}
+              >
+                {currentIdx === steps.length - 1 ? t("toolbox.stopV2.finishStep") : t("toolbox.stopV2.nextStep")}
+                <ChevronRight size={14} />
+              </button>
+            )}
+            {(budgetMode || mode === "manual") && (
               <button
                 type="button"
                 onClick={advance}

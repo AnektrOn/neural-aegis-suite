@@ -268,7 +268,7 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
           .order("started_at", { ascending: false }),
         supabase
           .from("toolbox_completions" as never)
-          .select("status, completed_at, assignment_id")
+          .select("status, completed_at, assignment_id, elapsed_sec, duration_budget_min")
           .eq("user_id", selectedUserId)
           .gte("completed_at", sinceIso),
         supabase
@@ -454,15 +454,31 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
         status: "completed" | "abandoned" | "ignored";
         completed_at: string;
         assignment_id: string;
+        elapsed_sec: number | null;
+        duration_budget_min: number | null;
       }[]).forEach((row, idx) => {
         if (row.status === "ignored") return;
         const isCompleted = row.status === "completed";
+        const elapsedMin =
+          row.elapsed_sec != null && row.elapsed_sec > 0
+            ? Math.max(1, Math.round(row.elapsed_sec / 60))
+            : null;
         built.push({
           id: `tool-${idx}-${row.completed_at}`,
           timestamp: row.completed_at,
           type: isCompleted ? "tool_completed" : "tool_abandoned",
           title: assignmentTitleById.get(row.assignment_id) || t("admin.timeline.toolDefault"),
-          subtitle: isCompleted ? t("admin.timeline.toolCompleted") : t("admin.timeline.toolAbandoned"),
+          subtitle: isCompleted
+            ? elapsedMin != null
+              ? t("admin.timeline.toolCompletedElapsed", { min: elapsedMin })
+              : t("admin.timeline.toolCompleted")
+            : elapsedMin != null
+              ? t("admin.timeline.toolAbandonedElapsed", { min: elapsedMin })
+              : t("admin.timeline.toolAbandoned"),
+          metadata: {
+            elapsed_sec: row.elapsed_sec,
+            duration_budget_min: row.duration_budget_min,
+          },
         });
       });
 

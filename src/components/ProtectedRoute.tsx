@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
+
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
@@ -47,6 +49,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         onComplete={() => {
           localStorage.setItem(`aegis_onboarded_${user.id}`, "true");
           setShowOnboarding(false);
+          navigate("/welcome", { replace: true });
         }}
       />
     );

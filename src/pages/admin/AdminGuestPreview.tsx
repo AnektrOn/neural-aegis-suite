@@ -10,6 +10,7 @@ import {
   Loader2,
   Trash2,
   AlertTriangle,
+  History,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -19,8 +20,18 @@ import {
   createSession,
   submitSession,
   getLatestSubmittedSessionForUser,
+  deleteAdminGuestPreviewSessions,
+  tryRecoverUserAssessment,
+  restoreFromSnapshotId,
+  getRecoveryDiagnostics,
+  isPollutedAssessmentTriad,
+  sessionMatchesPreferredTriad,
+  type RecoveryDiagnostics,
+  SESSION_SOURCE_ADMIN_GUEST_PREVIEW,
   archetypeMeta,
 } from "@/features/archetype-assessment/services/assessmentService";
+import { getSnapshotHistory } from "@/features/archetype-assessment/services/snapshotService";
+import type { ArchetypeProfileSnapshot } from "@/features/archetype-assessment/services/snapshotService";
 import type { ResponseValue, RuntimeQuestion } from "@/features/archetype-assessment/domain/types";
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,11 +97,26 @@ export default function AdminGuestPreview() {
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [fastQuizLoading, setFastQuizLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [snapshots, setSnapshots] = useState<ArchetypeProfileSnapshot[]>([]);
+  const [realProfileMissing, setRealProfileMissing] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<RecoveryDiagnostics | null>(null);
+  const TARGET_TRIAD = ["mystic", "sage", "healer"] as const;
 
   const checkQuizStatus = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const session = await getLatestSubmittedSessionForUser(user.id);
+      const [realSession, history] = await Promise.all([
+        getLatestSubmittedSessionForUser(user.id),
+        getSnapshotHistory(user.id),
+      ]);
+      setSnapshots(history);
+      setRealProfileMissing(!realSession);
+      setDiagnostics(await getRecoveryDiagnostics(user.id));
+
+      const session = await getLatestSubmittedSessionForUser(user.id, {
+        includePreviewSessions: true,
+      });
       if (!session) {
         setQuizDone(false);
         setTopArchetype(null);
@@ -126,7 +152,9 @@ export default function AdminGuestPreview() {
     try {
       const loaded = await loadGuestQuizTemplate();
       const responses = generateAutoResponses(loaded.questions);
-      const sessionId = await createSession(user.id, loaded.template.id);
+      const sessionId = await createSession(user.id, loaded.template.id, {
+        source: SESSION_SOURCE_ADMIN_GUEST_PREVIEW,
+      });
       await submitSession({
         userId: user.id,
         sessionId,
@@ -155,33 +183,14 @@ export default function AdminGuestPreview() {
     if (!user?.id) return;
     setResetLoading(true);
     try {
-      const { data: sessions } = await supabase
-        .from("assessment_sessions" as never)
-        .select("id" as never)
-        .eq("user_id" as never, user.id as never);
-
-      const sessionIds = ((sessions as { id: string }[]) ?? []).map((s) => s.id);
-      if (sessionIds.length > 0) {
-        await supabase
-          .from("assessment_responses" as never)
-          .delete()
-          .in("session_id" as never, sessionIds as never);
-        await supabase
-          .from("archetype_scores" as never)
-          .delete()
-          .in("session_id" as never, sessionIds as never);
-        await supabase
-          .from("analysis_results" as never)
-          .delete()
-          .in("session_id" as never, sessionIds as never);
-        await supabase
-          .from("recommendation_tools" as never)
-          .delete()
-          .in("session_id" as never, sessionIds as never);
-        await supabase
-          .from("assessment_sessions" as never)
-          .delete()
-          .eq("user_id" as never, user.id as never);
+      const deleted = await deleteAdminGuestPreviewSessions(user.id);
+      if (deleted === 0) {
+        toast({
+          title: t("admin.guest.reset.none"),
+          description: t("admin.guest.reset.noneDesc"),
+        });
+        await checkQuizStatus();
+        return;
       }
 
       toast({
@@ -201,6 +210,70 @@ export default function AdminGuestPreview() {
     }
   }, [user?.id, checkQuizStatus, toast, t]);
 
+  const handleRestoreProfile = useCallback(async () => {
+    if (!user?.id) return;
+    setRestoreLoading(true);
+    try {
+      const sessionId = await tryRecoverUserAssessment(user.id, {
+        preferredTriad: ["mystic", "sage", "healer"],
+      });
+      if (!sessionId) {
+        const diag = await getRecoveryDiagnostics(user.id);
+        setDiagnostics(diag);
+        const detail = diag.snapshots.length
+          ? `${t("admin.guest.restore.noneDesc")} (${diag.snapshots.length} snapshots, ${diag.deepdiveResponseCount} deepdive)`
+          : t("admin.guest.restore.noneDesc");
+        toast({
+          title: t("admin.guest.restore.none"),
+          description: detail,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: t("admin.guest.restore.success"),
+        description: t("admin.guest.restore.successDesc"),
+      });
+      await checkQuizStatus();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast({
+        title: t("toast.error"),
+        description: msg,
+        variant: "destructive",
+      });
+    } finally {
+      setRestoreLoading(false);
+    }
+  }, [user?.id, checkQuizStatus, toast, t]);
+
+  const handleRestoreSnapshot = useCallback(
+    async (snapshotId: string) => {
+      if (!user?.id) return;
+      setRestoreLoading(true);
+      try {
+        await restoreFromSnapshotId(user.id, snapshotId);
+        toast({
+          title: t("admin.guest.restore.success"),
+          description: t("admin.guest.restore.successDesc"),
+        });
+        await checkQuizStatus();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast({ title: t("toast.error"), description: msg, variant: "destructive" });
+      } finally {
+        setRestoreLoading(false);
+      }
+    },
+    [user?.id, checkQuizStatus, toast, t],
+  );
+
+  const needsRecovery =
+    diagnostics &&
+    (!sessionMatchesPreferredTriad(diagnostics.currentTopTriad, [...TARGET_TRIAD]) ||
+      isPollutedAssessmentTriad(diagnostics.currentTopTriad) ||
+      realProfileMissing);
+
   return (
     <div className="space-y-8 max-w-3xl">
       <header className="space-y-1">
@@ -212,6 +285,67 @@ export default function AdminGuestPreview() {
           {t("admin.guest.description")}
         </p>
       </header>
+
+      {needsRecovery && (
+        <div className="dashboard-panel p-4 sm:p-5 space-y-3 border border-amber-400/30 bg-amber-400/5">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={16} className="text-amber-400 mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">{t("admin.guest.restore.banner")}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t("admin.guest.restore.bannerDesc")}
+              </p>
+              {diagnostics && (
+                <p className="text-xs font-mono text-amber-200/90 mt-2">
+                  {t("admin.guest.restore.current")}:{" "}
+                  {diagnostics.currentTopTriad.join(" / ") || "—"} · snapshots:{" "}
+                  {diagnostics.snapshotCount} · deepdive: {diagnostics.deepdiveResponseCount}
+                </p>
+              )}
+            </div>
+          </div>
+          {snapshots.length > 0 ? (
+            <ul className="text-xs text-muted-foreground space-y-2 pl-1">
+              {snapshots.map((s) => {
+                const top = s.top_archetypes.map((a) => a.key).join(" / ");
+                const isTarget = top.includes("mystic") && top.includes("sage") && top.includes("healer");
+                return (
+                  <li key={s.id} className="flex flex-wrap items-center gap-2">
+                    <span>
+                      v{s.snapshot_version} —{" "}
+                      {new Date(s.computed_at).toLocaleString(isFR ? "fr-FR" : "en-US")} — {top}
+                      {isTarget ? " ✓" : ""}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={restoreLoading}
+                      onClick={() => void handleRestoreSnapshot(s.id)}
+                      className="text-[10px] uppercase tracking-wider text-accent-primary hover:underline disabled:opacity-50"
+                    >
+                      {t("admin.guest.restore.pick")}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-xs text-destructive">{t("admin.guest.restore.noSnapshots")}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => void handleRestoreProfile()}
+            disabled={restoreLoading}
+            className="dashboard-cta px-4 py-2.5 font-barlow text-[11px] uppercase tracking-[0.12em] flex items-center gap-2 disabled:opacity-50"
+          >
+            {restoreLoading ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <History size={13} />
+            )}
+            {t("admin.guest.restore.cta")}
+          </button>
+        </div>
+      )}
 
       {/* Quiz status */}
       <div className="dashboard-panel p-4 sm:p-5 space-y-4">
