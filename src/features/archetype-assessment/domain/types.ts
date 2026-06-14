@@ -58,6 +58,17 @@ export type ShadowKey =
   | "saboteur"
   | "prostitute";
 
+/** Major or survival archetype key used in T1 polarity scoring vectors. */
+export type AnyArchetypeKey = ArchetypeKey | ShadowKey;
+
+export type Polarity = "light" | "shadow";
+
+export interface PolarityWeight {
+  archetype: AnyArchetypeKey;
+  polarity: Polarity;
+  weight: number;
+}
+
 export type QuestionType =
   | "single_choice"
   | "multiple_choice"
@@ -95,6 +106,8 @@ export interface OptionSeed {
   label_en: string;
   archetypeWeights?: Partial<Record<ArchetypeKey, number>>;
   shadowWeights?: Partial<Record<ShadowKey, number>>;
+  /** T1 Caroline Myss vectors: e.g. sovereign/light +1, creator/shadow +0.75 */
+  polarityWeights?: PolarityWeight[];
   value?: number;
 }
 
@@ -154,6 +167,8 @@ export interface RecommendationRule {
 export interface ResponseValue {
   questionId: string;
   selectedOptionIds?: string[];
+  /** Per-option intensity multiplier (1–3) for weighted multiple choice (T1). */
+  optionIntensities?: Record<string, number>;
   numericValue?: number;
   textValue?: string;
 }
@@ -165,6 +180,7 @@ export interface RuntimeOption {
   label_en: string;
   archetype_weights: Partial<Record<ArchetypeKey, number>>;
   shadow_weights: Partial<Record<ShadowKey, number>>;
+  polarity_weights: PolarityWeight[];
   value: number | null;
 }
 

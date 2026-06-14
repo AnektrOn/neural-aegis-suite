@@ -5,11 +5,18 @@
  */
 
 import { ARCHETYPES, ARCHETYPE_KEYS, getArchetype } from "./archetypes";
+import {
+  accumulateMorphicField,
+  deriveLegacyScoresNormalized,
+  polarityWeightsFromLegacy,
+  type MorphicField,
+} from "./morphicField";
 import type {
   AnalysisResult,
   ArchetypeKey,
   DimensionKey,
   ResponseValue,
+  RuntimeOption,
   RuntimeQuestion,
   ShadowKey,
 } from "./types";
@@ -40,6 +47,44 @@ function emptyShadowMap(): Record<ShadowKey, number> {
   }, {} as Record<ShadowKey, number>);
 }
 
+function optionPolarityWeights(opt: RuntimeOption) {
+  return opt.polarity_weights?.length > 0
+    ? opt.polarity_weights
+    : polarityWeightsFromLegacy(opt.archetype_weights, opt.shadow_weights);
+}
+
+function applyOptionWeights(
+  opt: RuntimeOption,
+  multiplier: number,
+  field: MorphicField,
+): void {
+  const weights = optionPolarityWeights(opt);
+  if (weights.length > 0) {
+    accumulateMorphicField(weights, multiplier, field);
+    return;
+  }
+  for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
+    accumulateMorphicField(
+      [{ archetype: k as ArchetypeKey, polarity: "light", weight: Number(v) || 0 }],
+      multiplier,
+      field,
+    );
+  }
+  for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
+    accumulateMorphicField(
+      [{ archetype: k as ShadowKey, polarity: "shadow", weight: Number(v) || 0 }],
+      multiplier,
+      field,
+    );
+  }
+}
+
+function intensityForOption(response: ResponseValue, optionId: string): number {
+  const raw = response.optionIntensities?.[optionId];
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return 1;
+  return Math.min(3, Math.max(1, Math.round(raw)));
+}
+
 /* -------------------------------------------------------------------------- */
 /* computeRawScores                                                           */
 /* -------------------------------------------------------------------------- */
@@ -48,10 +93,10 @@ export function computeRawScores(
   responses: ResponseValue[]
 ): {
   archetypeScores: Record<ArchetypeKey, number>;
+  archetypeScoresRaw: Record<ArchetypeKey, number>;
   shadowSignals: Record<ShadowKey, number>;
 } {
-  const archetypeScores = emptyArchetypeMap();
-  const shadowSignals = emptyShadowMap();
+  const field: MorphicField = {};
 
   const responsesByQ = new Map<string, ResponseValue>(
     responses.map((r) => [r.questionId, r])
@@ -64,36 +109,25 @@ export function computeRawScores(
     if (q.question_type === "single_choice" || q.question_type === "multiple_choice") {
       const selected = q.options.filter((o) => r.selectedOptionIds?.includes(o.id));
       for (const opt of selected) {
-        for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
-          archetypeScores[k as ArchetypeKey] += Number(v) || 0;
-        }
-        for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
-          shadowSignals[k as ShadowKey] += Number(v) || 0;
-        }
+        applyOptionWeights(opt, intensityForOption(r, opt.id), field);
       }
     } else if (q.question_type === "likert_scale") {
       const opt = q.options.find((o) => r.selectedOptionIds?.includes(o.id));
       if (opt) {
-        for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
-          shadowSignals[k as ShadowKey] += Number(v) || 0;
-        }
+        applyOptionWeights(opt, 1, field);
       }
     } else if (q.question_type === "ranking") {
-      // selectedOptionIds is the ranked order, index 0 = rank 1 (strongest)
       const ordered = r.selectedOptionIds ?? [];
       ordered.forEach((optId, idx) => {
         const opt = q.options.find((o) => o.id === optId);
         if (!opt) return;
-        const rankWeight = Math.max(0, ordered.length - idx); // top gets full weight
-        for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
-          archetypeScores[k as ArchetypeKey] += (Number(v) || 0) * rankWeight;
-        }
+        const rankWeight = Math.max(0, ordered.length - idx);
+        applyOptionWeights(opt, rankWeight, field);
       });
     }
-    // short_text: no scoring contribution
   }
 
-  return { archetypeScores, shadowSignals };
+  return deriveLegacyScoresNormalized(field);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -102,10 +136,14 @@ export function computeRawScores(
 export function normalizeScores(
   scores: Record<string, number>
 ): Record<string, number> {
-  const total = Object.values(scores).reduce((s, v) => s + (Number(v) || 0), 0);
+  const positiveTotal = Object.values(scores).reduce(
+    (s, v) => s + Math.max(0, Number(v) || 0),
+    0,
+  );
   const out: Record<string, number> = {};
   for (const k of Object.keys(scores)) {
-    out[k] = total > 0 ? (scores[k] / total) * 100 : 0;
+    const raw = Number(scores[k]) || 0;
+    out[k] = positiveTotal > 0 ? (Math.max(0, raw) / positiveTotal) * 100 : 0;
   }
   return out;
 }
@@ -211,7 +249,7 @@ export function detectShadowSignals(
   const SAT = 6;
   const out = emptyShadowMap();
   for (const k of SHADOW_KEYS) {
-    out[k] = Math.min(1, (raw[k] ?? 0) / SAT);
+    out[k] = Math.min(1, Math.max(0, raw[k] ?? 0) / SAT);
   }
   return out;
 }
@@ -223,11 +261,11 @@ export function buildAnalysisResult(
   questions: RuntimeQuestion[],
   responses: ResponseValue[]
 ): AnalysisResult {
-  const { archetypeScores: raw, shadowSignals: rawShadow } = computeRawScores(
-    questions,
-    responses
-  );
-  const normalized = normalizeScores(raw) as Record<ArchetypeKey, number>;
+  const {
+    archetypeScores: normalized,
+    archetypeScoresRaw: raw,
+    shadowSignals: rawShadow,
+  } = computeRawScores(questions, responses);
   const ranked = rankArchetypes(normalized);
   const top = ranked.slice(0, 3).map((r) => r.key);
 

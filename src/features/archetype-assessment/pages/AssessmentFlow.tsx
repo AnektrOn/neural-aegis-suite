@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
@@ -24,7 +23,9 @@ import {
 } from "lucide-react";
 import {
   loadActiveTemplate,
-  createSession,
+  ensureAssessmentSession,
+  persistAssessmentSessionId,
+  readPersistedAssessmentSessionId,
   submitSession,
   submitAppendixResponses,
 } from "../services/assessmentService";
@@ -33,6 +34,7 @@ import { useAssessmentSession } from "../hooks/useAssessmentSession";
 import type { LoadedTemplate } from "../services/assessmentService";
 import type { ResponseValue, RuntimeQuestion } from "../domain/types";
 import { MiniRadarThumb } from "../components/MiniRadarThumb";
+import { IntensityMultipleChoice } from "../components/IntensityMultipleChoice";
 import { useAdmin } from "@/hooks/use-admin";
 import {
   loadAppendix,
@@ -87,13 +89,29 @@ export default function AssessmentFlow() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!user || sessionId) return;
+    const stored = readPersistedAssessmentSessionId(user.id);
+    if (stored) setSessionId(stored);
+  }, [user, sessionId]);
+
   const session = useAssessmentSession({ questions: loaded?.questions ?? [] });
 
   const handleStart = async () => {
-    if (!user || !loaded) return;
+    if (!user || !loaded) {
+      toast({
+        title: isFR ? "Erreur" : "Error",
+        description: isFR
+          ? "Le questionnaire n'est pas encore chargé."
+          : "The questionnaire is not loaded yet.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
-      const sid = await createSession(user.id, loaded.template.id);
+      const sid = await ensureAssessmentSession(user.id, loaded.template.id, sessionId);
       setSessionId(sid);
+      persistAssessmentSessionId(user.id, sid);
       session.goToQuestions();
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
@@ -101,18 +119,35 @@ export default function AssessmentFlow() {
   };
 
   const handleSubmit = async () => {
-    if (!user || !sessionId || !loaded) return;
+    if (!user || !loaded) {
+      toast({
+        title: isFR ? "Erreur" : "Error",
+        description: isFR
+          ? "Session ou questionnaire manquant. Rechargez la page."
+          : "Missing session or questionnaire. Please reload the page.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSubmitting(true);
     try {
+      const sid = await ensureAssessmentSession(user.id, loaded.template.id, sessionId);
+      if (sid !== sessionId) setSessionId(sid);
+
       await submitSession({
         userId: user.id,
-        sessionId,
+        sessionId: sid,
         questions: loaded.questions,
         responses: session.responsesArray,
         startedAt: session.startedAt,
       });
-      // Move to Phase 2 hub instead of jumping straight to results
-      setStage("phase2-hub");
+      toast({
+        title: isFR ? "Évaluation enregistrée" : "Assessment saved",
+        description: isFR
+          ? "Vos archétypes dominants sont prêts."
+          : "Your dominant archetypes are ready.",
+      });
+      navigate("/onboarding/results", { replace: true });
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     } finally {
@@ -441,6 +476,13 @@ export default function AssessmentFlow() {
                 );
               })}
             </div>
+            {!session.requiredAnswered ? (
+              <p className="text-sm text-amber-600 dark:text-amber-500 mb-4">
+                {isFR
+                  ? `${session.responsesArray.length} / ${session.totalQuestions} questions complétées — répondez à toutes les questions pour soumettre.`
+                  : `${session.responsesArray.length} / ${session.totalQuestions} questions completed — answer every question to submit.`}
+              </p>
+            ) : null}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 variant="ghost"
@@ -631,6 +673,7 @@ function appendixToRuntime(q: AppendixQuestion): RuntimeQuestion {
       label_en: o.label_en,
       archetype_weights: (o as any).archetype_weights ?? {},
       shadow_weights: (o as any).shadow_weights ?? {},
+      polarity_weights: (o as any).polarity_weights ?? [],
       value: o.value,
     })),
   };
@@ -682,7 +725,7 @@ function QuestionRenderer({
       )}
 
       {question.question_type === "multiple_choice" && (
-        <MultipleChoice question={question} value={value} onChange={onChange} isFR={isFR} />
+        <IntensityMultipleChoice question={question} value={value} onChange={onChange} isFR={isFR} />
       )}
 
       {question.question_type === "likert_scale" && (
@@ -704,51 +747,6 @@ function QuestionRenderer({
           rows={4}
         />
       )}
-    </div>
-  );
-}
-
-function MultipleChoice({
-  question,
-  value,
-  onChange,
-  isFR,
-}: {
-  question: RuntimeQuestion;
-  value?: ResponseValue;
-  onChange: (v: ResponseValue) => void;
-  isFR: boolean;
-}) {
-  const max = (question.meta as any)?.maxSelect ?? question.options.length;
-  const selected = value?.selectedOptionIds ?? [];
-  const toggle = (id: string) => {
-    let next: string[];
-    if (selected.includes(id)) {
-      next = selected.filter((x) => x !== id);
-    } else {
-      if (selected.length >= max) return;
-      next = [...selected, id];
-    }
-    onChange({ questionId: question.id, selectedOptionIds: next });
-  };
-  return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">
-        {isFR ? `Sélection max : ${max}` : `Max select: ${max}`}
-      </p>
-      {question.options.map((o) => (
-        <Label
-          key={o.id}
-          className="flex items-start gap-3 p-3 rounded-lg border border-border/40 hover:bg-accent/20 cursor-pointer"
-        >
-          <Checkbox
-            checked={selected.includes(o.id)}
-            onCheckedChange={() => toggle(o.id)}
-            className="mt-0.5"
-          />
-          <span className="text-sm">{isFR ? o.label_fr : o.label_en}</span>
-        </Label>
-      ))}
     </div>
   );
 }

@@ -8,17 +8,19 @@ import {
   buildAnalysisResult,
 } from "../domain/scoringEngine";
 import { selectTopTools, matchTools } from "../domain/recommendationEngine";
+import { ARCHETYPE_KEYS } from "../domain/archetypes";
 import type { ResponseValue, RuntimeOption, RuntimeQuestion } from "../domain/types";
 
 function opt(
   id: string,
   arch: Record<string, number> = {},
   shadow: Record<string, number> = {},
-  value: number | null = null
+  value: number | null = null,
+  polarity_weights: RuntimeOption["polarity_weights"] = [],
 ): RuntimeOption {
   return {
     id, position: 0, label_fr: id, label_en: id,
-    archetype_weights: arch, shadow_weights: shadow, value,
+    archetype_weights: arch, shadow_weights: shadow, polarity_weights, value,
   };
 }
 
@@ -35,33 +37,64 @@ function q(
   };
 }
 
+function sumArchetypePercentages(scores: Record<string, number>): number {
+  return ARCHETYPE_KEYS.reduce((s, k) => s + (scores[k] ?? 0), 0);
+}
+
 describe("computeRawScores", () => {
-  it("aggregates archetype weights from selected single_choice options", () => {
+  it("returns relative percentages for a single major activation", () => {
     const questions = [q("q1", "single_choice", [opt("o1", { sovereign: 3, caregiver: 1 }), opt("o2", { rebel: 2 })])];
     const responses: ResponseValue[] = [{ questionId: "q1", selectedOptionIds: ["o1"] }];
-    const { archetypeScores } = computeRawScores(questions, responses);
-    expect(archetypeScores.sovereign).toBe(3);
-    expect(archetypeScores.caregiver).toBe(1);
+    const { archetypeScores, archetypeScoresRaw } = computeRawScores(questions, responses);
+    expect(archetypeScoresRaw.sovereign).toBe(3);
+    expect(archetypeScoresRaw.caregiver).toBe(1);
+    expect(archetypeScores.sovereign).toBeCloseTo(75);
+    expect(archetypeScores.caregiver).toBeCloseTo(25);
     expect(archetypeScores.rebel).toBe(0);
+    expect(sumArchetypePercentages(archetypeScores)).toBeCloseTo(100);
   });
 
-  it("sums weights across multiple_choice selections", () => {
+  it("sums weights across multiple_choice selections as relative %", () => {
     const questions = [q("q1", "multiple_choice", [
       opt("o1", { sovereign: 2 }), opt("o2", { sovereign: 1, caregiver: 2 }), opt("o3", { rebel: 5 }),
     ])];
     const responses: ResponseValue[] = [{ questionId: "q1", selectedOptionIds: ["o1", "o2"] }];
     const { archetypeScores } = computeRawScores(questions, responses);
-    expect(archetypeScores.sovereign).toBe(3);
-    expect(archetypeScores.caregiver).toBe(2);
+    expect(archetypeScores.sovereign).toBeCloseTo(60);
+    expect(archetypeScores.caregiver).toBeCloseTo(40);
     expect(archetypeScores.rebel).toBe(0);
+    expect(sumArchetypePercentages(archetypeScores)).toBeCloseTo(100);
   });
 
-  it("collects shadow signals from selected options", () => {
+  it("applies V3 morphic scoring with per-option intensity", () => {
+    const questions = [q("q1", "multiple_choice", [
+      opt("o1", {}, {}, null, [
+        { archetype: "sage", polarity: "light", weight: 1 },
+        { archetype: "victim", polarity: "shadow", weight: 0.5 },
+      ]),
+      opt("o2", {}, {}, null, [
+        { archetype: "sovereign", polarity: "light", weight: 1 },
+        { archetype: "victim", polarity: "shadow", weight: 1 },
+      ]),
+    ])];
+    const responses: ResponseValue[] = [{
+      questionId: "q1",
+      selectedOptionIds: ["o1", "o2"],
+      optionIntensities: { o1: 3, o2: 2 },
+    }];
+    const { archetypeScores, shadowSignals } = computeRawScores(questions, responses);
+    expect(archetypeScores.sage).toBeCloseTo(60);
+    expect(archetypeScores.sovereign).toBeCloseTo(40);
+    expect(shadowSignals.victim).toBeCloseTo((1.5 + 2) / 1.5);
+    expect(sumArchetypePercentages(archetypeScores)).toBeCloseTo(100);
+  });
+
+  it("computes net survival shadow with /1.5 correction factor", () => {
     const questions = [q("q1", "single_choice", [opt("o1", {}, { child: 2, saboteur: 1 })])];
     const responses: ResponseValue[] = [{ questionId: "q1", selectedOptionIds: ["o1"] }];
     const { shadowSignals } = computeRawScores(questions, responses);
-    expect(shadowSignals.child).toBe(2);
-    expect(shadowSignals.saboteur).toBe(1);
+    expect(shadowSignals.child).toBeCloseTo(2 / 1.5);
+    expect(shadowSignals.saboteur).toBeCloseTo(1 / 1.5);
   });
 
   it("applies decreasing rank weight for ranking questions", () => {
@@ -69,11 +102,13 @@ describe("computeRawScores", () => {
       opt("a", { sovereign: 1 }), opt("b", { rebel: 1 }), opt("c", { creator: 1 }), opt("d", { healer: 1 }),
     ])];
     const responses: ResponseValue[] = [{ questionId: "q1", selectedOptionIds: ["a", "b", "c", "d"] }];
-    const { archetypeScores } = computeRawScores(questions, responses);
-    expect(archetypeScores.sovereign).toBe(4);
-    expect(archetypeScores.rebel).toBe(3);
-    expect(archetypeScores.creator).toBe(2);
-    expect(archetypeScores.healer).toBe(1);
+    const { archetypeScores, archetypeScoresRaw } = computeRawScores(questions, responses);
+    expect(archetypeScoresRaw.sovereign).toBe(4);
+    expect(archetypeScoresRaw.rebel).toBe(3);
+    expect(archetypeScoresRaw.creator).toBe(2);
+    expect(archetypeScoresRaw.healer).toBe(1);
+    expect(archetypeScores.sovereign).toBeCloseTo(40);
+    expect(sumArchetypePercentages(archetypeScores)).toBeCloseTo(100);
   });
 
   it("ignores unanswered questions", () => {
@@ -157,6 +192,7 @@ describe("buildAnalysisResult", () => {
     expect(result.topArchetypes).toHaveLength(3);
     expect(result.topArchetypes[0]).toBe("sovereign");
     expect(result.topArchetypes).toContain("magician");
+    expect(sumArchetypePercentages(result.normalizedScores)).toBeCloseTo(100);
     expect(result.summary_fr.length).toBeGreaterThan(10);
     expect(result.summary_en.length).toBeGreaterThan(10);
     expect(result.strengths_fr).toHaveLength(3);
@@ -166,6 +202,7 @@ describe("buildAnalysisResult", () => {
     const result = buildAnalysisResult([], []);
     expect(result.topArchetypes.length).toBeGreaterThan(0);
     expect(result.normalizedScores.sovereign).toBe(0);
+    expect(sumArchetypePercentages(result.normalizedScores)).toBe(0);
   });
 });
 

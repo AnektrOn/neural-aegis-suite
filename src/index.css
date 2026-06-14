@@ -111,69 +111,70 @@
 
   html.light {
     color-scheme: light;
-    /* Higher-contrast light theme: clearer surface hierarchy + readable text */
-    --background: 30 25% 98%;
-    --foreground: 20 12% 14%;
-    --card: 30 22% 94%;
-    --card-foreground: 20 12% 14%;
-    --popover: 30 20% 92%;
-    --popover-foreground: 20 12% 14%;
-    --primary: 24 22% 22%;
-    --primary-foreground: 30 20% 96%;
-    --primary-hover: 24 22% 14%;
-    --primary-muted: 30 18% 90%;
-    --secondary: 30 18% 82%;
-    --secondary-foreground: 24 15% 20%;
-    --secondary-hover: 30 18% 76%;
-    --muted: 30 16% 90%;
-    --muted-foreground: 20 10% 34%;
-    --accent: 15 28% 52%;
-    --accent-foreground: 30 20% 96%;
-    --accent-hover: 15 28% 42%;
-    --accent-muted: 15 18% 90%;
-    --destructive: 0 30% 45%;
+    /* Éclipse Safran — safran · teal · cramoisine · void chaud */
+    --background: 41 69% 94%;
+    --foreground: 26 64% 4%;
+    --card: 41 67% 88%;
+    --card-foreground: 26 64% 4%;
+    --popover: 41 60% 85%;
+    --popover-foreground: 26 64% 4%;
+    --primary: 37 92% 47%;
+    --primary-foreground: 26 64% 4%;
+    --primary-hover: 37 92% 40%;
+    --primary-muted: 41 55% 92%;
+    --secondary: 180 40% 32%;
+    --secondary-foreground: 35 100% 97%;
+    --secondary-hover: 180 40% 26%;
+    --muted: 41 45% 90%;
+    --muted-foreground: 34 44% 33%;
+    --accent: 180 61% 26%;
+    --accent-foreground: 180 58% 95%;
+    --accent-hover: 180 61% 20%;
+    --accent-muted: 180 35% 92%;
+    --destructive: 0 66% 47%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-muted: 0 20% 94%;
-    --success: 140 15% 45%;
+    --destructive-muted: 0 55% 94%;
+    --success: 160 45% 35%;
     --success-foreground: 0 0% 100%;
-    --success-muted: 140 20% 92%;
-    --warning: 35 40% 60%;
-    --warning-foreground: 35 40% 10%;
-    --warning-muted: 35 30% 94%;
-    --info: 200 15% 50%;
-    --info-foreground: 0 0% 100%;
-    --info-muted: 200 20% 94%;
-    --border: 24 12% 78%;
-    --input: 24 12% 78%;
-    --ring: 24 22% 22%;
+    --success-muted: 160 30% 92%;
+    --warning: 37 92% 47%;
+    --warning-foreground: 26 64% 4%;
+    --warning-muted: 41 67% 88%;
+    --info: 180 61% 26%;
+    --info-foreground: 180 58% 95%;
+    --info-muted: 180 35% 92%;
+    --border: 43 71% 69%;
+    --input: 43 55% 75%;
+    --ring: 37 92% 47%;
 
-    --sidebar-background: 30 25% 98%;
-    --sidebar-foreground: 20 12% 14%;
-    --sidebar-primary: 24 22% 22%;
-    --sidebar-primary-foreground: 30 20% 96%;
-    --sidebar-accent: 30 22% 94%;
-    --sidebar-accent-foreground: 20 12% 14%;
-    --sidebar-border: 24 12% 78%;
-    --sidebar-ring: 24 22% 22%;
+    --sidebar-background: 41 69% 94%;
+    --sidebar-foreground: 26 64% 4%;
+    --sidebar-primary: 37 92% 47%;
+    --sidebar-primary-foreground: 26 64% 4%;
+    --sidebar-accent: 41 67% 88%;
+    --sidebar-accent-foreground: 26 64% 4%;
+    --sidebar-border: 43 71% 69%;
+    --sidebar-ring: 37 92% 47%;
 
-    --neural-glow: 24 22% 22%;
-    --neural-accent: 15 28% 52%;
-    --neural-warm: 35 40% 60%;
-    --void: 30 20% 96%;
+    --neural-glow: 41 100% 47%;
+    --neural-accent: 180 61% 26%;
+    --neural-warm: 41 100% 47%;
+    --void: 35 100% 97%;
 
-    --chart-1: 24 15% 20%;
-    --chart-2: 15 25% 55%;
-    --chart-3: 35 40% 60%;
-    --chart-4: 140 15% 45%;
-    --chart-5: 20 5% 45%;
+    --chart-1: 37 92% 47%;
+    --chart-2: 180 61% 26%;
+    --chart-3: 0 66% 47%;
+    --chart-4: 34 44% 33%;
+    --chart-5: 41 100% 47%;
 
-    /* Mobile Aegis — light surfaces / borders */
-    --aegis-s1: 32 22% 93%;
-    --aegis-border: 30 10% 82%;
-    --aegis-border-ice: 220 35% 78%;
-    /* Hero: fond légèrement bleu-nuit pour contraste avec le reste de l’UI claire */
-    --aegis-hero-bg: 222 24% 90%;
-    --aegis-hero-fade: 222 22% 92%;
+    --aegis-warm: 41 100% 47%;
+    --aegis-warm-muted: 41 70% 88%;
+    --aegis-s1: 41 62% 90%;
+    --aegis-border: 43 55% 72%;
+    --aegis-border-ice: 180 40% 40%;
+    /* Hero void chaud — miroir du dark mode */
+    --aegis-hero-bg: 26 50% 6%;
+    --aegis-hero-fade: 26 48% 8%;
   }
 
   .dark {
@@ -227,10 +228,10 @@
 
 html.light .glass-card {
   background: hsl(var(--card) / 0.9);
-  border-color: hsl(var(--aegis-warm) / 0.22);
+  border-color: hsl(var(--aegis-warm) / 0.28);
   box-shadow:
-    0 4px 24px hsl(220 25% 20% / 0.06),
-    inset 0 1px 0 hsl(0 0% 100% / 0.6);
+    0 4px 24px hsl(var(--primary) / 0.08),
+    inset 0 1px 0 hsl(0 0% 100% / 0.55);
 }
 
 .bg-grid {
@@ -617,10 +618,10 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
   html.light .dashboard-hero {
     box-shadow:
-      inset 0 0 64px hsl(220 45% 42% / 0.12),
-      inset 0 -24px 48px hsl(220 30% 96% / 0.5),
-      0 0 0 1px hsl(var(--primary) / 0.14),
-      0 10px 28px hsl(220 25% 15% / 0.1);
+      inset 0 0 64px hsl(var(--primary) / 0.18),
+      inset 0 -24px 48px hsl(var(--aegis-warm) / 0.08),
+      0 0 0 1px hsl(var(--aegis-warm) / 0.22),
+      0 10px 28px hsl(26 50% 6% / 0.35);
   }
 
   .dashboard-hero-overlay {
@@ -635,9 +636,9 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
   html.light .dashboard-hero-overlay {
     background:
-      radial-gradient(ellipse 120% 85% at 50% -5%, hsl(220 55% 48% / 0.22), transparent 58%),
-      radial-gradient(ellipse 80% 55% at 50% 100%, hsl(35 45% 55% / 0.08), transparent 55%),
-      linear-gradient(180deg, hsl(220 40% 38% / 0.14) 0%, transparent 48%);
+      radial-gradient(ellipse 120% 85% at 50% -5%, hsl(var(--primary) / 0.28), transparent 58%),
+      radial-gradient(ellipse 80% 55% at 50% 100%, hsl(var(--aegis-warm) / 0.14), transparent 55%),
+      linear-gradient(180deg, hsl(var(--accent) / 0.12) 0%, transparent 48%);
   }
 
   .dashboard-hero-ray {
@@ -659,8 +660,8 @@ html.light ::-webkit-scrollbar-thumb:hover {
   html.light .dashboard-hero-ray {
     background: linear-gradient(
       180deg,
-      hsl(0 0% 100% / 0.75) 0%,
-      hsl(220 70% 52% / 0.35) 42%,
+      hsl(var(--aegis-warm) / 0.85) 0%,
+      hsl(var(--primary) / 0.45) 42%,
       transparent 100%
     );
   }
@@ -685,8 +686,8 @@ html.light ::-webkit-scrollbar-thumb:hover {
   html.light .dashboard-hero-halo {
     background: radial-gradient(
       ellipse at center,
-      hsl(35 55% 48% / 0.28) 0%,
-      hsl(220 40% 50% / 0.12) 48%,
+      hsl(var(--aegis-warm) / 0.35) 0%,
+      hsl(var(--primary) / 0.15) 48%,
       transparent 72%
     );
   }
@@ -697,7 +698,7 @@ html.light ::-webkit-scrollbar-thumb:hover {
   }
 
   html.light .dashboard-hero-ring-track {
-    stroke: hsl(var(--foreground) / 0.2);
+    stroke: hsl(var(--void) / 0.28);
   }
 
   .dashboard-hero-ring-progress {
@@ -706,8 +707,16 @@ html.light ::-webkit-scrollbar-thumb:hover {
   }
 
   html.light .dashboard-hero-ring-progress {
-    stroke: hsl(38 55% 42%);
-    filter: drop-shadow(0 0 6px hsl(38 50% 40% / 0.35));
+    stroke: hsl(var(--aegis-warm));
+    filter: drop-shadow(0 0 6px hsl(var(--aegis-warm) / 0.45));
+  }
+
+  html.light .dashboard-hero .bg-foreground\/35 {
+    background-color: hsl(var(--void) / 0.35);
+  }
+
+  html.light .dashboard-hero .bg-foreground\/25 {
+    background-color: hsl(var(--void) / 0.25);
   }
 
   .dashboard-hero-fade {

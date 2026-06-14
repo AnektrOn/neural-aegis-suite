@@ -6,6 +6,7 @@ import { PersonaStatsSection } from "./PersonaStatsSection";
 import { PersonaTrackingStrip } from "./PersonaTrackingStrip";
 import {
   DeepDiveBridge,
+  TrackingProgressBridge,
   PersonaAboutCard,
   PersonaLinkRow,
   PersonaNowCard,
@@ -117,6 +118,7 @@ export function PersonaProfileScreen({ profile, displayName, tracking }: Persona
         </section>
 
         <DeepDiveBridge />
+        <TrackingProgressBridge />
 
         <p className="text-center text-[11px] text-muted-foreground/80 font-body px-4 leading-relaxed pb-2">
           {t("persona.glimpse.footerNote")}

@@ -13,6 +13,7 @@ import {
   saveAdminNote,
 } from "@/features/archetype-assessment/services/assessmentService";
 import { AdminSnapshotHistoryTab } from "@/features/archetype-assessment/components/AdminSnapshotHistoryTab";
+import { AdminArchetypeResetPanel } from "@/features/archetype-assessment/components/AdminArchetypeResetPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ARCHETYPES } from "@/features/archetype-assessment/domain/archetypes";
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
@@ -151,10 +152,15 @@ export default function AdminAssessments() {
   const [details, setDetails] = useState<any | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  useEffect(() => {
+  const reloadSessions = () => {
+    setLoading(true);
     listAllSessionsForAdmin()
       .then(setSessions)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    reloadSessions();
   }, []);
 
   useEffect(() => {
@@ -200,6 +206,7 @@ export default function AdminAssessments() {
   return (
     <div className="space-y-4 p-4 sm:p-6">
       <h1 className="text-2xl font-serif">{t("admin.assessments.title")}</h1>
+      <AdminArchetypeResetPanel onReset={reloadSessions} />
       <Input
         placeholder={t("admin.assessments.filterPlaceholder")}
         value={filter}

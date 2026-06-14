@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 import {
   loadGuestQuizTemplate,
-  createSession,
+  ensureAssessmentSession,
+  persistAssessmentSessionId,
+  readPersistedAssessmentSessionId,
   submitSession,
 } from "../services/assessmentService";
 import { computeRawScores } from "../domain/scoringEngine";
@@ -59,6 +61,12 @@ export default function PublicAssessmentFlow() {
     };
   }, [authLoading, bootScreenActive, user]);
 
+  useEffect(() => {
+    if (!user || sessionId) return;
+    const stored = readPersistedAssessmentSessionId(user.id);
+    if (stored) setSessionId(stored);
+  }, [user, sessionId]);
+
   const session = useAssessmentSession({ questions: loaded?.questions ?? [] });
 
   if (!authLoading && !bootScreenActive && !user) {
@@ -68,8 +76,9 @@ export default function PublicAssessmentFlow() {
   const handleStart = async () => {
     if (!user || !loaded) return;
     try {
-      const sid = await createSession(user.id, loaded.template.id);
+      const sid = await ensureAssessmentSession(user.id, loaded.template.id, sessionId);
       setSessionId(sid);
+      persistAssessmentSessionId(user.id, sid);
       session.goToQuestions();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -78,12 +87,24 @@ export default function PublicAssessmentFlow() {
   };
 
   const handleSubmit = async () => {
-    if (!user || !sessionId || !loaded) return;
+    if (!user || !loaded) {
+      toast({
+        title: t("toast.error"),
+        description: isFR
+          ? "Session ou questionnaire manquant. Rechargez la page."
+          : "Missing session or questionnaire. Please reload the page.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSubmitting(true);
     try {
+      const sid = await ensureAssessmentSession(user.id, loaded.template.id, sessionId);
+      if (sid !== sessionId) setSessionId(sid);
+
       await submitSession({
         userId: user.id,
-        sessionId,
+        sessionId: sid,
         questions: loaded.questions,
         responses: session.responsesArray,
         startedAt: session.startedAt,

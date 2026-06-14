@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { X, CheckCircle2, ArrowRight, Zap, BookOpen, Lightbulb, MessageCircle, Quote } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { PulseCard, PulseCourse, CourseSectionType } from "../domain/types";
-import { fetchPulseCourse, completePulseCourse, completeCard } from "../services/pulseService";
+import {
+  fetchPulseCourse,
+  completePulseCourse,
+  completeCard,
+  type IntegrateCardResult,
+} from "../services/pulseService";
 import { getRuneAccent } from "../domain/runeAccent";
 import { SacredGeometry } from "./SacredGeometry";
 
@@ -19,7 +24,7 @@ const SECTION_META: Record<CourseSectionType, { icon: typeof Zap; labelKey: stri
 interface PulseCourseViewProps {
   card: PulseCard;
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (result: IntegrateCardResult) => void;
 }
 
 export function PulseCourseView({ card, onClose, onComplete }: PulseCourseViewProps) {
@@ -42,11 +47,11 @@ export function PulseCourseView({ card, onClose, onComplete }: PulseCourseViewPr
 
   const handleComplete = useCallback(async () => {
     setShowCelebration(true);
-    await completeCard(card.id);
+    const result = await completeCard(card.id);
     if (course) {
       await completePulseCourse(course.id);
     }
-    setTimeout(() => onComplete(), 1500);
+    setTimeout(() => onComplete(result), 1500);
   }, [card.id, course, onComplete]);
 
   const renderInlineCourse = () => {

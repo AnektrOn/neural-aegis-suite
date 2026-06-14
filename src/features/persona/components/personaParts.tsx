@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SampleProfile } from "@/features/archetype-deepdive-v2/domain/sampleProfile";
@@ -130,6 +130,60 @@ export function DeepDiveBridge({ horizontal }: { horizontal?: boolean }) {
           <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden />
         </Link>
       </Button>
+    </div>
+  );
+}
+
+/** Link card to the Tracking Progress / evolution report. */
+export function TrackingProgressBridge({ horizontal }: { horizontal?: boolean }) {
+  const { locale, t } = useLanguage();
+  const l = locale as "fr" | "en";
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-purple-500/20 bg-purple-500/[0.04] p-4 space-y-3",
+        horizontal && "sm:flex sm:items-center sm:justify-between sm:gap-6 sm:space-y-0 sm:p-5",
+      )}
+    >
+      <div className="flex items-start gap-3 min-w-0">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-500/15 text-purple-400">
+          <TrendingUp size={18} strokeWidth={1.5} aria-hidden />
+        </div>
+        <div className="min-w-0 space-y-1">
+          <p className="text-sm font-medium text-foreground">
+            {l === "fr" ? "Évolution Archétypale" : "Archetypal Evolution"}
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {l === "fr"
+              ? "Suivez votre progression sur la Perspective Myss grâce à votre check-in quotidien."
+              : "Track your progress on the Myss Perspective through your daily check-in."}
+          </p>
+        </div>
+      </div>
+      <div className={cn("flex flex-col gap-2", horizontal ? "w-full sm:w-auto sm:shrink-0" : "w-full")}>
+        <Button
+          asChild
+          size="lg"
+          variant="outline"
+          className="min-h-[48px] font-display text-xs tracking-wider border-primary/30 hover:bg-primary/10 w-full"
+        >
+          <Link to="/?checkin=1">
+            {t("persona.checkinCta")}
+          </Link>
+        </Button>
+        <Button
+          asChild
+          size="lg"
+          variant="outline"
+          className="min-h-[48px] font-display text-xs tracking-wider border-purple-500/30 hover:bg-purple-500/10 w-full"
+        >
+          <Link to="/progress/myss">
+            {l === "fr" ? "Voir mon évolution" : "View my evolution"}
+            <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden />
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }

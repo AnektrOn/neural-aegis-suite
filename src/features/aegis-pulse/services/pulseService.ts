@@ -257,9 +257,16 @@ export async function fetchPulseCourse(
   }
 }
 
-export async function completeCard(
-  cardId: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export type IntegrateCardResult =
+  | {
+      ok: true;
+      principleCode: RunePrincipleCode | null;
+      newPulseCount: number | null;
+      runeUnlocked: boolean;
+    }
+  | { ok: false; error: string };
+
+export async function completeCard(cardId: string): Promise<IntegrateCardResult> {
   try {
     const { data, error } = await supabase.rpc("complete_aegis_card" as never, {
       p_card_id: cardId,
@@ -270,12 +277,27 @@ export async function completeCard(
       return { ok: false, error: error.message };
     }
 
-    const result = data as { ok: boolean; error?: string } | null;
+    const result = data as
+      | {
+          ok: boolean;
+          error?: string;
+          principle_code?: string | null;
+          new_pulse_count?: number | null;
+          rune_unlocked?: boolean;
+        }
+      | null;
     if (!result?.ok) {
       return { ok: false, error: result?.error ?? "unknown" };
     }
 
-    return { ok: true };
+    return {
+      ok: true,
+      principleCode: result.principle_code
+        ? asPrincipleCode(result.principle_code)
+        : null,
+      newPulseCount: result.new_pulse_count ?? null,
+      runeUnlocked: Boolean(result.rune_unlocked),
+    };
   } catch (err) {
     console.error("completeCard:", err);
     return {
@@ -345,6 +367,17 @@ export interface PulseDiagnostic {
   rpcCards: number;
   rpcError: string | null;
   sampleKeys: string[];
+}
+
+/** Deck vide parce que l'utilisateur a swipé toutes ses cartes — pas un problème de ciblage. */
+export function isPulseDeckExhausted(diag: PulseDiagnostic): boolean {
+  return (
+    !diag.rpcError &&
+    diag.rpcCards === 0 &&
+    diag.forYou > 0 &&
+    diag.swiped > 0 &&
+    diag.swiped >= diag.forYou
+  );
 }
 
 export async function fetchPulseDiagnostic(): Promise<PulseDiagnostic> {

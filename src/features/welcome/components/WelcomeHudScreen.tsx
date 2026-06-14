@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useAegisMotion } from "@/hooks/useAegisMotion";
 import { Eye, LayoutDashboard, Sparkles, ClipboardList } from "lucide-react";
 import { Link } from "react-router-dom";
 import aegisLogo from "@/assets/aegis-logo.png";
@@ -31,6 +32,7 @@ export function WelcomeHudScreen({
   onAssessment,
   onSlideComplete,
 }: WelcomeHudScreenProps) {
+  const { fadeUp, slideUp } = useAegisMotion();
   const hasPersona = maturity.hasArchetypeProfile;
 
   const title = firstName
@@ -40,7 +42,10 @@ export function WelcomeHudScreen({
   const pulseProgressMax = stats.pulseDeckMax;
   const toolboxProgressMax = Math.max(stats.toolboxActiveTotal, 1);
   const toolboxAccent =
-    stats.toolboxWaitingCount > 0 ? ("warning" as const) : ("primary" as const);
+    stats.toolboxTodoCount > 0 ? ("warning" as const) : ("primary" as const);
+  const toolboxLinkState = stats.toolboxFocusId
+    ? { openToolboxId: stats.toolboxFocusId }
+    : undefined;
 
   return (
     <div className="welcome-hud relative flex min-h-[100dvh] flex-col overflow-hidden">
@@ -70,29 +75,29 @@ export function WelcomeHudScreen({
               max: String(pulseProgressMax),
             })}
             sublabel={
-              stats.pulseCardCount > 0
-                ? isFR
-                  ? "Cartes prêtes"
-                  : "Cards ready"
-                : isFR
-                  ? "Deck vide"
-                  : "Empty deck"
+              stats.pulseCardCount > 0 ? t("welcome.hud.cardsReady") : t("welcome.hud.deckEmpty")
             }
           />
         </Link>
-        <Link to="/toolbox" className="rounded-xl transition-opacity hover:opacity-90">
+        <Link
+          to="/toolbox"
+          state={toolboxLinkState}
+          className="rounded-xl transition-opacity hover:opacity-90"
+        >
           <ArcGauge
-            value={stats.toolboxWaitingCount}
+            value={stats.toolboxTodoCount}
             max={toolboxProgressMax}
             accent={toolboxAccent}
             label={t("welcome.hud.gaugeToolbox")}
-            centerPrimary={String(stats.toolboxWaitingCount)}
-            centerSecondary={t("welcome.hud.toolboxWaitingOf", {
+            centerPrimary={String(stats.toolboxTodoCount)}
+            centerSecondary={t("welcome.hud.toolboxTodoOf", {
               total: String(stats.toolboxActiveTotal),
             })}
             sublabel={
-              stats.toolboxWaitingCount > 0
-                ? t("toolbox.deliveryWaitingBadge")
+              stats.toolboxTodoCount > 0
+                ? stats.toolboxWaitingCount > 0
+                  ? t("toolbox.deliveryWaitingBadge")
+                  : t("toolbox.viewTodo")
                 : t("welcome.hud.toolboxNoneWaiting")
             }
           />
@@ -100,9 +105,7 @@ export function WelcomeHudScreen({
       </div>
 
       <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+        {...fadeUp(0.15)}
         className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-6 min-h-[200px]"
       >
         <div className="welcome-hud-hero-glow" aria-hidden />
@@ -123,9 +126,7 @@ export function WelcomeHudScreen({
       </motion.section>
 
       <motion.footer
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.35 }}
+        {...slideUp(0.35)}
         className="relative z-10 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-4 max-w-lg mx-auto w-full"
       >
         <div className="grid grid-cols-2 gap-3">

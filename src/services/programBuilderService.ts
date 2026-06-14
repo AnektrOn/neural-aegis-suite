@@ -9,6 +9,13 @@ import {
   finalizeToolboxTemplateI18nChunks,
 } from "@/lib/toolbox-template-bilingual";
 import { lookupCatalogFrToEn } from "@/lib/toolbox-widget-i18n";
+import { getBuiltinToolboxContentTypeDefinition } from "@/lib/toolbox-content-type-definitions";
+
+export function isKnownToolboxContentType(contentType: string): boolean {
+  if (!contentType?.trim()) return false;
+  if ((TOOLBOX_CONTENT_TYPES as readonly string[]).includes(contentType)) return true;
+  return getBuiltinToolboxContentTypeDefinition(contentType) != null;
+}
 
 export const TOOLBOX_CONTENT_TYPES = [
   "breathwork",
@@ -1140,10 +1147,10 @@ export function validateToolboxCatalogPayload(payload: unknown): ValidationIssue
 
   (p.toolbox_items || []).forEach((t, i) => {
     const base = `$.toolbox_items[${i}]`;
-    if (!t.content_type || !TOOLBOX_CONTENT_TYPES.includes(t.content_type)) {
+    if (!t.content_type || !isKnownToolboxContentType(t.content_type)) {
       issues.push({
         path: `${base}.content_type`,
-        message: `content_type invalide: "${t.content_type}". Valeurs acceptées: ${TOOLBOX_CONTENT_TYPES.join(", ")}.`,
+        message: `content_type invalide: "${t.content_type}". Utilisez un slug natif (${TOOLBOX_CONTENT_TYPES.join(", ")}) ou un slug composé du registre toolbox.`,
       });
     }
     if (!t.title?.trim()) {
@@ -1224,7 +1231,7 @@ export function validateToolboxCatalogPayload(payload: unknown): ValidationIssue
       t.content_type &&
       t.widget_config &&
       typeof t.widget_config === "object" &&
-      TOOLBOX_CONTENT_TYPES.includes(t.content_type)
+      isKnownToolboxContentType(t.content_type)
     ) {
       const titleMerged = mergeI18nObject(t.title_i18n ?? null, t.title_fr ?? null, t.title_en ?? null, t.title);
       const descMerged = mergeI18nObject(

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAegisMotion } from "@/hooks/useAegisMotion";
 import { BookOpen, Plus, Search, Tag, Trash2, Edit3, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,9 +23,11 @@ const MOOD_EMOJIS = ["😔", "😕", "😐", "🙂", "😊"];
 export default function Journal() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const { fadeUp } = useAegisMotion();
   const suggestedTags = t("journal.suggestedTags").split(",").map((s) => s.trim());
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -36,47 +39,80 @@ export default function Journal() {
   }, [user]);
 
   const loadEntries = async () => {
-    const { data } = await supabase
-      .from("journal_entries")
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false });
-    setEntries((data as any[] || []) as JournalEntry[]);
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("journal_entries")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setEntries((data as JournalEntry[] | null) ?? []);
+    } catch (err) {
+      console.error("[Journal] load failed", err);
+      toast({
+        title: t("journal.loadError"),
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const saveEntry = async () => {
-    if (!form.content.trim()) return;
-    if (editing) {
-      await supabase.from("journal_entries").update({
-        title: form.title || null,
-        content: form.content,
-        tags: form.tags,
-        mood_score: form.mood_score,
-      } as any).eq("id", editing);
-      toast({ title: t("journal.entryModified") });
-    } else {
-      await supabase.from("journal_entries").insert({
-        user_id: user!.id,
-        title: form.title || null,
-        content: form.content,
-        tags: form.tags,
-        mood_score: form.mood_score,
-      } as any);
-      void notifyAdminOnJournalEntry({
-        user: user!,
-        title: form.title || null,
-        content: form.content,
+    if (!form.content.trim() || !user) return;
+    try {
+      if (editing) {
+        const { error } = await supabase.from("journal_entries").update({
+          title: form.title || null,
+          content: form.content,
+          tags: form.tags,
+          mood_score: form.mood_score,
+        } as any).eq("id", editing);
+        if (error) throw error;
+        toast({ title: t("journal.entryModified") });
+      } else {
+        const { error } = await supabase.from("journal_entries").insert({
+          user_id: user.id,
+          title: form.title || null,
+          content: form.content,
+          tags: form.tags,
+          mood_score: form.mood_score,
+        } as any);
+        if (error) throw error;
+        void notifyAdminOnJournalEntry({
+          user,
+          title: form.title || null,
+          content: form.content,
+        });
+        toast({ title: t("journal.entryAdded") });
+      }
+      resetForm();
+      void loadEntries();
+    } catch (err) {
+      toast({
+        title: t("journal.saveError"),
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
       });
-      toast({ title: t("journal.entryAdded") });
     }
-    resetForm();
-    loadEntries();
   };
 
   const deleteEntry = async (id: string) => {
-    await supabase.from("journal_entries").delete().eq("id", id);
-    toast({ title: t("journal.entryDeleted") });
-    loadEntries();
+    try {
+      const { error } = await supabase.from("journal_entries").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: t("journal.entryDeleted") });
+      void loadEntries();
+    } catch (err) {
+      toast({
+        title: t("journal.deleteError"),
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    }
   };
 
   const startEdit = (entry: JournalEntry) => {
@@ -171,23 +207,30 @@ export default function Journal() {
 
       {/* Entries list */}
       <div className="space-y-3">
-        {filtered.length === 0 && (
+        {loading && (
+          <div className="space-y-3" aria-busy="true" aria-label={t("journal.loading")}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="glass-card h-28 animate-pulse rounded-2xl" />
+            ))}
+          </div>
+        )}
+        {!loading && filtered.length === 0 && (
           <div className="glass-card text-center py-14 px-8">
             <BookOpen size={36} strokeWidth={1} className="mx-auto mb-4 text-primary/20" />
             <p className="font-cormorant text-xl font-light italic text-text-tertiary/70 mb-2">Chaque pensée mérite d'être consignée</p>
             <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">{t("journal.noEntries")}</p>
           </div>
         )}
-        {filtered.map((entry, i) => (
-          <motion.div key={entry.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-5 group hover:border-primary/20 transition-colors">
+        {!loading && filtered.map((entry, i) => (
+          <motion.div key={entry.id} {...fadeUp(i * 0.04)} className="dashboard-panel p-5 group hover:border-primary/20 transition-colors">
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-2">
                 {entry.mood_score && <span className="text-lg">{MOOD_EMOJIS[entry.mood_score - 1]}</span>}
                 <h3 className="text-sm font-medium text-foreground">{entry.title || t("journal.noTitle")}</h3>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => startEdit(entry)} className="p-1.5 rounded-lg hover:bg-secondary/50 text-muted-foreground"><Edit3 size={13} /></button>
-                <button onClick={() => deleteEntry(entry.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60"><Trash2 size={13} /></button>
+              <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <button type="button" onClick={() => startEdit(entry)} aria-label={t("journal.editEntry")} className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-secondary/50 text-muted-foreground"><Edit3 size={13} /></button>
+                <button type="button" onClick={() => deleteEntry(entry.id)} aria-label={t("journal.deleteEntry")} className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-destructive/60"><Trash2 size={13} /></button>
               </div>
             </div>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{entry.content}</p>
@@ -197,7 +240,7 @@ export default function Journal() {
                   <span key={tag} className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px]">#{tag}</span>
                 ))}
               </div>
-              <span className="text-[10px] text-muted-foreground">{new Date(entry.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+              <span className="text-[10px] text-muted-foreground">{new Date(entry.created_at).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
             </div>
           </motion.div>
         ))}

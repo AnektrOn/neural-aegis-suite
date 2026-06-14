@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { IntensityMultipleChoice } from "./IntensityMultipleChoice";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,7 +48,7 @@ export function AssessmentQuestionRenderer({
       )}
 
       {question.question_type === "multiple_choice" && (
-        <MultipleChoice question={question} value={value} onChange={onChange} isFR={isFR} />
+        <IntensityMultipleChoice question={question} value={value} onChange={onChange} isFR={isFR} />
       )}
 
       {question.question_type === "likert_scale" && (
@@ -70,51 +70,6 @@ export function AssessmentQuestionRenderer({
           rows={4}
         />
       )}
-    </div>
-  );
-}
-
-function MultipleChoice({
-  question,
-  value,
-  onChange,
-  isFR,
-}: {
-  question: RuntimeQuestion;
-  value?: ResponseValue;
-  onChange: (v: ResponseValue) => void;
-  isFR: boolean;
-}) {
-  const max = (question.meta as { maxSelect?: number })?.maxSelect ?? question.options.length;
-  const selected = value?.selectedOptionIds ?? [];
-  const toggle = (id: string) => {
-    let next: string[];
-    if (selected.includes(id)) {
-      next = selected.filter((x) => x !== id);
-    } else {
-      if (selected.length >= max) return;
-      next = [...selected, id];
-    }
-    onChange({ questionId: question.id, selectedOptionIds: next });
-  };
-  return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">
-        {isFR ? `Sélection max : ${max}` : `Max select: ${max}`}
-      </p>
-      {question.options.map((o) => (
-        <Label
-          key={o.id}
-          className="flex items-start gap-3 p-3 rounded-lg border border-border/40 hover:bg-accent/20 cursor-pointer"
-        >
-          <Checkbox
-            checked={selected.includes(o.id)}
-            onCheckedChange={() => toggle(o.id)}
-            className="mt-0.5"
-          />
-          <span className="text-sm">{isFR ? o.label_fr : o.label_en}</span>
-        </Label>
-      ))}
     </div>
   );
 }

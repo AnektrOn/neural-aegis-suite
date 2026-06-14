@@ -369,6 +369,7 @@ export type Database = {
           id: string
           label_en: string
           label_fr: string
+          polarity_weights: Json
           position: number
           question_id: string
           shadow_weights: Json
@@ -380,6 +381,7 @@ export type Database = {
           id?: string
           label_en: string
           label_fr: string
+          polarity_weights?: Json
           position: number
           question_id: string
           shadow_weights?: Json
@@ -391,6 +393,7 @@ export type Database = {
           id?: string
           label_en?: string
           label_fr?: string
+          polarity_weights?: Json
           position?: number
           question_id?: string
           shadow_weights?: Json

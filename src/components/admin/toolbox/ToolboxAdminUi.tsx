@@ -17,7 +17,7 @@ export function ToolboxPageStat({
   icon: Icon,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   icon: LucideIcon;
 }) {
   return (

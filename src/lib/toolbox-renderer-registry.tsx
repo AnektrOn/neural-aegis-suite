@@ -1,21 +1,6 @@
 import type { ReactNode } from "react";
 import { BookOpen, Eye, Headphones, Heart, Link as LinkIcon, Scan, ShieldAlert, Sparkles, Stars, Target, Wind, Zap } from "lucide-react";
-import BreathworkWidget from "@/components/widgets/BreathworkWidget";
-import FocusIntrospectifWidget from "@/components/widgets/FocusIntrospectifWidget";
-import BodyScanWidget from "@/components/widgets/BodyScanWidget";
-import AffirmationsWidget from "@/components/widgets/AffirmationsWidget";
-import GratitudeWidget from "@/components/widgets/GratitudeWidget";
-import JournalPromptWidget from "@/components/widgets/JournalPromptWidget";
-import VisualizationWidget from "@/components/widgets/VisualizationWidget";
-import StopProtocolWidget from "@/components/widgets/StopProtocolWidget";
-import IntentionWidget from "@/components/widgets/IntentionWidget";
-import MicroPracticeWidget from "@/components/widgets/MicroPracticeWidget";
-import ComposedRendererV1 from "@/components/widgets/ComposedRendererV1";
-import JournalTimedWidget from "@/components/widgets/toolbox/JournalTimedWidget";
-import DialoguePartsWidget from "@/components/widgets/toolbox/DialoguePartsWidget";
-import DecisionMatrixWidget from "@/components/widgets/toolbox/DecisionMatrixWidget";
-import EmpathyPerspectiveWidget from "@/components/widgets/toolbox/EmpathyPerspectiveWidget";
-import ShadowCheckinWidget from "@/components/widgets/toolbox/ShadowCheckinWidget";
+import { DynamicToolboxWidget, type DynamicToolboxWidgetKind } from "@/lib/toolbox-widget-dynamic";
 import type { Locale } from "@/i18n/translations";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
@@ -157,151 +142,45 @@ function renderResolved(
       : undefined;
   const cfg = overlayHabitDurationOnWidgetConfig(resolved.config, itemCfg);
 
-  switch (resolved.kind) {
-    case "breathwork":
-      return (
-        <BreathworkWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-          visualVariant={resolved.breathVisual}
-        />
-      );
-    case "gratitude":
-      return (
-        <GratitudeWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "affirmations":
-      return (
-        <AffirmationsWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "intention":
-      return (
-        <IntentionWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "stop_protocol":
-      return (
-        <StopProtocolWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "visualization":
-      return (
-        <VisualizationWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "body_scan":
-      return (
-        <BodyScanWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "micro_practice":
-      return (
-        <MicroPracticeWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "journal_timed":
-      return (
-        <JournalTimedWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "dialogue_parts":
-      return (
-        <DialoguePartsWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "decision_matrix":
-      return (
-        <DecisionMatrixWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "empathy_perspective":
-      return (
-        <EmpathyPerspectiveWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "shadow_checkin":
-      return (
-        <ShadowCheckinWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
-    case "composed":
-      return null;
-    default:
-      return null;
-  }
+  const kindMap: Record<string, DynamicToolboxWidgetKind | null> = {
+    breathwork: "breathwork",
+    gratitude: "gratitude",
+    affirmations: "affirmations",
+    intention: "intention",
+    stop_protocol: "stop_protocol",
+    visualization: "visualization",
+    body_scan: "body_scan",
+    micro_practice: "micro_practice",
+    journal_timed: "journal_timed",
+    dialogue_parts: "dialogue_parts",
+    decision_matrix: "decision_matrix",
+    empathy_perspective: "empathy_perspective",
+    shadow_checkin: "shadow_checkin",
+    composed: null,
+  };
+
+  const kind = kindMap[resolved.kind];
+  if (!kind) return null;
+
+  const widgetProps: Record<string, unknown> = {
+    config: cfg,
+    title,
+    hideTitle,
+    onComplete: safeOnComplete,
+    onAbandon: safeOnAbandon,
+    ...(sessionKey ? { sessionKey } : {}),
+    ...(resolved.kind === "breathwork" ? { visualVariant: resolved.breathVisual } : {}),
+  };
+
+  return <DynamicToolboxWidget kind={kind} widgetProps={widgetProps} />;
 }
 
 function widgetSessionKey(item: ToolboxRenderableItem): string | undefined {
   return item.id ? `toolbox:${item.id}` : undefined;
+}
+
+function renderDynamicWidget(kind: DynamicToolboxWidgetKind, widgetProps: Record<string, unknown>) {
+  return <DynamicToolboxWidget kind={kind} widgetProps={widgetProps} />;
 }
 
 export function renderToolboxWidget({
@@ -322,40 +201,22 @@ export function renderToolboxWidget({
   const sessionKey = sessionKeyOverride ?? widgetSessionKey(item);
   const slug = itemSlug(item);
 
+  const baseProps = {
+    config: cfg,
+    title,
+    hideTitle,
+    sessionKey,
+    onComplete: safeOnComplete,
+    onAbandon: safeOnAbandon,
+  };
+
   switch (slug) {
     case "breathwork":
-      return (
-        <BreathworkWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("breathwork", baseProps);
     case "focus_introspectif":
-      return (
-        <FocusIntrospectifWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("focus_introspectif", baseProps);
     case "body_scan":
-      return (
-        <BodyScanWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("body_scan", baseProps);
     case "affirmations":
       if (
         cfg?.duration_min == null &&
@@ -363,82 +224,25 @@ export function renderToolboxWidget({
       ) {
         return null;
       }
-      return (
-        <AffirmationsWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("affirmations", baseProps);
     case "visualization":
-      return (
-        <VisualizationWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("visualization", baseProps);
     case "stop_protocol":
-      return (
-        <StopProtocolWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("stop_protocol", baseProps);
     case "intention":
-      return (
-        <IntentionWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("intention", baseProps);
     case "gratitude":
-      return (
-        <GratitudeWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("gratitude", { ...baseProps, sessionKey: undefined });
     case "micro_practice":
-      return (
-        <MicroPracticeWidget
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("micro_practice", baseProps);
     case "journal_prompt": {
       const prompt = pickWidgetCatalogCopy(locale, cfg?.prompt_i18n, cfg?.prompt);
       if (!prompt?.trim()) return null;
-      return (
-        <JournalPromptWidget
-          config={{ ...cfg, prompt }}
-          title={title}
-          hideTitle={hideTitle}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-        />
-      );
+      return renderDynamicWidget("journal_prompt", {
+        ...baseProps,
+        config: { ...cfg, prompt },
+        sessionKey: undefined,
+      });
     }
     case "external_link":
       return item.external_url
@@ -470,17 +274,10 @@ export function renderToolboxWidget({
       }
       const def = definitionsBySlug[slug] || getBuiltinToolboxContentTypeDefinition(slug);
       if (def?.renderer_kind !== "composed_v1" && !resolved) return null;
-      return (
-        <ComposedRendererV1
-          config={cfg}
-          title={title}
-          hideTitle={hideTitle}
-          sessionKey={sessionKey}
-          onComplete={safeOnComplete}
-          onAbandon={safeOnAbandon}
-          blueprint={def?.ui_blueprint}
-        />
-      );
+      return renderDynamicWidget("composed_v1", {
+        ...baseProps,
+        blueprint: def?.ui_blueprint,
+      });
     }
   }
 }

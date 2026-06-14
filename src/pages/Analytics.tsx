@@ -1,226 +1,68 @@
-import { useState, useEffect, useRef } from "react";
+import { lazy, Suspense, useRef } from "react";
 import { motion } from "framer-motion";
-import { BarChart3 } from "lucide-react";
 import ExportPDFButton from "@/components/ExportPDFButton";
-import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
-  BarChart, Bar, RadialBarChart, RadialBar, PieChart, Pie, Cell, Legend,
-} from "recharts";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { useAegisMotion } from "@/hooks/useAegisMotion";
 
-const COLORS = [
-  "hsl(var(--primary))",       // amber/peach
-  "hsl(var(--secondary))",     // soft secondary
-  "hsl(24 72% 58%)",           // amber warm
-  "hsl(var(--success))",       // success green
-  "hsl(var(--destructive))",   // danger red
-  "hsl(220, 70%, 60%)",        // blue accent
-];
+const AnalyticsCharts = lazy(() =>
+  import("@/components/analytics/AnalyticsCharts").then((m) => ({ default: m.AnalyticsCharts })),
+);
 
 export default function Analytics() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const { fadeUp } = useAegisMotion();
   const reportRef = useRef<HTMLDivElement>(null);
-  const [moodData, setMoodData] = useState<any[]>([]);
-  const [sleepStressData, setSleepStressData] = useState<any[]>([]);
-  const [habitData, setHabitData] = useState<any[]>([]);
-  const [decisionData, setDecisionData] = useState<any>({ pending: 0, decided: 0, deferred: 0, avgPriority: 0 });
-
-  useEffect(() => {
-    if (user) loadAll();
-  }, [user]);
-
-  const loadAll = async () => {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const [moodRes, decRes, habitRes, completionRes] = await Promise.all([
-      supabase.from("mood_entries" as any).select("value, sleep, stress, meals_count, logged_at").eq("user_id", user!.id).gte("logged_at", thirtyDaysAgo.toISOString()).order("logged_at", { ascending: true }),
-      supabase.from("decisions" as any).select("status, priority").eq("user_id", user!.id),
-      supabase.from("assigned_habits" as any).select("id, habit_template_id, is_active").eq("user_id", user!.id).eq("is_active", true),
-      supabase.from("habit_completions" as any).select("completed_date, assigned_habit_id").eq("user_id", user!.id).gte("completed_date", thirtyDaysAgo.toISOString().split("T")[0]),
-    ]);
-
-    const dayMap = new Map<string, { mood: number[]; sleep: number[]; stress: number[]; meals: number[] }>();
-    ((moodRes.data as any[]) || []).forEach((e) => {
-      const day = new Date(e.logged_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
-      if (!dayMap.has(day)) dayMap.set(day, { mood: [], sleep: [], stress: [], meals: [] });
-      const d = dayMap.get(day)!;
-      d.mood.push(e.value);
-      if (e.sleep != null) d.sleep.push(Number(e.sleep));
-      if (e.stress != null) d.stress.push(Number(e.stress));
-      if (e.meals_count != null) d.meals.push(e.meals_count);
-    });
-
-    const moodChartData: any[] = [];
-    const sleepStressChartData: any[] = [];
-    dayMap.forEach((v, day) => {
-      const avg = (arr: number[]) => arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : null;
-      moodChartData.push({ day, humeur: avg(v.mood) });
-      sleepStressChartData.push({ day, sommeil: avg(v.sleep), stress: avg(v.stress), repas: avg(v.meals) });
-    });
-    setMoodData(moodChartData);
-    setSleepStressData(sleepStressChartData);
-
-    const decisions = (decRes.data as any[]) || [];
-    const pending = decisions.filter((d) => d.status === "pending").length;
-    const decided = decisions.filter((d) => d.status === "decided").length;
-    const deferred = decisions.filter((d) => d.status === "deferred").length;
-    const avgPriority = decisions.length ? +(decisions.reduce((s, d) => s + d.priority, 0) / decisions.length).toFixed(1) : 0;
-    setDecisionData({ pending, decided, deferred, avgPriority });
-
-    const habitCompletions = (completionRes.data as any[]) || [];
-    const totalHabits = ((habitRes.data as any[]) || []).length || 1;
-    const last7 = new Map<string, number>();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      last7.set(d.toISOString().split("T")[0], 0);
-    }
-    habitCompletions.forEach((c) => {
-      if (last7.has(c.completed_date)) last7.set(c.completed_date, (last7.get(c.completed_date) || 0) + 1);
-    });
-    const habitChartData = Array.from(last7.entries()).map(([date, count]) => ({
-      jour: new Date(date).toLocaleDateString("fr-FR", { weekday: "short" }),
-      complétées: count,
-      total: totalHabits,
-      taux: Math.round((count / totalHabits) * 100),
-    }));
-    setHabitData(habitChartData);
-  };
-
-  const decisionPieData = [
-    { name: t("analytics.decisionPending"), value: decisionData.pending },
-    { name: t("analytics.decisionDecided"), value: decisionData.decided },
-    { name: t("analytics.decisionDeferred"), value: decisionData.deferred },
-  ].filter((d) => d.value > 0);
-
-  const habitRadialData = habitData.length > 0
-    ? [{ name: "Moy", taux: Math.round(habitData.reduce((s, d) => s + d.taux, 0) / habitData.length), fill: COLORS[0] }]
-    : [];
-
-  const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "12px", color: "hsl(var(--foreground))" };
+  const { data, isLoading, isError, refetch } = useAnalyticsData(user?.id, locale);
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">Centre d'Intelligence</p>
-          <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">Analytiques</h1>
+          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">
+            {t("analytics.intelligenceCenter")}
+          </p>
+          <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">
+            {t("analytics.title")}
+          </h1>
         </div>
         <ExportPDFButton targetRef={reportRef as React.RefObject<HTMLDivElement>} filename="rapport-analytiques" />
       </div>
 
-      <div ref={reportRef} className="space-y-8">
-
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-4 sm:p-8">
-        <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">Humeur sur 30 jours</p>
-        <div className="h-48 sm:h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={moodData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-              <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Line type="monotone" dataKey="humeur" stroke={COLORS[0]} strokeWidth={2} dot={{ fill: COLORS[0], r: 3 }} name="Humeur" />
-            </LineChart>
-          </ResponsiveContainer>
+      {isError && (
+        <div className="flex flex-col gap-2 rounded-2xl border border-destructive/35 bg-destructive/10 px-4 py-3 sm:flex-row sm:items-center">
+          <p className="flex-1 font-barlow text-sm text-destructive">{t("analytics.loadError")}</p>
+          <button
+            type="button"
+            className="rounded-xl border border-destructive/40 bg-background/80 px-3 py-2 font-barlow text-xs font-medium uppercase tracking-wide text-destructive hover:bg-destructive/10"
+            onClick={() => void refetch()}
+          >
+            {t("dashboard.retry")}
+          </button>
         </div>
-      </motion.div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-8">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">Tendances Sommeil & Stress</p>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sleepStressData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Line type="monotone" dataKey="sommeil" stroke={COLORS[5]} strokeWidth={2} dot={{ r: 2 }} name="Sommeil" />
-                <Line type="monotone" dataKey="stress" stroke={COLORS[4]} strokeWidth={2} dot={{ r: 2 }} name="Stress" />
-                <Legend />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+      {isLoading && (
+        <div className="space-y-6" aria-busy="true" aria-label={t("analytics.loading")}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="dashboard-panel h-56 animate-pulse rounded-2xl" />
+          ))}
+        </div>
+      )}
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-8">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">Repas par jour</p>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={sleepStressData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="repas" fill={COLORS[2]} radius={[6, 6, 0, 0]} name="Repas" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      {!isLoading && data && (
+        <motion.div ref={reportRef} className="space-y-8" {...fadeUp()}>
+          <Suspense
+            fallback={
+              <div className="dashboard-panel h-64 animate-pulse rounded-2xl" aria-hidden />
+            }
+          >
+            <AnalyticsCharts data={data} t={t} />
+          </Suspense>
         </motion.div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-1 ethereal-glass p-8">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">{t("analytics.habitCompletion7d")}</p>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={habitData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="jour" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="complétées" fill={COLORS[3]} radius={[6, 6, 0, 0]} name={t("analytics.completedKey")} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card p-8 flex flex-col items-center justify-center">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">{t("analytics.avgCompletionRate")}</p>
-          <div className="h-48 w-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={habitRadialData} startAngle={90} endAngle={-270}>
-                <RadialBar background dataKey="taux" cornerRadius={10} fill={COLORS[0]} />
-              </RadialBarChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-2xl font-cinzel text-foreground mt-2">
-            {habitRadialData.length > 0 ? `${habitRadialData[0].taux}%` : "—"}
-          </p>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-8">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">{t("analytics.decisionsOverview")}</p>
-          {decisionPieData.length > 0 ? (
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={decisionPieData} cx="50%" cy="50%" outerRadius={70} dataKey="value" nameKey="name" label={({ name, value }) => `${name}: ${value}`} labelLine={false} fontSize={10}>
-                    {decisionPieData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-48 flex items-center justify-center">
-              <p className="text-muted-foreground text-sm">{t("common.noDecisionYet")}</p>
-            </div>
-          )}
-          <div className="text-center mt-2">
-            <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70">{t("analytics.avgPriority")}</p>
-            <p className="text-lg font-cinzel text-foreground">{decisionData.avgPriority}/5</p>
-          </div>
-        </motion.div>
-      </div>
-      </div>
+      )}
     </div>
   );
 }

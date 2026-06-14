@@ -1,8 +1,11 @@
 import { lazy, Suspense } from "react";
 import AdminHubShell from "@/components/admin/AdminHubShell";
 
-const ToolboxStudio = lazy(() => import("./ToolboxStudio"));
-const ToolboxAssignments = lazy(() => import("./ToolboxAssignments"));
+const ToolboxManagement = lazy(() => import("./ToolboxManagement"));
+const ToolboxImportPanel = lazy(() => import("./ToolboxImportPanel"));
+const ToolboxWaitingConfirmation = lazy(() => import("./ToolboxWaitingConfirmation"));
+const ToolboxTracking = lazy(() => import("./ToolboxTracking"));
+const ToolboxUserPreview = lazy(() => import("./ToolboxUserPreview"));
 
 function HubPanelLoader() {
   return (
@@ -17,29 +20,29 @@ export default function AdminToolboxHub() {
     <AdminHubShell
       pathname="/admin/toolbox"
       panels={{
-        studio: (
+        users: (
           <Suspense fallback={<HubPanelLoader />}>
-            <ToolboxStudio />
+            <ToolboxManagement />
           </Suspense>
         ),
-        assignments: (
+        import: (
           <Suspense fallback={<HubPanelLoader />}>
-            <ToolboxAssignments />
+            <ToolboxImportPanel />
           </Suspense>
         ),
-        manage: (
+        review: (
           <Suspense fallback={<HubPanelLoader />}>
-            <ToolboxStudio />
+            <ToolboxWaitingConfirmation />
           </Suspense>
         ),
-        waiting: (
+        tracking: (
           <Suspense fallback={<HubPanelLoader />}>
-            <ToolboxStudio />
+            <ToolboxTracking />
           </Suspense>
         ),
-        program: (
+        userView: (
           <Suspense fallback={<HubPanelLoader />}>
-            <ToolboxStudio />
+            <ToolboxUserPreview />
           </Suspense>
         ),
       }}

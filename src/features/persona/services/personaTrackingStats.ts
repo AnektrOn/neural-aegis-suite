@@ -10,6 +10,8 @@ export interface PersonaTrackingStats {
   toolboxWaiting: number;
   /** Waiting delivery + assignments without terminal completion */
   toolboxTodo: number;
+  /** First waiting or pending assignment for deep-link */
+  toolboxFocusId: string | null;
   pulseCards: number;
 }
 
@@ -57,13 +59,18 @@ export async function fetchPersonaTrackingStats(
 
   let toolboxWaiting = 0;
   let toolboxPending = 0;
+  let toolboxFocusId: string | null = null;
   for (const row of (toolboxRes.data as { id: string; user_delivery_status: string | null }[]) ?? []) {
     if (row.user_delivery_status === "waiting") {
       toolboxWaiting += 1;
+      if (!toolboxFocusId) toolboxFocusId = row.id;
       continue;
     }
     const status = completionByAssignment.get(row.id);
-    if (!status || !terminalStatuses.has(status)) toolboxPending += 1;
+    if (!status || !terminalStatuses.has(status)) {
+      toolboxPending += 1;
+      if (!toolboxFocusId) toolboxFocusId = row.id;
+    }
   }
 
   return {
@@ -71,6 +78,7 @@ export async function fetchPersonaTrackingStats(
     peopleCount: peopleRes.count ?? 0,
     toolboxWaiting,
     toolboxTodo: toolboxWaiting + toolboxPending,
+    toolboxFocusId,
     pulseCards: pulseResult.ok ? pulseResult.cards.length : 0,
   };
 }

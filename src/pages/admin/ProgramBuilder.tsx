@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Boxes, BrainCircuit, FileJson, Loader2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, Boxes, BrainCircuit, Loader2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +10,8 @@ import {
   TOOLBOX_CONTENT_TYPES,
   assignHabitTemplateToUser,
   assignJournalPromptTemplateToUser,
-  assignToolboxTemplateToUser,
+  distributeToolboxContent,
+  type ToolboxDistributionInput,
   createHabitTemplate,
   createJournalPromptTemplate,
   createToolboxTemplate,
@@ -20,17 +21,17 @@ import {
   getUserAssignmentStatus,
   listCatalogData,
   listObservabilityFeed,
-  runToolboxCatalogImport,
   updateHabitTemplate,
   updateJournalPromptTemplate,
   updateToolboxTemplate,
-  validateToolboxCatalogPayload,
 } from "@/services/programBuilderService";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import type { Locale } from "@/i18n/translations";
+import ToolboxDistributionPicker from "@/features/toolbox-admin/ToolboxDistributionPicker";
 
 type Profile = { id: string; display_name: string | null };
+type CompanyOption = { id: string; name: string };
 
 const inputClass =
   "w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors";
@@ -38,9 +39,15 @@ const inputClass =
 export default function ProgramBuilder() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [companies, setCompanies] = useState<CompanyOption[]>([]);
+  const [toolboxDistribution, setToolboxDistribution] = useState<ToolboxDistributionInput>({
+    mode: "individual",
+    userId: "",
+    assignmentStatus: "active",
+  });
   const [catalog, setCatalog] = useState<{ habits: any[]; toolbox: any[]; journal: any[] }>({
     habits: [],
     toolbox: [],
@@ -81,19 +88,6 @@ export default function ProgramBuilder() {
     toolboxTemplateId: "",
     journalTemplateId: "",
   });
-  const [importJson, setImportJson] = useState(
-    JSON.stringify(
-      {
-        version: "toolbox-catalog-v1",
-        toolbox_items: [],
-        habit_items: [],
-        journal_items: [],
-      },
-      null,
-      2
-    )
-  );
-  const [importReport, setImportReport] = useState<any>(null);
   const [observability, setObservability] = useState<{ events: any[]; imports: any[] }>({ events: [], imports: [] });
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [kpis, setKpis] = useState<any | null>(null);
@@ -107,15 +101,17 @@ export default function ProgramBuilder() {
   async function loadAll() {
     setLoading(true);
     try {
-      const [{ habits, toolbox, journal }, profileRes, feed, kpi] = await Promise.all([
+      const [{ habits, toolbox, journal }, profileRes, companiesRes, feed, kpi] = await Promise.all([
         listCatalogData(),
         supabase.from("profiles").select("id, display_name").order("display_name", { ascending: true }),
+        supabase.from("companies" as never).select("id, name").order("name", { ascending: true }),
         listObservabilityFeed(),
         getProgramKpiSummary(),
       ]);
       if (profileRes.error) throw profileRes.error;
       setCatalog({ habits, toolbox, journal });
       setProfiles((profileRes.data || []) as Profile[]);
+      setCompanies((companiesRes.data || []) as CompanyOption[]);
       setObservability(feed);
       setKpis(kpi);
     } catch (e: any) {
@@ -128,6 +124,14 @@ export default function ProgramBuilder() {
   useEffect(() => {
     loadAll();
   }, []);
+
+  useEffect(() => {
+    if (selectedUserId) {
+      setToolboxDistribution((d) =>
+        d.mode === "individual" ? { ...d, userId: selectedUserId } : d,
+      );
+    }
+  }, [selectedUserId]);
 
   useEffect(() => {
     if (!selectedUserId) {
@@ -254,12 +258,19 @@ export default function ProgramBuilder() {
         }
       }
       if (kind === "toolbox" && assignSelection.toolboxTemplateId) {
-        await assignToolboxTemplateToUser({
+        const dist: ToolboxDistributionInput =
+          toolboxDistribution.mode === "individual" && !toolboxDistribution.userId?.trim()
+            ? { ...toolboxDistribution, userId: selectedUserId }
+            : toolboxDistribution;
+        const result = await distributeToolboxContent({
           actorId: user.id,
-          userId: selectedUserId,
           templateId: assignSelection.toolboxTemplateId,
+          distribution: dist,
         });
-        toast({ title: "Assigned", description: "Toolbox item assigned successfully." });
+        toast({
+          title: "Assigned",
+          description: `Toolbox distributed: ${result.created} created, ${result.skipped} skipped (${result.userCount} users).`,
+        });
       }
       if (kind === "journal" && assignSelection.journalTemplateId) {
         await assignJournalPromptTemplateToUser({
@@ -396,51 +407,6 @@ export default function ProgramBuilder() {
     }
   };
 
-  const validateImport = () => {
-    try {
-      const parsed = JSON.parse(importJson);
-      const issues = validateToolboxCatalogPayload(parsed);
-      setImportReport({
-        mode: "validate",
-        ok: issues.length === 0,
-        issues,
-      });
-    } catch (e: any) {
-      setImportReport({
-        mode: "validate",
-        ok: false,
-        issues: [{ path: "$", message: e.message ?? "JSON invalide." }],
-      });
-    }
-  };
-
-  const executeImport = async (dryRun: boolean) => {
-    if (!user) return;
-    setSubmitting(true);
-    try {
-      const parsed = JSON.parse(importJson);
-      const summary = await runToolboxCatalogImport({
-        payload: parsed,
-        actorId: user.id,
-        dryRun,
-      });
-      setImportReport({
-        mode: dryRun ? "dry-run" : "import",
-        ok: summary.issues.length === 0,
-        summary,
-      });
-      toast({
-        title: dryRun ? "Dry-run terminé" : "Import terminé",
-        description: `${summary.createdToolboxTemplates} gabarits, ${summary.createdToolboxAssignments} assignations toolbox, ${summary.createdHabitTemplates} routines, ${summary.createdJournalPromptTemplates} prompts. ${summary.skippedDuplicates} gabarits existants (clé), ${summary.skippedDuplicateToolboxAssignments} assignations déjà présentes.`,
-      });
-      await loadAll();
-    } catch (e: any) {
-      toast({ title: "Erreur import", description: e.message ?? String(e), variant: "destructive" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="ethereal-glass p-16 flex justify-center">
@@ -451,11 +417,15 @@ export default function ProgramBuilder() {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      <div>
-        <p className="text-neural-label mb-2">Administration</p>
-        <h1 className="text-neural-title text-3xl text-foreground">Program Builder</h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Unified catalog and assignment flow for toolbox items, routines, and journal prompts.
+      <div className="ethereal-glass p-4 md:p-5">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          {t("admin.hub.tab.toolboxContent")}
+        </p>
+        <h2 className="mt-1 text-xl font-semibold text-foreground md:text-2xl">
+          Orchestration catalogue
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Crée les gabarits, assigne-les aux utilisateurs et suis les événements de distribution.
         </p>
       </div>
 
@@ -469,21 +439,18 @@ export default function ProgramBuilder() {
       )}
 
       <Tabs defaultValue="catalog" className="space-y-4">
-        <TabsList>
+        <TabsList className="h-auto min-h-11 w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="catalog">
-            <Boxes className="h-3.5 w-3.5 mr-1" /> Catalog
+            <Boxes className="h-3.5 w-3.5 mr-1" /> Catalogue
           </TabsTrigger>
           <TabsTrigger value="assign">
-            <Plus className="h-3.5 w-3.5 mr-1" /> Assign
+            <Plus className="h-3.5 w-3.5 mr-1" /> Assigner
           </TabsTrigger>
           <TabsTrigger value="suggest">
             <BrainCircuit className="h-3.5 w-3.5 mr-1" /> Suggestions
           </TabsTrigger>
-          <TabsTrigger value="import">
-            <FileJson className="h-3.5 w-3.5 mr-1" /> Import
-          </TabsTrigger>
           <TabsTrigger value="observe">
-            <Sparkles className="h-3.5 w-3.5 mr-1" /> Observability
+            <Sparkles className="h-3.5 w-3.5 mr-1" /> Suivi
           </TabsTrigger>
         </TabsList>
 
@@ -663,17 +630,26 @@ export default function ProgramBuilder() {
               buttonLabel="Assign routine"
               onAssign={() => assignSelected("habit")}
             />
-            <AssignmentCard
-              title="Assign toolbox"
-              value={assignSelection.toolboxTemplateId}
-              onChange={(v) => setAssignSelection((s) => ({ ...s, toolboxTemplateId: v }))}
-              options={catalog.toolbox.map((t) => ({
-                id: t.id,
-                label: `${pickCatalogTemplateDisplayTitle(locale as Locale, { title: t.title, title_i18n: t.title_i18n })} (${t.content_type})`,
-              }))}
-              buttonLabel="Assign toolbox item"
-              onAssign={() => assignSelected("toolbox")}
-            />
+            <div className="ethereal-glass p-4 space-y-4">
+              <p className="text-sm font-medium">Assign toolbox</p>
+              <ToolboxDistributionPicker
+                profiles={profiles}
+                companies={companies}
+                value={toolboxDistribution}
+                onChange={setToolboxDistribution}
+              />
+              <AssignmentCard
+                title="Template"
+                value={assignSelection.toolboxTemplateId}
+                onChange={(v) => setAssignSelection((s) => ({ ...s, toolboxTemplateId: v }))}
+                options={catalog.toolbox.map((t) => ({
+                  id: t.id,
+                  label: `${pickCatalogTemplateDisplayTitle(locale as Locale, { title: t.title, title_i18n: t.title_i18n })} (${t.content_type})`,
+                }))}
+                buttonLabel="Assign toolbox item"
+                onAssign={() => assignSelected("toolbox")}
+              />
+            </div>
             <AssignmentCard
               title="Assign journal prompt"
               value={assignSelection.journalTemplateId}
@@ -733,27 +709,6 @@ export default function ProgramBuilder() {
               </div>
             ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="import" className="space-y-4">
-          <div className="ethereal-glass p-4 space-y-3">
-            <p className="text-sm font-medium text-foreground">Program JSON import (catalog + optional assignments)</p>
-            <textarea className={inputClass} rows={18} value={importJson} onChange={(e) => setImportJson(e.target.value)} />
-            <div className="flex flex-wrap gap-2">
-              <button onClick={validateImport} className="btn-neural">
-                Validate
-              </button>
-              <button onClick={() => executeImport(true)} disabled={submitting} className="btn-neural">
-                Dry-run
-              </button>
-              <button onClick={() => executeImport(false)} disabled={submitting} className="btn-neural">
-                Import now
-              </button>
-            </div>
-          </div>
-          {importReport && (
-            <pre className="ethereal-glass p-4 text-xs overflow-auto">{JSON.stringify(importReport, null, 2)}</pre>
-          )}
         </TabsContent>
 
         <TabsContent value="observe" className="space-y-4">

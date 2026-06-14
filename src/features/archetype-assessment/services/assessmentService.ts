@@ -22,18 +22,47 @@ import { loadUnifiedDeepDiveResult } from "@/features/archetype-deepdive-v2/doma
 import type {
   AnalysisResult,
   ArchetypeKey,
+  QuestionSeed,
   ResponseValue,
   RuntimeQuestion,
 } from "../domain/types";
 
 const TEMPLATE_SLUG = "archetype-v1";
 
+const assessmentSessionStorageKey = (userId: string) =>
+  `aegis_assessment_active_session_${userId}`;
+
+export function readPersistedAssessmentSessionId(userId: string): string | null {
+  try {
+    return sessionStorage.getItem(assessmentSessionStorageKey(userId));
+  } catch {
+    return null;
+  }
+}
+
+export function persistAssessmentSessionId(userId: string, sessionId: string): void {
+  try {
+    sessionStorage.setItem(assessmentSessionStorageKey(userId), sessionId);
+  } catch {
+    // private browsing / disabled storage
+  }
+}
+
+export function clearPersistedAssessmentSessionId(userId: string): void {
+  try {
+    sessionStorage.removeItem(assessmentSessionStorageKey(userId));
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Bump this whenever the scoring algorithm (weights, normalization, shadows)
  * changes. Stored on each appendix_response so historical answers can be
  * recomputed under the version they were captured with.
  */
-export const SCORE_VERSION = 1;
+/** Myss V3 morphic-field vector scoring with relative normalization (sum ≈ 100%). */
+export const SCORE_VERSION = 4;
 
 /** Refreshes the materialized view aggregating selected option weights. */
 async function refreshArchetypeScoresView(): Promise<void> {
@@ -85,36 +114,22 @@ async function loadTemplateBySlug(slug: string): Promise<LoadedTemplate> {
     questions = await fetchQuestions(template.id);
   }
 
-  return { template, questions };
-}
-
-/** Load active template + its questions/options. Seeds questions/options on first call. */
-export async function loadActiveTemplate(): Promise<LoadedTemplate> {
-  const { data: tpl, error: tplErr } = await supabase
-    .from("assessment_templates" as any)
-    .select("*")
-    .eq("is_active", true)
-    .order("version", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (tplErr) throw tplErr;
-  if (!tpl) throw new Error("No active assessment template found");
-
-  const template = tpl as unknown as TemplateRow;
-
-  let questions = await fetchQuestions(template.id);
-
   if (questions.length === 0) {
-    await seedQuestions(template.id);
-    questions = await fetchQuestions(template.id);
+    throw new Error(
+      `No assessment questions available for template "${slug}". Apply database migrations or ask an admin to seed the catalog.`
+    );
   }
 
   return { template, questions };
 }
 
-/** Guest / public funnel: core onboarding quiz only (30 questions, not Deep Dive 70). */
-export const GUEST_QUIZ_QUESTION_LIMIT = 30;
+/** Load T1 onboarding template (`archetype-v1`). Never picks `archetype-v2-70q`. */
+export async function loadActiveTemplate(): Promise<LoadedTemplate> {
+  return loadTemplateBySlug(TEMPLATE_SLUG);
+}
+
+/** Guest / public funnel: core onboarding quiz only (T1 — 15 questions). */
+export const GUEST_QUIZ_QUESTION_LIMIT = 15;
 
 export async function loadGuestQuizTemplate(): Promise<LoadedTemplate> {
   const loaded = await loadTemplateBySlug(TEMPLATE_SLUG);
@@ -178,12 +193,100 @@ async function fetchQuestions(
       label_en: o.label_en,
       archetype_weights: o.archetype_weights ?? {},
       shadow_weights: o.shadow_weights ?? {},
+      polarity_weights: Array.isArray(o.polarity_weights) ? o.polarity_weights : [],
       value: o.value,
     })),
   }));
 }
 
+function formatSubmitError(step: string, err: unknown): Error {
+  const detail =
+    err && typeof err === "object" && "message" in err
+      ? String((err as { message: string }).message)
+      : String(err);
+  return new Error(`${step}: ${detail}`);
+}
+
+/** Reuse in-progress session from memory/storage, or create a new one. */
+export async function ensureAssessmentSession(
+  userId: string,
+  templateId: string,
+  existingSessionId: string | null,
+): Promise<string> {
+  if (existingSessionId) {
+    const { data, error } = await supabase
+      .from("assessment_sessions" as any)
+      .select("id, status")
+      .eq("id", existingSessionId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!error && data && (data as { status: string }).status === "in_progress") {
+      persistAssessmentSessionId(userId, existingSessionId);
+      return existingSessionId;
+    }
+  }
+
+  const sid = await createSession(userId, templateId);
+  persistAssessmentSessionId(userId, sid);
+  return sid;
+}
+
+function buildQuestionSeedPayload(questions: QuestionSeed[]) {
+  return questions.map((q) => {
+    const meta = { ...(q.meta ?? {}) } as Record<string, unknown>;
+    if (q.isAppendix) meta.is_appendix = true;
+
+    return {
+      position: q.position,
+      question_type: q.type,
+      prompt_fr: q.prompt_fr,
+      prompt_en: q.prompt_en,
+      helper_fr: q.helper_fr ?? null,
+      helper_en: q.helper_en ?? null,
+      dimension: q.dimension ?? null,
+      is_required: q.isRequired ?? true,
+      meta,
+      options: (q.options ?? []).map((o) => ({
+        position: o.position,
+        label_fr: o.label_fr,
+        label_en: o.label_en,
+        archetype_weights: o.archetypeWeights ?? {},
+        shadow_weights: o.shadowWeights ?? {},
+        polarity_weights: o.polarityWeights ?? [],
+        value: o.value ?? null,
+      })),
+    };
+  });
+}
+
+/** Inserts catalog via SECURITY DEFINER RPC (any authenticated user when core bank is empty). */
 async function seedQuestions(templateId: string): Promise<void> {
+  const payload = buildQuestionSeedPayload(QUESTIONS);
+  const { error: rpcErr } = await supabase.rpc(
+    "seed_assessment_catalog_if_empty" as any,
+    {
+      p_template_slug: TEMPLATE_SLUG,
+      p_questions: payload,
+    }
+  );
+
+  if (!rpcErr) return;
+
+  const rpcMissing =
+    rpcErr.code === "PGRST202" ||
+    rpcErr.code === "42883" ||
+    /seed_assessment_catalog_if_empty/i.test(rpcErr.message ?? "");
+
+  if (rpcMissing) {
+    await seedQuestionsDirect(templateId);
+    return;
+  }
+
+  throw rpcErr;
+}
+
+/** Legacy path — admins only (RLS). Used when RPC migration is not applied yet. */
+async function seedQuestionsDirect(templateId: string): Promise<void> {
   for (const q of QUESTIONS) {
     const meta = { ...(q.meta ?? {}) } as Record<string, unknown>;
     if (q.isAppendix) meta.is_appendix = true;
@@ -208,18 +311,19 @@ async function seedQuestions(templateId: string): Promise<void> {
 
     const questionId = (inserted as any).id;
     if (q.options && q.options.length > 0) {
-      const payload = q.options.map((o) => ({
+      const optionPayload = q.options.map((o) => ({
         question_id: questionId,
         position: o.position,
         label_fr: o.label_fr,
         label_en: o.label_en,
         archetype_weights: o.archetypeWeights ?? {},
         shadow_weights: o.shadowWeights ?? {},
+        polarity_weights: o.polarityWeights ?? [],
         value: o.value ?? null,
       }));
       const { error: oErr } = await supabase
         .from("assessment_options" as any)
-        .insert(payload);
+        .insert(optionPayload);
       if (oErr) throw oErr;
     }
   }
@@ -302,12 +406,16 @@ export async function submitAppendixResponses(opts: {
   ]);
   const allQuestions = [...coreQs, ...appendixQs];
 
-  const allResponses: ResponseValue[] = ((allResp as any[]) ?? []).map((r) => ({
-    questionId: r.question_id,
-    selectedOptionIds: r.selected_option_ids ?? [],
-    numericValue: r.numeric_value ?? undefined,
-    textValue: r.text_value ?? undefined,
-  }));
+  const allResponses: ResponseValue[] = ((allResp as any[]) ?? []).map((r) => {
+    const payload = (r.raw_payload ?? {}) as ResponseValue;
+    return {
+      questionId: r.question_id,
+      selectedOptionIds: r.selected_option_ids ?? [],
+      optionIntensities: payload.optionIntensities,
+      numericValue: r.numeric_value ?? undefined,
+      textValue: r.text_value ?? undefined,
+    };
+  });
 
   // 4. Recompute analysis on the full set
   const analysis = buildAnalysisResult(allQuestions, allResponses);
@@ -440,21 +548,34 @@ export async function submitSession(opts: {
 }): Promise<{ analysis: AnalysisResult }> {
   const { userId, sessionId, questions, responses, startedAt } = opts;
 
+  const questionById = new Map(questions.map((q) => [q.id, q]));
+  const staleResponses = responses.filter((r) => !questionById.has(r.questionId));
+  if (staleResponses.length > 0) {
+    throw new Error(
+      "Responses reference outdated questions. Refresh the page and restart the questionnaire.",
+    );
+  }
+
   // 1. Persist responses
   if (responses.length > 0) {
-    const payload = responses.map((r) => ({
-      session_id: sessionId,
-      question_id: r.questionId,
-      user_id: userId,
-      selected_option_ids: r.selectedOptionIds ?? [],
-      numeric_value: r.numericValue ?? null,
-      text_value: r.textValue ?? null,
-      raw_payload: r,
-    }));
+    const payload = responses.map((r) => {
+      const q = questionById.get(r.questionId)!;
+      const validOptionIds = new Set(q.options.map((o) => o.id));
+      const selected = (r.selectedOptionIds ?? []).filter((id) => validOptionIds.has(id));
+      return {
+        session_id: sessionId,
+        question_id: r.questionId,
+        user_id: userId,
+        selected_option_ids: selected,
+        numeric_value: r.numericValue ?? null,
+        text_value: r.textValue ?? null,
+        raw_payload: { ...r, selectedOptionIds: selected },
+      };
+    });
     const { error: rErr } = await supabase
       .from("assessment_responses" as any)
       .upsert(payload, { onConflict: "session_id,question_id" });
-    if (rErr) throw rErr;
+    if (rErr) throw formatSubmitError("Saving responses", rErr);
   }
 
   // 2. Compute analysis (pure)
@@ -481,7 +602,7 @@ export async function submitSession(opts: {
     const { error: sErr } = await supabase
       .from("archetype_scores" as any)
       .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
-    if (sErr) throw sErr;
+    if (sErr) throw formatSubmitError("Saving archetype scores", sErr);
   }
 
   // 4. Persist analysis_result
@@ -503,11 +624,10 @@ export async function submitSession(opts: {
       },
       { onConflict: "session_id" }
     );
-  if (aErr) throw aErr;
+  if (aErr) throw formatSubmitError("Saving analysis", aErr);
 
-  // 5. Persist recommendations
+  // 5. Persist recommendations (non-blocking delete — duplicates are harmless)
   if (recos.length > 0) {
-    // wipe previous recos for idempotent submit
     await supabase
       .from("recommendation_tools" as any)
       .delete()
@@ -531,7 +651,7 @@ export async function submitSession(opts: {
     const { error: rcErr } = await supabase
       .from("recommendation_tools" as any)
       .insert(recoRows);
-    if (rcErr) throw rcErr;
+    if (rcErr) throw formatSubmitError("Saving recommendations", rcErr);
   }
 
   // 6. Read existing client_meta then merge consistency flag
@@ -562,8 +682,9 @@ export async function submitSession(opts: {
       client_meta: nextMeta,
     })
     .eq("id", sessionId);
-  if (upErr) throw upErr;
+  if (upErr) throw formatSubmitError("Finalizing session", upErr);
 
+  clearPersistedAssessmentSessionId(userId);
   void refreshArchetypeScoresView();
 
   // Append-only profile snapshot (core assessment submission)
@@ -1067,6 +1188,36 @@ export interface RecoveryDiagnostics {
   snapshotCount: number;
   snapshots: Array<{ id: string; version: number; at: string; top: string }>;
   deepdiveResponseCount: number;
+}
+
+export interface ArchetypeResetResult {
+  ok: boolean;
+  user_id?: string;
+  t1_sessions_deleted?: number;
+  t1_snapshots_deleted?: number;
+  t2_responses_deleted?: number;
+  error?: string;
+}
+
+/** Admin only — wipe T1 onboarding and/or T2 deep-dive data for one user (RPC). */
+export async function resetUserArchetypeResults(
+  userId: string,
+  scope: { t1?: boolean; t2?: boolean },
+): Promise<ArchetypeResetResult> {
+  const resetT1 = scope.t1 !== false;
+  const resetT2 = scope.t2 !== false;
+  const { data, error } = await supabase.rpc("reset_user_archetype_results" as any, {
+    p_user_id: userId,
+    p_reset_t1: resetT1,
+    p_reset_t2: resetT2,
+  });
+  if (error) throw error;
+  const payload = (data ?? {}) as ArchetypeResetResult;
+  if (!payload.ok) {
+    throw new Error(payload.error ?? "reset_failed");
+  }
+  await refreshArchetypeScoresView();
+  return payload;
 }
 
 export async function getRecoveryDiagnostics(userId: string): Promise<RecoveryDiagnostics> {

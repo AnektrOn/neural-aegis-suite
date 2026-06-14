@@ -58,6 +58,7 @@ const AssessmentFlow = lazy(() => import("./features/archetype-assessment/pages/
 const AssessmentResults = lazy(() => import("./features/archetype-assessment/pages/AssessmentResults"));
 const DeepDiveUserReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveUserReport"));
 const DeepDiveScores = lazy(() => import("./pages/DeepDiveScores"));
+const ProgressEvolutionPage = lazy(() => import("./pages/ProgressEvolution"));
 const PulsePage = lazy(() => import("./features/aegis-pulse/pages/PulsePage"));
 const ArchetypeCartographyReport = lazy(() => import("./pages/ArchetypeCartographyReport"));
 const CartographyManagement = lazy(() => import("./pages/admin/CartographyManagement"));
@@ -69,6 +70,7 @@ const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminToolboxHub = lazy(() => import("./pages/admin/AdminToolboxHub"));
 const AdminPlacesHub = lazy(() => import("./pages/admin/AdminPlacesHub"));
 const AdminDeepDiveHub = lazy(() => import("./pages/admin/AdminDeepDiveHub"));
+const AdminTrackingHub = lazy(() => import("./pages/admin/AdminTrackingHub"));
 const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
@@ -206,6 +208,7 @@ const App = () => (
                               <Route path="/alerts" element={<AdminAlertsPanel />} />
                               <Route path="/export" element={<AdminExport />} />
                               <Route path="/deep-dive" element={<AdminDeepDiveHub />} />
+                              <Route path="/tracking" element={<AdminTrackingHub />} />
                               <Route
                                 path="/deep-dive-sample"
                                 element={<AdminLegacyRedirect from="/admin/deep-dive-sample" />}
@@ -260,6 +263,7 @@ const App = () => (
                             <Route path="/onboarding/results" element={<AssessmentResults />} />
                             <Route path="/deep-dive" element={<DeepDiveUserReport />} />
                             <Route path="/deep-dive/scores" element={<DeepDiveScores />} />
+                            <Route path="/progress/myss" element={<ProgressEvolutionPage />} />
                             <Route path="/cartographie/:pole/:mode" element={<ArchetypeCartographyReport />} />
                             <Route path="/cartographie/:pole" element={<ArchetypeCartographyReport />} />
                             <Route path="*" element={<NotFound />} />

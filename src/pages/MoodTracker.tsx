@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Brain, Moon, Flame, UtensilsCrossed, Plus, Minus } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from "recharts";
@@ -10,6 +10,8 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
 import { NeuralCard } from "@/components/ui/neural-card";
+import { useMoodHistory } from "@/hooks/useMoodHistory";
+import { useAegisMotion } from "@/hooks/useAegisMotion";
 
 const frequencyKeys = [
   "mood.exhausted",
@@ -46,10 +48,14 @@ const dayKeys = ["mood.daySun", "mood.dayMon", "mood.dayTue", "mood.dayWed", "mo
 const moodBarColor = (val: number) =>
   val >= 8 ? "#34D399" : val >= 6 ? "#4F8EF7" : val >= 4 ? "#F59E0B" : "#F87171";
 
+/** Shared diameter for mood / sleep / stress radial sliders */
+const MOOD_TRACKER_SLIDER_SIZE = 168;
+
 export default function MoodTracker() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { fadeUp } = useAegisMotion();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const frequencies = frequencyKeys.map((key, i) => ({ value: i + 1, label: t(key), color: frequencyColors[i] }));
@@ -58,37 +64,9 @@ export default function MoodTracker() {
   const [sleep, setSleep] = useState(7.0);
   const [stress, setStress] = useState(3.0);
   const [meals, setMeals] = useState<MealSize[]>([]);
-  const [weekHistory, setWeekHistory] = useState<{ day: string; value: number }[]>([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (user) loadHistory();
-  }, [user]);
-
-  const loadHistory = async () => {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    const { data } = await supabase
-      .from("mood_entries" as any)
-      .select("value, logged_at")
-      .eq("user_id", user!.id)
-      .gte("logged_at", sevenDaysAgo.toISOString())
-      .order("logged_at", { ascending: true });
-
-    const byDay = new Map<string, number>();
-    (data || []).forEach((entry: any) => {
-      const d = new Date(entry.logged_at);
-      byDay.set(dayNames[d.getDay()], entry.value);
-    });
-
-    const result: { day: string; value: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      result.push({ day: dayNames[d.getDay()], value: byDay.get(dayNames[d.getDay()]) || 0 });
-    }
-    setWeekHistory(result);
-  };
+  const moodHistoryQuery = useMoodHistory(user?.id, dayNames);
+  const weekHistory = moodHistoryQuery.data ?? [];
 
   const logMood = async () => {
     if (!user) return;
@@ -110,7 +88,7 @@ export default function MoodTracker() {
         title: t("mood.saved"),
         description: t("mood.frequencyLabel", { value: currentMood.toFixed(1), label: frequencies[moodIdx].label }),
       });
-      loadHistory();
+      void moodHistoryQuery.refetch();
     }
     setLoading(false);
   };
@@ -152,7 +130,7 @@ export default function MoodTracker() {
             </div>
             {chartData.every((e) => e.mood === 0) ? (
               <div className="flex flex-col items-center justify-center h-40 gap-2 text-center">
-                <p className="font-cormorant text-lg font-light text-text-tertiary/70 italic">Votre historique émotionnel commence ici</p>
+                <p className="font-cormorant text-lg font-light text-text-tertiary/70 italic">{t("mood.historyEmpty")}</p>
                 <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">Loggez depuis le Dashboard</p>
               </div>
             ) : (
@@ -189,8 +167,8 @@ export default function MoodTracker() {
           <div className="w-1.5 h-4 rounded-full bg-accent-secondary" />
           <h2 className="font-display text-[11px] tracking-[0.15em] uppercase text-text-secondary">{t("mood.label")}</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 items-center justify-items-center">
-          <div className="flex flex-col items-center slider-mood">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 items-start justify-items-center">
+          <div className="flex w-full max-w-[220px] flex-col items-center slider-mood">
             <Brain size={20} strokeWidth={1} className="mb-3 text-accent-secondary" />
             <RadialSlider
               value={currentMood}
@@ -198,7 +176,7 @@ export default function MoodTracker() {
               min={0}
               max={10}
               step={0.1}
-              size={176}
+              size={MOOD_TRACKER_SLIDER_SIZE}
               label={t("mood.label")}
               color="#7C6DFA"
             />
@@ -206,29 +184,40 @@ export default function MoodTracker() {
               key={selectedFreq.label}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-neural-label mt-3 text-center max-w-[200px]"
+              className="text-neural-label mt-3 min-h-[2.5rem] text-center max-w-[200px] flex items-center justify-center"
               style={{ color: selectedFreq.color }}
             >
               {selectedFreq.label}
             </motion.p>
           </div>
-          <div className="flex flex-col items-center slider-sleep">
+          <div className="flex w-full max-w-[220px] flex-col items-center slider-sleep">
             <Moon size={20} strokeWidth={1} className="mb-3 text-accent-primary" />
             <RadialSlider
               value={sleep}
               onChange={setSleep}
               min={0}
-              max={10}
+              max={12}
               step={0.1}
-              size={160}
+              size={MOOD_TRACKER_SLIDER_SIZE}
               label={t("mood.sleep")}
               color="#4F8EF7"
               formatValue={(v) => `${v.toFixed(1)}h`}
             />
+            <div className="mt-3 min-h-[2.5rem] max-w-[200px]" aria-hidden />
           </div>
-          <div className="flex flex-col items-center slider-stress">
+          <div className="flex w-full max-w-[220px] flex-col items-center slider-stress">
             <Flame size={20} strokeWidth={1} className="mb-3 text-accent-danger" />
-            <RadialSlider value={stress} onChange={setStress} min={0} max={10} step={0.1} size={160} label={t("mood.stress")} color="#F87171" />
+            <RadialSlider
+              value={stress}
+              onChange={setStress}
+              min={0}
+              max={10}
+              step={0.1}
+              size={MOOD_TRACKER_SLIDER_SIZE}
+              label={t("mood.stress")}
+              color="#F87171"
+            />
+            <div className="mt-3 min-h-[2.5rem] max-w-[200px]" aria-hidden />
           </div>
         </div>
 
@@ -286,7 +275,7 @@ export default function MoodTracker() {
               <circle cx="18" cy="20" r="2" fill="currentColor" />
               <circle cx="30" cy="20" r="2" fill="currentColor" />
             </svg>
-            <p className="font-cormorant text-xl font-light text-text-tertiary/70 italic">Votre historique émotionnel commence ici</p>
+            <p className="font-cormorant text-xl font-light text-text-tertiary/70 italic">{t("mood.historyEmpty")}</p>
             <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">Loggez votre premier mood</p>
           </div>
         ) : (
