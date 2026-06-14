@@ -31,7 +31,7 @@ import {
   type ImportPreview,
   type PulseCardImportPayload,
 } from "./pulseAdminService";
-import { parseMarkdownCard, parseMarkdownCards } from "./pulseMarkdownParser";
+import { parseMarkdownCards } from "./pulseMarkdownParser";
 
 type ImportResult = { ok: boolean; inserted: number; updated: number; errors: string[] };
 
@@ -40,13 +40,7 @@ function analyzeContent(content: string, fileName: string): ImportPreview {
   if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
     return parseAndPreviewImport(content);
   }
-  const result = parseMarkdownCard(content, fileName);
-  return {
-    total: 1,
-    valid: result.card ? 1 : 0,
-    errors: result.errors,
-    cards: result.card ? [result.card] : [],
-  };
+  return parseMarkdownCards([{ name: fileName, content }]);
 }
 
 function analyzeMultipleFiles(files: { name: string; content: string }[]): ImportPreview {
@@ -338,7 +332,10 @@ export function PulseJsonImport({ onImported }: { onImported: () => void }) {
               setSelectedKeys(new Set());
             }}
             rows={8}
-            placeholder={"---\nexternal_key: pulse_...\nprinciple: MENTALISM\n---\n# Hook FR\n...\n\n── ou JSON ──\n[{ \"external_key\": ... }]"}
+            placeholder={
+              "Lot de 10 : <!-- pulse-item --> puis --- par carte\n" +
+              "── ou 1 carte ---\nexternal_key: pulse_...\nprinciple: MENTALISM\n---\n# Hook FR\n...\n\n── ou JSON ──\n[{ \"external_key\": ... }]"
+            }
             className={`${toolboxFieldClass} h-auto resize-y font-mono text-xs`}
           />
           {content.length > 0 && (
@@ -350,7 +347,13 @@ export function PulseJsonImport({ onImported }: { onImported: () => void }) {
 
         <div className="flex gap-3">
           <Button onClick={handleAnalyze} disabled={content.trim().length < 2 || content.startsWith("(")} variant="outline" className="gap-2">
-            {content.trim().startsWith("---") ? <FileText className="size-4" /> : <FileJson className="size-4" />}
+            {content.trim().startsWith("---") ||
+            content.includes("<!-- toolbox-item") ||
+            content.includes("<!-- pulse-item") ? (
+              <FileText className="size-4" />
+            ) : (
+              <FileJson className="size-4" />
+            )}
             Analyser
           </Button>
         </div>

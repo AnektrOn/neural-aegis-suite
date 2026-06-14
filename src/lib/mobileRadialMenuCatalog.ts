@@ -37,6 +37,7 @@ export const MOBILE_RADIAL_CATALOG_ORDER = [
   "calendar",
   "deep_dive",
   "deep_dive_scores",
+  "progress_myss",
   "install",
 ] as const;
 
@@ -73,6 +74,7 @@ export const RADIAL_CATALOG: Record<
   calendar: { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" },
   deep_dive: { to: "/deep-dive", icon: FileText, labelKey: "nav.deepDive" },
   deep_dive_scores: { to: "/deep-dive/scores", icon: LineChart, labelKey: "nav.deepDiveScores" },
+  progress_myss: { to: "/progress/myss", icon: LineChart, labelKey: "nav.progressEvolution" },
   install: { to: "/install", icon: Smartphone, labelKey: "nav.installApp" },
   persona: { to: "/persona", icon: Sparkles, labelKey: "nav.profile" },
   profile: { to: "/profile", icon: UserCircle, labelKey: "nav.account" },

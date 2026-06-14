@@ -3,7 +3,13 @@ import { Library, X, CheckCircle2, RefreshCw, AlertCircle, Hexagon, HelpCircle }
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { PulseCard, SwipeAction } from "../domain/types";
-import { recordPulseSwipe, recyclePulseIgnored, fetchPulseDiagnostic, type PulseDiagnostic } from "../services/pulseService";
+import {
+  recordPulseSwipe,
+  recyclePulseIgnored,
+  fetchPulseDiagnostic,
+  isPulseDeckExhausted,
+  type PulseDiagnostic,
+} from "../services/pulseService";
 import { usePulseDeck } from "../hooks/usePulseDeck";
 import { usePulseGrimoire } from "../hooks/usePulseGrimoire";
 import { SwipeableCard } from "../components/SwipeableCard";
@@ -20,10 +26,10 @@ export default function PulsePage() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const { state: deckState, reload: reloadDeck } = usePulseDeck();
-  const { state: grimoireState, reload: reloadGrimoire } = usePulseGrimoire();
-
   const [localCards, setLocalCards] = useState<PulseCard[]>([]);
   const [activeView, setActiveView] = useState<PulseView>("deck");
+  const grimoireEnabled = activeView === "grimoire" || activeView === "runes";
+  const { state: grimoireState, reload: reloadGrimoire } = usePulseGrimoire(grimoireEnabled);
   const [activeCourse, setActiveCourse] = useState<PulseCard | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -51,7 +57,9 @@ export default function PulsePage() {
     if (deckState.status === "ready") {
       setLocalCards(deckState.cards);
       if (deckState.cards.length === 0) {
-        fetchPulseDiagnostic().then(setDiag);
+        fetchPulseDiagnostic().then((d) => {
+          setDiag(isPulseDeckExhausted(d) ? null : d);
+        });
       } else {
         setDiag(null);
       }
@@ -81,23 +89,17 @@ export default function PulsePage() {
       }
 
       if (action === "assimilated") {
-        if (result.runeUnlocked && result.principleCode) {
-          const runeName =
-            grimoireState.status === "ready"
-              ? grimoireState.runes.find((r) => r.principleCode === result.principleCode)
-                  ?.principleName ?? card.principleName
-              : card.principleName;
-          showNotification(t("pulse.runeUnlocked", { name: runeName }));
-        } else {
-          showNotification(t("pulse.fragmentAssimilated"));
-        }
+        showNotification(t("pulse.fragmentAssimilated"));
       }
 
       setLocalCards((prev) => prev.filter((c) => c.id !== card.id));
-      await Promise.all([reloadDeck(), reloadGrimoire()]);
+      await reloadDeck();
+      if (action === "assimilated") {
+        await reloadGrimoire();
+      }
       setIsSwiping(false);
     },
-    [isSwiping, grimoireState, reloadDeck, reloadGrimoire, showNotification, t],
+    [isSwiping, reloadDeck, reloadGrimoire, showNotification, t],
   );
 
   const forceSwipe = (direction: "left" | "right") => {
@@ -134,9 +136,18 @@ export default function PulsePage() {
       <PulseCourseView
         card={activeCourse}
         onClose={() => setActiveCourse(null)}
-        onComplete={() => {
+        onComplete={(result) => {
           setActiveCourse(null);
-          showNotification(t("pulse.wisdomIntegrated"));
+          if (result.ok && result.runeUnlocked && result.principleCode) {
+            const runeName =
+              grimoireState.status === "ready"
+                ? grimoireState.runes.find((r) => r.principleCode === result.principleCode)
+                    ?.principleName ?? activeCourse.principleName
+                : activeCourse.principleName;
+            showNotification(t("pulse.runeUnlocked", { name: runeName }));
+          } else {
+            showNotification(t("pulse.wisdomIntegrated"));
+          }
           void reloadGrimoire();
         }}
       />
@@ -193,7 +204,7 @@ export default function PulsePage() {
           <button
             type="button"
             onClick={() => setShowOnboarding(true)}
-            className="w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center text-muted-foreground hover:text-text-secondary transition-colors rounded-full"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-text-secondary transition-colors rounded-full"
             aria-label={t("pulse.showGuide")}
           >
             <HelpCircle size={16} strokeWidth={1.5} />
@@ -269,8 +280,8 @@ export default function PulsePage() {
                   {t("pulse.cycleCompleteHint")}
                 </p>
 
-                {/* Diagnostic info when cards exist but none are visible */}
-                {diag && diag.total > 0 && (
+                {/* Diagnostic: dev-only when deck empty due to targeting/RPC issue, not exhaustion */}
+                {import.meta.env.DEV && diag && diag.total > 0 && !isPulseDeckExhausted(diag) && (
                   <div className="mb-5 p-3 rounded-lg border border-amber-400/20 bg-amber-400/5 max-w-sm text-left">
                     <div className="flex items-center gap-2 text-xs text-amber-400 mb-2">
                       <AlertCircle size={13} />
@@ -349,7 +360,11 @@ export default function PulsePage() {
       </main>
 
       {toast && (
-        <div className="fixed top-20 sm:top-24 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-300 mx-4 max-w-[calc(100vw-2rem)]">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-20 sm:top-24 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-300 mx-4 max-w-[calc(100vw-2rem)]"
+        >
           <div className="ethereal-glass border border-border-subtle px-4 sm:px-5 py-3 rounded-xl shadow-lg">
             <span className="font-barlow text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary">
               {toast}

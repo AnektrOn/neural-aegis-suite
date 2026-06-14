@@ -87,6 +87,136 @@ Action en
     expect(result.errors.some((e) => e.includes("course"))).toBe(true);
   });
 
+  it("parses batch of 2 via pulse-item markers and nested # FR / # Hook", () => {
+    const content = readFileSync(
+      join(process.cwd(), "src/pages/admin/pulse/fixtures/petter-pulse-batch-2.md"),
+      "utf-8",
+    );
+    const result = parseMarkdownCards([{ name: "petter-batch.md", content }]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(2);
+    expect(result.total).toBe(2);
+    expect(result.cards.map((c) => c.external_key)).toEqual([
+      "pulse_CREATOR_petter_01",
+      "pulse_SOVEREIGN_petter_02",
+    ]);
+    expect(result.cards[0].course_content.fr?.hook).toBe("Hook FR texte");
+    expect(result.cards[0].content_type).toBe("card");
+    expect(result.cards[0].target_user_ids).toEqual([
+      "ad1893b4-43df-4e08-9132-d9987c2edac0",
+    ]);
+  });
+
+  it("ignores pulse-item mentioned inside documentation HTML comment (11th false split)", () => {
+    const content = readFileSync(
+      join(process.cwd(), "src/pages/admin/pulse/fixtures/petter-pulse-batch-10.md"),
+      "utf-8",
+    );
+    const result = parseMarkdownCards([{ name: "import-pulses-petter-batch-2026-06-11.md", content }]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(10);
+    expect(result.total).toBe(10);
+  });
+
+  it("ignores optional batch frontmatter without external_key (11th false segment)", () => {
+    const content = readFileSync(
+      join(process.cwd(), "src/pages/admin/pulse/fixtures/petter-pulse-batch-10.md"),
+      "utf-8",
+    );
+    const withPreamble =
+      `---\nversion: pulse-md-batch-v1\ndistribution:\n  mode: individual\n---\n\n${content}`;
+    const result = parseMarkdownCards([{ name: "import-pulses-petter-batch.md", content: withPreamble }]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(10);
+    expect(result.total).toBe(10);
+  });
+
+  it("ignores pulse_batch_header_bypass batch header (11th false segment)", () => {
+    const content = readFileSync(
+      join(process.cwd(), "src/pages/admin/pulse/fixtures/petter-pulse-batch-10.md"),
+      "utf-8",
+    );
+    const withHeader = `---
+external_key: pulse_batch_header_bypass
+version: pulse-md-batch-v1
+distribution:
+  mode: individual
+---
+
+${content}`;
+    const result = parseMarkdownCards([
+      { name: "import-pulses-petter-batch-2026-06-11.md", content: withHeader },
+    ]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(10);
+    expect(result.total).toBe(10);
+    expect(result.cards[0].external_key).toBe("pulse_CREATOR_petter_01");
+  });
+
+  it("ignores pulse_batch_header_bypass even when it has principle + title (full meta, no course body)", () => {
+    const content = readFileSync(
+      join(process.cwd(), "src/pages/admin/pulse/fixtures/petter-pulse-batch-10.md"),
+      "utf-8",
+    );
+    // Simule un en-tête de lot complet avec principle/title mais sans sections # FR / # EN
+    const withFullHeader = `---
+external_key: pulse_batch_header_bypass
+version: pulse-md-batch-v1
+principle: MENTALISM
+title:
+  fr: En-tête de lot
+  en: Batch header
+distribution:
+  mode: individual
+  user_id: ad1893b4-43df-4e08-9132-d9987c2edac0
+---
+
+${content}`;
+    const result = parseMarkdownCards([
+      { name: "import-pulses-petter-batch-2026-06-11.md", content: withFullHeader },
+    ]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(10);
+    expect(result.total).toBe(10);
+    expect(result.cards[0].external_key).toBe("pulse_CREATOR_petter_01");
+  });
+
+  it("ignores pulse-item on its own line inside doc comment block", () => {
+    const card = readFileSync(
+      join(process.cwd(), "src/pages/admin/pulse/fixtures/petter-pulse-batch-2.md"),
+      "utf-8",
+    );
+    const content = `<!--
+Guide import
+Exemple de marqueur (ne doit pas découper) :
+<!-- pulse-item -->
+Fin du guide
+-->
+
+${card}`;
+    const result = parseMarkdownCards([{ name: "batch.md", content }]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(2);
+    expect(result.total).toBe(2);
+  });
+
+  it("parses full Petter batch of 10 via pulse-item markers", () => {
+    const content = readFileSync(
+      join(process.cwd(), "src/pages/admin/pulse/fixtures/petter-pulse-batch-10.md"),
+      "utf-8",
+    );
+    const result = parseMarkdownCards([{ name: "petter-gryding-pulses.md", content }]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(10);
+    expect(result.total).toBe(10);
+    expect(result.cards.every((c) => c.is_active === false)).toBe(true);
+    expect(result.cards.every((c) => c.target_user_ids?.[0] === "ad1893b4-43df-4e08-9132-d9987c2edac0")).toBe(
+      true,
+    );
+    expect(result.cards[0].course_content.fr?.hook).toContain("Créateur");
+    expect(result.cards[9].external_key).toBe("pulse_CENTERING_petter_10");
+  });
+
   it("imports vault cards when folder also contains course files", () => {
     const files = walkMd(VAULT);
     const result = parseMarkdownCards(files);

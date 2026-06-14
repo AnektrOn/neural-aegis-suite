@@ -22,11 +22,18 @@ import {
   Home,
   Zap,
   Eye,
+  TrendingUp,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
 export type AdminHubTabId =
   | "manage"
+  | "content"
+  | "users"
+  | "import"
+  | "review"
+  | "tracking"
+  | "userView"
   | "studio"
   | "assignments"
   | "stats"
@@ -111,10 +118,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         labelKey: "admin.nav.toolbox",
         titleKey: "admin.hub.toolbox.title",
         descriptionKey: "admin.hub.toolbox.description",
-        defaultTab: "studio",
+        defaultTab: "users",
         tabs: [
-          { id: "studio", labelKey: "admin.hub.tab.toolboxStudio" },
-          { id: "assignments", labelKey: "admin.hub.tab.toolboxAssignments" },
+          { id: "users", labelKey: "admin.hub.tab.toolboxUsers" },
+          { id: "import", labelKey: "admin.hub.tab.toolboxImportMd" },
+          { id: "review", labelKey: "admin.hub.tab.toolboxReviewQueue" },
+          { id: "tracking", labelKey: "admin.hub.tab.toolboxTracking" },
+          { id: "userView", labelKey: "admin.hub.tab.toolboxUserView" },
         ],
       },
       {
@@ -158,6 +168,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
           { id: "scores", labelKey: "admin.hub.tab.deepDiveScores" },
           { id: "reportV2", labelKey: "admin.hub.tab.deepDiveReportV2" },
         ],
+      },
+      {
+        kind: "link",
+        to: "/admin/tracking",
+        icon: TrendingUp,
+        labelKey: "admin.nav.trackingProgress",
       },
     ],
   },
@@ -223,8 +239,8 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
 
 /** Legacy paths → new hub URLs (query tab preserved where applicable). */
 export const ADMIN_LEGACY_REDIRECTS: Record<string, string> = {
-  "/admin/toolbox-waiting-confirmation": "/admin/toolbox?tab=studio",
-  "/admin/program-builder": "/admin/toolbox?tab=studio",
+  "/admin/toolbox-waiting-confirmation": "/admin/toolbox?tab=review",
+  "/admin/program-builder": "/admin/toolbox?tab=import",
   "/admin/place-tags": "/admin/places?tab=tags",
   "/admin/user-places": "/admin/places?tab=userPlaces",
   "/admin/deep-dive-sample": "/admin/deep-dive?tab=report",
@@ -254,9 +270,12 @@ export function getNavItemByPath(pathname: string): AdminNavItem | undefined {
 }
 
 const TOOLBOX_TAB_ALIASES: Record<string, AdminHubTabId> = {
-  manage: "studio",
-  waiting: "studio",
-  program: "studio",
+  content: "users",
+  assignments: "users",
+  studio: "import",
+  manage: "users",
+  waiting: "review",
+  program: "import",
 };
 
 export function resolveHubTab(hub: AdminNavHubItem, tabParam: string | null): AdminHubTabId {

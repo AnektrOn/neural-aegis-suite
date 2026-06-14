@@ -15,6 +15,14 @@ export function SlideToStart({ label, onComplete, className }: SlideToStartProps
 
   const THRESHOLD = 0.82;
 
+  const progressPercent = (() => {
+    if (completed) return 100;
+    if (!trackRef.current) return 0;
+    const max = trackRef.current.offsetWidth - 56;
+    if (max <= 0) return 0;
+    return Math.round(Math.min(100, (dragX / max) * 100));
+  })();
+
   const finish = () => {
     if (completed) return;
     setCompleted(true);
@@ -60,6 +68,7 @@ export function SlideToStart({ label, onComplete, className }: SlideToStartProps
         tabIndex={0}
         aria-valuemin={0}
         aria-valuemax={100}
+        aria-valuenow={progressPercent}
         aria-label={label}
         className={cn(
           "welcome-slide-knob absolute top-1 left-1 flex h-12 w-12 items-center justify-center rounded-full",

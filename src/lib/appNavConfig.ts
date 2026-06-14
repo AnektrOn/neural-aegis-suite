@@ -49,6 +49,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     labelKey: "layout.navGroup.analysis",
     items: [
       { to: "/persona", icon: Sparkles, labelKey: "nav.profile" },
+      { to: "/progress/myss", icon: LineChart, labelKey: "nav.progressEvolution" },
       { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" },
       { to: "/pulse", icon: Sparkles, labelKey: "nav.pulse" },
       { to: "/deep-dive", icon: FileText, labelKey: "nav.deepDive" },
@@ -75,6 +76,7 @@ const EXTRA_ROUTES: { prefix: string; labelKey: TranslationKey; sectionKey?: Tra
   { prefix: "/onboarding/assessment", labelKey: "nav.profile", sectionKey: "layout.navGroup.analysis" },
   { prefix: "/onboarding/results", labelKey: "nav.profile", sectionKey: "layout.navGroup.analysis" },
   { prefix: "/cartographie", labelKey: "cartography.defaultTitle", sectionKey: "layout.navGroup.analysis" },
+  { prefix: "/progress/myss", labelKey: "nav.progressEvolution", sectionKey: "layout.navGroup.analysis" },
 ];
 
 export type AppPageMeta = {

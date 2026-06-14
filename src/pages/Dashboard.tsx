@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import ScoreCard from "@/components/ScoreCard";
-import AIInsights from "@/components/AIInsights";
 import { checkAndAwardBadges } from "@/lib/badge-engine";
 import ScoreboardWidget from "@/components/ScoreboardWidget";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -28,7 +27,13 @@ import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMatu
 import { generateAllNarratives, pickHighlightNarrative, type NarrativeContext, type KPINarrative } from "@/lib/narrativeEngine";
 import { NarrativeKPICard } from "@/components/NarrativeKPICard";
 import { DashboardMobile } from "@/pages/dashboard/DashboardMobile";
+import { usePersonaTrackingStats } from "@/features/persona/hooks/usePersonaTrackingStats";
 import { PULL_REFRESH_HINT_KEY, type MobileHabit } from "@/pages/dashboard/dashboard-shared";
+import {
+  DailyCheckinModal,
+  DailyCheckinReopenBanner,
+} from "@/features/tracking-progress/components/DailyCheckinModal";
+import { useTrackingCheckin } from "@/features/tracking-progress/hooks/useTrackingCheckin";
 
 interface Person {
   id: string;
@@ -55,9 +60,14 @@ export default function Dashboard() {
   const aegisYesterday = aegisTrend.length >= 2 ? aegisTrend[aegisTrend.length - 2] : null;
   const queryClient = useQueryClient();
   const dashData = useDashboardData(user?.id, isMobile, locale);
+  const trackingCheckin = useTrackingCheckin(user?.id);
+  const reopenTrackingCheckin = trackingCheckin.reopen;
 
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [mobileHabits, setMobileHabits] = useState<MobileHabit[]>([]);
+  const personaStatsQuery = usePersonaTrackingStats(isMobile ? user?.id : undefined, locale);
+  const toolboxTodo = personaStatsQuery.data?.toolboxTodo ?? 0;
+  const toolboxFocusId = personaStatsQuery.data?.toolboxFocusId ?? null;
 
   const loading = dashData.isLoading;
   const stats = useMemo(() => ({
@@ -119,6 +129,15 @@ export default function Dashboard() {
   }, [dashData.mobile]);
 
   useEffect(() => {
+    if (!user || !isMobile) return;
+    const loadToolboxStats = () => {
+      void personaStatsQuery.refetch();
+    };
+    window.addEventListener("aegis:refresh", loadToolboxStats);
+    return () => window.removeEventListener("aegis:refresh", loadToolboxStats);
+  }, [user, isMobile, personaStatsQuery.refetch]);
+
+  useEffect(() => {
     if (!user) return;
     const checked = sessionStorage.getItem("badges_checked");
     if (!checked) {
@@ -145,12 +164,26 @@ export default function Dashboard() {
 
   // Open quick-log when navigating from MoodTracker with state
   useEffect(() => {
-    const state = location.state as { openQuickLog?: boolean } | null;
+    const state = location.state as { openQuickLog?: boolean; openCheckin?: boolean } | null;
     if (state?.openQuickLog) {
       setShowQuickLog(true);
       navigate(".", { replace: true, state: {} });
     }
-  }, [location.state, navigate]);
+    if (state?.openCheckin) {
+      reopenTrackingCheckin();
+      navigate(".", { replace: true, state: {} });
+    }
+  }, [location.state, navigate, reopenTrackingCheckin]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("checkin") === "1") {
+      reopenTrackingCheckin();
+      params.delete("checkin");
+      const next = params.toString();
+      navigate({ pathname: location.pathname, search: next ? `?${next}` : "" }, { replace: true });
+    }
+  }, [location.search, location.pathname, navigate, reopenTrackingCheckin]);
 
   const timeAgoLabel = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -202,7 +235,7 @@ export default function Dashboard() {
   };
 
   // Build narratives once — shared by mobile + desktop layouts.
-  const narrativeCtxShared: NarrativeContext = {
+  const narrativeCtxShared: NarrativeContext = useMemo(() => ({
     moodAvg: stats.moodAvg === "—" ? 0 : Number(stats.moodAvg) || 0,
     moodDelta: digest ? (digest.moodTrend === "down" ? -digest.moodDelta : digest.moodDelta) : 0,
     moodTrend: digest?.moodTrend ?? "stable",
@@ -216,12 +249,18 @@ export default function Dashboard() {
     aegisScore: aegisScore?.overall_score ?? 0,
     aegisScoreDelta:
       aegisScore && aegisYesterday ? aegisScore.overall_score - aegisYesterday.overall_score : 0,
-  };
-  const narratives: KPINarrative[] = generateAllNarratives(narrativeCtxShared);
-  const highlight = pickHighlightNarrative(narratives);
+  }), [stats, digest, oldestDecisionDays, lastContactDays, aegisScore, aegisYesterday]);
+  const narratives: KPINarrative[] = useMemo(
+    () => generateAllNarratives(narrativeCtxShared),
+    [narrativeCtxShared],
+  );
+  const highlight = useMemo(() => pickHighlightNarrative(narratives), [narratives]);
 
   if (isMobile && user) {
     return (
+      <>
+      <DailyCheckinModal checkin={trackingCheckin} />
+      <DailyCheckinReopenBanner checkin={trackingCheckin} />
       <DashboardMobile
         userId={user.id}
         loading={loading}
@@ -246,7 +285,10 @@ export default function Dashboard() {
         onPostAssessmentClose={() => setShowPostAssessment(false)}
         pullHintVisible={pullHintVisible}
         onPullHintDismiss={() => setPullHintVisible(false)}
+        toolboxTodo={toolboxTodo}
+        toolboxFocusId={toolboxFocusId}
       />
+      </>
     );
   }
 
@@ -267,7 +309,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full -mx-6 px-5 pb-10 sm:px-8 sm:pb-12 md:-mx-10 md:px-10 bg-aegis-gradient">
+      <DailyCheckinModal checkin={trackingCheckin} />
       <motion.div className="mx-auto max-w-6xl space-y-8 sm:space-y-9 md:space-y-10">
+        <DailyCheckinReopenBanner checkin={trackingCheckin} />
         {showPostAssessment && (
           <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
         )}
@@ -279,6 +323,18 @@ export default function Dashboard() {
         )}
         {showSetupBanner && maturity && !showWelcome && (
           <SetupProgressBanner maturityProfile={maturity} />
+        )}
+        {dashData.isError && (
+          <div className="flex flex-col gap-2 rounded-2xl border border-destructive/35 bg-destructive/10 px-4 py-3 sm:flex-row sm:items-center">
+            <p className="flex-1 font-barlow text-sm text-destructive">{t("dashboard.loadError")}</p>
+            <button
+              type="button"
+              className="rounded-xl border border-destructive/40 bg-background/80 px-3 py-2 font-barlow text-xs font-medium uppercase tracking-wide text-destructive hover:bg-destructive/10"
+              onClick={() => void dashData.refetch()}
+            >
+              {t("dashboard.retry")}
+            </button>
+          </div>
         )}
         <header className="flex flex-col gap-5 border-b border-border/20 pb-7 sm:flex-row sm:items-end sm:justify-between sm:pb-8">
           <div className="min-w-0 space-y-1.5">
@@ -350,8 +406,8 @@ export default function Dashboard() {
         {/* Hidden trend label (kept to avoid unused-var lint) */}
         <span className="sr-only">{moodTrendLabel}</span>
 
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
-          <NeuralCard variant="premium" className="lg:col-span-2 p-5 md:p-6" glow="blue">
+        <section>
+          <NeuralCard variant="premium" className="p-5 md:p-6" glow="blue">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="mb-2 flex items-center gap-2">
@@ -373,9 +429,6 @@ export default function Dashboard() {
             <div className="rounded-xl border border-border-subtle bg-bg-elevated/50 px-4 py-3 text-center text-sm text-text-tertiary">
               {loading ? "—" : t("dashboard.neuralMapStat", { n: String(people.length) })}
             </div>
-          </NeuralCard>
-          <NeuralCard variant="premium" glow="purple" className="p-5 md:p-6">
-            <AIInsights />
           </NeuralCard>
         </section>
 
@@ -401,6 +454,7 @@ export default function Dashboard() {
       </motion.div>
 
       <QuickLogModal open={showQuickLog} onClose={() => setShowQuickLog(false)} />
+      <DailyCheckinModal userId={user?.id} />
     </div>
   );
 }

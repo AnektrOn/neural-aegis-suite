@@ -10,12 +10,14 @@ interface PersonaTrackingStripProps {
 
 function TrackingPill({
   to,
+  state,
   value,
   label,
   icon,
   highlight,
 }: {
   to: string;
+  state?: { openToolboxId: string };
   value: number;
   label: string;
   icon: React.ReactNode;
@@ -24,6 +26,7 @@ function TrackingPill({
   return (
     <Link
       to={to}
+      state={state}
       className={cn(
         "flex flex-1 min-w-[72px] flex-col items-center justify-center gap-0.5 rounded-xl border px-2 py-3 min-h-[64px]",
         "transition-colors hover:border-primary/35 hover:bg-card/60",
@@ -73,6 +76,7 @@ export function PersonaTrackingStrip({ stats }: PersonaTrackingStripProps) {
         />
         <TrackingPill
           to="/toolbox"
+          state={stats.toolboxFocusId ? { openToolboxId: stats.toolboxFocusId } : undefined}
           value={stats.toolboxTodo}
           label={t("persona.glimpse.trackToolbox")}
           icon={<Wrench size={14} strokeWidth={1.5} aria-hidden />}

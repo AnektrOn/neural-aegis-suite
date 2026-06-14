@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
+import { Component, useCallback, useState, type ErrorInfo, type ReactNode } from "react";
 import { FileText, Loader2, Upload, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
 import {
   createToolboxTemplate,
   distributeToolboxContent,
@@ -11,6 +12,7 @@ import {
 } from "@/services/programBuilderService";
 import {
   parseToolboxMarkdownBatch,
+  parsedItemsToCatalogPayload,
   type ParsedToolboxMarkdownItem,
 } from "@/features/toolbox-admin/toolboxMarkdownParser";
 import { ToolboxPanel, ToolboxEmptyState } from "@/components/admin/toolbox/ToolboxAdminUi";
@@ -18,6 +20,42 @@ import { Button } from "@/components/ui/button";
 
 interface Props {
   onImported: () => void;
+}
+
+class MarkdownImportErrorBoundary extends Component<
+  { children: ReactNode; onReset: () => void },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[ToolboxMarkdownImport]", error, info);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <ToolboxPanel title="Import Markdown" description="Une erreur a bloqué l’aperçu.">
+          <p className="mb-4 text-sm text-destructive">{this.state.error.message}</p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              this.setState({ error: null });
+              this.props.onReset();
+            }}
+          >
+            Réessayer
+          </Button>
+        </ToolboxPanel>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 async function readFilesAsText(fileList: FileList): Promise<Array<{ name: string; content: string }>> {
@@ -35,11 +73,11 @@ function itemToDistribution(item: ParsedToolboxMarkdownItem): ToolboxDistributio
     userIds: d.user_ids,
     companyId: d.company_id,
     locale: d.locale,
-    assignmentStatus: d.assignment_status,
+    assignmentStatus: "waiting",
   };
 }
 
-export default function ToolboxMarkdownImportTab({ onImported }: Props) {
+function ToolboxMarkdownImportPanel({ onImported }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -49,20 +87,48 @@ export default function ToolboxMarkdownImportTab({ onImported }: Props) {
     null,
   );
 
-  const handleFiles = useCallback(async (fileList: FileList | null) => {
-    if (!fileList?.length) return;
-    setParsing(true);
-    try {
-      const files = await readFilesAsText(fileList);
-      const result = parseToolboxMarkdownBatch(files);
-      setParseResult(result);
-    } finally {
-      setParsing(false);
-    }
-  }, []);
+  const handleFiles = useCallback(
+    async (fileList: FileList | null) => {
+      if (!fileList?.length) return;
+      setParsing(true);
+      try {
+        const files = await readFilesAsText(fileList);
+        if (!files.length) {
+          toast({
+            title: t("toast.error"),
+            description: t("admin.toolboxMd.noValidItems"),
+            variant: "destructive",
+          });
+          return;
+        }
+        const result = parseToolboxMarkdownBatch(files);
+        setParseResult(result);
+      } catch (e: unknown) {
+        console.error("[ToolboxMarkdownImport] parse failed", e);
+        setParseResult(null);
+        toast({
+          title: t("toast.error"),
+          description: e instanceof Error ? e.message : String(e),
+          variant: "destructive",
+        });
+      } finally {
+        setParsing(false);
+      }
+    },
+    [t, toast],
+  );
 
   const handleImport = async () => {
     if (!user || !parseResult?.items.length) return;
+    if (parseResult.importIssues.length > 0) {
+      toast({
+        title: t("toast.error"),
+        description: parseResult.importIssues.map((i) => i.message).join(" · "),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setImporting(true);
     try {
       let templates = 0;
@@ -71,25 +137,20 @@ export default function ToolboxMarkdownImportTab({ onImported }: Props) {
 
       const catalogOnly = parseResult.items.filter((i) => i.distribution.mode === "catalog");
       if (catalogOnly.length) {
-        const payload = {
-          version: "toolbox-catalog-v1" as const,
-          toolbox_items: catalogOnly.map((item) => ({
-            external_key: item.external_key,
-            content_type: item.content_type as any,
-            title: item.title_i18n.fr || item.title_i18n.en,
-            title_i18n: item.title_i18n,
-            description: item.description_i18n.fr || item.description_i18n.en,
-            description_i18n: item.description_i18n,
-            duration: item.duration,
-            widget_config: item.widget_config,
-            is_active: item.is_active,
-          })),
-        };
+        const payload = parsedItemsToCatalogPayload(catalogOnly);
+        payload.default_assignment_status = "waiting";
+        payload.toolbox_items = (payload.toolbox_items || []).map((item) => ({
+          ...item,
+          assignment_status: "waiting",
+        }));
         const summary = await runToolboxCatalogImport({
           payload,
           actorId: user.id,
           dryRun: false,
         });
+        if (summary.issues.length > 0) {
+          throw new Error(summary.issues.map((i) => i.message).join(" · "));
+        }
         templates += summary.createdToolboxTemplates;
         assignments += summary.createdToolboxAssignments;
         skipped += summary.skippedDuplicateToolboxAssignments;
@@ -124,7 +185,7 @@ export default function ToolboxMarkdownImportTab({ onImported }: Props) {
 
       toast({
         title: t("admin.toolboxMd.importSuccess"),
-        description: t("admin.toolboxMd.importSuccessDesc", {
+        description: t("admin.toolboxMd.importSuccessReview", {
           templates: String(templates),
           assignments: String(assignments),
           skipped: String(skipped),
@@ -143,6 +204,8 @@ export default function ToolboxMarkdownImportTab({ onImported }: Props) {
     }
   };
 
+  const importBlocked = (parseResult?.importIssues.length ?? 0) > 0;
+
   return (
     <div className="space-y-6">
       <ToolboxPanel
@@ -157,7 +220,10 @@ export default function ToolboxMarkdownImportTab({ onImported }: Props) {
             accept=".md,text/markdown"
             multiple
             className="sr-only"
-            onChange={(e) => void handleFiles(e.target.files)}
+            onChange={(e) => {
+              void handleFiles(e.target.files);
+              e.target.value = "";
+            }}
           />
         </label>
         {parsing ? (
@@ -181,12 +247,19 @@ export default function ToolboxMarkdownImportTab({ onImported }: Props) {
                 {t("admin.toolboxMd.statsErrors", { n: String(parseResult.errors.length) })}
               </span>
             ) : null}
+            {parseResult.importIssues.length ? (
+              <span className="text-destructive">
+                {t("admin.toolboxMd.statsImportBlock", {
+                  n: String(parseResult.importIssues.length),
+                })}
+              </span>
+            ) : null}
           </div>
 
           {parseResult.errors.length > 0 ? (
             <ul className="mb-4 max-h-40 space-y-1 overflow-y-auto rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-              {parseResult.errors.map((err) => (
-                <li key={err} className="flex gap-2">
+              {parseResult.errors.map((err, index) => (
+                <li key={`${err}-${index}`} className="flex gap-2">
                   <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
                   {err}
                 </li>
@@ -194,24 +267,58 @@ export default function ToolboxMarkdownImportTab({ onImported }: Props) {
             </ul>
           ) : null}
 
-          <ul className="mb-6 max-h-64 space-y-2 overflow-y-auto">
-            {parseResult.items.map((item) => (
-              <li
-                key={item.external_key}
-                className="flex items-start gap-3 rounded-lg border border-border/40 bg-secondary/10 px-4 py-3 text-sm"
-              >
-                <CheckCircle2 className="size-4 shrink-0 text-primary mt-0.5" />
-                <div>
-                  <p className="font-medium text-foreground">{item.title_i18n.fr}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.content_type} · {item.distribution.mode} · {item.source}
-                  </p>
-                </div>
-              </li>
-            ))}
+          {parseResult.importIssues.length > 0 ? (
+            <ul className="mb-4 max-h-40 space-y-1 overflow-y-auto rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+              {parseResult.importIssues.map((issue, index) => (
+                <li key={`${issue.path}-${index}`} className="flex gap-2">
+                  <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+                  {issue.message}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <ul className="mb-6 max-h-[28rem] space-y-3 overflow-y-auto">
+            {parseResult.items.map((item) => {
+              const title = item.title_i18n.fr || item.title_i18n.en;
+              const userLabel =
+                item.distribution.user_id ||
+                (item.distribution.user_ids?.length
+                  ? item.distribution.user_ids.join(", ")
+                  : item.distribution.mode);
+              return (
+                <li
+                  key={item.external_key}
+                  className="rounded-lg border border-border/40 bg-secondary/10 px-4 py-3 text-sm"
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                        <div className="min-w-0 space-y-1">
+                          <p className="font-medium text-foreground">{title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.content_type} · {item.distribution.mode}
+                          </p>
+                          <p className="break-all font-mono text-[11px] text-muted-foreground">
+                            {t("admin.toolboxMd.previewUser")}: {userLabel}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <ToolboxItemPreview
+                      contentType={item.content_type}
+                      title={title}
+                      description={item.description_i18n.fr || item.description_i18n.en}
+                      widgetConfig={item.widget_config}
+                    />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
 
-          {parseResult.valid > 0 ? (
+          {parseResult.valid > 0 && !importBlocked ? (
             <Button type="button" disabled={importing} onClick={() => void handleImport()}>
               {importing ? (
                 <Loader2 className="size-4 animate-spin mr-2" />
@@ -221,10 +328,32 @@ export default function ToolboxMarkdownImportTab({ onImported }: Props) {
               {t("admin.toolboxMd.confirmImport")}
             </Button>
           ) : (
-            <ToolboxEmptyState message={t("admin.toolboxMd.noValidItems")} />
+            <ToolboxEmptyState
+              icon={importBlocked ? AlertTriangle : FileText}
+              title={
+                importBlocked
+                  ? t("admin.toolboxMd.importBlocked")
+                  : t("admin.toolboxMd.noValidItems")
+              }
+            />
           )}
         </ToolboxPanel>
       ) : null}
     </div>
+  );
+}
+
+export default function ToolboxMarkdownImportTab({ onImported }: Props) {
+  const [boundaryKey, setBoundaryKey] = useState(0);
+
+  return (
+    <MarkdownImportErrorBoundary
+      key={boundaryKey}
+      onReset={() => {
+        setBoundaryKey((k) => k + 1);
+      }}
+    >
+      <ToolboxMarkdownImportPanel onImported={onImported} />
+    </MarkdownImportErrorBoundary>
   );
 }

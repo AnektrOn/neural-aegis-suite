@@ -18,6 +18,7 @@ function opt(
     label_en: id,
     archetype_weights: arch,
     shadow_weights: shadow,
+    polarity_weights: [],
     value,
   };
 }

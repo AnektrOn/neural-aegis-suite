@@ -6,9 +6,11 @@
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import {
   TOOLBOX_CONTENT_TYPES,
+  validateToolboxCatalogPayload,
   type ToolboxCatalogImportPayload,
   type ToolboxContentType,
   type ToolboxUserDeliveryStatus,
+  type ValidationIssue,
   normalizeToolboxUserDeliveryStatus,
 } from "@/services/programBuilderService";
 import { getBuiltinToolboxContentTypeDefinition } from "@/lib/toolbox-content-type-definitions";
@@ -43,6 +45,7 @@ export interface ToolboxMarkdownParseResult {
   total: number;
   valid: number;
   errors: string[];
+  importIssues: ValidationIssue[];
   items: ParsedToolboxMarkdownItem[];
   payload: ToolboxCatalogImportPayload;
 }
@@ -170,10 +173,53 @@ function slugFromFileName(fileName: string): string {
   return fileName.replace(/\.md$/i, "").trim().toLowerCase();
 }
 
+/** Marqueur de lot : ligne seule `<!-- toolbox-item -->` (pas dans un paragraphe). */
+const BATCH_ITEM_LINE =
+  /^\s*<!--\s*toolbox-item(?:\s*:\s*[^>]*?)?\s*-->\s*$/im;
+
 function isIndexFile(fileName: string, meta: Record<string, unknown> | null): boolean {
   if (meta?.external_key) return false;
   const slug = slugFromFileName(fileName);
-  return slug === "readme" || slug === "index" || slug.startsWith("toolbox-item-template");
+  return (
+    slug === "readme" ||
+    slug === "index" ||
+    slug === "toolbox-item-template" ||
+    slug === "toolbox-batch-template"
+  );
+}
+
+/** Découpe un .md en plusieurs items (batch de 10, etc.). */
+export function splitToolboxMarkdownFile(
+  raw: string,
+  fileName: string,
+): Array<{ content: string; source: string }> {
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+
+  let body = trimmed;
+  const opening = trimmed.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (opening) {
+    const meta = parseYamlBlock(opening[1].split("\n"), 0, 0).value;
+    if (meta.version === "toolbox-md-batch-v1") {
+      body = trimmed.slice(opening[0].length).trim();
+    }
+  }
+
+  if (!BATCH_ITEM_LINE.test(body)) {
+    BATCH_ITEM_LINE.lastIndex = 0;
+    return [{ content: trimmed, source: fileName }];
+  }
+  BATCH_ITEM_LINE.lastIndex = 0;
+
+  const segments = body
+    .split(/^\s*<!--\s*toolbox-item(?:\s*:\s*[^>]*?)?\s*-->\s*$/im)
+    .map((part) => part.trim())
+    .filter((part) => part.startsWith("---"));
+
+  return segments.map((content, index) => ({
+    content,
+    source: `${fileName}#${index + 1}`,
+  }));
 }
 
 function parseBodySections(body: string): Record<string, string> {
@@ -256,14 +302,20 @@ function buildWidgetConfig(
   const stepsEn = sections.steps_en ? parseStopSteps(sections.steps_en) : [];
   if (stepsFr.length || stepsEn.length) {
     const len = Math.max(stepsFr.length, stepsEn.length);
-    out.steps = Array.from({ length: len }, (_, i) => ({
-      text: stepsFr[i]?.title || stepsEn[i]?.title || "",
-      hint: stepsFr[i]?.hint || stepsEn[i]?.hint || "",
-      text_i18n: {
-        fr: stepsFr[i]?.title || stepsEn[i]?.title || "",
-        en: stepsEn[i]?.title || stepsFr[i]?.title || "",
-      },
-    }));
+    out.steps = Array.from({ length: len }, (_, i) => {
+      const titleFr = stepsFr[i]?.title || stepsEn[i]?.title || "";
+      const titleEn = stepsEn[i]?.title || stepsFr[i]?.title || "";
+      const hintFr = stepsFr[i]?.hint || stepsEn[i]?.hint || "";
+      const hintEn = stepsEn[i]?.hint || stepsFr[i]?.hint || "";
+      return {
+        text: titleFr || titleEn,
+        title: titleFr || titleEn,
+        hint: hintFr || hintEn,
+        text_i18n: { fr: titleFr || titleEn, en: titleEn || titleFr },
+        title_i18n: { fr: titleFr || titleEn, en: titleEn || titleFr },
+        hint_i18n: { fr: hintFr || hintEn, en: hintEn || hintFr },
+      };
+    });
   }
 
   const affFr = sections.affirmations_fr ? parseBulletList(sections.affirmations_fr) : [];
@@ -461,18 +513,30 @@ export function parseToolboxMarkdownBatch(
 ): ToolboxMarkdownParseResult {
   const errors: string[] = [];
   const items: ParsedToolboxMarkdownItem[] = [];
+  let total = 0;
 
   for (const file of files) {
-    const { item, errors: fileErrors } = parseToolboxMarkdownDocument(file.content, file.name);
-    errors.push(...fileErrors);
-    if (item) items.push(item);
+    const chunks = splitToolboxMarkdownFile(file.content, file.name);
+    for (const chunk of chunks) {
+      total += 1;
+      const { item, errors: fileErrors } = parseToolboxMarkdownDocument(
+        chunk.content,
+        chunk.source,
+      );
+      errors.push(...fileErrors);
+      if (item) items.push(item);
+    }
   }
 
+  const payload = parsedItemsToCatalogPayload(items);
+  const importIssues = items.length > 0 ? validateToolboxCatalogPayload(payload) : [];
+
   return {
-    total: files.length,
+    total,
     valid: items.length,
     errors,
+    importIssues,
     items,
-    payload: parsedItemsToCatalogPayload(items),
+    payload,
   };
 }

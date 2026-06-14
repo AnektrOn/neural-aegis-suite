@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Target, ArrowUpRight } from "lucide-react";
+import { Target, ArrowUpRight, Wrench } from "lucide-react";
 import DashboardHero from "@/components/DashboardHero";
 import { DashboardNavCard } from "@/components/DashboardNavCard";
 import { DashboardMobileBento } from "./DashboardMobileBento";
@@ -39,6 +39,8 @@ export interface DashboardMobileProps {
   onPostAssessmentClose: () => void;
   pullHintVisible: boolean;
   onPullHintDismiss: () => void;
+  toolboxTodo?: number;
+  toolboxFocusId?: string | null;
 }
 
 export function DashboardMobile({
@@ -65,6 +67,8 @@ export function DashboardMobile({
   onPostAssessmentClose,
   pullHintVisible,
   onPullHintDismiss,
+  toolboxTodo = 0,
+  toolboxFocusId = null,
 }: DashboardMobileProps) {
   const { t } = useLanguage();
 
@@ -209,6 +213,31 @@ export function DashboardMobile({
             streakDays={streakDays}
             digestAriaLabel={digestAriaLabel}
           />
+        </motion.div>
+      ) : null}
+
+      {toolboxTodo > 0 ? (
+        <motion.div {...fadeUp(0.035)}>
+          <NavLink
+            to="/toolbox"
+            state={toolboxFocusId ? { openToolboxId: toolboxFocusId } : undefined}
+            className="dashboard-panel-interactive flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3.5 no-underline sm:rounded-[18px] sm:px-5"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <Wrench size={18} className="shrink-0 text-primary" strokeWidth={1.5} aria-hidden />
+              <div className="min-w-0 text-left">
+                <p className="font-barlow text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary/85">
+                  {t("dashboard.mobileToolboxTodo")}
+                </p>
+                <p className="font-barlow text-sm text-foreground">
+                  {toolboxTodo} {t("toolbox.viewTodo").toLowerCase()}
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 font-barlow text-[11px] uppercase tracking-wider text-primary">
+              {t("dashboard.mobileToolboxCta")}
+            </span>
+          </NavLink>
         </motion.div>
       ) : null}
 

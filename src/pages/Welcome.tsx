@@ -17,6 +17,8 @@ export default function Welcome() {
   const [maturity, setMaturity] = useState<UserMaturityProfile | null>(null);
   const [stats, setStats] = useState<WelcomeHubStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const firstName = useMemo(() => {
     if (!user) return "";
@@ -38,6 +40,7 @@ export default function Welcome() {
     if (!user) return;
     let alive = true;
     setLoading(true);
+    setLoadError(false);
 
     (async () => {
       try {
@@ -50,6 +53,7 @@ export default function Welcome() {
         setStats(hubStats);
       } catch (err) {
         console.error("[Welcome] load failed", err);
+        if (alive) setLoadError(true);
       } finally {
         if (alive) setLoading(false);
       }
@@ -58,17 +62,43 @@ export default function Welcome() {
     return () => {
       alive = false;
     };
-  }, [user, locale]);
+  }, [user, locale, reloadKey]);
 
   const goDashboard = () => navigate("/", { replace: true });
   const goPersona = () => navigate("/persona", { replace: true });
   const goAssessment = () => navigate("/onboarding/assessment", { replace: true });
 
-  if (loading || !user || !maturity || !stats) {
+  if (!user) {
+    return null;
+  }
+
+  if (loadError && !loading) {
+    return (
+      <div className="welcome-hud flex min-h-[100dvh] items-center justify-center px-6">
+        <div className="welcome-hud-bg fixed inset-0" aria-hidden />
+        <div className="relative z-10 flex max-w-sm flex-col items-center gap-4 text-center">
+          <p className="font-barlow text-sm text-destructive">{t("welcome.loadError")}</p>
+          <button
+            type="button"
+            className="rounded-xl border border-destructive/40 bg-background/80 px-4 py-2 font-barlow text-xs font-medium uppercase tracking-wide text-destructive hover:bg-destructive/10"
+            onClick={() => setReloadKey((k) => k + 1)}
+          >
+            {t("dashboard.retry")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !maturity || !stats) {
     return (
       <div className="welcome-hud flex min-h-[100dvh] items-center justify-center">
         <div className="welcome-hud-bg fixed inset-0" aria-hidden />
-        <div className="relative z-10 w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <div
+          className="relative z-10 w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin"
+          role="status"
+          aria-label={t("welcome.loading")}
+        />
       </div>
     );
   }

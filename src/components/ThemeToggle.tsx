@@ -1,20 +1,13 @@
 import { useState, useEffect } from "react";
 import { Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
+import { applyTheme, getStoredThemeIsDark } from "@/lib/theme";
 
 export default function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
-  const [dark, setDark] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("theme") === "dark" ||
-        (!localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    }
-    return true;
-  });
+  const [dark, setDark] = useState(getStoredThemeIsDark);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    document.documentElement.classList.toggle("light", !dark);
-    localStorage.setItem("theme", dark ? "dark" : "light");
+    applyTheme(dark);
   }, [dark]);
 
   return (

@@ -126,6 +126,9 @@ interface LegacyOption {
   question_id: string;
   archetype_weights: Record<string, number> | null;
   shadow_weights: Record<string, number> | null;
+  polarity_weights:
+    | { archetype: string; polarity: "light" | "shadow"; weight: number }[]
+    | null;
 }
 interface LegacyQuestion {
   id: string;
@@ -143,7 +146,7 @@ async function loadLegacyMeta() {
   const [opts, qs] = await Promise.all([
     supabase
       .from("assessment_options")
-      .select("id, question_id, archetype_weights, shadow_weights"),
+      .select("id, question_id, archetype_weights, shadow_weights, polarity_weights"),
     supabase.from("assessment_questions").select("id, house"),
   ]);
   if (opts.error) throw opts.error;
@@ -165,6 +168,7 @@ async function loadLegacyMeta() {
 
 function legacyResponseToWeights(
   selected_option_ids: string[],
+  optionIntensities: Record<string, number> | undefined,
   meta: NonNullable<typeof legacyCache>,
 ): { weights: PreWeighted[]; house: number | undefined } {
   const out: PreWeighted[] = [];
@@ -174,25 +178,46 @@ function legacyResponseToWeights(
     if (!opt) continue;
     const q = meta.questionsById.get(opt.question_id);
     if (q?.house) house = q.house;
-    for (const [arch, w] of Object.entries(opt.archetype_weights ?? {})) {
-      if (typeof w === "number" && w > 0) {
+    const rawIntensity = optionIntensities?.[optId];
+    const multiplier =
+      typeof rawIntensity === "number" && Number.isFinite(rawIntensity)
+        ? Math.min(3, Math.max(1, Math.round(rawIntensity)))
+        : 1;
+
+    const polarityRows = opt.polarity_weights ?? [];
+    if (polarityRows.length > 0) {
+      for (const row of polarityRows) {
+        const w = Number(row.weight);
+        if (!w) continue;
         out.push({
-          archetype: arch as AnyArchetypeKey,
-          polarity: "light",
-          weight: w,
+          archetype: row.archetype as AnyArchetypeKey,
+          polarity: row.polarity,
+          weight: w * multiplier,
           house: q?.house ?? undefined,
         });
       }
+      continue;
+    }
+
+    for (const [arch, w] of Object.entries(opt.archetype_weights ?? {})) {
+      const n = Number(w);
+      if (!n) continue;
+      out.push({
+        archetype: arch as AnyArchetypeKey,
+        polarity: "light",
+        weight: n * multiplier,
+        house: q?.house ?? undefined,
+      });
     }
     for (const [arch, w] of Object.entries(opt.shadow_weights ?? {})) {
-      if (typeof w === "number" && w > 0) {
-        out.push({
-          archetype: arch as AnyArchetypeKey,
-          polarity: "shadow",
-          weight: w,
-          house: q?.house ?? undefined,
-        });
-      }
+      const n = Number(w);
+      if (!n) continue;
+      out.push({
+        archetype: arch as AnyArchetypeKey,
+        polarity: "shadow",
+        weight: n * multiplier,
+        house: q?.house ?? undefined,
+      });
     }
   }
   return { weights: out, house };
@@ -209,7 +234,7 @@ export async function loadUnifiedDeepDiveResult(
       .eq("user_id", userId),
     supabase
       .from("assessment_responses")
-      .select("question_id, selected_option_ids")
+      .select("question_id, selected_option_ids, raw_payload")
       .eq("user_id", userId),
     loadLegacyMeta(),
   ]);
@@ -227,7 +252,13 @@ export async function loadUnifiedDeepDiveResult(
   for (const r of (asRes.data ?? []) as any[]) {
     if (!r.selected_option_ids || r.selected_option_ids.length === 0) continue;
     legacyAnsweredQids.add(r.question_id);
-    const { weights } = legacyResponseToWeights(r.selected_option_ids, meta);
+    const intensities = (r.raw_payload as { optionIntensities?: Record<string, number> } | null)
+      ?.optionIntensities;
+    const { weights } = legacyResponseToWeights(
+      r.selected_option_ids,
+      intensities,
+      meta,
+    );
     legacyWeights.push(...weights);
   }
 
@@ -249,7 +280,7 @@ export async function loadUnifiedDeepDiveResultsForAllUsers(): Promise<
       .select("user_id, question_code, option_codes"),
     supabase
       .from("assessment_responses")
-      .select("user_id, question_id, selected_option_ids"),
+      .select("user_id, question_id, selected_option_ids, raw_payload"),
     loadLegacyMeta(),
   ]);
   if (ddRes.error) throw ddRes.error;
@@ -273,7 +304,13 @@ export async function loadUnifiedDeepDiveResultsForAllUsers(): Promise<
       answered: new Set<string>(),
     };
     entry.answered.add(r.question_id);
-    const { weights } = legacyResponseToWeights(r.selected_option_ids, meta);
+    const intensities = (r.raw_payload as { optionIntensities?: Record<string, number> } | null)
+      ?.optionIntensities;
+    const { weights } = legacyResponseToWeights(
+      r.selected_option_ids,
+      intensities,
+      meta,
+    );
     entry.weights.push(...weights);
     legacyByUser.set(r.user_id, entry);
   }

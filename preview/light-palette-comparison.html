@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AEGIS — Palettes Light mode</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Barlow", sans-serif;
+      font-size: 14px;
+      background: #0e0e10;
+      color: #e8e4df;
+      min-height: 100vh;
+      padding: 2rem 1.5rem 5.5rem;
+    }
+
+    .page-header {
+      max-width: 1400px;
+      margin: 0 auto 2.5rem;
+      text-align: center;
+    }
+
+    .page-header h1 {
+      font-family: "Cinzel", serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.14em;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+    }
+
+    .page-header p {
+      color: #8a8580;
+      max-width: 760px;
+      margin: 0 auto;
+      line-height: 1.65;
+      font-size: 0.88rem;
+    }
+
+    .dna-note {
+      max-width: 760px;
+      margin: 1.25rem auto 0;
+      padding: 0.85rem 1.1rem;
+      border: 1px solid rgba(196, 160, 90, 0.2);
+      border-radius: 10px;
+      background: rgba(196, 160, 90, 0.04);
+      font-size: 0.78rem;
+      color: #a09890;
+      line-height: 1.55;
+      text-align: left;
+    }
+
+    .dna-note strong { color: #c4a05a; font-weight: 500; }
+
+    .section {
+      max-width: 1400px;
+      margin: 0 auto 3.5rem;
+    }
+
+    .section-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem 1.25rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .section-header h2 {
+      font-family: "Cinzel", serif;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      font-weight: 500;
+    }
+
+    .section-header p { font-size: 0.78rem; color: #7a7570; }
+
+    .section-header .badge {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      margin-left: auto;
+    }
+
+    .section-header.character h2 {
+      background: linear-gradient(90deg, #c62828, #e8920a, #2563c4, #6a2eb8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .section-header.character .badge {
+      border: 1px solid rgba(232, 146, 10, 0.45);
+      color: #e8920a;
+    }
+
+    .section-header.authority h2 { color: #d4af6a; }
+    .section-header.authority .badge {
+      border: 1px solid rgba(212, 175, 106, 0.35);
+      color: #d4af6a;
+    }
+
+    .section-header.oriental h2 { color: #c4a882; }
+    .section-header.alt h2 { color: #8eb4c8; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .palette-card {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .palette-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+    }
+
+    .palette-card.selected { outline: 2px solid #d4af6a; outline-offset: 2px; }
+    .palette-card[data-group="character"].selected { outline-color: #e8920a; }
+    .palette-card[data-group="oriental"].selected { outline-color: #c4a882; }
+    .palette-card[data-group="alt"].selected { outline-color: #8eb4c8; }
+
+    .palette-label {
+      padding: 0.7rem 1rem;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .palette-label strong {
+      font-family: "Cinzel", serif;
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+    }
+
+    .palette-label span {
+      font-size: 0.65rem;
+      color: #8a8580;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .preview {
+      padding: 0.85rem;
+      min-height: 460px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    /* ── Authority layout (mirrors dark dashboard) ── */
+    .auth-hero {
+      border-radius: 10px;
+      padding: 1rem 1.1rem 1.1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 80% at 85% 110%, rgba(212,175,106,0.12), transparent 55%);
+      pointer-events: none;
+    }
+
+    .auth-hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+      z-index: 1;
+    }
+
+    .auth-hero-top h2 {
+      font-family: "Cinzel", serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      font-weight: 500;
+      opacity: 0.55;
+    }
+
+    .auth-hero-top small {
+      font-size: 0.58rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.4;
+    }
+
+    .auth-score {
+      position: relative;
+      z-index: 1;
+      margin-top: 0.65rem;
+    }
+
+    .auth-score .value {
+      font-family: "Cinzel", serif;
+      font-size: 2rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+
+    .auth-score .label {
+      font-size: 0.58rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0.45;
+      margin-top: 0.25rem;
+    }
+
+    .auth-card {
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      border: 1px solid;
+      flex: 1;
+      position: relative;
+    }
+
+    .auth-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 1rem; right: 1rem;
+      height: 1px;
+      background: var(--card-gold, #d4af6a);
+    }
+
+    .auth-card h3 {
+      font-family: "Cinzel", serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.3rem;
+    }
+
+    .auth-card p {
+      font-size: 0.74rem;
+      line-height: 1.5;
+      margin-bottom: 0.7rem;
+    }
+
+    .auth-btns { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+
+    .auth-btn {
+      border: none;
+      border-radius: 7px;
+      padding: 0.42rem 0.8rem;
+      font-family: inherit;
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .auth-btn.ghost {
+      background: transparent;
+      border: 1px solid;
+    }
+
+    /* ── Character layout (couleur, audace) ── */
+    .char-hero {
+      border-radius: 10px;
+      padding: 1rem 1.1rem 1.15rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .char-hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--hero-glow, radial-gradient(ellipse 90% 70% at 100% 100%, rgba(255,255,255,0.14), transparent 50%));
+      pointer-events: none;
+    }
+
+    .char-hero::after {
+      content: "";
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--hero-stripe, #e8920a);
+    }
+
+    .char-badge {
+      display: inline-block;
+      font-size: 0.58rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.18rem 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 0.55rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .char-card {
+      border-radius: 10px;
+      padding: 0.85rem 1rem 0.85rem 0.9rem;
+      border: 1px solid;
+      border-left: 3px solid var(--char-primary, #c62828);
+      flex: 1;
+    }
+
+    .char-card h3 {
+      font-family: "Cinzel", serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.3rem;
+    }
+
+    .char-card p { font-size: 0.74rem; line-height: 1.5; margin-bottom: 0.7rem; }
+
+    .char-btns { display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center; }
+
+    .char-btn {
+      border: none;
+      border-radius: 7px;
+      padding: 0.42rem 0.8rem;
+      font-family: inherit;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .char-btn.ghost {
+      background: transparent;
+      border: 1px solid;
+    }
+
+    .char-btn.tertiary {
+      font-size: 0.62rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 20px;
+    }
+
+    /* ── Classic layout ── */
+    .hero-strip {
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hero-strip h2 {
+      font-family: "Cinzel", serif;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      font-weight: 500;
+    }
+
+    .hero-strip small {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .surface-card {
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      border: 1px solid;
+      flex: 1;
+    }
+
+    .surface-card h3 {
+      font-family: "Cinzel", serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.35rem;
+    }
+
+    .surface-card p { font-size: 0.78rem; line-height: 1.5; margin-bottom: 0.75rem; }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 0.45rem 0.85rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+    }
+
+    .btn-outline { background: transparent; border: 1px solid; }
+
+    .swatches {
+      display: flex;
+      gap: 3px;
+      margin-top: auto;
+      padding-top: 0.45rem;
+    }
+
+    .swatch {
+      flex: 1;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .selection-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(10,10,12,0.96);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(212,175,106,0.15);
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .selection-bar strong {
+      font-family: "Cinzel", serif;
+      color: #d4af6a;
+    }
+
+    .selection-bar strong.character { color: #e8920a; }
+    .selection-bar strong.oriental { color: #c4a882; }
+    .selection-bar strong.alt { color: #8eb4c8; }
+
+    .selection-bar em { color: #7a7570; font-style: normal; }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <h1>Light mode — Caractère &amp; Autorité</h1>
+    <p>Pas de beige aseptisé. Des couleurs qui imposent — rouge impérial, jade, améthyste, safran, outremer — avec le luxe et la tension du dark mode AEGIS.</p>
+    <div class="dna-note">
+      <strong>Règle :</strong> une couleur dominante audacieuse (hero) · un second accent complémentaire · or ou cuivre en score · fond teinté (jamais gris neutre) · texte encre profonde.
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="section-header character">
+      <h2>I — Caractère &amp; Extraordinaire</h2>
+      <p>Couleurs saturées · identité forte · zero monochrome</p>
+      <span class="badge">Recommandé</span>
+    </div>
+    <div class="grid" id="grid-character"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-header authority">
+      <h2>II — Autorité &amp; Luxe</h2>
+      <p>Hero inversé · encre profonde · or souverain</p>
+    </div>
+    <div class="grid" id="grid-authority"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-header oriental">
+      <h2>III — Oriental Aesthetics</h2>
+      <p>Inspiré de l'image de référence</p>
+    </div>
+    <div class="grid" id="grid-oriental"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-header alt">
+      <h2>IV — Directions alternatives</h2>
+      <p>Univers volontairement différents</p>
+    </div>
+    <div class="grid" id="grid-alt"></div>
+  </section>
+
+  <div class="selection-bar">
+    <span>Sélection : <strong id="selected-name">Aucune</strong></span>
+    <em id="selected-desc">— cliquez sur une palette</em>
+  </div>
+
+  <script>
+    const palettes = [
+      /* ── CARACTÈRE & EXTRAORDINAIRE ── */
+      {
+        id: 16,
+        group: "character",
+        layout: "character",
+        name: "Sceau Impérial",
+        tag: "Rouge · or · jade",
+        desc: "Cramoisi profond en hero, or impérial, touches jade — puissance impériale",
+        tokens: {
+          bg: "#F4EBE4", fg: "#1A0A0E", muted: "#7A5058",
+          card: "#F0E0D8", border: "#D4848A",
+          primary: "#9B2335", primaryFg: "#FAF0EC",
+          accent: "#D4A024", accentFg: "#1A0A0E",
+          tertiary: "#1B4332", tertiaryFg: "#ECFAF2",
+          score: "#E8C547",
+          hero: "#7A1F35", heroFg: "#FAF0EC",
+          heroStripe: "#D4A024",
+        },
+      },
+      {
+        id: 17,
+        group: "character",
+        layout: "character",
+        name: "Dynastie Jade",
+        tag: "Jade · or · bronze",
+        desc: "Vert jade saturé, or dynastique, bronze en contrepoint — pierre précieuse vivante",
+        tokens: {
+          bg: "#E8F2EC", fg: "#0A1810", muted: "#3D6B52",
+          card: "#DCEEDE", border: "#7EC8A0",
+          primary: "#1B7A4E", primaryFg: "#ECFAF2",
+          accent: "#52B788", accentFg: "#0A1810",
+          tertiary: "#8B5A2B", tertiaryFg: "#FAF3E8",
+          score: "#E2C068",
+          hero: "#145A32", heroFg: "#ECFAF2",
+          heroStripe: "#52B788",
+        },
+      },
+      {
+        id: 18,
+        group: "character",
+        layout: "character",
+        name: "Cour Améthyste",
+        tag: "Violet · cuivre",
+        desc: "Pourpre tyrien, améthyste éclatante, cuivre brûlé — royauté baroque",
+        tokens: {
+          bg: "#F0EAF5", fg: "#180828", muted: "#6A4878",
+          card: "#E8DFF0", border: "#A88ED4",
+          primary: "#6A2EB8", primaryFg: "#F5EEFC",
+          accent: "#B07EF0", accentFg: "#180828",
+          tertiary: "#C45C26", tertiaryFg: "#FFF5EE",
+          score: "#F0C04A",
+          hero: "#4A1A8C", heroFg: "#F5EEFC",
+          heroStripe: "#B07EF0",
+        },
+      },
+      {
+        id: 19,
+        group: "character",
+        layout: "character",
+        name: "Éclipse Safran",
+        tag: "Safran · teal · cramoisi",
+        desc: "Safran éclatant sur void chaud, teal profond, cramoisine — feu et alchimie",
+        tokens: {
+          bg: "#FAF3E4", fg: "#120A04", muted: "#7A5A30",
+          card: "#F5E8CC", border: "#E8C878",
+          primary: "#E8920A", primaryFg: "#120A04",
+          accent: "#1A6B6B", accentFg: "#ECFAFA",
+          tertiary: "#C62828", tertiaryFg: "#FFF0EE",
+          score: "#F0A500",
+          hero: "#180F08", heroFg: "#FFF8EE",
+          heroStripe: "#E8920A",
+        },
+      },
+      {
+        id: 20,
+        group: "character",
+        layout: "character",
+        name: "Guilde Outremer",
+        tag: "Cobalt · cuivre · sauge",
+        desc: "Outremer profond, cuivre brûlé, sauge — guildes anciennes et océan",
+        tokens: {
+          bg: "#EAEFF8", fg: "#081428", muted: "#4A6080",
+          card: "#DEE6F4", border: "#6890D4",
+          primary: "#2563C4", primaryFg: "#EEF3FC",
+          accent: "#C46830", accentFg: "#FFF5EE",
+          tertiary: "#4A8068", tertiaryFg: "#ECFAF2",
+          score: "#E8943A",
+          hero: "#1A4080", heroFg: "#EEF3FC",
+          heroStripe: "#C46830",
+        },
+      },
+
+      /* ── AUTORITÉ & LUXE ── */
+      {
+        id: 11,
+        group: "authority",
+        layout: "authority",
+        name: "Void & Champagne",
+        tag: "Traduction directe du dark",
+        desc: "Ivory stone + void hero + or champagne — le miroir exact du dark mode",
+        tokens: {
+          bg: "#EBE8E2", fg: "#0E0D0B", muted: "#5C564E",
+          card: "#E0DBD2", border: "#B8AFA2",
+          primary: "#1A1712", primaryFg: "#F0EBE3",
+          accent: "#C4A05A", accentFg: "#0E0D0B",
+          gold: "#D4AF6A",
+          hero: "#111820", heroFg: "#EDE6DA",
+        },
+      },
+      {
+        id: 12,
+        group: "authority",
+        layout: "authority",
+        name: "Private Banking",
+        tag: "Navy & or",
+        desc: "Perle froide, encre navy, hero nocturne — cabinet privé, pas startup",
+        tokens: {
+          bg: "#EDEFF2", fg: "#0A0C10", muted: "#525A66",
+          card: "#E2E5EA", border: "#B4BAC4",
+          primary: "#141B28", primaryFg: "#EDEFF2",
+          accent: "#B8935A", accentFg: "#0A0C10",
+          gold: "#C9A962",
+          hero: "#0C1018", heroFg: "#E8E4DC",
+        },
+      },
+      {
+        id: 13,
+        group: "authority",
+        layout: "authority",
+        name: "Obsidian Brief",
+        tag: "Monochrome d'élite",
+        desc: "Calcaire + noir absolu + or antique — silence et pouvoir",
+        tokens: {
+          bg: "#ECEAE6", fg: "#0A0908", muted: "#4A4744",
+          card: "#E0DCD6", border: "#C8C2B8",
+          primary: "#0A0908", primaryFg: "#F2EFEB",
+          accent: "#A68856", accentFg: "#F2EFEB",
+          gold: "#B89968",
+          hero: "#0F0E0D", heroFg: "#F0EDE8",
+        },
+      },
+      {
+        id: 14,
+        group: "authority",
+        layout: "authority",
+        name: "Sovereign Bronze",
+        tag: "Espresso & bronze",
+        desc: "Brun souverain, bronze brossé — chaleur autoritaire, zero pastel",
+        tokens: {
+          bg: "#EFEBE4", fg: "#14110E", muted: "#5E5348",
+          card: "#E3DDD4", border: "#C4B8A8",
+          primary: "#3D3228", primaryFg: "#F5F0E8",
+          accent: "#9A7B4F", accentFg: "#F5F0E8",
+          gold: "#C4A06A",
+          hero: "#1E1812", heroFg: "#F2EBE0",
+        },
+      },
+      {
+        id: 15,
+        group: "authority",
+        layout: "authority",
+        name: "Nocturne Ivory",
+        tag: "Contraste maximal",
+        desc: "Ivoire de surface, abîme navy en hero — tension dark/light extrême",
+        tokens: {
+          bg: "#F0EDE6", fg: "#121110", muted: "#58524A",
+          card: "#E5E0D8", border: "#C9C2B6",
+          primary: "#2A2520", primaryFg: "#F5F2EC",
+          accent: "#D4AF6A", accentFg: "#121110",
+          gold: "#E2C078",
+          hero: "#0A1628", heroFg: "#F5F2EC",
+        },
+      },
+
+      /* ── ORIENTAL ── */
+      {
+        id: 1, group: "oriental", layout: "classic",
+        name: "Parchemin & Encre", tag: "Fidèle à l'image",
+        desc: "Chaud, premium, contemplatif", heroLabel: "Oriental Aesthetics",
+        tokens: {
+          bg: "#F5F2EB", fg: "#2C2C2E", muted: "#6B6560",
+          card: "#EDE4D3", border: "#D9C5A0",
+          primary: "#2C2C2E", primaryFg: "#F5F2EB",
+          accent: "#A63D33", accentFg: "#FAF7F2", hero: "#E8E4DC",
+        },
+      },
+      {
+        id: 2, group: "oriental", layout: "classic",
+        name: "Brume de Montagne", tag: "Shanshui frais",
+        desc: "Aéré, zen, tons bleu-gris", heroLabel: "Oriental Aesthetics",
+        tokens: {
+          bg: "#F4F3EF", fg: "#3E4A59", muted: "#7A8490",
+          card: "#E8E6E1", border: "#C8CDD4",
+          primary: "#3E4A59", primaryFg: "#F4F3EF",
+          accent: "#9B4A42", accentFg: "#FAF7F2", hero: "#DDE2E8",
+        },
+      },
+      {
+        id: 3, group: "oriental", layout: "classic",
+        name: "Rouge Sceau", tag: "Accent affirmé",
+        desc: "Rouge traditionnel en CTA", heroLabel: "Oriental Aesthetics",
+        tokens: {
+          bg: "#FAF7F2", fg: "#1E1E1F", muted: "#5C5754",
+          card: "#F0E8DA", border: "#E0D4C0",
+          primary: "#A63D33", primaryFg: "#FAF7F2",
+          accent: "#8B3329", accentFg: "#FAF7F2", hero: "#EDE8E0",
+        },
+      },
+      {
+        id: 4, group: "oriental", layout: "classic",
+        name: "Galerie de Soie", tag: "Minimal froid/chaud",
+        desc: "Sol gris + cartes parchemin", heroLabel: "Oriental Aesthetics",
+        tokens: {
+          bg: "#EEEDEA", fg: "#2A2A2C", muted: "#737078",
+          card: "#F5F0E6", border: "#D5D3CE",
+          primary: "#2A2A2C", primaryFg: "#EEEDEA",
+          accent: "#B85448", accentFg: "#FAF7F2", hero: "#E4E3DF",
+        },
+      },
+      {
+        id: 5, group: "oriental", layout: "classic",
+        name: "Encre & Or Antique", tag: "Luxe artisanal",
+        desc: "Or antique, chaleur maximale", heroLabel: "Oriental Aesthetics",
+        tokens: {
+          bg: "#F6F1E8", fg: "#252320", muted: "#8A7F72",
+          card: "#EBDFC8", border: "#D4C4A8",
+          primary: "#3D3832", primaryFg: "#F6F1E8",
+          accent: "#C4A882", accentFg: "#252320",
+          accent2: "#9E3D35", hero: "#EDE5D6",
+        },
+      },
+
+      /* ── ALTERNATIVES ── */
+      {
+        id: 6, group: "alt", layout: "classic",
+        name: "Arctique Clinique", tag: "Froid & précis",
+        desc: "Blanc glacial, cyan action", heroLabel: "Clinical Precision",
+        tokens: {
+          bg: "#F7FAFC", fg: "#0F172A", muted: "#64748B",
+          card: "#EEF4F8", border: "#CBD5E1",
+          primary: "#0EA5E9", primaryFg: "#F7FAFC",
+          accent: "#0284C7", accentFg: "#F7FAFC", hero: "#E0F2FE",
+        },
+      },
+      {
+        id: 7, group: "alt", layout: "classic",
+        name: "Aube Forestière", tag: "Biophilique",
+        desc: "Verts mousse, grounding naturel", heroLabel: "Forest Dawn",
+        tokens: {
+          bg: "#F4F7F2", fg: "#1A2E1A", muted: "#5C6B5C",
+          card: "#E8EFE4", border: "#C5D4BC",
+          primary: "#3D6B4F", primaryFg: "#F4F7F2",
+          accent: "#7BA872", accentFg: "#1A2E1A", hero: "#DDE8D6",
+        },
+      },
+      {
+        id: 8, group: "alt", layout: "classic",
+        name: "Nébuleuse Lavande", tag: "Cosmique doux",
+        desc: "Violet améthyste, introspection", heroLabel: "Nebula Calm",
+        tokens: {
+          bg: "#F8F6FC", fg: "#2D2640", muted: "#7A7190",
+          card: "#F0ECF8", border: "#D8D0E8",
+          primary: "#6B5B95", primaryFg: "#F8F6FC",
+          accent: "#9B8EC4", accentFg: "#2D2640", hero: "#E8E0F4",
+        },
+      },
+      {
+        id: 9, group: "alt", layout: "classic",
+        name: "Éditorial Monochrome", tag: "Contraste max",
+        desc: "Noir sur blanc pur, accent corail", heroLabel: "Editorial Bold",
+        tokens: {
+          bg: "#FFFFFF", fg: "#111111", muted: "#666666",
+          card: "#F5F5F5", border: "#E0E0E0",
+          primary: "#111111", primaryFg: "#FFFFFF",
+          accent: "#FF4D4D", accentFg: "#FFFFFF", hero: "#FAFAFA",
+        },
+      },
+      {
+        id: 10, group: "alt", layout: "classic",
+        name: "Méditerranée Soleil", tag: "Chaleur solaire",
+        desc: "Terracotta, olive, azur", heroLabel: "Mediterranean Sun",
+        tokens: {
+          bg: "#FBF6EF", fg: "#2C2416", muted: "#8A7B68",
+          card: "#F2E6D4", border: "#E0D0B8",
+          primary: "#C4654A", primaryFg: "#FBF6EF",
+          accent: "#4A7C8C", accentFg: "#FBF6EF", hero: "#E8DDD0",
+        },
+      },
+    ];
+
+    const selectedName = document.getElementById("selected-name");
+    const selectedDesc = document.getElementById("selected-desc");
+
+    function swatches(t, keys) {
+      const list = keys || [
+        ["hero","Hero"],["primary","Primary"],["accent","Accent"],["score","Score"],["tertiary","Tertiary"],["bg","Fond"]
+      ];
+      const items = list.filter(([k]) => t[k]).map(([k, title]) =>
+        `<div class="swatch" style="background:${t[k]}" title="${title}"></div>`
+      ).join("");
+      return `<div class="swatches">${items}</div>`;
+    }
+
+    function renderCharacter(p) {
+      const t = p.tokens;
+      return `
+        <article class="palette-card" data-id="${p.id}" data-group="${p.group}">
+          <div class="palette-label">
+            <strong>${p.id}. ${p.name}</strong>
+            <span>${p.tag}</span>
+          </div>
+          <div class="preview" style="background:${t.bg};color:${t.fg}">
+            <div class="char-hero" style="background:${t.hero};color:${t.heroFg};--hero-stripe:${t.heroStripe}">
+              <span class="char-badge" style="background:${t.accent};color:${t.accentFg || t.heroFg}">Regulation</span>
+              <div class="auth-hero-top">
+                <h2>Neural Dashboard</h2>
+                <small>Daily</small>
+              </div>
+              <div class="auth-score">
+                <div class="value" style="color:${t.score}">14<span style="font-size:0.45em;opacity:0.55">/100</span></div>
+                <div class="label">Aegis Score</div>
+              </div>
+            </div>
+            <div class="char-card" style="background:${t.card};border-color:${t.border};color:${t.fg};--char-primary:${t.primary}">
+              <h3>Respiration 4-4-6-2</h3>
+              <p>Phase d'ancrage — <span style="color:${t.muted}">3 min restantes</span></p>
+              <div class="char-btns">
+                <button class="char-btn" style="background:${t.primary};color:${t.primaryFg}">Start</button>
+                <button class="char-btn ghost" style="border-color:${t.accent};color:${t.primary}">Log</button>
+                <button class="char-btn tertiary" style="background:${t.tertiary};color:${t.tertiaryFg}">Pulse</button>
+              </div>
+            </div>
+            ${swatches(t)}
+          </div>
+        </article>
+      `;
+    }
+
+    function renderAuthority(p) {
+      const t = p.tokens;
+      return `
+        <article class="palette-card" data-id="${p.id}" data-group="${p.group}">
+          <div class="palette-label">
+            <strong>${p.id}. ${p.name}</strong>
+            <span>${p.tag}</span>
+          </div>
+          <div class="preview" style="background:${t.bg};color:${t.fg}">
+            <div class="auth-hero" style="background:${t.hero};color:${t.heroFg}">
+              <div class="auth-hero-top">
+                <h2>Neural Dashboard</h2>
+                <small>Daily</small>
+              </div>
+              <div class="auth-score">
+                <div class="value" style="color:${t.gold}">14<span style="font-size:0.45em;opacity:0.5">/100</span></div>
+                <div class="label">Aegis Score</div>
+              </div>
+            </div>
+            <div class="auth-card" style="background:${t.card};border-color:${t.border};color:${t.fg};--card-gold:${t.gold}">
+              <h3>Regulation</h3>
+              <p>Respiration 4-4-6-2 — <span style="color:${t.muted}">En cours</span></p>
+              <div class="auth-btns">
+                <button class="auth-btn" style="background:${t.primary};color:${t.primaryFg}">Start</button>
+                <button class="auth-btn ghost" style="border-color:${t.gold};color:${t.gold}">Log</button>
+              </div>
+            </div>
+            ${swatches(t, [["hero","Hero"],["primary","Primary"],["accent","Accent"],["gold","Or"],["bg","Fond"]])}
+          </div>
+        </article>
+      `;
+    }
+
+    function renderClassic(p) {
+      const t = p.tokens;
+      const accent2Btn = t.accent2
+        ? `<button class="btn" style="background:${t.accent2};color:#FAF7F2">Alerte</button>` : "";
+      return `
+        <article class="palette-card" data-id="${p.id}" data-group="${p.group}">
+          <div class="palette-label">
+            <strong>${p.id}. ${p.name}</strong>
+            <span>${p.tag}</span>
+          </div>
+          <div class="preview" style="background:${t.bg};color:${t.fg}">
+            <div class="hero-strip" style="background:${t.hero};color:${t.fg}">
+              <h2>AEGIS</h2>
+              <small>${p.heroLabel}</small>
+            </div>
+            <div class="surface-card" style="background:${t.card};border-color:${t.border};color:${t.fg}">
+              <h3>Suivi du jour</h3>
+              <p>Respiration 4-4-6-2 — <span style="color:${t.muted}">3 min restantes</span></p>
+              <div class="btn-row">
+                <button class="btn" style="background:${t.primary};color:${t.primaryFg}">Primary</button>
+                <button class="btn" style="background:${t.accent};color:${t.accentFg}">Accent</button>
+                <button class="btn btn-outline" style="border-color:${t.border};color:${t.fg}">Outline</button>
+                ${accent2Btn}
+              </div>
+            </div>
+            <div class="swatches">
+              <div class="swatch" style="background:${t.bg}" title="Background"></div>
+              <div class="swatch" style="background:${t.card}" title="Card"></div>
+              <div class="swatch" style="background:${t.fg}" title="Foreground"></div>
+              <div class="swatch" style="background:${t.accent}" title="Accent"></div>
+              <div class="swatch" style="background:${t.border}" title="Border"></div>
+              <div class="swatch" style="background:${t.hero}" title="Hero"></div>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderPalette(p) {
+      if (p.layout === "character") return renderCharacter(p);
+      if (p.layout === "authority") return renderAuthority(p);
+      return renderClassic(p);
+    }
+
+    document.getElementById("grid-character").innerHTML =
+      palettes.filter((p) => p.group === "character").map(renderPalette).join("");
+    document.getElementById("grid-authority").innerHTML =
+      palettes.filter((p) => p.group === "authority").map(renderPalette).join("");
+    document.getElementById("grid-oriental").innerHTML =
+      palettes.filter((p) => p.group === "oriental").map(renderPalette).join("");
+    document.getElementById("grid-alt").innerHTML =
+      palettes.filter((p) => p.group === "alt").map(renderPalette).join("");
+
+    document.body.addEventListener("click", (e) => {
+      const card = e.target.closest(".palette-card");
+      if (!card) return;
+      const id = Number(card.dataset.id);
+      const p = palettes.find((x) => x.id === id);
+      if (!p) return;
+
+      document.querySelectorAll(".palette-card").forEach((c) => c.classList.remove("selected"));
+      card.classList.add("selected");
+      selectedName.textContent = `${p.id}. ${p.name}`;
+      selectedName.className = p.group === "authority" ? "" : p.group === "character" ? "character" : p.group;
+      selectedDesc.textContent = p.desc;
+    });
+  </script>
+</body>
+</html>

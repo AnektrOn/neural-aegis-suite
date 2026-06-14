@@ -17,6 +17,68 @@ const VALID_ARCHETYPES = [
 
 const ARCHETYPE_SLUGS = new Set(VALID_ARCHETYPES);
 const REQUIRED_LOCALES = ["fr", "en"];
+const KNOWN_CONTENT_TYPES = new Set(["card", "note", "exercise", "course"]);
+const MAX_BATCH_CARDS = 10;
+
+/** Marqueur de lot : ligne seule `<!-- pulse-item -->` (hors commentaire doc). */
+const BATCH_MARKER_LINE =
+  /^\s*<!--\s*(?:toolbox-item|pulse-item)(?:\s*:\s*[^>]*?)?\s*-->\s*$/i;
+
+function countMatches(line: string, re: RegExp): number {
+  return [...line.matchAll(re)].length;
+}
+
+/**
+ * Découpe par marqueurs pulse-item sur leur propre ligne, en ignorant ceux cités
+ * dans un bloc <!-- doc --> (ex. « … : <!-- pulse-item --> » dans l'en-tête).
+ */
+function splitByBatchMarkerLines(raw: string): string[] {
+  const segments: string[] = [];
+  let current: string[] = [];
+  let inDocComment = false;
+
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+
+    if (inDocComment) {
+      const opens = countMatches(line, /<!--/g);
+      const closes = countMatches(line, /-->/g);
+      // Commentaire inline dans le bloc doc (ex. exemple <!-- pulse-item -->)
+      if (opens > 0 && closes > 0) {
+        continue;
+      }
+      if (closes > opens) {
+        inDocComment = false;
+      }
+      continue;
+    }
+
+    if (trimmed.startsWith("<!--") && !BATCH_MARKER_LINE.test(trimmed)) {
+      const opens = countMatches(line, /<!--/g);
+      const closes = countMatches(line, /-->/g);
+      if (opens > closes) {
+        inDocComment = true;
+      }
+      continue;
+    }
+
+    if (BATCH_MARKER_LINE.test(trimmed)) {
+      if (current.length > 0) {
+        segments.push(current.join("\n").trim());
+        current = [];
+      }
+      continue;
+    }
+
+    current.push(line);
+  }
+
+  if (current.length > 0) {
+    segments.push(current.join("\n").trim());
+  }
+
+  return segments;
+}
 
 function slugFromFileName(fileName: string): string {
   return fileName.replace(/\.md$/i, "").trim().toLowerCase().replace(/\s+/g, "_");
@@ -51,9 +113,59 @@ function consolidatedErrors(source: string, meta: Record<string, unknown> | null
   return [];
 }
 
-function splitMultiCardDocuments(raw: string): string[] {
+/** Vrai segment carte (pas un en-tête de lot type pulse_batch_header_bypass). */
+function isPulseCardMeta(meta: Record<string, unknown> | null): boolean {
+  if (!meta?.external_key) return false;
+  const principle = typeof meta.principle === "string" ? meta.principle : "";
+  if (!VALID_PRINCIPLES.includes(principle)) return false;
+  const title = meta.title;
+  if (!title || typeof title !== "object") return false;
+  const t = title as Record<string, string>;
+  return Boolean(t.fr && t.en);
+}
+
+/** En-tête de lot en tête de fichier (métadonnées sans principle/title carte). */
+function stripOptionalBatchFrontmatter(raw: string): string {
+  const opening = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!opening) return raw;
+  const meta = parseYamlBlock(opening[1].split("\n"), 0, 0).value;
+  if (isPulseCardMeta(meta)) return raw;
+  return raw.slice(opening[0].length).trim();
+}
+
+/**
+ * Regex rapide : le corps contient-il au moins une section de cours ?
+ * Couvre deux formats :
+ *   - bloc locale seul :    # FR  /  # EN
+ *   - section inline :      # Hook FR  /  # Concept EN  /  # Action FR
+ */
+const COURSE_SECTION_RE =
+  /^#{1,3}[ \t]+(?:(?:FR|EN)[ \t]*$|(?:Hook|Concept|Action)(?:[ \t]|$))/im;
+
+function isPulseCardSegment(segment: string): boolean {
+  const trimmed = segment.trim();
+  if (!/^---\r?\n/.test(trimmed)) return false;
+  const { meta, body } = parseFrontmatter(trimmed);
+  if (!isPulseCardMeta(meta)) return false;
+  // Les en-têtes de lot (bypass / metadata) n'ont pas de corps de cours
+  return COURSE_SECTION_RE.test(body);
+}
+
+function splitByBatchMarkers(raw: string): string[] {
+  let trimmed = raw.trim();
+  if (!trimmed) return [];
+
+  trimmed = stripOptionalBatchFrontmatter(trimmed);
+
+  const hasMarker = trimmed.split("\n").some((line) => BATCH_MARKER_LINE.test(line.trim()));
+  if (!hasMarker) return [];
+
+  return splitByBatchMarkerLines(trimmed);
+}
+
+function splitByYamlBoundaries(raw: string): string[] {
   const trimmed = raw.trim();
-  if (!trimmed.startsWith("---")) return [raw];
+  if (!trimmed.startsWith("---")) return [];
 
   const parts: string[] = [];
   const re = /\n---\n(?=[\w_]+:\s)/g;
@@ -66,7 +178,17 @@ function splitMultiCardDocuments(raw: string): string[] {
   }
   parts.push(trimmed.slice(lastIndex));
 
-  return parts.length > 1 ? parts : [raw];
+  return parts.length > 1 ? parts : [];
+}
+
+function splitMultiCardDocuments(raw: string): string[] {
+  const batch = splitByBatchMarkers(raw);
+  if (batch.length > 0) return batch;
+
+  const yamlSplit = splitByYamlBoundaries(raw);
+  if (yamlSplit.length > 0) return yamlSplit;
+
+  return [raw.trim()];
 }
 
 function unquote(s: string): string | boolean | number {
@@ -174,10 +296,11 @@ function parseYamlBlock(
 }
 
 function parseFrontmatter(raw: string) {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!match) return { meta: null as Record<string, unknown> | null, body: raw };
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) return { meta: null as Record<string, unknown> | null, body: trimmed };
   const yamlStr = match[1];
-  const body = raw.slice(match[0].length).trim();
+  const body = trimmed.slice(match[0].length).trim();
   const meta = parseYamlBlock(yamlStr.split("\n"), 0, 0).value;
   return { meta, body };
 }
@@ -189,33 +312,60 @@ function parseCourseBody(body: string): Record<string, { hook?: string; concept?
   const lines = body.split("\n");
   let currentKey: string | null = null;
   let currentLines: string[] = [];
+  let activeLocale: "fr" | "en" | null = null;
 
-  // Aligné sur sync-obsidian.mjs : # Hook FR · # Hook — FR · # Hook (FR)
+  const flush = () => {
+    if (currentKey) {
+      sections[currentKey] = currentLines.join("\n").trim();
+    }
+    currentKey = null;
+    currentLines = [];
+  };
+
+  // # Hook FR · # Hook — FR · # Hook (FR)
   const headingRe =
     /^#{1,3}[ \t]+(Hook|Concept|Action)(?:[ \t]*(?:\(?(FR|EN)\)?|[—–-][ \t]*(FR|EN)|:[ \t]*(FR|EN)|[ \t]+(FR|EN)))?[ \t]*$/i;
+  const localeBlockRe = /^#{1,3}[ \t]+(FR|EN)[ \t]*$/i;
+  const sectionOnlyRe = /^#{1,3}[ \t]+(Hook|Concept|Action)[ \t]*$/i;
 
   for (const line of lines) {
+    const localeBlock = line.match(localeBlockRe);
+    if (localeBlock) {
+      flush();
+      activeLocale = localeBlock[1].toLowerCase() as "fr" | "en";
+      continue;
+    }
+
     const headingMatch = line.match(headingRe);
     if (headingMatch) {
-      const locale = (headingMatch[2] || headingMatch[3] || headingMatch[4] || headingMatch[5] || "")
+      let locale = (headingMatch[2] || headingMatch[3] || headingMatch[4] || headingMatch[5] || "")
         .toLowerCase();
       if (locale !== "fr" && locale !== "en") {
+        const nested = line.match(sectionOnlyRe);
+        if (nested && activeLocale) {
+          flush();
+          currentKey = `${nested[1].toLowerCase()}_${activeLocale}`;
+          continue;
+        }
         if (currentKey) currentLines.push(line);
         continue;
       }
-      if (currentKey) {
-        sections[currentKey] = currentLines.join("\n").trim();
-      }
+      flush();
       const section = headingMatch[1].toLowerCase();
       currentKey = `${section}_${locale}`;
-      currentLines = [];
-    } else {
-      currentLines.push(line);
+      continue;
     }
+
+    const nestedSection = line.match(sectionOnlyRe);
+    if (nestedSection && activeLocale) {
+      flush();
+      currentKey = `${nestedSection[1].toLowerCase()}_${activeLocale}`;
+      continue;
+    }
+
+    if (currentKey) currentLines.push(line);
   }
-  if (currentKey) {
-    sections[currentKey] = currentLines.join("\n").trim();
-  }
+  flush();
 
   const course: Record<string, { hook?: string; concept?: string; action?: string }> = {};
   for (const locale of REQUIRED_LOCALES) {
@@ -308,8 +458,13 @@ function validateAndBuild(
   const userId = typeof meta.user_id === "string" ? (meta.user_id as string).trim() : "";
   const targetUserIds = userId ? [userId] : [];
 
-  // user → content_type (e.g. "note", "exercise")
-  const contentType = typeof meta.user === "string" ? (meta.user as string) : "card";
+  const explicitType =
+    typeof meta.content_type === "string" ? (meta.content_type as string).trim().toLowerCase() : "";
+  const legacyUserType = typeof meta.user === "string" ? (meta.user as string).trim().toLowerCase() : "";
+  const contentType =
+    (explicitType && KNOWN_CONTENT_TYPES.has(explicitType) && explicitType) ||
+    (legacyUserType && KNOWN_CONTENT_TYPES.has(legacyUserType) && legacyUserType) ||
+    "card";
 
   if (userId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
     errors.push(`${source}: user_id invalide (doit être un UUID)`);
@@ -407,6 +562,35 @@ function parseMarkdownSegment(rawContent: string, label: string): ParseResult {
 /**
  * Parse multiple `.md` contents. Each entry is { name, content }.
  */
+function parseMarkdownSegments(
+  segments: string[],
+  fileName: string,
+): MarkdownParseResult {
+  const errors: string[] = [];
+  const cards: PulseCardImportPayload[] = [];
+  const cardSegments = segments.filter(isPulseCardSegment);
+
+  if (cardSegments.length > MAX_BATCH_CARDS) {
+    errors.push(
+      `${fileName}: lot de ${cardSegments.length} cartes — maximum ${MAX_BATCH_CARDS} par fichier.`,
+    );
+  }
+
+  cardSegments.slice(0, MAX_BATCH_CARDS).forEach((seg, idx) => {
+    const { meta } = parseFrontmatter(seg);
+    const key = typeof meta?.external_key === "string" ? meta.external_key : "?";
+    const label =
+      cardSegments.length > 1
+        ? `${fileName} [carte ${idx + 1}: ${key}]`
+        : fileName;
+    const result = parseMarkdownSegment(seg, label);
+    if (result.errors.length > 0) errors.push(...result.errors);
+    if (result.card) cards.push(result.card);
+  });
+
+  return { total: cardSegments.length, valid: cards.length, errors, cards };
+}
+
 export function parseMarkdownCards(
   files: { name: string; content: string }[],
 ): MarkdownParseResult {
@@ -415,22 +599,10 @@ export function parseMarkdownCards(
   let total = 0;
 
   for (const f of files) {
-    const segments = splitMultiCardDocuments(f.content);
-    total += segments.length;
-
-    if (segments.length > 1) {
-      segments.forEach((seg, idx) => {
-        const label = `${f.name} [carte ${idx + 1}]`;
-        const result = parseMarkdownSegment(seg, label);
-        if (result.errors.length > 0) errors.push(...result.errors);
-        if (result.card) cards.push(result.card);
-      });
-      continue;
-    }
-
-    const result = parseMarkdownCard(f.content, f.name);
-    if (result.errors.length > 0) errors.push(...result.errors);
-    if (result.card) cards.push(result.card);
+    const result = parseMarkdownSegments(splitMultiCardDocuments(f.content), f.name);
+    total += result.total;
+    errors.push(...result.errors);
+    cards.push(...result.cards);
   }
 
   return { total, valid: cards.length, errors, cards };
@@ -450,11 +622,5 @@ export function detectAndParse(
     return { total: 0, valid: 0, errors: ["__JSON__"], cards: [] };
   }
 
-  const result = parseMarkdownCard(content, fileName);
-  return {
-    total: 1,
-    valid: result.card ? 1 : 0,
-    errors: result.errors,
-    cards: result.card ? [result.card] : [],
-  };
+  return parseMarkdownSegments(splitMultiCardDocuments(content), fileName);
 }

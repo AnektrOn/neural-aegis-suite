@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, RotateCw, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { PulseCard } from "../domain/types";
@@ -42,10 +42,13 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
     setDragOffset({ x: clientX - dragStart.x, y: clientY - dragStart.y });
   };
 
-  const triggerSwipe = (direction: "left" | "right") => {
+  const [liveMessage, setLiveMessage] = useState("");
+
+  const triggerSwipe = useCallback((direction: "left" | "right") => {
+    setLiveMessage(direction === "right" ? t("pulse.swipeAssimilate") : t("pulse.swipeIgnore"));
     setExitDirection(direction);
     setTimeout(() => onSwipe(direction, card), 300);
-  };
+  }, [card, onSwipe, t]);
 
   const handleDragEnd = () => {
     if (!isDragging) return;
@@ -60,7 +63,27 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
       (cardRef.current as HTMLDivElement & { forceSwipe?: (d: "left" | "right") => void }).forceSwipe =
         triggerSwipe;
     }
-  }, [isTop, card.id]);
+  }, [isTop, card.id, triggerSwipe]);
+
+  useEffect(() => {
+    if (!isTop) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        triggerSwipe("right");
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        triggerSwipe("left");
+      } else if (e.key === " " || e.key === "Enter") {
+        const target = e.target as HTMLElement;
+        if (target.closest(".no-drag")) return;
+        e.preventDefault();
+        setIsFlipped((f) => !f);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isTop, triggerSwipe]);
 
   let swipeTransform = `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0) rotate(${dragOffset.x * ROTATION_MULTIPLIER}deg)`;
   let transition = isDragging ? "none" : "transform 0.3s ease-out";
@@ -83,6 +106,9 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
   return (
     <div
       ref={cardRef}
+      role="group"
+      aria-label={card.title}
+      tabIndex={isTop ? 0 : -1}
       className={`absolute w-full h-full will-change-transform ${isTop ? "z-20" : "z-10"}`}
       style={{ transform: swipeTransform, transition, touchAction: "none" }}
       onMouseDown={handleDragStart}
@@ -93,6 +119,9 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
       onTouchMove={handleDragMove}
       onTouchEnd={handleDragEnd}
     >
+      <span className="sr-only" aria-live="polite">
+        {liveMessage}
+      </span>
       <div
         className="relative w-full h-full cursor-grab active:cursor-grabbing"
         style={{ perspective: "1000px" }}

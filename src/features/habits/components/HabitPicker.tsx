@@ -144,7 +144,7 @@ export default function HabitPicker({ userId, assignments, onChanged, defaultOpe
                     type="button"
                     onClick={() => setFilter(cat)}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[0.28em] transition-all",
+                      "min-h-11 rounded-full border px-3 py-2.5 text-[9px] uppercase tracking-[0.28em] transition-all",
                       filter === cat
                         ? "border-primary/30 bg-primary/5 text-primary"
                         : "border-border text-muted-foreground hover:border-muted-foreground/30",

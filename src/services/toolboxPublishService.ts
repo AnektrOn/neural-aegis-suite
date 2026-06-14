@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { distributeToolboxToUsers } from "@/services/programBuilderService";
 import {
   BUILTIN_TOOLBOX_CONTENT_TYPES,
   mergeContentTypeDefinitions,
@@ -142,31 +143,15 @@ export async function publishProposal(params: {
     templateId = tpl?.id ?? null;
   }
 
-  const assignmentRows = selectedUserIds.map((userId) => ({
-    user_id: userId,
-    content_type: proposal.content_type_slug,
-    title: proposal.title,
-    title_i18n: proposal.title_i18n || {},
-    duration: null,
-    description: proposal.description || null,
-    description_i18n: proposal.description_i18n || {},
-    external_url: proposal.external_url || null,
-    widget_config: proposal.widget_config || {},
-    assigned_by: actorId,
-    template_id: templateId,
-    user_delivery_status: "active" as const,
-  }));
-
   const assignmentIds: string[] = [];
-  if (assignmentRows.length > 0) {
-    const { data: insertedAssignments, error: assignError } = await supabase
-      .from("toolbox_assignments" as never)
-      .insert(assignmentRows as never)
-      .select("id");
-    if (assignError) throw assignError;
-    assignmentIds.push(
-      ...((insertedAssignments || []).map((row) => row.id) as string[]),
-    );
+  if (templateId && selectedUserIds.length > 0) {
+    const dist = await distributeToolboxToUsers({
+      actorId,
+      templateId,
+      userIds: selectedUserIds,
+      distributionMetadata: { source: "widget_proposal", proposal_id: proposal.id },
+    });
+    assignmentIds.push(...dist.assignmentIds);
   }
 
   if (proposal.id) {
