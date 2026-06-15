@@ -85,16 +85,52 @@ describe("computeRawScores", () => {
     const { archetypeScores, shadowSignals } = computeRawScores(questions, responses);
     expect(archetypeScores.sage).toBeCloseTo(60);
     expect(archetypeScores.sovereign).toBeCloseTo(40);
-    expect(shadowSignals.victim).toBeCloseTo((1.5 + 2) / 1.5);
+    expect(shadowSignals.victim).toBeCloseTo((3.5 / 1.5) / 6);
     expect(sumArchetypePercentages(archetypeScores)).toBeCloseTo(100);
+  });
+
+  it("transfers negative polarity weights into opposite pole resonance", () => {
+    const questions = [q("q1", "multiple_choice", [
+      opt("o1", {}, {}, null, [
+        { archetype: "creator", polarity: "shadow", weight: 0.75 },
+        { archetype: "creator", polarity: "light", weight: -1 },
+        { archetype: "saboteur", polarity: "shadow", weight: 1 },
+      ]),
+    ])];
+    const responses: ResponseValue[] = [{
+      questionId: "q1",
+      selectedOptionIds: ["o1"],
+      optionIntensities: { o1: 2 },
+    }];
+    const { archetypeScoresRaw } = computeRawScores(questions, responses);
+    // creator: shadow 0.75*2 + light(-1)*2 flipped → 1.5 + 2 = 3.5; saboteur shadow 2
+    expect(archetypeScoresRaw.creator).toBeCloseTo(3.5);
+  });
+
+  it("maps negative legacy archetype weight on survival key to shadow pool", () => {
+    const questions = [q("q1", "single_choice", [
+      opt("o1", { victim: -1.5 }),
+    ])];
+    const responses: ResponseValue[] = [{ questionId: "q1", selectedOptionIds: ["o1"] }];
+    const { shadowSignals } = computeRawScores(questions, responses);
+    expect(shadowSignals.victim).toBeCloseTo((1.5 / 1.5) / 6);
+  });
+
+  it("maps negative legacy shadow weight to survival light (reduces net shadow)", () => {
+    const questions = [q("q1", "single_choice", [
+      opt("o1", {}, { child: -2 }),
+    ])];
+    const responses: ResponseValue[] = [{ questionId: "q1", selectedOptionIds: ["o1"] }];
+    const { shadowSignals } = computeRawScores(questions, responses);
+    expect(shadowSignals.child).toBe(0);
   });
 
   it("computes net survival shadow with /1.5 correction factor", () => {
     const questions = [q("q1", "single_choice", [opt("o1", {}, { child: 2, saboteur: 1 })])];
     const responses: ResponseValue[] = [{ questionId: "q1", selectedOptionIds: ["o1"] }];
     const { shadowSignals } = computeRawScores(questions, responses);
-    expect(shadowSignals.child).toBeCloseTo(2 / 1.5);
-    expect(shadowSignals.saboteur).toBeCloseTo(1 / 1.5);
+    expect(shadowSignals.child).toBeCloseTo((2 / 1.5) / 6);
+    expect(shadowSignals.saboteur).toBeCloseTo((1 / 1.5) / 6);
   });
 
   it("applies decreasing rank weight for ranking questions", () => {
@@ -166,13 +202,22 @@ describe("computeDimensionScores", () => {
 });
 
 describe("detectShadowSignals", () => {
-  it("normalizes raw shadow scores into 0..1 with cap at 6", () => {
-    const out = detectShadowSignals({
-      child: 12, victim: 3, prostitute: 0, saboteur: 0,
-    });
+  it("normalizes compensated net shadow into 0..1 with cap at 6", () => {
+    const out = detectShadowSignals(
+      { child: 12, victim: 3, prostitute: 0, saboteur: 0 },
+      { child: 0, victim: 0, prostitute: 0, saboteur: 0 },
+    );
     expect(out.child).toBe(1);
-    expect(out.victim).toBe(0.5);
+    expect(out.victim).toBeCloseTo((3 / 1.5) / 6);
     expect(out.prostitute).toBe(0);
+  });
+
+  it("reduces signal when survival light compensates shadow", () => {
+    const out = detectShadowSignals(
+      { child: 0, victim: 3, prostitute: 0, saboteur: 0 },
+      { child: 0, victim: 2, prostitute: 0, saboteur: 0 },
+    );
+    expect(out.victim).toBeCloseTo(Math.max(0, 3 - 2) / 1.5 / 6);
   });
 });
 

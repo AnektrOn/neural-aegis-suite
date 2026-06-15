@@ -9,7 +9,6 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { pickLocalizedText } from "@/lib/content-i18n";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import type { Locale } from "@/i18n/translations";
-import HabitPicker from "@/features/habits/components/HabitPicker";
 import HabitToolboxModal, { type HabitToolboxItem } from "@/features/habits/components/HabitToolboxModal";
 import { resolveToolboxContentSlug } from "@/lib/toolbox-content-slug";
 import { TOOLBOX_TYPE_META } from "@/lib/toolbox-renderer-registry";
@@ -43,7 +42,6 @@ export default function HabitTracker() {
   const { toast } = useToast();
   const { t, locale } = useLanguage();
   const [habits, setHabits] = useState<AssignedHabit[]>([]);
-  const [allAssignments, setAllAssignments] = useState<AssignedHabit[]>([]);
   const [toolboxItemsById, setToolboxItemsById] = useState<Record<string, HabitToolboxItem>>({});
   const [activeToolboxItem, setActiveToolboxItem] = useState<HabitToolboxItem | null>(null);
   const [activeAssignedHabitId, setActiveAssignedHabitId] = useState<string | null>(null);
@@ -89,7 +87,6 @@ export default function HabitTracker() {
 
     if (!assigned || assigned.length === 0) {
       setHabits([]);
-      setAllAssignments([]);
       setToolboxItemsById({});
       const { data: completions } = await supabase
         .from("habit_completions" as any)
@@ -163,7 +160,6 @@ export default function HabitTracker() {
     };
 
     const all = rows.map(mapAssignment);
-    setAllAssignments(all);
     setHabits(all.filter((h) => h.is_active));
 
     const { data: completions } = await supabase
@@ -213,8 +209,6 @@ export default function HabitTracker() {
     return byCategory && byStatus;
   });
 
-  const templateAssignments = allAssignments.filter((h) => !h.isToolboxLinked);
-
   const openToolboxModal = (habit: AssignedHabit) => {
     if (!habit.toolbox_assignment_id) return;
     const toolboxItem = toolboxItemsById[habit.toolbox_assignment_id];
@@ -235,19 +229,6 @@ export default function HabitTracker() {
         <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">{t("habits.performanceArchitecture")}</p>
         <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">{t("habits.trackingTitle")}</h1>
       </div>
-
-      {user && (
-        <HabitPicker
-          userId={user.id}
-          defaultOpen={habits.length === 0}
-          assignments={templateAssignments.map((h) => ({
-            id: h.id,
-            habit_template_id: h.habit_template_id ?? "",
-            is_active: h.is_active,
-          }))}
-          onChanged={loadData}
-        />
-      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
@@ -414,11 +395,6 @@ export default function HabitTracker() {
         onDurationChanged={(minutes) => {
           setActiveDurationOverrideMin(minutes);
           setHabits((prev) =>
-            prev.map((h) =>
-              h.id === activeAssignedHabitId ? { ...h, duration_override_min: minutes } : h,
-            ),
-          );
-          setAllAssignments((prev) =>
             prev.map((h) =>
               h.id === activeAssignedHabitId ? { ...h, duration_override_min: minutes } : h,
             ),

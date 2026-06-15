@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { type DeepDiveResult } from "@/features/archetype-deepdive-v2/domain/computeDeepDiveScores";
 import { loadUnifiedDeepDiveResult } from "@/features/archetype-deepdive-v2/domain/loadUnifiedScores";
+import { recomputeAllStaleV3SessionsForUser } from "@/features/archetype-assessment/services/assessmentService";
 import { archLabel } from "@/features/archetype-deepdive-v2/domain/narrativeContent";
 
 export default function DeepDiveScores() {
@@ -21,6 +22,7 @@ export default function DeepDiveScores() {
     (async () => {
       setLoading(true);
       try {
+        await recomputeAllStaleV3SessionsForUser(user.id);
         const r = await loadUnifiedDeepDiveResult(user.id);
         if (!cancelled) setResult(r);
       } catch (e: any) {

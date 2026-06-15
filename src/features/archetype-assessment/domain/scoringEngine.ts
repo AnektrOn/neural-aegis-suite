@@ -7,8 +7,8 @@
 import { ARCHETYPES, ARCHETYPE_KEYS, getArchetype } from "./archetypes";
 import {
   accumulateMorphicField,
+  accumulatePolarityWeight,
   deriveLegacyScoresNormalized,
-  polarityWeightsFromLegacy,
   type MorphicField,
 } from "./morphicField";
 import type {
@@ -47,42 +47,38 @@ function emptyShadowMap(): Record<ShadowKey, number> {
   }, {} as Record<ShadowKey, number>);
 }
 
-function optionPolarityWeights(opt: RuntimeOption) {
-  return opt.polarity_weights?.length > 0
-    ? opt.polarity_weights
-    : polarityWeightsFromLegacy(opt.archetype_weights, opt.shadow_weights);
-}
-
-function applyOptionWeights(
-  opt: RuntimeOption,
-  multiplier: number,
-  field: MorphicField,
-): void {
-  const weights = optionPolarityWeights(opt);
-  if (weights.length > 0) {
-    accumulateMorphicField(weights, multiplier, field);
-    return;
-  }
-  for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
-    accumulateMorphicField(
-      [{ archetype: k as ArchetypeKey, polarity: "light", weight: Number(v) || 0 }],
-      multiplier,
-      field,
-    );
-  }
-  for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
-    accumulateMorphicField(
-      [{ archetype: k as ShadowKey, polarity: "shadow", weight: Number(v) || 0 }],
-      multiplier,
-      field,
-    );
-  }
-}
+const SHADOW_KEY_SET = new Set<ShadowKey>(SHADOW_KEYS);
+const ARCHETYPE_KEY_SET = new Set<ArchetypeKey>(ARCHETYPE_KEYS);
 
 function intensityForOption(response: ResponseValue, optionId: string): number {
   const raw = response.optionIntensities?.[optionId];
   if (typeof raw !== "number" || !Number.isFinite(raw)) return 1;
   return Math.min(3, Math.max(1, Math.round(raw)));
+}
+
+function mergeLegacyPoolsToField(
+  archetypeScores: Record<ArchetypeKey, number>,
+  shadowSignals: Record<ShadowKey, number>,
+  field: MorphicField,
+): void {
+  for (const k of ARCHETYPE_KEYS) {
+    const v = archetypeScores[k];
+    if (v) accumulatePolarityWeight(k, "light", v, 1, field);
+  }
+  for (const k of SHADOW_KEYS) {
+    const v = shadowSignals[k];
+    if (v) accumulatePolarityWeight(k, "shadow", v, 1, field);
+  }
+}
+
+function applyPolarityWeightsToField(
+  opt: RuntimeOption,
+  mult: number,
+  field: MorphicField,
+): void {
+  if (opt.polarity_weights?.length > 0) {
+    accumulateMorphicField(opt.polarity_weights, mult, field);
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -94,9 +90,14 @@ export function computeRawScores(
 ): {
   archetypeScores: Record<ArchetypeKey, number>;
   archetypeScoresRaw: Record<ArchetypeKey, number>;
+  archetypeShadowRaw: Record<ArchetypeKey, number>;
+  survivalLightRaw: Record<ShadowKey, number>;
+  survivalShadowRaw: Record<ShadowKey, number>;
   shadowSignals: Record<ShadowKey, number>;
 } {
   const field: MorphicField = {};
+  const archetypeScores = emptyArchetypeMap();
+  const shadowSignals = emptyShadowMap();
 
   const responsesByQ = new Map<string, ResponseValue>(
     responses.map((r) => [r.questionId, r])
@@ -109,25 +110,143 @@ export function computeRawScores(
     if (q.question_type === "single_choice" || q.question_type === "multiple_choice") {
       const selected = q.options.filter((o) => r.selectedOptionIds?.includes(o.id));
       for (const opt of selected) {
-        applyOptionWeights(opt, intensityForOption(r, opt.id), field);
+        const mult = intensityForOption(r, opt.id);
+
+        if (opt.polarity_weights?.length > 0) {
+          applyPolarityWeightsToField(opt, mult, field);
+          continue;
+        }
+
+        for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
+          const val = (Number(v) || 0) * mult;
+          if (!val) continue;
+          if (val > 0) {
+            if (ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+              archetypeScores[k as ArchetypeKey] += val;
+            }
+          } else if (SHADOW_KEY_SET.has(k as ShadowKey)) {
+            shadowSignals[k as ShadowKey] += Math.abs(val);
+          } else if (ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+            accumulatePolarityWeight(
+              k as ArchetypeKey,
+              "shadow",
+              Math.abs(Number(v) || 0),
+              mult,
+              field,
+            );
+          }
+        }
+
+        for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
+          const val = (Number(v) || 0) * mult;
+          if (!val) continue;
+          if (val > 0) {
+            if (SHADOW_KEY_SET.has(k as ShadowKey)) {
+              shadowSignals[k as ShadowKey] += val;
+            }
+          } else if (ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+            archetypeScores[k as ArchetypeKey] += Math.abs(val);
+          } else if (SHADOW_KEY_SET.has(k as ShadowKey)) {
+            accumulatePolarityWeight(
+              k as ShadowKey,
+              "light",
+              Math.abs(Number(v) || 0),
+              mult,
+              field,
+            );
+          }
+        }
       }
     } else if (q.question_type === "likert_scale") {
       const opt = q.options.find((o) => r.selectedOptionIds?.includes(o.id));
       if (opt) {
-        applyOptionWeights(opt, 1, field);
+        if (opt.polarity_weights?.length > 0) {
+          applyPolarityWeightsToField(opt, 1, field);
+        } else {
+          for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
+            const val = Number(v) || 0;
+            if (!val) continue;
+            if (val > 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+              archetypeScores[k as ArchetypeKey] += val;
+            } else if (val < 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
+              shadowSignals[k as ShadowKey] += Math.abs(val);
+            } else if (val < 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+              accumulatePolarityWeight(k as ArchetypeKey, "shadow", Math.abs(val), 1, field);
+            }
+          }
+          for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
+            const val = Number(v) || 0;
+            if (!val) continue;
+            if (val > 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
+              shadowSignals[k as ShadowKey] += val;
+            } else if (val < 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+              archetypeScores[k as ArchetypeKey] += Math.abs(val);
+            } else if (val < 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
+              accumulatePolarityWeight(k as ShadowKey, "light", Math.abs(val), 1, field);
+            }
+          }
+        }
       }
     } else if (q.question_type === "ranking") {
       const ordered = r.selectedOptionIds ?? [];
       ordered.forEach((optId, idx) => {
         const opt = q.options.find((o) => o.id === optId);
         if (!opt) return;
-        const rankWeight = Math.max(0, ordered.length - idx);
-        applyOptionWeights(opt, rankWeight, field);
+        const mult = Math.max(0, ordered.length - idx);
+        if (opt.polarity_weights?.length > 0) {
+          applyPolarityWeightsToField(opt, mult, field);
+          return;
+        }
+        for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
+          const val = (Number(v) || 0) * mult;
+          if (!val) continue;
+          if (val > 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+            archetypeScores[k as ArchetypeKey] += val;
+          } else if (val < 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
+            shadowSignals[k as ShadowKey] += Math.abs(val);
+          } else if (val < 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+            accumulatePolarityWeight(k as ArchetypeKey, "shadow", Math.abs(Number(v) || 0), mult, field);
+          }
+        }
+        for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
+          const val = (Number(v) || 0) * mult;
+          if (!val) continue;
+          if (val > 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
+            shadowSignals[k as ShadowKey] += val;
+          } else if (val < 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+            archetypeScores[k as ArchetypeKey] += Math.abs(val);
+          } else if (val < 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
+            accumulatePolarityWeight(k as ShadowKey, "light", Math.abs(Number(v) || 0), mult, field);
+          }
+        }
       });
     }
   }
 
-  return deriveLegacyScoresNormalized(field);
+  mergeLegacyPoolsToField(archetypeScores, shadowSignals, field);
+  const derived = deriveLegacyScoresNormalized(field);
+  return {
+    ...derived,
+    archetypeScores: normalizeMajorArchetypeScores(
+      derived.archetypeScoresRaw,
+      derived.archetypeShadowRaw,
+    ),
+    shadowSignals: detectShadowSignals(
+      derived.survivalShadowRaw,
+      derived.survivalLightRaw,
+    ),
+  };
+}
+
+function normalizeMajorArchetypeScores(
+  raw: Record<ArchetypeKey, number>,
+  majorShadowRaw: Record<ArchetypeKey, number>,
+): Record<ArchetypeKey, number> {
+  const netScores: Record<string, number> = {};
+  for (const k of ARCHETYPE_KEYS) {
+    netScores[k] = Math.max(0, (raw[k] ?? 0) - (majorShadowRaw[k] ?? 0));
+  }
+  return normalizeScores(netScores) as Record<ArchetypeKey, number>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -240,16 +359,17 @@ export function computeDimensionScores(
 }
 
 /* -------------------------------------------------------------------------- */
-/* detectShadowSignals — already raw, just normalize                          */
+/* detectShadowSignals — net survival shadow compensated by light, 0..1       */
 /* -------------------------------------------------------------------------- */
 export function detectShadowSignals(
-  raw: Record<ShadowKey, number>
+  rawShadow: Record<ShadowKey, number>,
+  raw: Record<ShadowKey, number>,
 ): Record<ShadowKey, number> {
-  // Soft-cap: assume saturation around 6 cumulated points per shadow.
   const SAT = 6;
   const out = emptyShadowMap();
   for (const k of SHADOW_KEYS) {
-    out[k] = Math.min(1, Math.max(0, raw[k] ?? 0) / SAT);
+    const net = Math.max(0, (rawShadow[k] ?? 0) - (raw[k] ?? 0)) / 1.5;
+    out[k] = Math.min(1, Math.max(0, net / SAT));
   }
   return out;
 }
@@ -262,15 +382,23 @@ export function buildAnalysisResult(
   responses: ResponseValue[]
 ): AnalysisResult {
   const {
-    archetypeScores: normalized,
     archetypeScoresRaw: raw,
-    shadowSignals: rawShadow,
+    archetypeShadowRaw: rawShadow,
+    survivalLightRaw,
+    survivalShadowRaw,
   } = computeRawScores(questions, responses);
+
+  const netScores: Record<string, number> = {};
+  for (const k of ARCHETYPE_KEYS) {
+    netScores[k] = Math.max(0, raw[k] - (rawShadow[k] ?? 0));
+  }
+  const normalized = normalizeScores(netScores) as Record<ArchetypeKey, number>;
+
   const ranked = rankArchetypes(normalized);
   const top = ranked.slice(0, 3).map((r) => r.key);
 
   const dimensionScores = computeDimensionScores(questions, responses);
-  const shadowSignals = detectShadowSignals(rawShadow);
+  const shadowSignals = detectShadowSignals(survivalShadowRaw, survivalLightRaw);
 
   const strengths_fr: string[] = [];
   const strengths_en: string[] = [];

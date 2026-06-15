@@ -3,6 +3,7 @@
  */
 export {
   accumulateMorphicField,
+  accumulatePolarityWeight,
   archetypePolarityKey,
   deriveLegacyScoresNormalized,
   deriveLegacyScoresRaw,

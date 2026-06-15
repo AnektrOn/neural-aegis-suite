@@ -64,16 +64,37 @@ export function weightsToScoringVector(weights: PolarityWeight[]): ScoringVector
   return out;
 }
 
-/** S(A/P) += W × I for each weight tuple. */
+/** S(A/P) += W × I; negative W transfers |W|×I to the opposite polarity. */
+export function accumulatePolarityWeight(
+  archetype: AnyArchetypeKey,
+  polarity: Polarity,
+  weight: number,
+  intensity: number,
+  field: MorphicField,
+): void {
+  const multiplier = Number.isFinite(intensity) ? intensity : 1;
+  const delta = weight * multiplier;
+  if (!delta) return;
+
+  if (delta > 0) {
+    const key = archetypePolarityKey(archetype, polarity);
+    field[key] = (field[key] ?? 0) + delta;
+    return;
+  }
+
+  const opposite: Polarity = polarity === "light" ? "shadow" : "light";
+  const key = archetypePolarityKey(archetype, opposite);
+  field[key] = (field[key] ?? 0) + Math.abs(delta);
+}
+
+/** S(A/P) += W × I for each weight tuple (negatives flip to opposite pole). */
 export function accumulateMorphicField(
   weights: PolarityWeight[],
   intensity: number,
   field: MorphicField,
 ): void {
-  const multiplier = Number.isFinite(intensity) ? intensity : 1;
   for (const w of weights) {
-    const key = archetypePolarityKey(w.archetype, w.polarity);
-    field[key] = (field[key] ?? 0) + w.weight * multiplier;
+    accumulatePolarityWeight(w.archetype, w.polarity, w.weight, intensity, field);
   }
 }
 
@@ -123,43 +144,35 @@ export function deriveLegacyScoresRaw(field: MorphicField): {
  * Survival: net shadow = max(0, shadow − light) / 1.5 (light integration reduces shadow).
  */
 export function deriveLegacyScoresNormalized(field: MorphicField): {
-  archetypeScores: Record<ArchetypeKey, number>;
-  shadowSignals: Record<ShadowKey, number>;
-  /** Pre-normalization major scores (for persistence / debugging). */
+  /** Gross major resonance (light + shadow poles) before net normalization. */
   archetypeScoresRaw: Record<ArchetypeKey, number>;
+  /** Major shadow pole density per archetype (subtracted in net scoring). */
+  archetypeShadowRaw: Record<ArchetypeKey, number>;
+  /** Survival light pole density (compensates shadow in detectShadowSignals). */
+  survivalLightRaw: Record<ShadowKey, number>;
+  /** Survival shadow pole density before net compensation. */
+  survivalShadowRaw: Record<ShadowKey, number>;
 } {
-  const rawMajors: Record<string, number> = {};
-  const rawSurvivalNet: Record<string, number> = {};
-  let totalPoints = 0;
-
-  for (const k of ARCHETYPE_KEYS) {
-    const light = field[archetypePolarityKey(k, "light")] ?? 0;
-    const shadow = field[archetypePolarityKey(k, "shadow")] ?? 0;
-    const val = Math.max(0, light) + Math.max(0, shadow);
-    rawMajors[k] = val;
-    totalPoints += val;
-  }
-
-  for (const k of SURVIVAL_KEYS) {
-    const light = field[archetypePolarityKey(k, "light")] ?? 0;
-    const shadow = field[archetypePolarityKey(k, "shadow")] ?? 0;
-    rawSurvivalNet[k] = Math.max(0, shadow - light) / 1.5;
-  }
-
-  const divider = totalPoints > 0 ? totalPoints : 1;
-  const archetypeScores = {} as Record<ArchetypeKey, number>;
   const archetypeScoresRaw = {} as Record<ArchetypeKey, number>;
-  const shadowSignals = {} as Record<ShadowKey, number>;
+  const archetypeShadowRaw = {} as Record<ArchetypeKey, number>;
+  const survivalLightRaw = {} as Record<ShadowKey, number>;
+  const survivalShadowRaw = {} as Record<ShadowKey, number>;
 
   for (const k of ARCHETYPE_KEYS) {
-    archetypeScoresRaw[k as ArchetypeKey] = rawMajors[k];
-    archetypeScores[k as ArchetypeKey] = (rawMajors[k] / divider) * 100;
-  }
-  for (const k of SURVIVAL_KEYS) {
-    shadowSignals[k as ShadowKey] = rawSurvivalNet[k];
+    const light = field[archetypePolarityKey(k, "light")] ?? 0;
+    const shadow = field[archetypePolarityKey(k, "shadow")] ?? 0;
+    archetypeScoresRaw[k] = Math.max(0, light) + Math.max(0, shadow);
+    archetypeShadowRaw[k] = Math.max(0, shadow);
   }
 
-  return { archetypeScores, shadowSignals, archetypeScoresRaw };
+  for (const k of SURVIVAL_KEYS) {
+    const light = field[archetypePolarityKey(k, "light")] ?? 0;
+    const shadow = field[archetypePolarityKey(k, "shadow")] ?? 0;
+    survivalLightRaw[k] = Math.max(0, light);
+    survivalShadowRaw[k] = Math.max(0, shadow);
+  }
+
+  return { archetypeScoresRaw, archetypeShadowRaw, survivalLightRaw, survivalShadowRaw };
 }
 
 export function computeMorphicField(

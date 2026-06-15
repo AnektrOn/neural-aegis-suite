@@ -61,8 +61,361 @@ export function clearPersistedAssessmentSessionId(userId: string): void {
  * changes. Stored on each appendix_response so historical answers can be
  * recomputed under the version they were captured with.
  */
-/** Myss V3 morphic-field vector scoring with relative normalization (sum ≈ 100%). */
-export const SCORE_VERSION = 4;
+/** Myss V3 — net major scores (light − shadow) + compensated survival signals (v5). */
+export const SCORE_VERSION = 5;
+
+export const SCORING_MODEL_MYSS_V3 = "myss-v3";
+
+export function getStoredScoreVersion(
+  meta: Record<string, unknown> | null | undefined,
+): number {
+  const v = meta?.score_version;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+function mapDbResponsesToValues(rows: any[]): ResponseValue[] {
+  return rows.map((r) => {
+    const payload = (r.raw_payload ?? {}) as ResponseValue;
+    return {
+      questionId: r.question_id,
+      selectedOptionIds: r.selected_option_ids ?? [],
+      optionIntensities: payload.optionIntensities,
+      numericValue: r.numeric_value ?? undefined,
+      textValue: r.text_value ?? undefined,
+    };
+  });
+}
+
+function responsesLookLikeMyssV3(
+  dbResponses: Array<{ raw_payload?: unknown }>,
+): boolean {
+  for (const r of dbResponses) {
+    const p = r.raw_payload as ResponseValue | undefined;
+    if (p?.optionIntensities && Object.keys(p.optionIntensities).length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function questionsLookLikeMyssV3(questions: RuntimeQuestion[]): boolean {
+  return questions.some((q) => {
+    if ((q.meta as { scoringModel?: string } | undefined)?.scoringModel === SCORING_MODEL_MYSS_V3) {
+      return true;
+    }
+    return q.options.some((o) => (o.polarity_weights?.length ?? 0) > 0);
+  });
+}
+
+async function loadSessionTemplateSlug(templateId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("assessment_templates" as any)
+    .select("slug")
+    .eq("id", templateId)
+    .maybeSingle();
+  if (error) throw error;
+  return ((data as { slug?: string } | null)?.slug ?? null) as string | null;
+}
+
+async function persistSessionAnalysisResult(opts: {
+  sessionId: string;
+  userId: string;
+  questions: RuntimeQuestion[];
+  responses: ResponseValue[];
+  analysis: AnalysisResult;
+  refreshRecommendations?: boolean;
+  metaPatch?: Record<string, unknown>;
+}): Promise<void> {
+  const {
+    sessionId,
+    userId,
+    questions,
+    responses,
+    analysis,
+    refreshRecommendations = true,
+    metaPatch = {},
+  } = opts;
+
+  const confidence = computeCompletionConfidence(questions.length, responses);
+  const consistency = detectConsistencyWarning(
+    analysis.normalizedScores,
+    analysis.shadowSignals,
+  );
+
+  const scoreRows = analysis.rankedScores.map((s) => ({
+    session_id: sessionId,
+    user_id: userId,
+    archetype_key: s.key,
+    raw_score: analysis.rawScores[s.key] ?? 0,
+    normalized_score: s.score,
+    rank: s.rank,
+  }));
+  if (scoreRows.length > 0) {
+    const { error: scErr } = await supabase
+      .from("archetype_scores" as any)
+      .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
+    if (scErr) throw scErr;
+  }
+
+  const { error: aErr } = await supabase
+    .from("analysis_results" as any)
+    .upsert(
+      {
+        session_id: sessionId,
+        user_id: userId,
+        top_archetypes: analysis.topArchetypes,
+        dimension_scores: analysis.dimensionScores,
+        shadow_signals: analysis.shadowSignals,
+        strengths_fr: analysis.strengths_fr,
+        strengths_en: analysis.strengths_en,
+        watchouts_fr: analysis.watchouts_fr,
+        watchouts_en: analysis.watchouts_en,
+        summary_fr: analysis.summary_fr,
+        summary_en: analysis.summary_en,
+      },
+      { onConflict: "session_id" },
+    );
+  if (aErr) throw aErr;
+
+  if (refreshRecommendations) {
+    const recos = selectTopTools(analysis, { limit: 6, lang: "fr" });
+    if (recos.length > 0) {
+      await supabase
+        .from("recommendation_tools" as any)
+        .delete()
+        .eq("session_id", sessionId);
+
+      const recoRows = recos.map((r) => ({
+        session_id: sessionId,
+        user_id: userId,
+        tool_key: r.toolKey,
+        tool_type: r.type,
+        title_fr: r.title_fr,
+        title_en: r.title_en,
+        duration_fr: r.duration_fr,
+        duration_en: r.duration_en,
+        rationale_fr: r.rationale_fr,
+        rationale_en: r.rationale_en,
+        rule_key: r.ruleKey ?? null,
+        widget_key: r.widgetKey ?? null,
+        rank: r.rank,
+      }));
+      const { error: rcErr } = await supabase
+        .from("recommendation_tools" as any)
+        .insert(recoRows);
+      if (rcErr) throw rcErr;
+    }
+  }
+
+  const { data: prevSession } = await supabase
+    .from("assessment_sessions" as any)
+    .select("client_meta")
+    .eq("id", sessionId)
+    .maybeSingle();
+  const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
+  const nextMeta: Record<string, any> = {
+    ...prevMeta,
+    ...metaPatch,
+    score_version: SCORE_VERSION,
+    scoring_model: SCORING_MODEL_MYSS_V3,
+  };
+  if (consistency) {
+    nextMeta.consistency_warning = true;
+    nextMeta.conflicting_pair = consistency.conflicting_pair;
+  } else {
+    delete nextMeta.consistency_warning;
+    delete nextMeta.conflicting_pair;
+  }
+
+  const { error: upErr } = await supabase
+    .from("assessment_sessions" as any)
+    .update({ confidence_score: confidence, client_meta: nextMeta })
+    .eq("id", sessionId);
+  if (upErr) throw upErr;
+
+  void refreshArchetypeScoresView();
+}
+
+/**
+ * Recompute stored scores/analysis for a submitted Myss V3 session using the
+ * current scoring engine. Safe to call multiple times.
+ */
+export async function recomputeSubmittedSessionAnalysis(
+  sessionId: string,
+): Promise<AnalysisResult> {
+  const { data: sessionRow, error: sErr } = await supabase
+    .from("assessment_sessions" as any)
+    .select("id, user_id, status, template_id, client_meta")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (sErr) throw sErr;
+  if (!sessionRow) throw new Error("Session not found");
+
+  const session = sessionRow as {
+    id: string;
+    user_id: string;
+    status: string;
+    template_id: string;
+    client_meta?: Record<string, unknown>;
+  };
+  if (session.status !== "submitted") {
+    throw new Error("Only submitted sessions can be recomputed");
+  }
+  if (isAdminGuestPreviewSession(session)) {
+    throw new Error("Admin preview sessions are not recomputed");
+  }
+
+  const templateId = session.template_id;
+  if (!templateId) throw new Error("Session has no template_id");
+
+  const [{ data: allResp, error: arErr }, coreQs, appendixQs] = await Promise.all([
+    supabase.from("assessment_responses" as any).select("*").eq("session_id", sessionId),
+    fetchQuestions(templateId, { appendix: false }),
+    fetchQuestions(templateId, { appendix: true }),
+  ]);
+  if (arErr) throw arErr;
+
+  const dbResponses = (allResp as any[]) ?? [];
+  const allQuestions = [...coreQs, ...appendixQs];
+  if (allQuestions.length === 0) {
+    throw new Error("No questions found for session template");
+  }
+
+  const questionIds = new Set(allQuestions.map((q) => q.id));
+  const allResponses = mapDbResponsesToValues(dbResponses).filter((r) =>
+    questionIds.has(r.questionId),
+  );
+
+  const analysis = buildAnalysisResult(allQuestions, allResponses);
+
+  await persistSessionAnalysisResult({
+    sessionId,
+    userId: session.user_id,
+    questions: allQuestions,
+    responses: allResponses,
+    analysis,
+    metaPatch: { score_recomputed_at: new Date().toISOString() },
+  });
+
+  try {
+    await createSnapshot({
+      userId: session.user_id,
+      sessionId,
+      triggerEvent: "manual_refresh",
+      analysisResult: analysis,
+    });
+  } catch (e) {
+    console.warn("createSnapshot (manual_refresh) failed", e);
+  }
+
+  return analysis;
+}
+
+/**
+ * If a submitted Myss V3 session was scored under an older engine version,
+ * recompute and persist fresh results before the UI reads them.
+ */
+export async function ensureSessionResultsUpToDate(sessionId: string): Promise<boolean> {
+  const { data: sessionRow, error: sErr } = await supabase
+    .from("assessment_sessions" as any)
+    .select("id, status, template_id, client_meta")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (sErr) throw sErr;
+  if (!sessionRow) return false;
+
+  const session = sessionRow as {
+    status: string;
+    template_id: string;
+    client_meta?: Record<string, unknown>;
+  };
+  if (session.status !== "submitted" || isAdminGuestPreviewSession(session)) {
+    return false;
+  }
+  if (getStoredScoreVersion(session.client_meta) >= SCORE_VERSION) {
+    return false;
+  }
+
+  const templateSlug = await loadSessionTemplateSlug(session.template_id);
+  if (templateSlug !== TEMPLATE_SLUG) return false;
+
+  const { data: respRows, error: rErr } = await supabase
+    .from("assessment_responses" as any)
+    .select("raw_payload")
+    .eq("session_id", sessionId);
+  if (rErr) throw rErr;
+
+  const dbResponses = (respRows as Array<{ raw_payload?: unknown }>) ?? [];
+  if (session.client_meta?.scoring_model !== SCORING_MODEL_MYSS_V3 && !responsesLookLikeMyssV3(dbResponses)) {
+    const coreQs = await fetchQuestions(session.template_id, { appendix: false });
+    if (!questionsLookLikeMyssV3(coreQs)) return false;
+  }
+
+  await recomputeSubmittedSessionAnalysis(sessionId);
+  return true;
+}
+
+/** Recompute every stale Myss V3 submitted session for one user. Returns count updated. */
+export async function recomputeAllStaleV3SessionsForUser(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("assessment_sessions" as any)
+    .select("id, status, template_id, client_meta")
+    .eq("user_id", userId)
+    .eq("status", "submitted")
+    .order("submitted_at", { ascending: false });
+  if (error) throw error;
+
+  let updated = 0;
+  for (const row of (data as { id: string; status: string; template_id: string; client_meta?: Record<string, unknown> }[]) ?? []) {
+    if (await ensureSessionResultsUpToDate(row.id)) updated += 1;
+  }
+  return updated;
+}
+
+/**
+ * Force-recompute all submitted archetype-v1 (T1 V3) sessions for a user,
+ * regardless of stored score_version (admin refresh).
+ */
+export async function forceRecomputeAllV3SessionsForUser(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("assessment_sessions" as any)
+    .select("id, status, template_id, client_meta")
+    .eq("user_id", userId)
+    .eq("status", "submitted")
+    .order("submitted_at", { ascending: false });
+  if (error) throw error;
+
+  let updated = 0;
+  for (const row of (data as { id: string; status: string; template_id: string; client_meta?: Record<string, unknown> }[]) ?? []) {
+    if (isAdminGuestPreviewSession(row)) continue;
+    const templateSlug = await loadSessionTemplateSlug(row.template_id);
+    if (templateSlug !== TEMPLATE_SLUG) continue;
+
+    const { data: respRows, error: rErr } = await supabase
+      .from("assessment_responses" as any)
+      .select("raw_payload")
+      .eq("session_id", row.id);
+    if (rErr) throw rErr;
+
+    const dbResponses = (respRows as Array<{ raw_payload?: unknown }>) ?? [];
+    if (
+      row.client_meta?.scoring_model !== SCORING_MODEL_MYSS_V3 &&
+      !responsesLookLikeMyssV3(dbResponses)
+    ) {
+      const coreQs = await fetchQuestions(row.template_id, { appendix: false });
+      if (!questionsLookLikeMyssV3(coreQs)) continue;
+    }
+
+    await recomputeSubmittedSessionAnalysis(row.id);
+    updated += 1;
+  }
+  return updated;
+}
 
 /** Refreshes the materialized view aggregating selected option weights. */
 async function refreshArchetypeScoresView(): Promise<void> {
@@ -125,7 +478,41 @@ async function loadTemplateBySlug(slug: string): Promise<LoadedTemplate> {
 
 /** Load T1 onboarding template (`archetype-v1`). Never picks `archetype-v2-70q`. */
 export async function loadActiveTemplate(): Promise<LoadedTemplate> {
-  return loadTemplateBySlug(TEMPLATE_SLUG);
+  const { data: tpl, error: tplErr } = await supabase
+    .from("assessment_templates" as any)
+    .select("*")
+    .eq("slug", TEMPLATE_SLUG)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (tplErr) throw tplErr;
+  if (!tpl) throw new Error(`No active assessment template found for slug "${TEMPLATE_SLUG}"`);
+
+  const template = tpl as unknown as TemplateRow;
+
+  let questions = await fetchQuestions(template.id);
+
+  // Forcer la synchronisation avec les 15 questions V3 de questionsT1.ts
+  if (questions.length !== 15) {
+    console.log("Mise à jour des questions Supabase vers le format V3 (15 questions)...");
+    await supabase.from("assessment_options" as any).delete().neq("id", "");
+    await supabase.from("assessment_questions" as any).delete().neq("id", "");
+    await seedQuestions(template.id);
+    questions = await fetchQuestions(template.id);
+  }
+
+  if (questions.length === 0) {
+    await seedQuestions(template.id);
+    questions = await fetchQuestions(template.id);
+  }
+
+  if (questions.length === 0) {
+    throw new Error(
+      `No assessment questions available for template "${TEMPLATE_SLUG}". Apply database migrations or ask an admin to seed the catalog.`,
+    );
+  }
+
+  return { template, questions };
 }
 
 /** Guest / public funnel: core onboarding quiz only (T1 — 15 questions). */
@@ -470,6 +857,8 @@ export async function submitAppendixResponses(opts: {
     .maybeSingle();
   const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
   const nextMeta: Record<string, any> = { ...prevMeta };
+  nextMeta.score_version = SCORE_VERSION;
+  nextMeta.scoring_model = SCORING_MODEL_MYSS_V3;
   if (consistency) {
     nextMeta.consistency_warning = true;
     nextMeta.conflicting_pair = consistency.conflicting_pair;
@@ -662,6 +1051,8 @@ export async function submitSession(opts: {
     .maybeSingle();
   const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
   const nextMeta: Record<string, any> = { ...prevMeta };
+  nextMeta.score_version = SCORE_VERSION;
+  nextMeta.scoring_model = SCORING_MODEL_MYSS_V3;
   if (consistency) {
     nextMeta.consistency_warning = true;
     nextMeta.conflicting_pair = consistency.conflicting_pair;
@@ -859,6 +1250,7 @@ export async function getLatestSubmittedSessionForUser(
   const autoFillIds = await sessionIdsWithAdminAutoFill(rows.map((r) => r.id));
   for (const s of rows) {
     if (isAdminGuestPreviewSession(s) || autoFillIds.has(s.id)) continue;
+    await ensureSessionResultsUpToDate(s.id);
     const top = await getSessionTopArchetypes(s.id);
     if (isPollutedAssessmentTriad(top)) continue;
     return s;
@@ -1258,6 +1650,8 @@ export async function getRecoveryDiagnostics(userId: string): Promise<RecoveryDi
 }
 
 export async function getSessionFullDetails(sessionId: string) {
+  await ensureSessionResultsUpToDate(sessionId);
+
   const [sessionRes, analysisRes, scoresRes, recosRes, responsesRes, questionsRes] = await Promise.all([
     supabase.from("assessment_sessions" as any).select("*").eq("id", sessionId).maybeSingle(),
     supabase.from("analysis_results" as any).select("*").eq("session_id", sessionId).maybeSingle(),

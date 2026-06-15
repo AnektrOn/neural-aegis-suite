@@ -17,6 +17,7 @@ import {
   getSessionFullDetails,
   getPreviousSubmittedSessionForUser,
   getSessionArchetypeScores,
+  recomputeAllStaleV3SessionsForUser,
 } from "../services/assessmentService";
 import { exportProfileToPdf } from "../services/exportProfilePdf";
 import type { ArchetypeKey } from "../domain/types";
@@ -46,6 +47,7 @@ export default function AssessmentResults() {
     (async () => {
       if (!user) return;
       try {
+        await recomputeAllStaleV3SessionsForUser(user.id);
         const session = await getLatestSubmittedSessionForUser(user.id);
         if (!session) {
           if (alive) setLoading(false);
