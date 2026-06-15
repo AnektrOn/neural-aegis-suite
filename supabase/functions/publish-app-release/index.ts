@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
     // 3. Build latest.json manifest
     const manifest = {
       android: {
+        releaseId: published.id,
         versionCode: published.version_code,
         versionName: published.version_name,
         apkUrl: signed.signedUrl,

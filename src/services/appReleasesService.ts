@@ -189,25 +189,30 @@ export type AppUpdateEventType =
   | "install_intent_opened"
   | "report_version";
 
-export async function logUpdateEvent(opts: {
+export function logUpdateEvent(opts: {
   type: AppUpdateEventType;
   releaseId?: string | null;
   versionCode?: number | null;
   metadata?: Record<string, unknown>;
-}) {
-  try {
-    const { data: userRes } = await supabase.auth.getUser();
-    const userId = userRes.user?.id ?? null;
-    await supabase.from("app_update_events").insert({
-      user_id: userId ?? undefined,
-      release_id: opts.releaseId ?? undefined,
-      event_type: opts.type,
-      version_code: opts.versionCode ?? undefined,
-      metadata: (opts.metadata ?? {}) as never,
-    });
-  } catch (e) {
-    console.warn("[logUpdateEvent] failed", e);
-  }
+}): void {
+  void (async () => {
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes.user?.id;
+      if (!userId) return;
+
+      const { error } = await supabase.from("app_update_events").insert({
+        user_id: userId,
+        release_id: opts.releaseId ?? undefined,
+        event_type: opts.type,
+        version_code: opts.versionCode ?? undefined,
+        metadata: (opts.metadata ?? {}) as never,
+      });
+      if (error) console.warn("[logUpdateEvent] failed", error.message);
+    } catch (e) {
+      console.warn("[logUpdateEvent] failed", e);
+    }
+  })();
 }
 
 export type AdoptionRow = {

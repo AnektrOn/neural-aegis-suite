@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +7,7 @@ import { BootLoadingScreen } from "@/components/BootLoadingScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
-import AdminLegacyRedirect from "@/components/admin/AdminLegacyRedirect";
+import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -281,6 +282,7 @@ const App = () => (
                 />
               </Routes>
             </Suspense>
+            <AppUpdatePrompt />
             </AuthBootGate>
           </AuthProvider>
         </LanguageProvider>
