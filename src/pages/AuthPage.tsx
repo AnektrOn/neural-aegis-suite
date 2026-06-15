@@ -17,6 +17,7 @@ import {
   isNewsletterRedirect,
   resolveGuestRedirect,
 } from "@/lib/authRedirect";
+import { authErrorMessage, withAuthTimeout } from "@/lib/authResilience";
 import { postLoginPath } from "@/lib/welcomeHud";
 
 type AuthMode = "signin" | "guest" | "upgrade";
@@ -75,11 +76,15 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      const { data, error } = await withAuthTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        15_000
+      );
       if (error) throw error;
       navigate(postLoginPath(isGuestUser(data.user)));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = authErrorMessage(err);
       toast({ title: t("toast.error"), description: message, variant: "destructive" });
     } finally {
       setLoading(false);
