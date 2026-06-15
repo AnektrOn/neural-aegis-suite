@@ -75,7 +75,7 @@ export const RADIAL_CATALOG: Record<
   deep_dive: { to: "/deep-dive", icon: FileText, labelKey: "nav.deepDive" },
   deep_dive_scores: { to: "/deep-dive/scores", icon: LineChart, labelKey: "nav.deepDiveScores" },
   progress_myss: { to: "/progress/myss", icon: LineChart, labelKey: "nav.progressEvolution" },
-  install: { to: "/install", icon: Smartphone, labelKey: "nav.installApp" },
+  install: { to: "/install-android", icon: Smartphone, labelKey: "nav.installApp" },
   persona: { to: "/persona", icon: Sparkles, labelKey: "nav.profile" },
   profile: { to: "/profile", icon: UserCircle, labelKey: "nav.account" },
   settings: { to: "/settings", icon: Settings2, labelKey: "nav.settings" },

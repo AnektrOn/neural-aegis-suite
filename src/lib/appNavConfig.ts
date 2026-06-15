@@ -65,7 +65,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
       { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" },
       { to: "/bibliotheque", icon: Library, labelKey: "nav.bibliotheque" },
       { to: "/newsletter", icon: Mail, labelKey: "nav.newsletter" },
-      { to: "/install", icon: Smartphone, labelKey: "nav.installApp" },
+      { to: "/install-android", icon: Smartphone, labelKey: "nav.installApp" },
       { to: "/settings", icon: Settings2, labelKey: "nav.settings" },
       { to: "/profile", icon: UserCircle, labelKey: "nav.account" },
     ],
