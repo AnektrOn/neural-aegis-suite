@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getLatestSubmittedSessionForUser,
-  recomputeAllStaleV3SessionsForUser,
   tryRecoverUserAssessment,
-  getSessionFullDetails,
+  getSessionResultsSummary,
+  type SessionResultsSummary,
 } from "@/features/archetype-assessment/services/assessmentService";
 import { buildDynamicProfile, type BuildDynamicProfileInput } from "../domain/dynamicProfileBuilder";
 import { loadUnifiedDeepDiveResult } from "../domain/loadUnifiedScores";
@@ -26,7 +26,7 @@ function shadowSignalsFromJson(signals: Json | null | undefined): Record<string,
 }
 
 function scoresForDynamicProfile(
-  scores: Awaited<ReturnType<typeof getSessionFullDetails>>["scores"],
+  scores: SessionResultsSummary["scores"],
 ): BuildDynamicProfileInput["scores"] {
   return (scores ?? []).map((s) => ({
     archetype_key: s.archetype_key,
@@ -36,7 +36,7 @@ function scoresForDynamicProfile(
 }
 
 function analysisForDynamicProfile(
-  analysis: Awaited<ReturnType<typeof getSessionFullDetails>>["analysis"],
+  analysis: SessionResultsSummary["analysis"],
 ): BuildDynamicProfileInput["analysis"] {
   if (!analysis) return null;
   return {
@@ -120,9 +120,6 @@ export function useDeepDiveProfile({
 
     async function load() {
       try {
-        if (userId) {
-          await recomputeAllStaleV3SessionsForUser(userId);
-        }
         const sessionId = await resolveSessionId();
         if (!isCurrent() || timedOut) return;
 
@@ -131,16 +128,18 @@ export function useDeepDiveProfile({
           return;
         }
 
-        const details = await getSessionFullDetails(sessionId);
+        const [details, ddCountRes] = await Promise.all([
+          getSessionResultsSummary(sessionId),
+          supabase
+            .from("deepdive_responses")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", userId),
+        ]);
         if (!isCurrent() || timedOut) return;
 
         let unified: Awaited<ReturnType<typeof loadUnifiedDeepDiveResult>> | null = null;
         try {
-          const { count, error: countErr } = await supabase
-            .from("deepdive_responses")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", userId);
-          if (!countErr && (count ?? 0) > 0) {
+          if (!ddCountRes.error && (ddCountRes.count ?? 0) > 0) {
             unified = await loadUnifiedDeepDiveResult(userId);
           }
         } catch (e) {

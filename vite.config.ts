@@ -5,7 +5,9 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: "./",
+  // Absolute base so lazy chunks resolve from site root on deep routes (/deep-dive/scores, etc.).
+  // Relative "./" breaks on nested SPA paths (assets 404 → infinite loading spinner).
+  base: "/",
   build: {
     outDir: "dist",
     emptyOutDir: true,

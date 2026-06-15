@@ -4,7 +4,6 @@ import {
   getSessionTopArchetypes,
   isAdminGuestPreviewSession,
   isPollutedAssessmentTriad,
-  recomputeAllStaleV3SessionsForUser,
 } from "@/features/archetype-assessment/services/assessmentService";
 import { buildDynamicProfile } from "@/features/archetype-deepdive-v2/domain/dynamicProfileBuilder";
 import type { SampleProfile } from "@/features/archetype-deepdive-v2/domain/sampleProfile";
@@ -55,12 +54,8 @@ export async function loadPersonaProfile(
   locale: Locale,
   displayName?: string | null,
 ): Promise<SampleProfile | null> {
-  await recomputeAllStaleV3SessionsForUser(userId);
-
   const sessionId = await findLatestValidSessionId(userId);
   if (!sessionId) return null;
-
-  await ensureSessionResultsUpToDate(sessionId);
 
   const [scoresRes, analysisRes, profileRes] = await Promise.all([
     supabase

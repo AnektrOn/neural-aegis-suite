@@ -21,7 +21,7 @@ import { exportDeepDiveVisualPdf, exportDeepDivePng } from "../services/exportDe
 import {
   listAllSessionsForAdmin,
   getLatestSubmittedSessionForUser,
-  getSessionFullDetails,
+  getSessionResultsSummary,
 } from "@/features/archetype-assessment/services/assessmentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -151,7 +151,7 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
       if (!sessionId) return;
       setLoadingProfile(true);
       try {
-        const details = await getSessionFullDetails(sessionId);
+        const details = await getSessionResultsSummary(sessionId);
         if (cancelled) return;
 
         const userIdForDeep =
