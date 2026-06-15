@@ -74,6 +74,8 @@ const AdminTrackingHub = lazy(() => import("./pages/admin/AdminTrackingHub"));
 const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
+const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
+const InstallAndroid = lazy(() => import("./pages/InstallAndroid"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
