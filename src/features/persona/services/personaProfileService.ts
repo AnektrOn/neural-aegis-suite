@@ -22,7 +22,7 @@ async function findLatestValidSessionId(userId: string): Promise<string | null> 
     .limit(SESSION_LIMIT);
   if (error) throw error;
 
-  const rows = (sessions as { id: string; client_meta?: Record<string, unknown> }[]) ?? [];
+  const rows = (sessions as unknown as { id: string; client_meta?: Record<string, unknown> }[]) ?? [];
   if (rows.length === 0) return null;
 
   const ids = rows.map((r) => r.id);

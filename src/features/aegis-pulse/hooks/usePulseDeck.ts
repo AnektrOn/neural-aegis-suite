@@ -10,7 +10,7 @@ export function usePulseDeck() {
   const load = useCallback(async () => {
     setState({ status: "loading" });
     const result = await fetchPulseDeck(locale);
-    if (!result.ok) {
+    if ("error" in result) {
       setState({ status: "error", message: result.error });
       return;
     }

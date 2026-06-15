@@ -11,7 +11,7 @@ export function usePulseGrimoire(enabled = true) {
     if (!enabled) return;
     setState({ status: "loading" });
     const result = await fetchPulseGrimoire(locale);
-    if (!result.ok) {
+    if ("error" in result) {
       setState({ status: "error", message: result.error });
       return;
     }
