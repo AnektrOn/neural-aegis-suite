@@ -16,7 +16,7 @@ export function useMoodHistory(userId: string | undefined, dayNames: string[]) {
       if (error) throw error;
 
       const byDay = new Map<string, number>();
-      (data || []).forEach((entry: { value: number; logged_at: string }) => {
+      ((data || []) as unknown as { value: number; logged_at: string }[]).forEach((entry) => {
         const d = new Date(entry.logged_at);
         byDay.set(dayNames[d.getDay()], entry.value);
       });

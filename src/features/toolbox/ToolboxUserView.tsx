@@ -195,7 +195,7 @@ export function ToolboxUserView({
     } else {
       toast({
         title: t("toolbox.saveError"),
-        description: error.message,
+        description: typeof error === "string" ? error : (error as { message?: string })?.message,
         variant: "destructive",
       });
     }

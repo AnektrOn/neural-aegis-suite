@@ -44,7 +44,7 @@ const lazyWidgets = Object.fromEntries(
     kind,
     lazy(() => loader().then((m) => ({ default: m.default as ComponentType<Record<string, unknown>> }))),
   ]),
-) as Record<DynamicToolboxWidgetKind, ComponentType<Record<string, unknown>>>;
+) as unknown as Record<DynamicToolboxWidgetKind, ComponentType<Record<string, unknown>>>;
 
 function WidgetFallback() {
   return (

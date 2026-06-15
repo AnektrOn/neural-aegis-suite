@@ -35,7 +35,7 @@ async function findLatestValidSessionId(userId: string): Promise<string | null> 
   if (autoFillRes) throw autoFillRes;
 
   const autoFillIds = new Set(
-    ((autoFillRows as { session_id: string }[]) ?? []).map((r) => r.session_id),
+    ((autoFillRows as unknown as { session_id: string }[]) ?? []).map((r) => r.session_id),
   );
 
   for (const s of rows) {
