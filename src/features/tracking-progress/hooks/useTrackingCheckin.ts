@@ -34,7 +34,8 @@ export function useTrackingCheckin(userId: string | undefined): TrackingCheckinS
   const [responses, setResponses] = useState<TrackingDailyResponse[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  /** Start dismissed so the modal does not auto-block the dashboard after navigation. */
+  const [dismissed, setDismissed] = useState(true);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
