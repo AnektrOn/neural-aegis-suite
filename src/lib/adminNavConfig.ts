@@ -23,6 +23,7 @@ import {
   Zap,
   Eye,
   TrendingUp,
+  Smartphone,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
