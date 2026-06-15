@@ -110,7 +110,7 @@ export default function Newsletter() {
         source: user ? (isAdmin ? "admin" : "member") : "public",
       });
 
-      if (!result.ok) {
+      if ("error" in result) {
         const msg =
           result.error === "invalid_email"
             ? t("newsletter.invalidEmail")
@@ -270,10 +270,10 @@ export default function Newsletter() {
               </div>
               <div>
                 <h2 className="text-sm font-medium text-foreground">
-                  {t(`newsletter.benefit${i + 1}Title` as const)}
+                  {t(`newsletter.benefit${i + 1}Title` as never)}
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  {t(`newsletter.benefit${i + 1}Desc` as const)}
+                  {t(`newsletter.benefit${i + 1}Desc` as never)}
                 </p>
               </div>
             </NeuralCard>

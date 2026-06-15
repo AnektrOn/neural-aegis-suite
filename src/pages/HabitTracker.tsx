@@ -77,12 +77,12 @@ export default function HabitTracker() {
         .from("assigned_habits" as any)
         .select(baseSelect)
         .eq("user_id", user.id);
-      assigned = ((fallback.data as typeof assigned) ?? []).map((row) => ({
+      assigned = ((fallback.data as unknown as typeof assigned) ?? []).map((row) => ({
         ...row,
         duration_override_min: null,
       }));
     } else {
-      assigned = withDuration.data as typeof assigned;
+      assigned = withDuration.data as unknown as typeof assigned;
     }
 
     if (!assigned || assigned.length === 0) {

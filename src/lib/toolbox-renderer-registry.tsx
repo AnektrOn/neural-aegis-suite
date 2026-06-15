@@ -240,7 +240,7 @@ export function renderToolboxWidget({
       if (!prompt || !prompt.trim()) return null;
       return renderDynamicWidget("journal_prompt", {
         ...baseProps,
-        config: { ...cfg, prompt },
+        config: { ...cfg, prompt } as Record<string, unknown>,
         sessionKey: undefined,
       });
     }
