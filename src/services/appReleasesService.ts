@@ -103,13 +103,13 @@ export async function createAndUploadRelease(
       version_name: input.versionName,
       apk_storage_path: path,
       apk_public_url: signed?.signedUrl ?? "",
-      release_notes: input.releaseNotes ?? null,
+      release_notes: input.releaseNotes ?? undefined,
       force_update: !!input.forceUpdate,
-      min_version_code: input.minVersionCode ?? null,
+      min_version_code: input.minVersionCode ?? undefined,
       sha256: sha,
       file_size_bytes: input.apkFile.size,
-      created_by: userRes.user?.id ?? null,
-    })
+      created_by: userRes.user?.id ?? undefined,
+    } as never)
     .select("*")
     .single();
   if (error) {
