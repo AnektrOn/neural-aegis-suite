@@ -260,7 +260,6 @@ export default function Dashboard() {
     return (
       <>
       <DailyCheckinModal checkin={trackingCheckin} />
-      <DailyCheckinReopenBanner checkin={trackingCheckin} />
       <DashboardMobile
         userId={user.id}
         loading={loading}
@@ -287,6 +286,7 @@ export default function Dashboard() {
         onPullHintDismiss={() => setPullHintVisible(false)}
         toolboxTodo={toolboxTodo}
         toolboxFocusId={toolboxFocusId}
+        trackingCheckin={trackingCheckin}
       />
       </>
     );

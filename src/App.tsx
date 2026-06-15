@@ -96,7 +96,7 @@ function PageLoader() {
   );
 }
 
-/** Global boot overlay (auth + native cold/resume): also covers `/auth` before session is known. */
+/** Global boot overlay (auth): blocks UI until the first session bootstrap completes. */
 function AuthBootGate({ children }: { children: React.ReactNode }) {
   const { bootScreenActive } = useAuth();
   const [appReady, setAppReady] = useState(false);
@@ -106,7 +106,7 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
     if (!bootScreenActive) setAppReady(true);
   }, [bootScreenActive]);
 
-  if (!appReady && bootScreenActive) {
+  if (!appReady) {
     return (
       <div className="relative z-[100] min-h-screen">
         <BootLoadingScreen />
@@ -114,16 +114,7 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
-    <>
-      {children}
-      {bootScreenActive && (
-        <div className="fixed inset-0 z-[100]">
-          <BootLoadingScreen />
-        </div>
-      )}
-    </>
-  );
+  return <>{children}</>;
 }
 
 const App = () => (
