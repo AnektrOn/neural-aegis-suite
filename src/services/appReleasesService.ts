@@ -199,11 +199,11 @@ export async function logUpdateEvent(opts: {
     const { data: userRes } = await supabase.auth.getUser();
     const userId = userRes.user?.id ?? null;
     await supabase.from("app_update_events").insert({
-      user_id: userId,
-      release_id: opts.releaseId ?? null,
+      user_id: userId ?? undefined,
+      release_id: opts.releaseId ?? undefined,
       event_type: opts.type,
-      version_code: opts.versionCode ?? null,
-      metadata: opts.metadata ?? {},
+      version_code: opts.versionCode ?? undefined,
+      metadata: (opts.metadata ?? {}) as never,
     });
   } catch (e) {
     console.warn("[logUpdateEvent] failed", e);
