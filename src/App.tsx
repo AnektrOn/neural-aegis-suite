@@ -222,6 +222,7 @@ const App = () => (
                               <Route path="/cartography" element={<CartographyManagement />} />
                               <Route path="/newsletter" element={<NewsletterManagement />} />
                               <Route path="/guest-preview" element={<AdminGuestPreview />} />
+                              <Route path="/mobile-releases" element={<MobileReleases />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
