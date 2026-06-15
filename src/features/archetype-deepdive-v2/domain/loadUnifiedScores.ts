@@ -187,14 +187,24 @@ function legacyResponseToWeights(
     const polarityRows = opt.polarity_weights ?? [];
     if (polarityRows.length > 0) {
       for (const row of polarityRows) {
-        const w = Number(row.weight);
-        if (!w) continue;
-        out.push({
-          archetype: row.archetype as AnyArchetypeKey,
-          polarity: row.polarity,
-          weight: w * multiplier,
-          house: q?.house ?? undefined,
-        });
+        const rawW = Number(row.weight);
+        if (!rawW) continue;
+        const totalW = rawW * multiplier;
+        if (totalW > 0) {
+          out.push({
+            archetype: row.archetype as AnyArchetypeKey,
+            polarity: row.polarity,
+            weight: totalW,
+            house: q?.house ?? undefined,
+          });
+        } else {
+          out.push({
+            archetype: row.archetype as AnyArchetypeKey,
+            polarity: row.polarity === "light" ? "shadow" : "light",
+            weight: Math.abs(totalW),
+            house: q?.house ?? undefined,
+          });
+        }
       }
       continue;
     }
@@ -202,22 +212,42 @@ function legacyResponseToWeights(
     for (const [arch, w] of Object.entries(opt.archetype_weights ?? {})) {
       const n = Number(w);
       if (!n) continue;
-      out.push({
-        archetype: arch as AnyArchetypeKey,
-        polarity: "light",
-        weight: n * multiplier,
-        house: q?.house ?? undefined,
-      });
+      const totalW = n * multiplier;
+      if (totalW > 0) {
+        out.push({
+          archetype: arch as AnyArchetypeKey,
+          polarity: "light",
+          weight: totalW,
+          house: q?.house ?? undefined,
+        });
+      } else {
+        out.push({
+          archetype: arch as AnyArchetypeKey,
+          polarity: "shadow",
+          weight: Math.abs(totalW),
+          house: q?.house ?? undefined,
+        });
+      }
     }
     for (const [arch, w] of Object.entries(opt.shadow_weights ?? {})) {
       const n = Number(w);
       if (!n) continue;
-      out.push({
-        archetype: arch as AnyArchetypeKey,
-        polarity: "shadow",
-        weight: n * multiplier,
-        house: q?.house ?? undefined,
-      });
+      const totalW = n * multiplier;
+      if (totalW > 0) {
+        out.push({
+          archetype: arch as AnyArchetypeKey,
+          polarity: "shadow",
+          weight: totalW,
+          house: q?.house ?? undefined,
+        });
+      } else {
+        out.push({
+          archetype: arch as AnyArchetypeKey,
+          polarity: "light",
+          weight: Math.abs(totalW),
+          house: q?.house ?? undefined,
+        });
+      }
     }
   }
   return { weights: out, house };
