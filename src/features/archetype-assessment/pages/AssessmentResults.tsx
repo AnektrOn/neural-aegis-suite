@@ -14,11 +14,11 @@ import { toast } from "@/hooks/use-toast";
 import {
   archetypeMeta,
   getLatestSubmittedSessionForUser,
-  getSessionFullDetails,
+  getSessionResultsSummary,
   getPreviousSubmittedSessionForUser,
   getSessionArchetypeScores,
-  recomputeAllStaleV3SessionsForUser,
   type AssessmentSessionRow,
+  type SessionResultsSummary,
 } from "../services/assessmentService";
 import { exportProfileToPdf } from "../services/exportProfilePdf";
 import type { Json } from "@/integrations/supabase/types";
@@ -50,7 +50,7 @@ export default function AssessmentResults() {
   const isFR = locale === "fr";
 
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<Awaited<ReturnType<typeof getSessionFullDetails>> | null>(null);
+  const [data, setData] = useState<SessionResultsSummary | null>(null);
   const [previousSession, setPreviousSession] = useState<AssessmentSessionRow | null>(null);
   const [previousScores, setPreviousScores] = useState<
     Array<{ archetype_key: string; normalized_score: number }> | null
@@ -64,25 +64,26 @@ export default function AssessmentResults() {
     (async () => {
       if (!user) return;
       try {
-        await recomputeAllStaleV3SessionsForUser(user.id);
         const session = await getLatestSubmittedSessionForUser(user.id);
         if (!session) {
           if (alive) setLoading(false);
           return;
         }
-        const details = await getSessionFullDetails(session.id);
+
+        const [details, prev] = await Promise.all([
+          getSessionResultsSummary(session.id),
+          getPreviousSubmittedSessionForUser(user.id, session.id),
+        ]);
         if (!alive) return;
         setData(details);
+        setLoading(false);
 
-        // Look up previous session for comparison.
-        const prev = await getPreviousSubmittedSessionForUser(user.id, session.id);
-        if (!alive) return;
         if (prev) {
           setPreviousSession(prev);
-          const prevScores = await getSessionArchetypeScores(prev.id);
-          if (alive) setPreviousScores(prevScores);
+          void getSessionArchetypeScores(prev.id).then((prevScores) => {
+            if (alive) setPreviousScores(prevScores);
+          });
         }
-        setLoading(false);
       } catch {
         if (alive) setLoading(false);
       }

@@ -437,8 +437,11 @@ export async function ensureSessionResultsUpToDate(sessionId: string): Promise<b
   return true;
 }
 
-/** Recompute every stale Myss V3 submitted session for one user. Returns count updated. */
-export async function recomputeAllStaleV3SessionsForUser(userId: string): Promise<number> {
+/** Recompute stale Myss V3 submitted sessions for one user. Returns count updated. */
+export async function recomputeAllStaleV3SessionsForUser(
+  userId: string,
+  options?: { latestOnly?: boolean },
+): Promise<number> {
   const { data, error } = await supabase
     .from("assessment_sessions")
     .select("id, status, template_id, client_meta")
@@ -447,8 +450,10 @@ export async function recomputeAllStaleV3SessionsForUser(userId: string): Promis
     .order("submitted_at", { ascending: false });
   if (error) throw error;
 
+  const rows = (data as { id: string; status: string; template_id: string; client_meta?: Record<string, unknown> }[]) ?? [];
+  const toProcess = options?.latestOnly ? rows.slice(0, 1) : rows;
   let updated = 0;
-  for (const row of (data as { id: string; status: string; template_id: string; client_meta?: Record<string, unknown> }[]) ?? []) {
+  for (const row of toProcess) {
     if (await ensureSessionResultsUpToDate(row.id)) updated += 1;
   }
   return updated;
@@ -1723,39 +1728,91 @@ export async function getRecoveryDiagnostics(userId: string): Promise<RecoveryDi
   };
 }
 
-export async function getSessionFullDetails(sessionId: string) {
-  await ensureSessionResultsUpToDate(sessionId);
+export interface GetSessionDetailsOptions {
+  /** Skip stale-score recompute when caller already ran ensureSessionResultsUpToDate. */
+  skipEnsure?: boolean;
+}
 
-  const [sessionRes, analysisRes, scoresRes, recosRes, responsesRes, questionsRes] = await Promise.all([
+export type SessionResultsSummary = {
+  session: AssessmentSessionRow | null;
+  analysis: AnalysisResultRow | null;
+  scores: ArchetypeScoreRow[];
+  recommendations: RecommendationToolRow[];
+  profile: ProfileRow | null;
+  company: CompanyRow | null;
+};
+
+async function loadProfileAndCompany(userId: string | undefined | null): Promise<{
+  profile: ProfileRow | null;
+  company: CompanyRow | null;
+}> {
+  if (!userId) return { profile: null, company: null };
+  const { data: p } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+  if (!p?.company_id) return { profile: p, company: null };
+  const { data: c } = await supabase
+    .from("companies")
+    .select("*")
+    .eq("id", p.company_id)
+    .maybeSingle();
+  return { profile: p, company: c };
+}
+
+/** Lightweight read for results / deep-dive UI — no question catalog or raw responses. */
+export async function getSessionResultsSummary(
+  sessionId: string,
+  options?: GetSessionDetailsOptions,
+): Promise<SessionResultsSummary> {
+  if (!options?.skipEnsure) {
+    await ensureSessionResultsUpToDate(sessionId);
+  }
+
+  const [sessionRes, analysisRes, scoresRes, recosRes] = await Promise.all([
+    supabase.from("assessment_sessions").select("*").eq("id", sessionId).maybeSingle(),
+    supabase.from("analysis_results").select("*").eq("session_id", sessionId).maybeSingle(),
+    supabase.from("archetype_scores").select("*").eq("session_id", sessionId).order("rank"),
+    supabase.from("recommendation_tools").select("*").eq("session_id", sessionId).order("rank"),
+  ]);
+
+  const { profile, company } = await loadProfileAndCompany(sessionRes.data?.user_id);
+
+  return {
+    session: sessionRes.data,
+    analysis: analysisRes.data,
+    scores: scoresRes.data ?? [],
+    recommendations: recosRes.data ?? [],
+    profile,
+    company,
+  };
+}
+
+export async function getSessionFullDetails(
+  sessionId: string,
+  options?: GetSessionDetailsOptions,
+) {
+  if (!options?.skipEnsure) {
+    await ensureSessionResultsUpToDate(sessionId);
+  }
+
+  const [sessionRes, analysisRes, scoresRes, recosRes, responsesRes] = await Promise.all([
     supabase.from("assessment_sessions").select("*").eq("id", sessionId).maybeSingle(),
     supabase.from("analysis_results").select("*").eq("session_id", sessionId).maybeSingle(),
     supabase.from("archetype_scores").select("*").eq("session_id", sessionId).order("rank"),
     supabase.from("recommendation_tools").select("*").eq("session_id", sessionId).order("rank"),
     supabase.from("assessment_responses").select("*").eq("session_id", sessionId),
-    // Fetch all questions+options to render readable answers
-    supabase.from("assessment_questions").select("*, assessment_options(*)").order("position"),
   ]);
 
-  // Join user profile + company
-  let profile: ProfileRow | null = null;
-  let company: CompanyRow | null = null;
-  const userId = sessionRes.data?.user_id;
-  if (userId) {
-    const { data: p } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
-    profile = p;
-    if (p?.company_id) {
-      const { data: c } = await supabase
-        .from("companies")
-        .select("*")
-        .eq("id", p.company_id)
-        .maybeSingle();
-      company = c;
-    }
-  }
+  const templateId = sessionRes.data?.template_id;
+  const [questionsRes, profileCompany] = await Promise.all([
+    templateId
+      ? supabase
+          .from("assessment_questions")
+          .select("*, assessment_options(*)")
+          .eq("template_id", templateId)
+          .order("position")
+      : Promise.resolve({ data: [] as QuestionWithOptions[], error: null }),
+    loadProfileAndCompany(sessionRes.data?.user_id),
+  ]);
+  if (questionsRes.error) throw questionsRes.error;
 
   return {
     session: sessionRes.data,
@@ -1764,8 +1821,8 @@ export async function getSessionFullDetails(sessionId: string) {
     recommendations: recosRes.data ?? [],
     responses: responsesRes.data ?? [],
     questions: (questionsRes.data ?? []) as QuestionWithOptions[],
-    profile,
-    company,
+    profile: profileCompany.profile,
+    company: profileCompany.company,
   };
 }
 
