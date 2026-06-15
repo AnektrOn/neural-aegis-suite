@@ -7,6 +7,18 @@ import {
   scoringVectorToWeights,
 } from "../domain/morphicField";
 import { ARCHETYPE_KEYS } from "../domain/archetypes";
+import { normalizeScores, detectShadowSignals } from "../domain/scoringEngine";
+
+function normalizedNetMajors(legacy: ReturnType<typeof deriveLegacyScoresNormalized>) {
+  const netScores: Record<string, number> = {};
+  for (const k of ARCHETYPE_KEYS) {
+    netScores[k] = Math.max(
+      0,
+      (legacy.archetypeScoresRaw[k] ?? 0) - (legacy.archetypeShadowRaw[k] ?? 0),
+    );
+  }
+  return normalizeScores(netScores);
+}
 
 describe("morphicField (Myss V3)", () => {
   it("accumulates S(A/P) = W × I per cell", () => {
@@ -39,8 +51,10 @@ describe("morphicField (Myss V3)", () => {
     expect(field[archetypePolarityKey("victim", "shadow")]).toBe(3);
 
     const legacy = deriveLegacyScoresNormalized(field);
-    expect(legacy.archetypeScores.sovereign).toBe(100);
-    expect(legacy.shadowSignals.victim).toBeCloseTo(3 / 1.5);
+    const normalized = normalizedNetMajors(legacy);
+    const survival = detectShadowSignals(legacy.survivalShadowRaw, legacy.survivalLightRaw);
+    expect(normalized.sovereign).toBe(100);
+    expect(survival.victim).toBeCloseTo((3 / 1.5) / 6);
     expect(legacy.archetypeScoresRaw.sovereign).toBe(2);
   });
 
@@ -57,7 +71,8 @@ describe("morphicField (Myss V3)", () => {
       field,
     );
     const legacy = deriveLegacyScoresNormalized(field);
-    expect(legacy.shadowSignals.victim).toBeCloseTo(Math.max(0, 3 - 2) / 1.5);
+    const survival = detectShadowSignals(legacy.survivalShadowRaw, legacy.survivalLightRaw);
+    expect(survival.victim).toBeCloseTo(Math.max(0, 3 - 2) / 1.5 / 6);
   });
 
   it("normalizes major archetype scores to sum ≈ 100%", () => {
@@ -73,13 +88,22 @@ describe("morphicField (Myss V3)", () => {
       field,
     );
     const legacy = deriveLegacyScoresNormalized(field);
-    const sum = ARCHETYPE_KEYS.reduce(
-      (s, k) => s + legacy.archetypeScores[k],
-      0,
-    );
+    const normalized = normalizedNetMajors(legacy);
+    const sum = ARCHETYPE_KEYS.reduce((s, k) => s + (normalized[k] ?? 0), 0);
     expect(sum).toBeCloseTo(100);
-    expect(legacy.archetypeScores.sage).toBeCloseTo(60);
-    expect(legacy.archetypeScores.sovereign).toBeCloseTo(40);
+    expect(normalized.sage).toBeCloseTo(60);
+    expect(normalized.sovereign).toBeCloseTo(40);
+  });
+
+  it("transfers negative polarity weight to the opposite pole", () => {
+    const field = {};
+    accumulateMorphicField(
+      [{ archetype: "creator", polarity: "light", weight: -1 }],
+      2,
+      field,
+    );
+    expect(field[archetypePolarityKey("creator", "light")] ?? 0).toBe(0);
+    expect(field[archetypePolarityKey("creator", "shadow")]).toBe(2);
   });
 
   it("parses scoring vectors from archetype/polarity keys", () => {

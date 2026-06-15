@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getLatestSubmittedSessionForUser,
+  recomputeAllStaleV3SessionsForUser,
   tryRecoverUserAssessment,
   getSessionFullDetails,
 } from "@/features/archetype-assessment/services/assessmentService";
@@ -81,6 +82,9 @@ export function useDeepDiveProfile({
 
     async function load() {
       try {
+        if (userId) {
+          await recomputeAllStaleV3SessionsForUser(userId);
+        }
         const sessionId = await resolveSessionId();
         if (!isCurrent() || timedOut) return;
 

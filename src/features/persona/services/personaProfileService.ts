@@ -1,7 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
+  ensureSessionResultsUpToDate,
+  getSessionTopArchetypes,
   isAdminGuestPreviewSession,
   isPollutedAssessmentTriad,
+  recomputeAllStaleV3SessionsForUser,
 } from "@/features/archetype-assessment/services/assessmentService";
 import { buildDynamicProfile } from "@/features/archetype-deepdive-v2/domain/dynamicProfileBuilder";
 import type { SampleProfile } from "@/features/archetype-deepdive-v2/domain/sampleProfile";
@@ -25,31 +28,21 @@ async function findLatestValidSessionId(userId: string): Promise<string | null> 
 
   const ids = rows.map((r) => r.id);
 
-  const [analysisRes, autoFillRes] = await Promise.all([
-    supabase
-      .from("analysis_results" as any)
-      .select("session_id, top_archetypes")
-      .in("session_id", ids),
-    supabase
-      .from("assessment_responses" as any)
-      .select("session_id")
-      .in("session_id", ids)
-      .eq("text_value", "Admin auto-fill"),
-  ]);
-  if (analysisRes.error) throw analysisRes.error;
-  if (autoFillRes.error) throw autoFillRes.error;
+  const { data: autoFillRows, error: autoFillRes } = await supabase
+    .from("assessment_responses" as any)
+    .select("session_id")
+    .in("session_id", ids)
+    .eq("text_value", "Admin auto-fill");
+  if (autoFillRes) throw autoFillRes;
 
-  const topBySession = new Map<string, string[]>();
-  for (const row of (analysisRes.data as { session_id: string; top_archetypes?: string[] }[]) ?? []) {
-    topBySession.set(row.session_id, row.top_archetypes ?? []);
-  }
   const autoFillIds = new Set(
-    ((autoFillRes.data as { session_id: string }[]) ?? []).map((r) => r.session_id),
+    ((autoFillRows as { session_id: string }[]) ?? []).map((r) => r.session_id),
   );
 
   for (const s of rows) {
     if (isAdminGuestPreviewSession(s) || autoFillIds.has(s.id)) continue;
-    const top = topBySession.get(s.id) ?? [];
+    await ensureSessionResultsUpToDate(s.id);
+    const top = await getSessionTopArchetypes(s.id);
     if (top.length >= 3 && isPollutedAssessmentTriad(top)) continue;
     return s.id;
   }
@@ -62,8 +55,12 @@ export async function loadPersonaProfile(
   locale: Locale,
   displayName?: string | null,
 ): Promise<SampleProfile | null> {
+  await recomputeAllStaleV3SessionsForUser(userId);
+
   const sessionId = await findLatestValidSessionId(userId);
   if (!sessionId) return null;
+
+  await ensureSessionResultsUpToDate(sessionId);
 
   const [scoresRes, analysisRes, profileRes] = await Promise.all([
     supabase

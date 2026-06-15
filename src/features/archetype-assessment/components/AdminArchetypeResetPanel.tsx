@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import {
+  forceRecomputeAllV3SessionsForUser,
   getRecoveryDiagnostics,
   resetUserArchetypeResults,
+  SCORE_VERSION,
   type RecoveryDiagnostics,
 } from "../services/assessmentService";
 
@@ -17,13 +19,14 @@ interface ProfileOption {
 }
 
 export function AdminArchetypeResetPanel({ onReset }: { onReset?: () => void }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isFR = locale === "fr";
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<ProfileOption[]>([]);
   const [userId, setUserId] = useState("");
   const [diag, setDiag] = useState<RecoveryDiagnostics | null>(null);
   const [diagLoading, setDiagLoading] = useState(false);
-  const [resetting, setResetting] = useState<"t1" | "t2" | "both" | null>(null);
+  const [resetting, setResetting] = useState<"t1" | "t2" | "both" | "recompute" | null>(null);
 
   useEffect(() => {
     supabase
@@ -62,6 +65,40 @@ export function AdminArchetypeResetPanel({ onReset }: { onReset?: () => void }) 
   useEffect(() => {
     void loadDiag(userId);
   }, [userId, loadDiag]);
+
+  const runRecompute = async () => {
+    if (!userId) return;
+    if (
+      !window.confirm(
+        isFR
+          ? `Recalculer tous les scores T1 V3 pour ${selectedLabel || userId} ?`
+          : `Recompute all T1 V3 scores for ${selectedLabel || userId}?`,
+      )
+    ) {
+      return;
+    }
+
+    setResetting("recompute");
+    try {
+      const count = await forceRecomputeAllV3SessionsForUser(userId);
+      toast({
+        title: isFR ? "Scores recalculés" : "Scores recomputed",
+        description: isFR
+          ? `${count} session(s) T1 V3 mise(s) à jour (moteur v${SCORE_VERSION}).`
+          : `${count} T1 V3 session(s) updated (engine v${SCORE_VERSION}).`,
+      });
+      await loadDiag(userId);
+      onReset?.();
+    } catch (e) {
+      toast({
+        title: t("toast.error"),
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setResetting(null);
+    }
+  };
 
   const runReset = async (scope: { t1: boolean; t2: boolean }, kind: "t1" | "t2" | "both") => {
     if (!userId) return;
@@ -187,6 +224,20 @@ export function AdminArchetypeResetPanel({ onReset }: { onReset?: () => void }) 
             <RotateCcw className="w-4 h-4 mr-2" />
           )}
           {t("admin.assessments.reset.btnT2")}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={!userId || resetting !== null}
+          onClick={() => void runRecompute()}
+        >
+          {resetting === "recompute" ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          ) : (
+            <RotateCcw className="w-4 h-4 mr-2" />
+          )}
+          {isFR ? "Recalculer scores V3" : "Recompute V3 scores"}
         </Button>
         <Button
           type="button"
