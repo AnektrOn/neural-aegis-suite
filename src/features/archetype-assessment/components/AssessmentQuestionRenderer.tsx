@@ -106,7 +106,7 @@ function LikertScale({
             onChange({
               questionId: question.id,
               selectedOptionIds: [o.id],
-              numericValue: (o.value ?? null) as number | null,
+              numericValue: o.value ?? undefined,
             });
         }}
       />

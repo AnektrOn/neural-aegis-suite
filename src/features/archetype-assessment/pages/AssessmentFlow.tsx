@@ -32,7 +32,7 @@ import {
 import { computeRawScores } from "../domain/scoringEngine";
 import { useAssessmentSession } from "../hooks/useAssessmentSession";
 import type { LoadedTemplate } from "../services/assessmentService";
-import type { ResponseValue, RuntimeQuestion } from "../domain/types";
+import type { ResponseValue, RuntimeQuestion, ArchetypeKey, ShadowKey } from "../domain/types";
 import { MiniRadarThumb } from "../components/MiniRadarThumb";
 import { IntensityMultipleChoice } from "../components/IntensityMultipleChoice";
 import { useAdmin } from "@/hooks/use-admin";
@@ -113,8 +113,9 @@ export default function AssessmentFlow() {
       setSessionId(sid);
       persistAssessmentSessionId(user.id, sid);
       session.goToQuestions();
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
     }
   };
 
@@ -148,8 +149,9 @@ export default function AssessmentFlow() {
           : "Your dominant archetypes are ready.",
       });
       navigate("/onboarding/results", { replace: true });
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -581,8 +583,9 @@ function AppendixCategoryRunner({
         responses: Object.values(responses),
       });
       onCompleted();
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -663,7 +666,7 @@ function appendixToRuntime(q: AppendixQuestion): RuntimeQuestion {
     prompt_en: q.prompt_en,
     helper_fr: q.helper_fr,
     helper_en: q.helper_en,
-    dimension: null as any,
+    dimension: null,
     is_required: q.is_required,
     meta: {},
     options: (q.options ?? []).map((o) => ({
@@ -671,9 +674,9 @@ function appendixToRuntime(q: AppendixQuestion): RuntimeQuestion {
       position: o.position,
       label_fr: o.label_fr,
       label_en: o.label_en,
-      archetype_weights: (o as any).archetype_weights ?? {},
-      shadow_weights: (o as any).shadow_weights ?? {},
-      polarity_weights: (o as any).polarity_weights ?? [],
+      archetype_weights: (o.archetype_weights ?? {}) as Partial<Record<ArchetypeKey, number>>,
+      shadow_weights: (o.shadow_weights ?? {}) as Partial<Record<ShadowKey, number>>,
+      polarity_weights: [],
       value: o.value,
     })),
   };
@@ -739,7 +742,7 @@ function QuestionRenderer({
       {question.question_type === "short_text" && (
         <Textarea
           value={value?.textValue ?? ""}
-          maxLength={(question.meta as any)?.maxLength ?? 280}
+          maxLength={(question.meta as { maxLength?: number }).maxLength ?? 280}
           onChange={(e) =>
             onChange({ questionId: question.id, textValue: e.target.value })
           }
@@ -783,7 +786,7 @@ function LikertScale({
             onChange({
               questionId: question.id,
               selectedOptionIds: [o.id],
-              numericValue: (o.value ?? null) as any,
+              numericValue: o.value ?? undefined,
             });
         }}
       />
