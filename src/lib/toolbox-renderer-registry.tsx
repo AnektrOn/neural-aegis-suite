@@ -103,7 +103,7 @@ export function canRenderToolboxWidget(
             (typeof c.duration_sec === "number" && c.duration_sec > 0))
         );
       case "journal_prompt":
-        return !!c?.prompt?.trim();
+        return typeof c?.prompt === "string" && c.prompt.trim().length > 0;
       case "intention":
         return c != null;
       default:
@@ -236,8 +236,8 @@ export function renderToolboxWidget({
     case "micro_practice":
       return renderDynamicWidget("micro_practice", baseProps);
     case "journal_prompt": {
-      const prompt = pickWidgetCatalogCopy(locale, cfg?.prompt_i18n, cfg?.prompt);
-      if (!prompt?.trim()) return null;
+      const prompt = pickWidgetCatalogCopy(locale, cfg?.prompt_i18n, cfg?.prompt) as string | undefined;
+      if (!prompt || !prompt.trim()) return null;
       return renderDynamicWidget("journal_prompt", {
         ...baseProps,
         config: { ...cfg, prompt },
