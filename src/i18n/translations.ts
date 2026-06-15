@@ -3743,12 +3743,6 @@ excerpt_fr: email brief
     fr: "Scanne ce QR depuis ton téléphone Android.",
     en: "Scan this QR from your Android phone.",
   },
-
-  // Sidebar shortcut to install page
-  "nav.installApp": {
-    fr: "Installer sur Android",
-    en: "Install on Android",
-  },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
