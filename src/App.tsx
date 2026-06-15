@@ -13,6 +13,7 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import VisitorRoute from "@/components/VisitorRoute";
 import AdminRoute from "@/components/AdminRoute";
+import AdminLegacyRedirect from "@/components/admin/AdminLegacyRedirect";
 import AppLayout from "./components/AppLayout";
 import AdminLayout from "./components/AdminLayout";
 import VisitorLayout from "./layouts/VisitorLayout";
