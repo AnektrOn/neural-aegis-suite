@@ -53,6 +53,13 @@ export default function MobileReleases() {
   const [forceUpdate, setForceUpdate] = useState(false);
   const [minVersionCode, setMinVersionCode] = useState<string>("");
   const [apkFile, setApkFile] = useState<File | null>(null);
+  const [manifestUrl, setManifestUrl] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("aegis.android.manifestUrl");
+    } catch {
+      return null;
+    }
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -130,6 +137,14 @@ export default function MobileReleases() {
       setBusy(true);
       try {
         const r = await publishRelease(id);
+        if (r.manifestUrl) {
+          setManifestUrl(r.manifestUrl);
+          try {
+            localStorage.setItem("aegis.android.manifestUrl", r.manifestUrl);
+          } catch {
+            /* ignore */
+          }
+        }
         toast.success(
           t("admin.mobileReleases.published" as never) +
             (r.manifestUrl ? ` · ${r.manifestUrl.slice(0, 60)}…` : ""),
@@ -401,7 +416,18 @@ export default function MobileReleases() {
               <Copy className="w-3 h-3 mr-2" />
               {t("admin.mobileReleases.distribute.copyApk" as never)}
             </Button>
+            {manifestUrl ? (
+              <Button variant="outline" onClick={() => copy(manifestUrl)}>
+                <Copy className="w-3 h-3 mr-2" />
+                {t("admin.mobileReleases.distribute.copyManifest" as never)}
+              </Button>
+            ) : null}
           </div>
+          {manifestUrl ? (
+            <p className="text-xs text-muted-foreground break-all font-mono">
+              {t("admin.mobileReleases.distribute.manifestHint" as never)}
+            </p>
+          ) : null}
         </section>
       )}
 

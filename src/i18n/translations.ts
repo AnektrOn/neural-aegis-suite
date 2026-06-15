@@ -1543,6 +1543,14 @@ export const translations = {
   "install.onboardingTitle": { fr: "Installez Aegis sur votre mobile", en: "Install Aegis on your phone" },
   "install.onboardingDesc": { fr: "Accédez à Aegis en un tap depuis votre écran d'accueil.", en: "Access Aegis with one tap from your home screen." },
   "install.onboardingDetail": { fr: "Sur iPhone : Safari → Partager → « Sur l'écran d'accueil ». Sur Android : Chrome → menu ⋮ → « Ajouter à l'écran d'accueil ». L'app s'ouvre ensuite en plein écran.", en: "On iPhone: Safari → Share → \"Add to Home Screen\". On Android: Chrome → ⋮ menu → \"Add to Home Screen\". The app then opens in full screen." },
+  "appUpdate.title": { fr: "Mise à jour {version} disponible", en: "Update {version} available" },
+  "appUpdate.optionalDesc": { fr: "Une nouvelle version de l'application est prête. Installez-la pour bénéficier des dernières améliorations.", en: "A new app version is ready. Install it to get the latest improvements." },
+  "appUpdate.forcedDesc": { fr: "Cette mise à jour est obligatoire pour continuer à utiliser l'application.", en: "This update is required to keep using the app." },
+  "appUpdate.install": { fr: "Installer", en: "Install" },
+  "appUpdate.installing": { fr: "Téléchargement…", en: "Downloading…" },
+  "appUpdate.later": { fr: "Plus tard", en: "Later" },
+  "appUpdate.downloadProgress": { fr: "Téléchargement : {progress} %", en: "Download: {progress}%" },
+  "appUpdate.errorGeneric": { fr: "Impossible de télécharger la mise à jour.", en: "Could not download the update." },
 
   // Appendix
   "appendix.title": { fr: "Questionnaire approfondi", en: "Deep questionnaire" },
@@ -3670,6 +3678,14 @@ excerpt_fr: email brief
   "admin.mobileReleases.distribute.copyApk": {
     fr: "Copier le lien APK direct",
     en: "Copy direct APK link",
+  },
+  "admin.mobileReleases.distribute.copyManifest": {
+    fr: "Copier l'URL manifest (VITE_ANDROID_RELEASE_MANIFEST_URL)",
+    en: "Copy manifest URL (VITE_ANDROID_RELEASE_MANIFEST_URL)",
+  },
+  "admin.mobileReleases.distribute.manifestHint": {
+    fr: "Colle cette URL dans VITE_ANDROID_RELEASE_MANIFEST_URL puis rebuild l'APK mobile (npm run build:mobile).",
+    en: "Paste this URL into VITE_ANDROID_RELEASE_MANIFEST_URL then rebuild the mobile APK (npm run build:mobile).",
   },
   "admin.mobileReleases.tracking.title": { fr: "Adoption par utilisateur", en: "Adoption per user" },
   "admin.mobileReleases.tracking.empty": {

@@ -1,7 +1,10 @@
 project_id = "wjjugtdciljmuohxoqcj"
 
 [functions.drive-debug]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-newsletter-email]
 verify_jwt = false
+
+[functions.scan-alerts]
+verify_jwt = true
