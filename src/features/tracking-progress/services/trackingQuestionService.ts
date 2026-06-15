@@ -49,7 +49,7 @@ export async function loadQuestionBank(perspectiveId: string): Promise<TrackingQ
     .order("sort_order");
 
   if (error) throw error;
-  return (data ?? []).map(normalizeQuestion) as TrackingQuestion[];
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map(normalizeQuestion) as TrackingQuestion[];
 }
 
 export async function loadAllQuestionsAdmin(perspectiveId: string): Promise<TrackingQuestion[]> {
@@ -60,7 +60,7 @@ export async function loadAllQuestionsAdmin(perspectiveId: string): Promise<Trac
     .order("sort_order");
 
   if (error) throw error;
-  return (data ?? []).map(normalizeQuestion) as TrackingQuestion[];
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map(normalizeQuestion) as TrackingQuestion[];
 }
 
 function normalizeQuestion(raw: Record<string, unknown>): TrackingQuestion {

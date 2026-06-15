@@ -237,7 +237,7 @@ export async function loadAdherenceStats(
     .lte("scheduled_date", endDate)
     .order("scheduled_date", { ascending: false });
 
-  const batches = (data ?? []) as Array<{ scheduled_date: string; status: string }>;
+  const batches = (data ?? []) as unknown as Array<{ scheduled_date: string; status: string }>;
   const answeredDays = batches.filter((b) => b.status === "answered").length;
 
   // Current streak
