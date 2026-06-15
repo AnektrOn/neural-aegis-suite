@@ -97,6 +97,7 @@ function PageLoader() {
 function AuthBootGate({ children }: { children: React.ReactNode }) {
   const { bootScreenActive } = useAuth();
   const [appReady, setAppReady] = useState(false);
+  useAndroidVersionReporter();
 
   useEffect(() => {
     if (!bootScreenActive) setAppReady(true);
