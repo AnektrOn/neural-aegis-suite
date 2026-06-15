@@ -177,7 +177,7 @@ export async function reportInstalledVersion(opts: {
     user_id: userId,
     event_type: "report_version",
     version_code: opts.versionCode,
-    metadata: { platform, version_name: opts.versionName },
+    metadata: { platform, version_name: opts.versionName } as never,
   });
 }
 
