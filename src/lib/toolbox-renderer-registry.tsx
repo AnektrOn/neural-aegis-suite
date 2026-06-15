@@ -236,7 +236,7 @@ export function renderToolboxWidget({
     case "micro_practice":
       return renderDynamicWidget("micro_practice", baseProps);
     case "journal_prompt": {
-      const prompt = pickWidgetCatalogCopy(locale, cfg?.prompt_i18n, cfg?.prompt) as string | undefined;
+      const prompt = pickWidgetCatalogCopy(locale, cfg?.prompt_i18n as never, cfg?.prompt as never) as string | undefined;
       if (!prompt || !prompt.trim()) return null;
       return renderDynamicWidget("journal_prompt", {
         ...baseProps,
