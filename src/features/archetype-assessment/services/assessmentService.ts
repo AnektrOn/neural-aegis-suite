@@ -1683,7 +1683,7 @@ export async function resetUserArchetypeResults(
     p_reset_t2: resetT2,
   });
   if (error) throw error;
-  const payload = (data ?? {}) as ArchetypeResetResult;
+  const payload = (data ?? {}) as unknown as ArchetypeResetResult;
   if (!payload.ok) {
     throw new Error(payload.error ?? "reset_failed");
   }
