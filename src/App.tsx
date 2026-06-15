@@ -15,6 +15,7 @@ import AdminRoute from "@/components/AdminRoute";
 import AppLayout from "./components/AppLayout";
 import AdminLayout from "./components/AdminLayout";
 import VisitorLayout from "./layouts/VisitorLayout";
+import { useAndroidVersionReporter } from "@/hooks/useAndroidVersionReporter";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -74,6 +75,8 @@ const AdminTrackingHub = lazy(() => import("./pages/admin/AdminTrackingHub"));
 const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
+const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
+const InstallAndroid = lazy(() => import("./pages/InstallAndroid"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -95,6 +98,7 @@ function PageLoader() {
 function AuthBootGate({ children }: { children: React.ReactNode }) {
   const { bootScreenActive } = useAuth();
   const [appReady, setAppReady] = useState(false);
+  useAndroidVersionReporter();
 
   useEffect(() => {
     if (!bootScreenActive) setAppReady(true);
@@ -135,6 +139,7 @@ const App = () => (
                   <Route path="/__loader" element={<BootLoadingScreen />} />
                 ) : null}
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/install-android" element={<InstallAndroid />} />
                 <Route path="/newsletter" element={<NewsletterLayout />}>
                   <Route index element={<Newsletter />} />
                   <Route path=":slug" element={<NewsletterEditionPage />} />
@@ -220,6 +225,7 @@ const App = () => (
                               <Route path="/cartography" element={<CartographyManagement />} />
                               <Route path="/newsletter" element={<NewsletterManagement />} />
                               <Route path="/guest-preview" element={<AdminGuestPreview />} />
+                              <Route path="/mobile-releases" element={<MobileReleases />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>

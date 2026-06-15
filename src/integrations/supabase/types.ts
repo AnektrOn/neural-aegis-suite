@@ -502,6 +502,101 @@ export type Database = {
           },
         ]
       }
+      app_releases: {
+        Row: {
+          apk_public_url: string
+          apk_storage_path: string
+          created_at: string
+          created_by: string | null
+          file_size_bytes: number | null
+          force_update: boolean
+          id: string
+          is_published: boolean
+          min_version_code: number | null
+          platform: string
+          published_at: string | null
+          release_notes: string | null
+          sha256: string | null
+          updated_at: string
+          version_code: number
+          version_name: string
+        }
+        Insert: {
+          apk_public_url: string
+          apk_storage_path: string
+          created_at?: string
+          created_by?: string | null
+          file_size_bytes?: number | null
+          force_update?: boolean
+          id?: string
+          is_published?: boolean
+          min_version_code?: number | null
+          platform?: string
+          published_at?: string | null
+          release_notes?: string | null
+          sha256?: string | null
+          updated_at?: string
+          version_code: number
+          version_name: string
+        }
+        Update: {
+          apk_public_url?: string
+          apk_storage_path?: string
+          created_at?: string
+          created_by?: string | null
+          file_size_bytes?: number | null
+          force_update?: boolean
+          id?: string
+          is_published?: boolean
+          min_version_code?: number | null
+          platform?: string
+          published_at?: string | null
+          release_notes?: string | null
+          sha256?: string | null
+          updated_at?: string
+          version_code?: number
+          version_name?: string
+        }
+        Relationships: []
+      }
+      app_update_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          release_id: string | null
+          user_id: string | null
+          version_code: number | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          release_id?: string | null
+          user_id?: string | null
+          version_code?: number | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          release_id?: string | null
+          user_id?: string | null
+          version_code?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_update_events_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "app_releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       archetype_profile_snapshots: {
         Row: {
           active_principle: string | null
@@ -2583,6 +2678,39 @@ export type Database = {
           },
         ]
       }
+      user_app_versions: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          id: string
+          platform: string
+          reported_at: string
+          user_id: string
+          version_code: number
+          version_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          platform?: string
+          reported_at?: string
+          user_id: string
+          version_code: number
+          version_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          platform?: string
+          reported_at?: string
+          user_id?: string
+          version_code?: number
+          version_name?: string | null
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_name: string
@@ -2983,6 +3111,33 @@ export type Database = {
       notify_newsletter_welcome_in_app: {
         Args: { p_locale?: string; p_user_id: string }
         Returns: undefined
+      }
+      publish_app_release: {
+        Args: { p_release_id: string }
+        Returns: {
+          apk_public_url: string
+          apk_storage_path: string
+          created_at: string
+          created_by: string | null
+          file_size_bytes: number | null
+          force_update: boolean
+          id: string
+          is_published: boolean
+          min_version_code: number | null
+          platform: string
+          published_at: string | null
+          release_notes: string | null
+          sha256: string | null
+          updated_at: string
+          version_code: number
+          version_name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "app_releases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       publish_newsletter_edition: {
         Args: { p_edition_id: string }
