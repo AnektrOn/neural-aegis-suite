@@ -162,7 +162,7 @@ export async function reportInstalledVersion(opts: {
       platform,
       version_code: opts.versionCode,
       version_name: opts.versionName,
-      device_id: opts.deviceId ?? null,
+      device_id: opts.deviceId ?? undefined,
       reported_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" },
