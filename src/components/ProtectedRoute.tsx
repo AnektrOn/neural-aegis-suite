@@ -13,9 +13,13 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (user && !isAnonymousUser(user) && !isGuestUser(user)) {
+      // Onboarding désactivé : on auto-marque comme fait pour ne plus jamais
+      // l'afficher (évite l'écran « overlay noir » au reload / nouveau navigateur).
       const key = `aegis_onboarded_${user.id}`;
-      const done = localStorage.getItem(key);
-      setShowOnboarding(!done);
+      if (!localStorage.getItem(key)) {
+        try { localStorage.setItem(key, "true"); } catch { /* ignore */ }
+      }
+      setShowOnboarding(false);
       setOnboardingChecked(true);
     } else if (user) {
       setShowOnboarding(false);
