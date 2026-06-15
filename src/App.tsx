@@ -15,6 +15,7 @@ import AdminRoute from "@/components/AdminRoute";
 import AppLayout from "./components/AppLayout";
 import AdminLayout from "./components/AdminLayout";
 import VisitorLayout from "./layouts/VisitorLayout";
+import { useAndroidVersionReporter } from "@/hooks/useAndroidVersionReporter";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
