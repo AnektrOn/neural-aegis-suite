@@ -353,7 +353,7 @@ export default function ComposedRendererV1({
             onChange={(e) => setNotes(e.target.value)}
             rows={5}
             className="w-full rounded-lg border border-border/40 bg-background px-3 py-2 text-sm"
-            placeholder={t("journal.placeholder")}
+            placeholder={t("journal.placeholder" as never)}
           />
         );
       case "dual_input":

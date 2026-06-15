@@ -82,7 +82,7 @@ export default function PulsePage() {
       const action: SwipeAction = direction === "right" ? "assimilated" : "ignored";
       const result = await recordPulseSwipe(card.id, action);
 
-      if (!result.ok) {
+      if ("error" in result) {
         showNotification(result.error);
         setIsSwiping(false);
         return;

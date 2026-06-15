@@ -12,7 +12,7 @@ import type {
   CourseSectionType,
 } from "../domain/types";
 
-type RpcOk<T> = { ok: true } & T;
+type RpcOk<T> = { ok: true; error?: undefined } & T;
 type RpcErr = { ok: false; error?: string };
 
 interface RawDeckCard {
