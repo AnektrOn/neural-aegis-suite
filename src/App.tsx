@@ -106,6 +106,13 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
     if (!bootScreenActive) setAppReady(true);
   }, [bootScreenActive]);
 
+  // Failsafe: si l'auth bootstrap reste bloqué (ex: NetworkError sur refresh_token),
+  // on libère l'UI au bout de 6s pour éviter l'écran de boot infini.
+  useEffect(() => {
+    const t = setTimeout(() => setAppReady(true), 6000);
+    return () => clearTimeout(t);
+  }, []);
+
   if (!appReady) {
     return (
       <div className="relative z-[100] min-h-screen">
@@ -116,6 +123,7 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
