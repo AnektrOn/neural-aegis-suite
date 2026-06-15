@@ -252,7 +252,7 @@ export function resolveToolboxWidget(
 
   const breath = resolveBreathworkAlias(slug, cfg);
   if (breath) {
-    return { kind: "breathwork", config: breath.config, breathVisual: breath.visualVariant };
+    return { kind: "breathwork", config: breath.config as unknown as Record<string, unknown>, breathVisual: breath.visualVariant };
   }
 
   switch (slug) {
@@ -306,7 +306,7 @@ export function resolveToolboxWidget(
         return adaptProgressiveRelax(cfg);
       case "breathwork": {
         const breath = resolveBreathworkAlias(slug, cfg);
-        if (breath) return { kind: "breathwork", config: breath.config, breathVisual: breath.visualVariant };
+        if (breath) return { kind: "breathwork", config: breath.config as unknown as Record<string, unknown>, breathVisual: breath.visualVariant };
         break;
       }
       default:
