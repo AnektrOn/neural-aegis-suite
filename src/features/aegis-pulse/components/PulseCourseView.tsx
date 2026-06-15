@@ -114,7 +114,7 @@ export function PulseCourseView({ card, onClose, onComplete }: PulseCourseViewPr
   const renderSection = (type: CourseSectionType, content: string) => {
     const meta = SECTION_META[type];
     const Icon = meta?.icon ?? BookOpen;
-    const label = meta ? t(meta.labelKey) : type;
+    const label = meta ? t(meta.labelKey as never) : type;
 
     const isAction = type === "action" || type === "exercise";
 
