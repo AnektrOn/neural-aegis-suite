@@ -309,7 +309,7 @@ export default function Settings() {
           <p className="text-neural-label">{t("install.title")}</p>
         </div>
         <p className="text-sm text-muted-foreground mb-6">{t("install.onboardingDesc")}</p>
-        <button onClick={() => navigate("/install")} className="btn-neural w-full">
+        <button onClick={() => navigate("/install-android")} className="btn-neural w-full">
           <Smartphone size={14} />
           {t("install.title")}
         </button>

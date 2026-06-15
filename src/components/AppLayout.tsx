@@ -10,6 +10,7 @@ import {
   Shield,
   MoreVertical,
   Settings2,
+  Smartphone,
 } from "lucide-react";
 import AppCommandPalette from "@/components/AppCommandPalette";
 import DesktopTopBar from "@/components/DesktopTopBar";
@@ -135,6 +136,26 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
           );
         })}
       </nav>
+
+      <NavLink
+        to="/install-android"
+        onClick={onNavigate}
+        aria-current={location.pathname === "/install-android" ? "page" : undefined}
+        className={({ isActive }) =>
+          `mx-2 mb-1 flex shrink-0 items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-all ${
+            isActive
+              ? "text-accent-primary bg-accent-primary/10 border-accent-primary/20"
+              : "text-text-tertiary hover:text-accent-primary hover:bg-accent-primary/5"
+          }`
+        }
+      >
+        <Smartphone size={16} strokeWidth={1.5} className="shrink-0" />
+        {!collapsed && (
+          <span className="text-[11px] font-medium tracking-[0.1em] uppercase">
+            {t("nav.installApp")}
+          </span>
+        )}
+      </NavLink>
 
       {isAdmin && (
         <Link
