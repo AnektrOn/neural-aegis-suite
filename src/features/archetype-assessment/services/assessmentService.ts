@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { ARCHETYPES } from "../domain/archetypes";
 import { QUESTIONS } from "../domain/questions";
 import {
@@ -22,10 +23,82 @@ import { loadUnifiedDeepDiveResult } from "@/features/archetype-deepdive-v2/doma
 import type {
   AnalysisResult,
   ArchetypeKey,
+  PolarityWeight,
   QuestionSeed,
   ResponseValue,
   RuntimeQuestion,
+  ShadowKey,
 } from "../domain/types";
+
+type Tables = Database["public"]["Tables"];
+export type AssessmentSessionRow = Tables["assessment_sessions"]["Row"];
+type AssessmentResponseRow = Tables["assessment_responses"]["Row"];
+type AssessmentQuestionRow = Tables["assessment_questions"]["Row"];
+type AssessmentOptionRow = Tables["assessment_options"]["Row"];
+type AnalysisResultRow = Tables["analysis_results"]["Row"];
+type ArchetypeScoreRow = Tables["archetype_scores"]["Row"];
+type RecommendationToolRow = Tables["recommendation_tools"]["Row"];
+type CompanyRow = Tables["companies"]["Row"];
+type ProfileRow = Tables["profiles"]["Row"];
+type QuestionWithOptions = AssessmentQuestionRow & {
+  assessment_options: AssessmentOptionRow[];
+};
+
+function clientMetaFromJson(meta: Json | null | undefined): Record<string, unknown> {
+  if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+    return meta as Record<string, unknown>;
+  }
+  return {};
+}
+
+function isAppendixQuestion(meta: Json): boolean {
+  return clientMetaFromJson(meta).is_appendix === true;
+}
+
+function shadowSignalsFromJson(signals: Json | null | undefined): Record<string, number> {
+  const raw = clientMetaFromJson(signals);
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    const n = Number(v);
+    if (Number.isFinite(n)) out[k] = n;
+  }
+  return out;
+}
+
+type UntypedRpcClient = (
+  fn: string,
+  args?: Record<string, unknown>,
+) => ReturnType<typeof supabase.rpc>;
+
+function callUntypedRpc(fn: string, args?: Record<string, unknown>) {
+  return (supabase.rpc as UntypedRpcClient)(fn, args);
+}
+
+function asPartialArchetypeWeights(json: Json): Partial<Record<ArchetypeKey, number>> {
+  if (json && typeof json === "object" && !Array.isArray(json)) {
+    return json as Partial<Record<ArchetypeKey, number>>;
+  }
+  return {};
+}
+
+function asPartialShadowWeights(json: Json): Partial<Record<ShadowKey, number>> {
+  if (json && typeof json === "object" && !Array.isArray(json)) {
+    return json as Partial<Record<ShadowKey, number>>;
+  }
+  return {};
+}
+
+function asPolarityWeights(json: Json): PolarityWeight[] {
+  return Array.isArray(json) ? (json as unknown as PolarityWeight[]) : [];
+}
+
+function toJson(value: unknown): Json {
+  return value as Json;
+}
+
+function responsePayloadFromJson(raw: Json | null | undefined): ResponseValue {
+  return (raw ?? {}) as unknown as ResponseValue;
+}
 
 const TEMPLATE_SLUG = "archetype-v1";
 
@@ -67,9 +140,13 @@ export const SCORE_VERSION = 5;
 export const SCORING_MODEL_MYSS_V3 = "myss-v3";
 
 export function getStoredScoreVersion(
-  meta: Record<string, unknown> | null | undefined,
+  meta: Json | Record<string, unknown> | null | undefined,
 ): number {
-  const v = meta?.score_version;
+  const record =
+    meta && typeof meta === "object" && !Array.isArray(meta)
+      ? (meta as Record<string, unknown>)
+      : clientMetaFromJson(meta as Json | null | undefined);
+  const v = record.score_version;
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (typeof v === "string") {
     const n = Number(v);
@@ -78,9 +155,9 @@ export function getStoredScoreVersion(
   return 0;
 }
 
-function mapDbResponsesToValues(rows: any[]): ResponseValue[] {
+function mapDbResponsesToValues(rows: AssessmentResponseRow[]): ResponseValue[] {
   return rows.map((r) => {
-    const payload = (r.raw_payload ?? {}) as ResponseValue;
+    const payload = responsePayloadFromJson(r.raw_payload);
     return {
       questionId: r.question_id,
       selectedOptionIds: r.selected_option_ids ?? [],
@@ -114,7 +191,7 @@ function questionsLookLikeMyssV3(questions: RuntimeQuestion[]): boolean {
 
 async function loadSessionTemplateSlug(templateId: string): Promise<string | null> {
   const { data, error } = await supabase
-    .from("assessment_templates" as any)
+    .from("assessment_templates")
     .select("slug")
     .eq("id", templateId)
     .maybeSingle();
@@ -157,13 +234,13 @@ async function persistSessionAnalysisResult(opts: {
   }));
   if (scoreRows.length > 0) {
     const { error: scErr } = await supabase
-      .from("archetype_scores" as any)
+      .from("archetype_scores")
       .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
     if (scErr) throw scErr;
   }
 
   const { error: aErr } = await supabase
-    .from("analysis_results" as any)
+    .from("analysis_results")
     .upsert(
       {
         session_id: sessionId,
@@ -186,7 +263,7 @@ async function persistSessionAnalysisResult(opts: {
     const recos = selectTopTools(analysis, { limit: 6, lang: "fr" });
     if (recos.length > 0) {
       await supabase
-        .from("recommendation_tools" as any)
+        .from("recommendation_tools")
         .delete()
         .eq("session_id", sessionId);
 
@@ -206,19 +283,19 @@ async function persistSessionAnalysisResult(opts: {
         rank: r.rank,
       }));
       const { error: rcErr } = await supabase
-        .from("recommendation_tools" as any)
+        .from("recommendation_tools")
         .insert(recoRows);
       if (rcErr) throw rcErr;
     }
   }
 
   const { data: prevSession } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("client_meta")
     .eq("id", sessionId)
     .maybeSingle();
-  const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
-  const nextMeta: Record<string, any> = {
+  const prevMeta = clientMetaFromJson(prevSession?.client_meta);
+  const nextMeta: Record<string, unknown> = {
     ...prevMeta,
     ...metaPatch,
     score_version: SCORE_VERSION,
@@ -233,8 +310,8 @@ async function persistSessionAnalysisResult(opts: {
   }
 
   const { error: upErr } = await supabase
-    .from("assessment_sessions" as any)
-    .update({ confidence_score: confidence, client_meta: nextMeta })
+    .from("assessment_sessions")
+    .update({ confidence_score: confidence, client_meta: toJson(nextMeta) })
     .eq("id", sessionId);
   if (upErr) throw upErr;
 
@@ -249,7 +326,7 @@ export async function recomputeSubmittedSessionAnalysis(
   sessionId: string,
 ): Promise<AnalysisResult> {
   const { data: sessionRow, error: sErr } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("id, user_id, status, template_id, client_meta")
     .eq("id", sessionId)
     .maybeSingle();
@@ -274,13 +351,13 @@ export async function recomputeSubmittedSessionAnalysis(
   if (!templateId) throw new Error("Session has no template_id");
 
   const [{ data: allResp, error: arErr }, coreQs, appendixQs] = await Promise.all([
-    supabase.from("assessment_responses" as any).select("*").eq("session_id", sessionId),
+    supabase.from("assessment_responses").select("*").eq("session_id", sessionId),
     fetchQuestions(templateId, { appendix: false }),
     fetchQuestions(templateId, { appendix: true }),
   ]);
   if (arErr) throw arErr;
 
-  const dbResponses = (allResp as any[]) ?? [];
+  const dbResponses = allResp ?? [];
   const allQuestions = [...coreQs, ...appendixQs];
   if (allQuestions.length === 0) {
     throw new Error("No questions found for session template");
@@ -322,7 +399,7 @@ export async function recomputeSubmittedSessionAnalysis(
  */
 export async function ensureSessionResultsUpToDate(sessionId: string): Promise<boolean> {
   const { data: sessionRow, error: sErr } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("id, status, template_id, client_meta")
     .eq("id", sessionId)
     .maybeSingle();
@@ -345,7 +422,7 @@ export async function ensureSessionResultsUpToDate(sessionId: string): Promise<b
   if (templateSlug !== TEMPLATE_SLUG) return false;
 
   const { data: respRows, error: rErr } = await supabase
-    .from("assessment_responses" as any)
+    .from("assessment_responses")
     .select("raw_payload")
     .eq("session_id", sessionId);
   if (rErr) throw rErr;
@@ -363,7 +440,7 @@ export async function ensureSessionResultsUpToDate(sessionId: string): Promise<b
 /** Recompute every stale Myss V3 submitted session for one user. Returns count updated. */
 export async function recomputeAllStaleV3SessionsForUser(userId: string): Promise<number> {
   const { data, error } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("id, status, template_id, client_meta")
     .eq("user_id", userId)
     .eq("status", "submitted")
@@ -383,7 +460,7 @@ export async function recomputeAllStaleV3SessionsForUser(userId: string): Promis
  */
 export async function forceRecomputeAllV3SessionsForUser(userId: string): Promise<number> {
   const { data, error } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("id, status, template_id, client_meta")
     .eq("user_id", userId)
     .eq("status", "submitted")
@@ -397,7 +474,7 @@ export async function forceRecomputeAllV3SessionsForUser(userId: string): Promis
     if (templateSlug !== TEMPLATE_SLUG) continue;
 
     const { data: respRows, error: rErr } = await supabase
-      .from("assessment_responses" as any)
+      .from("assessment_responses")
       .select("raw_payload")
       .eq("session_id", row.id);
     if (rErr) throw rErr;
@@ -420,7 +497,7 @@ export async function forceRecomputeAllV3SessionsForUser(userId: string): Promis
 /** Refreshes the materialized view aggregating selected option weights. */
 async function refreshArchetypeScoresView(): Promise<void> {
   try {
-    await supabase.rpc("refresh_archetype_scores_by_user" as any);
+    await supabase.rpc("refresh_archetype_scores_by_user");
   } catch (e) {
     // Non-blocking — view refresh failure must not break submission.
     console.warn("refresh_archetype_scores_by_user failed", e);
@@ -449,7 +526,7 @@ export interface LoadedTemplate {
 
 async function loadTemplateBySlug(slug: string): Promise<LoadedTemplate> {
   const { data: tpl, error: tplErr } = await supabase
-    .from("assessment_templates" as any)
+    .from("assessment_templates")
     .select("*")
     .eq("slug", slug)
     .eq("is_active", true)
@@ -479,7 +556,7 @@ async function loadTemplateBySlug(slug: string): Promise<LoadedTemplate> {
 /** Load T1 onboarding template (`archetype-v1`). Never picks `archetype-v2-70q`. */
 export async function loadActiveTemplate(): Promise<LoadedTemplate> {
   const { data: tpl, error: tplErr } = await supabase
-    .from("assessment_templates" as any)
+    .from("assessment_templates")
     .select("*")
     .eq("slug", TEMPLATE_SLUG)
     .eq("is_active", true)
@@ -495,8 +572,8 @@ export async function loadActiveTemplate(): Promise<LoadedTemplate> {
   // Forcer la synchronisation avec les 15 questions V3 de questionsT1.ts
   if (questions.length !== 15) {
     console.log("Mise à jour des questions Supabase vers le format V3 (15 questions)...");
-    await supabase.from("assessment_options" as any).delete().neq("id", "");
-    await supabase.from("assessment_questions" as any).delete().neq("id", "");
+    await supabase.from("assessment_options").delete().neq("id", "");
+    await supabase.from("assessment_questions").delete().neq("id", "");
     await seedQuestions(template.id);
     questions = await fetchQuestions(template.id);
   }
@@ -532,7 +609,7 @@ async function fetchQuestions(
   opts: { appendix?: boolean } = {}
 ): Promise<RuntimeQuestion[]> {
   const { data: qs, error: qErr } = await supabase
-    .from("assessment_questions" as any)
+    .from("assessment_questions")
     .select("*")
     .eq("template_id", templateId)
     .order("position", { ascending: true });
@@ -541,22 +618,22 @@ async function fetchQuestions(
 
   // Filter by appendix flag stored in meta JSON
   const wantAppendix = opts.appendix === true;
-  const filtered = (qs as any[]).filter((q) => {
-    const isApp = q?.meta?.is_appendix === true;
+  const filtered = (qs ?? []).filter((q) => {
+    const isApp = isAppendixQuestion(q.meta);
     return wantAppendix ? isApp : !isApp;
   });
   if (filtered.length === 0) return [];
 
   const qIds = filtered.map((q) => q.id);
   const { data: opts2, error: oErr } = await supabase
-    .from("assessment_options" as any)
+    .from("assessment_options")
     .select("*")
     .in("question_id", qIds)
     .order("position", { ascending: true });
   if (oErr) throw oErr;
 
-  const optsByQ = new Map<string, any[]>();
-  for (const o of (opts2 as any[]) ?? []) {
+  const optsByQ = new Map<string, AssessmentOptionRow[]>();
+  for (const o of opts2 ?? []) {
     const arr = optsByQ.get(o.question_id) ?? [];
     arr.push(o);
     optsByQ.set(o.question_id, arr);
@@ -572,15 +649,15 @@ async function fetchQuestions(
     helper_en: q.helper_en,
     dimension: q.dimension,
     is_required: q.is_required,
-    meta: q.meta ?? {},
+    meta: clientMetaFromJson(q.meta),
     options: (optsByQ.get(q.id) ?? []).map((o) => ({
       id: o.id,
       position: o.position,
       label_fr: o.label_fr,
       label_en: o.label_en,
-      archetype_weights: o.archetype_weights ?? {},
-      shadow_weights: o.shadow_weights ?? {},
-      polarity_weights: Array.isArray(o.polarity_weights) ? o.polarity_weights : [],
+      archetype_weights: asPartialArchetypeWeights(o.archetype_weights),
+      shadow_weights: asPartialShadowWeights(o.shadow_weights),
+      polarity_weights: asPolarityWeights(o.polarity_weights),
       value: o.value,
     })),
   }));
@@ -602,7 +679,7 @@ export async function ensureAssessmentSession(
 ): Promise<string> {
   if (existingSessionId) {
     const { data, error } = await supabase
-      .from("assessment_sessions" as any)
+      .from("assessment_sessions")
       .select("id, status")
       .eq("id", existingSessionId)
       .eq("user_id", userId)
@@ -649,13 +726,10 @@ function buildQuestionSeedPayload(questions: QuestionSeed[]) {
 /** Inserts catalog via SECURITY DEFINER RPC (any authenticated user when core bank is empty). */
 async function seedQuestions(templateId: string): Promise<void> {
   const payload = buildQuestionSeedPayload(QUESTIONS);
-  const { error: rpcErr } = await supabase.rpc(
-    "seed_assessment_catalog_if_empty" as any,
-    {
-      p_template_slug: TEMPLATE_SLUG,
-      p_questions: payload,
-    }
-  );
+  const { error: rpcErr } = await callUntypedRpc("seed_assessment_catalog_if_empty", {
+    p_template_slug: TEMPLATE_SLUG,
+    p_questions: payload,
+  });
 
   if (!rpcErr) return;
 
@@ -679,7 +753,7 @@ async function seedQuestionsDirect(templateId: string): Promise<void> {
     if (q.isAppendix) meta.is_appendix = true;
 
     const { data: inserted, error: qErr } = await supabase
-      .from("assessment_questions" as any)
+      .from("assessment_questions")
       .insert({
         template_id: templateId,
         position: q.position,
@@ -690,26 +764,26 @@ async function seedQuestionsDirect(templateId: string): Promise<void> {
         helper_en: q.helper_en ?? null,
         dimension: q.dimension ?? null,
         is_required: q.isRequired ?? true,
-        meta,
+        meta: toJson(meta),
       })
       .select("id")
       .single();
     if (qErr) throw qErr;
 
-    const questionId = (inserted as any).id;
+    const questionId = inserted.id;
     if (q.options && q.options.length > 0) {
       const optionPayload = q.options.map((o) => ({
         question_id: questionId,
         position: o.position,
         label_fr: o.label_fr,
         label_en: o.label_en,
-        archetype_weights: o.archetypeWeights ?? {},
-        shadow_weights: o.shadowWeights ?? {},
-        polarity_weights: o.polarityWeights ?? [],
+        archetype_weights: toJson(o.archetypeWeights ?? {}),
+        shadow_weights: toJson(o.shadowWeights ?? {}),
+        polarity_weights: toJson(o.polarityWeights ?? []),
         value: o.value ?? null,
       }));
       const { error: oErr } = await supabase
-        .from("assessment_options" as any)
+        .from("assessment_options")
         .insert(optionPayload);
       if (oErr) throw oErr;
     }
@@ -722,19 +796,19 @@ async function seedQuestionsDirect(templateId: string): Promise<void> {
 
 export async function loadAppendixQuestions(): Promise<RuntimeQuestion[]> {
   const { data: tpl, error: tplErr } = await supabase
-    .from("assessment_templates" as any)
+    .from("assessment_templates")
     .select("id")
     .eq("slug", TEMPLATE_SLUG)
     .eq("is_active", true)
     .maybeSingle();
   if (tplErr) throw tplErr;
   if (!tpl) throw new Error("No active assessment template found");
-  return fetchQuestions((tpl as any).id, { appendix: true });
+  return fetchQuestions(tpl.id, { appendix: true });
 }
 
 export async function getLatestSessionId(userId: string): Promise<string | null> {
   const { data, error } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("id")
     .eq("user_id", userId)
     .eq("status", "submitted")
@@ -742,7 +816,7 @@ export async function getLatestSessionId(userId: string): Promise<string | null>
     .limit(1)
     .maybeSingle();
   if (error) throw error;
-  return (data as any)?.id ?? null;
+  return data?.id ?? null;
 }
 
 export async function submitAppendixResponses(opts: {
@@ -762,29 +836,29 @@ export async function submitAppendixResponses(opts: {
       selected_option_ids: r.selectedOptionIds ?? [],
       numeric_value: r.numericValue ?? null,
       text_value: r.textValue ?? null,
-      raw_payload: r,
+      raw_payload: toJson(r),
     }));
     const { error: rErr } = await supabase
-      .from("assessment_responses" as any)
+      .from("assessment_responses")
       .upsert(payload, { onConflict: "session_id,question_id" });
     if (rErr) throw rErr;
   }
 
   // 2. Reload ALL responses for this session (core + appendix)
   const { data: allResp, error: arErr } = await supabase
-    .from("assessment_responses" as any)
+    .from("assessment_responses")
     .select("*")
     .eq("session_id", sessionId);
   if (arErr) throw arErr;
 
   // 3. Reload ALL questions of the template (core + appendix)
   const { data: sessionRow, error: sErr } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("template_id")
     .eq("id", sessionId)
     .maybeSingle();
   if (sErr) throw sErr;
-  const templateId = (sessionRow as any)?.template_id;
+  const templateId = sessionRow?.template_id;
   if (!templateId) throw new Error("Session has no template_id");
 
   const [coreQs, appendixQs] = await Promise.all([
@@ -793,8 +867,8 @@ export async function submitAppendixResponses(opts: {
   ]);
   const allQuestions = [...coreQs, ...appendixQs];
 
-  const allResponses: ResponseValue[] = ((allResp as any[]) ?? []).map((r) => {
-    const payload = (r.raw_payload ?? {}) as ResponseValue;
+  const allResponses: ResponseValue[] = (allResp ?? []).map((r) => {
+    const payload = responsePayloadFromJson(r.raw_payload);
     return {
       questionId: r.question_id,
       selectedOptionIds: r.selected_option_ids ?? [],
@@ -823,14 +897,14 @@ export async function submitAppendixResponses(opts: {
   }));
   if (scoreRows.length > 0) {
     const { error: scErr } = await supabase
-      .from("archetype_scores" as any)
+      .from("archetype_scores")
       .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
     if (scErr) throw scErr;
   }
 
   // 6. Upsert analysis_results
   const { error: aErr } = await supabase
-    .from("analysis_results" as any)
+    .from("analysis_results")
     .upsert(
       {
         session_id: sessionId,
@@ -851,12 +925,12 @@ export async function submitAppendixResponses(opts: {
 
   // 7. Refresh confidence + consistency on the session
   const { data: prevSession } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("client_meta")
     .eq("id", sessionId)
     .maybeSingle();
-  const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
-  const nextMeta: Record<string, any> = { ...prevMeta };
+  const prevMeta = clientMetaFromJson(prevSession?.client_meta);
+  const nextMeta: Record<string, unknown> = { ...prevMeta };
   nextMeta.score_version = SCORE_VERSION;
   nextMeta.scoring_model = SCORING_MODEL_MYSS_V3;
   if (consistency) {
@@ -867,8 +941,8 @@ export async function submitAppendixResponses(opts: {
     delete nextMeta.conflicting_pair;
   }
   await supabase
-    .from("assessment_sessions" as any)
-    .update({ confidence_score: confidence, client_meta: nextMeta })
+    .from("assessment_sessions")
+    .update({ confidence_score: confidence, client_meta: toJson(nextMeta) })
     .eq("id", sessionId);
 
   void refreshArchetypeScoresView();
@@ -894,15 +968,15 @@ export async function submitAppendixResponses(opts: {
 export const SESSION_SOURCE_ADMIN_GUEST_PREVIEW = "admin_guest_preview";
 
 export function isAdminGuestPreviewSession(session: {
-  client_meta?: Record<string, unknown> | null;
+  client_meta?: unknown;
 }): boolean {
-  return session.client_meta?.source === SESSION_SOURCE_ADMIN_GUEST_PREVIEW;
+  return clientMetaFromJson(session.client_meta as Json | null | undefined).source === SESSION_SOURCE_ADMIN_GUEST_PREVIEW;
 }
 
 async function sessionIdsWithAdminAutoFill(sessionIds: string[]): Promise<Set<string>> {
   if (sessionIds.length === 0) return new Set();
   const { data, error } = await supabase
-    .from("assessment_responses" as any)
+    .from("assessment_responses")
     .select("session_id")
     .in("session_id", sessionIds)
     .eq("text_value", "Admin auto-fill");
@@ -916,16 +990,16 @@ export async function createSession(
   clientMeta?: Record<string, unknown>,
 ): Promise<string> {
   const { data, error } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .insert({
       user_id: userId,
       template_id: templateId,
-      client_meta: clientMeta ?? {},
+      client_meta: toJson(clientMeta ?? {}),
     })
     .select("id")
     .single();
   if (error) throw error;
-  return (data as any).id;
+  return data.id;
 }
 
 export async function submitSession(opts: {
@@ -958,11 +1032,11 @@ export async function submitSession(opts: {
         selected_option_ids: selected,
         numeric_value: r.numericValue ?? null,
         text_value: r.textValue ?? null,
-        raw_payload: { ...r, selectedOptionIds: selected },
+        raw_payload: toJson({ ...r, selectedOptionIds: selected }),
       };
     });
     const { error: rErr } = await supabase
-      .from("assessment_responses" as any)
+      .from("assessment_responses")
       .upsert(payload, { onConflict: "session_id,question_id" });
     if (rErr) throw formatSubmitError("Saving responses", rErr);
   }
@@ -989,14 +1063,14 @@ export async function submitSession(opts: {
   }));
   if (scoreRows.length > 0) {
     const { error: sErr } = await supabase
-      .from("archetype_scores" as any)
+      .from("archetype_scores")
       .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
     if (sErr) throw formatSubmitError("Saving archetype scores", sErr);
   }
 
   // 4. Persist analysis_result
   const { error: aErr } = await supabase
-    .from("analysis_results" as any)
+    .from("analysis_results")
     .upsert(
       {
         session_id: sessionId,
@@ -1018,7 +1092,7 @@ export async function submitSession(opts: {
   // 5. Persist recommendations (non-blocking delete — duplicates are harmless)
   if (recos.length > 0) {
     await supabase
-      .from("recommendation_tools" as any)
+      .from("recommendation_tools")
       .delete()
       .eq("session_id", sessionId);
 
@@ -1038,19 +1112,19 @@ export async function submitSession(opts: {
       rank: r.rank,
     }));
     const { error: rcErr } = await supabase
-      .from("recommendation_tools" as any)
+      .from("recommendation_tools")
       .insert(recoRows);
     if (rcErr) throw formatSubmitError("Saving recommendations", rcErr);
   }
 
   // 6. Read existing client_meta then merge consistency flag
   const { data: prevSession } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("client_meta")
     .eq("id", sessionId)
     .maybeSingle();
-  const prevMeta = ((prevSession as any)?.client_meta ?? {}) as Record<string, any>;
-  const nextMeta: Record<string, any> = { ...prevMeta };
+  const prevMeta = clientMetaFromJson(prevSession?.client_meta);
+  const nextMeta: Record<string, unknown> = { ...prevMeta };
   nextMeta.score_version = SCORE_VERSION;
   nextMeta.scoring_model = SCORING_MODEL_MYSS_V3;
   if (consistency) {
@@ -1064,13 +1138,13 @@ export async function submitSession(opts: {
   // 7. Mark session submitted (+ confidence + meta)
   const duration = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
   const { error: upErr } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .update({
       status: "submitted",
       submitted_at: new Date().toISOString(),
       duration_seconds: duration,
       confidence_score: confidence,
-      client_meta: nextMeta,
+      client_meta: toJson(nextMeta),
     })
     .eq("id", sessionId);
   if (upErr) throw formatSubmitError("Finalizing session", upErr);
@@ -1100,10 +1174,10 @@ export async function submitSession(opts: {
 /** Returns the previous submitted session (the one just before the latest), if any. */
 export async function getPreviousSubmittedSessionForUser(
   userId: string,
-  excludeSessionId?: string
-) {
-  let query = supabase
-    .from("assessment_sessions" as any)
+  excludeSessionId?: string,
+): Promise<AssessmentSessionRow | null> {
+  const query = supabase
+    .from("assessment_sessions")
     .select("*")
     .eq("user_id", userId)
     .eq("status", "submitted")
@@ -1111,32 +1185,32 @@ export async function getPreviousSubmittedSessionForUser(
     .limit(2);
   const { data, error } = await query;
   if (error) throw error;
-  const rows = (data as any[]) ?? [];
+  const rows = data ?? [];
   const filtered = excludeSessionId
     ? rows.filter((r) => r.id !== excludeSessionId)
     : rows.slice(1);
-  return (filtered[0] as any) ?? null;
+  return filtered[0] ?? null;
 }
 
 /** Fetch normalized archetype scores for a given session (for comparisons). */
 export async function getSessionArchetypeScores(sessionId: string) {
   const { data, error } = await supabase
-    .from("archetype_scores" as any)
+    .from("archetype_scores")
     .select("archetype_key, normalized_score, rank")
     .eq("session_id", sessionId);
   if (error) throw error;
-  return (data as any[]) ?? [];
+  return data ?? [];
 }
 
 /** Fetch shadow signals (0..1) from analysis_results for a session. */
 export async function getSessionShadowSignals(sessionId: string) {
   const { data, error } = await supabase
-    .from("analysis_results" as any)
+    .from("analysis_results")
     .select("shadow_signals")
     .eq("session_id", sessionId)
     .maybeSingle();
   if (error) throw error;
-  return ((data as any)?.shadow_signals ?? {}) as Record<string, number>;
+  return shadowSignalsFromJson(data?.shadow_signals);
 }
 
 export interface GetLatestSessionOptions {
@@ -1165,7 +1239,7 @@ export function sessionMatchesPreferredTriad(
 
 export async function getSessionTopArchetypes(sessionId: string): Promise<string[]> {
   const { data, error } = await supabase
-    .from("archetype_scores" as any)
+    .from("archetype_scores")
     .select("archetype_key")
     .eq("session_id", sessionId)
     .order("rank", { ascending: true })
@@ -1175,7 +1249,7 @@ export async function getSessionTopArchetypes(sessionId: string): Promise<string
   if (fromScores.length >= 3) return fromScores;
 
   const { data: analysis } = await supabase
-    .from("analysis_results" as any)
+    .from("analysis_results")
     .select("top_archetypes")
     .eq("session_id", sessionId)
     .maybeSingle();
@@ -1184,11 +1258,11 @@ export async function getSessionTopArchetypes(sessionId: string): Promise<string
 
 async function deleteSessionsByIds(sessionIds: string[]): Promise<void> {
   if (sessionIds.length === 0) return;
-  await supabase.from("assessment_responses" as any).delete().in("session_id", sessionIds);
-  await supabase.from("archetype_scores" as any).delete().in("session_id", sessionIds);
-  await supabase.from("analysis_results" as any).delete().in("session_id", sessionIds);
-  await supabase.from("recommendation_tools" as any).delete().in("session_id", sessionIds);
-  await supabase.from("assessment_sessions" as any).delete().in("id", sessionIds);
+  await supabase.from("assessment_responses").delete().in("session_id", sessionIds);
+  await supabase.from("archetype_scores").delete().in("session_id", sessionIds);
+  await supabase.from("analysis_results").delete().in("session_id", sessionIds);
+  await supabase.from("recommendation_tools").delete().in("session_id", sessionIds);
+  await supabase.from("assessment_sessions").delete().in("id", sessionIds);
 }
 
 /** Remove preview / polluted / wrong-triad sessions so recovery can run. */
@@ -1197,7 +1271,7 @@ export async function purgeWrongAssessmentSessions(
   options?: { preferredTriad?: ArchetypeKey[] },
 ): Promise<number> {
   const { data: sessions, error } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("id, client_meta, status")
     .eq("user_id", userId)
     .eq("status", "submitted");
@@ -1236,14 +1310,14 @@ export async function getLatestSubmittedSessionForUser(
   options?: GetLatestSessionOptions,
 ) {
   const { data, error } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("*")
     .eq("user_id", userId)
     .eq("status", "submitted")
     .order("submitted_at", { ascending: false })
     .limit(25);
   if (error) throw error;
-  const rows = (data as any[]) ?? [];
+  const rows = data ?? [];
   if (rows.length === 0) return null;
   if (options?.includePreviewSessions) return rows[0];
 
@@ -1344,7 +1418,7 @@ export async function restoreCoreAssessmentFromUnified(
   userId: string,
 ): Promise<string | null> {
   const { count, error: countErr } = await supabase
-    .from("deepdive_responses" as any)
+    .from("deepdive_responses")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId);
   if (countErr) throw countErr;
@@ -1376,13 +1450,13 @@ export async function restoreCoreAssessmentFromUnified(
     rank: s.rank,
   }));
   const { error: sErr } = await supabase
-    .from("archetype_scores" as any)
+    .from("archetype_scores")
     .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
   if (sErr) throw sErr;
 
   const topKeys = unified.topThree.length > 0 ? unified.topThree : ranked.slice(0, 3).map((s) => s.key);
 
-  const { error: aErr } = await supabase.from("analysis_results" as any).upsert(
+  const { error: aErr } = await supabase.from("analysis_results").upsert(
     {
       session_id: sessionId,
       user_id: userId,
@@ -1401,7 +1475,7 @@ export async function restoreCoreAssessmentFromUnified(
   if (aErr) throw aErr;
 
   const { error: upErr } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .update({
       status: "submitted",
       submitted_at: unified.computedAt,
@@ -1511,7 +1585,7 @@ export async function restoreCoreAssessmentFromSnapshot(
       rank: s.rank,
     }));
     const { error: sErr } = await supabase
-      .from("archetype_scores" as any)
+      .from("archetype_scores")
       .upsert(scoreRows, { onConflict: "session_id,archetype_key" });
     if (sErr) throw sErr;
   }
@@ -1521,7 +1595,7 @@ export async function restoreCoreAssessmentFromSnapshot(
       ? snapshot.top_archetypes.map((t) => t.key)
       : ranked.slice(0, 3).map((s) => s.key);
 
-  const { error: aErr } = await supabase.from("analysis_results" as any).upsert(
+  const { error: aErr } = await supabase.from("analysis_results").upsert(
     {
       session_id: sessionId,
       user_id: userId,
@@ -1540,7 +1614,7 @@ export async function restoreCoreAssessmentFromSnapshot(
   if (aErr) throw aErr;
 
   const { error: upErr } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .update({
       status: "submitted",
       submitted_at: snapshot.computed_at,
@@ -1557,7 +1631,7 @@ export async function restoreCoreAssessmentFromSnapshot(
 
 export async function deleteAdminGuestPreviewSessions(userId: string): Promise<number> {
   const { data: sessions, error } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("id, client_meta")
     .eq("user_id", userId);
   if (error) throw error;
@@ -1598,7 +1672,7 @@ export async function resetUserArchetypeResults(
 ): Promise<ArchetypeResetResult> {
   const resetT1 = scope.t1 !== false;
   const resetT2 = scope.t2 !== false;
-  const { data, error } = await supabase.rpc("reset_user_archetype_results" as any, {
+  const { data, error } = await callUntypedRpc("reset_user_archetype_results", {
     p_user_id: userId,
     p_reset_t1: resetT1,
     p_reset_t2: resetT2,
@@ -1615,13 +1689,13 @@ export async function resetUserArchetypeResults(
 export async function getRecoveryDiagnostics(userId: string): Promise<RecoveryDiagnostics> {
   const [sessionsRes, snaps, ddCount] = await Promise.all([
     supabase
-      .from("assessment_sessions" as any)
+      .from("assessment_sessions")
       .select("id")
       .eq("user_id", userId)
       .eq("status", "submitted"),
     getSnapshotHistory(userId),
     supabase
-      .from("deepdive_responses" as any)
+      .from("deepdive_responses")
       .select("*", { count: "exact", head: true })
       .eq("user_id", userId),
   ]);
@@ -1653,19 +1727,19 @@ export async function getSessionFullDetails(sessionId: string) {
   await ensureSessionResultsUpToDate(sessionId);
 
   const [sessionRes, analysisRes, scoresRes, recosRes, responsesRes, questionsRes] = await Promise.all([
-    supabase.from("assessment_sessions" as any).select("*").eq("id", sessionId).maybeSingle(),
-    supabase.from("analysis_results" as any).select("*").eq("session_id", sessionId).maybeSingle(),
-    supabase.from("archetype_scores" as any).select("*").eq("session_id", sessionId).order("rank"),
-    supabase.from("recommendation_tools" as any).select("*").eq("session_id", sessionId).order("rank"),
-    supabase.from("assessment_responses" as any).select("*").eq("session_id", sessionId),
+    supabase.from("assessment_sessions").select("*").eq("id", sessionId).maybeSingle(),
+    supabase.from("analysis_results").select("*").eq("session_id", sessionId).maybeSingle(),
+    supabase.from("archetype_scores").select("*").eq("session_id", sessionId).order("rank"),
+    supabase.from("recommendation_tools").select("*").eq("session_id", sessionId).order("rank"),
+    supabase.from("assessment_responses").select("*").eq("session_id", sessionId),
     // Fetch all questions+options to render readable answers
-    supabase.from("assessment_questions" as any).select("*, assessment_options(*)").order("position"),
+    supabase.from("assessment_questions").select("*, assessment_options(*)").order("position"),
   ]);
 
   // Join user profile + company
-  let profile: any = null;
-  let company: any = null;
-  const userId = (sessionRes.data as any)?.user_id;
+  let profile: ProfileRow | null = null;
+  let company: CompanyRow | null = null;
+  const userId = sessionRes.data?.user_id;
   if (userId) {
     const { data: p } = await supabase
       .from("profiles")
@@ -1675,7 +1749,7 @@ export async function getSessionFullDetails(sessionId: string) {
     profile = p;
     if (p?.company_id) {
       const { data: c } = await supabase
-        .from("companies" as any)
+        .from("companies")
         .select("*")
         .eq("id", p.company_id)
         .maybeSingle();
@@ -1684,12 +1758,12 @@ export async function getSessionFullDetails(sessionId: string) {
   }
 
   return {
-    session: sessionRes.data as any,
-    analysis: analysisRes.data as any,
-    scores: (scoresRes.data as any[]) ?? [],
-    recommendations: (recosRes.data as any[]) ?? [],
-    responses: (responsesRes.data as any[]) ?? [],
-    questions: (questionsRes.data as any[]) ?? [],
+    session: sessionRes.data,
+    analysis: analysisRes.data,
+    scores: scoresRes.data ?? [],
+    recommendations: recosRes.data ?? [],
+    responses: responsesRes.data ?? [],
+    questions: (questionsRes.data ?? []) as QuestionWithOptions[],
     profile,
     company,
   };
@@ -1697,12 +1771,12 @@ export async function getSessionFullDetails(sessionId: string) {
 
 export async function listAllSessionsForAdmin() {
   const { data, error } = await supabase
-    .from("assessment_sessions" as any)
+    .from("assessment_sessions")
     .select("*")
     .order("submitted_at", { ascending: false, nullsFirst: false })
     .limit(200);
   if (error) throw error;
-  const sessions = (data as any[]) ?? [];
+  const sessions = data ?? [];
   if (sessions.length === 0) return [];
 
   const userIds = Array.from(new Set(sessions.map((s) => s.user_id)));
@@ -1710,15 +1784,15 @@ export async function listAllSessionsForAdmin() {
 
   const [profilesRes, companiesRes, analysisRes, scoresRes] = await Promise.all([
     supabase.from("profiles").select("*").in("id", userIds),
-    supabase.from("companies" as any).select("*"),
-    supabase.from("analysis_results" as any).select("session_id, top_archetypes, shadow_signals").in("session_id", sessionIds),
-    supabase.from("archetype_scores" as any).select("session_id, archetype_key, rank").in("session_id", sessionIds).eq("rank", 1),
+    supabase.from("companies").select("*"),
+    supabase.from("analysis_results").select("session_id, top_archetypes, shadow_signals").in("session_id", sessionIds),
+    supabase.from("archetype_scores").select("session_id, archetype_key, rank").in("session_id", sessionIds).eq("rank", 1),
   ]);
 
-  const profiles = (profilesRes.data as any[]) ?? [];
-  const companies = (companiesRes.data as any[]) ?? [];
-  const analyses = (analysisRes.data as any[]) ?? [];
-  const topScores = (scoresRes.data as any[]) ?? [];
+  const profiles = profilesRes.data ?? [];
+  const companies = companiesRes.data ?? [];
+  const analyses = analysisRes.data ?? [];
+  const topScores = scoresRes.data ?? [];
 
   return sessions.map((s) => {
     const p = profiles.find((x) => x.id === s.user_id);
@@ -1728,7 +1802,7 @@ export async function listAllSessionsForAdmin() {
       ?? a?.top_archetypes?.[0]
       ?? null;
     const shadowCount = a?.shadow_signals
-      ? Object.values(a.shadow_signals).filter((v: any) => Number(v) >= 0.3).length
+      ? Object.values(shadowSignalsFromJson(a.shadow_signals)).filter((v) => v >= 0.3).length
       : 0;
     return { ...s, profile: p ?? null, company: c ?? null, top_archetype: top, shadow_count: shadowCount };
   });
@@ -1736,7 +1810,7 @@ export async function listAllSessionsForAdmin() {
 
 export async function saveAdminNote(sessionId: string, notes: string) {
   const { error } = await supabase
-    .from("analysis_results" as any)
+    .from("analysis_results")
     .update({ admin_notes: notes })
     .eq("session_id", sessionId);
   if (error) throw error;

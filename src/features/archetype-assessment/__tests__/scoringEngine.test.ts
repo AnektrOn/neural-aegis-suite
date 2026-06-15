@@ -9,7 +9,7 @@ import {
 } from "../domain/scoringEngine";
 import { selectTopTools, matchTools } from "../domain/recommendationEngine";
 import { ARCHETYPE_KEYS } from "../domain/archetypes";
-import type { ResponseValue, RuntimeOption, RuntimeQuestion } from "../domain/types";
+import type { ResponseValue, RuntimeOption, RuntimeQuestion, ArchetypeKey } from "../domain/types";
 
 function opt(
   id: string,
@@ -172,8 +172,8 @@ describe("normalizeScores", () => {
 
 describe("rankArchetypes", () => {
   it("orders descending and assigns rank 1..N", () => {
-    const norm = { sovereign: 1, magician: 0.8, caregiver: 0.5 } as any;
-    const ranked = rankArchetypes(norm);
+    const norm: Partial<Record<ArchetypeKey, number>> = { sovereign: 1, magician: 0.8, caregiver: 0.5 };
+    const ranked = rankArchetypes(norm as Record<ArchetypeKey, number>);
     expect(ranked[0].key).toBe("sovereign");
     expect(ranked[0].rank).toBe(1);
     expect(ranked[1].key).toBe("magician");

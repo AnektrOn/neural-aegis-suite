@@ -167,13 +167,15 @@ export function ProfileEvolutionSection() {
   );
 }
 
+type TranslateFn = ReturnType<typeof useLanguage>["t"];
+
 interface DetailViewProps {
   snapshot: ArchetypeProfileSnapshot;
   delta: SnapshotDelta | null;
   comparing: boolean;
   latestId: string | null;
   lang: "fr" | "en";
-  t: (k: string, vars?: Record<string, string | number>) => string;
+  t: TranslateFn;
 }
 
 function SnapshotDetailView({ snapshot, delta, comparing, latestId, lang, t }: DetailViewProps) {

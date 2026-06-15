@@ -6,12 +6,50 @@ import {
   tryRecoverUserAssessment,
   getSessionFullDetails,
 } from "@/features/archetype-assessment/services/assessmentService";
-import { buildDynamicProfile } from "../domain/dynamicProfileBuilder";
+import { buildDynamicProfile, type BuildDynamicProfileInput } from "../domain/dynamicProfileBuilder";
 import { loadUnifiedDeepDiveResult } from "../domain/loadUnifiedScores";
 import type { SampleProfile } from "../domain/sampleProfile";
 import type { Locale } from "@/i18n/translations";
+import type { Json } from "@/integrations/supabase/types";
 
 const LOAD_TIMEOUT_MS = 25_000;
+
+function shadowSignalsFromJson(signals: Json | null | undefined): Record<string, number> | null {
+  if (signals == null) return null;
+  if (typeof signals !== "object" || Array.isArray(signals)) return null;
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(signals)) {
+    const n = Number(v);
+    if (Number.isFinite(n)) out[k] = n;
+  }
+  return out;
+}
+
+function scoresForDynamicProfile(
+  scores: Awaited<ReturnType<typeof getSessionFullDetails>>["scores"],
+): BuildDynamicProfileInput["scores"] {
+  return (scores ?? []).map((s) => ({
+    archetype_key: s.archetype_key,
+    normalized_score: s.normalized_score,
+    rank: s.rank,
+  }));
+}
+
+function analysisForDynamicProfile(
+  analysis: Awaited<ReturnType<typeof getSessionFullDetails>>["analysis"],
+): BuildDynamicProfileInput["analysis"] {
+  if (!analysis) return null;
+  return {
+    top_archetypes: analysis.top_archetypes,
+    shadow_signals: shadowSignalsFromJson(analysis.shadow_signals),
+    strengths_fr: analysis.strengths_fr,
+    watchouts_fr: analysis.watchouts_fr,
+    summary_fr: analysis.summary_fr,
+    strengths_en: analysis.strengths_en,
+    watchouts_en: analysis.watchouts_en,
+    summary_en: analysis.summary_en,
+  };
+}
 
 export interface UseDeepDiveProfileOptions {
   userId: string | undefined;
@@ -99,7 +137,7 @@ export function useDeepDiveProfile({
         let unified: Awaited<ReturnType<typeof loadUnifiedDeepDiveResult>> | null = null;
         try {
           const { count, error: countErr } = await supabase
-            .from("deepdive_responses" as any)
+            .from("deepdive_responses")
             .select("*", { count: "exact", head: true })
             .eq("user_id", userId);
           if (!countErr && (count ?? 0) > 0) {
@@ -114,8 +152,8 @@ export function useDeepDiveProfile({
         const dynProfile = buildDynamicProfile({
           sessionId,
           displayName: displayName ?? details.profile?.display_name ?? null,
-          scores: (details.scores ?? []) as any,
-          analysis: (details.analysis ?? null) as any,
+          scores: scoresForDynamicProfile(details.scores),
+          analysis: analysisForDynamicProfile(details.analysis),
           locale,
           unified,
         });

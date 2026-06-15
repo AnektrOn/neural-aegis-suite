@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -22,7 +22,6 @@ import {
   readPersistedAssessmentSessionId,
   submitSession,
 } from "../services/assessmentService";
-import { computeRawScores } from "../domain/scoringEngine";
 import { useAssessmentSession } from "../hooks/useAssessmentSession";
 import type { LoadedTemplate } from "../services/assessmentService";
 import { MiniRadarThumb } from "../components/MiniRadarThumb";
@@ -117,15 +116,6 @@ export default function PublicAssessmentFlow() {
       setSubmitting(false);
     }
   };
-
-  const liveRawScores = useMemo<Record<string, number>>(() => {
-    if (!loaded) return {};
-    const { archetypeScores } = computeRawScores(
-      loaded.questions,
-      session.responsesArray
-    );
-    return archetypeScores as Record<string, number>;
-  }, [loaded, session.responsesArray]);
 
   if (loadError) {
     return (

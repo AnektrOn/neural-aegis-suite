@@ -18,13 +18,30 @@ import {
   getPreviousSubmittedSessionForUser,
   getSessionArchetypeScores,
   recomputeAllStaleV3SessionsForUser,
+  type AssessmentSessionRow,
 } from "../services/assessmentService";
 import { exportProfileToPdf } from "../services/exportProfilePdf";
+import type { Json } from "@/integrations/supabase/types";
 import type { ArchetypeKey } from "../domain/types";
 import { DualLayerRadar } from "../components/DualLayerRadar";
-import { NarrativeProfileCard, buildNarrative } from "../components/NarrativeProfileCard";
+import { NarrativeProfileCard } from "../components/NarrativeProfileCard";
+import { buildNarrative } from "../components/narrativeProfile";
 
 const SHADOW_KEYS = ["child", "victim", "prostitute", "saboteur"] as const;
+
+function clientMetaFromRecord(meta: Json | null | undefined): Record<string, unknown> {
+  if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+    return meta as Record<string, unknown>;
+  }
+  return {};
+}
+
+function userDisplayFirstName(user: NonNullable<ReturnType<typeof useAuth>["user"]>): string {
+  const meta = user.user_metadata as Record<string, unknown> | undefined;
+  const first = typeof meta?.first_name === "string" ? meta.first_name : null;
+  const full = typeof meta?.full_name === "string" ? meta.full_name.split(" ")[0] : null;
+  return first ?? full ?? user.email?.split("@")?.[0] ?? "profil";
+}
 
 export default function AssessmentResults() {
   const navigate = useNavigate();
@@ -34,7 +51,7 @@ export default function AssessmentResults() {
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Awaited<ReturnType<typeof getSessionFullDetails>> | null>(null);
-  const [previousSession, setPreviousSession] = useState<any | null>(null);
+  const [previousSession, setPreviousSession] = useState<AssessmentSessionRow | null>(null);
   const [previousScores, setPreviousScores] = useState<
     Array<{ archetype_key: string; normalized_score: number }> | null
   >(null);
@@ -84,7 +101,7 @@ export default function AssessmentResults() {
     // Growth = archetype with biggest "shadow activation - light score" delta.
     // Shadow signals are 0..1; map them onto archetypes via the shared lexicon
     // (sovereign/control, victim/victim, lover&caregiver/prostitute, warrior/saboteur).
-    const shadow = (data.analysis as any).shadow_signals ?? {};
+    const shadow = data.analysis.shadow_signals ?? {};
     const lightOf = (k: string) =>
       Number(scores.find((s) => s.archetype_key === k)?.normalized_score ?? 0);
 
@@ -137,11 +154,11 @@ export default function AssessmentResults() {
   }
 
   const { analysis, scores, recommendations, session } = data;
-  const top: ArchetypeKey[] = analysis.top_archetypes ?? [];
+  const top: ArchetypeKey[] = (analysis.top_archetypes ?? []) as ArchetypeKey[];
 
   const confidence = Number(session?.confidence_score ?? 0);
   const lowConfidence = confidence > 0 && confidence < 60;
-  const sessionMeta = (session?.client_meta ?? {}) as Record<string, any>;
+  const sessionMeta = clientMetaFromRecord(session?.client_meta);
   const consistencyWarning = sessionMeta?.consistency_warning === true
     ? (sessionMeta?.conflicting_pair as string[] | undefined)
     : null;
@@ -168,11 +185,7 @@ export default function AssessmentResults() {
           onClick={async () => {
             try {
               setExporting(true);
-              const firstName =
-                (user?.user_metadata as any)?.first_name ||
-                (user?.user_metadata as any)?.full_name?.split(" ")?.[0] ||
-                user?.email?.split("@")?.[0] ||
-                "profil";
+              const firstName = user ? userDisplayFirstName(user) : "profil";
               await exportProfileToPdf({
                 isFR,
                 firstName,
@@ -381,7 +394,7 @@ export default function AssessmentResults() {
           {isFR ? "Pratiques recommandées" : "Recommended practices"}
         </h2>
         <div className="space-y-3">
-          {recommendations.map((t: any) => (
+          {recommendations.map((t) => (
             <div
               key={t.id}
               className="p-4 rounded-lg border border-border/40 bg-background/40"
