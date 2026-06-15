@@ -3633,6 +3633,100 @@ excerpt_fr: email brief
     fr: "Retour au dashboard",
     en: "Back to dashboard",
   },
+
+  // Admin mobile releases
+  "admin.nav.mobileReleases": { fr: "Releases Android", en: "Android releases" },
+  "admin.mobileReleases.title": { fr: "Releases Android", en: "Android releases" },
+  "admin.mobileReleases.subtitle": {
+    fr: "Distribuer et suivre les APK Neural Aegis sideload.",
+    en: "Distribute and track sideloaded Neural Aegis APKs.",
+  },
+  "admin.mobileReleases.kpi.live": { fr: "Version publiée", en: "Live version" },
+  "admin.mobileReleases.kpi.total": { fr: "Installs suivis", en: "Tracked installs" },
+  "admin.mobileReleases.kpi.upToDate": { fr: "À jour", en: "Up to date" },
+  "admin.mobileReleases.kpi.behind": { fr: "En retard", en: "Behind" },
+  "admin.mobileReleases.create.title": { fr: "Créer une release", en: "Create release" },
+  "admin.mobileReleases.create.submit": { fr: "Uploader & enregistrer", en: "Upload & save" },
+  "admin.mobileReleases.fields.versionCode": { fr: "Version code (entier)", en: "Version code (int)" },
+  "admin.mobileReleases.fields.versionName": { fr: "Version name (1.0.9)", en: "Version name (1.0.9)" },
+  "admin.mobileReleases.fields.notes": { fr: "Notes de release", en: "Release notes" },
+  "admin.mobileReleases.fields.minVersionCode": {
+    fr: "Min. version code (force update en dessous)",
+    en: "Min version code (force update below)",
+  },
+  "admin.mobileReleases.fields.forceUpdate": { fr: "Mise à jour forcée", en: "Force update" },
+  "admin.mobileReleases.fields.apk": { fr: "Fichier APK", en: "APK file" },
+  "admin.mobileReleases.list.title": { fr: "Toutes les releases", en: "All releases" },
+  "admin.mobileReleases.list.empty": { fr: "Aucune release pour le moment.", en: "No releases yet." },
+  "admin.mobileReleases.list.liveBadge": { fr: "LIVE", en: "LIVE" },
+  "admin.mobileReleases.list.forced": { fr: "Forcée", en: "Forced" },
+  "admin.mobileReleases.list.users": { fr: "users", en: "users" },
+  "admin.mobileReleases.actions.publish": { fr: "Publier", en: "Publish" },
+  "admin.mobileReleases.distribute.title": { fr: "Distribuer", en: "Distribute" },
+  "admin.mobileReleases.distribute.description": {
+    fr: "Copie ces liens pour les nouveaux utilisateurs ou pour repartager la dernière version.",
+    en: "Copy these links for new users or to reshare the latest version.",
+  },
+  "admin.mobileReleases.distribute.copyApk": {
+    fr: "Copier le lien APK direct",
+    en: "Copy direct APK link",
+  },
+  "admin.mobileReleases.tracking.title": { fr: "Adoption par utilisateur", en: "Adoption per user" },
+  "admin.mobileReleases.tracking.empty": {
+    fr: "Aucun utilisateur n'a encore remonté sa version installée.",
+    en: "No user has reported an installed version yet.",
+  },
+  "admin.mobileReleases.tracking.user": { fr: "Utilisateur", en: "User" },
+  "admin.mobileReleases.tracking.version": { fr: "Version", en: "Version" },
+  "admin.mobileReleases.tracking.lastSeen": { fr: "Vu il y a", en: "Last seen" },
+  "admin.mobileReleases.tracking.status": { fr: "Statut", en: "Status" },
+  "admin.mobileReleases.created": { fr: "Release créée.", en: "Release created." },
+  "admin.mobileReleases.published": { fr: "Release publiée.", en: "Release published." },
+  "admin.mobileReleases.deleted": { fr: "Release supprimée.", en: "Release deleted." },
+  "admin.mobileReleases.copied": { fr: "Lien copié.", en: "Link copied." },
+  "admin.mobileReleases.confirmPublish": {
+    fr: "Publier ? Les utilisateurs avec une version inférieure verront le prompt.",
+    en: "Publish? Users with a lower version will see the update prompt.",
+  },
+  "admin.mobileReleases.confirmDelete": {
+    fr: "Supprimer cette release ? L'APK sera retiré du stockage.",
+    en: "Delete this release? The APK will be removed from storage.",
+  },
+  "admin.mobileReleases.errors.apkRequired": { fr: "Sélectionne un APK.", en: "Pick an APK." },
+  "admin.mobileReleases.errors.fieldsRequired": {
+    fr: "Version code + name sont obligatoires.",
+    en: "Version code + name are required.",
+  },
+
+  // Install Android page
+  "installAndroid.title": { fr: "Installer Aegis sur Android", en: "Install Aegis on Android" },
+  "installAndroid.subtitle": {
+    fr: "Téléchargement direct, sideload.",
+    en: "Direct download, sideload.",
+  },
+  "installAndroid.currentVersion": { fr: "Dernière version", en: "Latest version" },
+  "installAndroid.download": { fr: "Télécharger l'APK", en: "Download APK" },
+  "installAndroid.noRelease": {
+    fr: "Aucune release publiée pour le moment.",
+    en: "No release published yet.",
+  },
+  "installAndroid.steps.title": { fr: "Pas à pas", en: "Step by step" },
+  "installAndroid.steps.s1": {
+    fr: "Autorise l'installation de sources inconnues dans les paramètres Android.",
+    en: "Allow install from unknown sources in Android settings.",
+  },
+  "installAndroid.steps.s2": {
+    fr: "Ouvre l'APK téléchargé et confirme l'installation.",
+    en: "Open the downloaded APK and confirm install.",
+  },
+  "installAndroid.steps.s3": {
+    fr: "Lance Neural Aegis et connecte-toi avec ton compte.",
+    en: "Launch Neural Aegis and sign in with your account.",
+  },
+  "installAndroid.qrHint": {
+    fr: "Scanne ce QR depuis ton téléphone Android.",
+    en: "Scan this QR from your Android phone.",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

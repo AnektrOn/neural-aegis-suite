@@ -23,6 +23,7 @@ import {
   Zap,
   Eye,
   TrendingUp,
+  Smartphone,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
@@ -102,6 +103,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       { kind: "link", to: "/admin/habits", icon: Factory, labelKey: "admin.nav.habits" },
       { kind: "link", to: "/admin/alerts", icon: AlertTriangle, labelKey: "admin.nav.alerts" },
       { kind: "link", to: "/admin/export", icon: Download, labelKey: "admin.nav.export" },
+      { kind: "link", to: "/admin/mobile-releases", icon: Smartphone, labelKey: "admin.nav.mobileReleases" },
     ],
   },
   {
