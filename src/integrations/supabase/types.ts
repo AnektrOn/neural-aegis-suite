@@ -164,6 +164,246 @@ export type Database = {
         }
         Relationships: []
       }
+      aegis_rune_collections: {
+        Row: {
+          code: string
+          created_at: string
+          description_i18n: Json
+          icon_key: string
+          id: string
+          is_active: boolean
+          name_i18n: Json
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description_i18n?: Json
+          icon_key?: string
+          id?: string
+          is_active?: boolean
+          name_i18n?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description_i18n?: Json
+          icon_key?: string
+          id?: string
+          is_active?: boolean
+          name_i18n?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      aegis_rune_principles: {
+        Row: {
+          bg_class: string
+          code: string
+          collection_id: string | null
+          created_at: string
+          description_i18n: Json
+          glyph_svg: string | null
+          icon_key: string
+          id: string
+          is_active: boolean
+          name_i18n: Json
+          pulses_to_unlock: number
+          quote_i18n: Json
+          sort_order: number
+          text_class: string
+          updated_at: string
+        }
+        Insert: {
+          bg_class?: string
+          code: string
+          collection_id?: string | null
+          created_at?: string
+          description_i18n?: Json
+          glyph_svg?: string | null
+          icon_key?: string
+          id?: string
+          is_active?: boolean
+          name_i18n?: Json
+          pulses_to_unlock?: number
+          quote_i18n?: Json
+          sort_order?: number
+          text_class?: string
+          updated_at?: string
+        }
+        Update: {
+          bg_class?: string
+          code?: string
+          collection_id?: string | null
+          created_at?: string
+          description_i18n?: Json
+          glyph_svg?: string | null
+          icon_key?: string
+          id?: string
+          is_active?: boolean
+          name_i18n?: Json
+          pulses_to_unlock?: number
+          quote_i18n?: Json
+          sort_order?: number
+          text_class?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aegis_rune_principles_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "aegis_rune_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aegis_synapse_cards: {
+        Row: {
+          archetype_targets: string[]
+          bullets_i18n: Json
+          content_type: string
+          course_content_i18n: Json
+          course_id: string | null
+          created_at: string
+          external_key: string | null
+          format_i18n: Json
+          id: string
+          is_active: boolean
+          principle_id: string
+          problem_i18n: Json
+          sort_order: number
+          target_user_ids: string[]
+          time_label: string
+          title_i18n: Json
+          updated_at: string
+        }
+        Insert: {
+          archetype_targets?: string[]
+          bullets_i18n?: Json
+          content_type?: string
+          course_content_i18n?: Json
+          course_id?: string | null
+          created_at?: string
+          external_key?: string | null
+          format_i18n?: Json
+          id?: string
+          is_active?: boolean
+          principle_id: string
+          problem_i18n?: Json
+          sort_order?: number
+          target_user_ids?: string[]
+          time_label?: string
+          title_i18n?: Json
+          updated_at?: string
+        }
+        Update: {
+          archetype_targets?: string[]
+          bullets_i18n?: Json
+          content_type?: string
+          course_content_i18n?: Json
+          course_id?: string | null
+          created_at?: string
+          external_key?: string | null
+          format_i18n?: Json
+          id?: string
+          is_active?: boolean
+          principle_id?: string
+          problem_i18n?: Json
+          sort_order?: number
+          target_user_ids?: string[]
+          time_label?: string
+          title_i18n?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aegis_synapse_cards_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "pulse_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aegis_synapse_cards_principle_id_fkey"
+            columns: ["principle_id"]
+            isOneToOne: false
+            referencedRelation: "aegis_rune_principles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aegis_user_card_interactions: {
+        Row: {
+          action: Database["public"]["Enums"]["aegis_swipe_action"]
+          card_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["aegis_swipe_action"]
+          card_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["aegis_swipe_action"]
+          card_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aegis_user_card_interactions_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "aegis_synapse_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aegis_user_rune_progress: {
+        Row: {
+          principle_id: string
+          pulses_count: number
+          unlocked_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          principle_id: string
+          pulses_count?: number
+          unlocked_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          principle_id?: string
+          pulses_count?: number
+          unlocked_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aegis_user_rune_progress_principle_id_fkey"
+            columns: ["principle_id"]
+            isOneToOne: false
+            referencedRelation: "aegis_rune_principles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alert_rules: {
         Row: {
           created_at: string
@@ -642,6 +882,13 @@ export type Database = {
             columns: ["habit_template_id"]
             isOneToOne: false
             referencedRelation: "habit_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assigned_habits_toolbox_assignment_id_fkey"
+            columns: ["toolbox_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "toolbox_assignments"
             referencedColumns: ["id"]
           },
         ]
@@ -1615,6 +1862,7 @@ export type Database = {
           is_disabled: boolean
           last_name: string | null
           linkedin: string | null
+          mobile_radial_menu: Json | null
           timezone: string | null
           updated_at: string
         }
@@ -1631,6 +1879,7 @@ export type Database = {
           is_disabled?: boolean
           last_name?: string | null
           linkedin?: string | null
+          mobile_radial_menu?: Json | null
           timezone?: string | null
           updated_at?: string
         }
@@ -1647,6 +1896,7 @@ export type Database = {
           is_disabled?: boolean
           last_name?: string | null
           linkedin?: string | null
+          mobile_radial_menu?: Json | null
           timezone?: string | null
           updated_at?: string
         }
@@ -1692,6 +1942,59 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      pulse_courses: {
+        Row: {
+          archetype_targets: string[]
+          created_at: string
+          description_i18n: Json
+          difficulty: string
+          estimated_minutes: number
+          external_key: string | null
+          id: string
+          is_active: boolean
+          principle_id: string | null
+          sort_order: number
+          title_i18n: Json
+          updated_at: string
+        }
+        Insert: {
+          archetype_targets?: string[]
+          created_at?: string
+          description_i18n?: Json
+          difficulty?: string
+          estimated_minutes?: number
+          external_key?: string | null
+          id?: string
+          is_active?: boolean
+          principle_id?: string | null
+          sort_order?: number
+          title_i18n?: Json
+          updated_at?: string
+        }
+        Update: {
+          archetype_targets?: string[]
+          created_at?: string
+          description_i18n?: Json
+          difficulty?: string
+          estimated_minutes?: number
+          external_key?: string | null
+          id?: string
+          is_active?: boolean
+          principle_id?: string | null
+          sort_order?: number
+          title_i18n?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pulse_courses_principle_id_fkey"
+            columns: ["principle_id"]
+            isOneToOne: false
+            referencedRelation: "aegis_rune_principles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -1925,6 +2228,7 @@ export type Database = {
         Row: {
           assignment_id: string
           completed_at: string
+          completion_count: number
           duration_budget_min: number | null
           elapsed_sec: number | null
           feedback: string | null
@@ -1935,6 +2239,7 @@ export type Database = {
         Insert: {
           assignment_id: string
           completed_at?: string
+          completion_count?: number
           duration_budget_min?: number | null
           elapsed_sec?: number | null
           feedback?: string | null
@@ -1945,6 +2250,7 @@ export type Database = {
         Update: {
           assignment_id?: string
           completed_at?: string
+          completion_count?: number
           duration_budget_min?: number | null
           elapsed_sec?: number | null
           feedback?: string | null
@@ -2018,6 +2324,264 @@ export type Database = {
           widget_config?: Json
         }
         Relationships: []
+      }
+      tracking_daily_batches: {
+        Row: {
+          answered_at: string | null
+          created_at: string
+          id: string
+          perspective_id: string
+          question_ids: string[]
+          scheduled_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string | null
+          created_at?: string
+          id?: string
+          perspective_id: string
+          question_ids?: string[]
+          scheduled_date: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string | null
+          created_at?: string
+          id?: string
+          perspective_id?: string
+          question_ids?: string[]
+          scheduled_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_daily_batches_perspective_id_fkey"
+            columns: ["perspective_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_perspectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_daily_responses: {
+        Row: {
+          batch_id: string
+          choice_value: string | null
+          id: string
+          numeric_value: number | null
+          question_id: string
+          responded_at: string
+          response_date: string
+          text_value: string | null
+          user_id: string
+          weights_applied: Json | null
+        }
+        Insert: {
+          batch_id: string
+          choice_value?: string | null
+          id?: string
+          numeric_value?: number | null
+          question_id: string
+          responded_at?: string
+          response_date: string
+          text_value?: string | null
+          user_id: string
+          weights_applied?: Json | null
+        }
+        Update: {
+          batch_id?: string
+          choice_value?: string | null
+          id?: string
+          numeric_value?: number | null
+          question_id?: string
+          responded_at?: string
+          response_date?: string
+          text_value?: string | null
+          user_id?: string
+          weights_applied?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_daily_responses_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_daily_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_daily_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_perspectives: {
+        Row: {
+          baseline_source: string
+          created_at: string
+          description_en: string | null
+          description_fr: string | null
+          id: string
+          is_active: boolean
+          name_en: string
+          name_fr: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          baseline_source?: string
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          id?: string
+          is_active?: boolean
+          name_en: string
+          name_fr: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          baseline_source?: string
+          created_at?: string
+          description_en?: string | null
+          description_fr?: string | null
+          id?: string
+          is_active?: boolean
+          name_en?: string
+          name_fr?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      tracking_progress_snapshots: {
+        Row: {
+          baseline_scores: Json
+          delta: Json
+          generated_at: string
+          generated_by: string | null
+          id: string
+          narrative_en: string | null
+          narrative_fr: string | null
+          period_end: string
+          period_start: string
+          perspective_id: string
+          response_count: number
+          strongest_shift: string | null
+          tracking_scores: Json
+          user_id: string
+        }
+        Insert: {
+          baseline_scores?: Json
+          delta?: Json
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          narrative_en?: string | null
+          narrative_fr?: string | null
+          period_end: string
+          period_start: string
+          perspective_id: string
+          response_count?: number
+          strongest_shift?: string | null
+          tracking_scores?: Json
+          user_id: string
+        }
+        Update: {
+          baseline_scores?: Json
+          delta?: Json
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          narrative_en?: string | null
+          narrative_fr?: string | null
+          period_end?: string
+          period_start?: string
+          perspective_id?: string
+          response_count?: number
+          strongest_shift?: string | null
+          tracking_scores?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_progress_snapshots_perspective_id_fkey"
+            columns: ["perspective_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_perspectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_questions: {
+        Row: {
+          archetype_target: string | null
+          created_at: string
+          dimension_target: string | null
+          external_key: string
+          house_target: number | null
+          id: string
+          is_active: boolean
+          options: Json | null
+          perspective_id: string
+          question_en: string
+          question_fr: string
+          question_type: string
+          scale_max: number | null
+          scale_min: number | null
+          sort_order: number
+          weight: number
+        }
+        Insert: {
+          archetype_target?: string | null
+          created_at?: string
+          dimension_target?: string | null
+          external_key: string
+          house_target?: number | null
+          id?: string
+          is_active?: boolean
+          options?: Json | null
+          perspective_id: string
+          question_en: string
+          question_fr: string
+          question_type?: string
+          scale_max?: number | null
+          scale_min?: number | null
+          sort_order?: number
+          weight?: number
+        }
+        Update: {
+          archetype_target?: string | null
+          created_at?: string
+          dimension_target?: string | null
+          external_key?: string
+          house_target?: number | null
+          id?: string
+          is_active?: boolean
+          options?: Json | null
+          perspective_id?: string
+          question_en?: string
+          question_fr?: string
+          question_type?: string
+          scale_max?: number | null
+          scale_min?: number | null
+          sort_order?: number
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_questions_perspective_id_fkey"
+            columns: ["perspective_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_perspectives"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_badges: {
         Row: {
@@ -2327,6 +2891,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _user_top_archetypes: { Args: { p_user_id: string }; Returns: string[] }
       add_habit_template_to_tracker: {
         Args: { p_template_id: string }
         Returns: Json
@@ -2335,20 +2900,17 @@ export type Database = {
         Args: { p_toolbox_assignment_id: string }
         Returns: Json
       }
+      add_toolbox_template_to_routine: {
+        Args: { p_template_id: string }
+        Returns: Json
+      }
+      complete_aegis_card: { Args: { p_card_id: string }; Returns: Json }
       confirm_waiting_toolbox_assignment: {
         Args: { p_assignment_id: string }
         Returns: boolean
       }
-      remove_habit_from_tracker: {
-        Args: { p_assignment_id: string }
-        Returns: Json
-      }
-      remove_toolbox_assignment_from_habits: {
-        Args: { p_toolbox_assignment_id: string }
-        Returns: Json
-      }
-      set_habit_duration_override: {
-        Args: { p_assignment_id: string; p_duration_min: number | null }
+      delete_cartography_for_user: {
+        Args: { p_user_id: string }
         Returns: Json
       }
       dispatch_newsletter_email_queue: {
@@ -2371,6 +2933,32 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      get_aegis_synapse_deck: {
+        Args: { p_limit?: number; p_locale?: string }
+        Returns: Json
+      }
+      get_aegis_synapse_grimoire: { Args: { p_locale?: string }; Returns: Json }
+      get_pulse_admin_card_stats: { Args: never; Returns: Json }
+      get_pulse_admin_card_users: { Args: { p_card_id: string }; Returns: Json }
+      get_pulse_admin_swipe_log: {
+        Args: { p_card_id?: string; p_limit?: number; p_user_id?: string }
+        Returns: Json
+      }
+      get_pulse_admin_user_runes: { Args: { p_user_id: string }; Returns: Json }
+      get_pulse_admin_users_overview: {
+        Args: {
+          p_activity?: string
+          p_card_id?: string
+          p_limit?: number
+          p_min_assimilated?: number
+          p_min_runes_unlocked?: number
+          p_offset?: number
+          p_principle_code?: string
+          p_search?: string
+          p_sort?: string
+        }
+        Returns: Json
       }
       has_role: {
         Args: {
@@ -2400,7 +2988,43 @@ export type Database = {
         Args: { p_edition_id: string }
         Returns: Json
       }
+      record_aegis_synapse_swipe: {
+        Args: {
+          p_action: Database["public"]["Enums"]["aegis_swipe_action"]
+          p_card_id: string
+        }
+        Returns: Json
+      }
+      recycle_pulse_ignored: { Args: never; Returns: Json }
       refresh_archetype_scores_by_user: { Args: never; Returns: undefined }
+      remove_habit_from_tracker: {
+        Args: { p_assignment_id: string }
+        Returns: Json
+      }
+      remove_toolbox_assignment_from_habits: {
+        Args: { p_toolbox_assignment_id: string }
+        Returns: Json
+      }
+      remove_toolbox_from_routine: {
+        Args: { p_assignment_id: string }
+        Returns: Json
+      }
+      reset_user_archetype_results: {
+        Args: { p_reset_t1?: boolean; p_reset_t2?: boolean; p_user_id: string }
+        Returns: Json
+      }
+      resolve_course_content: {
+        Args: { p_field: Json; p_locale: string }
+        Returns: Json
+      }
+      resolve_i18n: {
+        Args: { p_field: Json; p_locale: string }
+        Returns: string
+      }
+      resolve_i18n_array: {
+        Args: { p_field: Json; p_locale: string }
+        Returns: Json
+      }
       send_admin_push: {
         Args: {
           p_message: string
@@ -2410,6 +3034,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_habit_duration_override: {
+        Args: { p_assignment_id: string; p_duration_min: number }
+        Returns: Json
+      }
       subscribe_newsletter: {
         Args: { p_email: string; p_locale?: string; p_source?: string }
         Returns: Json
@@ -2417,6 +3045,7 @@ export type Database = {
       unsubscribe_newsletter: { Args: { p_email: string }; Returns: Json }
     }
     Enums: {
+      aegis_swipe_action: "assimilated" | "ignored"
       app_role: "admin" | "user"
       assessment_question_type:
         | "single_choice"
@@ -2557,6 +3186,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      aegis_swipe_action: ["assimilated", "ignored"],
       app_role: ["admin", "user"],
       assessment_question_type: [
         "single_choice",
