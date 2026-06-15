@@ -140,7 +140,7 @@ export async function publishProposal(params: {
       .select("id")
       .single();
     if (tplError) throw tplError;
-    templateId = tpl?.id ?? null;
+    templateId = (tpl as { id: string } | null)?.id ?? null;
   }
 
   const assignmentIds: string[] = [];
