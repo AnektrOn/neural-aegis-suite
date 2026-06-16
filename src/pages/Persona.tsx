@@ -10,6 +10,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { usePersonaProfile } from "@/features/persona/hooks/usePersonaProfile";
 import { PersonaProfileScreen } from "@/features/persona/components/PersonaProfileScreen";
 import { PersonaDesktopScreen } from "@/features/persona/components/PersonaDesktopScreen";
+import { useTaoPortrait } from "@/features/tao-portrait/hooks/useTaoPortrait";
+import { buildTaoPersonaSummary } from "@/features/tao-portrait/lib/buildTaoPersonaSummary";
+import { buildPortraitLenses } from "@/features/persona/lib/buildPortraitLenses";
+import { getPersonaContent } from "@/features/persona/components/personaParts";
 import {
   fetchPersonaTrackingStats,
   type PersonaTrackingStats,
@@ -28,6 +32,19 @@ export default function Persona() {
 
   const userId = user?.id;
   const { profile, loading: profileLoading, error, reload } = usePersonaProfile(userId, locale);
+  const { parts: taoParts, loading: taoLoading } = useTaoPortrait(userId);
+  const taoSummary = useMemo(() => buildTaoPersonaSummary(taoParts), [taoParts]);
+
+  const portraitLenses = useMemo(() => {
+    if (!profile) return [];
+    const { glimpseLine, dominantTheme } = getPersonaContent(profile, displayName);
+    return buildPortraitLenses({
+      profile,
+      taoSummary,
+      glimpseLine,
+      dominantColor: dominantTheme.color,
+    });
+  }, [profile, taoSummary, displayName]);
 
   const metaDisplayName = useMemo(() => {
     if (!user) return undefined;
@@ -151,7 +168,14 @@ export default function Persona() {
     );
   }
 
-  const screenProps = { profile, displayName, tracking };
+  const screenProps = {
+    profile,
+    displayName,
+    tracking,
+    portraitLenses,
+    taoSummary,
+    portraitsLoading: taoLoading,
+  };
 
   return (
     <div className="min-h-full -mx-6 -mt-6 md:-mx-10 md:-mt-10 bg-aegis-gradient">

@@ -18,8 +18,9 @@ import {
   isNewsletterRedirect,
   resolveGuestRedirect,
 } from "@/lib/authRedirect";
-import { authErrorMessage, withAuthTimeout } from "@/lib/authResilience";
+import { withAuthTimeout } from "@/lib/authResilience";
 import { postLoginPath } from "@/lib/welcomeHud";
+import { formatAuthError } from "@/lib/authErrorMessage";
 
 type AuthMode = "signin" | "guest" | "upgrade";
 
@@ -42,7 +43,7 @@ export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { t } = useLanguage();
-  const { user, isGuest } = useAuth();
+  const { user, isGuest, loading: authLoading } = useAuth();
 
   const redirectParam = searchParams.get("redirect");
   const redirectTo = resolveGuestRedirect(redirectParam);
@@ -67,26 +68,40 @@ export default function AuthPage() {
   }, [user?.email, mode]);
 
   useEffect(() => {
-    if (!user || !redirectParam?.trim()) return;
-    const path = redirectParam.trim();
-    if (!path.startsWith("/")) return;
-    navigate(path, { replace: true });
-  }, [user, redirectParam, navigate]);
+    if (authLoading || !user) return;
+    if (isAnonymousUser(user) || isGuestUser(user)) return;
+    if (mode === "guest" || mode === "upgrade") return;
+
+    const path = redirectParam?.trim();
+    if (path?.startsWith("/")) {
+      navigate(path, { replace: true });
+      return;
+    }
+
+    navigate(postLoginPath(false), { replace: true });
+  }, [user, authLoading, redirectParam, navigate, mode]);
+
+  const showAuthError = (err: unknown) => {
+    toast({
+      title: t("toast.error"),
+      description: formatAuthError(t, err),
+      variant: "destructive",
+    });
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-      const { data, error } = await withAuthTimeout(
+      const { error } = await withAuthTimeout(
         supabase.auth.signInWithPassword({ email, password }),
-        15_000
+        15_000,
       );
       if (error) throw error;
-      navigate(postLoginPath(isGuestUser(data.user)));
+      // Redirect is handled by the auth-state effect once the session is in context.
     } catch (err: unknown) {
-      const message = authErrorMessage(err);
-      toast({ title: t("toast.error"), description: message, variant: "destructive" });
+      showAuthError(err);
     } finally {
       setLoading(false);
     }
@@ -131,7 +146,7 @@ export default function AuthPage() {
         });
         setMode("signin");
       } else {
-        toast({ title: t("toast.error"), description: message, variant: "destructive" });
+        showAuthError(err);
       }
     } finally {
       setLoading(false);
@@ -156,8 +171,7 @@ export default function AuthPage() {
       });
       navigate(postLoginPath(false));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      toast({ title: t("toast.error"), description: message, variant: "destructive" });
+      showAuthError(err);
     } finally {
       setLoading(false);
     }

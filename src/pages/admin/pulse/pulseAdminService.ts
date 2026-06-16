@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isValidPrinciple } from "./pulsePrinciples";
 
 export interface PulseCardRow {
   id: string;
@@ -42,11 +43,6 @@ export interface ImportPreview {
   errors: string[];
   cards: PulseCardImportPayload[];
 }
-
-const VALID_PRINCIPLES = [
-  "MENTALISM", "CORRESPONDENCE", "VIBRATION",
-  "POLARITY", "RHYTHM", "CAUSE_EFFECT", "GENDER",
-];
 
 const VALID_ARCHETYPES = [
   "sage", "warrior", "lover", "sovereign", "magician", "healer",
@@ -98,7 +94,7 @@ export function parseAndPreviewImport(jsonText: string): ImportPreview {
       errors.push(`${label}: external_key manquant`);
       return;
     }
-    if (!VALID_PRINCIPLES.includes(obj.principle as string)) {
+    if (!isValidPrinciple(obj.principle as string)) {
       errors.push(`${label}: principle invalide`);
       return;
     }
@@ -122,7 +118,14 @@ export function parseAndPreviewImport(jsonText: string): ImportPreview {
 
     const userId = typeof obj.user_id === "string" ? obj.user_id.trim() : "";
     const targetUserIds = userId ? [userId] : (Array.isArray(obj.target_user_ids) ? obj.target_user_ids as string[] : []);
-    const contentType = typeof obj.user === "string" ? obj.user : (typeof obj.content_type === "string" ? obj.content_type : "card");
+    const explicitType =
+      typeof obj.content_type === "string" ? obj.content_type.trim().toLowerCase() : "";
+    const legacyUserType = typeof obj.user === "string" ? obj.user.trim().toLowerCase() : "";
+    const knownContentTypes = new Set(["card", "note", "exercise", "course"]);
+    const contentType =
+      (explicitType && knownContentTypes.has(explicitType) && explicitType) ||
+      (legacyUserType && knownContentTypes.has(legacyUserType) && legacyUserType) ||
+      "card";
 
     cards.push({
       external_key: obj.external_key as string,
@@ -132,7 +135,7 @@ export function parseAndPreviewImport(jsonText: string): ImportPreview {
       content_type: contentType,
       sort_order: (obj.sort_order as number) ?? 0,
       time_label: (obj.time_label as string) ?? "2 MIN",
-      is_active: true,
+      is_active: obj.is_active !== false,
       title: title ?? { fr: "", en: "" },
       format: format ?? { fr: "MICRO-CONCEPT", en: "MICRO-CONCEPT" },
       problem: problem ?? { fr: "", en: "" },

@@ -217,6 +217,120 @@ ${card}`;
     expect(result.cards[9].external_key).toBe("pulse_CENTERING_petter_10");
   });
 
+  it("parses MYSS batch with principle equal to rune (# Hook FR sections)", () => {
+    const md = `<!--
+IMPORT PAR LOT (MYSS)
+-->
+
+<!-- pulse-item -->
+
+---
+external_key: pulse_rebel_petter_110
+glyph: MYSS
+rune: REBEL
+principle: REBEL
+sort_order: 110
+time_label: "2 MIN"
+is_active: false
+user: "petter-gryding"
+user_id: "ad1893b4-43df-4e08-9132-d9987c2edac0"
+archetype_targets:
+  - creator
+  - sovereign
+title:
+  fr: "La Révolution des Règles"
+  en: "The Rule Revolution"
+format:
+  fr: "MICRO-CONCEPT"
+  en: "MICRO-CONCEPT"
+problem:
+  fr: "Suivre des processus obsolètes par simple habitude de contrôle."
+  en: "Following obsolete processes out of simple habit of control."
+bullets:
+  fr:
+    - "Point FR"
+  en:
+    - "Point EN"
+---
+
+# Hook FR
+Le Rebelle détruit les structures inutiles.
+
+# Hook EN
+The Rebel destroys useless structures.
+
+# Concept FR
+Utilise la force de la Rune REBEL.
+
+# Concept EN
+Use the strength of the REBEL Rune.
+
+# Action FR
+Supprime une règle inutile aujourd'hui.
+
+# Action EN
+Delete one useless rule today.
+`;
+    const result = parseMarkdownCards([{ name: "myss-batch.md", content: md }]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(1);
+    expect(result.cards[0].principle).toBe("REBEL");
+    expect(result.cards[0].course_content.fr?.hook).toContain("Rebelle");
+    expect(result.cards[0].is_active).toBe(false);
+  });
+
+  it("parses ECHOLS card with principle equal to rune", () => {
+    const md = `<!-- pulse-item -->
+
+---
+external_key: pulse_shielding_petter_05
+glyph: ECHOLS
+rune: SHIELDING
+principle: SHIELDING
+sort_order: 5
+time_label: "2 MIN"
+is_active: false
+user_id: "ad1893b4-43df-4e08-9132-d9987c2edac0"
+title:
+  fr: "Cognitive Firewall"
+  en: "Cognitive Firewall"
+format:
+  fr: "MICRO-CONCEPT"
+  en: "MICRO-CONCEPT"
+problem:
+  fr: "Problème FR"
+  en: "Problem EN"
+bullets:
+  fr:
+    - "Point FR"
+  en:
+    - "Point EN"
+---
+
+# Hook FR
+Hook FR
+
+# Hook EN
+Hook EN
+
+# Concept FR
+Concept FR
+
+# Concept EN
+Concept EN
+
+# Action FR
+Action FR
+
+# Action EN
+Action EN
+`;
+    const result = parseMarkdownCards([{ name: "echols-batch.md", content: md }]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(1);
+    expect(result.cards[0].principle).toBe("SHIELDING");
+  });
+
   it("imports vault cards when folder also contains course files", () => {
     const files = walkMd(VAULT);
     const result = parseMarkdownCards(files);

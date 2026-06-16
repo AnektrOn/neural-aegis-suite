@@ -23,6 +23,7 @@ import {
   Zap,
   Eye,
   TrendingUp,
+  TreePine,
   Smartphone,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
@@ -176,6 +177,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         to: "/admin/tracking",
         icon: TrendingUp,
         labelKey: "admin.nav.trackingProgress",
+      },
+      {
+        kind: "link",
+        to: "/admin/tao-portrait",
+        icon: TreePine,
+        labelKey: "admin.nav.taoPortrait",
       },
     ],
   },

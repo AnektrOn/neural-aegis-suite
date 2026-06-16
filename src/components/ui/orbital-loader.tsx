@@ -50,6 +50,8 @@ const orbitalLoaderVariants = cva("flex items-center justify-center gap-2", {
 export interface OrbitalLoaderProps {
   /** When set, shows the brand label (AEGIS = Artista stroke SVG, no ring spinner). */
   brand?: string;
+  /** Passed to AegisArtistaWordmark — false = draw once (boot screen). */
+  wordmarkLoop?: boolean;
   message?: string;
   /**
    * Position of the message relative to the spinner.
@@ -65,6 +67,7 @@ function isAegisBrand(brand: string) {
 export function OrbitalLoader({
   className,
   brand,
+  wordmarkLoop = true,
   message,
   messagePlacement,
   ...props
@@ -75,7 +78,7 @@ export function OrbitalLoader({
   const brandBlock = showBrand ? (
     isAegisBrand(brand) ? (
       <div className="flex w-full shrink-0 justify-center px-2">
-        <AegisArtistaWordmark className="aegis-mark-responsive" />
+        <AegisArtistaWordmark className="aegis-mark-responsive" loop={wordmarkLoop} />
       </div>
     ) : (
       <span className="text-center text-lg font-semibold uppercase tracking-wide text-foreground">

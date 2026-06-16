@@ -3,7 +3,7 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import { OrbitalLoader } from "@/components/ui/orbital-loader";
 import { useBackendHealth } from "@/hooks/useBackendHealth";
 
-/** Full-screen AEGIS loader + entrance motion (Suspense fallback, auth boot, dev preview). */
+/** Full-screen AEGIS loader (Suspense fallback, auth boot, dev preview). */
 export function BootLoadingScreen() {
   const { status, recheck } = useBackendHealth();
   const degraded = status === "degraded";
@@ -16,7 +16,7 @@ export function BootLoadingScreen() {
         transition={{ duration: 1.35, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-[min(100vw-2rem,920px)] flex flex-col items-center gap-6"
       >
-        <OrbitalLoader brand="AEGIS" />
+        <OrbitalLoader brand="AEGIS" wordmarkLoop={false} />
         {degraded && (
           <div
             role="alert"
@@ -49,4 +49,3 @@ export function BootLoadingScreen() {
     </div>
   );
 }
-

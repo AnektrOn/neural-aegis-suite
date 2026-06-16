@@ -10,11 +10,16 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { parseProfileLabel } from "../lib/parseProfileLabel";
 import { themeFor } from "../lib/archetypeTheme";
 import type { PersonaTrackingStats } from "../services/personaTrackingStats";
+import type { PortraitLensCard } from "../lib/portraitLensTypes";
+import type { TaoPersonaSummary } from "@/features/tao-portrait/lib/buildTaoPersonaSummary";
 
 export interface PersonaViewProps {
   profile: SampleProfile;
   displayName?: string;
   tracking: PersonaTrackingStats | null;
+  portraitLenses: PortraitLensCard[];
+  taoSummary: TaoPersonaSummary | null;
+  portraitsLoading?: boolean;
 }
 
 export function archName(key: AnyArchetypeKey, locale: "fr" | "en"): string {
@@ -188,12 +193,23 @@ export function TrackingProgressBridge({ horizontal }: { horizontal?: boolean })
   );
 }
 
-export function PersonaTriadStrip({ profile, headingId }: { profile: SampleProfile; headingId: string }) {
+export function PersonaTriadStrip({
+  profile,
+  headingId,
+  embedded,
+}: {
+  profile: SampleProfile;
+  headingId: string;
+  embedded?: boolean;
+}) {
   const { locale, t } = useLanguage();
   const triad = profile.narrative.archetypeBlocks;
 
   return (
-    <section className="glass-card rounded-2xl p-4 sm:p-5" aria-labelledby={headingId}>
+    <section
+      className={cn(!embedded && "glass-card rounded-2xl p-4 sm:p-5")}
+      aria-labelledby={headingId}
+    >
       <p
         id={headingId}
         className="mb-3 font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground"

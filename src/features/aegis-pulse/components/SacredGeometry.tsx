@@ -16,7 +16,8 @@ const KNOWN_CODES = new Set([
   "MYSTIC", "SAGE", "HEALER", "WARRIOR",
   "SOVEREIGN", "CREATOR", "EXPLORER", "REBEL",
   "LOVER", "CAREGIVER", "MAGICIAN", "JESTER",
-  "KYBALION", "MYSS_ARCHETYPE", "AEGIS",
+  "KYBALION", "MYSS_ARCHETYPE", "ECHOLS", "AEGIS",
+  "ENERGY", "GROUNDING", "SHIELDING", "DIRECTING", "CENTERING",
 ]);
 
 function starPolygon(outerR: number, innerR: number, tips: number, cx = 50, cy = 50): string {
@@ -403,6 +404,64 @@ export function SacredGeometry({ type, isGlowing = true, glowIntensity, glyphSvg
           {isGlowing && <circle cx="80" cy="50" r="2" fill="#fff" stroke="none" />}
           {isGlowing && <circle cx="50" cy="80" r="2" fill="#fff" stroke="none" />}
           {isGlowing && <circle cx="20" cy="50" r="2" fill="#fff" stroke="none" />}
+        </g>
+      )}
+
+      {type === "ECHOLS" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <rect x="22" y="22" width="56" height="56" rx="4" strokeOpacity="0.35" />
+          <line x1="22" y1="36" x2="78" y2="36" strokeDasharray="2 3" strokeOpacity="0.55" />
+          <line x1="22" y1="50" x2="78" y2="50" strokeOpacity="0.75" />
+          <line x1="22" y1="64" x2="78" y2="64" strokeDasharray="2 3" strokeOpacity="0.55" />
+          <circle cx="50" cy="50" r="8" />
+          <line x1="50" y1="22" x2="50" y2="78" strokeDasharray="1 3" strokeOpacity="0.4" />
+          {isGlowing && <circle cx="50" cy="50" r="3" fill={`url(#${orbGradId})`} stroke="none" />}
+          {isGlowing && <circle cx="50" cy="36" r="1.5" fill="#fff" stroke="none" />}
+          {isGlowing && <circle cx="50" cy="64" r="1.5" fill="#fff" stroke="none" />}
+        </g>
+      )}
+
+      {type === "ENERGY" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <path d="M 54 14 L 34 54 L 48 54 L 42 86 L 68 42 L 52 42 Z" />
+          {isGlowing && <circle cx="50" cy="50" r="2.5" fill={`url(#${orbGradId})`} stroke="none" />}
+        </g>
+      )}
+
+      {type === "GROUNDING" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <path d="M 50 18 L 72 42 L 72 68 L 50 82 L 28 68 L 28 42 Z" />
+          <line x1="50" y1="82" x2="50" y2="92" strokeOpacity="0.6" />
+          <line x1="38" y1="92" x2="62" y2="92" />
+          {isGlowing && <circle cx="50" cy="50" r="3" fill={`url(#${orbGradId})`} stroke="none" />}
+        </g>
+      )}
+
+      {type === "SHIELDING" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <path d="M 50 14 L 76 28 L 76 54 Q 76 72 50 86 Q 24 72 24 54 L 24 28 Z" />
+          <path d="M 50 24 L 66 34 L 66 54 Q 66 66 50 74 Q 34 66 34 54 L 34 34 Z" strokeDasharray="2 3" strokeOpacity="0.6" />
+          {isGlowing && <circle cx="50" cy="48" r="3" fill={`url(#${orbGradId})`} stroke="none" />}
+        </g>
+      )}
+
+      {type === "DIRECTING" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <circle cx="50" cy="50" r="34" strokeOpacity="0.35" />
+          <line x1="50" y1="16" x2="50" y2="84" />
+          <line x1="16" y1="50" x2="84" y2="50" strokeOpacity="0.35" />
+          <circle cx="50" cy="50" r="6" />
+          {isGlowing && <circle cx="50" cy="22" r="3" fill={`url(#${orbGradId})`} stroke="none" />}
+        </g>
+      )}
+
+      {type === "CENTERING" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <circle cx="50" cy="50" r="36" />
+          <circle cx="50" cy="50" r="22" strokeDasharray="2 4" strokeOpacity="0.55" />
+          <circle cx="50" cy="50" r="8" />
+          <line x1="50" y1="14" x2="50" y2="86" strokeDasharray="1 3" strokeOpacity="0.35" />
+          {isGlowing && <circle cx="50" cy="50" r="3" fill={`url(#${orbGradId})`} stroke="none" />}
         </g>
       )}
 
