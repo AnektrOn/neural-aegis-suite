@@ -11,6 +11,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NeuralCard } from "@/components/ui/neural-card";
 import AppFooter from "@/components/AppFooter";
+import BackendHealthBanner from "@/components/BackendHealthBanner";
 import { signUpGuest, upgradeGuestToMember } from "@/lib/guestAuth";
 import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
 import {
@@ -199,6 +200,7 @@ export default function AuthPage() {
             transition={{ duration: 0.25, delay: 0.05, ease: "easeOut" }}
           >
             <NeuralCard variant="elevated" glow={mode === "guest" ? "purple" : "warm"} className="glass-card p-6 border-0">
+              <BackendHealthBanner className="mb-4" />
               {mode === "upgrade" && (
                 <p className="text-sm text-text-secondary mb-4 text-center">{t("visitor.upgrade.authIntro")}</p>
               )}
