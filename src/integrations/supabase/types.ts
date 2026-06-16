@@ -2930,6 +2930,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_tao_portrait_parts: {
+        Row: {
+          content_md: string
+          created_at: string
+          id: string
+          part_id: string
+          pole: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_md?: string
+          created_at?: string
+          id?: string
+          part_id: string
+          pole: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_md?: string
+          created_at?: string
+          id?: string
+          part_id?: string
+          pole?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       widget_proposals: {
         Row: {
           content_type_slug: string

@@ -42,7 +42,7 @@ export function formatAuthError(t: AuthTranslator, err: unknown): string {
     return t("auth.invalidCredentials");
   }
 
-  if (isRecord(err) && (err as AuthError).status === 429) {
+  if (isRecord(err) && (err as unknown as AuthError).status === 429) {
     return t("auth.tooManyAttempts");
   }
 
