@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Library, X, CheckCircle2, RefreshCw, AlertCircle, Hexagon, HelpCircle } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,16 +36,14 @@ export default function PulsePage() {
   const [isRecycling, setIsRecycling] = useState(false);
   const [diag, setDiag] = useState<PulseDiagnostic | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const onboardingInitRef = useRef(false);
 
   useEffect(() => {
-    if (!user?.id) {
-      setOnboardingChecked(true);
-      setShowOnboarding(false);
-      return;
+    if (onboardingInitRef.current || !user?.id) return;
+    onboardingInitRef.current = true;
+    if (!isPulseOnboarded(user.id)) {
+      setShowOnboarding(true);
     }
-    setShowOnboarding(!isPulseOnboarded(user.id));
-    setOnboardingChecked(true);
   }, [user?.id]);
 
   const completeOnboarding = useCallback(() => {
@@ -119,60 +117,60 @@ export default function PulsePage() {
     setIsRecycling(false);
   }, [reloadDeck, showNotification, t]);
 
-  if (!onboardingChecked) {
-    return (
-      <div className="min-h-[calc(100vh-8rem)] bg-bg-base flex items-center justify-center -m-4 md:-m-6 rounded-[18px]">
-        <div className="w-6 h-6 border-2 border-border-subtle border-t-accent-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (showOnboarding) {
-    return <PulseOnboarding onComplete={completeOnboarding} />;
-  }
+  const onboardingOverlay =
+    showOnboarding ? <PulseOnboarding onComplete={completeOnboarding} /> : null;
 
   if (activeCourse) {
     return (
-      <PulseCourseView
-        card={activeCourse}
-        onClose={() => setActiveCourse(null)}
-        onComplete={(result) => {
-          setActiveCourse(null);
-          if (result.ok && result.runeUnlocked && result.principleCode) {
-            const runeName =
-              grimoireState.status === "ready"
-                ? grimoireState.runes.find((r) => r.principleCode === result.principleCode)
-                    ?.principleName ?? activeCourse.principleName
-                : activeCourse.principleName;
-            showNotification(t("pulse.runeUnlocked", { name: runeName }));
-          } else {
-            showNotification(t("pulse.wisdomIntegrated"));
-          }
-          void reloadGrimoire();
-        }}
-      />
+      <>
+        <PulseCourseView
+          card={activeCourse}
+          onClose={() => setActiveCourse(null)}
+          onComplete={(result) => {
+            setActiveCourse(null);
+            if (result.ok && result.runeUnlocked && result.principleCode) {
+              const runeName =
+                grimoireState.status === "ready"
+                  ? grimoireState.runes.find((r) => r.principleCode === result.principleCode)
+                      ?.principleName ?? activeCourse.principleName
+                  : activeCourse.principleName;
+              showNotification(t("pulse.runeUnlocked", { name: runeName }));
+            } else {
+              showNotification(t("pulse.wisdomIntegrated"));
+            }
+            void reloadGrimoire();
+          }}
+        />
+        {onboardingOverlay}
+      </>
     );
   }
 
   if (activeView === "grimoire") {
     return (
-      <PulseGrimoire
-        state={grimoireState}
-        onClose={() => setActiveView("deck")}
-        onOpenCourse={(card) => {
-          setActiveView("deck");
-          setActiveCourse(card);
-        }}
-      />
+      <>
+        <PulseGrimoire
+          state={grimoireState}
+          onClose={() => setActiveView("deck")}
+          onOpenCourse={(card) => {
+            setActiveView("deck");
+            setActiveCourse(card);
+          }}
+        />
+        {onboardingOverlay}
+      </>
     );
   }
 
   if (activeView === "runes") {
     return (
-      <PulseRuneTracker
-        state={grimoireState}
-        onClose={() => setActiveView("deck")}
-      />
+      <>
+        <PulseRuneTracker
+          state={grimoireState}
+          onClose={() => setActiveView("deck")}
+        />
+        {onboardingOverlay}
+      </>
     );
   }
 
@@ -363,7 +361,7 @@ export default function PulsePage() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed top-20 sm:top-24 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-300 mx-4 max-w-[calc(100vw-2rem)]"
+          className="fixed top-20 sm:top-24 left-1/2 transform -translate-x-1/2 z-50 mx-4 max-w-[calc(100vw-2rem)]"
         >
           <div className="ethereal-glass border border-border-subtle px-4 sm:px-5 py-3 rounded-xl shadow-lg">
             <span className="font-barlow text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary">
@@ -372,6 +370,8 @@ export default function PulsePage() {
           </div>
         </div>
       )}
+
+      {onboardingOverlay}
     </div>
   );
 }

@@ -5,17 +5,22 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { PersonaStatsSection } from "./PersonaStatsSection";
 import { PersonaTrackingStrip } from "./PersonaTrackingStrip";
 import {
-  DeepDiveBridge,
   TrackingProgressBridge,
-  PersonaAboutCard,
   PersonaLinkRow,
   PersonaNowCard,
-  PersonaTriadStrip,
   getPersonaContent,
   type PersonaViewProps,
 } from "./personaParts";
+import { PersonaPortraitLibrary } from "./PersonaPortraitLibrary";
 
-export function PersonaDesktopScreen({ profile, displayName, tracking }: PersonaViewProps) {
+export function PersonaDesktopScreen({
+  profile,
+  displayName,
+  tracking,
+  portraitLenses,
+  taoSummary,
+  portraitsLoading,
+}: PersonaViewProps) {
   const { t } = useLanguage();
   const {
     n,
@@ -26,7 +31,6 @@ export function PersonaDesktopScreen({ profile, displayName, tracking }: Persona
     spotlightPractice,
     practiceTitle,
     bioLine,
-    glimpseLine,
   } = getPersonaContent(profile, displayName);
 
   return (
@@ -78,24 +82,23 @@ export function PersonaDesktopScreen({ profile, displayName, tracking }: Persona
 
       <div className="grid grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
         <div className="space-y-6 min-w-0">
-          <PersonaTriadStrip profile={profile} headingId="persona-triad-heading-desktop" />
+          <PersonaPortraitLibrary
+            lenses={portraitLenses}
+            loading={portraitsLoading}
+            profile={profile}
+            taoSummary={taoSummary}
+            shadowTheme={n.primaryShadowTheme}
+            headingId="persona-portraits-heading-desktop"
+          />
 
-          <div className={cn("grid gap-6", spotlightPractice ? "xl:grid-cols-2" : "grid-cols-1")}>
-            <PersonaAboutCard
-              glimpseLine={glimpseLine}
-              shadowTheme={n.primaryShadowTheme}
-              headingId="persona-about-heading-desktop"
+          {spotlightPractice && practiceTitle ? (
+            <PersonaNowCard
+              practiceTitle={practiceTitle}
+              description={spotlightPractice.description}
+              headingId="persona-now-heading-desktop"
             />
-            {spotlightPractice && practiceTitle ? (
-              <PersonaNowCard
-                practiceTitle={practiceTitle}
-                description={spotlightPractice.description}
-                headingId="persona-now-heading-desktop"
-              />
-            ) : null}
-          </div>
+          ) : null}
 
-          <DeepDiveBridge horizontal />
           <TrackingProgressBridge horizontal />
 
           <p className="text-[11px] text-muted-foreground/80 font-body leading-relaxed">

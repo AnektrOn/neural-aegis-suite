@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BootLoadingScreen } from "@/components/BootLoadingScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
-import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
@@ -74,6 +74,7 @@ const AdminToolboxHub = lazy(() => import("./pages/admin/AdminToolboxHub"));
 const AdminPlacesHub = lazy(() => import("./pages/admin/AdminPlacesHub"));
 const AdminDeepDiveHub = lazy(() => import("./pages/admin/AdminDeepDiveHub"));
 const AdminTrackingHub = lazy(() => import("./pages/admin/AdminTrackingHub"));
+const AdminTaoPortraitHub = lazy(() => import("./pages/admin/AdminTaoPortraitHub"));
 const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
@@ -97,14 +98,36 @@ function PageLoader() {
 }
 
 /** Global boot overlay (auth): blocks UI until the first session bootstrap completes. */
+const BOOT_GATE_MAX_MS = 6000;
+
+function isBootGateSkippedPath(pathname: string): boolean {
+  return (
+    pathname === "/auth" ||
+    pathname === "/install-android" ||
+    pathname.startsWith("/newsletter")
+  );
+}
+
 function AuthBootGate({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const skipBoot = isBootGateSkippedPath(pathname);
   const { bootScreenActive } = useAuth();
-  const [appReady, setAppReady] = useState(false);
+  const [appReady, setAppReady] = useState(skipBoot);
   useAndroidVersionReporter();
 
   useEffect(() => {
+    if (skipBoot) {
+      setAppReady(true);
+      return;
+    }
     if (!bootScreenActive) setAppReady(true);
-  }, [bootScreenActive]);
+  }, [bootScreenActive, skipBoot]);
+
+  useEffect(() => {
+    if (skipBoot) return;
+    const timeout = window.setTimeout(() => setAppReady(true), BOOT_GATE_MAX_MS);
+    return () => window.clearTimeout(timeout);
+  }, [skipBoot]);
 
   // Failsafe: si l'auth bootstrap reste bloqué (ex: NetworkError sur refresh_token),
   // on libère l'UI au bout de 6s pour éviter l'écran de boot infini.
@@ -215,6 +238,7 @@ const App = () => (
                               <Route path="/export" element={<AdminExport />} />
                               <Route path="/deep-dive" element={<AdminDeepDiveHub />} />
                               <Route path="/tracking" element={<AdminTrackingHub />} />
+                              <Route path="/tao-portrait" element={<AdminTaoPortraitHub />} />
                               <Route
                                 path="/deep-dive-sample"
                                 element={<AdminLegacyRedirect from="/admin/deep-dive-sample" />}

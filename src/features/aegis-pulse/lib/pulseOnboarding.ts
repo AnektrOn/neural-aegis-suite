@@ -4,20 +4,33 @@ export function pulseOnboardedKey(userId: string): string {
   return `${PULSE_ONBOARDED_KEY_PREFIX}${userId}`;
 }
 
-export function isPulseOnboarded(userId: string): boolean {
+function readOnboarded(key: string): boolean {
   try {
-    return localStorage.getItem(pulseOnboardedKey(userId)) === "1";
+    return localStorage.getItem(key) === "1" || sessionStorage.getItem(key) === "1";
   } catch {
     return false;
   }
 }
 
-export function markPulseOnboarded(userId: string): void {
+function writeOnboarded(key: string): void {
   try {
-    localStorage.setItem(pulseOnboardedKey(userId), "1");
+    localStorage.setItem(key, "1");
   } catch {
     /* ignore */
   }
+  try {
+    sessionStorage.setItem(key, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isPulseOnboarded(userId: string): boolean {
+  return readOnboarded(pulseOnboardedKey(userId));
+}
+
+export function markPulseOnboarded(userId: string): void {
+  writeOnboarded(pulseOnboardedKey(userId));
 }
 
 export function clearPulseOnboarded(userId: string): void {

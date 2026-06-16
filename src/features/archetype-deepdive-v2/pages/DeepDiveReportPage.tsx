@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   FileText, Download, User, Shield, FileDown, ChevronLeft,
-  Search, Loader2, Sparkles, Cloud, Scale, ImageDown,
+  Search, Loader2, Sparkles, Cloud, Scale, ImageDown, TreePine,
 } from "lucide-react";
+import { TaoPortraitPanel } from "@/features/tao-portrait/components/TaoPortraitPanel";
+import { useTaoPortrait } from "@/features/tao-portrait/hooks/useTaoPortrait";
 import { exportDeepDiveV2ToDrive } from "../services/exportDeepDiveToDrive";
 import { buildUserReport, buildAdminReport } from "../domain/sampleProfile";
 import { exportDeepDiveVisualPdf, exportDeepDivePng } from "../services/exportDeepDiveScreenshot";
@@ -56,6 +58,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   const { user } = useAuth();
   const { locale, t } = useLanguage();
   const isFR = locale === "fr";
+  const [searchParams] = useSearchParams();
 
   // Admin: list of real submitted sessions + selection
   const [sessions, setSessions] = useState<AdminSessionRow[]>([]);
@@ -63,7 +66,11 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   const [filter, setFilter] = useState("");
   const [selectedSession, setSelectedSession] = useState<AdminSessionRow | null>(null);
 
-  // Tabs (admin can flip between user / admin views)
+  // Lens: Myss archetypes vs Wu Xing Tao portrait (markdown sections)
+  const [lens, setLens] = useState<"myss" | "tao">(() =>
+    searchParams.get("lens") === "tao" ? "tao" : "myss",
+  );
+  // Tabs (admin can flip between user / admin views — Myss lens only)
   const [tab, setTab] = useState<"user" | "admin">(mode === "admin" ? "admin" : "user");
   const exportRef = useRef<HTMLDivElement>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -79,6 +86,13 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   const profile = mode === "admin" && !selectedSession ? null : userProfileLoad.profile;
   const loadingProfile = userProfileLoad.loading;
   const profileError = userProfileLoad.error;
+
+  const activeUserId = mode === "admin" ? selectedSession?.user_id : user?.id;
+  const { parts: taoParts, loading: taoLoading } = useTaoPortrait(activeUserId);
+
+  useEffect(() => {
+    if (searchParams.get("lens") === "tao") setLens("tao");
+  }, [searchParams]);
 
   useEffect(() => {
     if (mode !== "admin") return;
@@ -261,7 +275,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   /* ------------------------------------------------------------------ */
   return (
     <PageWrapper>
-      <div className="mx-auto max-w-4xl space-y-6 py-8">
+      <div className={`mx-auto space-y-6 py-8 ${lens === "tao" ? "max-w-5xl" : "max-w-4xl"}`}>
         {mode === "admin" && selectedSession && (
           <button
             onClick={() => setSelectedSession(null)}
@@ -279,28 +293,56 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
           </Card>
         )}
 
-        {!loadingProfile && profileError && (
+        {!loadingProfile && profileError && lens === "myss" && !profile && (
           <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
             <Sparkles size={28} strokeWidth={1.2} className="mx-auto mb-3 text-text-tertiary" />
             <p className="text-text-secondary text-sm">{profileError}</p>
           </Card>
         )}
 
-        {!loadingProfile && !profileError && profile && (
-          <Tabs value={tab} onValueChange={(v) => setTab(v as "user" | "admin")}>
-            <div className="flex items-center justify-between gap-3 flex-wrap" data-export-hide>
-              <TabsList>
-                <TabsTrigger value="user" className="gap-2">
-                  <User size={14} strokeWidth={1.5} /> {isFR ? "Vue Utilisateur" : "User view"}
-                </TabsTrigger>
-                {mode === "admin" && (
-                  <TabsTrigger value="admin" className="gap-2">
-                    <Shield size={14} strokeWidth={1.5} /> {isFR ? "Vue Admin" : "Admin view"}
-                  </TabsTrigger>
-                )}
-              </TabsList>
+        {!loadingProfile && activeUserId && (
+          <Tabs value={lens} onValueChange={(v) => setLens(v as "myss" | "tao")}>
+            <TabsList className="mb-4" data-export-hide>
+              <TabsTrigger value="myss" className="gap-2">
+                <Sparkles size={14} strokeWidth={1.5} />
+                {t("deepdive.lens.myss")}
+              </TabsTrigger>
+              <TabsTrigger value="tao" className="gap-2">
+                <TreePine size={14} strokeWidth={1.5} />
+                {t("deepdive.lens.tao")}
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="flex items-center gap-2">
+            <TabsContent value="tao" className="mt-0">
+              <TaoPortraitPanel parts={taoParts} loading={taoLoading} variant="embedded" />
+            </TabsContent>
+
+            <TabsContent value="myss" className="mt-0">
+              {!profile ? (
+                <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
+                  <Sparkles size={28} strokeWidth={1.2} className="mx-auto mb-3 text-text-tertiary" />
+                  <p className="text-text-secondary text-sm">
+                    {profileError ??
+                      (isFR
+                        ? "Profil Myss indisponible. Complète l'évaluation pour accéder à cette lecture."
+                        : "Myss profile unavailable. Complete the assessment to access this reading.")}
+                  </p>
+                </Card>
+              ) : (
+                <Tabs value={tab} onValueChange={(v) => setTab(v as "user" | "admin")}>
+                  <div className="flex items-center justify-between gap-3 flex-wrap" data-export-hide>
+                    <TabsList>
+                      <TabsTrigger value="user" className="gap-2">
+                        <User size={14} strokeWidth={1.5} /> {isFR ? "Vue Utilisateur" : "User view"}
+                      </TabsTrigger>
+                      {mode === "admin" && (
+                        <TabsTrigger value="admin" className="gap-2">
+                          <Shield size={14} strokeWidth={1.5} /> {isFR ? "Vue Admin" : "Admin view"}
+                        </TabsTrigger>
+                      )}
+                    </TabsList>
+
+                    <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -422,6 +464,9 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
                 </TabsContent>
               )}
             </div>
+                </Tabs>
+              )}
+            </TabsContent>
           </Tabs>
         )}
       </div>

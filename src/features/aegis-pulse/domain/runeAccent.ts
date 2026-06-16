@@ -12,7 +12,14 @@ const LEGACY_ACCENT: Record<string, string> = {
   // Collection glyphs
   KYBALION: "217 80% 58%",
   MYSS_ARCHETYPE: "275 70% 62%",
+  ECHOLS: "174 65% 48%",
   AEGIS: "200 75% 55%",
+  // Echols — clinical
+  ENERGY: "186 80% 52%",
+  GROUNDING: "30 25% 58%",
+  SHIELDING: "215 35% 55%",
+  DIRECTING: "205 85% 58%",
+  CENTERING: "248 60% 62%",
   // Myss — Survival
   CHILD: "195 70% 65%",
   VICTIM: "350 65% 50%",

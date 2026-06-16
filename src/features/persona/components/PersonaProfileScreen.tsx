@@ -5,18 +5,23 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { PersonaStatsSection } from "./PersonaStatsSection";
 import { PersonaTrackingStrip } from "./PersonaTrackingStrip";
 import {
-  DeepDiveBridge,
   TrackingProgressBridge,
-  PersonaAboutCard,
   PersonaLinkRow,
   PersonaNowCard,
-  PersonaTriadStrip,
   getPersonaContent,
   type PersonaViewProps,
 } from "./personaParts";
+import { PersonaPortraitLibrary } from "./PersonaPortraitLibrary";
 
 /** Mobile-only Persona hub — centered profile cover, single column. */
-export function PersonaProfileScreen({ profile, displayName, tracking }: PersonaViewProps) {
+export function PersonaProfileScreen({
+  profile,
+  displayName,
+  tracking,
+  portraitLenses,
+  taoSummary,
+  portraitsLoading,
+}: PersonaViewProps) {
   const { t } = useLanguage();
   const {
     n,
@@ -27,7 +32,6 @@ export function PersonaProfileScreen({ profile, displayName, tracking }: Persona
     spotlightPractice,
     practiceTitle,
     bioLine,
-    glimpseLine,
   } = getPersonaContent(profile, displayName);
 
   return (
@@ -75,13 +79,18 @@ export function PersonaProfileScreen({ profile, displayName, tracking }: Persona
       <div className="relative z-10 -mt-8 space-y-5 px-4">
         {tracking ? <PersonaTrackingStrip stats={tracking} /> : null}
         <AegisHealthSection variant="compact" />
-        <PersonaTriadStrip profile={profile} headingId="persona-triad-heading-mobile" />
-        <PersonaStatsSection profile={profile} />
-        <PersonaAboutCard
-          glimpseLine={glimpseLine}
+
+        <PersonaPortraitLibrary
+          lenses={portraitLenses}
+          loading={portraitsLoading}
+          profile={profile}
+          taoSummary={taoSummary}
           shadowTheme={n.primaryShadowTheme}
-          headingId="persona-about-heading-mobile"
+          headingId="persona-portraits-heading-mobile"
         />
+
+        <PersonaStatsSection profile={profile} />
+
         {spotlightPractice && practiceTitle ? (
           <PersonaNowCard
             practiceTitle={practiceTitle}
@@ -117,7 +126,6 @@ export function PersonaProfileScreen({ profile, displayName, tracking }: Persona
           />
         </section>
 
-        <DeepDiveBridge />
         <TrackingProgressBridge />
 
         <p className="text-center text-[11px] text-muted-foreground/80 font-body px-4 leading-relaxed pb-2">

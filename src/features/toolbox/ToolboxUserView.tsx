@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Play, ExternalLink, CheckCircle2, XCircle, ListChecks, Loader2, Library, RotateCcw } from "lucide-react";
+import { Play, ExternalLink, CheckCircle2, XCircle, ListChecks, Loader2, Library, RotateCcw, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -29,6 +29,7 @@ import {
   type ToolboxCompletionPayload,
 } from "@/lib/toolbox-completion";
 import { cn } from "@/lib/utils";
+import { clearTimerSession } from "@/lib/toolbox-session-storage";
 
 interface ToolboxItem {
   id: string;
@@ -79,6 +80,8 @@ export function ToolboxUserView({
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [mainView, setMainView] = useState<MainView>("todo");
   const [habitLinkBusy, setHabitLinkBusy] = useState<string | null>(null);
+  const [widgetReloadKeys, setWidgetReloadKeys] = useState<Record<string, number>>({});
+  const [refreshingList, setRefreshingList] = useState(false);
   const [completionDialog, setCompletionDialog] = useState<{ open: boolean; itemId: string | null; status: string }>({ open: false, itemId: null, status: "" });
 
   const loadData = useCallback(async () => {
@@ -120,6 +123,30 @@ export function ToolboxUserView({
   useEffect(() => {
     if (userId) void loadData();
   }, [userId, loadData]);
+
+  useEffect(() => {
+    const onRefresh = () => {
+      void (async () => {
+        setRefreshingList(true);
+        try {
+          await loadData();
+        } finally {
+          setRefreshingList(false);
+        }
+      })();
+    };
+    window.addEventListener("aegis:refresh", onRefresh);
+    return () => window.removeEventListener("aegis:refresh", onRefresh);
+  }, [loadData]);
+
+  const refreshList = useCallback(async () => {
+    setRefreshingList(true);
+    try {
+      await loadData();
+    } finally {
+      setRefreshingList(false);
+    }
+  }, [loadData]);
 
   useEffect(() => {
     if (!enableDeepLinkOpen) return;
@@ -201,10 +228,12 @@ export function ToolboxUserView({
     }
   }, [userId, readOnly, blockReadOnlyAction, t, toast, loadData]);
 
-  const handleRedo = (itemId: string) => {
+  const handleReload = useCallback((itemId: string) => {
+    clearTimerSession(`toolbox:${itemId}`);
+    setWidgetReloadKeys((prev) => ({ ...prev, [itemId]: (prev[itemId] ?? 0) + 1 }));
     setActiveWidget(itemId);
     toast({ title: t("toolbox.toolReloaded"), description: t("toolbox.reloadHint") });
-  };
+  }, [t, toast]);
 
   const handleCloseWidget = useCallback((itemId: string) => {
     setActiveWidget(null);
@@ -327,9 +356,20 @@ export function ToolboxUserView({
 
   return (
     <div className={cn("space-y-10 max-w-5xl", className)}>
-      <div>
-        <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">{t("toolbox.neuralLibrary")}</p>
-        <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">{t("toolbox.title")}</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">{t("toolbox.neuralLibrary")}</p>
+          <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">{t("toolbox.title")}</h1>
+        </div>
+        <button
+          type="button"
+          onClick={() => void refreshList()}
+          disabled={loading || refreshingList}
+          aria-label={t("toolbox.reload")}
+          className="mt-1 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border/50 bg-background/60 text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-50"
+        >
+          <RefreshCw size={16} className={cn((loading || refreshingList) && "animate-spin")} />
+        </button>
       </div>
 
       {items.length > 0 ? (
@@ -416,7 +456,12 @@ export function ToolboxUserView({
         const widget = renderWidget(item);
         if (!widget) return null;
         return (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6">
+          <motion.div
+            key={`${item.id}-${widgetReloadKeys[item.id] ?? 0}`}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="ethereal-glass p-6"
+          >
             <div className="flex justify-between items-start gap-3 mb-4">
               <div className="min-w-0">
                 <p className="text-neural-label">{getTypeLabel(item.content_type)}</p>
@@ -424,7 +469,23 @@ export function ToolboxUserView({
                   {getLocalizedTitle(item)}
                 </h2>
               </div>
-              <button onClick={() => handleCloseWidget(item.id)} className="text-muted-foreground hover:text-foreground text-xs shrink-0">{t("toolbox.close")}</button>
+              <div className="flex shrink-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleReload(item.id)}
+                  className="flex min-h-[36px] items-center gap-1.5 text-[9px] uppercase tracking-[0.24em] text-neural-accent transition-colors hover:text-foreground"
+                >
+                  <RotateCcw size={12} />
+                  {t("toolbox.reload")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCloseWidget(item.id)}
+                  className="min-h-[36px] text-muted-foreground hover:text-foreground text-xs"
+                >
+                  {t("toolbox.close")}
+                </button>
+              </div>
             </div>
             {widget}
           </motion.div>
@@ -510,13 +571,15 @@ export function ToolboxUserView({
             const habitBusy = habitLinkBusy === item.id;
             const canLaunch = hasWidget || (!isInteractiveType && !isVideoLink) || (isExternal && !isVideoLink);
 
+            const canReload = isCompleted || isAbandoned;
+
             const primaryAction = () => {
               if (isWaiting || isIgnored) return;
-              if (isCompleted && !isActive) {
-                handleRedo(item.id);
+              if (canReload && !isActive) {
+                handleReload(item.id);
                 return;
               }
-              if (latestCompletion && !isActive && !isCompleted) return;
+              if (latestCompletion && !isActive && !canReload) return;
               if (hasWidget) {
                 setActiveWidget(isActive ? null : item.id);
               } else if (isExternal && !isVideoLink) {
@@ -528,8 +591,8 @@ export function ToolboxUserView({
             const cardIsClickable =
               !isWaiting &&
               !isIgnored &&
-              (isCompleted || !latestCompletion || isActive) &&
-              (canLaunch || isVideoLink);
+              (canReload || !latestCompletion || isActive) &&
+              (canLaunch || isVideoLink || canReload);
 
             return (
               <motion.div
@@ -553,7 +616,7 @@ export function ToolboxUserView({
                 style={cardIsClickable ? ({ WebkitTapHighlightColor: "transparent" } as React.CSSProperties) : undefined}
                 className={cn(
                   "ethereal-glass p-6 flex flex-col min-h-[44px]",
-                  latestCompletion && !isActive && !isCompleted && "opacity-60",
+                  latestCompletion && !isActive && !canReload && "opacity-60",
                   linkedToHabits && "border-primary/40 bg-primary/5 ring-1 ring-primary/20",
                   cardIsClickable && "cursor-pointer hover:border-primary/30 active:scale-[0.98] transition-all",
                 )}
@@ -624,13 +687,13 @@ export function ToolboxUserView({
                     >
                       <CheckCircle2 size={12} /> {t("toolbox.confirmDelivery")}
                     </button>
-                  ) : isCompleted ? (
+                  ) : canReload ? (
                     <button
                       type="button"
-                      onClick={() => handleRedo(item.id)}
+                      onClick={() => handleReload(item.id)}
                       className="flex min-h-[44px] items-center gap-2 px-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent transition-colors hover:text-foreground"
                     >
-                      <RotateCcw size={12} /> {t("toolbox.redo")}
+                      <RotateCcw size={12} /> {t("toolbox.reload")}
                     </button>
                   ) : (!latestCompletion || isActive) && !isIgnored ? (
                     hasWidget ? (

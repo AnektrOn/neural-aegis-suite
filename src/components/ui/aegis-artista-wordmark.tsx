@@ -64,25 +64,31 @@ const PAUSE_MS = 500;
 
 type Phase = "idle" | "draw" | "undraw";
 
-export function AegisArtistaWordmark({ className, ...props }: React.ComponentProps<"svg">) {
+export interface AegisArtistaWordmarkProps extends React.ComponentProps<"svg"> {
+  /** When false, draw once and hold (boot screen). Default: infinite draw/undraw loop. */
+  loop?: boolean;
+}
+
+export function AegisArtistaWordmark({ className, loop = true, ...props }: AegisArtistaWordmarkProps) {
   const svgRef = React.useRef<SVGSVGElement>(null);
   const pathRefs = React.useRef<(SVGPathElement | null)[]>([]);
   const reduceMotion = useReducedMotion();
+  const staticDisplay = reduceMotion || !loop;
 
   const [lengths, setLengths] = React.useState<number[] | null>(null);
   const [phase, setPhase] = React.useState<Phase>("idle");
   const [instant, setInstant] = React.useState(false);
 
   React.useLayoutEffect(() => {
-    if (reduceMotion) return;
+    if (staticDisplay) return;
     const next = pathRefs.current.map((p) =>
       p ? Math.max(1, p.getTotalLength()) : 1
     );
     setLengths(next);
-  }, [reduceMotion]);
+  }, [staticDisplay]);
 
   React.useEffect(() => {
-    if (reduceMotion || !lengths) return;
+    if (staticDisplay || !lengths) return;
 
     let cancelled = false;
     let drawTimer: ReturnType<typeof setTimeout>;
@@ -104,6 +110,7 @@ export function AegisArtistaWordmark({ className, ...props }: React.ComponentPro
           setPhase("draw");
           drawTimer = setTimeout(() => {
             if (cancelled) return;
+            if (!loop) return;
             setPhase("undraw");
             undrawTimer = setTimeout(() => {
               if (cancelled) return;
@@ -128,7 +135,7 @@ export function AegisArtistaWordmark({ className, ...props }: React.ComponentPro
       clearTimeout(undrawTimer);
       clearTimeout(pauseTimer);
     };
-  }, [reduceMotion, lengths]);
+  }, [staticDisplay, lengths, loop]);
 
   const ink = "hsl(var(--foreground))";
   const ready = lengths !== null;
@@ -168,7 +175,7 @@ export function AegisArtistaWordmark({ className, ...props }: React.ComponentPro
     );
   });
 
-  if (reduceMotion) {
+  if (staticDisplay) {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"

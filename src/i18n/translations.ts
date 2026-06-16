@@ -345,6 +345,7 @@ export const translations = {
   "admin.nav.places": { fr: "Lieux", en: "Places" },
   "admin.nav.deepDiveHub": { fr: "Deep Dive", en: "Deep Dive" },
   "admin.nav.trackingProgress": { fr: "Tracking Progress", en: "Tracking Progress" },
+  "admin.nav.taoPortrait": { fr: "Portrait Tao · Wu Xing", en: "Tao · Wu Xing Portrait" },
   "admin.nav.calls": { fr: "Audit Appels", en: "Call Audit" },
   "admin.nav.assessments": { fr: "Évaluations", en: "Assessments" },
   "admin.nav.cartography": { fr: "Cartographie", en: "Cartography" },
@@ -710,6 +711,22 @@ export const translations = {
   "auth.email": { fr: "Courriel", en: "Email" },
   "auth.password": { fr: "Mot de passe", en: "Password" },
   "auth.signIn": { fr: "Se connecter", en: "Sign In" },
+  "auth.backendUnavailable": {
+    fr: "Le serveur Supabase ne répond pas (projet peut-être en pause). Ouvre le dashboard Supabase → Restore project, attends 1–2 min, puis réessaie.",
+    en: "The Supabase server is not responding (project may be paused). Open the Supabase dashboard → Restore project, wait 1–2 minutes, then try again.",
+  },
+  "auth.backendUnavailableBanner": {
+    fr: "Service indisponible — le backend d'authentification ne répond pas. Réactive le projet Supabase ou attends qu'il se réveille.",
+    en: "Service unavailable — the authentication backend is not responding. Restore the Supabase project or wait for it to wake up.",
+  },
+  "auth.invalidCredentials": {
+    fr: "Courriel ou mot de passe incorrect.",
+    en: "Incorrect email or password.",
+  },
+  "auth.tooManyAttempts": {
+    fr: "Trop de tentatives. Réessaie dans quelques minutes.",
+    en: "Too many attempts. Try again in a few minutes.",
+  },
   "auth.or": { fr: "ou", en: "or" },
   "auth.guest.cta": { fr: "Continuer en tant qu'invité", en: "Continue as guest" },
   "auth.guest.badge": { fr: "Accès invité", en: "Guest access" },
@@ -3496,8 +3513,82 @@ excerpt_fr: email brief
     en: "Your cognitive identity card — who you are today.",
   },
   "persona.glimpse.eyebrow": { fr: "Mon persona", en: "My persona" },
+  "deepdive.lens.myss": { fr: "Myss · Archétypes", en: "Myss · Archetypes" },
+  "deepdive.lens.tao": { fr: "Wu Xing · Tao", en: "Wu Xing · Tao" },
+  "tao.portrait.eyebrow": { fr: "Perspective Benebell Wen", en: "Benebell Wen perspective" },
+  "tao.portrait.title": { fr: "Portrait Wu Xing", en: "Wu Xing portrait" },
+  "tao.portrait.subtitle": {
+    fr: "Cinq pôles × cinq parties — diagnostic, sigil, Ba Zi, praxis, scellement. Contenu publié section par section.",
+    en: "Five poles × five parts — diagnostic, sigil, Ba Zi, praxis, sealing. Content published section by section.",
+  },
+  "tao.portrait.t2Tab": { fr: "T2 · Synthèse", en: "T2 · Synthesis" },
+  "tao.portrait.empty.title": { fr: "Portrait en préparation", en: "Portrait in preparation" },
+  "tao.portrait.empty.body": {
+    fr: "Ton analyse Tao n'a pas encore été publiée. Elle apparaîtra ici une fois validée.",
+    en: "Your Tao analysis has not been published yet. It will appear here once validated.",
+  },
+  "tao.portrait.empty.t2Title": { fr: "Synthèse T2", en: "T2 synthesis" },
+  "tao.portrait.empty.t2Body": {
+    fr: "La synthèse transversale Wu Xing (cycles Sheng / Ke) n'est pas encore disponible.",
+    en: "The Wu Xing transversal synthesis (Sheng / Ke cycles) is not available yet.",
+  },
+  "tao.portrait.empty.poleBody": {
+    fr: "Les cinq parties de ce pôle seront ajoutées après validation éditoriale.",
+    en: "The five parts for this pole will be added after editorial validation.",
+  },
+  "tao.portrait.empty.partBody": {
+    fr: "Cette section n'a pas encore été renseignée pour ton profil.",
+    en: "This section has not been filled in for your profile yet.",
+  },
   "persona.glimpse.triad": { fr: "Ma triade", en: "My triad" },
   "persona.glimpse.about": { fr: "En bref", en: "At a glance" },
+  "persona.glimpse.tao": { fr: "Wu Xing · Tao", en: "Wu Xing · Tao" },
+  "persona.portraits.title": {
+    fr: "Portraits analytiques",
+    en: "Analytical portraits",
+  },
+  "persona.portraits.subtitle": {
+    fr: "Chaque cadre révèle une facette de ton profil. Sélectionne un portrait pour l'aperçu — le rapport complet vit dans le Deep Dive.",
+    en: "Each framework reveals a facet of your profile. Select a portrait for the preview — full reports live in Deep Dive.",
+  },
+  "persona.portraits.selectorLabel": {
+    fr: "Sélectionner un portrait analytique",
+    en: "Select an analytical portrait",
+  },
+  "persona.portraits.lensEmpty": {
+    fr: "Ce portrait n'a pas encore été publié pour ton profil.",
+    en: "This portrait has not been published for your profile yet.",
+  },
+  "persona.lens.myss.framework": { fr: "Caroline Myss", en: "Caroline Myss" },
+  "persona.lens.myss.system": { fr: "Archétypes", en: "Archetypes" },
+  "persona.lens.myss.cta": { fr: "Ouvrir le Deep Dive Myss", en: "Open Myss Deep Dive" },
+  "persona.lens.tao.framework": { fr: "Benebell Wen", en: "Benebell Wen" },
+  "persona.lens.tao.system": { fr: "Wu Xing · Tao", en: "Wu Xing · Tao" },
+  "persona.glimpse.taoTitle": { fr: "Portrait Wu Xing", en: "Wu Xing portrait" },
+  "persona.glimpse.taoEmpty": {
+    fr: "Ton analyse Tao (Benebell Wen) sera publiée ici en aperçu dès qu'une première section est disponible.",
+    en: "Your Tao analysis (Benebell Wen) will appear here as a preview once the first section is published.",
+  },
+  "persona.glimpse.ctaTaoDeepDive": {
+    fr: "Ouvrir le rapport Wu Xing",
+    en: "Open Wu Xing report",
+  },
+  "persona.glimpse.ctaTaoT2": {
+    fr: "Lire la synthèse T2",
+    en: "Read T2 synthesis",
+  },
+  "persona.glimpse.ctaTaoPoles": {
+    fr: "Explorer les cinq pôles",
+    en: "Explore the five poles",
+  },
+  "persona.glimpse.taoT2Badge": {
+    fr: "Synthèse transversale · Tier 2",
+    en: "Transversal synthesis · Tier 2",
+  },
+  "persona.glimpse.taoProgress": {
+    fr: "{filled} / {total} sections",
+    en: "{filled} / {total} sections",
+  },
   "persona.glimpse.shadowHint": {
     fr: "Ombre dominante · {theme}",
     en: "Dominant shadow · {theme}",

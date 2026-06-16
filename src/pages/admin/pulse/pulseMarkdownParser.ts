@@ -4,11 +4,7 @@
  */
 
 import type { PulseCardImportPayload } from "./pulseAdminService";
-
-const VALID_PRINCIPLES = [
-  "MENTALISM", "CORRESPONDENCE", "VIBRATION",
-  "POLARITY", "RHYTHM", "CAUSE_EFFECT", "GENDER",
-];
+import { isValidPrinciple } from "./pulsePrinciples";
 
 const VALID_ARCHETYPES = [
   "sage", "warrior", "lover", "sovereign", "magician", "healer",
@@ -117,7 +113,7 @@ function consolidatedErrors(source: string, meta: Record<string, unknown> | null
 function isPulseCardMeta(meta: Record<string, unknown> | null): boolean {
   if (!meta?.external_key) return false;
   const principle = typeof meta.principle === "string" ? meta.principle : "";
-  if (!VALID_PRINCIPLES.includes(principle)) return false;
+  if (!isValidPrinciple(principle)) return false;
   const title = meta.title;
   if (!title || typeof title !== "object") return false;
   const t = title as Record<string, string>;
@@ -131,24 +127,6 @@ function stripOptionalBatchFrontmatter(raw: string): string {
   const meta = parseYamlBlock(opening[1].split("\n"), 0, 0).value;
   if (isPulseCardMeta(meta)) return raw;
   return raw.slice(opening[0].length).trim();
-}
-
-/**
- * Regex rapide : le corps contient-il au moins une section de cours ?
- * Couvre deux formats :
- *   - bloc locale seul :    # FR  /  # EN
- *   - section inline :      # Hook FR  /  # Concept EN  /  # Action FR
- */
-const COURSE_SECTION_RE =
-  /^#{1,3}[ \t]+(?:(?:FR|EN)[ \t]*$|(?:Hook|Concept|Action)(?:[ \t]|$))/im;
-
-function isPulseCardSegment(segment: string): boolean {
-  const trimmed = segment.trim();
-  if (!/^---\r?\n/.test(trimmed)) return false;
-  const { meta, body } = parseFrontmatter(trimmed);
-  if (!isPulseCardMeta(meta)) return false;
-  // Les en-têtes de lot (bypass / metadata) n'ont pas de corps de cours
-  return COURSE_SECTION_RE.test(body);
 }
 
 function splitByBatchMarkers(raw: string): string[] {
@@ -383,6 +361,15 @@ function parseCourseBody(body: string): Record<string, { hook?: string; concept?
   return course;
 }
 
+function isPulseCardSegment(segment: string): boolean {
+  const trimmed = segment.trim();
+  if (!/^---\r?\n/.test(trimmed)) return false;
+  const { meta, body } = parseFrontmatter(trimmed);
+  if (!isPulseCardMeta(meta)) return false;
+  const course = parseCourseBody(body);
+  return REQUIRED_LOCALES.every((locale) => Boolean(course[locale]));
+}
+
 /* ── Validation ──────────────────────────────────────────────────── */
 
 interface ParseResult {
@@ -408,8 +395,10 @@ function validateAndBuild(
 
   const errors: string[] = [];
 
-  if (!meta.principle || !VALID_PRINCIPLES.includes(meta.principle as string)) {
-    errors.push(`${source}: principle invalide (${String(meta.principle)}) — attendu: MENTALISM, POLARITY, etc.`);
+  if (!meta.principle || !isValidPrinciple(meta.principle as string)) {
+    errors.push(
+      `${source}: principle invalide (${String(meta.principle)}) — attendu: Kybalion (MENTALISM, …) ou Myss (REBEL, CREATOR, …)`,
+    );
   }
 
   const i18nFields = ["title", "format", "problem"] as const;
@@ -568,7 +557,23 @@ function parseMarkdownSegments(
 ): MarkdownParseResult {
   const errors: string[] = [];
   const cards: PulseCardImportPayload[] = [];
-  const cardSegments = segments.filter(isPulseCardSegment);
+  const cardSegments: string[] = [];
+
+  for (const seg of segments) {
+    if (isPulseCardSegment(seg)) {
+      cardSegments.push(seg);
+      continue;
+    }
+    const trimmed = seg.trim();
+    if (!/^---\r?\n/.test(trimmed)) continue;
+    const { meta } = parseFrontmatter(trimmed);
+    if (isCourseFile(meta)) {
+      errors.push(
+        `${fileName}: fichier course (type: course) — n'est pas une carte Pulse. ` +
+          `Importez les fichiers cartes (001-xxx.md dans MENTALISM/, POLARITY/, etc.).`,
+      );
+    }
+  }
 
   if (cardSegments.length > MAX_BATCH_CARDS) {
     errors.push(
