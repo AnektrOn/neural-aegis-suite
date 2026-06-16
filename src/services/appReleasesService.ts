@@ -75,6 +75,19 @@ export type CreateReleaseInput = {
 export async function createAndUploadRelease(
   input: CreateReleaseInput,
 ): Promise<AppRelease> {
+  // Pre-check: avoid uploading a large APK if the version code already exists
+  const { data: existing } = await supabase
+    .from("app_releases")
+    .select("id, version_name")
+    .eq("platform", "android")
+    .eq("version_code", input.versionCode)
+    .maybeSingle();
+  if (existing) {
+    throw new Error(
+      `Une release Android avec le versionCode ${input.versionCode} existe déjà (v${existing.version_name}). Incrémente le versionCode ou supprime l'ancienne release d'abord.`,
+    );
+  }
+
   const safeName = input.versionName.replace(/[^a-zA-Z0-9._-]/g, "_");
   const path = `neural-aegis-${safeName}-${Date.now()}.apk`;
 
