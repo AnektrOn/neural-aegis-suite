@@ -9,7 +9,7 @@ import type { Locale } from "@/i18n/translations";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { hslWithAlpha } from "@/components/widgets/VisualizationWidget";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
-import { shouldTreatUnmountAsAbandon } from "@/lib/widget-lifecycle";
+import { playToolboxTimerCompleteSound } from "@/lib/toolbox-timer-sound";
 
 export interface StopStepLegacy {
   title: string;
@@ -152,19 +152,20 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
     markCompletedRef.current = markCompleted;
   }, [markCompleted]);
 
-  useWidgetAbandonGuard(hasStartedRef, completedRef, budgetMode ? undefined : onAbandon);
+  const timerElapsedRef = useRef(timer.elapsedSec);
+  timerElapsedRef.current = timer.elapsedSec;
 
-  useEffect(() => {
-    if (!budgetMode) return;
-    return () => {
-      if (hasStartedRef.current && !completedRef.current && shouldTreatUnmountAsAbandon()) {
-        onAbandon?.({
-          elapsedSec: timer.elapsedSec,
+  useWidgetAbandonGuard(
+    budgetMode ? timer.hasStartedRef : hasStartedRef,
+    budgetMode ? timer.completedRef : completedRef,
+    onAbandon,
+    budgetMode
+      ? () => ({
+          elapsedSec: timerElapsedRef.current,
           durationBudgetSec: budgetSec,
-        });
-      }
-    };
-  }, [budgetMode, timer.elapsedSec, budgetSec, onAbandon]);
+        })
+      : undefined,
+  );
 
   const advance = useCallback(() => {
     const nextIdx = currentIdx + 1;
@@ -191,6 +192,7 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
       setPhaseProgress((prev) => {
         const next = prev + tickMs / (dur * 1000);
         if (next >= 1) {
+          playToolboxTimerCompleteSound();
           advance();
           return 0;
         }

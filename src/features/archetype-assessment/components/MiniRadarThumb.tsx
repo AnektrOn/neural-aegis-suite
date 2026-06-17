@@ -1,20 +1,17 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { archetypeMeta } from "../services/assessmentService";
 import type { ArchetypeKey } from "../domain/types";
 
 interface Props {
-  isFR: boolean;
-  /** Raw scores per archetype key (any scale; only relative bar lengths matter). */
+  isFR?: boolean;
   rawScores: Record<string, number>;
 }
 
-/**
- * Discreet collapsible widget anchored bottom-right that reveals the top 3
- * emerging archetypes via relative bar lengths. No scores, no percentages —
- * suspense preserved until the final reveal.
- */
-export function MiniRadarThumb({ isFR, rawScores }: Props) {
+export function MiniRadarThumb({ isFR: isFRProp, rawScores }: Props) {
+  const { locale, t } = useLanguage();
+  const isFR = isFRProp ?? locale === "fr";
   const [open, setOpen] = useState(true);
 
   const top3 = Object.entries(rawScores)
@@ -40,9 +37,7 @@ export function MiniRadarThumb({ isFR, rawScores }: Props) {
       >
         <span className="flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-primary" />
-          <span className="font-medium text-foreground">
-            {isFR ? "Ton profil émerge…" : "Your profile is emerging…"}
-          </span>
+          <span className="font-medium text-foreground">{t("assessment.profileEmerging")}</span>
         </span>
         {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
       </button>
@@ -50,9 +45,7 @@ export function MiniRadarThumb({ isFR, rawScores }: Props) {
       {open && (
         <div className="px-3 pb-3 pt-1 space-y-2">
           {top3.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground italic">
-              {isFR ? "En attente de signaux…" : "Waiting for signals…"}
-            </p>
+            <p className="text-[11px] text-muted-foreground italic">{t("assessment.waitingSignals")}</p>
           ) : (
             top3.map(([key, val]) => {
               const meta = archetypeMeta(key as ArchetypeKey);
@@ -60,9 +53,7 @@ export function MiniRadarThumb({ isFR, rawScores }: Props) {
               const pct = Math.max(8, Math.round((Number(val) / max) * 100));
               return (
                 <div key={key}>
-                  <div className="text-[11px] text-foreground/80 mb-0.5 truncate">
-                    {label}
-                  </div>
+                  <div className="text-[11px] text-foreground/80 mb-0.5 truncate">{label}</div>
                   <div className="h-1.5 bg-secondary/30 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500 ease-out"

@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Table2, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 
 interface Props {
   config: { instructions?: string; fields?: string[]; accent_color?: string };
@@ -22,18 +23,14 @@ export default function DecisionMatrixWidget({
   const accent = config.accent_color || "hsl(35 80% 58%)";
   const fields = config.fields?.length
     ? config.fields
-    : ["Option A", "Option B", "Critère principal"];
+    : [t("toolbox.widgetFallback.optionA"), t("toolbox.widgetFallback.optionB"), t("toolbox.widgetFallback.mainCriterion")];
   const options = fields.slice(0, 2);
-  const criterion = fields[2] ?? "Critère";
+  const criterion = fields[2] ?? t("toolbox.widgetFallback.criterion");
   const [scores, setScores] = useState<Record<string, string>>({});
   const touchedRef = useRef(false);
   const completedRef = useRef(false);
 
-  useEffect(() => {
-    return () => {
-      if (touchedRef.current && !completedRef.current) onAbandon?.();
-    };
-  }, [onAbandon]);
+  useWidgetAbandonGuard(touchedRef, completedRef, onAbandon);
 
   const cells = options.flatMap((opt) => [`${opt}::${criterion}`]);
 

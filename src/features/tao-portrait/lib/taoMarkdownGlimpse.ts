@@ -36,11 +36,13 @@ function isSkippableBodyLine(line: string): boolean {
 
 export function extractTaoMarkdownPreview(
   markdown: string,
-  options?: { maxChars?: number; maxParagraphs?: number },
+  options?: { maxChars?: number; maxParagraphs?: number; displayName?: string | null },
 ): TaoMarkdownPreview {
   const maxChars = options?.maxChars ?? 480;
   const maxParagraphs = options?.maxParagraphs ?? 4;
-  const { frontmatter, body } = prepareTaoPortraitMarkdown(markdown);
+  const { frontmatter, body } = prepareTaoPortraitMarkdown(markdown, {
+    displayName: options?.displayName,
+  });
   const lines = body.replace(/\r\n/g, "\n").split("\n");
 
   let title = frontmatter?.titre ?? "";

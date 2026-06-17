@@ -68,6 +68,16 @@ export async function upsertToolboxCompletion(params: {
       console.error("[toolbox-completion] upsert failed:", error.message);
       return { error: error.message };
     }
+
+    const { error: statsError } = await supabase.rpc("bump_toolbox_assignment_stat" as never, {
+      p_assignment_id: params.assignmentId,
+      p_user_id: params.userId,
+      p_status: params.status,
+    } as never);
+    if (statsError) {
+      console.warn("[toolbox-completion] stats bump failed:", statsError.message);
+    }
+
     return { error: null };
   } catch (err) {
     console.error("[toolbox-completion] critical error:", err);
@@ -79,4 +89,26 @@ export function formatElapsedMinutes(elapsedSec: number | null | undefined, loca
   if (elapsedSec == null || elapsedSec <= 0) return locale === "fr" ? "—" : "—";
   const min = Math.max(1, Math.round(elapsedSec / 60));
   return locale === "fr" ? `${min} min` : `${min} min`;
+}
+
+export async function resetToolboxCompletionForReload(params: {
+  assignmentId: string;
+  userId: string;
+}): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase
+      .from("toolbox_completions" as never)
+      .delete()
+      .eq("assignment_id", params.assignmentId)
+      .eq("user_id", params.userId);
+
+    if (error) {
+      console.error("[toolbox-completion] reset failed:", error.message);
+      return { error: error.message };
+    }
+    return { error: null };
+  } catch (err) {
+    console.error("[toolbox-completion] reset critical:", err);
+    return { error: "unexpected_error" };
+  }
 }

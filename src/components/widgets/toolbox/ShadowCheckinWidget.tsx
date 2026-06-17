@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { MoonStar, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 
 interface Props {
   config: { instructions?: string; fields?: string[]; accent_color?: string };
@@ -20,18 +21,16 @@ export default function ShadowCheckinWidget({
 }: Props) {
   const { t } = useLanguage();
   const accent = config.accent_color || "hsl(270 40% 45%)";
-  const labels = config.fields?.length ? config.fields : ["Ombre", "Intensité", "Déclencheur"];
+  const labels = config.fields?.length
+    ? config.fields
+    : [t("toolbox.widgetFallback.shadow"), t("toolbox.widgetFallback.intensity"), t("toolbox.widgetFallback.trigger")];
   const [shadow, setShadow] = useState("");
   const [intensity, setIntensity] = useState(5);
   const [trigger, setTrigger] = useState("");
   const touchedRef = useRef(false);
   const completedRef = useRef(false);
 
-  useEffect(() => {
-    return () => {
-      if (touchedRef.current && !completedRef.current) onAbandon?.();
-    };
-  }, [onAbandon]);
+  useWidgetAbandonGuard(touchedRef, completedRef, onAbandon);
 
   return (
     <motion.div

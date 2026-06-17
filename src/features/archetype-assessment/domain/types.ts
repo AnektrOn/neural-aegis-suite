@@ -7,6 +7,7 @@
  * options/scores tables (archetype_weights, shadow_weights, archetype_key).
  */
 
+/** 12 universal + 4 survival archetypes (Caroline Myss). */
 export type ArchetypeKey =
   | "sage"
   | "warrior"
@@ -19,7 +20,20 @@ export type ArchetypeKey =
   | "caregiver"
   | "explorer"
   | "mystic"
-  | "jester";
+  | "jester"
+  | "child"
+  | "victim"
+  | "saboteur"
+  | "prostitute";
+
+/** Caroline Myss survival family — subset of ArchetypeKey. */
+export type ShadowKey = Extract<
+  ArchetypeKey,
+  "child" | "victim" | "saboteur" | "prostitute"
+>;
+
+/** 12 non-survival archetypes (ranking / radar legacy). */
+export type MajorArchetypeKey = Exclude<ArchetypeKey, ShadowKey>;
 
 /**
  * UI-only grouping. Not persisted in DB. Free to evolve without migrations.
@@ -30,7 +44,8 @@ export type ArchetypeFamily =
   | "relation"
   | "leadership"
   | "transformation"
-  | "expression";
+  | "expression"
+  | "survival";
 
 /**
  * Free-form string: dimensions used in seed data are documented in
@@ -43,25 +58,82 @@ export type ArchetypeFamily =
  */
 export type DimensionKey = string;
 
-/**
- * Caroline Myss' 4 universal "Survival" shadow archetypes that everyone
- * carries. Anything else (perfectionism, withdrawal, …) is expressed as a
- * variant or intensity inside one of these 4 buckets.
- */
-/**
- * Aegis V1 — 4 universal Survival shadow archetypes everyone carries.
- * Aligned with Caroline Myss' "Survival Family".
- */
-export type ShadowKey =
-  | "child"
-  | "victim"
-  | "saboteur"
-  | "prostitute";
-
-/** Major or survival archetype key used in T1 polarity scoring vectors. */
-export type AnyArchetypeKey = ArchetypeKey | ShadowKey;
+/** All 16 archetype keys (alias for polarity scoring vectors). */
+export type AnyArchetypeKey = ArchetypeKey;
 
 export type Polarity = "light" | "shadow";
+
+/** V4 dimension keys (5 life dimensions × 6 questions). */
+export type V4DimensionKey =
+  | "identity"
+  | "power"
+  | "relationship"
+  | "creation"
+  | "spirituality";
+
+/** One scored pole in the 32-pole morphic field (`sage_light`, `child_shadow`, …). */
+export type PoleKey = `${ArchetypeKey}_${Polarity}`;
+
+export type PoleScores = Record<PoleKey, number>;
+
+export interface PoleActivationEntry {
+  poleKey: PoleKey;
+  archetype: ArchetypeKey;
+  polarity: Polarity;
+  rawPoints: number;
+  activationPercent: number;
+}
+
+export interface SurvivalGuardEntry {
+  archetype: ShadowKey;
+  name_fr: string;
+  name_en: string;
+  lightRaw: number;
+  shadowRaw: number;
+  lightPercent: number;
+  shadowPercent: number;
+  dominantPole: Polarity;
+}
+
+export interface V4PoleAnalysis {
+  totalPolePoints: number;
+  poleActivation: PoleScores;
+  lightAlliance: PoleActivationEntry[];
+  shadowCouncil: PoleActivationEntry[];
+  survivalGuard: SurvivalGuardEntry[];
+}
+
+/** V4 vector mapping per option (base weights before intensity multiplier). */
+export interface V4VectorSlot {
+  archetype: ArchetypeKey;
+  /** Actual pole — may differ from column label on fear/compensation rows. */
+  polarity: Polarity;
+  points: number;
+}
+
+export interface V4VectorMapping {
+  primaryLight: V4VectorSlot;
+  secondaryLight: V4VectorSlot;
+  primaryShadow: V4VectorSlot;
+  secondaryShadow: V4VectorSlot;
+}
+
+export interface V4OptionSeed {
+  position: number;
+  label_fr: string;
+  label_en: string;
+  vector: V4VectorMapping;
+}
+
+export interface V4QuestionSeed {
+  position: number;
+  dimension: V4DimensionKey;
+  prompt_fr: string;
+  prompt_en: string;
+  helper_fr?: string;
+  helper_en?: string;
+  options: V4OptionSeed[];
+}
 
 export interface PolarityWeight {
   archetype: AnyArchetypeKey;
@@ -164,10 +236,19 @@ export interface RecommendationRule {
 /* Runtime / response shapes                                                  */
 /* -------------------------------------------------------------------------- */
 
+export interface QuestionSelection {
+  /** 0-based index into `RuntimeQuestion.options`. */
+  optionIndex: number;
+  /** Per-option intensity multiplier (1–3). */
+  intensity: number;
+}
+
 export interface ResponseValue {
   questionId: string;
+  /** V4 multi-select: one entry per checked option with its own intensity. */
+  selections?: QuestionSelection[];
   selectedOptionIds?: string[];
-  /** Per-option intensity multiplier (1–3) for weighted multiple choice (T1). */
+  /** Per-option intensity multiplier (1–3) — legacy mirror of `selections`. */
   optionIntensities?: Record<string, number>;
   numericValue?: number;
   textValue?: string;
@@ -199,10 +280,14 @@ export interface RuntimeQuestion {
 }
 
 export interface AnalysisResult {
-  topArchetypes: ArchetypeKey[];
-  rawScores: Record<ArchetypeKey, number>;
-  normalizedScores: Record<ArchetypeKey, number>;
-  rankedScores: Array<{ key: ArchetypeKey; score: number; rank: number }>;
+  /** Full 32-pole morphic field (16 light + 16 shadow). */
+  poleScores: PoleScores;
+  /** V4 activation % and ranked zones (light alliance, shadow council, survival guard). */
+  v4PoleAnalysis: V4PoleAnalysis;
+  topArchetypes: MajorArchetypeKey[];
+  rawScores: Record<MajorArchetypeKey, number>;
+  normalizedScores: Record<MajorArchetypeKey, number>;
+  rankedScores: Array<{ key: MajorArchetypeKey; score: number; rank: number }>;
   dimensionScores: Record<DimensionKey, number>;
   shadowSignals: Record<ShadowKey, number>;
   strengths_fr: string[];

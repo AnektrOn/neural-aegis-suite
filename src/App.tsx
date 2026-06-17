@@ -59,6 +59,7 @@ const AdminAlertsPanel = lazy(() => import("./pages/admin/AdminAlertsPanel"));
 const AdminExport = lazy(() => import("./pages/admin/AdminExport"));
 const AssessmentFlow = lazy(() => import("./features/archetype-assessment/pages/AssessmentFlow"));
 const AssessmentResults = lazy(() => import("./features/archetype-assessment/pages/AssessmentResults"));
+const Houses72Flow = lazy(() => import("./features/houses72/pages/Houses72Flow"));
 const DeepDiveUserReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveUserReport"));
 const DeepDiveScores = lazy(() => import("./pages/DeepDiveScores"));
 const ProgressEvolutionPage = lazy(() => import("./pages/ProgressEvolution"));
@@ -292,6 +293,7 @@ const App = () => (
                             <Route path="/calendar" element={<CalendarView />} />
                             <Route path="/onboarding/assessment" element={<AssessmentFlow />} />
                             <Route path="/onboarding/results" element={<AssessmentResults />} />
+                            <Route path="/assessment/maisons" element={<Houses72Flow />} />
                             <Route path="/deep-dive" element={<DeepDiveUserReport />} />
                             <Route path="/deep-dive/scores" element={<DeepDiveScores />} />
                             <Route path="/progress/myss" element={<ProgressEvolutionPage />} />

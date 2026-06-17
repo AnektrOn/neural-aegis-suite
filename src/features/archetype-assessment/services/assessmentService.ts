@@ -7,12 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { ARCHETYPES } from "../domain/archetypes";
 import { QUESTIONS } from "../domain/questions";
+import { V4_QUESTION_COUNT } from "../domain/questionsV4";
 import {
   buildAnalysisResult,
   computeCompletionConfidence,
   detectConsistencyWarning,
 } from "../domain/scoringEngine";
 import { selectTopTools } from "../domain/recommendationEngine";
+import { SCORING_MODEL_MYSS_V4 } from "../domain/v4Scoring";
+import { buildV4PoleAnalysis, parsePoleScoresRecord } from "../domain/v4PoleAnalysis";
 import {
   createSnapshot,
   getSnapshotById,
@@ -28,6 +31,8 @@ import type {
   ResponseValue,
   RuntimeQuestion,
   ShadowKey,
+  PoleScores,
+  V4PoleAnalysis,
 } from "../domain/types";
 
 type Tables = Database["public"]["Tables"];
@@ -44,14 +49,14 @@ type QuestionWithOptions = AssessmentQuestionRow & {
   assessment_options: AssessmentOptionRow[];
 };
 
-function clientMetaFromJson(meta: Json | null | undefined): Record<string, unknown> {
+function clientMetaFromJson(meta: unknown): Record<string, unknown> {
   if (meta && typeof meta === "object" && !Array.isArray(meta)) {
     return meta as Record<string, unknown>;
   }
   return {};
 }
 
-function isAppendixQuestion(meta: Json): boolean {
+function isAppendixQuestion(meta: unknown): boolean {
   return clientMetaFromJson(meta).is_appendix === true;
 }
 
@@ -134,10 +139,11 @@ export function clearPersistedAssessmentSessionId(userId: string): void {
  * changes. Stored on each appendix_response so historical answers can be
  * recomputed under the version they were captured with.
  */
-/** Myss V3 — net major scores (light − shadow) + compensated survival signals (v5). */
-export const SCORE_VERSION = 5;
+/** Myss V4 — 32 poles (16× light/shadow) + intensity multiplier (v6). */
+export const SCORE_VERSION = 6;
 
 export const SCORING_MODEL_MYSS_V3 = "myss-v3";
+export { SCORING_MODEL_MYSS_V4 };
 
 export function getStoredScoreVersion(
   meta: Json | Record<string, unknown> | null | undefined,
@@ -160,6 +166,7 @@ function mapDbResponsesToValues(rows: AssessmentResponseRow[]): ResponseValue[] 
     const payload = responsePayloadFromJson(r.raw_payload);
     return {
       questionId: r.question_id,
+      selections: payload.selections,
       selectedOptionIds: r.selected_option_ids ?? [],
       optionIntensities: payload.optionIntensities,
       numericValue: r.numeric_value ?? undefined,
@@ -178,6 +185,13 @@ function responsesLookLikeMyssV3(
     }
   }
   return false;
+}
+
+function questionsLookLikeMyssV4(questions: RuntimeQuestion[]): boolean {
+  return questions.some(
+    (q) =>
+      (q.meta as { scoringModel?: string } | undefined)?.scoringModel === SCORING_MODEL_MYSS_V4,
+  );
 }
 
 function questionsLookLikeMyssV3(questions: RuntimeQuestion[]): boolean {
@@ -246,7 +260,10 @@ async function persistSessionAnalysisResult(opts: {
         session_id: sessionId,
         user_id: userId,
         top_archetypes: analysis.topArchetypes,
-        dimension_scores: analysis.dimensionScores,
+        dimension_scores: {
+          ...analysis.dimensionScores,
+          pole_scores: analysis.poleScores,
+        },
         shadow_signals: analysis.shadowSignals,
         strengths_fr: analysis.strengths_fr,
         strengths_en: analysis.strengths_en,
@@ -299,7 +316,10 @@ async function persistSessionAnalysisResult(opts: {
     ...prevMeta,
     ...metaPatch,
     score_version: SCORE_VERSION,
-    scoring_model: SCORING_MODEL_MYSS_V3,
+    scoring_model: questionsLookLikeMyssV4(questions)
+      ? SCORING_MODEL_MYSS_V4
+      : SCORING_MODEL_MYSS_V3,
+    pole_scores: analysis.poleScores,
   };
   if (consistency) {
     nextMeta.consistency_warning = true;
@@ -350,15 +370,14 @@ export async function recomputeSubmittedSessionAnalysis(
   const templateId = session.template_id;
   if (!templateId) throw new Error("Session has no template_id");
 
-  const [{ data: allResp, error: arErr }, coreQs, appendixQs] = await Promise.all([
+  const [{ data: allResp, error: arErr }, coreQs] = await Promise.all([
     supabase.from("assessment_responses").select("*").eq("session_id", sessionId),
     fetchQuestions(templateId, { appendix: false }),
-    fetchQuestions(templateId, { appendix: true }),
   ]);
   if (arErr) throw arErr;
 
   const dbResponses = allResp ?? [];
-  const allQuestions = [...coreQs, ...appendixQs];
+  const allQuestions = coreQs;
   if (allQuestions.length === 0) {
     throw new Error("No questions found for session template");
   }
@@ -428,10 +447,15 @@ export async function ensureSessionResultsUpToDate(sessionId: string): Promise<b
   if (rErr) throw rErr;
 
   const dbResponses = (respRows as Array<{ raw_payload?: unknown }>) ?? [];
-  if (session.client_meta?.scoring_model !== SCORING_MODEL_MYSS_V3 && !responsesLookLikeMyssV3(dbResponses)) {
-    const coreQs = await fetchQuestions(session.template_id, { appendix: false });
-    if (!questionsLookLikeMyssV3(coreQs)) return false;
-  }
+  const coreQs = await fetchQuestions(session.template_id, { appendix: false });
+  const scoringModel = session.client_meta?.scoring_model;
+  const looksV4 =
+    scoringModel === SCORING_MODEL_MYSS_V4 || questionsLookLikeMyssV4(coreQs);
+  const looksV3 =
+    scoringModel === SCORING_MODEL_MYSS_V3 ||
+    responsesLookLikeMyssV3(dbResponses) ||
+    questionsLookLikeMyssV3(coreQs);
+  if (!looksV4 && !looksV3) return false;
 
   await recomputeSubmittedSessionAnalysis(sessionId);
   return true;
@@ -558,7 +582,7 @@ async function loadTemplateBySlug(slug: string): Promise<LoadedTemplate> {
   return { template, questions };
 }
 
-/** Load T1 onboarding template (`archetype-v1`). Never picks `archetype-v2-70q`. */
+/** Load onboarding template (`archetype-v1` slug — V4 bank in code). */
 export async function loadActiveTemplate(): Promise<LoadedTemplate> {
   const { data: tpl, error: tplErr } = await supabase
     .from("assessment_templates")
@@ -574,12 +598,8 @@ export async function loadActiveTemplate(): Promise<LoadedTemplate> {
 
   let questions = await fetchQuestions(template.id);
 
-  // Forcer la synchronisation avec les 15 questions V3 de questionsT1.ts
-  if (questions.length !== 15) {
-    console.log("Mise à jour des questions Supabase vers le format V3 (15 questions)...");
-    await supabase.from("assessment_options").delete().neq("id", "");
-    await supabase.from("assessment_questions").delete().neq("id", "");
-    await seedQuestions(template.id);
+  if (catalogNeedsV4Resync(questions)) {
+    await replaceCoreCatalog();
     questions = await fetchQuestions(template.id);
   }
 
@@ -594,11 +614,22 @@ export async function loadActiveTemplate(): Promise<LoadedTemplate> {
     );
   }
 
-  return { template, questions };
+  // User path: core V4 only (no appendix / legacy T2 rows in template).
+  const coreOnly = questions.filter((q) => !isAppendixQuestion(q.meta));
+  if (coreOnly.length !== USER_ONBOARDING_QUESTION_COUNT) {
+    console.warn(
+      `[assessment] Expected ${USER_ONBOARDING_QUESTION_COUNT} core questions, got ${coreOnly.length}`,
+    );
+  }
+
+  return { template, questions: coreOnly };
 }
 
-/** Guest / public funnel: core onboarding quiz only (T1 — 15 questions). */
-export const GUEST_QUIZ_QUESTION_LIMIT = 15;
+/** User-facing onboarding quiz length (V4 only). Legacy T1/T2 remain in DB for history/admin. */
+export const USER_ONBOARDING_QUESTION_COUNT = V4_QUESTION_COUNT;
+
+/** Guest / public funnel: V4 core quiz only. */
+export const GUEST_QUIZ_QUESTION_LIMIT = USER_ONBOARDING_QUESTION_COUNT;
 
 export async function loadGuestQuizTemplate(): Promise<LoadedTemplate> {
   const loaded = await loadTemplateBySlug(TEMPLATE_SLUG);
@@ -728,6 +759,37 @@ function buildQuestionSeedPayload(questions: QuestionSeed[]) {
   });
 }
 
+/** True when Supabase catalog is not the V4 bank (count or missing polarity vectors). */
+function catalogNeedsV4Resync(questions: RuntimeQuestion[]): boolean {
+  if (questions.length !== V4_QUESTION_COUNT) return true;
+  const sample = questions.find((q) => q.options.length > 0);
+  const pw = sample?.options[0]?.polarity_weights;
+  return !Array.isArray(pw) || pw.length === 0;
+}
+
+/** Replace core (non-appendix) questions via SECURITY DEFINER RPC — safe for all authenticated users. */
+async function replaceCoreCatalog(): Promise<void> {
+  const payload = buildQuestionSeedPayload(QUESTIONS);
+  const { error } = await callUntypedRpc("replace_assessment_core_catalog", {
+    p_template_slug: TEMPLATE_SLUG,
+    p_questions: payload,
+  });
+  if (!error) return;
+
+  const rpcMissing =
+    error.code === "PGRST202" ||
+    error.code === "42883" ||
+    /replace_assessment_core_catalog/i.test(error.message ?? "");
+
+  if (rpcMissing) {
+    throw new Error(
+      "Cannot resync the V4 questionnaire. Apply Supabase migration 20260616130000_replace_assessment_core_catalog_rpc.sql, then reload.",
+    );
+  }
+
+  throw formatSubmitError("replace_assessment_core_catalog", error);
+}
+
 /** Inserts catalog via SECURITY DEFINER RPC (any authenticated user when core bank is empty). */
 async function seedQuestions(templateId: string): Promise<void> {
   const payload = buildQuestionSeedPayload(QUESTIONS);
@@ -753,6 +815,16 @@ async function seedQuestions(templateId: string): Promise<void> {
 
 /** Legacy path — admins only (RLS). Used when RPC migration is not applied yet. */
 async function seedQuestionsDirect(templateId: string): Promise<void> {
+  const { count, error: countErr } = await supabase
+    .from("assessment_questions")
+    .select("id", { count: "exact", head: true })
+    .eq("template_id", templateId);
+  if (countErr) throw countErr;
+  if ((count ?? 0) > 0) {
+    console.warn("[assessment] seedQuestionsDirect skipped — catalog already has questions");
+    return;
+  }
+
   for (const q of QUESTIONS) {
     const meta = { ...(q.meta ?? {}) } as Record<string, unknown>;
     if (q.isAppendix) meta.is_appendix = true;
@@ -876,6 +948,7 @@ export async function submitAppendixResponses(opts: {
     const payload = responsePayloadFromJson(r.raw_payload);
     return {
       questionId: r.question_id,
+      selections: payload.selections,
       selectedOptionIds: r.selected_option_ids ?? [],
       optionIntensities: payload.optionIntensities,
       numericValue: r.numeric_value ?? undefined,
@@ -915,7 +988,10 @@ export async function submitAppendixResponses(opts: {
         session_id: sessionId,
         user_id: userId,
         top_archetypes: analysis.topArchetypes,
-        dimension_scores: analysis.dimensionScores,
+        dimension_scores: {
+          ...analysis.dimensionScores,
+          pole_scores: analysis.poleScores,
+        },
         shadow_signals: analysis.shadowSignals,
         strengths_fr: analysis.strengths_fr,
         strengths_en: analysis.strengths_en,
@@ -1081,7 +1157,10 @@ export async function submitSession(opts: {
         session_id: sessionId,
         user_id: userId,
         top_archetypes: analysis.topArchetypes,
-        dimension_scores: analysis.dimensionScores,
+        dimension_scores: {
+          ...analysis.dimensionScores,
+          pole_scores: analysis.poleScores,
+        },
         shadow_signals: analysis.shadowSignals,
         strengths_fr: analysis.strengths_fr,
         strengths_en: analysis.strengths_en,
@@ -1131,7 +1210,10 @@ export async function submitSession(opts: {
   const prevMeta = clientMetaFromJson(prevSession?.client_meta);
   const nextMeta: Record<string, unknown> = { ...prevMeta };
   nextMeta.score_version = SCORE_VERSION;
-  nextMeta.scoring_model = SCORING_MODEL_MYSS_V3;
+  nextMeta.scoring_model = questionsLookLikeMyssV4(questions)
+    ? SCORING_MODEL_MYSS_V4
+    : SCORING_MODEL_MYSS_V3;
+  nextMeta.pole_scores = analysis.poleScores;
   if (consistency) {
     nextMeta.consistency_warning = true;
     nextMeta.conflicting_pair = consistency.conflicting_pair;
@@ -1741,6 +1823,45 @@ export type SessionResultsSummary = {
   profile: ProfileRow | null;
   company: CompanyRow | null;
 };
+
+function clientMetaRecord(meta: Json | null | undefined): Record<string, unknown> {
+  if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+    return meta as Record<string, unknown>;
+  }
+  return {};
+}
+
+/** Read raw 32-pole scores from persisted session / analysis rows. */
+export function extractPoleScoresFromSummary(
+  summary: Pick<SessionResultsSummary, "session" | "analysis">,
+): PoleScores | null {
+  const dim = summary.analysis?.dimension_scores;
+  if (dim && typeof dim === "object" && !Array.isArray(dim)) {
+    const fromDim = parsePoleScoresRecord(
+      (dim as Record<string, unknown>).pole_scores,
+    );
+    if (fromDim) return fromDim;
+  }
+  const meta = clientMetaRecord(summary.session?.client_meta);
+  return parsePoleScoresRecord(meta.pole_scores);
+}
+
+export function sessionIsMyssV4(
+  summary: Pick<SessionResultsSummary, "session" | "analysis">,
+): boolean {
+  const meta = clientMetaFromJson(summary.session?.client_meta as Json | null | undefined);
+  if (meta.scoring_model === SCORING_MODEL_MYSS_V4) return true;
+  return extractPoleScoresFromSummary(summary) !== null;
+}
+
+/** V4 activation zones derived from stored pole scores (recomputed on read). */
+export function v4PoleAnalysisFromSummary(
+  summary: Pick<SessionResultsSummary, "session" | "analysis">,
+): V4PoleAnalysis | null {
+  const poleScores = extractPoleScoresFromSummary(summary);
+  if (!poleScores) return null;
+  return buildV4PoleAnalysis(poleScores);
+}
 
 async function loadProfileAndCompany(userId: string | undefined | null): Promise<{
   profile: ProfileRow | null;

@@ -107,6 +107,10 @@
     /* Warm premium accent (wellness gold — not fintech yellow) */
     --aegis-warm: 38 72% 58%;
     --aegis-warm-muted: 38 45% 22%;
+    /* V4 constellation stage — elevated surface + mystical accent (token-driven) */
+    --v4-constellation-surface: 201 26% 16%;
+    --v4-constellation-surface-end: 201 24% 12%;
+    --v4-constellation-glow-shadow: 358 26% 30%;
   }
 
   html.light {
@@ -175,6 +179,9 @@
     /* Hero void chaud — miroir du dark mode */
     --aegis-hero-bg: 26 50% 6%;
     --aegis-hero-fade: 26 48% 8%;
+    --v4-constellation-surface: 38 22% 72%;
+    --v4-constellation-surface-end: 36 20% 64%;
+    --v4-constellation-glow-shadow: 40 16% 55%;
   }
 
   .dark {
@@ -1043,6 +1050,72 @@ input[type="range"]::-moz-range-thumb {
     width: 100%;
   }
   .flip-face-back { transform: rotateY(180deg) translateZ(0); }
+
+  /* Deep Dive report — editorial neural atmosphere */
+  .deep-dive-hero {
+    background:
+      linear-gradient(145deg, hsl(var(--card) / 0.55) 0%, hsl(var(--background) / 0.35) 100%);
+    box-shadow:
+      0 0 0 1px hsl(var(--aegis-warm) / 0.08),
+      0 24px 80px -40px hsl(var(--aegis-warm) / 0.22);
+  }
+  .deep-dive-hero-mesh {
+    background:
+      radial-gradient(ellipse 90% 70% at 0% 0%, hsl(var(--aegis-warm) / 0.12), transparent 55%),
+      radial-gradient(ellipse 60% 50% at 100% 100%, hsl(220 60% 50% / 0.08), transparent 50%);
+  }
+  .deep-dive-v4-hero {
+    background: hsl(var(--card) / 0.42);
+    box-shadow: 0 0 0 1px hsl(var(--border) / 0.25);
+  }
+  .deep-dive-v4-hero-body {
+    background: hsl(var(--background) / 0.3);
+  }
+  .v4-constellation-stage {
+    background:
+      radial-gradient(ellipse 88% 74% at 50% 28%, hsl(var(--aegis-warm) / 0.1), transparent 56%),
+      radial-gradient(ellipse 72% 62% at 50% 68%, hsl(var(--v4-constellation-glow-shadow) / 0.22), transparent 54%),
+      linear-gradient(
+        168deg,
+        hsl(var(--v4-constellation-surface)) 0%,
+        hsl(var(--v4-constellation-surface-end)) 100%
+      );
+    box-shadow:
+      inset 0 0 0 1px hsl(var(--border) / 0.38),
+      inset 0 1px 0 hsl(var(--foreground) / 0.04);
+  }
+  .deep-dive-clinical-panel {
+    border-left: 3px solid hsl(var(--aegis-warm) / 0.55);
+    padding-left: 1.25rem;
+  }
+  .deep-dive-stagger > * {
+    animation: deep-dive-fade-up 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .deep-dive-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .deep-dive-stagger > *:nth-child(2) { animation-delay: 70ms; }
+  .deep-dive-stagger > *:nth-child(3) { animation-delay: 140ms; }
+  .deep-dive-stagger > *:nth-child(4) { animation-delay: 210ms; }
+  .deep-dive-stagger > *:nth-child(5) { animation-delay: 280ms; }
+  .deep-dive-stagger > *:nth-child(6) { animation-delay: 350ms; }
+  .deep-dive-stagger > *:nth-child(7) { animation-delay: 420ms; }
+  @keyframes deep-dive-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .deep-dive-stagger > * {
+      animation: none;
+    }
+    .neural-card:hover {
+      transform: none;
+    }
+  }
 }
 
 /* ============================================================

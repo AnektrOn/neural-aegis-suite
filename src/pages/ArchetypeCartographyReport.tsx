@@ -37,6 +37,13 @@ import {
   fetchPublishedCartographyBundle,
   type DbCartographyBundle,
 } from "@/services/cartographyService";
+import {
+  getLatestSubmittedSessionForUser,
+  getSessionResultsSummary,
+  v4PoleAnalysisFromSummary,
+} from "@/features/archetype-assessment/services/assessmentService";
+import { V4PoleCartographyZones } from "@/features/archetype-assessment/components/V4PoleCartographyZones";
+import type { V4PoleAnalysis } from "@/features/archetype-assessment/domain/types";
 
 type MainTab = "cartographie" | "guardians" | "synthesis" | "detailed";
 
@@ -71,6 +78,8 @@ export default function ArchetypeCartographyReport() {
   const [bundle, setBundle] = useState<DbCartographyBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [mainTab, setMainTab] = useState<MainTab>("cartographie");
+  const [v4Analysis, setV4Analysis] = useState<V4PoleAnalysis | null>(null);
+  const [v4Loading, setV4Loading] = useState(false);
 
   useEffect(() => {
     if (!parsePoleParam(poleParam)) {
@@ -102,6 +111,35 @@ export default function ArchetypeCartographyReport() {
       cancelled = true;
     };
   }, [targetUserId, pole, mode, isAdmin, previewUserId]);
+
+  useEffect(() => {
+    if (!targetUserId) {
+      setV4Analysis(null);
+      return;
+    }
+    let cancelled = false;
+    setV4Loading(true);
+    (async () => {
+      try {
+        const session = await getLatestSubmittedSessionForUser(targetUserId);
+        if (!session) {
+          if (!cancelled) setV4Analysis(null);
+          return;
+        }
+        const summary = await getSessionResultsSummary(session.id);
+        if (!cancelled) {
+          setV4Analysis(v4PoleAnalysisFromSummary(summary));
+        }
+      } catch {
+        if (!cancelled) setV4Analysis(null);
+      } finally {
+        if (!cancelled) setV4Loading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetUserId]);
 
   const grouped = useMemo(() => {
     if (!bundle) return null;
@@ -254,6 +292,21 @@ export default function ArchetypeCartographyReport() {
             ))}
           </div>
         </div>
+
+        {!loading && v4Loading && (
+          <div className="mb-6 flex justify-center py-6">
+            <Loader2 className="h-6 w-6 animate-spin text-text-tertiary" aria-hidden />
+          </div>
+        )}
+
+        {!loading && !v4Loading && v4Analysis && (
+          <section className="mb-6" aria-labelledby="v4-cartography-heading">
+            <h2 id="v4-cartography-heading" className="sr-only">
+              {isFR ? "Résultats V4 — triple cartographie" : "V4 results — triple cartography"}
+            </h2>
+            <V4PoleCartographyZones isFR={isFR} analysis={v4Analysis} />
+          </section>
+        )}
 
         {loading && (
           <div className="flex justify-center py-16">

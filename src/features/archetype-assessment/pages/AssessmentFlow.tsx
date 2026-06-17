@@ -17,8 +17,6 @@ import {
   Loader2,
   Sparkles,
   X,
-  Layers,
-  Check,
   Clock,
 } from "lucide-react";
 import {
@@ -27,7 +25,6 @@ import {
   persistAssessmentSessionId,
   readPersistedAssessmentSessionId,
   submitSession,
-  submitAppendixResponses,
 } from "../services/assessmentService";
 import { computeRawScores } from "../domain/scoringEngine";
 import { useAssessmentSession } from "../hooks/useAssessmentSession";
@@ -36,54 +33,37 @@ import type { ResponseValue, RuntimeQuestion, ArchetypeKey, ShadowKey } from "..
 import { MiniRadarThumb } from "../components/MiniRadarThumb";
 import { IntensityMultipleChoice } from "../components/IntensityMultipleChoice";
 import { useAdmin } from "@/hooks/use-admin";
-import {
-  loadAppendix,
-  loadUserResponses,
-} from "@/features/appendix/service";
-import type {
-  AppendixCategoryWithQuestions,
-  AppendixQuestion,
-} from "@/features/appendix/types";
 
 const SECONDS_PER_QUESTION = 18;
 
-function formatMinutesRemaining(remainingQuestions: number, isFR: boolean): string {
+function formatMinutesRemaining(remainingQuestions: number, t: (key: string, vars?: Record<string, string>) => string): string {
   const seconds = Math.max(0, remainingQuestions) * SECONDS_PER_QUESTION;
   const minutes = Math.max(1, Math.round(seconds / 60));
-  return isFR ? `~${minutes} min restantes` : `~${minutes} min remaining`;
+  return t("assessment.minutesRemaining", { minutes: String(minutes) });
 }
-
-type FlowStage = "phase1" | "phase2-hub" | "phase2-category";
 
 export default function AssessmentFlow() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
   const isFR = locale === "fr";
 
   const [loaded, setLoaded] = useState<LoadedTemplate | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [stage, setStage] = useState<FlowStage>("phase1");
-
-  // --- Phase 2 state ---
-  const [appendixCats, setAppendixCats] = useState<AppendixCategoryWithQuestions[]>([]);
-  const [appendixLoading, setAppendixLoading] = useState(false);
-  const [completedCatIds, setCompletedCatIds] = useState<Set<string>>(new Set());
-  const [activeCatId, setActiveCatId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     loadActiveTemplate()
       .then((t) => {
         if (!alive) return;
-        // Phase 1 = ONLY required core questions
+        // V4 core bank only (30 questions)
         const required = t.questions.filter((q) => q.is_required !== false);
         setLoaded({ ...t, questions: required });
       })
-      .catch((e) => alive && setLoadError(e.message ?? "Erreur de chargement"));
+      .catch((e) => alive && setLoadError(e.message ?? t("assessment.loadError")));
     return () => {
       alive = false;
     };
@@ -100,10 +80,8 @@ export default function AssessmentFlow() {
   const handleStart = async () => {
     if (!user || !loaded) {
       toast({
-        title: isFR ? "Erreur" : "Error",
-        description: isFR
-          ? "Le questionnaire n'est pas encore chargé."
-          : "The questionnaire is not loaded yet.",
+        title: t("assessment.error"),
+        description: t("assessment.notLoaded"),
         variant: "destructive",
       });
       return;
@@ -115,17 +93,15 @@ export default function AssessmentFlow() {
       session.goToQuestions();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      toast({ title: "Erreur", description: msg, variant: "destructive" });
+      toast({ title: t("assessment.error"), description: msg, variant: "destructive" });
     }
   };
 
   const handleSubmit = async () => {
     if (!user || !loaded) {
       toast({
-        title: isFR ? "Erreur" : "Error",
-        description: isFR
-          ? "Session ou questionnaire manquant. Rechargez la page."
-          : "Missing session or questionnaire. Please reload the page.",
+        title: t("assessment.error"),
+        description: t("assessment.missingSession"),
         variant: "destructive",
       });
       return;
@@ -143,45 +119,18 @@ export default function AssessmentFlow() {
         startedAt: session.startedAt,
       });
       toast({
-        title: isFR ? "Évaluation enregistrée" : "Assessment saved",
-        description: isFR
-          ? "Vos archétypes dominants sont prêts."
-          : "Your dominant archetypes are ready.",
+        title: t("assessment.saved"),
+        description: t("assessment.savedDesc"),
       });
       navigate("/onboarding/results", { replace: true });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      toast({ title: "Erreur", description: msg, variant: "destructive" });
+      toast({ title: t("assessment.error"), description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Load appendix categories when entering Phase 2
-  useEffect(() => {
-    if (stage !== "phase2-hub" || !user || appendixCats.length > 0) return;
-    setAppendixLoading(true);
-    Promise.all([loadAppendix(), loadUserResponses(user.id)])
-      .then(([cats, resps]) => {
-        setAppendixCats(cats);
-        // A category counts as "completed" if all its required questions are answered
-        const done = new Set<string>();
-        for (const c of cats) {
-          const req = c.questions.filter((q) => q.is_required);
-          const allAnswered =
-            req.length > 0 &&
-            req.every((q) => resps.has(q.id));
-          if (allAnswered) done.add(c.id);
-        }
-        setCompletedCatIds(done);
-      })
-      .catch((e) =>
-        toast({ title: "Erreur", description: e.message, variant: "destructive" })
-      )
-      .finally(() => setAppendixLoading(false));
-  }, [stage, user, appendixCats.length]);
-
-  // --- Live emerging archetype scores from current Phase 1 responses ---
   const liveRawScores = useMemo<Record<string, number>>(() => {
     if (!loaded) return {};
     const { archetypeScores } = computeRawScores(
@@ -197,7 +146,7 @@ export default function AssessmentFlow() {
         <Card className="p-6 max-w-md">
           <p className="text-destructive">{loadError}</p>
           <Button className="mt-4" onClick={() => navigate("/")}>
-            {isFR ? "Retour" : "Back"}
+            {t("assessment.back")}
           </Button>
         </Card>
       </div>
@@ -213,149 +162,19 @@ export default function AssessmentFlow() {
   }
 
   const { template } = loaded;
-
-  // ───────────────────────── Phase 2 (category runner) ─────────────────────────
-  if (stage === "phase2-category" && activeCatId && sessionId && user) {
-    const cat = appendixCats.find((c) => c.id === activeCatId);
-    if (!cat) {
-      setStage("phase2-hub");
-      return null;
-    }
-    return (
-      <AppendixCategoryRunner
-        category={cat}
-        sessionId={sessionId}
-        userId={user.id}
-        isFR={isFR}
-        onClose={() => setStage("phase2-hub")}
-        onCompleted={() => {
-          setCompletedCatIds((prev) => new Set(prev).add(cat.id));
-          setStage("phase2-hub");
-          toast({
-            title: isFR ? "Catégorie complétée" : "Category completed",
-          });
-        }}
-      />
-    );
-  }
-
-  // ───────────────────────── Phase 2 hub ─────────────────────────
-  if (stage === "phase2-hub") {
-    return (
-      <div className="min-h-screen relative">
-        <div className="absolute top-4 right-4 z-10">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/onboarding/results")}
-            aria-label="close"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-
-        <div className="max-w-3xl mx-auto px-4 py-10 sm:py-16 space-y-6">
-          <header className="text-center">
-            <Layers className="w-7 h-7 text-primary mx-auto mb-2" />
-            <h1 className="text-2xl sm:text-3xl font-serif">
-              {isFR ? "Approfondir mon profil" : "Deepen my profile"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
-              {isFR
-                ? "Choisis une catégorie pour affiner tes archétypes. Ton radar évolue à chaque catégorie complétée."
-                : "Pick a category to refine your archetypes. Your radar evolves with every category completed."}
-            </p>
-          </header>
-
-          {appendixLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          ) : appendixCats.length === 0 ? (
-            <Card className="p-6 text-center text-sm text-muted-foreground">
-              {isFR
-                ? "Aucune catégorie d'approfondissement disponible."
-                : "No deepening categories available."}
-            </Card>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
-              {appendixCats.map((c) => {
-                const done = completedCatIds.has(c.id);
-                const count = c.questions.length;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveCatId(c.id);
-                      setStage("phase2-category");
-                    }}
-                    className="text-left p-5 rounded-2xl border border-border/40 bg-card/40
-                               backdrop-blur-3xl hover:border-primary/40 transition group"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-serif text-lg leading-snug">
-                          {isFR ? c.label_fr : c.label_en}
-                        </h3>
-                        {(c.description_fr || c.description_en) && (
-                          <p className="text-xs text-muted-foreground mt-1.5 line-clamp-3">
-                            {isFR ? c.description_fr : c.description_en}
-                          </p>
-                        )}
-                        <p className="text-[11px] text-muted-foreground mt-2">
-                          {count}{" "}
-                          {isFR
-                            ? count > 1
-                              ? "questions"
-                              : "question"
-                            : count > 1
-                            ? "questions"
-                            : "question"}
-                        </p>
-                      </div>
-                      {done ? (
-                        <span className="shrink-0 w-7 h-7 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center">
-                          <Check className="w-4 h-4 text-primary" strokeWidth={2} />
-                        </span>
-                      ) : (
-                        <span className="shrink-0 w-7 h-7 rounded-full border border-border/40 flex items-center justify-center text-muted-foreground group-hover:text-primary transition">
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="flex justify-center pt-4">
-            <Button onClick={() => navigate("/onboarding/results")} variant="outline">
-              {isFR ? "Voir mes résultats" : "View my results"}{" "}
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ───────────────────────── Phase 1 ─────────────────────────
   const remaining = Math.max(0, session.totalQuestions - (session.questionIndex + 1));
 
   return (
     <div className="min-h-screen relative">
       <div className="absolute top-4 right-4 z-10">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="close">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label={t("general.close")}>
           <X className="w-5 h-5" />
         </Button>
       </div>
 
-      {/* Mini emerging-profile widget — admin only */}
-      {session.step === "questions" && isAdmin && (
+      {session.step === "questions" && isAdmin ? (
         <MiniRadarThumb isFR={isFR} rawScores={liveRawScores} />
-      )}
+      ) : null}
 
       <div className="max-w-2xl mx-auto px-4 py-10 sm:py-16">
         {session.step === "welcome" && (
@@ -372,31 +191,25 @@ export default function AssessmentFlow() {
 
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 mb-4">
               <p className="text-sm font-medium mb-1">
-                {isFR ? "Évaluation essentielle (~10 min)" : "Core Assessment (~10 min)"}
+                {t("assessment.coreTitle")}
               </p>
               <p className="text-xs text-muted-foreground">
-                {isFR
-                  ? `${session.totalQuestions} questions essentielles pour révéler tes archétypes dominants.`
-                  : `${session.totalQuestions} essential questions to reveal your dominant archetypes.`}
+                {t("assessment.coreDesc", { count: String(session.totalQuestions) })}
               </p>
             </div>
 
             <ul className="space-y-2 text-sm text-muted-foreground mb-8">
               <li>
                 •{" "}
-                {isFR
-                  ? "Phase 2 optionnelle pour approfondir ton profil"
-                  : "Optional Phase 2 to deepen your profile"}
+                {t("assessment.bulletPoles")}
               </li>
               <li>
                 •{" "}
-                {isFR
-                  ? "Tes 3 archétypes dominants + pratiques recommandées"
-                  : "Your top 3 archetypes + recommended practices"}
+                {t("assessment.bulletResults")}
               </li>
             </ul>
             <Button size="lg" className="w-full" onClick={handleStart}>
-              {isFR ? "Commencer" : "Start"} <ArrowRight className="ml-2 w-4 h-4" />
+              {t("welcome.cta.start")} <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </Card>
         )}
@@ -406,15 +219,16 @@ export default function AssessmentFlow() {
             <div>
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                 <span>
-                  {isFR
-                    ? `Question ${session.questionIndex + 1} / ${session.totalQuestions}`
-                    : `Question ${session.questionIndex + 1} / ${session.totalQuestions}`}
+                  {t("assessment.questionProgress", {
+                    current: String(session.questionIndex + 1),
+                    total: String(session.totalQuestions),
+                  })}
                 </span>
                 <span>{Math.round(session.progress * 100)}%</span>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-2">
                 <Clock className="w-3 h-3" />
-                <span>{formatMinutesRemaining(remaining, isFR)}</span>
+                <span>{formatMinutesRemaining(remaining, t)}</span>
               </div>
               <Progress value={session.progress * 100} />
             </div>
@@ -425,21 +239,18 @@ export default function AssessmentFlow() {
                 value={session.responses[session.currentQuestion.id]}
                 onChange={session.setResponse}
                 isFR={isFR}
+                t={t}
               />
             </Card>
 
             <div className="flex items-center justify-between gap-3">
               <Button variant="ghost" onClick={session.previous}>
-                <ArrowLeft className="mr-2 w-4 h-4" /> {isFR ? "Précédent" : "Previous"}
+                <ArrowLeft className="mr-2 w-4 h-4" /> {t("appendix.previous")}
               </Button>
               <Button onClick={session.next} disabled={!session.isCurrentAnswered}>
                 {session.questionIndex === session.totalQuestions - 1
-                  ? isFR
-                    ? "Revoir"
-                    : "Review"
-                  : isFR
-                  ? "Suivant"
-                  : "Next"}
+                  ? t("assessment.review")
+                  : t("appendix.next")}
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </div>
@@ -449,12 +260,13 @@ export default function AssessmentFlow() {
         {session.step === "review" && (
           <Card className="p-6 sm:p-8 backdrop-blur-3xl bg-card/40 border-border/40">
             <h2 className="text-xl sm:text-2xl font-serif mb-2">
-              {isFR ? "Revue" : "Review"}
+              {t("assessment.reviewTitle")}
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
-              {isFR
-                ? `${session.responsesArray.length} / ${session.totalQuestions} questions répondues.`
-                : `${session.responsesArray.length} / ${session.totalQuestions} questions answered.`}
+              {t("assessment.answeredCount", {
+                answered: String(session.responsesArray.length),
+                total: String(session.totalQuestions),
+              })}
             </p>
             <div className="max-h-72 overflow-auto space-y-2 mb-6 pr-1">
               {loaded.questions.map((q, idx) => {
@@ -480,9 +292,10 @@ export default function AssessmentFlow() {
             </div>
             {!session.requiredAnswered ? (
               <p className="text-sm text-amber-600 dark:text-amber-500 mb-4">
-                {isFR
-                  ? `${session.responsesArray.length} / ${session.totalQuestions} questions complétées — répondez à toutes les questions pour soumettre.`
-                  : `${session.responsesArray.length} / ${session.totalQuestions} questions completed — answer every question to submit.`}
+                {t("assessment.incompleteHint", {
+                  answered: String(session.responsesArray.length),
+                  total: String(session.totalQuestions),
+                })}
               </p>
             ) : null}
             <div className="flex flex-col sm:flex-row gap-3">
@@ -491,7 +304,7 @@ export default function AssessmentFlow() {
                 onClick={() => session.goToQuestion(0)}
                 className="flex-1"
               >
-                {isFR ? "Revenir aux questions" : "Back to questions"}
+                {t("assessment.backToQuestions")}
               </Button>
               <Button
                 onClick={handleSubmit}
@@ -499,7 +312,7 @@ export default function AssessmentFlow() {
                 className="flex-1"
               >
                 {submitting && <Loader2 className="mr-2 w-4 h-4 animate-spin" />}
-                {isFR ? "Soumettre" : "Submit"}
+                {t("assessment.submit")}
               </Button>
             </div>
           </Card>
@@ -507,179 +320,6 @@ export default function AssessmentFlow() {
       </div>
     </div>
   );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Phase 2 — single-category runner                                           */
-/* -------------------------------------------------------------------------- */
-
-function AppendixCategoryRunner({
-  category,
-  sessionId,
-  userId,
-  isFR,
-  onClose,
-  onCompleted,
-}: {
-  category: AppendixCategoryWithQuestions;
-  sessionId: string;
-  userId: string;
-  isFR: boolean;
-  onClose: () => void;
-  onCompleted: () => void;
-}) {
-  const [idx, setIdx] = useState(0);
-  const [responses, setResponses] = useState<Record<string, ResponseValue>>({});
-  const [submitting, setSubmitting] = useState(false);
-  const { isAdmin } = useAdmin();
-
-  const total = category.questions.length;
-  const current = category.questions[idx];
-
-  // Convert AppendixQuestion -> RuntimeQuestion shape for the renderer
-  const runtimeQ: RuntimeQuestion | undefined = current
-    ? appendixToRuntime(current)
-    : undefined;
-
-  // Live emerging scores from Phase 2 answers
-  const liveRawScores = useMemo<Record<string, number>>(() => {
-    const runtimeAll = category.questions.map(appendixToRuntime);
-    const { archetypeScores } = computeRawScores(
-      runtimeAll,
-      Object.values(responses)
-    );
-    return archetypeScores as Record<string, number>;
-  }, [category.questions, responses]);
-
-  const setResponse = (v: ResponseValue) =>
-    setResponses((prev) => ({ ...prev, [v.questionId]: v }));
-
-  const remaining = Math.max(0, total - (idx + 1));
-
-  const isCurrentAnswered = (() => {
-    if (!current) return false;
-    if (!current.is_required) return true;
-    const r = responses[current.id];
-    if (!r) return false;
-    if (current.question_type === "short_text") {
-      return Boolean(r.textValue && r.textValue.trim().length > 0);
-    }
-    return (r.selectedOptionIds?.length ?? 0) > 0;
-  })();
-
-  const handleNext = async () => {
-    if (idx < total - 1) {
-      setIdx((i) => i + 1);
-      return;
-    }
-    // Last question — persist and finalize this category
-    setSubmitting(true);
-    try {
-      const runtimeAll = category.questions.map(appendixToRuntime);
-      await submitAppendixResponses({
-        userId,
-        sessionId,
-        questions: runtimeAll,
-        responses: Object.values(responses),
-      });
-      onCompleted();
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast({ title: "Erreur", description: msg, variant: "destructive" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen relative">
-      <div className="absolute top-4 right-4 z-10">
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label="close">
-          <X className="w-5 h-5" />
-        </Button>
-      </div>
-
-      {isAdmin && <MiniRadarThumb isFR={isFR} rawScores={liveRawScores} />}
-
-      <div className="max-w-2xl mx-auto px-4 py-10 sm:py-16 space-y-6">
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-            {isFR ? category.label_fr : category.label_en}
-          </p>
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-            <span>
-              {isFR
-                ? `Question ${idx + 1} / ${total}`
-                : `Question ${idx + 1} / ${total}`}
-            </span>
-            <span>{Math.round(((idx + 1) / total) * 100)}%</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-2">
-            <Clock className="w-3 h-3" />
-            <span>{formatMinutesRemaining(remaining, isFR)}</span>
-          </div>
-          <Progress value={((idx + 1) / total) * 100} />
-        </div>
-
-        {runtimeQ && (
-          <Card className="p-5 sm:p-7 backdrop-blur-3xl bg-card/40 border-border/40">
-            <QuestionRenderer
-              question={runtimeQ}
-              value={responses[runtimeQ.id]}
-              onChange={setResponse}
-              isFR={isFR}
-            />
-          </Card>
-        )}
-
-        <div className="flex items-center justify-between gap-3">
-          <Button
-            variant="ghost"
-            onClick={() => (idx > 0 ? setIdx((i) => i - 1) : onClose())}
-          >
-            <ArrowLeft className="mr-2 w-4 h-4" />
-            {idx > 0 ? (isFR ? "Précédent" : "Previous") : isFR ? "Quitter" : "Exit"}
-          </Button>
-          <Button onClick={handleNext} disabled={!isCurrentAnswered || submitting}>
-            {submitting && <Loader2 className="mr-2 w-4 h-4 animate-spin" />}
-            {idx === total - 1
-              ? isFR
-                ? "Terminer la catégorie"
-                : "Finish category"
-              : isFR
-              ? "Suivant"
-              : "Next"}
-            <ArrowRight className="ml-2 w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function appendixToRuntime(q: AppendixQuestion): RuntimeQuestion {
-  return {
-    id: q.id,
-    position: q.position,
-    question_type: q.question_type,
-    prompt_fr: q.prompt_fr,
-    prompt_en: q.prompt_en,
-    helper_fr: q.helper_fr,
-    helper_en: q.helper_en,
-    dimension: null,
-    is_required: q.is_required,
-    meta: {},
-    options: (q.options ?? []).map((o) => ({
-      id: o.id,
-      position: o.position,
-      label_fr: o.label_fr,
-      label_en: o.label_en,
-      archetype_weights: (o.archetype_weights ?? {}) as Partial<Record<ArchetypeKey, number>>,
-      shadow_weights: (o.shadow_weights ?? {}) as Partial<Record<ShadowKey, number>>,
-      polarity_weights: [],
-      value: o.value,
-    })),
-  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -691,14 +331,18 @@ function QuestionRenderer({
   value,
   onChange,
   isFR,
+  t,
 }: {
   question: RuntimeQuestion;
   value?: ResponseValue;
   onChange: (v: ResponseValue) => void;
   isFR: boolean;
+  t: (key: string, vars?: Record<string, string>) => string;
 }) {
   const prompt = isFR ? question.prompt_fr : question.prompt_en;
   const helper = isFR ? question.helper_fr : question.helper_en;
+  const intensityEnabled =
+    (question.meta as { intensityEnabled?: boolean } | undefined)?.intensityEnabled === true;
 
   return (
     <div className="space-y-5">
@@ -707,7 +351,12 @@ function QuestionRenderer({
         {helper && <p className="text-xs text-muted-foreground mt-1">{helper}</p>}
       </div>
 
-      {question.question_type === "single_choice" && (
+      {intensityEnabled &&
+      (question.question_type === "single_choice" || question.question_type === "multiple_choice") ? (
+        <IntensityMultipleChoice question={question} value={value} onChange={onChange} isFR={isFR} />
+      ) : null}
+
+      {question.question_type === "single_choice" && !intensityEnabled ? (
         <RadioGroup
           value={value?.selectedOptionIds?.[0] ?? ""}
           onValueChange={(v) =>
@@ -725,18 +374,18 @@ function QuestionRenderer({
             </Label>
           ))}
         </RadioGroup>
-      )}
+      ) : null}
 
-      {question.question_type === "multiple_choice" && (
+      {question.question_type === "multiple_choice" && !intensityEnabled ? (
         <IntensityMultipleChoice question={question} value={value} onChange={onChange} isFR={isFR} />
-      )}
+      ) : null}
 
       {question.question_type === "likert_scale" && (
-        <LikertScale question={question} value={value} onChange={onChange} isFR={isFR} />
+        <LikertScale question={question} value={value} onChange={onChange} isFR={isFR} t={t} />
       )}
 
       {question.question_type === "ranking" && (
-        <Ranking question={question} value={value} onChange={onChange} isFR={isFR} />
+        <Ranking question={question} value={value} onChange={onChange} isFR={isFR} t={t} />
       )}
 
       {question.question_type === "short_text" && (
@@ -746,7 +395,7 @@ function QuestionRenderer({
           onChange={(e) =>
             onChange({ questionId: question.id, textValue: e.target.value })
           }
-          placeholder={isFR ? "Votre réponse…" : "Your answer…"}
+          placeholder={t("assessment.answerPlaceholder")}
           rows={4}
         />
       )}
@@ -759,11 +408,13 @@ function LikertScale({
   value,
   onChange,
   isFR,
+  t,
 }: {
   question: RuntimeQuestion;
   value?: ResponseValue;
   onChange: (v: ResponseValue) => void;
   isFR: boolean;
+  t: (key: string, vars?: Record<string, string>) => string;
 }) {
   const options = question.options;
   const selectedIdx = options.findIndex((o) => value?.selectedOptionIds?.includes(o.id));
@@ -772,8 +423,8 @@ function LikertScale({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{isFR ? "Pas du tout" : "Not at all"}</span>
-        <span>{isFR ? "Tout à fait" : "Totally"}</span>
+        <span>{t("assessment.likertMin")}</span>
+        <span>{t("assessment.likertMax")}</span>
       </div>
       <Slider
         value={[idx]}
@@ -791,7 +442,7 @@ function LikertScale({
         }}
       />
       <p className="text-center text-sm font-medium">
-        {selectedIdx >= 0 ? options[selectedIdx].label_fr : "—"}
+        {selectedIdx >= 0 ? (isFR ? options[selectedIdx].label_fr : options[selectedIdx].label_en) : "—"}
       </p>
     </div>
   );
@@ -802,11 +453,13 @@ function Ranking({
   value,
   onChange,
   isFR,
+  t,
 }: {
   question: RuntimeQuestion;
   value?: ResponseValue;
   onChange: (v: ResponseValue) => void;
   isFR: boolean;
+  t: (key: string, vars?: Record<string, string>) => string;
 }) {
   const order =
     value?.selectedOptionIds && value.selectedOptionIds.length === question.options.length
@@ -824,9 +477,7 @@ function Ranking({
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
-        {isFR
-          ? "Utilisez ▲ ▼ pour ordonner du plus fort au plus faible."
-          : "Use ▲ ▼ to order strongest to weakest."}
+        {t("assessment.rankingHint")}
       </p>
       {order.map((id, idx) => {
         const o = question.options.find((x) => x.id === id);

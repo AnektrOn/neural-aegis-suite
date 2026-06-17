@@ -6,7 +6,7 @@ import { NeuralCard } from "@/components/ui/neural-card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { pickLocalizedText } from "@/lib/content-i18n";
+import { resolveAssignedHabitDisplays } from "@/lib/assigned-habit-display";
 import type { Locale } from "@/i18n/translations";
 
 interface Habit {
@@ -18,17 +18,10 @@ interface HabitsMiniCardProps {
   userId: string;
 }
 
-type JsonI18n = Partial<Record<Locale, string>> | Record<string, string> | null;
-
 interface AssignedHabitRow {
   id: string;
-  habit_template_id: string;
-}
-
-interface HabitTemplateNameRow {
-  id: string;
-  name: string;
-  name_i18n: JsonI18n;
+  habit_template_id: string | null;
+  toolbox_assignment_id: string | null;
 }
 
 interface HabitCompletionRow {
@@ -47,30 +40,19 @@ const HabitsMiniCardBase = function HabitsMiniCard({ userId }: HabitsMiniCardPro
       try {
         const { data: assigned } = await supabase
           .from("assigned_habits")
-          .select("id, habit_template_id")
+          .select("id, habit_template_id, toolbox_assignment_id")
           .eq("user_id", userId)
           .eq("is_active", true);
         if (!assigned || assigned.length === 0) return;
 
         const assignedRows = assigned as AssignedHabitRow[];
-        const templateIds = assignedRows.map((a) => a.habit_template_id);
-        const { data: templates } = await supabase
-          .from("habit_templates")
-          .select("id, name, name_i18n")
-          .in("id", templateIds);
-
-        const tplRows = (templates || []) as HabitTemplateNameRow[];
-        const tplMap = new Map(tplRows.map((row) => [row.id, row]));
-        setHabits(
-          assignedRows.map((a) => ({
-            id: a.id,
-            name: (() => {
-              const tpl = tplMap.get(a.habit_template_id);
-              if (!tpl) return t("habits.mini.fallbackName");
-              return pickLocalizedText(locale as Locale, tpl.name_i18n, tpl.name);
-            })(),
-          }))
+        const resolved = await resolveAssignedHabitDisplays(
+          assignedRows,
+          userId,
+          locale as Locale,
+          t("habits.toolboxLinked"),
         );
+        setHabits(resolved.map((h) => ({ id: h.id, name: h.name })));
 
         const { data: completions } = await supabase
           .from("habit_completions")

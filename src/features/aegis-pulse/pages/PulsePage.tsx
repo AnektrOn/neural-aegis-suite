@@ -290,7 +290,7 @@ export default function PulsePage() {
                       <p>cartes en base: {diag.total} ({diag.active} actives)</p>
                       <p>pour vous (ciblage): {diag.forYou}</p>
                       <p>RPC deck retourne: {diag.rpcCards}</p>
-                      <p>déjà swipées: {diag.swiped}</p>
+                      <p>{t("pulse.diagSwiped")} {diag.swiped}</p>
                       {diag.sampleKeys.length > 0 && (
                         <p className="break-all">clés: {diag.sampleKeys.join(", ")}</p>
                       )}

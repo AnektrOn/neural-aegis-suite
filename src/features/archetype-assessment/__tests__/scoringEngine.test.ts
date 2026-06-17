@@ -89,6 +89,42 @@ describe("computeRawScores", () => {
     expect(sumArchetypePercentages(archetypeScores)).toBeCloseTo(100);
   });
 
+  it("scores V4 multi-select `selections` with per-option intensity on 32 poles", () => {
+    const questions: RuntimeQuestion[] = [{
+      ...q("q1", "multiple_choice", [
+        opt("o1", {}, {}, null, [
+          { archetype: "sage", polarity: "light", weight: 2 },
+          { archetype: "magician", polarity: "light", weight: 1 },
+          { archetype: "child", polarity: "shadow", weight: 2 },
+          { archetype: "lover", polarity: "shadow", weight: 1 },
+        ]),
+        opt("o2", {}, {}, null, [
+          { archetype: "sovereign", polarity: "light", weight: 2 },
+          { archetype: "warrior", polarity: "light", weight: 1 },
+          { archetype: "caregiver", polarity: "shadow", weight: 2 },
+          { archetype: "mystic", polarity: "shadow", weight: 1 },
+        ]),
+      ]),
+      meta: { scoringModel: "myss-v4", intensityEnabled: true },
+    }];
+    const responses: ResponseValue[] = [{
+      questionId: "q1",
+      selections: [
+        { optionIndex: 0, intensity: 2 },
+        { optionIndex: 1, intensity: 1 },
+      ],
+    }];
+    const { poleScores } = computeRawScores(questions, responses);
+    expect(poleScores.sage_light).toBe(4);
+    expect(poleScores.magician_light).toBe(2);
+    expect(poleScores.child_shadow).toBe(4);
+    expect(poleScores.lover_shadow).toBe(2);
+    expect(poleScores.sovereign_light).toBe(2);
+    expect(poleScores.warrior_light).toBe(1);
+    expect(poleScores.caregiver_shadow).toBe(2);
+    expect(poleScores.mystic_shadow).toBe(1);
+  });
+
   it("transfers negative polarity weights into opposite pole resonance", () => {
     const questions = [q("q1", "multiple_choice", [
       opt("o1", {}, {}, null, [

@@ -9,13 +9,14 @@ import {
 } from "recharts";
 import { archetypeMeta } from "../services/assessmentService";
 import { ARCHETYPE_KEYS } from "../domain/archetypes";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { ArchetypeKey } from "../domain/types";
 
 const SHADOW_KEYS = ["child", "victim", "prostitute", "saboteur"] as const;
 type ShadowKey = (typeof SHADOW_KEYS)[number];
 
 interface Props {
-  isFR: boolean;
+  isFR?: boolean;
   /** Current session normalized light scores (0..100). */
   lightScores: Array<{ archetype_key: string; normalized_score: number }>;
   /** Current session shadow signals (0..1 from analysis_results). */
@@ -39,12 +40,14 @@ const SHADOW_LABELS_EN: Record<ShadowKey, string> = {
 };
 
 export function DualLayerRadar({
-  isFR,
+  isFR: isFRProp,
   lightScores,
   shadowSignals,
   previousLightScores,
   showPrevious = false,
 }: Props) {
+  const { locale, t } = useLanguage();
+  const isFR = isFRProp ?? locale === "fr";
   // Build a unified axis list: 12 archetypes + 4 shadows.
   const lightMap = new Map(
     lightScores.map((s) => [s.archetype_key, Number(s.normalized_score) || 0])
@@ -84,7 +87,7 @@ export function DualLayerRadar({
 
           {showPrevious && previousLightScores && previousLightScores.length > 0 && (
             <Radar
-              name={isFR ? "Session précédente" : "Previous session"}
+              name={t("assessment.radarPreviousSession")}
               dataKey="previous"
               stroke="hsl(var(--muted-foreground))"
               strokeDasharray="2 4"
@@ -95,7 +98,7 @@ export function DualLayerRadar({
           )}
 
           <Radar
-            name={isFR ? "Profil lumière" : "Light profile"}
+            name={t("assessment.radarLightProfile")}
             dataKey="light"
             stroke="hsl(var(--primary))"
             strokeWidth={1.5}
@@ -104,7 +107,7 @@ export function DualLayerRadar({
           />
 
           <Radar
-            name={isFR ? "Profil ombre" : "Shadow profile"}
+            name={t("assessment.radarShadowProfile")}
             dataKey="shadow"
             stroke="hsl(var(--secondary-foreground))"
             strokeDasharray="5 4"

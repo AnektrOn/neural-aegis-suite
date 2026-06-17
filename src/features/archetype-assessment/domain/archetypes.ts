@@ -1,9 +1,8 @@
-import type { ArchetypeDef, ArchetypeKey } from "./types";
+import type { ArchetypeDef, ArchetypeKey, MajorArchetypeKey, ShadowKey } from "./types";
 
 /**
- * The 12 universal archetypes (Caroline Myss). Single source of truth.
- * Keys MUST match the BDD (assessment_options.archetype_weights, archetype_scores.archetype_key).
- * Colors use HSL strings to stay aligned with the design system.
+ * The 16 archetypes (12 universal + 4 survival). Caroline Myss.
+ * Keys MUST match the BDD (assessment_options, archetype_scores.archetype_key).
  */
 export const ARCHETYPES: ArchetypeDef[] = [
   {
@@ -210,9 +209,88 @@ export const ARCHETYPES: ArchetypeDef[] = [
     fearPattern_en: "Fear of boredom and heaviness.",
     color: "hsl(48 95% 60%)",
   },
+  {
+    key: "child",
+    family: "survival",
+    name_fr: "L'Enfant",
+    name_en: "The Child",
+    shortDescription_fr: "Cherche sécurité et réconfort ; peur d'être abandonné ou impuissant.",
+    shortDescription_en: "Seeks safety and comfort; fears abandonment or helplessness.",
+    lightAspect_fr: "Spontanéité, confiance, joie d'apprendre.",
+    lightAspect_en: "Spontaneity, trust, joy of learning.",
+    shadowAspect_fr: "Dépendance, victimisation, refus de grandir.",
+    shadowAspect_en: "Dependency, victimhood, refusal to grow up.",
+    coreNeed_fr: "Se sentir en sécurité et aimé inconditionnellement.",
+    coreNeed_en: "Feel safe and unconditionally loved.",
+    fearPattern_fr: "Peur de l'abandon et de l'impuissance.",
+    fearPattern_en: "Fear of abandonment and helplessness.",
+    color: "hsl(200 45% 68%)",
+  },
+  {
+    key: "victim",
+    family: "survival",
+    name_fr: "La Victime",
+    name_en: "The Victim",
+    shortDescription_fr: "Attribue la souffrance à l'extérieur ; attend qu'on la sauve ou la comprenne.",
+    shortDescription_en: "Attributes suffering outward; waits to be saved or understood.",
+    lightAspect_fr: "Lucidité sur l'injustice, capacité à demander de l'aide.",
+    lightAspect_en: "Lucidity about injustice, ability to ask for help.",
+    shadowAspect_fr: "Impuissance chronique, plainte, refus de responsabilité.",
+    shadowAspect_en: "Chronic powerlessness, complaining, refusal of responsibility.",
+    coreNeed_fr: "Être vu dans sa souffrance et retrouver du pouvoir.",
+    coreNeed_en: "Be seen in suffering and regain power.",
+    fearPattern_fr: "Peur de la trahison et de l'injustice subie.",
+    fearPattern_en: "Fear of betrayal and endured injustice.",
+    color: "hsl(280 35% 62%)",
+  },
+  {
+    key: "saboteur",
+    family: "survival",
+    name_fr: "Le Saboteur",
+    name_en: "The Saboteur",
+    shortDescription_fr: "Protège par la peur : bloque, procrastine ou sabote avant l'échec.",
+    shortDescription_en: "Protects through fear: blocks, procrastinates, or sabotages before failure.",
+    lightAspect_fr: "Vigilance, discernement des risques réels.",
+    lightAspect_en: "Vigilance, discernment of real risks.",
+    shadowAspect_fr: "Auto-destruction, peur du succès, inaction paralysante.",
+    shadowAspect_en: "Self-destruction, fear of success, paralyzing inaction.",
+    coreNeed_fr: "Se protéger de la douleur et du rejet.",
+    coreNeed_en: "Protect oneself from pain and rejection.",
+    fearPattern_fr: "Peur de l'échec et de ne pas être à la hauteur.",
+    fearPattern_en: "Fear of failure and not measuring up.",
+    color: "hsl(25 50% 55%)",
+  },
+  {
+    key: "prostitute",
+    family: "survival",
+    name_fr: "La Prostituée",
+    name_en: "The Prostitute",
+    shortDescription_fr: "Échange intégrité contre sécurité, statut ou survie matérielle.",
+    shortDescription_en: "Trades integrity for security, status, or material survival.",
+    lightAspect_fr: "Loyauté envers ses valeurs, courage de refuser le compromis.",
+    lightAspect_en: "Loyalty to values, courage to refuse compromise.",
+    shadowAspect_fr: "Vente de soi, compromission, trahison de ses principes.",
+    shadowAspect_en: "Selling oneself, compromise, betrayal of principles.",
+    coreNeed_fr: "Survivre sans perdre son âme.",
+    coreNeed_en: "Survive without losing one's soul.",
+    fearPattern_fr: "Peur de la pauvreté, de l'exclusion et de l'impuissance.",
+    fearPattern_en: "Fear of poverty, exclusion, and powerlessness.",
+    color: "hsl(340 40% 58%)",
+  },
 ];
 
 export const ARCHETYPE_KEYS: ArchetypeKey[] = ARCHETYPES.map((a) => a.key);
+
+export const SURVIVAL_ARCHETYPE_KEYS: ShadowKey[] = [
+  "child",
+  "victim",
+  "saboteur",
+  "prostitute",
+];
+
+export const MAJOR_ARCHETYPE_KEYS: MajorArchetypeKey[] = ARCHETYPE_KEYS.filter(
+  (k): k is MajorArchetypeKey => !SURVIVAL_ARCHETYPE_KEYS.includes(k as ShadowKey),
+);
 
 export function getArchetype(key: ArchetypeKey): ArchetypeDef {
   const a = ARCHETYPES.find((x) => x.key === key);

@@ -144,7 +144,7 @@ export function WelcomeExperience({ maturityProfile, onDismiss }: Props) {
       >
         <div className="flex items-center gap-2 text-primary text-xs uppercase tracking-[0.2em] font-display">
           <Sparkles className="w-3.5 h-3.5" strokeWidth={1.5} />
-          {isFR ? "Bienvenue" : "Welcome"}
+          {t("welcome.hud.eyebrowShort")}
         </div>
         <h1 className="font-serif text-2xl sm:text-3xl text-foreground">
           {firstName
@@ -356,7 +356,7 @@ export function SetupProgressBanner({
           type="button"
           onClick={handleDismiss}
           className="text-muted-foreground hover:text-foreground transition-colors p-1"
-          aria-label="Dismiss"
+          aria-label={t("general.close")}
         >
           <X className="w-4 h-4" />
         </button>

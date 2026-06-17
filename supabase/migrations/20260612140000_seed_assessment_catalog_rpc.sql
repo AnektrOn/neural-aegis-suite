@@ -66,7 +66,7 @@ BEGIN
     ) VALUES (
       v_template_id,
       (q->>'position')::int,
-      q->>'question_type',
+      (q->>'question_type')::public.assessment_question_type,
       q->>'prompt_fr',
       q->>'prompt_en',
       NULLIF(q->>'helper_fr', ''),

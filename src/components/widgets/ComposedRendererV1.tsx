@@ -6,7 +6,7 @@ import type { Locale } from "@/i18n/translations";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
-import { shouldTreatUnmountAsAbandon } from "@/lib/widget-lifecycle";
+import { playToolboxTimerCompleteSound } from "@/lib/toolbox-timer-sound";
 
 type BlockType =
   | "markdown"
@@ -98,6 +98,7 @@ export default function ComposedRendererV1({
   );
   const durationSec = Math.max(0, readNumber(config.duration_sec, 0));
   const budgetMode = config.time_budget_mode === true && durationSec > 0;
+  const wallClockTimer = budgetMode || Boolean(sessionKey && durationSec > 0);
   const hasSteps = steps.length > 0;
   const blocks: BlockType[] = Array.isArray(
     (blueprint as { blocks?: BlockType[] } | undefined)?.blocks,
@@ -108,45 +109,54 @@ export default function ComposedRendererV1({
       : ["markdown", "step_list", "timer"];
 
   const timer = usePersistedExerciseTimer({
-    sessionKey: budgetMode ? sessionKey : undefined,
+    sessionKey: wallClockTimer ? sessionKey : undefined,
     totalSeconds: Math.max(1, durationSec || 1),
-    onComplete: budgetMode ? () => markCompletedRef.current() : undefined,
+    onComplete: budgetMode
+      ? () => markCompletedRef.current()
+      : wallClockTimer
+        ? () => {
+            playToolboxTimerCompleteSound();
+            onComplete?.();
+          }
+        : undefined,
   });
 
   const markCompleted = useCallback(() => {
     timer.completedRef.current = true;
     onComplete?.({
-      elapsedSec: budgetMode ? timer.elapsedSec : elapsed,
+      elapsedSec: wallClockTimer ? timer.elapsedSec : elapsed,
       durationBudgetSec: budgetMode ? durationSec : undefined,
     });
-  }, [budgetMode, timer, elapsed, durationSec, onComplete]);
+  }, [budgetMode, timer, elapsed, durationSec, onComplete, wallClockTimer]);
 
   useEffect(() => {
     markCompletedRef.current = markCompleted;
   }, [markCompleted]);
 
-  useWidgetAbandonGuard(timer.hasStartedRef, timer.completedRef, budgetMode ? undefined : onAbandon);
+  const timerElapsedRef = useRef(timer.elapsedSec);
+  timerElapsedRef.current = timer.elapsedSec;
+
+  useWidgetAbandonGuard(
+    timer.hasStartedRef,
+    timer.completedRef,
+    onAbandon,
+    budgetMode || wallClockTimer
+      ? () => ({
+          elapsedSec: timerElapsedRef.current,
+          durationBudgetSec: budgetMode ? durationSec : durationSec || undefined,
+        })
+      : undefined,
+  );
 
   useEffect(() => {
-    if (!budgetMode) return;
-    return () => {
-      if (timer.hasStartedRef.current && !timer.completedRef.current && shouldTreatUnmountAsAbandon()) {
-        onAbandon?.({
-          elapsedSec: timer.elapsedSec,
-          durationBudgetSec: durationSec,
-        });
-      }
-    };
-  }, [budgetMode, timer.elapsedSec, durationSec, onAbandon, timer.hasStartedRef, timer.completedRef]);
-
-  useEffect(() => {
-    if (budgetMode || !isRunning || durationSec <= 0) return;
+    if (wallClockTimer || !isRunning || durationSec <= 0) return;
     const id = setInterval(() => {
       setElapsed((value) => {
         const next = value + 1;
         if (next >= durationSec) {
           clearInterval(id);
           setIsRunning(false);
+          playToolboxTimerCompleteSound();
           onComplete?.();
           return durationSec;
         }
@@ -154,7 +164,10 @@ export default function ComposedRendererV1({
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [durationSec, isRunning, onComplete, budgetMode]);
+  }, [durationSec, isRunning, onComplete, wallClockTimer]);
+
+  const displayElapsed = wallClockTimer ? timer.elapsedSec : elapsed;
+  const displayRunning = wallClockTimer ? timer.isRunning : isRunning;
 
   const sessionDone = budgetMode && (timer.completed || timer.completedRef.current);
 
@@ -321,22 +334,32 @@ export default function ComposedRendererV1({
           <div className="rounded-lg border border-border/40 p-3">
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("toolbox.duration")}</span>
-              <span className="text-sm font-medium">{Math.max(0, durationSec - elapsed)}s</span>
+              <span className="text-sm font-medium">{Math.max(0, durationSec - displayElapsed)}s</span>
             </div>
             <div className="mt-3 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setIsRunning((v) => !v)}
+                onClick={() => {
+                  if (wallClockTimer) {
+                    timer.hasStartedRef.current = true;
+                    timer.toggleRunning();
+                  } else {
+                    setIsRunning((v) => !v);
+                  }
+                }}
                 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] px-3 py-2 rounded border border-primary/30 text-primary"
               >
-                {isRunning ? <Pause size={12} /> : <Play size={12} />}
-                {isRunning ? t("toolbox.pause") : t("toolbox.launch")}
+                {displayRunning ? <Pause size={12} /> : <Play size={12} />}
+                {displayRunning ? t("toolbox.pause") : t("toolbox.launch")}
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  setIsRunning(false);
-                  setElapsed(0);
+                  if (wallClockTimer) timer.reset();
+                  else {
+                    setIsRunning(false);
+                    setElapsed(0);
+                  }
                 }}
                 className="text-[10px] uppercase tracking-[0.2em] px-3 py-2 rounded border border-border/40 text-muted-foreground"
               >

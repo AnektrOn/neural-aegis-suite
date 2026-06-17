@@ -2,6 +2,7 @@ import { LayoutDashboard, Settings2, User } from "lucide-react";
 import AegisHealthSection from "@/components/AegisHealthSection";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { PersonaStatsSection } from "./PersonaStatsSection";
 import { PersonaTrackingStrip } from "./PersonaTrackingStrip";
 import {
@@ -12,6 +13,7 @@ import {
   type PersonaViewProps,
 } from "./personaParts";
 import { PersonaPortraitLibrary } from "./PersonaPortraitLibrary";
+import { Houses72PersonaCTA } from "@/features/houses72/components/Houses72PersonaCTA";
 
 export function PersonaDesktopScreen({
   profile,
@@ -22,6 +24,7 @@ export function PersonaDesktopScreen({
   portraitsLoading,
 }: PersonaViewProps) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const {
     n,
     shownName,
@@ -110,6 +113,8 @@ export function PersonaDesktopScreen({
           {tracking ? <PersonaTrackingStrip stats={tracking} /> : null}
           <AegisHealthSection variant="compact" />
           <PersonaStatsSection profile={profile} />
+
+          <Houses72PersonaCTA userId={user?.id} variant="compact" />
 
           <section className="space-y-2" aria-labelledby="persona-links-heading-desktop">
             <p

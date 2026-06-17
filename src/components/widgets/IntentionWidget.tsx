@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
+import { loadTimerSession } from "@/lib/toolbox-session-storage";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Target, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import type { Locale } from "@/i18n/translations";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
+import { playToolboxTimerCompleteSound } from "@/lib/toolbox-timer-sound";
 import { hslWithAlpha } from "@/components/widgets/VisualizationWidget";
 
 export interface IntentionConfig {
@@ -75,67 +78,55 @@ function normalizeIntentionConfig(
   };
 }
 
-export default function IntentionWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+export default function IntentionWidget({ config, title, hideTitle, sessionKey, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const cfg = useMemo(() => normalizeIntentionConfig(config, t, locale as Locale), [config, t, locale]);
 
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
+  const totalSeconds = cfg.duration_sec;
+  const onTimerCompleteRef = useRef<() => void>(() => {});
+
+  const timer = usePersistedExerciseTimer({
+    sessionKey,
+    totalSeconds,
+    onComplete: () => onTimerCompleteRef.current(),
+  });
+
+  const [phase, setPhase] = useState<Phase>(() => {
+    if (!sessionKey) return "idle";
+    const saved = loadTimerSession(sessionKey);
+    if (saved && !saved.completed && (saved.accumulatedSec > 0 || saved.runningSince !== null)) {
+      return "reflecting";
+    }
+    return "idle";
+  });
   const [note, setNote] = useState("");
-  const hasStartedRef = useRef(false);
-  const completedRef = useRef(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const completedRef = timer.completedRef;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const totalSeconds = cfg.duration_sec;
+  const elapsed = timer.elapsedSec;
+  const isRunning = timer.isRunning;
   const remaining = totalSeconds - elapsed;
   const progress = elapsed / totalSeconds;
 
   useEffect(() => {
-    setElapsed(0);
-    setIsRunning(false);
-    setPhase("idle");
-    hasStartedRef.current = false;
-    completedRef.current = false;
-  }, [totalSeconds]);
-
-  useEffect(() => {
-    if (isRunning && !hasStartedRef.current) hasStartedRef.current = true;
-  }, [isRunning]);
-
-  useWidgetAbandonGuard(hasStartedRef, completedRef, onAbandon);
-
-  useEffect(() => {
-    if (!isRunning) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-    intervalRef.current = setInterval(() => {
-      setElapsed((prev) => {
-        if (prev + 1 >= totalSeconds) {
-          setIsRunning(false);
-          if (cfg.allow_note) {
-            setPhase("noting");
-            setTimeout(() => textareaRef.current?.focus(), 300);
-          } else {
-            setPhase("done");
-            completedRef.current = true;
-            onComplete?.();
-          }
-          return totalSeconds;
-        }
-        return prev + 1;
-      });
-    }, 1000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    onTimerCompleteRef.current = () => {
+      playToolboxTimerCompleteSound();
+      if (cfg.allow_note) {
+        setPhase("noting");
+        setTimeout(() => textareaRef.current?.focus(), 300);
+      } else {
+        setPhase("done");
+        completedRef.current = true;
+        onComplete?.();
+      }
     };
-  }, [isRunning, totalSeconds, cfg.allow_note, onComplete]);
+  }, [cfg.allow_note, onComplete, completedRef]);
+
+  useWidgetAbandonGuard(timer.hasStartedRef, completedRef, onAbandon);
 
   const startReflection = () => {
     setPhase("reflecting");
-    setIsRunning(true);
+    timer.setRunning(true);
   };
 
   const handleComplete = () => {
@@ -145,14 +136,10 @@ export default function IntentionWidget({ config, title, hideTitle, onComplete, 
   };
 
   const reset = useCallback(() => {
-    setIsRunning(false);
-    setElapsed(0);
+    timer.reset();
     setNote("");
     setPhase("idle");
-    completedRef.current = false;
-    hasStartedRef.current = false;
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  }, []);
+  }, [timer]);
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -345,7 +332,7 @@ export default function IntentionWidget({ config, title, hideTitle, onComplete, 
           <>
             <button
               type="button"
-              onClick={() => setIsRunning(!isRunning)}
+              onClick={() => timer.toggleRunning()}
               className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors hover:opacity-90"
               style={{
                 borderColor: hslWithAlpha(COLOR, 0.35),

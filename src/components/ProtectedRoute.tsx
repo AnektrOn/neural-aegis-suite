@@ -3,14 +3,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 function RouteSpinner() {
+  const { t } = useLanguage();
   return (
     <div className="relative z-10 flex min-h-screen items-center justify-center">
       <div
         className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary"
         role="status"
-        aria-label="Loading"
+         aria-label={t("general.loading")}
       />
     </div>
   );

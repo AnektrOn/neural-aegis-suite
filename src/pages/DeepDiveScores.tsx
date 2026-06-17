@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAdmin } from "@/hooks/use-admin";
 import { motion } from "framer-motion";
 import { ArrowLeft, Sparkles, AlertTriangle, Loader2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +11,7 @@ import { archLabel } from "@/features/archetype-deepdive-v2/domain/narrativeCont
 
 export default function DeepDiveScores() {
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const { t, locale } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<DeepDiveResult | null>(null);
@@ -33,6 +35,10 @@ export default function DeepDiveScores() {
       cancelled = true;
     };
   }, [user]);
+
+  if (!isAdmin) {
+    return <Navigate to="/deep-dive" replace />;
+  }
 
   if (loading) {
     return (

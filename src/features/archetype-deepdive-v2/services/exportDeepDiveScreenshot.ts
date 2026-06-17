@@ -158,6 +158,14 @@ const CAPTURE_CSS = `
   #deep-dive-report-export.deep-dive-jpeg-capture-active .recharts-surface {
     overflow: visible !important;
   }
+
+  /* Tab panels — show all sections in PDF/PNG export */
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [role="tabpanel"][hidden] {
+    display: block !important;
+    margin-top: 2.5rem !important;
+    padding-top: 1.5rem !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
 `;
 
 function slugify(s: string): string {

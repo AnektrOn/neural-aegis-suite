@@ -15,6 +15,7 @@ import {
   type SampleProfile,
 } from "../domain/sampleProfile";
 import { buildDynamicProfile } from "../domain/dynamicProfileBuilder";
+import { deepDiveResultFromPoleScores } from "../domain/deepDiveFromV4Poles";
 import { loadUnifiedDeepDiveResult } from "../domain/loadUnifiedScores";
 import { supabase } from "@/integrations/supabase/client";
 import { exportDeepDiveVisualPdf, exportDeepDivePng } from "../services/exportDeepDiveScreenshot";
@@ -22,6 +23,8 @@ import {
   listAllSessionsForAdmin,
   getLatestSubmittedSessionForUser,
   getSessionResultsSummary,
+  extractPoleScoresFromSummary,
+  sessionIsMyssV4,
 } from "@/features/archetype-assessment/services/assessmentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +32,8 @@ import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
 import { DeepDiveAdminCardsV2 } from "../components/DeepDiveAdminCardsV2";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
+import { V4PoleCartographyZones } from "@/features/archetype-assessment/components/V4PoleCartographyZones";
+import { v4PoleAnalysisFromSummary } from "@/features/archetype-assessment/services/assessmentService";
 
 interface DeepDiveReportPageProps {
   /**
@@ -86,6 +91,7 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
   const [assessmentTopThree, setAssessmentTopThree] = useState<ArchetypeKey[]>([]);
   const [deepDiveTopThree, setDeepDiveTopThree] = useState<string[]>([]);
   const [assessmentInterpretation, setAssessmentInterpretation] = useState<AssessmentInterpretation | null>(null);
+  const [v4Analysis, setV4Analysis] = useState<ReturnType<typeof v4PoleAnalysisFromSummary> | null>(null);
 
   // Tabs (admin can flip between user / admin views)
   const [tab, setTab] = useState<"user" | "admin">(mode === "admin" ? "admin" : "user");
@@ -102,7 +108,7 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
       })
       .catch((e) => {
         console.error("[DeepDive admin] list failed", e);
-        toast({ title: isFR ? "Erreur" : "Error", description: isFR ? "Impossible de charger les utilisateurs." : "Unable to load users.", variant: "destructive" });
+        toast({ title: t("assessment.error"), description: t("deepDive.loadUsersFailed"), variant: "destructive" });
       })
       .finally(() => setLoadingSessions(false));
   }, [mode, toast]);
@@ -126,6 +132,7 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
       setAssessmentTopThree([]);
       setDeepDiveTopThree([]);
       setAssessmentInterpretation(null);
+      setV4Analysis(null);
 
       let sessionId: string | null = null;
       let displayName: string | null = null;
@@ -157,14 +164,24 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
         const userIdForDeep =
           mode === "user" ? user!.id : selectedSession!.user_id;
 
+        const isV4 = sessionIsMyssV4(details);
+        const poleScores = extractPoleScoresFromSummary(details);
+        setV4Analysis(isV4 ? v4PoleAnalysisFromSummary(details) : null);
+
         let unified: Awaited<ReturnType<typeof loadUnifiedDeepDiveResult>> | null = null;
         try {
-          const { count, error: countErr } = await supabase
-            .from("deepdive_responses" as any)
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", userIdForDeep);
-          if (!countErr && (count ?? 0) > 0) {
-            unified = await loadUnifiedDeepDiveResult(userIdForDeep);
+          if (isV4 && poleScores) {
+            unified = deepDiveResultFromPoleScores(poleScores);
+          } else {
+            const { count, error: countErr } = await supabase
+              .from("deepdive_responses" as any)
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", userIdForDeep);
+            if (!countErr && (count ?? 0) > 0) {
+              unified = await loadUnifiedDeepDiveResult(userIdForDeep, {
+                assessmentSessionId: sessionId,
+              });
+            }
           }
         } catch (e) {
           console.warn("[DeepDive] unified score load failed", e);
@@ -209,7 +226,7 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
         setProfile(dynProfile);
       } catch (e: any) {
         console.error("[DeepDive] load profile failed", e);
-        if (!cancelled) setProfileError(e?.message ?? (isFR ? "Erreur lors du chargement du profil." : "Error loading profile."));
+        if (!cancelled) setProfileError(e?.message ?? t("deepDive.loadProfileFailed"));
       } finally {
         if (!cancelled) setLoadingProfile(false);
       }
@@ -242,15 +259,13 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
     try {
       await exportDeepDiveVisualPdf(el, reportSubject, { kind: tab, isFR });
       toast({
-        title: isFR ? "PDF téléchargé" : "PDF downloaded",
-        description: isFR
-          ? "Rapport visuel en thème sombre, cartes recto/verso incluses."
-          : "Visual report in dark theme, front/back cards included.",
+        title: t("deepDive.pdfDownloaded"),
+        description: t("deepDive.pdfDownloadedDesc"),
       });
     } catch (e: unknown) {
       console.error("[DeepDive V2] export pdf failed", e);
       toast({
-        title: isFR ? "Erreur" : "Error",
+        title: t("assessment.error"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -266,15 +281,13 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
     try {
       await exportDeepDivePng(el, reportSubject, { kind: tab, isFR });
       toast({
-        title: isFR ? "PNG téléchargé" : "PNG downloaded",
-        description: isFR
-          ? "Capture haute résolution du rapport complet."
-          : "High-resolution capture of the full report.",
+        title: t("deepDive.pngDownloaded"),
+        description: t("deepDive.pngDownloadedDesc"),
       });
     } catch (e: unknown) {
       console.error("[DeepDive V2] export png failed", e);
       toast({
-        title: isFR ? "Erreur" : "Error",
+        title: t("assessment.error"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -317,15 +330,13 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
           <header className="space-y-2">
             <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
               <FileText size={14} strokeWidth={1.5} />
-              {isFR ? "Deep Dive — Lecture admin" : "Deep Dive — Admin reading"}
+              {t("deepDive.adminReading")}
             </div>
             <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
-              {isFR ? "Rapports clients" : "Client reports"}
+              {t("deepDive.clientReports")}
             </h1>
             <p className="text-sm text-text-secondary">
-              {isFR
-                ? "Liste des utilisateurs ayant complété une évaluation. Sélectionne un profil pour consulter son rapport personnel et la lecture admin."
-                : "List of users who have completed an assessment. Select a profile to view their personal report and the admin reading."}
+              {t("deepDive.clientReportsDesc")}
             </p>
           </header>
 
@@ -334,7 +345,7 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
             <Input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder={isFR ? "Rechercher par nom, société, archétype dominant…" : "Search by name, company, dominant archetype…"}
+              placeholder={t("deepDive.searchPlaceholder")}
               className="border-0 bg-transparent focus-visible:ring-0 px-0"
             />
           </Card>
@@ -342,15 +353,15 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
           {loadingSessions ? (
             <div className="flex items-center justify-center py-16 text-text-tertiary">
               <Loader2 size={20} strokeWidth={1.5} className="animate-spin mr-2" />
-              {isFR ? "Chargement des utilisateurs…" : "Loading users…"}
+              {t("deepDive.loadingUsers")}
             </div>
           ) : filtered.length === 0 ? (
             <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
               <Sparkles size={28} strokeWidth={1.2} className="mx-auto mb-3 text-text-tertiary" />
               <p className="text-text-secondary text-sm">
                 {sessions.length === 0
-                  ? (isFR ? "Aucun utilisateur n'a encore complété d'évaluation." : "No user has completed an assessment yet.")
-                  : (isFR ? "Aucun résultat pour ce filtre." : "No results for this filter.")}
+                  ? t("deepDive.noUsersYet")
+                  : t("deepDive.noFilterResults")}
               </p>
             </Card>
           ) : (
@@ -365,11 +376,11 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
                     <div className="flex items-center gap-4 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <div className="font-display tracking-wide text-text-primary truncate">
-                          {s.profile?.display_name || (isFR ? "Utilisateur" : "User")}
+                          {s.profile?.display_name || t("deepDive.defaultUser")}
                         </div>
                         <div className="text-xs text-text-tertiary mt-1 flex items-center gap-3 flex-wrap">
                           {s.company?.name && <span>{s.company.name}</span>}
-                          <span>{isFR ? "Soumis le" : "Submitted on"} {fmtDate(s.submitted_at, locale)}</span>
+                          <span>{t("deepDive.submittedOn")} {fmtDate(s.submitted_at, locale)}</span>
                         </div>
                       </div>
                       {s.top_archetype && (
@@ -379,10 +390,10 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
                       )}
                       {s.shadow_count > 0 && (
                         <Badge variant="outline" className="border-accent-warning/30 text-accent-warning">
-                          {s.shadow_count} {isFR ? `ombre${s.shadow_count > 1 ? "s" : ""}` : `shadow${s.shadow_count > 1 ? "s" : ""}`}
+                          {s.shadow_count} {s.shadow_count > 1 ? t("deepDive.shadows") : t("deepDive.shadow")}
                         </Badge>
                       )}
-                      <span className="text-xs text-text-tertiary uppercase tracking-[0.2em]">{isFR ? "Consulter →" : "View →"}</span>
+                      <span className="text-xs text-text-tertiary uppercase tracking-[0.2em]">{t("deepDive.viewArrow")}</span>
                     </div>
                   </Card>
                 </button>
@@ -406,14 +417,14 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
             className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-display text-text-tertiary hover:text-text-primary transition-colors"
           >
             <ChevronLeft size={14} strokeWidth={1.5} />
-            {isFR ? "Retour à la liste" : "Back to list"}
+            {t("deepDive.backToList")}
           </button>
         )}
 
         {loadingProfile && (
           <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
             <Loader2 size={20} strokeWidth={1.5} className="animate-spin mx-auto mb-3 text-text-tertiary" />
-            <p className="text-text-secondary text-sm">{isFR ? "Construction de ton profil archétypal…" : "Building your archetypal profile…"}</p>
+            <p className="text-text-secondary text-sm">{t("deepDive.buildingProfile")}</p>
           </Card>
         )}
 
@@ -429,11 +440,11 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
             <div className="flex items-center justify-between gap-3 flex-wrap" data-export-hide>
               <TabsList>
                 <TabsTrigger value="user" className="gap-2">
-                  <User size={14} strokeWidth={1.5} /> {isFR ? "Vue Utilisateur" : "User view"}
+                  <User size={14} strokeWidth={1.5} /> {t("deepDive.userView")}
                 </TabsTrigger>
                 {mode === "admin" && (
                   <TabsTrigger value="admin" className="gap-2">
-                    <Shield size={14} strokeWidth={1.5} /> {isFR ? "Vue Admin" : "Admin view"}
+                    <Shield size={14} strokeWidth={1.5} /> {t("deepDive.adminView")}
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -460,7 +471,7 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
                   ) : (
                     <FileDown size={14} strokeWidth={1.5} />
                   )}
-                  {isFR ? "Exporter PDF" : "Export PDF"}
+                  {t("general.exportPdf")}
                 </Button>
                 <Button
                   variant="outline"
@@ -484,8 +495,8 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
                 <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display">
                   <FileText size={14} strokeWidth={1.5} />
                   {mode === "admin"
-                    ? (isFR ? "Deep Dive — Lecture admin" : "Deep Dive — Admin reading")
-                    : (isFR ? "Ton rapport Deep Dive" : "Your Deep Dive report")}
+                    ? t("deepDive.adminReading")
+                    : t("deepDive.yourReport")}
                 </div>
                 <h1 className="font-display text-3xl tracking-[0.15em] uppercase text-text-primary">
                   {reportSubject}
@@ -517,7 +528,7 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
                             : "border-white/10 text-text-tertiary"
                       }
                     >
-                      {isFR ? `Recouvrement: ${overlapCount}/3` : `Overlap: ${overlapCount}/3`}
+                      {t("deepDive.overlapCount", { count: String(overlapCount) })}
                     </Badge>
                   </div>
                 )}
@@ -525,11 +536,37 @@ export default function DeepDiveReportPageV2({ mode }: DeepDiveReportPageProps) 
 
               <TabsContent value="user" className="mt-0">
                 <DeepDiveUserCards profile={profile} />
+                {v4Analysis ? (
+                  <section className="mt-6 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <h2 className="font-serif text-xl">
+                        {t("deepDive.v4CartographyPoles")}
+                      </h2>
+                      <Badge variant="outline" className="border-white/10 text-text-secondary">
+                        {t("deepDive.v4Source")}
+                      </Badge>
+                    </div>
+                    <V4PoleCartographyZones isFR={isFR} analysis={v4Analysis} />
+                  </section>
+                ) : null}
               </TabsContent>
 
               {mode === "admin" && (
                 <TabsContent value="admin" className="mt-0">
                   <DeepDiveAdminCardsV2 profile={profile} comparisonV2={comparisonV2} />
+                  {v4Analysis ? (
+                    <section className="mt-6 space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <h2 className="font-serif text-xl">
+                          {t("deepDive.v4CartographyPoles")}
+                        </h2>
+                        <Badge variant="outline" className="border-white/10 text-text-secondary">
+                          {t("deepDive.v4Source")}
+                        </Badge>
+                      </div>
+                      <V4PoleCartographyZones isFR={isFR} analysis={v4Analysis} />
+                    </section>
+                  ) : null}
                 </TabsContent>
               )}
             </div>
