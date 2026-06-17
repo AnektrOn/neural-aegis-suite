@@ -8,7 +8,6 @@ import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 import type { MicroHeroPreset } from "@/lib/toolbox-slug-themes";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
-import { shouldTreatUnmountAsAbandon } from "@/lib/widget-lifecycle";
 
 export interface MicroPracticeConfig {
   instructions?: string;
@@ -186,6 +185,8 @@ export default function MicroPracticeWidget({
   });
 
   const { elapsedSec: elapsed, isRunning: running, completed, toggleRunning, reset: resetTimer, hasStartedRef, completedRef } = timer;
+  const elapsedRef = useRef(elapsed);
+  elapsedRef.current = elapsed;
 
   const markCompleted = useCallback(() => {
     completedRef.current = true;
@@ -206,16 +207,15 @@ export default function MicroPracticeWidget({
     if (running || elapsed > 0) hasStartedRef.current = true;
   }, [running, elapsed, hasStartedRef]);
 
-  useEffect(() => {
-    return () => {
-      if (hasStartedRef.current && !completedRef.current && shouldTreatUnmountAsAbandon()) {
-        onAbandon?.({
-          elapsedSec: elapsed,
-          durationBudgetSec: hasDuration ? totalSec : undefined,
-        });
-      }
-    };
-  }, [elapsed, hasDuration, onAbandon, totalSec, hasStartedRef, completedRef]);
+  useWidgetAbandonGuard(
+    hasStartedRef,
+    completedRef,
+    onAbandon,
+    () => ({
+      elapsedSec: elapsedRef.current,
+      durationBudgetSec: hasDuration ? totalSec : undefined,
+    }),
+  );
 
   const start = () => {
     hasStartedRef.current = true;

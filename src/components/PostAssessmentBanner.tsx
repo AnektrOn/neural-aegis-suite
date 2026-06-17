@@ -101,7 +101,7 @@ export function PostAssessmentBanner({ onClose }: { onClose: () => void }) {
                   type="button"
                   onClick={handleClose}
                   className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Dismiss"
+                  aria-label={t("general.close")}
                 >
                   <X className="w-4 h-4" />
                 </button>

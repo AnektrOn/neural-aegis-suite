@@ -132,8 +132,8 @@ export function WelcomeHudScreen({
         <div className="grid grid-cols-2 gap-3">
           {hasPersona ? (
             <WelcomeGlassTile
-              title={isFR ? "Identité" : "Identity"}
-              headline={isFR ? "Persona" : "Persona"}
+              title={t("welcome.hud.tileIdentityTitle")}
+              headline={t("welcome.hud.tileIdentityHeadline")}
               detail={t("welcome.choice.personaBody")}
               actionLabel={t("welcome.choice.personaCta")}
               icon={<Eye size={22} strokeWidth={1.25} aria-hidden />}
@@ -141,21 +141,17 @@ export function WelcomeHudScreen({
             />
           ) : (
             <WelcomeGlassTile
-              title={isFR ? "Profil" : "Profile"}
-              headline={isFR ? "Évaluation" : "Assessment"}
-              detail={
-                isFR
-                  ? "Révèle ton archétype pour personnaliser l'exocortex."
-                  : "Reveal your archetype to personalize the exocortex."
-              }
-              actionLabel={isFR ? "Commencer" : "Start"}
+              title={t("welcome.hud.tileProfileTitle")}
+              headline={t("welcome.hud.tileProfileHeadline")}
+              detail={t("welcome.hud.tileProfileDetail")}
+              actionLabel={t("welcome.cta.start")}
               icon={<ClipboardList size={22} strokeWidth={1.25} aria-hidden />}
               onClick={onAssessment}
             />
           )}
           <WelcomeGlassTile
-            title={isFR ? "Système" : "System"}
-            headline={isFR ? "Dashboard" : "Dashboard"}
+            title={t("welcome.hud.tileSystemTitle")}
+            headline={t("welcome.hud.tileSystemHeadline")}
             detail={t("welcome.choice.dashboardBody")}
             actionLabel={t("welcome.choice.dashboardCta")}
             icon={<LayoutDashboard size={22} strokeWidth={1.25} aria-hidden />}

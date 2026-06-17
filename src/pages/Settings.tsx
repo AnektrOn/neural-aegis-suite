@@ -6,7 +6,6 @@ import {
   Download,
   FileText,
   Smartphone,
-  ClipboardList,
   LayoutGrid,
   Save,
 } from "lucide-react";
@@ -15,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
-import { AppendixModal } from "@/features/appendix/AppendixModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "@/hooks/use-toast";
@@ -34,7 +32,6 @@ export default function Settings() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [exporting, setExporting] = useState(false);
-  const [appendixOpen, setAppendixOpen] = useState(false);
   const [radialIds, setRadialIds] = useState<MobileRadialMenuId[]>(DEFAULT_MOBILE_RADIAL_MENU_IDS);
   const [savingRadial, setSavingRadial] = useState(false);
 
@@ -260,29 +257,6 @@ export default function Settings() {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="ethereal-glass p-8"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <ClipboardList size={18} strokeWidth={1.5} className="text-primary" />
-          <p className="text-neural-label">{t("appendix.title")}</p>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">{t("appendix.description")}</p>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <button onClick={() => setAppendixOpen(true)} className="btn-neural flex-1">
-            <ClipboardList size={14} />
-            {t("appendix.cta")}
-          </button>
-          <button onClick={() => navigate("/deep-dive/scores")} className="btn-neural flex-1">
-            <ClipboardList size={14} />
-            {t("appendix.viewScores")}
-          </button>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.12 }}
         className="ethereal-glass flex flex-col gap-4 p-8 sm:flex-row sm:items-center sm:justify-between"
       >
@@ -314,8 +288,6 @@ export default function Settings() {
           {t("install.title")}
         </button>
       </motion.div>
-
-      <AppendixModal open={appendixOpen} onOpenChange={setAppendixOpen} />
     </div>
   );
 }

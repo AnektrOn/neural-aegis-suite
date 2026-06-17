@@ -4,6 +4,7 @@ import { IntensityMultipleChoice } from "./IntensityMultipleChoice";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { ResponseValue, RuntimeQuestion } from "../domain/types";
 
 export function AssessmentQuestionRenderer({
@@ -17,8 +18,11 @@ export function AssessmentQuestionRenderer({
   onChange: (v: ResponseValue) => void;
   isFR: boolean;
 }) {
+  const { t } = useLanguage();
   const prompt = isFR ? question.prompt_fr : question.prompt_en;
   const helper = isFR ? question.helper_fr : question.helper_en;
+  const intensityEnabled =
+    (question.meta as { intensityEnabled?: boolean } | undefined)?.intensityEnabled === true;
 
   return (
     <div className="space-y-5">
@@ -27,7 +31,12 @@ export function AssessmentQuestionRenderer({
         {helper && <p className="text-xs text-muted-foreground mt-1">{helper}</p>}
       </div>
 
-      {question.question_type === "single_choice" && (
+      {intensityEnabled &&
+      (question.question_type === "single_choice" || question.question_type === "multiple_choice") ? (
+        <IntensityMultipleChoice question={question} value={value} onChange={onChange} isFR={isFR} />
+      ) : null}
+
+      {question.question_type === "single_choice" && !intensityEnabled ? (
         <RadioGroup
           value={value?.selectedOptionIds?.[0] ?? ""}
           onValueChange={(v) =>
@@ -45,18 +54,18 @@ export function AssessmentQuestionRenderer({
             </Label>
           ))}
         </RadioGroup>
-      )}
+      ) : null}
 
-      {question.question_type === "multiple_choice" && (
+      {question.question_type === "multiple_choice" && !intensityEnabled ? (
         <IntensityMultipleChoice question={question} value={value} onChange={onChange} isFR={isFR} />
-      )}
+      ) : null}
 
       {question.question_type === "likert_scale" && (
-        <LikertScale question={question} value={value} onChange={onChange} isFR={isFR} />
+        <LikertScale question={question} value={value} onChange={onChange} isFR={isFR} t={t} />
       )}
 
       {question.question_type === "ranking" && (
-        <Ranking question={question} value={value} onChange={onChange} isFR={isFR} />
+        <Ranking question={question} value={value} onChange={onChange} isFR={isFR} t={t} />
       )}
 
       {question.question_type === "short_text" && (
@@ -66,7 +75,7 @@ export function AssessmentQuestionRenderer({
           onChange={(e) =>
             onChange({ questionId: question.id, textValue: e.target.value })
           }
-          placeholder={isFR ? "Votre réponse…" : "Your answer…"}
+          placeholder={t("assessment.answerPlaceholder")}
           rows={4}
         />
       )}
@@ -79,11 +88,13 @@ function LikertScale({
   value,
   onChange,
   isFR,
+  t,
 }: {
   question: RuntimeQuestion;
   value?: ResponseValue;
   onChange: (v: ResponseValue) => void;
   isFR: boolean;
+  t: (key: string, vars?: Record<string, string>) => string;
 }) {
   const options = question.options;
   const selectedIdx = options.findIndex((o) => value?.selectedOptionIds?.includes(o.id));
@@ -92,8 +103,8 @@ function LikertScale({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{isFR ? "Pas du tout" : "Not at all"}</span>
-        <span>{isFR ? "Tout à fait" : "Totally"}</span>
+        <span>{t("assessment.likertMin")}</span>
+        <span>{t("assessment.likertMax")}</span>
       </div>
       <Slider
         value={[idx]}
@@ -122,11 +133,13 @@ function Ranking({
   value,
   onChange,
   isFR,
+  t,
 }: {
   question: RuntimeQuestion;
   value?: ResponseValue;
   onChange: (v: ResponseValue) => void;
   isFR: boolean;
+  t: (key: string, vars?: Record<string, string>) => string;
 }) {
   const order =
     value?.selectedOptionIds && value.selectedOptionIds.length === question.options.length
@@ -143,11 +156,7 @@ function Ranking({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">
-        {isFR
-          ? "Utilisez ▲ ▼ pour ordonner du plus fort au plus faible."
-          : "Use ▲ ▼ to order strongest to weakest."}
-      </p>
+      <p className="text-xs text-muted-foreground">{t("assessment.rankingHint")}</p>
       {order.map((id, idx) => {
         const o = question.options.find((x) => x.id === id);
         if (!o) return null;

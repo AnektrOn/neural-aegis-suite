@@ -6,10 +6,11 @@
  *
  * @see Cadre d'Évaluation Archétypale Vectoriel (Myss V3)
  */
-import { ARCHETYPE_KEYS } from "./archetypes";
+import { ARCHETYPE_KEYS, MAJOR_ARCHETYPE_KEYS, SURVIVAL_ARCHETYPE_KEYS } from "./archetypes";
 import type {
   AnyArchetypeKey,
   ArchetypeKey,
+  MajorArchetypeKey,
   Polarity,
   PolarityWeight,
   ShadowKey,
@@ -30,7 +31,7 @@ export type ScoringVector = Partial<Record<ArchetypePolarityKey, number>>;
 /** 16 morphic fields × 2 polarities — sparse resonance map. */
 export type MorphicField = Partial<Record<ArchetypePolarityKey, number>>;
 
-const SURVIVAL_KEYS: ShadowKey[] = ["child", "victim", "saboteur", "prostitute"];
+const SURVIVAL_KEYS: ShadowKey[] = [...SURVIVAL_ARCHETYPE_KEYS];
 
 export { SURVIVAL_KEYS };
 
@@ -144,21 +145,18 @@ export function deriveLegacyScoresRaw(field: MorphicField): {
  * Survival: net shadow = max(0, shadow − light) / 1.5 (light integration reduces shadow).
  */
 export function deriveLegacyScoresNormalized(field: MorphicField): {
-  /** Gross major resonance (light + shadow poles) before net normalization. */
-  archetypeScoresRaw: Record<ArchetypeKey, number>;
-  /** Major shadow pole density per archetype (subtracted in net scoring). */
-  archetypeShadowRaw: Record<ArchetypeKey, number>;
-  /** Survival light pole density (compensates shadow in detectShadowSignals). */
+  archetypeScoresRaw: Record<MajorArchetypeKey, number>;
+  archetypeShadowRaw: Record<MajorArchetypeKey, number>;
   survivalLightRaw: Record<ShadowKey, number>;
   /** Survival shadow pole density before net compensation. */
   survivalShadowRaw: Record<ShadowKey, number>;
 } {
-  const archetypeScoresRaw = {} as Record<ArchetypeKey, number>;
-  const archetypeShadowRaw = {} as Record<ArchetypeKey, number>;
+  const archetypeScoresRaw = {} as Record<MajorArchetypeKey, number>;
+  const archetypeShadowRaw = {} as Record<MajorArchetypeKey, number>;
   const survivalLightRaw = {} as Record<ShadowKey, number>;
   const survivalShadowRaw = {} as Record<ShadowKey, number>;
 
-  for (const k of ARCHETYPE_KEYS) {
+  for (const k of MAJOR_ARCHETYPE_KEYS) {
     const light = field[archetypePolarityKey(k, "light")] ?? 0;
     const shadow = field[archetypePolarityKey(k, "shadow")] ?? 0;
     archetypeScoresRaw[k] = Math.max(0, light) + Math.max(0, shadow);

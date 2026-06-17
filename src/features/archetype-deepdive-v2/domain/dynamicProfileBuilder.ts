@@ -98,10 +98,11 @@ function buildProfileFromUnified(
     };
   }).filter((m) => (byArch.get(m.archetype)?.total ?? 0) > 0);
 
+  // Alliance de Lumière : tri strict par score light absolu
   majors.sort((x, y) => {
-    const tx = byArch.get(x.archetype)?.total ?? 0;
-    const ty = byArch.get(y.archetype)?.total ?? 0;
-    return ty - tx;
+    const lx = byArch.get(x.archetype)?.light ?? 0;
+    const ly = byArch.get(y.archetype)?.light ?? 0;
+    return ly - lx;
   });
 
   const survival: SampleArchetypeScore[] = SURVIVAL_KEYS.map((k) => {
@@ -120,10 +121,15 @@ function buildProfileFromUnified(
     };
   });
 
+  // Roue (wheelBuckets) : intensité globale
   const sortedByIntensity = [...majors].sort((a, b) => b.intensity - a.intensity);
   const veryActive = sortedByIntensity.slice(0, 3).map((m) => m.archetype);
   const moderate = sortedByIntensity.slice(3, 7).map((m) => m.archetype);
   const discreet = sortedByIntensity.slice(7).map((m) => m.archetype);
+
+  // Top 3 identitaire = Alliance de Lumière (majors triés par light)
+  const topMajors = majors.slice(0, 3);
+  const topThree = topMajors.map((m) => m.archetype);
 
   const hotspotHouses = unified.houses
     .filter((h) => h.answered > 0 && h.topArchetype)
@@ -138,8 +144,6 @@ function buildProfileFromUnified(
       ),
     }));
 
-  const topMajors = sortedByIntensity.slice(0, 3);
-  const topThree = topMajors.map((m) => m.archetype);
   const narrative = buildNarrative({ topMajors, survival, analysis: analysis ?? null, locale });
 
   const labelArchs = topThree.map((a) => archLabel(a, locale)).join(" / ") || phrases.defaultProfileLabel(locale);
@@ -251,7 +255,6 @@ function buildNarrative(args: {
 
   const topThree = topMajors.map((m) => m.archetype);
   const labels = topThree.map((a) => archLabel(a, locale));
-  const overviewLead = phrases.overviewLead(labels, locale);
 
   // Survival activation: ratio-based (polarity > 50% shadow) AND has signal.
   // This is stricter and more clinically meaningful than the legacy "intensity >= 0.3":
@@ -259,14 +262,15 @@ function buildNarrative(args: {
   // not just because the archetype has been scored at all.
   const activeSurvival = [...survival]
     .filter((s) => s.intensity > 0 && s.shadow >= 0.5)
-    .sort((a, b) => b.shadow - a.shadow);
+    .sort((a, b) => (b.intensity * b.shadow) - (a.intensity * a.shadow));
 
   const topShadow = activeSurvival[0];
   const fallbackShadow = locale === "fr" ? "Contrôle" : "Control";
   const primaryShadowTheme = topShadow
     ? (get.shadowTheme(topShadow.archetype, locale) ?? fallbackShadow)
     : fallbackShadow;
-  const hasDominantShadow = !!topShadow;
+
+  const overviewLead = phrases.overviewLead(labels, locale);
 
   const RANKS = locale === "fr" ? RANKS_FR : RANKS_EN;
 
@@ -367,7 +371,7 @@ function buildNarrative(args: {
         labels[0] ?? "",
         labels[1] ?? "",
         labels[2] ?? "",
-        hasDominantShadow ? primaryShadowTheme : null,
+        topShadow ? primaryShadowTheme : null,
         locale,
       );
 

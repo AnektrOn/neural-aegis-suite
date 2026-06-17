@@ -22,11 +22,18 @@ interface TaoPortraitPanelProps {
   parts: TaoPortraitPartRow[];
   loading?: boolean;
   className?: string;
+  displayName?: string | null;
   /** Inside Deep Dive — skip standalone page chrome */
   variant?: "standalone" | "embedded";
 }
 
-export function TaoPortraitPanel({ parts, loading, className, variant = "standalone" }: TaoPortraitPanelProps) {
+export function TaoPortraitPanel({
+  parts,
+  loading,
+  className,
+  displayName,
+  variant = "standalone",
+}: TaoPortraitPanelProps) {
   const { locale, t } = useLanguage();
   const isFR = locale === "fr";
   const [searchParams] = useSearchParams();
@@ -158,7 +165,7 @@ export function TaoPortraitPanel({ parts, loading, className, variant = "standal
           {!t2Row?.content_md?.trim() ? (
             <TaoPortraitEmpty variant="t2" />
           ) : (
-            <TaoMarkdownBody markdown={t2Row.content_md} accentColor="hsl(var(--primary))" />
+            <TaoMarkdownBody markdown={t2Row.content_md} accentColor="hsl(var(--primary))" displayName={displayName} />
           )}
         </section>
       ) : showEmpty ? (
@@ -223,7 +230,7 @@ export function TaoPortraitPanel({ parts, loading, className, variant = "standal
                       {!row?.content_md?.trim() ? (
                         <TaoPortraitEmpty variant="part" partId={id} pole={pole} />
                       ) : (
-                        <TaoMarkdownBody markdown={row.content_md} accentColor={meta?.color} />
+                        <TaoMarkdownBody markdown={row.content_md} accentColor={meta?.color} displayName={displayName} />
                       )}
                     </div>
                   </article>

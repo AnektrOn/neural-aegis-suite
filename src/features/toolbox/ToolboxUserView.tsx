@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Play, ExternalLink, CheckCircle2, XCircle, ListChecks, Loader2, Library, RotateCcw, RefreshCw } from "lucide-react";
+import { Play, ExternalLink, CheckCircle2, XCircle, ListChecks, Loader2, Library, RotateCcw, RefreshCw, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -26,10 +26,17 @@ import {
 } from "@/services/toolboxHabitLinkService";
 import {
   upsertToolboxCompletion,
+  resetToolboxCompletionForReload,
   type ToolboxCompletionPayload,
 } from "@/lib/toolbox-completion";
 import { cn } from "@/lib/utils";
 import { clearTimerSession } from "@/lib/toolbox-session-storage";
+import {
+  ToolboxAssignmentStatsStrip,
+  ToolboxHabitLinkButton,
+  type ToolboxAssignmentStats,
+} from "@/features/toolbox/ToolboxAssignmentStatsStrip";
+import { useToolboxExerciseSessionOptional } from "@/features/toolbox/ToolboxExerciseSessionContext";
 
 interface ToolboxItem {
   id: string;
@@ -51,6 +58,7 @@ interface CompletionRecord {
 }
 
 type MainView = "todo" | "all" | "history";
+type StatusFilter = "all" | "pending" | "completed" | "abandoned" | "ignored";
 
 export interface ToolboxUserViewProps {
   userId: string;
@@ -71,6 +79,7 @@ export function ToolboxUserView({
   const navigate = useNavigate();
   const [, startTransition] = useTransition();
   const reduceMotion = useReducedMotion();
+  const exerciseSession = useToolboxExerciseSessionOptional();
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [items, setItems] = useState<ToolboxItem[]>([]);
@@ -79,7 +88,10 @@ export function ToolboxUserView({
   const [activeWidget, setActiveWidget] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [mainView, setMainView] = useState<MainView>("todo");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [assignmentStats, setAssignmentStats] = useState<Record<string, ToolboxAssignmentStats>>({});
   const [habitLinkBusy, setHabitLinkBusy] = useState<string | null>(null);
+  const [reloadBusy, setReloadBusy] = useState<string | null>(null);
   const [widgetReloadKeys, setWidgetReloadKeys] = useState<Record<string, number>>({});
   const [refreshingList, setRefreshingList] = useState(false);
   const [completionDialog, setCompletionDialog] = useState<{ open: boolean; itemId: string | null; status: string }>({ open: false, itemId: null, status: "" });
@@ -89,7 +101,7 @@ export function ToolboxUserView({
     setLoading(true);
     setIsError(false);
     try {
-      const [itemsRes, compRes, links] = await Promise.all([
+      const [itemsRes, compRes, links, statsRes] = await Promise.all([
         supabase
           .from("toolbox_assignments")
           .select("*")
@@ -101,12 +113,26 @@ export function ToolboxUserView({
           .select("assignment_id, status")
           .eq("user_id", userId),
         fetchToolboxHabitLinks(userId),
+        supabase
+          .from("toolbox_assignment_stats" as never)
+          .select("assignment_id, completed_count, abandoned_count, ignored_count")
+          .eq("user_id", userId),
       ]);
       if (itemsRes.error) throw itemsRes.error;
       if (compRes.error) throw compRes.error;
       setHabitLinks(links);
       setItems((itemsRes.data || []) as ToolboxItem[]);
       setCompletions((compRes.data || []) as unknown as CompletionRecord[]);
+      if (!statsRes.error) {
+        const statsMap: Record<string, ToolboxAssignmentStats> = {};
+        for (const row of (statsRes.data || []) as ToolboxAssignmentStats[]) {
+          statsMap[row.assignment_id] = row;
+        }
+        setAssignmentStats(statsMap);
+      } else {
+        console.warn("[Toolbox] stats load failed", statsRes.error.message);
+        setAssignmentStats({});
+      }
     } catch (err) {
       console.error("[Toolbox] load failed", err);
       setIsError(true);
@@ -152,10 +178,11 @@ export function ToolboxUserView({
     if (!enableDeepLinkOpen) return;
     const openId = (location.state as { openToolboxId?: string } | null)?.openToolboxId;
     if (openId && items.some((i) => i.id === openId)) {
-      setActiveWidget(openId);
+      if (exerciseSession && !readOnly) exerciseSession.openExercise(openId);
+      else setActiveWidget(openId);
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [enableDeepLinkOpen, location.state, location.pathname, items, navigate]);
+  }, [enableDeepLinkOpen, location.state, location.pathname, items, navigate, exerciseSession, readOnly]);
 
   const blockReadOnlyAction = useCallback(() => {
     toast({ title: t("admin.toolboxPreview.readOnlyHint") });
@@ -213,6 +240,7 @@ export function ToolboxUserView({
 
     if (!error) {
       const labels: Record<string, string> = { completed: t("toolbox.exerciseCompleted"), abandoned: t("toolbox.exerciseAbandoned") };
+      setActiveWidget(null);
       setCompletionDialog({ open: true, itemId: assignmentId, status });
       toast({ title: labels[status] });
       if (status === "completed") {
@@ -228,12 +256,36 @@ export function ToolboxUserView({
     }
   }, [userId, readOnly, blockReadOnlyAction, t, toast, loadData]);
 
-  const handleReload = useCallback((itemId: string) => {
-    clearTimerSession(`toolbox:${itemId}`);
-    setWidgetReloadKeys((prev) => ({ ...prev, [itemId]: (prev[itemId] ?? 0) + 1 }));
-    setActiveWidget(itemId);
-    toast({ title: t("toolbox.toolReloaded"), description: t("toolbox.reloadHint") });
-  }, [t, toast]);
+  const handleReload = useCallback(async (itemId: string) => {
+    if (readOnly) {
+      blockReadOnlyAction();
+      return;
+    }
+
+    setReloadBusy(itemId);
+    try {
+      clearTimerSession(`toolbox:${itemId}`);
+      setWidgetReloadKeys((prev) => ({ ...prev, [itemId]: (prev[itemId] ?? 0) + 1 }));
+
+      const { error } = await resetToolboxCompletionForReload({
+        assignmentId: itemId,
+        userId,
+      });
+      if (error) {
+        toast({ title: t("toolbox.saveError"), description: error, variant: "destructive" });
+        return;
+      }
+
+      setCompletions((prev) => prev.filter((c) => c.assignment_id !== itemId));
+      startTransition(() => setMainView("todo"));
+      setActiveWidget(null);
+
+      toast({ title: t("toolbox.toolReloaded"), description: t("toolbox.reloadHint") });
+      void loadData();
+    } finally {
+      setReloadBusy(null);
+    }
+  }, [userId, readOnly, blockReadOnlyAction, t, toast, loadData]);
 
   const handleCloseWidget = useCallback((itemId: string) => {
     setActiveWidget(null);
@@ -307,27 +359,101 @@ export function ToolboxUserView({
       .filter((i) => {
         const status = getItemStatus(i.id);
         const waiting = (i.user_delivery_status || "active") === "waiting";
+
         if (mainView === "todo") {
           if (waiting) return true;
           return status === "pending";
         }
+
         if (mainView === "history") {
-          return status === "completed" || status === "abandoned" || status === "ignored";
+          if (!(status === "completed" || status === "abandoned" || status === "ignored")) {
+            return false;
+          }
+          if (statusFilter === "all") return true;
+          return status === statusFilter;
         }
+
+        if (mainView === "all") {
+          if (statusFilter === "all") return true;
+          if (statusFilter === "pending") {
+            if (waiting) return true;
+            return status === "pending";
+          }
+          return status === statusFilter;
+        }
+
         return true;
       });
-  }, [items, typeFilter, mainView, completions]);
+  }, [items, typeFilter, mainView, statusFilter, completions]);
 
-  const featuredItem = useMemo(() => {
-    const waiting = filtered.find((i) => (i.user_delivery_status || "active") === "waiting");
-    if (waiting) return waiting;
-    return filtered.find((i) => getItemStatus(i.id) === "pending") ?? null;
-  }, [filtered, completions]);
+  const statusFilterOptions = useMemo((): Array<{ key: StatusFilter; label: string }> => {
+    if (mainView === "history") {
+      return [
+        { key: "all", label: t("toolbox.filterAll") },
+        { key: "completed", label: t("toolbox.completed") },
+        { key: "abandoned", label: t("toolbox.abandoned") },
+        { key: "ignored", label: t("toolbox.ignored") },
+      ];
+    }
+    if (mainView === "all") {
+      return [
+        { key: "all", label: t("toolbox.filterAll") },
+        { key: "pending", label: t("toolbox.pending") },
+        { key: "completed", label: t("toolbox.completed") },
+        { key: "abandoned", label: t("toolbox.abandoned") },
+        { key: "ignored", label: t("toolbox.ignored") },
+      ];
+    }
+    return [];
+  }, [mainView, t]);
 
-  const gridItems = useMemo(
-    () => (featuredItem ? filtered.filter((i) => i.id !== featuredItem.id) : filtered),
-    [filtered, featuredItem],
+  const historyTotals = useMemo(() => {
+    const totals = { completed: 0, abandoned: 0, ignored: 0 };
+    for (const stats of Object.values(assignmentStats)) {
+      totals.completed += stats.completed_count;
+      totals.abandoned += stats.abandoned_count;
+      totals.ignored += stats.ignored_count;
+    }
+    return totals;
+  }, [assignmentStats]);
+
+  const getStatsForItem = (itemId: string) => assignmentStats[itemId];
+
+  const todoWaitingInView = useMemo(
+    () => filtered.filter((i) => (i.user_delivery_status || "active") === "waiting").length,
+    [filtered],
   );
+
+  const activeItem = useMemo(
+    () => (activeWidget ? items.find((i) => i.id === activeWidget) ?? null : null),
+    [activeWidget, items],
+  );
+
+  const openTodoItem = useCallback(
+    (item: ToolboxItem) => {
+      const isWaiting = (item.user_delivery_status || "active") === "waiting";
+      if (isWaiting) return;
+      const isExternal = item.content_type === "external_link" && item.external_url;
+      const isVideoLink = Boolean(isExternal && item.external_url && isLikelyVideoUrl(item.external_url));
+      if (isVideoLink) {
+        navigate("/bibliotheque");
+        return;
+      }
+      if (exerciseSession && !readOnly) {
+        exerciseSession.openExercise(item.id);
+      } else {
+        setActiveWidget(item.id);
+      }
+    },
+    [navigate, exerciseSession, readOnly],
+  );
+
+  useEffect(() => {
+    if (exerciseSession) return;
+    if (mainView !== "todo") {
+      setActiveWidget(null);
+    }
+  }, [mainView, exerciseSession]);
 
   const types = ["all", ...new Set(items.map((i) => i.content_type))];
 
@@ -354,34 +480,96 @@ export function ToolboxUserView({
 
   const dialogItem = items.find(i => i.id === completionDialog.itemId);
 
+  const renderWidgetModalBody = (item: ToolboxItem) => {
+    const isInteractiveType = isInteractiveToolboxType(item);
+    const hasWidget = isInteractiveType && canRenderToolboxWidget(item);
+    const isExternal = item.content_type === "external_link" && item.external_url;
+    const widget = hasWidget ? renderWidget(item) : null;
+
+    if (hasWidget && widget) {
+      return (
+        <div key={`${item.id}-${widgetReloadKeys[item.id] ?? 0}`}>{widget}</div>
+      );
+    }
+    if (isExternal && item.external_url) {
+      return (
+        <div className="flex flex-col gap-4">
+          <a
+            href={item.external_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary transition-colors hover:bg-primary/15"
+          >
+            <ExternalLink size={16} />
+            {t("toolbox.openLink")}
+          </a>
+          <button
+            type="button"
+            onClick={() => recordCompletion(item.id, "completed")}
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-[10px] uppercase tracking-[0.25em] text-primary transition-colors hover:bg-primary/15"
+          >
+            <CheckCircle2 size={14} />
+            {t("toolbox.markDone")}
+          </button>
+        </div>
+      );
+    }
+    if (!isInteractiveType) {
+      const fallbackWidget = renderWidget(item);
+      if (fallbackWidget) {
+        return (
+          <div key={`${item.id}-${widgetReloadKeys[item.id] ?? 0}`}>{fallbackWidget}</div>
+        );
+      }
+    }
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">{t("toolbox.unavailableConfig")}</p>
+    );
+  };
+
+  const totalItems = items.filter((i) => (i.user_delivery_status || "active") !== "waiting").length;
+  const progressPct = totalItems > 0 ? Math.round((doneCount / totalItems) * 100) : 0;
+
   return (
-    <div className={cn("space-y-10 max-w-5xl", className)}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">{t("toolbox.neuralLibrary")}</p>
-          <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">{t("toolbox.title")}</h1>
+    <div className={cn("mx-auto w-full min-w-0 max-w-5xl overflow-x-hidden space-y-6 sm:space-y-8", className)}>
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-1.5">
+            {t("toolbox.neuralLibrary")}
+          </p>
+          <h1 className="font-cormorant text-2xl sm:text-3xl md:text-4xl font-light text-text-primary tracking-tight mb-3 break-words">
+            {t("toolbox.title")}
+          </h1>
+          {items.length > 0 ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+              <div className="h-1.5 min-w-[5rem] flex-1 max-w-[180px] rounded-full bg-border/40 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary/60 transition-all duration-700"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <span className="font-display text-[10px] tracking-[0.15em] text-text-tertiary/70 tabular-nums whitespace-nowrap shrink-0">
+                {doneCount}/{totalItems}
+              </span>
+              {todoCount > 0 ? (
+                <span className="shrink-0 rounded-full border border-primary/30 bg-primary/8 px-2 py-0.5 font-display text-[9px] tracking-[0.14em] uppercase text-primary max-w-full truncate">
+                  {t("toolbox.statsTodoChip", { n: String(todoCount) })}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <button
           type="button"
           onClick={() => void refreshList()}
           disabled={loading || refreshingList}
           aria-label={t("toolbox.reload")}
-          className="mt-1 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border/50 bg-background/60 text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-50"
+          className="mt-1 flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-border/50 bg-background/60 text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-40"
         >
-          <RefreshCw size={16} className={cn((loading || refreshingList) && "animate-spin")} />
+          <RefreshCw size={15} className={cn((loading || refreshingList) && "animate-spin")} />
         </button>
       </div>
-
-      {items.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span className="rounded-full border border-primary/25 bg-primary/5 px-3 py-1 text-primary">
-            {t("toolbox.statsTodoChip", { n: String(todoCount) })}
-          </span>
-          <span className="rounded-full border border-border/50 px-3 py-1">
-            {t("toolbox.statsDoneChip", { n: String(doneCount) })}
-          </span>
-        </div>
-      ) : null}
 
       {isError && !loading && (
         <div className="flex flex-col gap-2 rounded-2xl border border-destructive/35 bg-destructive/10 px-4 py-3 sm:flex-row sm:items-center">
@@ -397,18 +585,24 @@ export function ToolboxUserView({
       )}
 
       {waitingCount > 0 ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-          {t("toolbox.waitingBanner")}
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-hidden />
+          <p className="text-sm text-amber-800 dark:text-amber-200">{t("toolbox.waitingBanner")}</p>
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-2 flex-wrap" role="tablist" aria-label={t("toolbox.title")}>
+      {/* ── Main tabs ── */}
+      <div className="min-w-0 space-y-3">
+        <div
+          role="tablist"
+          aria-label={t("toolbox.title")}
+          className="flex min-w-0 gap-1 rounded-2xl border border-border/40 bg-background/40 p-1"
+        >
           {(
             [
-              { key: "todo" as const, label: t("toolbox.viewTodo") },
-              { key: "all" as const, label: t("toolbox.viewAll") },
-              { key: "history" as const, label: t("toolbox.viewHistory") },
+              { key: "todo" as const, label: t("toolbox.viewTodo"), badge: todoCount > 0 ? todoCount : null },
+              { key: "all" as const, label: t("toolbox.viewAll"), badge: null },
+              { key: "history" as const, label: t("toolbox.viewHistory"), badge: null },
             ] as const
           ).map((entry) => (
             <button
@@ -419,88 +613,181 @@ export function ToolboxUserView({
               aria-selected={mainView === entry.key}
               aria-controls={`toolbox-panel-${entry.key}`}
               tabIndex={mainView === entry.key ? 0 : -1}
-              onClick={() => startTransition(() => setMainView(entry.key))}
+              onClick={() => {
+                startTransition(() => {
+                  setMainView(entry.key);
+                  setStatusFilter("all");
+                });
+              }}
               className={cn(
-                "min-h-[44px] rounded-full border px-4 py-2 text-[10px] uppercase tracking-[0.22em] transition-colors",
+                "flex min-w-0 flex-1 min-h-[40px] items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] sm:tracking-[0.16em] transition-all duration-150",
                 mainView === entry.key
-                  ? "border-primary/35 bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:border-primary/20",
+                  ? "bg-background shadow-sm border border-border/40 text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {entry.label}
+              <span className="truncate">{entry.label}</span>
+              {entry.badge ? (
+                <span className="inline-flex min-w-[16px] shrink-0 items-center justify-center rounded-full bg-primary/15 px-1 py-0.5 text-[8px] tabular-nums text-primary">
+                  {entry.badge}
+                </span>
+              ) : null}
             </button>
           ))}
         </div>
-        <label className="flex min-h-[44px] flex-col gap-1 sm:min-w-[200px]">
-          <span className="font-display text-[9px] uppercase tracking-[0.2em] text-text-tertiary/70">
-            {t("toolbox.filterType")}
-          </span>
-          <select
-            value={typeFilter}
-            onChange={(e) => startTransition(() => setTypeFilter(e.target.value))}
-            className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-sm"
-          >
-            {types.map((f) => (
-              <option key={f} value={f}>
-                {getTypeLabel(f)}
-              </option>
-            ))}
-          </select>
-        </label>
+
+        {/* Type filter — horizontal scrolling chips */}
+        {types.length > 1 ? (
+          <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max min-w-full gap-2">
+              {types.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => startTransition(() => setTypeFilter(f))}
+                  className={cn(
+                    "shrink-0 min-h-[34px] rounded-full border px-3 py-1 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] transition-colors whitespace-nowrap",
+                    typeFilter === f
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border/40 text-muted-foreground hover:border-primary/20 hover:text-foreground",
+                  )}
+                >
+                  {getTypeLabel(f)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {/* Active widget overlay */}
-      {activeWidget && (() => {
-        const item = items.find(i => i.id === activeWidget);
-        if (!item) return null;
-        const widget = renderWidget(item);
+      {(mainView === "all" || mainView === "history") ? (
+        <div className="min-w-0 rounded-2xl border border-border/30 bg-background/30 px-3 py-3 sm:px-4 sm:py-3.5 space-y-3">
+          {/* Lifetime stats row */}
+          <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-1.5 sm:gap-x-5">
+            {[
+              { count: historyTotals.completed, label: t("toolbox.completed"), dot: "bg-primary/70" },
+              { count: historyTotals.abandoned, label: t("toolbox.abandoned"), dot: "bg-destructive/70" },
+              { count: historyTotals.ignored, label: t("toolbox.ignored"), dot: "bg-border" },
+            ].filter(s => s.count > 0).map((s) => (
+              <span key={s.label} className="flex min-w-0 items-center gap-2 font-display text-[10px] tracking-[0.12em] sm:tracking-[0.14em] text-muted-foreground">
+                <span className={cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", s.dot)} aria-hidden />
+                <span className="font-medium tabular-nums text-foreground">{s.count}</span>
+                <span className="truncate">{s.label.toLowerCase()}</span>
+              </span>
+            ))}
+          </div>
+          {/* Status filter chips — scroll on narrow screens */}
+          <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max min-w-full flex-wrap gap-1.5 sm:w-auto" role="tablist" aria-label={t("toolbox.statusFilter")}>
+              {statusFilterOptions.map((entry) => (
+                <button
+                  key={entry.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === entry.key}
+                  onClick={() => startTransition(() => setStatusFilter(entry.key))}
+                  className={cn(
+                    "shrink-0 min-h-[32px] rounded-full border px-2.5 sm:px-3 py-1 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] transition-all whitespace-nowrap",
+                    statusFilter === entry.key
+                      ? "border-primary/40 bg-primary/10 text-primary shadow-sm"
+                      : "border-border/40 text-muted-foreground hover:border-primary/20 hover:text-foreground",
+                  )}
+                >
+                  {entry.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Active widget panel — all / history tabs */}
+      {activeItem && mainView !== "todo" && (() => {
+        const widget = renderWidget(activeItem);
         if (!widget) return null;
+        const panelCfg = TOOLBOX_TYPE_META[activeItem.content_type] || TOOLBOX_TYPE_META.course;
         return (
           <motion.div
-            key={`${item.id}-${widgetReloadKeys[item.id] ?? 0}`}
-            initial={{ opacity: 0, y: -10 }}
+            key={`${activeItem.id}-${widgetReloadKeys[activeItem.id] ?? 0}`}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="ethereal-glass p-6"
+            transition={{ duration: 0.2 }}
+            className="ethereal-glass min-w-0 overflow-hidden rounded-2xl border border-primary/25"
           >
-            <div className="flex justify-between items-start gap-3 mb-4">
-              <div className="min-w-0">
-                <p className="text-neural-label">{getTypeLabel(item.content_type)}</p>
-                <h2 className="text-sm font-medium text-foreground mt-1 tracking-wide truncate">
-                  {getLocalizedTitle(item)}
-                </h2>
+            {/* Panel header */}
+            <div className="flex flex-col gap-2 border-b border-border/20 bg-background/30 px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-5 sm:py-3.5">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/30 bg-background/60">
+                  <panelCfg.icon size={14} strokeWidth={1.5} className={panelCfg.color} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground truncate">
+                    {getTypeLabel(activeItem.content_type)}
+                  </p>
+                  <h2 className="text-sm font-medium text-foreground truncate leading-snug">
+                    {getLocalizedTitle(activeItem)}
+                  </h2>
+                </div>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 items-center gap-1.5 self-end sm:self-center">
                 <button
                   type="button"
-                  onClick={() => handleReload(item.id)}
-                  className="flex min-h-[36px] items-center gap-1.5 text-[9px] uppercase tracking-[0.24em] text-neural-accent transition-colors hover:text-foreground"
+                  onClick={() => void handleReload(activeItem.id)}
+                  disabled={reloadBusy === activeItem.id}
+                  className="flex min-h-[34px] items-center gap-1.5 rounded-full border border-border/40 px-2.5 sm:px-3 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-40"
                 >
-                  <RotateCcw size={12} />
-                  {t("toolbox.reload")}
+                  <RotateCcw size={11} />
+                  <span className="hidden sm:inline">{t("toolbox.reload")}</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleCloseWidget(item.id)}
-                  className="min-h-[36px] text-muted-foreground hover:text-foreground text-xs"
+                  onClick={() => handleCloseWidget(activeItem.id)}
+                  className="flex min-h-[34px] min-w-[34px] items-center justify-center rounded-full border border-border/40 text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={t("toolbox.close")}
                 >
-                  {t("toolbox.close")}
+                  <span className="text-xs">✕</span>
                 </button>
               </div>
             </div>
-            {widget}
+            <div className="min-w-0 overflow-x-auto p-4 sm:p-6">{widget}</div>
           </motion.div>
         );
       })()}
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="ethereal-glass h-48 animate-pulse rounded-2xl" />
+        <div className={mainView === "todo" ? "space-y-3" : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"}>
+          {Array.from({ length: mainView === "todo" ? 4 : 6 }).map((_, i) => (
+            mainView === "todo" ? (
+              <div key={i} className="ethereal-glass animate-pulse rounded-2xl p-4 sm:p-5">
+                <div className="flex items-start gap-3">
+                  <div className="h-11 w-11 rounded-xl bg-border/40 shrink-0" />
+                  <div className="flex-1 space-y-2 pt-0.5">
+                    <div className="h-3.5 w-3/4 rounded bg-border/40" />
+                    <div className="h-2.5 w-1/3 rounded bg-border/30" />
+                    <div className="h-2.5 w-full rounded bg-border/20" />
+                  </div>
+                  <div className="h-9 w-20 rounded-full bg-border/30 shrink-0" />
+                </div>
+              </div>
+            ) : (
+              <div key={i} className="ethereal-glass animate-pulse rounded-2xl p-5 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="h-9 w-9 rounded-xl bg-border/40" />
+                  <div className="h-5 w-16 rounded-full bg-border/30" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3.5 w-5/6 rounded bg-border/40" />
+                  <div className="h-2.5 w-full rounded bg-border/25" />
+                  <div className="h-2.5 w-4/5 rounded bg-border/20" />
+                </div>
+                <div className="h-9 w-full rounded-xl bg-border/30 mt-2" />
+              </div>
+            )
           ))}
           <p className="sr-only">{t("toolbox.loading")}</p>
         </div>
-      ) : filtered.length === 0 && !featuredItem ? (
-        <div className="glass-card p-14 text-center">
+      ) : filtered.length === 0 ? (
+        <div className="glass-card p-8 sm:p-14 text-center">
           <div className="mx-auto mb-5 text-primary/20 w-14 h-14">
             <svg viewBox="0 0 56 56" fill="none" aria-hidden>
               <path d="M28 8C17 8 8 17 8 28s9 20 20 20 20-9 20-20S39 8 28 8Z" stroke="currentColor" strokeWidth="1.5" />
@@ -516,45 +803,142 @@ export function ToolboxUserView({
           id={`toolbox-panel-${mainView}`}
           role="tabpanel"
           aria-labelledby={`toolbox-tab-${mainView}`}
-          className="space-y-6"
+          className="min-w-0 space-y-6"
         >
-          {featuredItem && mainView === "todo" ? (
-            <motion.article
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="ethereal-glass relative overflow-hidden rounded-2xl border border-primary/25 p-6 sm:p-8"
-            >
-              <p className="font-display text-[10px] uppercase tracking-[0.24em] text-primary mb-2">
-                {t("toolbox.featuredToday")}
-              </p>
-              <h2 className="font-cormorant text-2xl sm:text-3xl font-light text-foreground mb-3">
-                {getLocalizedTitle(featuredItem)}
-              </h2>
-              <p className="text-sm text-muted-foreground max-w-xl mb-6">
-                {getLocalizedDescription(featuredItem) || getTypeLabel(featuredItem.content_type)}
-              </p>
-              {(featuredItem.user_delivery_status || "active") === "waiting" ? (
-                <button
-                  type="button"
-                  onClick={() => void confirmWaiting(featuredItem.id)}
-                  className="min-h-[44px] rounded-full border border-amber-500/40 bg-amber-500/10 px-5 text-[10px] uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200"
-                >
-                  {t("toolbox.confirmDelivery")}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setActiveWidget(featuredItem.id)}
-                  className="min-h-[44px] rounded-full border border-primary/40 bg-primary/10 px-5 text-[10px] uppercase tracking-[0.22em] text-primary"
-                >
-                  {t("toolbox.launch")}
-                </button>
-              )}
-            </motion.article>
-          ) : null}
+          {mainView === "todo" ? (
+            <div className="space-y-2.5">
+              <ul className="space-y-2.5">
+                {filtered.map((item, i) => {
+                  const cfg = TOOLBOX_TYPE_META[item.content_type] || TOOLBOX_TYPE_META.course;
+                  const isWaiting = (item.user_delivery_status || "active") === "waiting";
+                  const isExternal = item.content_type === "external_link" && item.external_url;
+                  const isVideoLink = Boolean(isExternal && item.external_url && isLikelyVideoUrl(item.external_url));
+                  const linkedToHabits = isInHabits(item.id);
+                  const habitBusy = habitLinkBusy === item.id;
+                  const description =
+                    getLocalizedDescription(item) ||
+                    (TOOLBOX_TYPE_META[item.content_type]
+                      ? t(TOOLBOX_TYPE_META[item.content_type].labelKey as any)
+                      : "");
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {gridItems.map((item, i) => {
+                  return (
+                    <motion.li
+                      key={item.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: reduceMotion ? 0 : i * 0.04, duration: 0.22 }}
+                    >
+                      <article
+                        className={cn(
+                          "ethereal-glass flex min-w-0 flex-col gap-0 rounded-2xl border border-border/35 overflow-hidden transition-all",
+                          linkedToHabits && "border-primary/35",
+                          !isWaiting && "cursor-pointer hover:border-primary/25 sm:active:scale-[0.995]",
+                        )}
+                        role={isWaiting ? undefined : "button"}
+                        tabIndex={isWaiting ? undefined : 0}
+                        onClick={isWaiting ? undefined : () => openTodoItem(item)}
+                        onKeyDown={
+                          isWaiting
+                            ? undefined
+                            : (e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  openTodoItem(item);
+                                }
+                              }
+                        }
+                      >
+                        {/* Main row — stacks on mobile */}
+                        <div className="flex flex-col gap-3 px-3 py-3.5 sm:flex-row sm:items-start sm:gap-3.5 sm:px-5 sm:py-4">
+                          <div className="flex min-w-0 flex-1 items-start gap-3">
+                            <div className={cn(
+                              "mt-0.5 shrink-0 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl",
+                              "border border-border/30 bg-background/60",
+                            )}>
+                              <cfg.icon size={17} strokeWidth={1.5} className={cfg.color} />
+                            </div>
+                            <div className="min-w-0 flex-1 py-0.5">
+                              <div className="mb-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                <p className="min-w-0 text-sm font-medium text-foreground leading-snug break-words">
+                                  {getLocalizedTitle(item)}
+                                </p>
+                                {isWaiting ? (
+                                  <span className="shrink-0 text-[8px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border text-amber-600 border-amber-500/30 bg-amber-500/10">
+                                    {t("toolbox.deliveryWaitingBadge")}
+                                  </span>
+                                ) : null}
+                                {linkedToHabits ? (
+                                  <span className="shrink-0 text-[8px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full border text-primary border-primary/30 bg-primary/8">
+                                    {t("toolbox.inHabitsBadge")}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <p className="font-display text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground truncate">
+                                {getTypeLabel(item.content_type)}
+                                {item.duration ? <span className="opacity-50"> · {item.duration}</span> : null}
+                              </p>
+                              {description ? (
+                                <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground/80 break-words">
+                                  {description}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="w-full shrink-0 sm:w-auto sm:self-center" onClick={(e) => e.stopPropagation()}>
+                            {isWaiting ? (
+                              <button
+                                type="button"
+                                onClick={() => void confirmWaiting(item.id)}
+                                className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-amber-700 dark:text-amber-200 transition-colors hover:bg-amber-500/15 sm:w-auto"
+                              >
+                                <CheckCircle2 size={11} />
+                                {t("toolbox.confirmDelivery")}
+                              </button>
+                            ) : isVideoLink ? (
+                              <Link
+                                to="/bibliotheque"
+                                className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-primary transition-colors hover:bg-primary/15 sm:w-auto"
+                              >
+                                <Library size={11} />
+                                {t("toolbox.openInLibrary")}
+                              </Link>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openTodoItem(item)}
+                                className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-primary transition-colors hover:bg-primary/15 sm:w-auto"
+                              >
+                                {t("toolbox.todoOpenExercise")}
+                                <ChevronRight size={13} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {/* Footer bar — stats + habit button */}
+                        <div
+                          className="flex min-w-0 flex-col gap-2 border-t border-border/20 bg-background/20 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ToolboxAssignmentStatsStrip stats={getStatsForItem(item.id)} className="min-w-0" />
+                          {!isWaiting ? (
+                            <ToolboxHabitLinkButton
+                              itemId={item.id}
+                              linked={linkedToHabits}
+                              busy={habitBusy}
+                              onToggle={(id) => void toggleHabitLink(id)}
+                              compact={false}
+                            />
+                          ) : null}
+                        </div>
+                      </article>
+                    </motion.li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : (
+          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+          {filtered.map((item, i) => {
             const cfg = TOOLBOX_TYPE_META[item.content_type] || TOOLBOX_TYPE_META.course;
             const isInteractiveType = isInteractiveToolboxType(item);
             const hasWidget = isInteractiveType && canRenderToolboxWidget(item);
@@ -571,14 +955,10 @@ export function ToolboxUserView({
             const habitBusy = habitLinkBusy === item.id;
             const canLaunch = hasWidget || (!isInteractiveType && !isVideoLink) || (isExternal && !isVideoLink);
 
-            const canReload = isCompleted || isAbandoned;
+            const canReload = isCompleted || isAbandoned || isIgnored;
 
             const primaryAction = () => {
-              if (isWaiting || isIgnored) return;
-              if (canReload && !isActive) {
-                handleReload(item.id);
-                return;
-              }
+              if (isWaiting) return;
               if (latestCompletion && !isActive && !canReload) return;
               if (hasWidget) {
                 setActiveWidget(isActive ? null : item.id);
@@ -590,16 +970,15 @@ export function ToolboxUserView({
             };
             const cardIsClickable =
               !isWaiting &&
-              !isIgnored &&
               (canReload || !latestCompletion || isActive) &&
               (canLaunch || isVideoLink || canReload);
 
             return (
               <motion.div
                 key={item.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: reduceMotion ? 0 : i * 0.08 }}
+                transition={{ delay: reduceMotion ? 0 : i * 0.06, duration: 0.22 }}
                 role={cardIsClickable ? "button" : undefined}
                 tabIndex={cardIsClickable ? 0 : undefined}
                 onClick={cardIsClickable ? primaryAction : undefined}
@@ -615,171 +994,285 @@ export function ToolboxUserView({
                 }
                 style={cardIsClickable ? ({ WebkitTapHighlightColor: "transparent" } as React.CSSProperties) : undefined}
                 className={cn(
-                  "ethereal-glass p-6 flex flex-col min-h-[44px]",
-                  latestCompletion && !isActive && !canReload && "opacity-60",
-                  linkedToHabits && "border-primary/40 bg-primary/5 ring-1 ring-primary/20",
-                  cardIsClickable && "cursor-pointer hover:border-primary/30 active:scale-[0.98] transition-all",
+                  "ethereal-glass flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/35 min-h-[44px] transition-all duration-150",
+                  latestCompletion && !isActive && !canReload && "opacity-55",
+                  linkedToHabits && "border-primary/35",
+                  isActive && "border-primary/50 shadow-sm",
+                  cardIsClickable && "cursor-pointer hover:border-primary/30 sm:active:scale-[0.985]",
                 )}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <cfg.icon size={18} strokeWidth={1.5} className={cfg.color} />
-                  <div className="flex items-center gap-2 flex-wrap justify-end">
-                    {linkedToHabits ? (
-                      <span className="text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border text-primary border-primary/40 bg-primary/10">
-                        {t("toolbox.inHabitsBadge")}
-                      </span>
-                    ) : null}
-                    {delivery === "assigned" ? (
-                      <span className="text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border text-neural-accent border-neural-accent/30 bg-neural-accent/5">
-                        {t("toolbox.deliveryAssignedBadge")}
-                      </span>
-                    ) : null}
-                    {isWaiting ? (
-                      <span className="text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border text-amber-600 border-amber-600/30 bg-amber-500/10">
-                        {t("toolbox.deliveryWaitingBadge")}
-                      </span>
-                    ) : null}
-                    {latestCompletion && (
-                      <span className={`text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border ${
-                        isCompleted ? "text-primary border-primary/30 bg-primary/5" :
-                        isAbandoned ? "text-destructive border-destructive/30 bg-destructive/5" :
-                        "text-muted-foreground border-border bg-secondary/20"
-                      }`}>
-                        {isCompleted ? t("toolbox.completed") : isAbandoned ? t("toolbox.abandoned") : t("toolbox.ignored")}
-                      </span>
-                    )}
-                    <span className="text-neural-label">{item.duration || "—"}</span>
+                {/* Card body */}
+                <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 sm:p-5">
+                  {/* Top row: icon + badges */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/30 bg-background/60"
+                    )}>
+                      <cfg.icon size={16} strokeWidth={1.5} className={cfg.color} />
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {latestCompletion && (
+                        <span className={cn(
+                          "text-[8px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border",
+                          isCompleted ? "text-primary border-primary/30 bg-primary/8" :
+                          isAbandoned ? "text-destructive border-destructive/30 bg-destructive/8" :
+                          "text-muted-foreground border-border/50 bg-secondary/20",
+                        )}>
+                          {isCompleted ? t("toolbox.completed") : isAbandoned ? t("toolbox.abandoned") : t("toolbox.ignored")}
+                        </span>
+                      )}
+                      {isWaiting ? (
+                        <span className="text-[8px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border text-amber-600 border-amber-500/30 bg-amber-500/10">
+                          {t("toolbox.deliveryWaitingBadge")}
+                        </span>
+                      ) : null}
+                      {linkedToHabits ? (
+                        <span className="text-[8px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border text-primary border-primary/30 bg-primary/8">
+                          {t("toolbox.inHabitsBadge")}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-                <p className="text-sm font-medium text-foreground mb-2">{getLocalizedTitle(item)}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed flex-1">
-                  {getLocalizedDescription(item) ||
-                    (TOOLBOX_TYPE_META[item.content_type] ? t(TOOLBOX_TYPE_META[item.content_type].labelKey as any) : "")}
-                </p>
 
-                <div className="mt-4 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  {/* Title + meta */}
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <p className="text-sm font-medium text-foreground leading-snug break-words">
+                      {getLocalizedTitle(item)}
+                    </p>
+                    <p className="font-display text-[9px] uppercase tracking-[0.16em] text-muted-foreground">
+                      {getTypeLabel(item.content_type)}
+                      {item.duration ? <span className="opacity-50"> · {item.duration}</span> : null}
+                    </p>
+                    <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground/80">
+                      {getLocalizedDescription(item) ||
+                        (TOOLBOX_TYPE_META[item.content_type] ? t(TOOLBOX_TYPE_META[item.content_type].labelKey as any) : "")}
+                    </p>
+                  </div>
+
+                  <ToolboxAssignmentStatsStrip
+                    stats={getStatsForItem(item.id)}
+                    emphasize={
+                      mainView === "history" || (mainView === "all" && statusFilter !== "all" && statusFilter !== "pending")
+                        ? (isCompleted ? "completed" : isAbandoned ? "abandoned" : isIgnored ? "ignored" : null)
+                        : null
+                    }
+                  />
+                </div>
+
+                {/* Card footer — actions */}
+                <div
+                  className="flex min-w-0 flex-col gap-2 border-t border-border/20 bg-background/20 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {!isWaiting ? (
-                    <button
-                      type="button"
-                      disabled={habitBusy}
-                      onClick={() => void toggleHabitLink(item.id)}
-                      className={cn(
-                        "flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border text-[9px] uppercase tracking-[0.28em] transition-colors",
-                        linkedToHabits
-                          ? "border-primary/50 bg-primary/15 text-primary hover:bg-primary/20"
-                          : "border-border/50 bg-secondary/20 text-foreground hover:border-primary/40 hover:bg-primary/5",
-                      )}
-                    >
-                      {habitBusy ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <ListChecks size={13} />
-                      )}
-                      {linkedToHabits ? t("toolbox.removeFromHabits") : t("toolbox.addToHabits")}
-                    </button>
+                    <ToolboxHabitLinkButton
+                      itemId={item.id}
+                      linked={linkedToHabits}
+                      busy={habitBusy}
+                      onToggle={(id) => void toggleHabitLink(id)}
+                      compact={false}
+                    />
                   ) : null}
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:ml-auto sm:justify-end">
                   {isWaiting ? (
                     <button
                       type="button"
                       onClick={() => void confirmWaiting(item.id)}
-                      className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-amber-600 hover:text-foreground transition-colors min-h-[36px] px-2"
+                      className="flex min-h-[34px] items-center gap-1 rounded-full border border-amber-500/35 bg-amber-500/10 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-amber-700 dark:text-amber-200 transition-colors hover:bg-amber-500/15"
                     >
-                      <CheckCircle2 size={12} /> {t("toolbox.confirmDelivery")}
+                      <CheckCircle2 size={11} /> {t("toolbox.confirmDelivery")}
                     </button>
                   ) : canReload ? (
-                    <button
-                      type="button"
-                      onClick={() => handleReload(item.id)}
-                      className="flex min-h-[44px] items-center gap-2 px-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent transition-colors hover:text-foreground"
-                    >
-                      <RotateCcw size={12} /> {t("toolbox.reload")}
-                    </button>
-                  ) : (!latestCompletion || isActive) && !isIgnored ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void handleReload(item.id)}
+                        disabled={reloadBusy === item.id}
+                        className="flex min-h-[34px] items-center gap-1 rounded-full border border-border/40 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+                      >
+                        <RotateCcw size={11} /> {t("toolbox.reload")}
+                      </button>
+                      {canLaunch ? (
+                        <button
+                          type="button"
+                          onClick={() => setActiveWidget(item.id)}
+                          className="flex min-h-[34px] items-center gap-1 rounded-full border border-primary/35 bg-primary/8 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-primary transition-colors hover:bg-primary/15"
+                        >
+                          <Play size={11} /> {t("toolbox.launch")}
+                        </button>
+                      ) : isVideoLink ? (
+                        <Link
+                          to="/bibliotheque"
+                          className="flex min-h-[34px] items-center gap-1 rounded-full border border-primary/35 bg-primary/8 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-primary transition-colors hover:bg-primary/15"
+                        >
+                          <Library size={11} /> {t("toolbox.openInLibrary")}
+                        </Link>
+                      ) : null}
+                    </>
+                  ) : (!latestCompletion || isActive) ? (
                     hasWidget ? (
-                      <button onClick={() => setActiveWidget(isActive ? null : item.id)}
-                        className="flex min-h-[44px] items-center gap-2 px-2 text-[9px] uppercase tracking-[0.3em] text-primary transition-colors hover:text-foreground">
-                        <Play size={12} /> {isActive ? t("toolbox.inProgress") : t("toolbox.launch")}
+                      <button
+                        onClick={() => setActiveWidget(isActive ? null : item.id)}
+                        className="flex min-h-[34px] items-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3 text-[9px] uppercase tracking-[0.18em] text-primary transition-colors hover:bg-primary/15"
+                      >
+                        <Play size={11} /> {isActive ? t("toolbox.inProgress") : t("toolbox.launch")}
                       </button>
                     ) : isVideoLink ? (
                       <Link
                         to="/bibliotheque"
-                        className="flex min-h-[44px] items-center gap-2 px-2 text-[9px] uppercase tracking-[0.3em] text-primary transition-colors hover:text-foreground"
+                        className="flex min-h-[34px] items-center gap-1 rounded-full border border-primary/35 bg-primary/8 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-primary transition-colors hover:bg-primary/15"
                       >
-                        <Library size={12} /> {t("toolbox.openInLibrary")}
+                        <Library size={11} /> {t("toolbox.openInLibrary")}
                       </Link>
                     ) : isExternal ? (
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <a href={item.external_url!} target="_blank" rel="noopener noreferrer"
-                          className="flex min-h-[44px] items-center gap-2 px-2 text-[9px] uppercase tracking-[0.3em] text-primary transition-colors hover:text-foreground">
-                          <ExternalLink size={12} /> {t("toolbox.openLink")}
+                          className="flex min-h-[34px] items-center gap-1 rounded-full border border-primary/35 bg-primary/8 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-primary transition-colors hover:bg-primary/15">
+                          <ExternalLink size={11} /> {t("toolbox.openLink")}
                         </a>
                         <button
                           type="button"
                           onClick={() => recordCompletion(item.id, "completed")}
-                          className="flex min-h-[44px] items-center gap-2 px-2 text-[9px] uppercase tracking-[0.3em] text-neural-accent transition-colors hover:text-foreground"
+                          className="flex min-h-[34px] items-center gap-1 rounded-full border border-border/40 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
                         >
-                          <CheckCircle2 size={12} /> {t("toolbox.markDone")}
+                          <CheckCircle2 size={11} /> {t("toolbox.markDone")}
                         </button>
                       </div>
                     ) : isInteractiveType ? (
-                      <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{t("toolbox.unavailableConfig")}</span>
+                      <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/60">{t("toolbox.unavailableConfig")}</span>
                     ) : (
-                      <button onClick={() => setActiveWidget(item.id)}
-                        className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors min-h-[36px] px-2">
-                        <Play size={12} /> {t("toolbox.launch")}
+                      <button
+                        onClick={() => setActiveWidget(item.id)}
+                        className="flex min-h-[34px] items-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3 text-[9px] uppercase tracking-[0.18em] text-primary transition-colors hover:bg-primary/15"
+                      >
+                        <Play size={11} /> {t("toolbox.launch")}
                       </button>
                     )
                   ) : null}
-
                   </div>
                 </div>
               </motion.div>
             );
           })}
           </div>
+          )}
         </div>
       )}
 
+      {/* Todo exercise modal — local fallback when global session provider is absent (admin preview) */}
+      {!exerciseSession ? (
+      <Dialog
+        open={Boolean(activeItem) && mainView === "todo"}
+        onOpenChange={(open) => {
+          if (!open) setActiveWidget(null);
+        }}
+      >
+        <DialogContent className="ethereal-glass w-[calc(100vw-1.25rem)] max-w-lg max-h-[min(90dvh,720px)] overflow-x-hidden overflow-y-auto border-border/30 p-4 sm:p-6">
+          {activeItem ? (() => {
+            const activeCfg = TOOLBOX_TYPE_META[activeItem.content_type] || TOOLBOX_TYPE_META.course;
+            return (
+              <>
+                <DialogHeader className="min-w-0 pr-8">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-border/30 bg-background/60 mt-0.5">
+                      <activeCfg.icon size={17} strokeWidth={1.5} className={activeCfg.color} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <DialogDescription className="text-neural-label mb-0.5 truncate">
+                        {getTypeLabel(activeItem.content_type)}
+                        {activeItem.duration ? <span className="opacity-60"> · {activeItem.duration}</span> : null}
+                      </DialogDescription>
+                      <DialogTitle className="text-left text-foreground leading-snug break-words">
+                        {getLocalizedTitle(activeItem)}
+                      </DialogTitle>
+                      {getLocalizedDescription(activeItem) ? (
+                        <p className="mt-1.5 text-left text-xs leading-relaxed text-muted-foreground line-clamp-3 break-words">
+                          {getLocalizedDescription(activeItem)}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </DialogHeader>
+                <div className="flex min-w-0 flex-col gap-2 border-t border-border/20 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                  <ToolboxAssignmentStatsStrip stats={getStatsForItem(activeItem.id)} className="min-w-0" />
+                  <button
+                    type="button"
+                    onClick={() => void handleReload(activeItem.id)}
+                    disabled={reloadBusy === activeItem.id}
+                    className="flex min-h-[36px] shrink-0 items-center justify-center gap-1.5 self-end rounded-full border border-border/40 px-3 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-40 sm:self-center"
+                  >
+                    <RotateCcw size={11} />
+                    {t("toolbox.reload")}
+                  </button>
+                </div>
+                <div className="min-w-0 overflow-x-auto py-1">{renderWidgetModalBody(activeItem)}</div>
+              </>
+            );
+          })() : null}
+        </DialogContent>
+      </Dialog>
+      ) : null}
+
       {/* Completion confirmation dialog */}
       <Dialog open={completionDialog.open} onOpenChange={(open) => { if (!open) setCompletionDialog({ open: false, itemId: null, status: "" }); }}>
-        <DialogContent className="ethereal-glass border-border/30 sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-foreground text-center">
+        <DialogContent className="ethereal-glass w-[calc(100vw-1.25rem)] max-w-sm overflow-x-hidden border-border/30 p-4 sm:p-6">
+          <div className="flex flex-col items-center gap-4 py-2">
+            {/* Status icon */}
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-2xl border",
+              completionDialog.status === "completed"
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : completionDialog.status === "abandoned"
+                ? "border-destructive/30 bg-destructive/10 text-destructive"
+                : "border-border bg-secondary/20 text-muted-foreground",
+            )}>
               {completionDialog.status === "completed" ? (
-                <span className="flex items-center justify-center gap-2">
-                  <CheckCircle2 size={20} className="text-primary" /> {t("toolbox.exerciseCompleted")}
-                </span>
+                <CheckCircle2 size={22} strokeWidth={1.5} />
               ) : completionDialog.status === "abandoned" ? (
-                <span className="flex items-center justify-center gap-2">
-                  <XCircle size={20} className="text-destructive" /> {t("toolbox.exerciseAbandoned")}
-                </span>
+                <XCircle size={22} strokeWidth={1.5} />
               ) : (
-                t("toolbox.statusUpdated")
+                <RotateCcw size={22} strokeWidth={1.5} />
               )}
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              {dialogItem ? getLocalizedTitle(dialogItem) : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="text-center py-4 space-y-3">
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-lg font-cinzel text-primary">{allCompletionStats.completed}</p>
-                <p className="text-neural-label">{t("toolbox.completed")}</p>
-              </div>
-              <div>
-                <p className="text-lg font-cinzel text-destructive">{allCompletionStats.abandoned}</p>
-                <p className="text-neural-label">{t("toolbox.abandoned")}</p>
-              </div>
-              <div>
-                <p className="text-lg font-cinzel text-muted-foreground">{allCompletionStats.ignored}</p>
-                <p className="text-neural-label">{t("toolbox.ignored")}</p>
-              </div>
             </div>
+            <DialogHeader className="text-center space-y-1">
+              <DialogTitle className="text-foreground text-center">
+                {completionDialog.status === "completed"
+                  ? t("toolbox.exerciseCompleted")
+                  : completionDialog.status === "abandoned"
+                  ? t("toolbox.exerciseAbandoned")
+                  : t("toolbox.statusUpdated")}
+              </DialogTitle>
+              {dialogItem ? (
+                <DialogDescription className="text-center text-sm">
+                  {getLocalizedTitle(dialogItem)}
+                </DialogDescription>
+              ) : null}
+            </DialogHeader>
+
+            {/* Lifetime stats */}
+            {(allCompletionStats.completed + allCompletionStats.abandoned + allCompletionStats.ignored) > 0 ? (
+              <div className="w-full rounded-xl border border-border/30 bg-background/40 px-4 py-3">
+                <p className="font-display text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2.5 text-center">
+                  {t("toolbox.neuralLibrary")}
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { n: allCompletionStats.completed, label: t("toolbox.completed"), cls: "text-primary" },
+                    { n: allCompletionStats.abandoned, label: t("toolbox.abandoned"), cls: "text-destructive" },
+                    { n: allCompletionStats.ignored, label: t("toolbox.ignored"), cls: "text-muted-foreground" },
+                  ].map((s) => (
+                    <div key={s.label} className="space-y-0.5">
+                      <p className={cn("text-xl font-cinzel tabular-nums", s.cls)}>{s.n}</p>
+                      <p className="text-neural-label">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <button
               onClick={() => setCompletionDialog({ open: false, itemId: null, status: "" })}
-              className="mt-4 text-[9px] uppercase tracking-[0.3em] text-primary hover:text-foreground transition-colors"
+              className="min-h-[40px] rounded-full border border-border/40 px-6 text-[9px] uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
             >
               {t("general.close")}
             </button>

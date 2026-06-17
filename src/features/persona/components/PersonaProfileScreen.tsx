@@ -2,6 +2,7 @@ import { LayoutDashboard, Settings2, User } from "lucide-react";
 import AegisHealthSection from "@/components/AegisHealthSection";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { PersonaStatsSection } from "./PersonaStatsSection";
 import { PersonaTrackingStrip } from "./PersonaTrackingStrip";
 import {
@@ -12,6 +13,7 @@ import {
   type PersonaViewProps,
 } from "./personaParts";
 import { PersonaPortraitLibrary } from "./PersonaPortraitLibrary";
+import { Houses72PersonaCTA } from "@/features/houses72/components/Houses72PersonaCTA";
 
 /** Mobile-only Persona hub — centered profile cover, single column. */
 export function PersonaProfileScreen({
@@ -23,6 +25,7 @@ export function PersonaProfileScreen({
   portraitsLoading,
 }: PersonaViewProps) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const {
     n,
     shownName,
@@ -98,6 +101,8 @@ export function PersonaProfileScreen({
             headingId="persona-now-heading-mobile"
           />
         ) : null}
+
+        <Houses72PersonaCTA userId={user?.id} />
 
         <section className="space-y-2" aria-labelledby="persona-links-heading-mobile">
           <p

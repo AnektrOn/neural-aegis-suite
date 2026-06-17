@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessagesSquare, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 
 interface Props {
   config: { instructions?: string; fields?: string[]; accent_color?: string };
@@ -22,18 +23,16 @@ export default function DialoguePartsWidget({
   onAbandon,
 }: Props) {
   const { t } = useLanguage();
-  const labels = config.fields?.length ? config.fields : ["Voix A", "Voix B"];
+  const labels = config.fields?.length
+    ? config.fields
+    : [t("toolbox.widgetFallback.voiceA"), t("toolbox.widgetFallback.voiceB")];
   const [activeVoice, setActiveVoice] = useState<0 | 1>(0);
   const [linesA, setLinesA] = useState<string[]>([""]);
   const [linesB, setLinesB] = useState<string[]>([""]);
   const touchedRef = useRef(false);
   const completedRef = useRef(false);
 
-  useEffect(() => {
-    return () => {
-      if (touchedRef.current && !completedRef.current) onAbandon?.();
-    };
-  }, [onAbandon]);
+  useWidgetAbandonGuard(touchedRef, completedRef, onAbandon);
 
   const currentLines = activeVoice === 0 ? linesA : linesB;
   const setCurrentLines = activeVoice === 0 ? setLinesA : setLinesB;

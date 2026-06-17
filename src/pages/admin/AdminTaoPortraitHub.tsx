@@ -132,6 +132,7 @@ export default function AdminTaoPortraitHub() {
 
   const accent =
     selected.pole !== "transversal" ? WU_XING_META[selected.pole].color : undefined;
+  const previewDisplayName = users.find((u) => u.id === userId)?.display_name ?? null;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 p-4 sm:p-6">
@@ -252,7 +253,7 @@ export default function AdminTaoPortraitHub() {
 
             <TabsContent value="preview" className="mt-4">
               <Card className="p-6 sm:p-8">
-                <TaoMarkdownBody markdown={markdown} accentColor={accent} />
+                <TaoMarkdownBody markdown={markdown} accentColor={accent} displayName={previewDisplayName} />
               </Card>
             </TabsContent>
           </Tabs>

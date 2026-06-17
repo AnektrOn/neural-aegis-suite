@@ -14,7 +14,7 @@ interface DayData {
 
 export default function CalendarView() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [monthData, setMonthData] = useState<Map<string, DayData>>(new Map());
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -69,12 +69,20 @@ export default function CalendarView() {
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
-  const weekDays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+  const dateLocale = locale === "en" ? "en-US" : "fr-FR";
+  const weekDays = useMemo(() => {
+    const monday = new Date(2024, 0, 1);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d.toLocaleDateString(dateLocale, { weekday: "short" });
+    });
+  }, [dateLocale]);
 
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
-  const monthName = currentMonth.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  const monthName = currentMonth.toLocaleDateString(dateLocale, { month: "long", year: "numeric" });
 
   const getMoodColor = (mood: number | null) => {
     if (mood === null) return "";
@@ -89,7 +97,7 @@ export default function CalendarView() {
   const dayDetailContent = selectedDay ? (
     <>
       <p className="text-neural-label mb-4">
-        {new Date(selectedDay + "T00:00:00").toLocaleDateString("fr-FR", {
+        {new Date(selectedDay + "T00:00:00").toLocaleDateString(dateLocale, {
           weekday: "long",
           day: "numeric",
           month: "long",

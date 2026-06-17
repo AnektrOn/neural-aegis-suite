@@ -625,15 +625,16 @@ export const phrases = {
     locale === "fr" ? "Profil archétypal" : "Archetypal profile",
 
   overviewLead: (labels: string[], locale: Locale) => {
+    const [l1, l2] = labels;
     if (!labels.length) {
       return locale === "fr"
         ? "Ton profil archétypal est encore en cours de constitution."
         : "Your archetypal profile is still taking shape.";
     }
     if (locale === "fr") {
-      return `Tes archétypes dominants sont le ${labels.join(", le ")}. Ils décrivent ta façon la plus naturelle de percevoir le monde, de décider et de transformer ce que tu touches.`;
+      return `Ta cartographie révèle une dynamique portée par le **${l1 || "?"}** et le **${l2 || "?"}**. C'est ton **Alliance de Lumière**, ta structure identitaire la plus saine et ta façon la plus naturelle d'impacter le monde.`;
     }
-    return `Your dominant archetypes are the ${labels.join(", the ")}. They describe your most natural way of perceiving the world, deciding, and transforming what you touch.`;
+    return `Your cartography reveals a dynamic driven by the **${l1 || "?"}** and the **${l2 || "?"}**. This is your **Light Alliance**, your healthiest identity structure and your most natural way to impact the world.`;
   },
 
   taglineFallback: (locale: Locale) =>
@@ -670,8 +671,8 @@ export const phrases = {
 
   activeSurvivalUser: (parts: string[], locale: Locale) =>
     locale === "fr"
-      ? `Tes gardiens de survie les plus actifs en ce moment : ${parts.join(", ")}. Ces archétypes sont des signaux de protection — leur activation indique des zones où une peur liée à ta sécurité (physique, financière, relationnelle, identitaire) est en jeu. L'enjeu n'est pas de les éliminer, mais de les reconnaître avant qu'ils ne prennent les décisions à ta place.`
-      : `Your most active survival guardians right now: ${parts.join(", ")}. These archetypes are protection signals — their activation indicates zones where a security-related fear (physical, financial, relational, identity) is at play. The goal is not to eliminate them, but to recognize them before they make decisions on your behalf.`,
+      ? `**Conseil de l'Ombre activé** : ${parts.join(" · ")}.\nCes archétypes de survie ne sont pas des défauts, ce sont des gardiens (Caroline Myss). Leur activation (en ambre) indique des zones où ton système nerveux perçoit une menace profonde sur ton intégrité, ton pouvoir ou ta sécurité. Le danger n'est pas de les ressentir, mais de les laisser signer tes contrats et prendre les décisions à la place de ton Alliance de Lumière.`
+      : `**Active Shadow Council**: ${parts.join(" · ")}.\nThese survival archetypes are not flaws, they are guardians (Caroline Myss). Their activation (in amber) indicates zones where your nervous system perceives a deep threat to your integrity, power or safety. The danger is not feeling them, but letting them sign your contracts and make decisions instead of your Light Alliance.`,
 
   /**
    * Survival narratives — admin-facing.
@@ -684,23 +685,21 @@ export const phrases = {
 
   activeSurvivalAdmin: (parts: string[], locale: Locale) =>
     locale === "fr"
-      ? `Gardiens actifs : ${parts.join(" · ")}. Réf. Myss — Survival Family : chaque gardien actif filtre la perception du réel et oriente les contrats implicites de la personne. Axes de régulation : (1) nommer la peur sous-jacente de chaque gardien actif, (2) identifier les décisions récentes influencées par cette peur, (3) créer un espace de choix conscient avant la prochaine activation. En accompagnement : surveiller les moments de bascule entre archétypes lumineux et ombres de survie sous stress.`
-      : `Active guardians: ${parts.join(" · ")}. Ref. Myss — Survival Family: each active guardian filters perception of reality and shapes the person's implicit contracts. Regulation axes: (1) name the underlying fear of each active guardian, (2) identify recent decisions influenced by that fear, (3) create a conscious choice space before the next activation. In coaching: watch tipping points between light archetypes and survival shadows under stress.`,
+      ? `Conseil de l'Ombre (Gardiens actifs) : ${parts.join(" · ")}. Réf. Myss — Survival Family : chaque gardien actif filtre la perception du réel et oriente les contrats implicites de la personne via son axe de survie. Axes de régulation : (1) nommer la peur racine (impuissance, trahison, perte de sens) de chaque gardien, (2) identifier les décisions d'évitement récentes dictées par cette peur, (3) créer un espace de dissociation consciente avant l'action. En clinique : observer comment l'Alliance de Lumière est souvent instrumentalisée pour ne pas faire face à ces gardiens.`
+      : `Shadow Council (Active Guardians): ${parts.join(" · ")}. Ref. Myss — Survival Family: each active guardian filters perception of reality and shapes the person's implicit contracts via its survival axis. Regulation axes: (1) name the root fear (powerlessness, betrayal, loss of meaning) of each guardian, (2) identify recent avoidance decisions dictated by this fear, (3) create a conscious dissociation space before acting. In coaching: observe how the Light Alliance is often weaponized to avoid facing these guardians.`,
 
   /**
    * Closing narrative — includes contextual shadow theme.
    * GUARDRAIL: must reference the actual primary shadow when known.
    */
   closingNarrative: (l1: string, l2: string, l3: string, primaryShadow: string | null, locale: Locale) => {
-    const shadowFR = primaryShadow
-      ? `Ton thème d'ombre principal — ${primaryShadow} — t'a probablement protégé jusqu'ici ; le travail est de le rendre conscient pour qu'il cesse de gouverner par défaut.`
-      : `Aucun thème d'ombre dominant ne pilote actuellement le profil — moment propice pour renforcer l'expression lumineuse avant qu'un stress majeur ne révèle une zone défensive jusqu'ici discrète.`;
-    const shadowEN = primaryShadow
-      ? `Your primary shadow theme — ${primaryShadow} — has likely protected you so far; the work is to bring it to consciousness so it stops running by default.`
-      : `No dominant shadow theme is currently steering the profile — a good moment to reinforce the light expression before a major stressor reveals a previously quiet defensive zone.`;
-    return locale === "fr"
-      ? `Tu exprimes principalement l'énergie du ${l1}, soutenu par le ${l2} et le ${l3}. Cette triade est ta signature naturelle. ${shadowFR}`
-      : `You primarily express the energy of the ${l1}, supported by the ${l2} and the ${l3}. This triad is your natural signature. ${shadowEN}`;
+    const themeFr = primaryShadow || "les mécanismes de l'Ombre";
+    const themeEn = primaryShadow || "Shadow mechanisms";
+
+    if (locale === "fr") {
+      return `**Diagnostic Clinique Croisé (Lumière ↔ Ombre)** :\nBien que ta force de frappe identitaire réside dans l'énergie du **${l1 || "?"}**, ta cartographie indique que ton système se protège souvent via **${themeFr}**. \n\nQuand le réel devient menaçant ou que l'impuissance s'installe, le risque (le "Spiritual/Systemic Bypassing") est d'utiliser ton Alliance de Lumière (${l1 || "?"}) non pas pour impacter le monde, mais pour **fuir ou masquer tes douleurs de survie**. L'enjeu de ce rapport est de t'inviter à descendre de ton piédestal lumineux pour aller apaiser cette blessure fondamentale dans la matière, afin que ta Lumière redevienne un choix et non une fuite.`;
+    }
+    return `**Cross-Clinical Diagnostic (Light ↔ Shadow)**:\nAlthough your identity's striking force lies in the energy of the **${l1 || "?"}**, your cartography indicates that your system often protects itself via **${themeEn}**. \n\nWhen reality becomes threatening or powerlessness sets in, the risk ("Spiritual/Systemic Bypassing") is using your Light Alliance (${l1 || "?"}) not to impact the world, but to **flee or mask your survival pain**. The stakes of this report are to invite you to step down from your luminous pedestal to soothe this fundamental wound in the physical world, so your Light becomes a choice again, not an escape.`;
   },
 
   strengthFallback: (label: string, hint: string | undefined, locale: Locale) =>

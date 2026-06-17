@@ -14,6 +14,7 @@ import {
 } from "./computeDeepDiveScores";
 import { QUESTIONS_70 } from "./questions70";
 import { HOUSES, type AnyArchetypeKey } from "./types";
+import type { ResponseValue } from "@/features/archetype-assessment/domain/types";
 
 interface PreWeighted {
   archetype: AnyArchetypeKey;
@@ -124,6 +125,7 @@ function computeMixed(
 interface LegacyOption {
   id: string;
   question_id: string;
+  position: number;
   archetype_weights: Record<string, number> | null;
   shadow_weights: Record<string, number> | null;
   polarity_weights:
@@ -146,7 +148,7 @@ async function loadLegacyMeta() {
   const [opts, qs] = await Promise.all([
     supabase
       .from("assessment_options")
-      .select("id, question_id, archetype_weights, shadow_weights, polarity_weights"),
+      .select("id, question_id, position, archetype_weights, shadow_weights, polarity_weights"),
     supabase.from("assessment_questions").select("id, house"),
   ]);
   if (opts.error) throw opts.error;
@@ -164,6 +166,30 @@ async function loadLegacyMeta() {
     totalQuestions: questionsById.size,
   };
   return legacyCache;
+}
+
+function intensitiesForAssessmentResponse(
+  row: { question_id: string; selected_option_ids: string[]; raw_payload: unknown },
+  meta: NonNullable<typeof legacyCache>,
+): Record<string, number> | undefined {
+  const payload = (row.raw_payload ?? {}) as ResponseValue;
+  if (payload.optionIntensities && Object.keys(payload.optionIntensities).length > 0) {
+    return payload.optionIntensities;
+  }
+  if (!payload.selections?.length) return undefined;
+
+  const optionsForQ = [...meta.optionsById.values()]
+    .filter((o) => o.question_id === row.question_id)
+    .sort((a, b) => a.position - b.position);
+
+  const out: Record<string, number> = {};
+  for (const sel of payload.selections) {
+    const opt = optionsForQ[sel.optionIndex];
+    if (opt) {
+      out[opt.id] = Math.min(3, Math.max(1, Math.round(sel.intensity)));
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function legacyResponseToWeights(
@@ -256,16 +282,23 @@ function legacyResponseToWeights(
 /** Load and compute unified result for a single user. */
 export async function loadUnifiedDeepDiveResult(
   userId: string,
+  options?: { assessmentSessionId?: string },
 ): Promise<DeepDiveResult> {
   const [ddRes, asRes, meta] = await Promise.all([
     supabase
       .from("deepdive_responses" as any)
       .select("question_code, option_codes")
       .eq("user_id", userId),
-    supabase
-      .from("assessment_responses")
-      .select("question_id, selected_option_ids, raw_payload")
-      .eq("user_id", userId),
+    (() => {
+      let q = supabase
+        .from("assessment_responses")
+        .select("question_id, selected_option_ids, raw_payload, session_id")
+        .eq("user_id", userId);
+      if (options?.assessmentSessionId) {
+        q = q.eq("session_id", options.assessmentSessionId);
+      }
+      return q;
+    })(),
     loadLegacyMeta(),
   ]);
 
@@ -282,8 +315,7 @@ export async function loadUnifiedDeepDiveResult(
   for (const r of (asRes.data ?? []) as any[]) {
     if (!r.selected_option_ids || r.selected_option_ids.length === 0) continue;
     legacyAnsweredQids.add(r.question_id);
-    const intensities = (r.raw_payload as { optionIntensities?: Record<string, number> } | null)
-      ?.optionIntensities;
+    const intensities = intensitiesForAssessmentResponse(r, meta);
     const { weights } = legacyResponseToWeights(
       r.selected_option_ids,
       intensities,
@@ -334,8 +366,7 @@ export async function loadUnifiedDeepDiveResultsForAllUsers(): Promise<
       answered: new Set<string>(),
     };
     entry.answered.add(r.question_id);
-    const intensities = (r.raw_payload as { optionIntensities?: Record<string, number> } | null)
-      ?.optionIntensities;
+    const intensities = intensitiesForAssessmentResponse(r, meta);
     const { weights } = legacyResponseToWeights(
       r.selected_option_ids,
       intensities,

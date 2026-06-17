@@ -125,12 +125,14 @@ export function TaoMarkdownBody({
   markdown,
   className,
   accentColor,
+  displayName,
 }: {
   markdown: string;
   className?: string;
   accentColor?: string;
+  displayName?: string | null;
 }) {
-  const { frontmatter, body } = prepareTaoPortraitMarkdown(markdown);
+  const { frontmatter, body } = prepareTaoPortraitMarkdown(markdown, { displayName });
 
   if (!body.trim() && !frontmatter) {
     return null;

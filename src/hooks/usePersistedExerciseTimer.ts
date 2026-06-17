@@ -3,9 +3,12 @@ import {
   clearTimerSession,
   getElapsedSec,
   loadTimerSession,
+  materializeRunningTimer,
   saveTimerSession,
   type TimerSessionData,
 } from "@/lib/toolbox-session-storage";
+import { playToolboxTimerCompleteSound } from "@/lib/toolbox-timer-sound";
+import { subscribeWallClockTick } from "@/lib/wall-clock-ticker";
 
 interface Options {
   sessionKey?: string;
@@ -26,7 +29,7 @@ export function usePersistedExerciseTimer({ sessionKey, totalSeconds, onComplete
     const saved = loadTimerSession(sessionKey);
     if (saved && !saved.completed) {
       hasStartedRef.current = saved.accumulatedSec > 0 || saved.runningSince !== null;
-      return saved;
+      return materializeRunningTimer(saved);
     }
     return EMPTY;
   });
@@ -50,17 +53,59 @@ export function usePersistedExerciseTimer({ sessionKey, totalSeconds, onComplete
     saveTimerSession(sessionKey, timerState);
   }, [sessionKey, timerState, completed]);
 
+  const checkpointWallClock = useCallback(() => {
+    setTimerState((prev) => {
+      if (prev.completed) return prev;
+      const next = materializeRunningTimer(prev);
+      if (sessionKey) saveTimerSession(sessionKey, next);
+      return next;
+    });
+    setTick((n) => n + 1);
+  }, [sessionKey]);
+
   useEffect(() => {
     if (!isRunning) return;
-    const id = setInterval(() => setTick((n) => n + 1), 500);
-    return () => clearInterval(id);
+    return subscribeWallClockTick(() => setTick((n) => n + 1));
   }, [isRunning]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const onHidden = () => {
+      setTimerState((prev) => {
+        if (prev.completed) return prev;
+        const next = materializeRunningTimer(prev);
+        if (sessionKey) saveTimerSession(sessionKey, next);
+        return next;
+      });
+    };
+
+    const onVisible = () => checkpointWallClock();
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") onHidden();
+      else onVisible();
+    };
+
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    window.addEventListener("beforeunload", onHidden);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+      window.removeEventListener("beforeunload", onHidden);
+    };
+  }, [sessionKey, checkpointWallClock]);
 
   useEffect(() => {
     if (elapsedSec < totalSeconds || completedRef.current) return;
     if (!hasStartedRef.current) return;
     completedRef.current = true;
     setTimerState((prev) => ({ ...prev, completed: true, runningSince: null }));
+    playToolboxTimerCompleteSound();
     onCompleteRef.current?.();
   }, [elapsedSec, totalSeconds]);
 
@@ -74,7 +119,7 @@ export function usePersistedExerciseTimer({ sessionKey, totalSeconds, onComplete
       const saved = loadTimerSession(sessionKey);
       if (saved && !saved.completed) {
         hasStartedRef.current = saved.accumulatedSec > 0 || saved.runningSince !== null;
-        setTimerState(saved);
+        setTimerState(materializeRunningTimer(saved));
         return;
       }
     }
@@ -96,9 +141,10 @@ export function usePersistedExerciseTimer({ sessionKey, totalSeconds, onComplete
     setTimerState((prev) => {
       if (prev.completed) return prev;
       if (prev.runningSince !== null) {
-        const add = Math.floor((Date.now() - prev.runningSince) / 1000);
-        return { ...prev, accumulatedSec: prev.accumulatedSec + add, runningSince: null };
+        const materialized = materializeRunningTimer(prev);
+        return { ...materialized, runningSince: null };
       }
+      hasStartedRef.current = true;
       return { ...prev, runningSince: Date.now() };
     });
   }, []);
@@ -107,11 +153,12 @@ export function usePersistedExerciseTimer({ sessionKey, totalSeconds, onComplete
     setTimerState((prev) => {
       if (prev.completed) return prev;
       if (running && prev.runningSince === null) {
+        hasStartedRef.current = true;
         return { ...prev, runningSince: Date.now() };
       }
       if (!running && prev.runningSince !== null) {
-        const add = Math.floor((Date.now() - prev.runningSince) / 1000);
-        return { ...prev, accumulatedSec: prev.accumulatedSec + add, runningSince: null };
+        const materialized = materializeRunningTimer(prev);
+        return { ...materialized, runningSince: null };
       }
       return prev;
     });

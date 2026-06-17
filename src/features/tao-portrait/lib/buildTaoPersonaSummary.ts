@@ -56,7 +56,10 @@ function resolvePrimaryPole(progress: TaoPoleProgress[]): WuXingPole | null {
   return best?.pole ?? null;
 }
 
-export function buildTaoPersonaSummary(parts: TaoPortraitPartRow[]): TaoPersonaSummary {
+export function buildTaoPersonaSummary(
+  parts: TaoPortraitPartRow[],
+  options?: { displayName?: string | null },
+): TaoPersonaSummary {
   const t2Available = hasTransversalT2(parts);
   const poleProgress: TaoPoleProgress[] = WU_XING_POLES.map((pole) => ({
     pole,
@@ -81,7 +84,11 @@ export function buildTaoPersonaSummary(parts: TaoPortraitPartRow[]): TaoPersonaS
   let t2Domaine: string | null = null;
 
   if (t2Row) {
-    const preview = extractTaoMarkdownPreview(t2Row.content_md, { maxChars: 520, maxParagraphs: 4 });
+    const preview = extractTaoMarkdownPreview(t2Row.content_md, {
+      maxChars: 520,
+      maxParagraphs: 4,
+      displayName: options?.displayName,
+    });
     t2Title = preview.title || null;
     t2Lead = preview.lead || null;
     t2Excerpt = preview.excerpt || null;
@@ -95,7 +102,11 @@ export function buildTaoPersonaSummary(parts: TaoPortraitPartRow[]): TaoPersonaS
   if (!t2Row) {
     const fallback = firstFilledPolePart(parts);
     if (fallback) {
-      const preview = extractTaoMarkdownPreview(fallback.content_md, { maxChars: 280, maxParagraphs: 2 });
+      const preview = extractTaoMarkdownPreview(fallback.content_md, {
+        maxChars: 280,
+        maxParagraphs: 2,
+        displayName: options?.displayName,
+      });
       fallbackTitle = preview.title || null;
       fallbackLead = preview.lead || null;
     }

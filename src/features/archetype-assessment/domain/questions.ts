@@ -1,5 +1,5 @@
 /**
- * Core onboarding question bank — Caroline Myss T1 (15 questions).
- * @see questionsT1.ts for the full bilingual content and scoring vectors.
+ * Core onboarding question bank — Caroline Myss V4 (30 questions, 32 poles).
+ * @see questionsV4.ts for the full bilingual content and vector mappings.
  */
-export { QUESTIONS_T1 as QUESTIONS } from "./questionsT1";
+export { QUESTIONS_V4 as QUESTIONS } from "./questionsV4";

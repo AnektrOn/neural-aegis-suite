@@ -1,13 +1,22 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import type { ResponseValue, RuntimeQuestion } from "../domain/types";
+import { useLanguage } from "@/i18n/LanguageContext";
+import {
+  buildResponseFromSelections,
+  clampIntensity,
+  normalizeResponseSelections,
+  optionIndexForId,
+} from "../domain/responseSelection";
+import type { QuestionSelection, ResponseValue, RuntimeQuestion } from "../domain/types";
 
 const INTENSITY_LEVELS = [
   { value: 1, fr: "Occasionnel", en: "Occasional" },
   { value: 2, fr: "Fréquent", en: "Frequent" },
   { value: 3, fr: "Systématique", en: "Systematic" },
 ] as const;
+
+const DEFAULT_INTENSITY = 1;
 
 export function IntensityMultipleChoice({
   question,
@@ -20,61 +29,62 @@ export function IntensityMultipleChoice({
   onChange: (v: ResponseValue) => void;
   isFR: boolean;
 }) {
+  const { t } = useLanguage();
   const meta = question.meta as {
     maxSelect?: number;
     intensityEnabled?: boolean;
     scoringModel?: string;
   };
-  const intensityEnabled = meta.intensityEnabled === true;
+  const intensityEnabled = meta.intensityEnabled !== false;
   const unlimited = meta.maxSelect == null;
   const max = unlimited ? question.options.length : meta.maxSelect!;
-  const selected = value?.selectedOptionIds ?? [];
-  const intensities = value?.optionIntensities ?? {};
+  const selections = normalizeResponseSelections(question, value);
 
-  const emit = (nextSelected: string[], nextIntensities: Record<string, number>) => {
-    const payload: ResponseValue = {
-      questionId: question.id,
-      selectedOptionIds: nextSelected,
-    };
-    if (intensityEnabled && nextSelected.length > 0) {
-      payload.optionIntensities = Object.fromEntries(
-        nextSelected.map((id) => [id, nextIntensities[id] ?? 2]),
-      );
-    }
-    onChange(payload);
+  const selectionByIndex = new Map(
+    selections.map((s) => [s.optionIndex, s.intensity] as const),
+  );
+
+  const emit = (next: QuestionSelection[]) => {
+    onChange(buildResponseFromSelections(question.id, question, next));
   };
 
-  const toggle = (id: string) => {
-    if (selected.includes(id)) {
-      const nextSelected = selected.filter((x) => x !== id);
-      const nextIntensities = { ...intensities };
-      delete nextIntensities[id];
-      emit(nextSelected, nextIntensities);
+  const toggle = (optionId: string) => {
+    const optionIndex = optionIndexForId(question, optionId);
+    if (optionIndex < 0) return;
+
+    if (selectionByIndex.has(optionIndex)) {
+      emit(selections.filter((s) => s.optionIndex !== optionIndex));
       return;
     }
-    if (!unlimited && selected.length >= max) return;
-    emit([...selected, id], { ...intensities, [id]: intensities[id] ?? 2 });
+    if (!unlimited && selections.length >= max) return;
+    emit([
+      ...selections,
+      { optionIndex, intensity: DEFAULT_INTENSITY },
+    ]);
   };
 
-  const setIntensity = (id: string, level: number) => {
-    if (!selected.includes(id)) return;
-    emit(selected, { ...intensities, [id]: level });
+  const setIntensity = (optionIndex: number, level: number) => {
+    if (!selectionByIndex.has(optionIndex)) return;
+    emit(
+      selections.map((s) =>
+        s.optionIndex === optionIndex
+          ? { ...s, intensity: clampIntensity(level) }
+          : s,
+      ),
+    );
   };
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground leading-relaxed">
         {intensityEnabled
-          ? isFR
-            ? "Cochez toutes les réactions qui résonnent — plusieurs archétypes peuvent coexister. Pour chaque option, indiquez l'intensité (1 = occasionnel, 2 = fréquent, 3 = systématique)."
-            : "Check every reaction that resonates — several archetypes can coexist. For each option, set intensity (1 = occasional, 2 = frequent, 3 = systematic)."
-          : isFR
-            ? `Sélection max : ${max}`
-            : `Max select: ${max}`}
+          ? t("assessment.intensityHelper")
+          : t("assessment.maxSelect", { max: String(max) })}
       </p>
       {question.options.map((o) => {
-        const isSelected = selected.includes(o.id);
-        const intensity = intensities[o.id] ?? 2;
+        const optionIndex = optionIndexForId(question, o.id);
+        const isSelected = selectionByIndex.has(optionIndex);
+        const intensity = selectionByIndex.get(optionIndex) ?? DEFAULT_INTENSITY;
         return (
           <div
             key={o.id}
@@ -94,7 +104,7 @@ export function IntensityMultipleChoice({
             {intensityEnabled && isSelected ? (
               <div className="flex flex-wrap items-center gap-2 pl-7">
                 <span className="text-[11px] text-muted-foreground uppercase tracking-wide w-full sm:w-auto">
-                  {isFR ? "Intensité" : "Intensity"}
+                  {t("assessment.intensityLabel")}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {INTENSITY_LEVELS.map((level) => (
@@ -103,7 +113,7 @@ export function IntensityMultipleChoice({
                       type="button"
                       aria-label={isFR ? level.fr : level.en}
                       title={isFR ? level.fr : level.en}
-                      onClick={() => setIntensity(o.id, level.value)}
+                      onClick={() => setIntensity(optionIndex, level.value)}
                       className={cn(
                         "h-8 px-2.5 rounded-md text-xs font-medium border transition-colors",
                         intensity === level.value

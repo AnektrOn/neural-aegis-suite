@@ -36,6 +36,7 @@ import NotificationBell from "@/components/NotificationBell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
 import AppFooter from "@/components/AppFooter";
+import { ToolboxExerciseSessionProvider } from "@/features/toolbox/ToolboxExerciseSessionContext";
 import { useNetwork } from "@/hooks/use-network";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -301,6 +302,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const dockRadialHasActive = radialItems.some((item) => item.isActive);
 
     return (
+      <ToolboxExerciseSessionProvider userId={user?.id}>
       <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
         <div
           className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle"
@@ -505,10 +507,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      </ToolboxExerciseSessionProvider>
     );
   }
 
   return (
+    <ToolboxExerciseSessionProvider userId={user?.id}>
     <div className="flex min-h-screen w-full relative z-10 bg-bg-base">
       {!online && (
         <div
@@ -555,5 +559,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       />
       <QuickLogModal open={quickLogOpen} onClose={() => setQuickLogOpen(false)} />
     </div>
+    </ToolboxExerciseSessionProvider>
   );
 }

@@ -1,7 +1,7 @@
 import { useQueries } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { pickLocalizedText } from "@/lib/content-i18n";
 import { buildDailyMoodSeries, computeMoodWeekTrend } from "@/lib/moodSeries";
+import { resolveAssignedHabitDisplays } from "@/lib/assigned-habit-display";
 import type { Locale } from "@/i18n/translations";
 
 const todayStr = () => new Date().toISOString().split("T")[0];
@@ -91,7 +91,7 @@ export async function fetchMobileDashboard(userId: string, locale: string) {
       .eq("user_id", userId)
       .gte("logged_at", fourteenDaysAgo.toISOString()),
     supabase.from("decisions" as any).select("id, name, priority, status, created_at").eq("user_id", userId).eq("status", "pending").order("priority", { ascending: false }).limit(3),
-    supabase.from("assigned_habits" as any).select("id, habit_template_id").eq("user_id", userId).eq("is_active", true).limit(5),
+    supabase.from("assigned_habits" as any).select("id, habit_template_id, toolbox_assignment_id").eq("user_id", userId).eq("is_active", true).limit(5),
     supabase.from("habit_completions" as any).select("assigned_habit_id, completed_date").eq("user_id", userId).gte("completed_date", weekStartDate),
     supabase.from("journal_entries").select("content, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase
@@ -125,19 +125,21 @@ export async function fetchMobileDashboard(userId: string, locale: string) {
   const habitDays = new Set((completionsRes.data as any[] || []).map((c: any) => c.completed_date));
   let mobileHabits: Array<{ id: string; name: string; category: string; completed: boolean }> = [];
   if (habitsAssignedRes.data && (habitsAssignedRes.data as any[]).length > 0) {
-    const templateIds = (habitsAssignedRes.data as any[]).map((a: any) => a.habit_template_id);
     const completedTodaySet = new Set(completedToday.map((c: any) => c.assigned_habit_id));
-    const { data: templates } = await supabase.from("habit_templates" as any).select("id, name, name_i18n, category").in("id", templateIds);
-    const tMap = new Map((templates as any[] || []).map((tpl: any) => [tpl.id, tpl]));
-    mobileHabits = (habitsAssignedRes.data as any[]).map((a: any) => {
-      const tpl = tMap.get(a.habit_template_id);
-      return {
+    const resolved = await resolveAssignedHabitDisplays(
+      (habitsAssignedRes.data as any[]).map((a: any) => ({
         id: a.id,
-        name: tpl ? pickLocalizedText(locale as Locale, tpl.name_i18n, tpl.name) : "—",
-        category: tpl?.category ?? "",
-        completed: completedTodaySet.has(a.id),
-      };
-    });
+        habit_template_id: a.habit_template_id ?? null,
+        toolbox_assignment_id: a.toolbox_assignment_id ?? null,
+      })),
+      userId,
+      locale as Locale,
+      locale === "fr" ? "Outil toolbox" : "Toolbox exercise",
+    );
+    mobileHabits = resolved.map((habit) => ({
+      ...habit,
+      completed: completedTodaySet.has(habit.id),
+    }));
   }
   return {
     moodAvg: avg,

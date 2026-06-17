@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Heart } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 
 interface Props {
   config: { entries_count?: number };
@@ -23,11 +24,7 @@ export default function GratitudeWidget({ config, title, hideTitle, onComplete, 
     completedRef.current = false;
   }, [n]);
 
-  useEffect(() => {
-    return () => {
-      if (touchedRef.current && !completedRef.current) onAbandon?.();
-    };
-  }, []);
+  useWidgetAbandonGuard(touchedRef, completedRef, onAbandon);
 
   const setAt = (i: number, v: string) => {
     touchedRef.current = true;

@@ -24,15 +24,14 @@ import {
 } from "../services/assessmentService";
 import { useAssessmentSession } from "../hooks/useAssessmentSession";
 import type { LoadedTemplate } from "../services/assessmentService";
-import { MiniRadarThumb } from "../components/MiniRadarThumb";
 import { AssessmentQuestionRenderer } from "../components/AssessmentQuestionRenderer";
 
 const SECONDS_PER_QUESTION = 18;
 
-function formatMinutesRemaining(remainingQuestions: number, isFR: boolean): string {
+function formatMinutesRemaining(remainingQuestions: number, t: (key: string, vars?: Record<string, string>) => string): string {
   const seconds = Math.max(0, remainingQuestions) * SECONDS_PER_QUESTION;
   const minutes = Math.max(1, Math.round(seconds / 60));
-  return isFR ? `~${minutes} min restantes` : `~${minutes} min remaining`;
+  return t("assessment.minutesRemaining", { minutes: String(minutes) });
 }
 
 export default function PublicAssessmentFlow() {
@@ -54,7 +53,7 @@ export default function PublicAssessmentFlow() {
         if (!alive) return;
         setLoaded(tpl);
       })
-      .catch((e) => alive && setLoadError(e.message ?? "Erreur de chargement"));
+      .catch((e) => alive && setLoadError(e.message ?? t("assessment.loadError")));
     return () => {
       alive = false;
     };
@@ -89,9 +88,7 @@ export default function PublicAssessmentFlow() {
     if (!user || !loaded) {
       toast({
         title: t("toast.error"),
-        description: isFR
-          ? "Session ou questionnaire manquant. Rechargez la page."
-          : "Missing session or questionnaire. Please reload the page.",
+        description: t("assessment.missingSession"),
         variant: "destructive",
       });
       return;
@@ -148,13 +145,11 @@ export default function PublicAssessmentFlow() {
           variant="ghost"
           size="icon"
           onClick={() => navigate("/visitor")}
-          aria-label="close"
+          aria-label={t("general.close")}
         >
           <X className="w-5 h-5" />
         </Button>
       </div>
-
-      {/* MiniRadarThumb hidden for visitors — admin only */}
 
       <div className="max-w-2xl mx-auto px-4 py-10 sm:py-16">
         {session.step === "welcome" && (
@@ -190,15 +185,16 @@ export default function PublicAssessmentFlow() {
             <div>
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                 <span>
-                  {isFR
-                    ? `Question ${session.questionIndex + 1} / ${session.totalQuestions}`
-                    : `Question ${session.questionIndex + 1} / ${session.totalQuestions}`}
+                  {t("assessment.questionProgress", {
+                    current: String(session.questionIndex + 1),
+                    total: String(session.totalQuestions),
+                  })}
                 </span>
                 <span>{Math.round(session.progress * 100)}%</span>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-2">
                 <Clock className="w-3 h-3" />
-                <span>{formatMinutesRemaining(remaining, isFR)}</span>
+                <span>{formatMinutesRemaining(remaining, t)}</span>
               </div>
               <Progress value={session.progress * 100} />
             </div>
@@ -214,16 +210,12 @@ export default function PublicAssessmentFlow() {
 
             <div className="flex items-center justify-between gap-3">
               <Button variant="ghost" onClick={session.previous}>
-                <ArrowLeft className="mr-2 w-4 h-4" /> {isFR ? "Précédent" : "Previous"}
+                <ArrowLeft className="mr-2 w-4 h-4" /> {t("appendix.previous")}
               </Button>
               <Button onClick={session.next} disabled={!session.isCurrentAnswered}>
                 {session.questionIndex === session.totalQuestions - 1
-                  ? isFR
-                    ? "Revoir"
-                    : "Review"
-                  : isFR
-                    ? "Suivant"
-                    : "Next"}
+                  ? t("assessment.review")
+                  : t("appendix.next")}
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </div>
@@ -233,12 +225,13 @@ export default function PublicAssessmentFlow() {
         {session.step === "review" && (
           <Card className="p-6 sm:p-8 backdrop-blur-3xl bg-card/40 border-border/40">
             <h2 className="text-xl sm:text-2xl font-serif mb-2">
-              {isFR ? "Revue" : "Review"}
+              {t("assessment.reviewTitle")}
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
-              {isFR
-                ? `${session.responsesArray.length} / ${session.totalQuestions} questions répondues.`
-                : `${session.responsesArray.length} / ${session.totalQuestions} questions answered.`}
+              {t("assessment.answeredCount", {
+                answered: String(session.responsesArray.length),
+                total: String(session.totalQuestions),
+              })}
             </p>
             <div className="max-h-72 overflow-auto space-y-2 mb-6 pr-1">
               {loaded.questions.map((q, idx) => {
@@ -268,7 +261,7 @@ export default function PublicAssessmentFlow() {
                 onClick={() => session.goToQuestion(0)}
                 className="flex-1"
               >
-                {isFR ? "Revenir aux questions" : "Back to questions"}
+                {t("assessment.backToQuestions")}
               </Button>
               <Button
                 onClick={handleSubmit}
@@ -276,7 +269,7 @@ export default function PublicAssessmentFlow() {
                 className="flex-1"
               >
                 {submitting && <Loader2 className="mr-2 w-4 h-4 animate-spin" />}
-                {isFR ? "Voir mon rapport" : "View my report"}
+                {t("assessment.viewReport")}
               </Button>
             </div>
           </Card>

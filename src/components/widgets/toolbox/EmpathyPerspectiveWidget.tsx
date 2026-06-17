@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { UsersRound, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 
 interface Props {
   config: { instructions?: string; fields?: string[]; accent_color?: string };
@@ -21,16 +22,14 @@ export default function EmpathyPerspectiveWidget({
   onAbandon,
 }: Props) {
   const { t } = useLanguage();
-  const labels = config.fields?.length ? config.fields : ["Moi", "Autre", "Pont"];
+  const labels = config.fields?.length
+    ? config.fields
+    : [t("toolbox.widgetFallback.me"), t("toolbox.widgetFallback.other"), t("toolbox.widgetFallback.bridge")];
   const [values, setValues] = useState<Record<number, string>>({ 0: "", 1: "", 2: "" });
   const touchedRef = useRef(false);
   const completedRef = useRef(false);
 
-  useEffect(() => {
-    return () => {
-      if (touchedRef.current && !completedRef.current) onAbandon?.();
-    };
-  }, [onAbandon]);
+  useWidgetAbandonGuard(touchedRef, completedRef, onAbandon);
 
   return (
     <motion.div

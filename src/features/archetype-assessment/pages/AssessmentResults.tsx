@@ -17,6 +17,7 @@ import {
   getSessionResultsSummary,
   getPreviousSubmittedSessionForUser,
   getSessionArchetypeScores,
+  v4PoleAnalysisFromSummary,
   type AssessmentSessionRow,
   type SessionResultsSummary,
 } from "../services/assessmentService";
@@ -24,6 +25,7 @@ import { exportProfileToPdf } from "../services/exportProfilePdf";
 import type { Json } from "@/integrations/supabase/types";
 import type { ArchetypeKey } from "../domain/types";
 import { DualLayerRadar } from "../components/DualLayerRadar";
+import { V4PoleCartographyZones } from "../components/V4PoleCartographyZones";
 import { NarrativeProfileCard } from "../components/NarrativeProfileCard";
 import { buildNarrative } from "../components/narrativeProfile";
 
@@ -46,7 +48,7 @@ function userDisplayFirstName(user: NonNullable<ReturnType<typeof useAuth>["user
 export default function AssessmentResults() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
   const isFR = locale === "fr";
 
   const [loading, setLoading] = useState(true);
@@ -133,6 +135,11 @@ export default function AssessmentResults() {
     return { dominantKey: dominant, growthKey: bestKey };
   }, [data]);
 
+  const v4Analysis = useMemo(
+    () => (data ? v4PoleAnalysisFromSummary(data) : null),
+    [data],
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -145,9 +152,9 @@ export default function AssessmentResults() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <Card className="p-6 max-w-md text-center">
-          <p className="mb-4">{isFR ? "Aucun résultat trouvé." : "No results found."}</p>
+          <p className="mb-4">{t("assessment.noResults")}</p>
           <Button onClick={() => navigate("/onboarding/assessment")}>
-            {isFR ? "Faire l'évaluation" : "Take the assessment"}
+            {t("assessment.takeAssessment")}
           </Button>
         </Card>
       </div>
@@ -177,7 +184,7 @@ export default function AssessmentResults() {
     <div className="min-h-screen max-w-4xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Button variant="ghost" size="sm" onClick={() => navigate("/?welcome=post_assessment")}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> {isFR ? "Continuer vers AEGIS" : "Continue to AEGIS"}
+          <ArrowLeft className="w-4 h-4 mr-2" /> {t("assessment.continueToAegis")}
         </Button>
         <Button
           variant="outline"
@@ -203,7 +210,7 @@ export default function AssessmentResults() {
               });
             } catch (e) {
               toast({
-                title: isFR ? "Export impossible" : "Export failed",
+                title: t("assessment.exportFailed"),
                 description: (e as Error)?.message ?? "",
                 variant: "destructive",
               });
@@ -217,14 +224,14 @@ export default function AssessmentResults() {
           ) : (
             <FileDown className="w-4 h-4 mr-2" />
           )}
-          {isFR ? "Exporter mon profil" : "Export my profile"}
+          {t("assessment.exportProfile")}
         </Button>
       </div>
 
       <header className="text-center">
         <Sparkles className="w-8 h-8 text-primary mx-auto mb-2" />
         <h1 className="text-2xl sm:text-3xl font-serif">
-          {isFR ? "Vos archétypes dominants" : "Your dominant archetypes"}
+            {t("assessment.dominantArchetypes")}
         </h1>
         <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
           {isFR ? analysis.summary_fr : analysis.summary_en}
@@ -241,7 +248,7 @@ export default function AssessmentResults() {
               >
                 <Crown className="w-3 h-3" />
                 <span className="opacity-80">
-                  {isFR ? "Archétype dominant" : "Dominant archetype"} ·
+                  {t("assessment.dominantArchetype")} ·
                 </span>
                 <strong>{isFR ? dominantMeta.name_fr : dominantMeta.name_en}</strong>
               </Badge>
@@ -250,7 +257,7 @@ export default function AssessmentResults() {
               <Badge variant="outline" className="gap-1.5 px-3 py-1 text-xs border-dashed">
                 <TrendingUp className="w-3 h-3" />
                 <span className="text-muted-foreground">
-                  {isFR ? "Archétype de croissance" : "Growth archetype"} ·
+                  {t("assessment.growthArchetype")} ·
                 </span>
                 <strong>{isFR ? growthMeta.name_fr : growthMeta.name_en}</strong>
               </Badge>
@@ -263,9 +270,7 @@ export default function AssessmentResults() {
         <Alert className="border-amber-500/40 bg-amber-500/5">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-sm">
-            {isFR
-              ? "Ton profil est partiel. Réponds à plus de questions pour affiner tes archétypes."
-              : "Your profile is partial. Answer more questions to refine your archetypes."}
+            {t("assessment.partialProfile")}
             <span className="ml-2 text-muted-foreground">
               ({Math.round(confidence)}%)
             </span>
@@ -279,9 +284,7 @@ export default function AssessmentResults() {
             <Info className="h-4 w-4 text-primary" />
             <AlertDescription className="text-sm flex items-center gap-2 flex-wrap">
               <span>
-                {isFR
-                  ? "Certaines réponses semblent contradictoires — explore cette tension, elle est souvent révélatrice."
-                  : "Some responses seem contradictory — explore this tension, it is often revealing."}
+                {t("assessment.contradictoryResponses")}
               </span>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -290,9 +293,7 @@ export default function AssessmentResults() {
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {isFR
-                    ? "Polarité détectée entre ces deux signaux."
-                    : "Polarity detected between these two signals."}
+                  {t("assessment.polarityTooltip")}
                 </TooltipContent>
               </Tooltip>
             </AlertDescription>
@@ -323,13 +324,13 @@ export default function AssessmentResults() {
         })}
       </div>
 
-      {/* Dual-layer Radar */}
+      {/* V4 triple cartography or legacy radar */}
       <Card className="p-4 sm:p-6 backdrop-blur-3xl bg-card/40 border-border/40">
         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <h2 className="font-serif text-lg">
-            {isFR ? "Cartographie lumière & ombre" : "Light & shadow map"}
+            {v4Analysis ? t("assessment.v4CartographyTitle") : t("assessment.lightShadowMap")}
           </h2>
-          {previousSession && (
+          {!v4Analysis && previousSession && (
             <div className="flex items-center gap-2">
               <Switch
                 id="compare-toggle"
@@ -337,29 +338,33 @@ export default function AssessmentResults() {
                 onCheckedChange={setShowPrevious}
               />
               <Label htmlFor="compare-toggle" className="text-xs cursor-pointer">
-                {isFR ? "Comparer à la session précédente" : "Compare with previous session"}
+                {t("assessment.comparePrevious")}
               </Label>
             </div>
           )}
         </div>
 
-        <div ref={radarRef} className="bg-background/0">
-          <DualLayerRadar
-            isFR={isFR}
-            lightScores={scores ?? []}
-            shadowSignals={(analysis.shadow_signals ?? {}) as Record<string, number>}
-            previousLightScores={previousScores}
-            showPrevious={showPrevious}
-          />
+        {v4Analysis ? (
+          <V4PoleCartographyZones isFR={isFR} analysis={v4Analysis} />
+        ) : (
+          <div ref={radarRef} className="bg-background/0">
+            <DualLayerRadar
+              isFR={isFR}
+              lightScores={scores ?? []}
+              shadowSignals={(analysis.shadow_signals ?? {}) as Record<string, number>}
+              previousLightScores={previousScores}
+              showPrevious={showPrevious}
+            />
 
-          {showPrevious && previousDate && (
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              {isFR
-                ? `Session actuelle vs ${previousDate}`
-                : `Current session vs ${previousDate}`}
-            </p>
-          )}
-        </div>
+            {showPrevious && previousDate && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {isFR
+                  ? `Session actuelle vs ${previousDate}`
+                  : `Current session vs ${previousDate}`}
+              </p>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Narrative profile card */}
@@ -372,7 +377,7 @@ export default function AssessmentResults() {
       {/* Strengths & Watchouts */}
       <div className="grid sm:grid-cols-2 gap-4">
         <Card className="p-5 backdrop-blur-3xl bg-card/40 border-border/40">
-          <h3 className="font-serif text-lg mb-2">{isFR ? "Forces" : "Strengths"}</h3>
+          <h3 className="font-serif text-lg mb-2">{t("assessment.strengths")}</h3>
           <ul className="space-y-2 text-sm">
             {(isFR ? analysis.strengths_fr : analysis.strengths_en)?.map((s: string, i: number) => (
               <li key={i}>• {s}</li>
@@ -380,7 +385,7 @@ export default function AssessmentResults() {
           </ul>
         </Card>
         <Card className="p-5 backdrop-blur-3xl bg-card/40 border-border/40">
-          <h3 className="font-serif text-lg mb-2">{isFR ? "Points de vigilance" : "Watch-outs"}</h3>
+          <h3 className="font-serif text-lg mb-2">{t("assessment.watchOuts")}</h3>
           <ul className="space-y-2 text-sm">
             {(isFR ? analysis.watchouts_fr : analysis.watchouts_en)?.map((s: string, i: number) => (
               <li key={i}>• {s}</li>
@@ -392,7 +397,7 @@ export default function AssessmentResults() {
       {/* Recommended tools */}
       <Card className="p-5 backdrop-blur-3xl bg-card/40 border-border/40">
         <h2 className="font-serif text-lg mb-4">
-          {isFR ? "Pratiques recommandées" : "Recommended practices"}
+          {t("assessment.recommendedPractices")}
         </h2>
         <div className="space-y-3">
           {recommendations.map((t) => (
@@ -420,7 +425,7 @@ export default function AssessmentResults() {
           ))}
           {recommendations.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              {isFR ? "Aucune recommandation." : "No recommendation."}
+              {t("assessment.noRecommendation")}
             </p>
           )}
         </div>

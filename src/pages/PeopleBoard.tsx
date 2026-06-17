@@ -85,8 +85,9 @@ const periodDays: Record<Period, number> = {
 const NEURAL_RECENT_LOGS_LIMIT = 500;
 const NEURAL_LOGS_PER_CONTACT = 3;
 
-function formatNeuralLogDate(iso: string) {
-  return new Date(iso).toLocaleString("fr-FR", {
+function formatNeuralLogDate(iso: string, locale: string) {
+  const dateLocale = locale === "en" ? "en-US" : "fr-FR";
+  return new Date(iso).toLocaleString(dateLocale, {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -108,7 +109,7 @@ function NeuralRelationsSidebar({
   logsByContact: Record<string, QualityHistory[]>;
   onOpenHistory: (p: Person) => void;
 }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   return (
     <aside
       className="hidden md:flex flex-col w-full md:max-w-[20rem] lg:max-w-[22rem] shrink-0 rounded-2xl border border-white/[0.06] overflow-hidden min-h-0"
@@ -157,7 +158,7 @@ function NeuralRelationsSidebar({
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[9px] text-white/30 tabular-nums">
-                              {formatNeuralLogDate(h.recorded_at)}
+                              {formatNeuralLogDate(h.recorded_at, locale)}
                             </span>
                             <span
                               className="text-[10px] font-medium tabular-nums shrink-0"
@@ -550,7 +551,8 @@ function HistorySheet({
   history: QualityHistory[];
   periodLabels: Record<Period, string>;
 }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const dateLocale = locale === "en" ? "en-US" : "fr-FR";
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
@@ -658,7 +660,7 @@ function HistorySheet({
                         {h.quality}/10
                       </span>
                       <span className="text-[10px] text-white/25">
-                        {new Date(h.recorded_at).toLocaleDateString("fr-FR", {
+                        {new Date(h.recorded_at).toLocaleDateString(dateLocale, {
                           day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
                         })}
                       </span>
@@ -681,8 +683,9 @@ function HistorySheet({
 export default function PeopleBoard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const isMobile = useIsMobile();
+  const dateLocale = locale === "en" ? "en-US" : "fr-FR";
 
   const periodLabels: Record<Period, string> = {
     "1d": t("people.periodDay"), "7d": t("people.period7d"), "30d": t("people.period30d"),
@@ -861,7 +864,7 @@ export default function PeopleBoard() {
   }, [period]);
 
   const chartData = history.map((h) => ({
-    date: new Date(h.recorded_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
+    date: new Date(h.recorded_at).toLocaleDateString(dateLocale, { day: "2-digit", month: "short" }),
     quality: h.quality,
     note: h.note,
   }));

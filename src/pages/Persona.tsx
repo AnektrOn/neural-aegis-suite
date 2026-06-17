@@ -33,7 +33,10 @@ export default function Persona() {
   const userId = user?.id;
   const { profile, loading: profileLoading, error, reload } = usePersonaProfile(userId, locale);
   const { parts: taoParts, loading: taoLoading } = useTaoPortrait(userId);
-  const taoSummary = useMemo(() => buildTaoPersonaSummary(taoParts), [taoParts]);
+  const taoSummary = useMemo(
+    () => buildTaoPersonaSummary(taoParts, { displayName }),
+    [taoParts, displayName],
+  );
 
   const portraitLenses = useMemo(() => {
     if (!profile) return [];

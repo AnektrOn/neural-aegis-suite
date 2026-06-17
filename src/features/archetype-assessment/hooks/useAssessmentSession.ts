@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { ResponseValue, RuntimeQuestion } from "../domain/types";
+import { hasChoiceSelections } from "../domain/responseSelection";
 
 export type AssessmentStep = "welcome" | "questions" | "review" | "submit";
 
@@ -67,7 +68,7 @@ export function useAssessmentSession({ questions }: UseAssessmentSessionInput) {
     if (currentQuestion.question_type === "short_text") {
       return Boolean(r.textValue && r.textValue.trim().length > 0);
     }
-    return (r.selectedOptionIds?.length ?? 0) > 0;
+    return hasChoiceSelections(r);
   }, [currentQuestion, responses]);
 
   const requiredAnswered = useMemo(() => {
@@ -78,7 +79,7 @@ export function useAssessmentSession({ questions }: UseAssessmentSessionInput) {
       if (q.question_type === "short_text") {
         return Boolean(r.textValue && r.textValue.trim().length > 0);
       }
-      return (r.selectedOptionIds?.length ?? 0) > 0;
+      return hasChoiceSelections(r);
     });
   }, [questions, responses]);
 

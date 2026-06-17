@@ -4,17 +4,22 @@
  * Outputs: AnalysisResult.
  */
 
-import { ARCHETYPES, ARCHETYPE_KEYS, getArchetype } from "./archetypes";
+import { MAJOR_ARCHETYPE_KEYS, SURVIVAL_ARCHETYPE_KEYS, getArchetype } from "./archetypes";
 import {
   accumulateMorphicField,
   accumulatePolarityWeight,
   deriveLegacyScoresNormalized,
   type MorphicField,
 } from "./morphicField";
+import { morphicFieldToPoleScores } from "./poleScores";
+import { hasChoiceSelections, iterResponseSelections } from "./responseSelection";
+import { SCORING_MODEL_MYSS_V4, scoreV4ResponseSelections } from "./v4Scoring";
+import { buildV4PoleAnalysis } from "./v4PoleAnalysis";
 import type {
   AnalysisResult,
   ArchetypeKey,
   DimensionKey,
+  MajorArchetypeKey,
   ResponseValue,
   RuntimeOption,
   RuntimeQuestion,
@@ -26,18 +31,13 @@ import type {
  * question. This list is empty by design; `computeDimensionScores` discovers
  * dimensions from `RuntimeQuestion.dimension` and produces a sparse map.
  */
-const SHADOW_KEYS: ShadowKey[] = [
-  "child",
-  "victim",
-  "prostitute",
-  "saboteur",
-];
+const SHADOW_KEYS: ShadowKey[] = [...SURVIVAL_ARCHETYPE_KEYS];
 
-function emptyArchetypeMap(): Record<ArchetypeKey, number> {
-  return ARCHETYPE_KEYS.reduce((acc, k) => {
+function emptyMajorArchetypeMap(): Record<MajorArchetypeKey, number> {
+  return MAJOR_ARCHETYPE_KEYS.reduce((acc, k) => {
     acc[k] = 0;
     return acc;
-  }, {} as Record<ArchetypeKey, number>);
+  }, {} as Record<MajorArchetypeKey, number>);
 }
 
 function emptyShadowMap(): Record<ShadowKey, number> {
@@ -48,20 +48,18 @@ function emptyShadowMap(): Record<ShadowKey, number> {
 }
 
 const SHADOW_KEY_SET = new Set<ShadowKey>(SHADOW_KEYS);
-const ARCHETYPE_KEY_SET = new Set<ArchetypeKey>(ARCHETYPE_KEYS);
+const MAJOR_ARCHETYPE_KEY_SET = new Set<MajorArchetypeKey>(MAJOR_ARCHETYPE_KEYS);
 
-function intensityForOption(response: ResponseValue, optionId: string): number {
-  const raw = response.optionIntensities?.[optionId];
-  if (typeof raw !== "number" || !Number.isFinite(raw)) return 1;
-  return Math.min(3, Math.max(1, Math.round(raw)));
+function isV4Question(q: RuntimeQuestion): boolean {
+  return (q.meta as { scoringModel?: string } | undefined)?.scoringModel === SCORING_MODEL_MYSS_V4;
 }
 
 function mergeLegacyPoolsToField(
-  archetypeScores: Record<ArchetypeKey, number>,
+  archetypeScores: Record<MajorArchetypeKey, number>,
   shadowSignals: Record<ShadowKey, number>,
   field: MorphicField,
 ): void {
-  for (const k of ARCHETYPE_KEYS) {
+  for (const k of MAJOR_ARCHETYPE_KEYS) {
     const v = archetypeScores[k];
     if (v) accumulatePolarityWeight(k, "light", v, 1, field);
   }
@@ -88,15 +86,16 @@ export function computeRawScores(
   questions: RuntimeQuestion[],
   responses: ResponseValue[]
 ): {
-  archetypeScores: Record<ArchetypeKey, number>;
-  archetypeScoresRaw: Record<ArchetypeKey, number>;
-  archetypeShadowRaw: Record<ArchetypeKey, number>;
+  poleScores: ReturnType<typeof morphicFieldToPoleScores>;
+  archetypeScores: Record<MajorArchetypeKey, number>;
+  archetypeScoresRaw: Record<MajorArchetypeKey, number>;
+  archetypeShadowRaw: Record<MajorArchetypeKey, number>;
   survivalLightRaw: Record<ShadowKey, number>;
   survivalShadowRaw: Record<ShadowKey, number>;
   shadowSignals: Record<ShadowKey, number>;
 } {
   const field: MorphicField = {};
-  const archetypeScores = emptyArchetypeMap();
+  const archetypeScores = emptyMajorArchetypeMap();
   const shadowSignals = emptyShadowMap();
 
   const responsesByQ = new Map<string, ResponseValue>(
@@ -108,10 +107,12 @@ export function computeRawScores(
     if (!r) continue;
 
     if (q.question_type === "single_choice" || q.question_type === "multiple_choice") {
-      const selected = q.options.filter((o) => r.selectedOptionIds?.includes(o.id));
-      for (const opt of selected) {
-        const mult = intensityForOption(r, opt.id);
+      if (isV4Question(q)) {
+        scoreV4ResponseSelections(q, r, field);
+        continue;
+      }
 
+      for (const { option: opt, intensity: mult } of iterResponseSelections(q, r)) {
         if (opt.polarity_weights?.length > 0) {
           applyPolarityWeightsToField(opt, mult, field);
           continue;
@@ -121,14 +122,14 @@ export function computeRawScores(
           const val = (Number(v) || 0) * mult;
           if (!val) continue;
           if (val > 0) {
-            if (ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
-              archetypeScores[k as ArchetypeKey] += val;
+            if (MAJOR_ARCHETYPE_KEY_SET.has(k as MajorArchetypeKey)) {
+              archetypeScores[k as MajorArchetypeKey] += val;
             }
           } else if (SHADOW_KEY_SET.has(k as ShadowKey)) {
             shadowSignals[k as ShadowKey] += Math.abs(val);
-          } else if (ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+          } else if (MAJOR_ARCHETYPE_KEY_SET.has(k as MajorArchetypeKey)) {
             accumulatePolarityWeight(
-              k as ArchetypeKey,
+              k as MajorArchetypeKey,
               "shadow",
               Math.abs(Number(v) || 0),
               mult,
@@ -144,7 +145,7 @@ export function computeRawScores(
             if (SHADOW_KEY_SET.has(k as ShadowKey)) {
               shadowSignals[k as ShadowKey] += val;
             }
-          } else if (ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+          } else if (MAJOR_ARCHETYPE_KEY_SET.has(k as MajorArchetypeKey)) {
             archetypeScores[k as ArchetypeKey] += Math.abs(val);
           } else if (SHADOW_KEY_SET.has(k as ShadowKey)) {
             accumulatePolarityWeight(
@@ -166,12 +167,12 @@ export function computeRawScores(
           for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
             const val = Number(v) || 0;
             if (!val) continue;
-            if (val > 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
-              archetypeScores[k as ArchetypeKey] += val;
+            if (val > 0 && MAJOR_ARCHETYPE_KEY_SET.has(k as MajorArchetypeKey)) {
+              archetypeScores[k as MajorArchetypeKey] += val;
             } else if (val < 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
               shadowSignals[k as ShadowKey] += Math.abs(val);
-            } else if (val < 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
-              accumulatePolarityWeight(k as ArchetypeKey, "shadow", Math.abs(val), 1, field);
+            } else if (val < 0 && MAJOR_ARCHETYPE_KEY_SET.has(k as MajorArchetypeKey)) {
+              accumulatePolarityWeight(k as MajorArchetypeKey, "shadow", Math.abs(val), 1, field);
             }
           }
           for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
@@ -179,8 +180,8 @@ export function computeRawScores(
             if (!val) continue;
             if (val > 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
               shadowSignals[k as ShadowKey] += val;
-            } else if (val < 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
-              archetypeScores[k as ArchetypeKey] += Math.abs(val);
+            } else if (val < 0 && MAJOR_ARCHETYPE_KEY_SET.has(k as MajorArchetypeKey)) {
+              archetypeScores[k as MajorArchetypeKey] += Math.abs(val);
             } else if (val < 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
               accumulatePolarityWeight(k as ShadowKey, "light", Math.abs(val), 1, field);
             }
@@ -200,11 +201,11 @@ export function computeRawScores(
         for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
           const val = (Number(v) || 0) * mult;
           if (!val) continue;
-          if (val > 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+          if (val > 0 && MAJOR_ARCHETYPE_KEY_SET.has(k as MajorArchetypeKey)) {
             archetypeScores[k as ArchetypeKey] += val;
           } else if (val < 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
             shadowSignals[k as ShadowKey] += Math.abs(val);
-          } else if (val < 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+          } else if (val < 0 && MAJOR_ARCHETYPE_KEY_SET.has(k as MajorArchetypeKey)) {
             accumulatePolarityWeight(k as ArchetypeKey, "shadow", Math.abs(Number(v) || 0), mult, field);
           }
         }
@@ -213,7 +214,7 @@ export function computeRawScores(
           if (!val) continue;
           if (val > 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
             shadowSignals[k as ShadowKey] += val;
-          } else if (val < 0 && ARCHETYPE_KEY_SET.has(k as ArchetypeKey)) {
+          } else if (val < 0 && MAJOR_ARCHETYPE_KEY_SET.has(k as MajorArchetypeKey)) {
             archetypeScores[k as ArchetypeKey] += Math.abs(val);
           } else if (val < 0 && SHADOW_KEY_SET.has(k as ShadowKey)) {
             accumulatePolarityWeight(k as ShadowKey, "light", Math.abs(Number(v) || 0), mult, field);
@@ -225,7 +226,9 @@ export function computeRawScores(
 
   mergeLegacyPoolsToField(archetypeScores, shadowSignals, field);
   const derived = deriveLegacyScoresNormalized(field);
+  const poleScores = morphicFieldToPoleScores(field);
   return {
+    poleScores,
     ...derived,
     archetypeScores: normalizeMajorArchetypeScores(
       derived.archetypeScoresRaw,
@@ -239,14 +242,14 @@ export function computeRawScores(
 }
 
 function normalizeMajorArchetypeScores(
-  raw: Record<ArchetypeKey, number>,
-  majorShadowRaw: Record<ArchetypeKey, number>,
-): Record<ArchetypeKey, number> {
+  raw: Record<MajorArchetypeKey, number>,
+  majorShadowRaw: Record<MajorArchetypeKey, number>,
+): Record<MajorArchetypeKey, number> {
   const netScores: Record<string, number> = {};
-  for (const k of ARCHETYPE_KEYS) {
+  for (const k of MAJOR_ARCHETYPE_KEYS) {
     netScores[k] = Math.max(0, (raw[k] ?? 0) - (majorShadowRaw[k] ?? 0));
   }
-  return normalizeScores(netScores) as Record<ArchetypeKey, number>;
+  return normalizeScores(netScores) as Record<MajorArchetypeKey, number>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -278,7 +281,7 @@ export function computeCompletionConfidence(
   const answered = responses.filter((r) => {
     if (r.textValue && r.textValue.trim().length > 0) return true;
     if (typeof r.numericValue === "number") return true;
-    return (r.selectedOptionIds?.length ?? 0) > 0;
+    return hasChoiceSelections(r);
   }).length;
   return Math.min(100, (answered / totalAvailableQuestions) * 100);
 }
@@ -312,9 +315,9 @@ export function detectConsistencyWarning(
 /* rankArchetypes                                                             */
 /* -------------------------------------------------------------------------- */
 export function rankArchetypes(
-  normalized: Record<ArchetypeKey, number>
-): Array<{ key: ArchetypeKey; score: number; rank: number }> {
-  return ARCHETYPE_KEYS
+  normalized: Record<MajorArchetypeKey, number>
+): Array<{ key: MajorArchetypeKey; score: number; rank: number }> {
+  return MAJOR_ARCHETYPE_KEYS
     .map((key) => ({ key, score: normalized[key] ?? 0 }))
     .sort((a, b) => b.score - a.score)
     .map((row, idx) => ({ ...row, rank: idx + 1 }));
@@ -382,6 +385,7 @@ export function buildAnalysisResult(
   responses: ResponseValue[]
 ): AnalysisResult {
   const {
+    poleScores,
     archetypeScoresRaw: raw,
     archetypeShadowRaw: rawShadow,
     survivalLightRaw,
@@ -389,16 +393,17 @@ export function buildAnalysisResult(
   } = computeRawScores(questions, responses);
 
   const netScores: Record<string, number> = {};
-  for (const k of ARCHETYPE_KEYS) {
+  for (const k of MAJOR_ARCHETYPE_KEYS) {
     netScores[k] = Math.max(0, raw[k] - (rawShadow[k] ?? 0));
   }
-  const normalized = normalizeScores(netScores) as Record<ArchetypeKey, number>;
+  const normalized = normalizeScores(netScores) as Record<MajorArchetypeKey, number>;
 
   const ranked = rankArchetypes(normalized);
   const top = ranked.slice(0, 3).map((r) => r.key);
 
   const dimensionScores = computeDimensionScores(questions, responses);
   const shadowSignals = detectShadowSignals(survivalShadowRaw, survivalLightRaw);
+  const v4PoleAnalysis = buildV4PoleAnalysis(poleScores);
 
   const strengths_fr: string[] = [];
   const strengths_en: string[] = [];
@@ -425,6 +430,8 @@ export function buildAnalysisResult(
         "They illuminate your natural way of acting, deciding and regenerating.";
 
   return {
+    poleScores,
+    v4PoleAnalysis,
     topArchetypes: top,
     rawScores: raw,
     normalizedScores: normalized,

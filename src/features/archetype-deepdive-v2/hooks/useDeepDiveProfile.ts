@@ -4,13 +4,23 @@ import {
   getLatestSubmittedSessionForUser,
   tryRecoverUserAssessment,
   getSessionResultsSummary,
+  extractPoleScoresFromSummary,
+  sessionIsMyssV4,
+  v4PoleAnalysisFromSummary,
   type SessionResultsSummary,
 } from "@/features/archetype-assessment/services/assessmentService";
+import { getHouses72ScoredDelta } from "@/features/archetype-assessment/services/houses72Service";
+import {
+  addPoleScores,
+  type Houses72HouseBreakdown,
+} from "@/features/archetype-assessment/domain/houses72Scoring";
 import { buildDynamicProfile, type BuildDynamicProfileInput } from "../domain/dynamicProfileBuilder";
+import { deepDiveResultFromPoleScores } from "../domain/deepDiveFromV4Poles";
 import { loadUnifiedDeepDiveResult } from "../domain/loadUnifiedScores";
 import type { SampleProfile } from "../domain/sampleProfile";
 import type { Locale } from "@/i18n/translations";
 import type { Json } from "@/integrations/supabase/types";
+import type { V4PoleAnalysis } from "@/features/archetype-assessment/domain/types";
 
 const LOAD_TIMEOUT_MS = 25_000;
 
@@ -71,6 +81,7 @@ export function useDeepDiveProfile({
   enableRecovery = true,
 }: UseDeepDiveProfileOptions) {
   const [profile, setProfile] = useState<SampleProfile | null>(null);
+  const [v4Analysis, setV4Analysis] = useState<V4PoleAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestSeq = useRef(0);
@@ -89,12 +100,14 @@ export function useDeepDiveProfile({
 
     if (!userId) {
       setProfile(null);
+      setV4Analysis(null);
       setError(null);
       setLoading(false);
       return;
     }
 
     setProfile(null);
+    setV4Analysis(null);
     setError(null);
     setLoading(true);
 
@@ -128,19 +141,38 @@ export function useDeepDiveProfile({
           return;
         }
 
-        const [details, ddCountRes] = await Promise.all([
+        const [details, ddCountRes, houses72Delta] = await Promise.all([
           getSessionResultsSummary(sessionId),
           supabase
             .from("deepdive_responses")
             .select("*", { count: "exact", head: true })
             .eq("user_id", userId),
+          // Load 72Q delta in parallel — null if the user hasn't taken it yet
+          getHouses72ScoredDelta(userId).catch(() => null),
         ]);
         if (!isCurrent() || timedOut) return;
 
+        const isV4 = sessionIsMyssV4(details);
+        const v4PoleScores = extractPoleScoresFromSummary(details);
+        setV4Analysis(isV4 ? v4PoleAnalysisFromSummary(details) : null);
+
+        // Bayesian reinforcement: combine V4 poles with 72Q delta when available
+        const combinedPoles =
+          v4PoleScores && houses72Delta
+            ? addPoleScores(v4PoleScores, houses72Delta.polesDelta)
+            : v4PoleScores;
+
+        const houseBreakdown: Houses72HouseBreakdown | undefined =
+          houses72Delta?.houseBreakdown;
+
         let unified: Awaited<ReturnType<typeof loadUnifiedDeepDiveResult>> | null = null;
         try {
-          if (!ddCountRes.error && (ddCountRes.count ?? 0) > 0) {
-            unified = await loadUnifiedDeepDiveResult(userId);
+          if (isV4 && combinedPoles) {
+            unified = deepDiveResultFromPoleScores(combinedPoles, { houseBreakdown });
+          } else if (!ddCountRes.error && (ddCountRes.count ?? 0) > 0) {
+            unified = await loadUnifiedDeepDiveResult(userId, {
+              assessmentSessionId: sessionId,
+            });
           }
         } catch (e) {
           console.warn("[DeepDive] unified score load failed", e);
@@ -181,5 +213,5 @@ export function useDeepDiveProfile({
     };
   }, [userId, sessionIdOverride, displayName, locale, enableRecovery, isFR]);
 
-  return { profile, loading, error };
+  return { profile, v4Analysis, loading, error };
 }

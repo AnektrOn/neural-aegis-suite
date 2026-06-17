@@ -2,6 +2,7 @@ import {
   sanitizeCartographyMarkdown,
   stripDocumentFrontmatter,
 } from "@/lib/cartography-document-parse";
+import { personalizeTaoMarkdown } from "./taoMarkdownPersonalize";
 
 export interface TaoPortraitFrontmatter {
   titre?: string;
@@ -75,12 +76,16 @@ export function parseTaoPortraitFrontmatter(
   return Object.keys(fm).length ? fm : null;
 }
 
-export function prepareTaoPortraitMarkdown(markdown: string): {
+export function prepareTaoPortraitMarkdown(
+  markdown: string,
+  options?: { displayName?: string | null },
+): {
   frontmatter: TaoPortraitFrontmatter | null;
   body: string;
 } {
-  const { frontmatter } = stripDocumentFrontmatter(markdown);
-  const body = sanitizeCartographyMarkdown(markdown);
+  const personalized = personalizeTaoMarkdown(markdown, options?.displayName);
+  const { frontmatter } = stripDocumentFrontmatter(personalized);
+  const body = sanitizeCartographyMarkdown(personalized);
   const parsed = frontmatter?.lines ? parseTaoPortraitFrontmatter(frontmatter.lines) : null;
   return { frontmatter: parsed, body };
 }

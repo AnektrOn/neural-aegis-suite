@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { BookOpen } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 
 interface Props {
   config: { prompt: string };
@@ -14,14 +15,9 @@ export default function JournalPromptWidget({ config, title, hideTitle, onComple
   const { t } = useLanguage();
   const [body, setBody] = useState("");
   const completedRef = useRef(false);
-  const bodyRef = useRef(body);
-  bodyRef.current = body;
+  const touchedRef = useRef(false);
 
-  useEffect(() => {
-    return () => {
-      if (bodyRef.current.trim().length > 0 && !completedRef.current) onAbandon?.();
-    };
-  }, []);
+  useWidgetAbandonGuard(touchedRef, completedRef, onAbandon);
 
   const submit = () => {
     if (!body.trim()) return;
@@ -50,7 +46,10 @@ export default function JournalPromptWidget({ config, title, hideTitle, onComple
         <label className="text-neural-label text-[10px] uppercase tracking-[0.2em] block mb-1.5">{t("toolbox.journalYourReflection")}</label>
         <textarea
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => {
+            if (e.target.value.trim()) touchedRef.current = true;
+            setBody(e.target.value);
+          }}
           placeholder={t("toolbox.journalWriteHere")}
           className={textareaClass}
         />

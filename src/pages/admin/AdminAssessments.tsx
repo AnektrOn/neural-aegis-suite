@@ -14,6 +14,7 @@ import {
 } from "@/features/archetype-assessment/services/assessmentService";
 import { AdminSnapshotHistoryTab } from "@/features/archetype-assessment/components/AdminSnapshotHistoryTab";
 import { AdminArchetypeResetPanel } from "@/features/archetype-assessment/components/AdminArchetypeResetPanel";
+import { AdminV4QuestionsPreview } from "@/features/archetype-assessment/components/AdminV4QuestionsPreview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ARCHETYPES } from "@/features/archetype-assessment/domain/archetypes";
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
@@ -145,6 +146,7 @@ function answerLabel(response: any, question: any, locale: Locale): string {
 export default function AdminAssessments() {
   const { t, locale } = useLanguage();
   const dateLocale = locale === "fr" ? "fr-FR" : "en-US";
+  const [pageTab, setPageTab] = useState<"sessions" | "v4preview">("sessions");
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
@@ -203,9 +205,29 @@ export default function AdminAssessments() {
     );
   }
 
+  if (pageTab === "v4preview") {
+    return (
+      <div className="space-y-4 p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-serif">{t("admin.assessments.title")}</h1>
+          <Button variant="outline" size="sm" onClick={() => setPageTab("sessions")}>
+            {t("admin.assessments.v4.preview.backToSessions")}
+          </Button>
+        </div>
+        <AdminV4QuestionsPreview />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 p-4 sm:p-6">
-      <h1 className="text-2xl font-serif">{t("admin.assessments.title")}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-serif">{t("admin.assessments.title")}</h1>
+        <Button variant="outline" size="sm" onClick={() => setPageTab("v4preview")}>
+          <Eye className="w-4 h-4 mr-2" aria-hidden />
+          {t("admin.assessments.v4.tabLabel")}
+        </Button>
+      </div>
       <AdminArchetypeResetPanel onReset={reloadSessions} />
       <Input
         placeholder={t("admin.assessments.filterPlaceholder")}

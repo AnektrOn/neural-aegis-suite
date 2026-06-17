@@ -47,12 +47,24 @@ export function clearTimerSession(sessionKey: string): void {
   }
 }
 
-export function getElapsedSec(data: TimerSessionData): number {
+export function getElapsedSec(data: TimerSessionData, now = Date.now()): number {
   let sec = data.accumulatedSec;
   if (data.runningSince !== null) {
-    sec += Math.floor((Date.now() - data.runningSince) / 1000);
+    sec += Math.floor((now - data.runningSince) / 1000);
   }
   return sec;
+}
+
+/** Fold running wall-clock into accumulatedSec; keeps timer running (runningSince refreshed). */
+export function materializeRunningTimer(data: TimerSessionData, now = Date.now()): TimerSessionData {
+  if (data.completed || data.runningSince === null) return data;
+  const add = Math.floor((now - data.runningSince) / 1000);
+  if (add <= 0) return data;
+  return {
+    accumulatedSec: data.accumulatedSec + add,
+    runningSince: now,
+    completed: false,
+  };
 }
 
 export function hasActiveToolboxSession(): boolean {

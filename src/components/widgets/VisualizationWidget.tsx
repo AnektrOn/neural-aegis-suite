@@ -3,11 +3,11 @@ import { resolveSequenceFromElapsed } from "@/lib/exercise-sequence-position";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
-import { shouldTreatUnmountAsAbandon } from "@/lib/widget-lifecycle";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Sparkles, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
+import { playToolboxTimerCompleteSound } from "@/lib/toolbox-timer-sound";
 import type { Locale } from "@/i18n/translations";
 
 export interface VisualizationScene {
@@ -92,6 +92,48 @@ export const DEFAULT_VISUALIZATION_SCENES: VisualizationScene[] = [
 
 export const DEFAULT_VISUALIZATION_TOTAL_SEC = DEFAULT_VISUALIZATION_SCENES.reduce((s, sc) => s + sc.duration_sec, 0);
 
+type VizT = (key: string, vars?: Record<string, string>) => string;
+
+export function getDefaultVisualizationScenes(t: VizT): VisualizationScene[] {
+  return [
+    {
+      id: "anchor",
+      label: t("toolbox.vizDefault.anchorLabel"),
+      instruction: t("toolbox.vizDefault.anchorInstruction"),
+      duration_sec: 25,
+      color: "hsl(176 70% 48%)",
+    },
+    {
+      id: "place",
+      label: t("toolbox.vizDefault.placeLabel"),
+      instruction: t("toolbox.vizDefault.placeInstruction"),
+      duration_sec: 30,
+      color: "hsl(220 70% 60%)",
+    },
+    {
+      id: "scene",
+      label: t("toolbox.vizDefault.sceneLabel"),
+      instruction: t("toolbox.vizDefault.sceneInstruction"),
+      duration_sec: 40,
+      color: "hsl(270 50% 60%)",
+    },
+    {
+      id: "success",
+      label: t("toolbox.vizDefault.successLabel"),
+      instruction: t("toolbox.vizDefault.successInstruction"),
+      duration_sec: 25,
+      color: "hsl(35 80% 58%)",
+    },
+    {
+      id: "return",
+      label: t("toolbox.vizDefault.returnLabel"),
+      instruction: t("toolbox.vizDefault.returnInstruction"),
+      duration_sec: 15,
+      color: "hsl(176 70% 48%)",
+    },
+  ];
+}
+
 const VIZ_PALETTE = [
   "hsl(176 70% 48%)",
   "hsl(220 70% 60%)",
@@ -105,7 +147,10 @@ function isSceneArray(raw: unknown): raw is VisualizationScene[] {
   return typeof a === "object" && a !== null && typeof a.instruction === "string" && typeof a.duration_sec === "number";
 }
 
-function normalizeVisualizationConfig(config: VisualizationConfig): { scenes: VisualizationScene[]; mode: "timed" | "manual" } {
+function normalizeVisualizationConfig(
+  config: VisualizationConfig,
+  t: VizT,
+): { scenes: VisualizationScene[]; mode: "timed" | "manual" } {
   const mode = config.mode === "manual" ? "manual" : "timed";
   if (isSceneArray(config.scenes)) {
     return {
@@ -115,11 +160,13 @@ function normalizeVisualizationConfig(config: VisualizationConfig): { scenes: Vi
   }
   const cues = config.cues?.map((c) => c.trim()).filter(Boolean) ?? [];
   const dm = config.duration_min ?? 8;
+  const defaultScenes = getDefaultVisualizationScenes(t);
+  const defaultTotalSec = defaultScenes.reduce((s, sc) => s + sc.duration_sec, 0);
   if (cues.length === 0) {
-    const scale = (dm * 60) / DEFAULT_VISUALIZATION_TOTAL_SEC;
+    const scale = (dm * 60) / defaultTotalSec;
     return {
       mode,
-      scenes: DEFAULT_VISUALIZATION_SCENES.map((s) => ({
+      scenes: defaultScenes.map((s) => ({
         ...s,
         duration_sec: Math.max(8, Math.round(s.duration_sec * scale)),
       })),
@@ -130,7 +177,7 @@ function normalizeVisualizationConfig(config: VisualizationConfig): { scenes: Vi
     mode,
     scenes: cues.map((instruction, i) => ({
       id: `cue_${i}`,
-      label: `Scene ${i + 1}`,
+      label: t("toolbox.vizSceneN", { n: String(i + 1) }),
       instruction,
       duration_sec: per,
       color: VIZ_PALETTE[i % VIZ_PALETTE.length],
@@ -162,7 +209,7 @@ export default function VisualizationWidget({
   onAbandon,
 }: Props) {
   const { t, locale } = useLanguage();
-  const { scenes, mode } = useMemo(() => normalizeVisualizationConfig(config), [config]);
+  const { scenes, mode } = useMemo(() => normalizeVisualizationConfig(config, t), [config, t]);
   const budgetMode = config.time_budget_mode === true && (config.duration_sec ?? 0) > 0;
   const budgetSec = budgetMode ? Math.max(1, config.duration_sec ?? 1) : 0;
 
@@ -264,24 +311,14 @@ export default function VisualizationWidget({
   useWidgetAbandonGuard(
     budgetMode || mode === "timed" ? persistedTimer.hasStartedRef : hasStartedRef,
     budgetMode || mode === "timed" ? persistedTimer.completedRef : completedRef,
-    budgetMode ? undefined : onAbandon,
-  );
-
-  useEffect(() => {
-    if (!budgetMode) return;
-    return () => {
-      if (
-        persistedTimer.hasStartedRef.current &&
-        !persistedTimer.completedRef.current &&
-        shouldTreatUnmountAsAbandon()
-      ) {
-        onAbandon?.({
+    onAbandon,
+    budgetMode
+      ? () => ({
           elapsedSec: elapsedRef.current,
           durationBudgetSec: budgetSec,
-        });
-      }
-    };
-  }, [budgetMode, budgetSec, onAbandon, persistedTimer.hasStartedRef, persistedTimer.completedRef]);
+        })
+      : undefined,
+  );
 
   const advanceScene = useCallback(() => {
     hasStartedRef.current = true;
@@ -318,6 +355,7 @@ export default function VisualizationWidget({
       setPhaseProgress((prev) => {
         const next = prev + tickMs / (durSec * 1000);
         if (next >= 1) {
+          playToolboxTimerCompleteSound();
           advanceScene();
           return 0;
         }
