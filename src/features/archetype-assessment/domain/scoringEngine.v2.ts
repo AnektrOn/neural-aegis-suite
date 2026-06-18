@@ -6,11 +6,13 @@
  * - Fix known edge cases without touching current production pipeline.
  * - Offer clearer behavior for "no usable response" sessions.
  */
-import { ARCHETYPE_KEYS, getArchetype } from "./archetypes";
+import { MAJOR_ARCHETYPE_KEYS, getArchetype } from "./archetypes";
+import { emptyPoleScores } from "./poleScores";
+import { buildV4PoleAnalysis } from "./v4PoleAnalysis";
 import type {
   AnalysisResult,
-  ArchetypeKey,
   DimensionKey,
+  MajorArchetypeKey,
   ResponseValue,
   RuntimeQuestion,
   ShadowKey,
@@ -18,11 +20,11 @@ import type {
 
 const SHADOW_KEYS: ShadowKey[] = ["child", "victim", "prostitute", "saboteur"];
 
-function emptyArchetypeMap(): Record<ArchetypeKey, number> {
-  return ARCHETYPE_KEYS.reduce((acc, k) => {
+function emptyArchetypeMap(): Record<MajorArchetypeKey, number> {
+  return MAJOR_ARCHETYPE_KEYS.reduce((acc, k) => {
     acc[k] = 0;
     return acc;
-  }, {} as Record<ArchetypeKey, number>);
+  }, {} as Record<MajorArchetypeKey, number>);
 }
 
 function emptyShadowMap(): Record<ShadowKey, number> {
@@ -36,7 +38,7 @@ export function computeRawScoresV2(
   questions: RuntimeQuestion[],
   responses: ResponseValue[]
 ): {
-  archetypeScores: Record<ArchetypeKey, number>;
+  archetypeScores: Record<MajorArchetypeKey, number>;
   shadowSignals: Record<ShadowKey, number>;
 } {
   const archetypeScores = emptyArchetypeMap();
@@ -57,7 +59,9 @@ export function computeRawScoresV2(
       const selected = q.options.filter((o) => r.selectedOptionIds?.includes(o.id));
       for (const opt of selected) {
         for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
-          archetypeScores[k as ArchetypeKey] += Number(v) || 0;
+            if (k in archetypeScores) {
+              archetypeScores[k as MajorArchetypeKey] += Number(v) || 0;
+            }
         }
         for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
           shadowSignals[k as ShadowKey] += Number(v) || 0;
@@ -76,7 +80,9 @@ export function computeRawScoresV2(
         if (!opt) return;
         const rankWeight = Math.max(0, ordered.length - idx);
         for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
-          archetypeScores[k as ArchetypeKey] += (Number(v) || 0) * rankWeight;
+          if (k in archetypeScores) {
+            archetypeScores[k as MajorArchetypeKey] += (Number(v) || 0) * rankWeight;
+          }
         }
       });
     }
@@ -97,9 +103,9 @@ export function normalizeScoresV2(
 }
 
 export function rankArchetypesV2(
-  normalized: Record<ArchetypeKey, number>
-): Array<{ key: ArchetypeKey; score: number; rank: number }> {
-  return ARCHETYPE_KEYS.map((key) => ({ key, score: normalized[key] ?? 0 }))
+  normalized: Record<MajorArchetypeKey, number>
+): Array<{ key: MajorArchetypeKey; score: number; rank: number }> {
+  return MAJOR_ARCHETYPE_KEYS.map((key) => ({ key, score: normalized[key] ?? 0 }))
     .sort((a, b) => b.score - a.score)
     .map((row, idx) => ({ ...row, rank: idx + 1 }));
 }
@@ -158,7 +164,7 @@ export function buildAnalysisResultV2(
     questions,
     responses
   );
-  const normalized = normalizeScoresV2(raw) as Record<ArchetypeKey, number>;
+  const normalized = normalizeScoresV2(raw) as Record<MajorArchetypeKey, number>;
   const ranked = rankArchetypesV2(normalized);
 
   const totalRaw = Object.values(raw).reduce((acc, v) => acc + (Number(v) || 0), 0);
@@ -201,7 +207,12 @@ export function buildAnalysisResultV2(
           .join(", ")}. ` +
         "They illuminate your natural way of acting, deciding and regenerating.";
 
+  const poleScores = emptyPoleScores();
+  const v4PoleAnalysis = buildV4PoleAnalysis(poleScores);
+
   return {
+    poleScores,
+    v4PoleAnalysis,
     topArchetypes: top,
     rawScores: raw,
     normalizedScores: normalized,

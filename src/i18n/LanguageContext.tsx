@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { translations, Locale, TranslationKey } from "./translations";
+import { translations, type Locale, type TranslationKey } from "./translations";
+
+export type { Locale, TranslationKey } from "./translations";
 
 interface LanguageContextType {
   locale: Locale;
