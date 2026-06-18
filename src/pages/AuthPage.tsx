@@ -34,9 +34,6 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [instagram, setInstagram] = useState("");
-  const [linkedin, setLinkedin] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -109,25 +106,12 @@ export default function AuthPage() {
 
   const handleGuestSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ig = instagram.trim();
-    const li = linkedin.trim();
-    if (!newsletterIntent && !ig && !li) {
-      toast({
-        title: t("toast.error"),
-        description: t("auth.guest.socialRequired"),
-        variant: "destructive",
-      });
-      return;
-    }
 
     setLoading(true);
     try {
       await signUpGuest({
-        firstName,
-        lastName,
         email,
-        instagram: ig || undefined,
-        linkedin: li || undefined,
+        ...(newsletterIntent && firstName.trim() ? { firstName: firstName.trim() } : {}),
       });
       toast({
         title: t("auth.guest.successTitle"),
@@ -245,30 +229,16 @@ export default function AuthPage() {
               )}
 
               <form onSubmit={submitHandler} className="space-y-3">
-                {mode === "guest" && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className={labelCls}>{t("auth.guest.firstName")}</label>
-                      <input
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        required
-                        autoComplete="given-name"
-                        className={inputCls}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className={labelCls}>{t("auth.guest.lastName")}</label>
-                      <input
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        required
-                        autoComplete="family-name"
-                        className={inputCls}
-                      />
-                    </div>
+                {mode === "guest" && newsletterIntent && (
+                  <div className="space-y-1">
+                    <label className={labelCls}>{t("auth.guest.firstName")}</label>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      autoComplete="given-name"
+                      className={inputCls}
+                    />
                   </div>
                 )}
 
@@ -289,37 +259,6 @@ export default function AuthPage() {
                       className={inputCls}
                     />
                   </div>
-                )}
-
-                {mode === "guest" && !newsletterIntent && (
-                  <>
-                    <div className="space-y-1">
-                      <label className={labelCls}>{t("auth.guest.instagram")}</label>
-                      <input
-                        type="text"
-                        value={instagram}
-                        onChange={(e) => setInstagram(e.target.value)}
-                        placeholder="@votre_compte"
-                        autoComplete="off"
-                        className={inputCls}
-                      />
-                    </div>
-                    <p className="text-[10px] text-center text-text-tertiary uppercase tracking-wider">
-                      {t("auth.guest.or")}
-                    </p>
-                    <div className="space-y-1">
-                      <label className={labelCls}>{t("auth.guest.linkedin")}</label>
-                      <input
-                        type="text"
-                        value={linkedin}
-                        onChange={(e) => setLinkedin(e.target.value)}
-                        placeholder="linkedin.com/in/..."
-                        autoComplete="off"
-                        className={inputCls}
-                      />
-                    </div>
-                    <p className="text-[10px] text-text-tertiary">{t("auth.guest.socialHint")}</p>
-                  </>
                 )}
 
                 {showPasswordField && (

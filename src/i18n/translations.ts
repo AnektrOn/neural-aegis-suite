@@ -840,8 +840,8 @@ export const translations = {
   "auth.guest.cta": { fr: "Continuer en tant qu'invité", en: "Continue as guest" },
   "auth.guest.badge": { fr: "Accès invité", en: "Guest access" },
   "auth.guest.intro": {
-    fr: "Quiz gratuit V4 (30 questions) et rapport personnalisé — renseigne tes coordonnées pour commencer.",
-    en: "Free 30-question quiz and personalized report — enter your details to get started.",
+    fr: "Quiz gratuit V4 (30 questions) — entre ton email pour commencer.",
+    en: "Free V4 quiz (30 questions) — enter your email to get started.",
   },
   "auth.guest.firstName": { fr: "Prénom", en: "First name" },
   "auth.guest.lastName": { fr: "Nom", en: "Last name" },
