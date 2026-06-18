@@ -132,7 +132,7 @@ export function V4ConstellationOrbCanvas({ instances }: Props) {
         program.uniforms.backgroundColor.value = hexToVec3(cfg.backgroundColor);
 
         program.use();
-        mesh.draw({ program });
+        mesh.draw();
       }
     };
 
