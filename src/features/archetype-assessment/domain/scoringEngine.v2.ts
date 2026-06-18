@@ -6,11 +6,12 @@
  * - Fix known edge cases without touching current production pipeline.
  * - Offer clearer behavior for "no usable response" sessions.
  */
-import { ARCHETYPE_KEYS, getArchetype } from "./archetypes";
+import { MAJOR_ARCHETYPE_KEYS, getArchetype } from "./archetypes";
 import type {
   AnalysisResult,
   ArchetypeKey,
   DimensionKey,
+  MajorArchetypeKey,
   ResponseValue,
   RuntimeQuestion,
   ShadowKey,
@@ -18,11 +19,11 @@ import type {
 
 const SHADOW_KEYS: ShadowKey[] = ["child", "victim", "prostitute", "saboteur"];
 
-function emptyArchetypeMap(): Record<ArchetypeKey, number> {
-  return ARCHETYPE_KEYS.reduce((acc, k) => {
+function emptyArchetypeMap(): Record<MajorArchetypeKey, number> {
+  return MAJOR_ARCHETYPE_KEYS.reduce((acc, k) => {
     acc[k] = 0;
     return acc;
-  }, {} as Record<ArchetypeKey, number>);
+  }, {} as Record<MajorArchetypeKey, number>);
 }
 
 function emptyShadowMap(): Record<ShadowKey, number> {
@@ -36,7 +37,7 @@ export function computeRawScoresV2(
   questions: RuntimeQuestion[],
   responses: ResponseValue[]
 ): {
-  archetypeScores: Record<ArchetypeKey, number>;
+  archetypeScores: Record<MajorArchetypeKey, number>;
   shadowSignals: Record<ShadowKey, number>;
 } {
   const archetypeScores = emptyArchetypeMap();
@@ -97,9 +98,9 @@ export function normalizeScoresV2(
 }
 
 export function rankArchetypesV2(
-  normalized: Record<ArchetypeKey, number>
-): Array<{ key: ArchetypeKey; score: number; rank: number }> {
-  return ARCHETYPE_KEYS.map((key) => ({ key, score: normalized[key] ?? 0 }))
+  normalized: Record<MajorArchetypeKey, number>
+): Array<{ key: MajorArchetypeKey; score: number; rank: number }> {
+  return MAJOR_ARCHETYPE_KEYS.map((key) => ({ key, score: normalized[key] ?? 0 }))
     .sort((a, b) => b.score - a.score)
     .map((row, idx) => ({ ...row, rank: idx + 1 }));
 }
