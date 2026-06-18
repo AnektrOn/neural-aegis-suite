@@ -1424,6 +1424,36 @@ export type Database = {
         }
         Relationships: []
       }
+      houses72_responses: {
+        Row: {
+          answered_at: string
+          house: number
+          id: string
+          intensity: number
+          question_position: number
+          selected_option_position: number
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string
+          house: number
+          id?: string
+          intensity?: number
+          question_position: number
+          selected_option_position: number
+          user_id: string
+        }
+        Update: {
+          answered_at?: string
+          house?: number
+          id?: string
+          intensity?: number
+          question_position?: number
+          selected_option_position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       input_hesitations: {
         Row: {
           created_at: string
@@ -2260,6 +2290,41 @@ export type Database = {
         }
         Relationships: []
       }
+      toolbox_assignment_stats: {
+        Row: {
+          abandoned_count: number
+          assignment_id: string
+          completed_count: number
+          ignored_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          abandoned_count?: number
+          assignment_id: string
+          completed_count?: number
+          ignored_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          abandoned_count?: number
+          assignment_id?: string
+          completed_count?: number
+          ignored_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toolbox_assignment_stats_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: true
+            referencedRelation: "toolbox_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       toolbox_assignments: {
         Row: {
           assigned_at: string
@@ -3062,6 +3127,10 @@ export type Database = {
         Args: { p_template_id: string }
         Returns: Json
       }
+      bump_toolbox_assignment_stat: {
+        Args: { p_assignment_id: string; p_status: string; p_user_id: string }
+        Returns: undefined
+      }
       complete_aegis_card: { Args: { p_card_id: string }; Returns: Json }
       confirm_waiting_toolbox_assignment: {
         Args: { p_assignment_id: string }
@@ -3194,6 +3263,10 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: Json
       }
+      replace_assessment_core_catalog: {
+        Args: { p_questions: Json; p_template_slug: string }
+        Returns: boolean
+      }
       reset_user_archetype_results: {
         Args: { p_reset_t1?: boolean; p_reset_t2?: boolean; p_user_id: string }
         Returns: Json
@@ -3209,6 +3282,10 @@ export type Database = {
       resolve_i18n_array: {
         Args: { p_field: Json; p_locale: string }
         Returns: Json
+      }
+      seed_assessment_catalog_if_empty: {
+        Args: { p_questions: Json; p_template_slug: string }
+        Returns: boolean
       }
       send_admin_push: {
         Args: {
