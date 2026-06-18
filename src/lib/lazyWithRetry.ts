@@ -28,24 +28,38 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
     const alreadyReloaded =
       typeof sessionStorage !== "undefined" &&
       sessionStorage.getItem(CHUNK_RELOAD_KEY) === "1";
-    try {
+
+    const triggerReload = (): Promise<{ default: T }> => {
+      if (!alreadyReloaded && typeof window !== "undefined") {
+        try { sessionStorage.setItem(CHUNK_RELOAD_KEY, "1"); } catch {}
+        window.location.reload();
+        return new Promise<{ default: T }>(() => {});
+      }
+      throw new Error("Chunk reload loop suppressed");
+    };
+
+    const loadOnce = async (): Promise<{ default: T }> => {
       const mod = await importer();
+      if (!mod || typeof (mod as { default?: unknown }).default === "undefined") {
+        throw new Error("Dynamic import resolved without default export");
+      }
+      return mod;
+    };
+
+    try {
+      const mod = await loadOnce();
       try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
       return mod;
     } catch (error) {
-      if (isChunkLoadError(error)) {
+      const msg = String((error as Error)?.message ?? "");
+      if (isChunkLoadError(error) || /default export/.test(msg)) {
         try {
           await sleep(600);
-          const mod = await importer();
+          const mod = await loadOnce();
           try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
           return mod;
-        } catch (retryError) {
-          if (!alreadyReloaded) {
-            try { sessionStorage.setItem(CHUNK_RELOAD_KEY, "1"); } catch {}
-            window.location.reload();
-            return new Promise<{ default: T }>(() => {});
-          }
-          throw retryError;
+        } catch {
+          return triggerReload();
         }
       }
       try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
