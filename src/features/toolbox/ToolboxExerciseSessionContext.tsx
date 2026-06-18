@@ -233,14 +233,15 @@ function ToolboxExerciseModalLayer({
   }, [recordCompletion, onClose]);
 
   const renderWidgetBody = (row: ToolboxAssignmentRow) => {
-    const isInteractiveType = isInteractiveToolboxType(row);
-    const hasWidget = isInteractiveType && canRenderToolboxWidget(row);
+    const renderable = toRenderableItem(row);
+    const isInteractiveType = isInteractiveToolboxType(renderable);
+    const hasWidget = isInteractiveType && canRenderToolboxWidget(renderable);
     const isExternal = row.content_type === "external_link" && row.external_url;
     const title = getLocalizedTitle(row);
 
     const widget = hasWidget
       ? renderToolboxWidget({
-          item: row,
+          item: renderable,
           locale,
           title,
           hideTitle: true,
