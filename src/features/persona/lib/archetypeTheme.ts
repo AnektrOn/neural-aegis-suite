@@ -30,6 +30,10 @@ const ICONS: Record<ArchetypeKey, LucideIcon> = {
   mystic: Eye,
   jester: Laugh,
   healer: Leaf,
+  child: Sparkles,
+  victim: Shield,
+  saboteur: Flame,
+  prostitute: Wand2,
 };
 
 export function themeFor(key: AnyArchetypeKey) {
