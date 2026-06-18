@@ -7,9 +7,10 @@
  * - Offer clearer behavior for "no usable response" sessions.
  */
 import { MAJOR_ARCHETYPE_KEYS, getArchetype } from "./archetypes";
+import { emptyPoleScores } from "./poleScores";
+import { buildV4PoleAnalysis } from "./v4PoleAnalysis";
 import type {
   AnalysisResult,
-  ArchetypeKey,
   DimensionKey,
   MajorArchetypeKey,
   ResponseValue,
@@ -58,7 +59,9 @@ export function computeRawScoresV2(
       const selected = q.options.filter((o) => r.selectedOptionIds?.includes(o.id));
       for (const opt of selected) {
         for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
-          archetypeScores[k as ArchetypeKey] += Number(v) || 0;
+            if (k in archetypeScores) {
+              archetypeScores[k as MajorArchetypeKey] += Number(v) || 0;
+            }
         }
         for (const [k, v] of Object.entries(opt.shadow_weights || {})) {
           shadowSignals[k as ShadowKey] += Number(v) || 0;
@@ -159,7 +162,7 @@ export function buildAnalysisResultV2(
     questions,
     responses
   );
-  const normalized = normalizeScoresV2(raw) as Record<ArchetypeKey, number>;
+  const normalized = normalizeScoresV2(raw) as Record<MajorArchetypeKey, number>;
   const ranked = rankArchetypesV2(normalized);
 
   const totalRaw = Object.values(raw).reduce((acc, v) => acc + (Number(v) || 0), 0);
@@ -202,7 +205,12 @@ export function buildAnalysisResultV2(
           .join(", ")}. ` +
         "They illuminate your natural way of acting, deciding and regenerating.";
 
+  const poleScores = emptyPoleScores();
+  const v4PoleAnalysis = buildV4PoleAnalysis(poleScores);
+
   return {
+    poleScores,
+    v4PoleAnalysis,
     topArchetypes: top,
     rawScores: raw,
     normalizedScores: normalized,
