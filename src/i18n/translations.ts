@@ -1108,6 +1108,7 @@ export const translations = {
   "assessment.radarLightProfile": { fr: "Profil lumière", en: "Light profile" },
   "assessment.radarShadowProfile": { fr: "Profil ombre", en: "Shadow profile" },
   "assessment.profileEmerging": { fr: "Ton profil émerge…", en: "Your profile is emerging…" },
+  "assessment.waitingSignals": { fr: "En attente de signaux…", en: "Waiting for signals…" },
   "assessment.v4TotalScore": {
     fr: "Score total : {total} pts · chaque pôle = % du total",
     en: "Total score: {total} pts · each pole = % of total",
@@ -3200,6 +3201,7 @@ export const translations = {
   "admin.assessments.v4.dimension.power": { fr: "Pouvoir", en: "Power" },
   "admin.assessments.v4.dimension.relationship": { fr: "Relation", en: "Relationship" },
   "admin.assessments.v4.dimension.creation": { fr: "Création", en: "Creation" },
+  "admin.assessments.v4.dimension.spirituality": { fr: "Spiritualité", en: "Spirituality" },
   "admin.assessments.v4.preview.backToSessions": {
     fr: "Retour aux sessions",
     en: "Back to sessions",
