@@ -20,6 +20,7 @@ import {
   canRenderToolboxWidget,
   isInteractiveToolboxType,
   renderToolboxWidget,
+  type ToolboxRenderableItem,
 } from "@/lib/toolbox-renderer-registry";
 import {
   Dialog,
@@ -54,6 +55,21 @@ interface ToolboxAssignmentRow {
   description_i18n?: unknown;
   external_url: string | null;
   widget_config: unknown;
+}
+
+function toRenderableItem(row: ToolboxAssignmentRow): ToolboxRenderableItem {
+  const widgetConfig =
+    row.widget_config && typeof row.widget_config === "object" && !Array.isArray(row.widget_config)
+      ? (row.widget_config as Record<string, unknown>)
+      : null;
+
+  return {
+    id: row.id,
+    content_type: row.content_type,
+    title: row.title,
+    widget_config: widgetConfig,
+    external_url: row.external_url,
+  };
 }
 
 type ToolboxExerciseSessionContextValue = {
@@ -217,14 +233,15 @@ function ToolboxExerciseModalLayer({
   }, [recordCompletion, onClose]);
 
   const renderWidgetBody = (row: ToolboxAssignmentRow) => {
-    const isInteractiveType = isInteractiveToolboxType(row);
-    const hasWidget = isInteractiveType && canRenderToolboxWidget(row);
+    const renderable = toRenderableItem(row);
+    const isInteractiveType = isInteractiveToolboxType(renderable);
+    const hasWidget = isInteractiveType && canRenderToolboxWidget(renderable);
     const isExternal = row.content_type === "external_link" && row.external_url;
     const title = getLocalizedTitle(row);
 
     const widget = hasWidget
       ? renderToolboxWidget({
-          item: row,
+          item: renderable,
           locale,
           title,
           hideTitle: true,

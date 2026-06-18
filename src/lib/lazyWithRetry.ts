@@ -1,21 +1,45 @@
-import { lazy, type ComponentType, type LazyExoticComponent } from "react";
+import { createElement, type ComponentProps, type ComponentType } from "react";
 
 export const CHUNK_RELOAD_KEY = "aegis:chunk-reload";
 
 function isChunkLoadError(error: unknown): boolean {
-  const msg = (error as { message?: string } | null)?.message ?? "";
-  if (!msg) return false;
+  const msg = String((error as { message?: string; name?: string } | null)?.message ?? error ?? "");
+  const name = String((error as { name?: string } | null)?.name ?? "");
+  const text = `${name} ${msg}`;
+  if (!text.trim()) return false;
   return (
-    /Failed to fetch dynamically imported module/i.test(msg) ||
-    /error loading dynamically imported module/i.test(msg) ||
-    /Importing a module script failed/i.test(msg) ||
-    /NetworkError when attempting to fetch resource/i.test(msg) ||
-    /Load failed/i.test(msg) ||
-    /ChunkLoadError/i.test(msg)
+    /Failed to fetch dynamically imported module/i.test(text) ||
+    /error loading dynamically imported module/i.test(text) ||
+    /Importing a module script failed/i.test(text) ||
+    /NetworkError when attempting to fetch resource/i.test(text) ||
+    /Load failed/i.test(text) ||
+    /ChunkLoadError/i.test(text) ||
+    /default export/i.test(text) ||
+    /can't access property "default"/i.test(text)
   );
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+function wasChunkReloadAttempted(): boolean {
+  try {
+    return typeof window !== "undefined" && window.sessionStorage.getItem(CHUNK_RELOAD_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markChunkReloadAttempted() {
+  try {
+    window.sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
+  } catch {}
+}
+
+function clearChunkReloadAttempt() {
+  try {
+    window.sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+  } catch {}
+}
 
 /**
  * Lazy import that retries once in-place on transient network failures, then
@@ -23,48 +47,67 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  */
 export function lazyWithRetry<T extends ComponentType<unknown>>(
   importer: () => Promise<{ default: T }>,
-): LazyExoticComponent<T> {
-  return lazy(async () => {
-    const alreadyReloaded =
-      typeof sessionStorage !== "undefined" &&
-      sessionStorage.getItem(CHUNK_RELOAD_KEY) === "1";
+): ComponentType<ComponentProps<T>> {
+  let Component: T | null = null;
+  let pending: Promise<void> | null = null;
+  let failed: unknown = null;
 
-    const triggerReload = (): Promise<{ default: T }> => {
-      if (!alreadyReloaded && typeof window !== "undefined") {
-        try { sessionStorage.setItem(CHUNK_RELOAD_KEY, "1"); } catch {}
-        window.location.reload();
-        return new Promise<{ default: T }>(() => {});
-      }
-      throw new Error("Chunk reload loop suppressed");
-    };
+  const triggerReload = (): Promise<T> => {
+    if (!wasChunkReloadAttempted() && typeof window !== "undefined") {
+      markChunkReloadAttempted();
+      window.location.reload();
+      return new Promise<T>(() => {});
+    }
+    throw new Error("Chunk reload loop suppressed");
+  };
 
-    const loadOnce = async (): Promise<{ default: T }> => {
+  const loadOnce = async (): Promise<T> => {
       const mod = await importer();
       if (!mod || typeof (mod as { default?: unknown }).default === "undefined") {
         throw new Error("Dynamic import resolved without default export");
       }
-      return mod;
+      return mod.default;
     };
 
+  const loadComponent = async (): Promise<T> => {
     try {
-      const mod = await loadOnce();
-      try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
-      return mod;
+      const loaded = await loadOnce();
+      clearChunkReloadAttempt();
+      return loaded;
     } catch (error) {
-      const msg = String((error as Error)?.message ?? "");
-      if (isChunkLoadError(error) || /default export/.test(msg)) {
+      if (isChunkLoadError(error)) {
         try {
           await sleep(600);
-          const mod = await loadOnce();
-          try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
-          return mod;
+          const loaded = await loadOnce();
+          clearChunkReloadAttempt();
+          return loaded;
         } catch {
           return triggerReload();
         }
       }
-      try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
+      clearChunkReloadAttempt();
       throw error;
     }
-  });
+  };
+
+  return function RetriedLazyComponent(props: ComponentProps<T>) {
+    if (Component) return createElement(Component, props);
+    if (failed) throw failed;
+
+    if (!pending) {
+      pending = loadComponent().then(
+        (loaded) => {
+          Component = loaded;
+          pending = null;
+        },
+        (error) => {
+          failed = error;
+          pending = null;
+        },
+      );
+    }
+
+    throw pending;
+  };
 }
 
