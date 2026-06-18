@@ -80,7 +80,9 @@ export function computeRawScoresV2(
         if (!opt) return;
         const rankWeight = Math.max(0, ordered.length - idx);
         for (const [k, v] of Object.entries(opt.archetype_weights || {})) {
-          archetypeScores[k as ArchetypeKey] += (Number(v) || 0) * rankWeight;
+          if (k in archetypeScores) {
+            archetypeScores[k as MajorArchetypeKey] += (Number(v) || 0) * rankWeight;
+          }
         }
       });
     }
