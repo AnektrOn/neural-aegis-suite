@@ -17,7 +17,7 @@ export function isNewsletterRedirect(raw: string | null): boolean {
 
 /** Destination par défaut après inscription guest si aucun ?redirect= */
 export function defaultGuestRedirect(): string {
-  return "/visitor";
+  return "/quiz";
 }
 
 export function resolveGuestRedirect(raw: string | null): string {

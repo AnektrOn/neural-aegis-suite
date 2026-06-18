@@ -2,11 +2,21 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 
 export interface GuestSignupInput {
-  firstName: string;
-  lastName: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   instagram?: string;
   linkedin?: string;
+}
+
+function deriveGuestNameFromEmail(email: string): { firstName: string; lastName: string } {
+  const local = email.split("@")[0]?.trim() || "Guest";
+  const parts = local.split(/[._-]+/).filter(Boolean);
+  const firstName = parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : "Guest";
+  const lastName = parts[1]
+    ? parts[1].charAt(0).toUpperCase() + parts[1].slice(1)
+    : "";
+  return { firstName, lastName };
 }
 
 function buildTempPassword(): string {
@@ -19,9 +29,10 @@ function buildTempPassword(): string {
 
 /** Creates a guest account (email required) and returns an active session when possible. */
 export async function signUpGuest(input: GuestSignupInput): Promise<Session> {
-  const firstName = input.firstName.trim();
-  const lastName = input.lastName.trim();
   const email = input.email.trim().toLowerCase();
+  const derived = deriveGuestNameFromEmail(email);
+  const firstName = input.firstName?.trim() || derived.firstName;
+  const lastName = input.lastName?.trim() || derived.lastName;
   const instagram = input.instagram?.trim() || null;
   const linkedin = input.linkedin?.trim() || null;
   const displayName = `${firstName} ${lastName}`.trim();

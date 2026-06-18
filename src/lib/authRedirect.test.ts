@@ -12,9 +12,9 @@ describe("authRedirect", () => {
     expect(isNewsletterRedirect("/quiz")).toBe(false);
   });
 
-  it("defaults guest redirect to visitor hub", () => {
-    expect(resolveGuestRedirect(null)).toBe("/visitor");
-    expect(defaultGuestRedirect()).toBe("/visitor");
+  it("defaults guest redirect to quiz", () => {
+    expect(resolveGuestRedirect(null)).toBe("/quiz");
+    expect(defaultGuestRedirect()).toBe("/quiz");
   });
 
   it("preserves explicit redirect", () => {

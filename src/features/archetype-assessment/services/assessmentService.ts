@@ -632,11 +632,9 @@ export const USER_ONBOARDING_QUESTION_COUNT = V4_QUESTION_COUNT;
 export const GUEST_QUIZ_QUESTION_LIMIT = USER_ONBOARDING_QUESTION_COUNT;
 
 export async function loadGuestQuizTemplate(): Promise<LoadedTemplate> {
-  const loaded = await loadTemplateBySlug(TEMPLATE_SLUG);
-  const core = loaded.questions
-    .filter((q) => q.is_required !== false)
-    .filter((q) => (q.meta as { is_appendix?: boolean } | undefined)?.is_appendix !== true)
-    .slice(0, GUEST_QUIZ_QUESTION_LIMIT);
+  // Reuse member path so guests get V4 resync/seed (30 questions) — not stale legacy catalog.
+  const loaded = await loadActiveTemplate();
+  const core = loaded.questions.slice(0, GUEST_QUIZ_QUESTION_LIMIT);
   return { ...loaded, questions: core };
 }
 
