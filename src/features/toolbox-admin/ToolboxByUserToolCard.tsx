@@ -3,8 +3,8 @@ import type { LucideIcon } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale, TranslationKey } from "@/i18n/translations";
 import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
-import { pickLocalizedText } from "@/lib/content-i18n";
-import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
+import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
+import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import type { ToolboxTrackingRow } from "@/services/toolboxAdminService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,10 @@ export default function ToolboxByUserToolCard({
   showUserName = false,
 }: Props) {
   const { t } = useLanguage();
-  const title = pickLocalizedText(locale, row.title_i18n, row.title);
+  const title = pickCatalogTemplateDisplayTitle(locale, {
+    title: row.title,
+    title_i18n: row.title_i18n,
+  });
   const styles = BUCKET_STYLES[row.trackingBucket];
   const Icon = typeMeta.icon;
   const assignedDate = new Date(row.assigned_at).toLocaleDateString(dateLocaleTag, {
@@ -94,12 +97,10 @@ export default function ToolboxByUserToolCard({
         <div className="mt-auto flex items-center gap-2 pt-1">
           <ToolboxItemPreview
             contentType={row.content_type}
-            title={title}
-            description={pickWidgetCatalogCopy(
-              locale,
-              row.description_i18n as Parameters<typeof pickWidgetCatalogCopy>[1],
-              row.description,
-            )}
+            title={row.title}
+            title_i18n={row.title_i18n}
+            description={row.description}
+            description_i18n={row.description_i18n}
             widgetConfig={row.widget_config}
             externalUrl={row.external_url}
           />

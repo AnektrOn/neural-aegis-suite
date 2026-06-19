@@ -355,8 +355,8 @@ export const translations = {
 
   "assessmentCta.title": { fr: "Découvrez vos archétypes", en: "Discover your archetypes" },
   "assessmentCta.body": {
-    fr: "8 minutes pour révéler vos 3 archétypes dominants et vos pratiques recommandées.",
-    en: "8 minutes to reveal your 3 dominant archetypes and recommended practices.",
+    fr: "30 questions · ~10 min pour révéler tes archétypes dominants et ton profil personnalisé.",
+    en: "30 questions · ~10 min to reveal your dominant archetypes and personalized profile.",
   },
   "assessmentCta.start": { fr: "Commencer", en: "Start" },
   "nav.admin": { fr: "Admin", en: "Admin" },
@@ -841,8 +841,8 @@ export const translations = {
   "auth.guest.cta": { fr: "Continuer en tant qu'invité", en: "Continue as guest" },
   "auth.guest.badge": { fr: "Accès invité", en: "Guest access" },
   "auth.guest.intro": {
-    fr: "Quiz gratuit V4 (30 questions) — entre ton email pour commencer.",
-    en: "Free V4 quiz (30 questions) — enter your email to get started.",
+    fr: "30 questions pour découvrir ton profil archétypal — entre ton email pour commencer.",
+    en: "30 questions to discover your archetypal profile — enter your email to get started.",
   },
   "auth.guest.firstName": { fr: "Prénom", en: "First name" },
   "auth.guest.lastName": { fr: "Nom", en: "Last name" },
@@ -915,11 +915,11 @@ export const translations = {
     fr: "Quiz archétypal gratuit, rapport personnalisé et prochaines étapes.",
     en: "Free archetype quiz, personalized report and next steps.",
   },
-  "visitor.quizStatus.title": { fr: "Quiz V4 (30 questions)", en: "V4 quiz (30 questions)" },
+  "visitor.quizStatus.title": { fr: "Quiz archétypal (30 questions)", en: "Archetype quiz (30 questions)" },
   "visitor.quizStatus.done": { fr: "Complété — archétype dominant", en: "Completed — dominant archetype" },
   "visitor.quizStatus.pending": {
-    fr: "Pas encore complété. ~10 min, sans email.",
-    en: "Not completed yet. ~10 min, no email required.",
+    fr: "Pas encore complété · ~10 min",
+    en: "Not completed yet · ~10 min",
   },
   "visitor.reportCard.title": { fr: "Rapport archétypes", en: "Archetype report" },
   "visitor.reportCard.desc": {
@@ -990,14 +990,15 @@ export const translations = {
   },
 
   // Public quiz
-  "quiz.public.badge": { fr: "Gratuit · sans email · ~8 min", en: "Free · no email · ~8 min" },
-  "quiz.public.duration": {
-    fr: "30 questions V4 pour cartographier tes 32 pôles archétypaux (intensité 1 à 3).",
-    en: "30 V4 questions to map your 32 archetypal poles (intensity 1 to 3).",
+  "quiz.public.title": { fr: "Quiz archétypal", en: "Archetype quiz" },
+  "quiz.public.description": {
+    fr: "30 questions pour cartographier tes 32 pôles archétypaux — lumière, ombre et survie (intensité 1 à 3 par réponse).",
+    en: "30 questions to map your 32 archetypal poles — light, shadow and survival (intensity 1 to 3 per answer).",
   },
+  "quiz.public.badge": { fr: "Gratuit · ~10 min", en: "Free · ~10 min" },
   "quiz.public.bullet1": {
-    fr: "Résultat immédiat : rapport personnalisé (cartographie V4)",
-    en: "Instant result: personalized report (V4 cartography)",
+    fr: "Résultat immédiat : rapport personnalisé",
+    en: "Instant result: personalized report",
   },
   "quiz.public.bullet2": {
     fr: "Tes données restent dans ton espace visiteur",
@@ -1017,7 +1018,7 @@ export const translations = {
   "assessment.saved": { fr: "Évaluation enregistrée", en: "Assessment saved" },
   "assessment.savedDesc": { fr: "Vos archétypes dominants sont prêts.", en: "Your dominant archetypes are ready." },
   "assessment.back": { fr: "Retour", en: "Back" },
-  "assessment.coreTitle": { fr: "Évaluation essentielle (~20 min)", en: "Core Assessment (~20 min)" },
+  "assessment.coreTitle": { fr: "Évaluation essentielle (~10 min)", en: "Core Assessment (~10 min)" },
   "assessment.coreDesc": {
     fr: "{count} questions pour cartographier vos 32 pôles archétypaux (lumière & ombre).",
     en: "{count} questions to map your 32 archetypal poles (light & shadow).",
@@ -1027,8 +1028,8 @@ export const translations = {
     en: "30 questions to map your 32 poles (light & shadow)",
   },
   "assessment.bulletResults": {
-    fr: "Résultats immédiats : triade dominante + cartographie V4",
-    en: "Instant results: dominant triad + V4 cartography",
+    fr: "Résultats immédiats : triade dominante + cartographie personnalisée",
+    en: "Instant results: dominant triad + personalized cartography",
   },
   "assessment.questionProgress": { fr: "Question {current} / {total}", en: "Question {current} / {total}" },
   "assessment.review": { fr: "Revoir", en: "Review" },

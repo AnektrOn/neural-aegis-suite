@@ -2,8 +2,8 @@ import { Loader2, RotateCcw } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale, TranslationKey } from "@/i18n/translations";
 import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
-import { pickLocalizedText } from "@/lib/content-i18n";
-import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
+import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
+import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import { formatElapsedMinutes } from "@/lib/toolbox-completion";
 import type { ToolboxTrackingBucket, ToolboxTrackingRow } from "@/services/toolboxAdminService";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,10 @@ interface Props {
 
 export default function ToolboxTrackingRowCard({ row, locale, dateLocaleTag, resending, onResend }: Props) {
   const { t } = useLanguage();
-  const title = pickLocalizedText(locale, row.title_i18n, row.title);
+  const title = pickCatalogTemplateDisplayTitle(locale, {
+    title: row.title,
+    title_i18n: row.title_i18n,
+  });
   const styles = BUCKET_STYLES[row.trackingBucket];
   const completionCount = row.completion?.completion_count ?? (row.completion ? 1 : 0);
 
@@ -116,12 +119,10 @@ export default function ToolboxTrackingRowCard({ row, locale, dateLocaleTag, res
         <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-stretch">
           <ToolboxItemPreview
             contentType={row.content_type}
-            title={title}
-            description={pickWidgetCatalogCopy(
-              locale,
-              row.description_i18n as Parameters<typeof pickWidgetCatalogCopy>[1],
-              row.description,
-            )}
+            title={row.title}
+            title_i18n={row.title_i18n}
+            description={row.description}
+            description_i18n={row.description_i18n}
             widgetConfig={row.widget_config}
             externalUrl={row.external_url}
           />

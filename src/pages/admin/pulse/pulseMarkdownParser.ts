@@ -4,14 +4,9 @@
  */
 
 import type { PulseCardImportPayload } from "./pulseAdminService";
-import { isValidPrinciple } from "./pulsePrinciples";
+import { isValidPrinciple, parseArchetypeTargets, VALID_ARCHETYPES } from "./pulsePrinciples";
 
-const VALID_ARCHETYPES = [
-  "sage", "warrior", "lover", "sovereign", "magician", "healer",
-  "creator", "rebel", "caregiver", "explorer", "mystic", "jester",
-];
-
-const ARCHETYPE_SLUGS = new Set(VALID_ARCHETYPES);
+const ARCHETYPE_SLUGS = new Set<string>(VALID_ARCHETYPES);
 const REQUIRED_LOCALES = ["fr", "en"];
 const KNOWN_CONTENT_TYPES = new Set(["card", "note", "exercise", "course"]);
 const MAX_BATCH_CARDS = 10;
@@ -432,15 +427,13 @@ function validateAndBuild(
     }
   }
 
-  const archetypes = Array.isArray(meta.archetype_targets) ? (meta.archetype_targets as string[]) : [];
+  const { slugs: archetypes, invalid: invalidArchetypes } = parseArchetypeTargets(meta.archetype_targets);
   const slug = slugFromFileName(source);
   if (archetypes.length === 0 && ARCHETYPE_SLUGS.has(slug)) {
     archetypes.push(slug);
   }
-  for (const a of archetypes) {
-    if (!VALID_ARCHETYPES.includes(a)) {
-      errors.push(`${source}: archetype invalide '${a}'`);
-    }
+  for (const a of invalidArchetypes) {
+    errors.push(`${source}: archetype invalide '${a}' (utiliser minuscules : sovereign, creator, …)`);
   }
 
   // user_id → target_user_ids

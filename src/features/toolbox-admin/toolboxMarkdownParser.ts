@@ -6,6 +6,7 @@
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import {
   TOOLBOX_CONTENT_TYPES,
+  isKnownToolboxContentType,
   validateToolboxCatalogPayload,
   type ToolboxCatalogImportPayload,
   type ToolboxContentType,
@@ -13,7 +14,7 @@ import {
   type ValidationIssue,
   normalizeToolboxUserDeliveryStatus,
 } from "@/services/programBuilderService";
-import { getBuiltinToolboxContentTypeDefinition } from "@/lib/toolbox-content-type-definitions";
+import { parseArchetypeTargets } from "@/pages/admin/pulse/pulsePrinciples";
 
 const REQUIRED_LOCALES = ["fr", "en"] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -227,26 +228,70 @@ function parseBodySections(body: string): Record<string, string> {
   const lines = body.split("\n");
   let currentKey: string | null = null;
   let currentLines: string[] = [];
+  let activeLocale: "fr" | "en" | null = null;
 
   const headingRe =
     /^#{1,3}[ \t]+([\w_]+)(?:[ \t]*(?:\(?(FR|EN)\)?|[—–-][ \t]*(FR|EN)|:[ \t]*(FR|EN)|[ \t]+(FR|EN)))?[ \t]*$/i;
+  const localeBlockRe = /^#{1,3}[ \t]+(FR|EN)[ \t]*$/i;
+  const sectionOnlyRe = /^#{1,3}[ \t]+([\w_]+)[ \t]*$/i;
+
+  const flush = () => {
+    if (currentKey) sections[currentKey] = currentLines.join("\n").trim();
+    currentKey = null;
+    currentLines = [];
+  };
 
   for (const line of lines) {
+    const localeBlock = line.match(localeBlockRe);
+    if (localeBlock) {
+      flush();
+      activeLocale = localeBlock[1].toLowerCase() as "fr" | "en";
+      continue;
+    }
+
     const m = line.match(headingRe);
     if (m) {
       const locale = (m[2] || m[3] || m[4] || m[5] || "").toLowerCase();
       if (locale !== "fr" && locale !== "en") {
+        const nested = line.match(sectionOnlyRe);
+        if (nested && activeLocale) {
+          flush();
+          currentKey = `${nested[1].toLowerCase()}_${activeLocale}`;
+          continue;
+        }
         if (currentKey) currentLines.push(line);
         continue;
       }
-      if (currentKey) sections[currentKey] = currentLines.join("\n").trim();
+      flush();
       currentKey = `${m[1].toLowerCase()}_${locale}`;
-      currentLines = [];
-    } else if (currentKey) {
-      currentLines.push(line);
+      continue;
+    }
+
+    const nestedSection = line.match(sectionOnlyRe);
+    if (nestedSection && activeLocale) {
+      flush();
+      currentKey = `${nestedSection[1].toLowerCase()}_${activeLocale}`;
+      continue;
+    }
+
+    if (currentKey) currentLines.push(line);
+  }
+  flush();
+
+  // Pulse card sections → toolbox instructions
+  for (const locale of REQUIRED_LOCALES) {
+    if (!sections[`instructions_${locale}`]) {
+      const hook = sections[`hook_${locale}`] || "";
+      const concept = sections[`concept_${locale}`] || "";
+      const action = sections[`action_${locale}`] || "";
+      const merged = [hook, concept, action].filter(Boolean).join("\n\n");
+      if (merged) sections[`instructions_${locale}`] = merged;
+    }
+    if (!sections[`steps_${locale}`] && sections[`action_${locale}`]) {
+      sections[`steps_${locale}`] = `- ${sections[`action_${locale}`].replace(/\n/g, "\n- ")}`;
     }
   }
-  if (currentKey) sections[currentKey] = currentLines.join("\n").trim();
+
   return sections;
 }
 
@@ -265,6 +310,49 @@ function parseStopSteps(text: string): { title: string; hint: string }[] {
   });
 }
 
+/** STOP steps embedded in Instructions prose: `**S — Stop (subtitle)**` + body. */
+const STOP_PROSE_HEADER_RE =
+  /^\*\*([STOPS])\s*[—–-]\s*([^\n*]+?)(?:\s*\(([^)]+)\))?\*\*/im;
+
+function parseStopStepsFromProse(text: string): { title: string; hint: string }[] {
+  const trimmed = text.trim();
+  if (!trimmed || !STOP_PROSE_HEADER_RE.test(trimmed)) return [];
+
+  const steps: { title: string; hint: string }[] = [];
+  const blocks = trimmed.split(/\n(?=\*\*[STOPS]\s*[—–-])/i).filter(Boolean);
+
+  for (const block of blocks) {
+    const headerMatch = block.match(STOP_PROSE_HEADER_RE);
+    if (!headerMatch) continue;
+    const letter = headerMatch[1].toUpperCase();
+    const mainTitle = headerMatch[2].trim();
+    const paren = headerMatch[3]?.trim();
+    const label = paren ? `${mainTitle} (${paren})` : mainTitle;
+    const hint = block.slice(headerMatch[0].length).trim();
+    steps.push({ title: `${letter} — ${label}`, hint });
+  }
+  return steps;
+}
+
+function splitInstructionsIntroAndStopSteps(text: string): {
+  intro: string;
+  steps: { title: string; hint: string }[];
+} {
+  const trimmed = text.trim();
+  const marker = trimmed.search(/\*\*[STOPS]\s*[—–-]/i);
+  if (marker < 0) return { intro: trimmed, steps: [] };
+  return {
+    intro: trimmed.slice(0, marker).trim(),
+    steps: parseStopStepsFromProse(trimmed.slice(marker)),
+  };
+}
+
+const CONTENT_TYPE_ALIASES: Record<string, string> = {
+  actionable_tool: "micro_practice",
+  regulation_tool: "stop_protocol",
+  boundary_practice: "boundary_practice",
+};
+
 function parseScenes(text: string): { title: string; sec: number }[] {
   const scenes: { title: string; sec: number }[] = [];
   for (const line of text.split("\n")) {
@@ -276,6 +364,10 @@ function parseScenes(text: string): { title: string; sec: number }[] {
 
 function readI18nBlock(meta: Record<string, unknown>, key: string): Record<string, string> {
   const raw = meta[key];
+  if (typeof raw === "string") {
+    const s = raw.trim();
+    return { fr: s, en: s };
+  }
   if (!raw || typeof raw !== "object") return {};
   const o = raw as Record<string, unknown>;
   return {
@@ -284,22 +376,129 @@ function readI18nBlock(meta: Record<string, unknown>, key: string): Record<strin
   };
 }
 
+function readI18nWithFallback(meta: Record<string, unknown>, keys: string[]): Record<string, string> {
+  for (const key of keys) {
+    const block = readI18nBlock(meta, key);
+    if (block.fr || block.en) {
+      return {
+        fr: block.fr || block.en,
+        en: block.en || block.fr,
+      };
+    }
+  }
+  return { fr: "", en: "" };
+}
+
+function humanizeExternalKey(externalKey: string): Record<string, string> {
+  const slug = externalKey
+    .replace(/^toolbox_/i, "")
+    .replace(/^tool_/i, "")
+    .trim();
+  const title = slug
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+  if (!title) return { fr: "", en: "" };
+  return { fr: title, en: title };
+}
+
+function resolveToolboxContentType(
+  meta: Record<string, unknown>,
+  source: string,
+  sections: Record<string, string> = {},
+): string {
+  const explicit = [meta.content_type, meta.type, meta.tool_type]
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean);
+
+  const haystack = [
+    String(meta.external_key ?? ""),
+    slugFromFileName(source),
+    String(meta.rune ?? ""),
+    String(meta.glyph ?? ""),
+    String(meta.category ?? ""),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  for (const raw of explicit) {
+    const slug = raw.toLowerCase().replace(/[\s-]+/g, "_");
+    if (slug === "actionable_tool") {
+      const instr = `${sections.instructions_fr || ""}\n${sections.instructions_en || ""}`;
+      const hasStopProse = STOP_PROSE_HEADER_RE.test(instr);
+      const hasStepsSection = Boolean(sections.steps_fr || sections.steps_en);
+      if (hasStopProse || hasStepsSection || haystack.includes("stop") || haystack.includes("rumination")) {
+        return "stop_protocol";
+      }
+      return CONTENT_TYPE_ALIASES.actionable_tool;
+    }
+    if (CONTENT_TYPE_ALIASES[slug] && isKnownToolboxContentType(CONTENT_TYPE_ALIASES[slug])) {
+      return CONTENT_TYPE_ALIASES[slug];
+    }
+    if (isKnownToolboxContentType(slug)) return slug;
+  }
+
+  if (haystack.includes("boundary") || haystack.includes("shielding") || haystack.includes("shield")) {
+    return "boundary_practice";
+  }
+  if (haystack.includes("breath")) return "breathwork";
+  if (haystack.includes("stop") || haystack.includes("rumination")) return "stop_protocol";
+  if (haystack.includes("journal")) return "journal_prompt";
+  if (haystack.includes("affirm")) return "affirmations";
+  if (haystack.includes("gratitude")) return "gratitude";
+  if (haystack.includes("visual")) return "visualization";
+  if (haystack.includes("body_scan") || haystack.includes("bodyscan")) return "body_scan";
+  if (haystack.includes("focus") || haystack.includes("introspect")) return "focus_introspectif";
+
+  return "micro_practice";
+}
+
 function buildWidgetConfig(
   contentType: string,
   config: Record<string, unknown>,
   sections: Record<string, string>,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...config };
+  const sectionCopy = { ...sections };
 
-  const instrFr = sections.instructions_fr || "";
-  const instrEn = sections.instructions_en || "";
+  let instrFr = sectionCopy.instructions_fr || "";
+  let instrEn = sectionCopy.instructions_en || "";
+
+  const stepsFrFromBullets = sectionCopy.steps_fr ? parseStopSteps(sectionCopy.steps_fr) : [];
+  const stepsEnFromBullets = sectionCopy.steps_en ? parseStopSteps(sectionCopy.steps_en) : [];
+
+  let stepsFr = stepsFrFromBullets;
+  let stepsEn = stepsEnFromBullets;
+
+  if (contentType === "stop_protocol") {
+    if (!stepsFr.length && instrFr) {
+      const split = splitInstructionsIntroAndStopSteps(instrFr);
+      if (split.steps.length) {
+        stepsFr = split.steps;
+        instrFr = split.intro;
+      }
+    }
+    if (!stepsEn.length && instrEn) {
+      const split = splitInstructionsIntroAndStopSteps(instrEn);
+      if (split.steps.length) {
+        stepsEn = split.steps;
+        instrEn = split.intro;
+      }
+    }
+
+    if (typeof out.duration_min === "number" && out.duration_min > 0) {
+      if (out.duration_sec == null) out.duration_sec = out.duration_min * 60;
+      if (out.step_duration_sec == null) out.step_duration_sec = 30;
+      if (!out.mode) out.mode = "timed";
+    }
+  }
+
   if (instrFr || instrEn) {
     out.instructions = instrFr || instrEn;
     out.instructions_i18n = { fr: instrFr || instrEn, en: instrEn || instrFr };
   }
 
-  const stepsFr = sections.steps_fr ? parseStopSteps(sections.steps_fr) : [];
-  const stepsEn = sections.steps_en ? parseStopSteps(sections.steps_en) : [];
   if (stepsFr.length || stepsEn.length) {
     const len = Math.max(stepsFr.length, stepsEn.length);
     out.steps = Array.from({ length: len }, (_, i) => {
@@ -330,6 +529,9 @@ function buildWidgetConfig(
   if (promptFr || promptEn) {
     out.prompt = promptFr || promptEn;
     out.prompt_i18n = { fr: promptFr || promptEn, en: promptEn || promptFr };
+    if (contentType === "stop_protocol") {
+      out.usage_prompt_i18n = { fr: promptFr || promptEn, en: promptEn || promptFr };
+    }
   }
 
   const intentFr = sections.intention_fr || "";
@@ -361,9 +563,13 @@ function parseDistribution(meta: Record<string, unknown>): ParsedToolboxMarkdown
       ? (meta.distribution as Record<string, unknown>)
       : {};
 
-  const modeRaw = String(dist.mode ?? meta.distribution_mode ?? "catalog").toLowerCase();
+  const modeRaw = String(dist.mode ?? meta.distribution_mode ?? "").toLowerCase();
   const mode: ToolboxDistributionMode =
-    modeRaw === "individual" || modeRaw === "group" || modeRaw === "global" ? modeRaw : "catalog";
+    modeRaw === "individual" || modeRaw === "group" || modeRaw === "global"
+      ? modeRaw
+      : typeof meta.user_id === "string" && meta.user_id.trim()
+        ? "individual"
+        : "catalog";
 
   const userIds = Array.isArray(dist.user_ids)
     ? (dist.user_ids as unknown[]).map((x) => String(x).trim()).filter(Boolean)
@@ -380,7 +586,12 @@ function parseDistribution(meta: Record<string, unknown>): ParsedToolboxMarkdown
 
   return {
     mode,
-    user_id: typeof dist.user_id === "string" ? dist.user_id.trim() : undefined,
+    user_id:
+      typeof dist.user_id === "string"
+        ? dist.user_id.trim()
+        : typeof meta.user_id === "string"
+          ? meta.user_id.trim()
+          : undefined,
     user_ids: userIds,
     company_id: typeof dist.company_id === "string" ? dist.company_id.trim() : undefined,
     locale,
@@ -409,18 +620,35 @@ export function parseToolboxMarkdownDocument(
     };
   }
 
-  const contentType = String(meta.content_type ?? "").trim();
+  const sections = parseBodySections(body);
+  const contentTypeRaw = resolveToolboxContentType(meta, source, sections);
+  const contentType = contentTypeRaw.trim();
   if (!contentType) {
     errors.push(`${source}: content_type manquant.`);
-  } else if (
-    !(TOOLBOX_CONTENT_TYPES as readonly string[]).includes(contentType) &&
-    !getBuiltinToolboxContentTypeDefinition(contentType)
-  ) {
+  } else if (!isKnownToolboxContentType(contentType)) {
     errors.push(`${source}: content_type '${contentType}' inconnu.`);
   }
 
-  const titleI18n = readI18nBlock(meta, "title");
-  const descI18n = readI18nBlock(meta, "description");
+  let titleI18n = readI18nWithFallback(meta, ["title", "name", "label"]);
+  if (!titleI18n.fr && !titleI18n.en) {
+    titleI18n = humanizeExternalKey(String(meta.external_key));
+  }
+
+  let descI18n = readI18nWithFallback(meta, ["description", "problem", "summary", "subtitle"]);
+  if (!descI18n.fr && !descI18n.en) {
+    const bullets = meta.bullets;
+    if (bullets && typeof bullets === "object") {
+      const b = bullets as Record<string, unknown>;
+      const frList = Array.isArray(b.fr) ? (b.fr as string[]).map((s) => String(s).trim()).filter(Boolean) : [];
+      const enList = Array.isArray(b.en) ? (b.en as string[]).map((s) => String(s).trim()).filter(Boolean) : [];
+      if (frList.length || enList.length) {
+        descI18n = {
+          fr: frList[0] || enList[0] || "",
+          en: enList[0] || frList[0] || "",
+        };
+      }
+    }
+  }
   for (const loc of REQUIRED_LOCALES) {
     if (!titleI18n[loc]) errors.push(`${source}: title.${loc} vide.`);
     if (!descI18n[loc]) errors.push(`${source}: description.${loc} vide.`);
@@ -436,20 +664,24 @@ export function parseToolboxMarkdownDocument(
     errors.push(`${source}: URL vidéo — utiliser la bibliothèque, pas toolbox.`);
   }
 
-  const sections = parseBodySections(body);
   const widget_config = buildWidgetConfig(contentType, config, sections);
   if (externalUrl) widget_config.external_url = externalUrl;
 
   const distribution = parseDistribution(meta);
-  if (distribution.mode === "individual") {
-    if (!distribution.user_id || !UUID_RE.test(distribution.user_id)) {
-      errors.push(`${source}: distribution.user_id UUID requis en mode individual.`);
-    }
+  if (distribution.mode === "individual" && distribution.user_id && !UUID_RE.test(distribution.user_id)) {
+    errors.push(`${source}: distribution.user_id UUID invalide.`);
   }
   if (distribution.mode === "group") {
     if (!distribution.user_ids.length && !distribution.company_id) {
       errors.push(`${source}: user_ids ou company_id requis en mode group.`);
     }
+  }
+
+  const { slugs: archetypeTargets, invalid: invalidArchetypes } = parseArchetypeTargets(
+    meta.archetype_targets,
+  );
+  for (const a of invalidArchetypes) {
+    errors.push(`${source}: archetype invalide '${a}'.`);
   }
 
   if (errors.length > 0) return { item: null, errors };
@@ -463,11 +695,9 @@ export function parseToolboxMarkdownDocument(
       description_i18n: descI18n,
       duration: typeof meta.duration === "string" ? meta.duration : undefined,
       is_active: meta.is_active !== false,
-      archetype_targets: Array.isArray(meta.archetype_targets)
-        ? (meta.archetype_targets as string[])
-        : [],
+      archetype_targets: archetypeTargets,
       shadow_targets: Array.isArray(meta.shadow_targets)
-        ? (meta.shadow_targets as string[])
+        ? (meta.shadow_targets as string[]).map((s) => String(s).trim().toLowerCase())
         : [],
       widget_config,
       distribution,
