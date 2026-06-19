@@ -11,8 +11,7 @@ import {
   ToolboxSection,
 } from "@/components/admin/toolbox/ToolboxAdminUi";
 import ToolboxUserFilterBar from "@/features/toolbox-admin/ToolboxUserFilterBar";
-import { pickLocalizedText } from "@/lib/content-i18n";
-import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
+import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import {
   loadToolboxAdminProfiles,
   loadWaitingAssignments,
@@ -244,7 +243,10 @@ export default function ToolboxWaitingConfirmation() {
                   </div>
                   <ul className="space-y-3">
                     {group.items.map((item) => {
-                      const title = pickLocalizedText(locale as Locale, item.title_i18n, item.title);
+                      const title = pickCatalogTemplateDisplayTitle(locale as Locale, {
+                        title: item.title,
+                        title_i18n: item.title_i18n,
+                      });
                       const checked = selectedIds.has(item.id);
                       return (
                         <li
@@ -268,12 +270,10 @@ export default function ToolboxWaitingConfirmation() {
                           </div>
                           <ToolboxItemPreview
                             contentType={item.content_type}
-                            title={title}
-                            description={pickWidgetCatalogCopy(
-                              locale as Locale,
-                              item.description_i18n as Parameters<typeof pickWidgetCatalogCopy>[1],
-                              item.description,
-                            )}
+                            title={item.title}
+                            title_i18n={item.title_i18n}
+                            description={item.description}
+                            description_i18n={item.description_i18n}
                             widgetConfig={item.widget_config}
                             externalUrl={item.external_url}
                           />

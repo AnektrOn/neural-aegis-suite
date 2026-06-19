@@ -1,9 +1,13 @@
 import type { Locale } from "@/i18n/translations";
 import { pickLocalizedText } from "@/lib/content-i18n";
-import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
+import {
+  lookupCatalogFrToEn,
+  normalizeCatalogFrKey,
+  pickWidgetCatalogCopy,
+} from "@/lib/toolbox-widget-i18n";
 
-function norm(s: string) {
-  return s.trim().replace(/\s+/g, " ");
+function catalogTitleKey(s: string) {
+  return normalizeCatalogFrKey(s);
 }
 
 /**
@@ -29,6 +33,8 @@ const CATALOG_TITLE_EN_BY_FR: Record<string, string> = {
   "Le Verrou d'Isolation": "The Isolation Lock",
   "Le Bouclier IgA": "The IgA Shield",
   "S.T.O.P. Saturation": "S.T.O.P. saturation",
+  "S.T.O.P. Profond : L'Ancrage du Sanctuaire (Respect de Soi)":
+    "Deep S.T.O.P.: Sanctuary Anchoring (Self-Respect)",
   "Le Flash de Pré-Accomplissement": "Pre-Accomplishment Flash",
   "Le Flux Syntropique": "The Syntropic Flow",
   Affirmations: "Affirmations",
@@ -45,8 +51,7 @@ const CATALOG_TITLE_EN_BY_FR: Record<string, string> = {
  * Résout un titre catalogue FR → EN connu (hors contenu widget).
  */
 export function resolveToolboxTitleEnglish(frTitle: string): string | undefined {
-  const n = norm(frTitle);
-  return CATALOG_TITLE_EN_BY_FR[n] ?? undefined;
+  return CATALOG_TITLE_EN_BY_FR[catalogTitleKey(frTitle)];
 }
 
 type CatalogTitleRow = {
@@ -72,12 +77,19 @@ export function pickCatalogTemplateDisplayTitle(
 
   if (locale === "fr") return fr || legacy;
 
-  if (en && en !== fr) return en;
-
+  const frKey = catalogTitleKey(fr || legacy);
+  const enKey = catalogTitleKey(en);
   const mapped =
-    CATALOG_TITLE_EN_BY_FR[norm(fr)] ?? CATALOG_TITLE_EN_BY_FR[norm(legacy)];
+    CATALOG_TITLE_EN_BY_FR[frKey] ??
+    CATALOG_TITLE_EN_BY_FR[catalogTitleKey(legacy)] ??
+    lookupCatalogFrToEn(fr) ??
+    lookupCatalogFrToEn(legacy);
 
-  return mapped ?? en ?? fr ?? legacy;
+  if (mapped) return mapped;
+
+  if (en && enKey !== frKey) return en;
+
+  return en ?? fr ?? legacy;
 }
 
 /**

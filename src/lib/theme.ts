@@ -21,6 +21,6 @@ export function applyTheme(dark: boolean): void {
 
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute("content", dark ? "#08090D" : "#FAF3E4");
+    meta.setAttribute("content", dark ? "#08090D" : "#FFFFFF");
   }
 }

@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { isValidPrinciple } from "./pulsePrinciples";
+import { isValidPrinciple, parseArchetypeTargets } from "./pulsePrinciples";
 
 export interface PulseCardRow {
   id: string;
@@ -43,11 +43,6 @@ export interface ImportPreview {
   errors: string[];
   cards: PulseCardImportPayload[];
 }
-
-const VALID_ARCHETYPES = [
-  "sage", "warrior", "lover", "sovereign", "magician", "healer",
-  "creator", "rebel", "caregiver", "explorer", "mystic", "jester",
-];
 
 export async function listPulseCards(): Promise<PulseCardRow[]> {
   const { data, error } = await supabase
@@ -108,12 +103,10 @@ export function parseAndPreviewImport(jsonText: string): ImportPreview {
     if (!title?.fr || !title?.en) { errors.push(`${label}: title.fr/en manquant`); return; }
     if (!problem?.fr || !problem?.en) { errors.push(`${label}: problem.fr/en manquant`); return; }
 
-    const archetypes = Array.isArray(obj.archetype_targets) ? obj.archetype_targets as string[] : [];
-    for (const a of archetypes) {
-      if (!VALID_ARCHETYPES.includes(a)) {
-        errors.push(`${label}: archetype invalide '${a}'`);
-        return;
-      }
+    const { slugs: archetypes, invalid: invalidArchetypes } = parseArchetypeTargets(obj.archetype_targets);
+    if (invalidArchetypes.length > 0) {
+      errors.push(`${label}: archetype invalide '${invalidArchetypes[0]}'`);
+      return;
     }
 
     const userId = typeof obj.user_id === "string" ? obj.user_id.trim() : "";

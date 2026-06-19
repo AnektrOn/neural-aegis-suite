@@ -110,6 +110,11 @@ const CATALOG_FR_EN_PAIRS: [string, string][] = [
   ["Ma présence est mon ancrage.", "My presence is my anchor."],
   ["Je choisis la clarté avant la réaction.", "I choose clarity before reaction."],
   ["Chaque expiration me ramène au centre.", "Each exhale brings me back to center."],
+  // stop_protocol — sanctuary anchor
+  [
+    "Protège ton Étincelle Divine en refusant de dissiper ton énergie pour calmer l'anxiété de l'autre.",
+    "Protect your Divine Spark by refusing to dissipate your energy to soothe the other's anxiety.",
+  ],
 ];
 
 const CATALOG_FR_EN: Record<string, string> = {};
@@ -136,10 +141,13 @@ export function pickWidgetCatalogCopy(
   }
   const obj = (i18n && typeof i18n === "object" ? i18n : {}) as Partial<Record<Locale, string>>;
   const enDirect = typeof obj.en === "string" ? obj.en.trim() : "";
-  if (enDirect) return enDirect;
 
   const leg = legacy?.trim() ?? "";
   const frOnly = typeof obj.fr === "string" ? obj.fr.trim() : "";
+  const frRef = frOnly || leg;
+
+  if (enDirect && (!frRef || enDirect !== frRef)) return enDirect;
+
   const mapped = lookupCatalogFrToEn(leg) || (frOnly ? lookupCatalogFrToEn(frOnly) : undefined);
   if (mapped) return mapped;
   if (leg) return leg;

@@ -1,8 +1,10 @@
 import { Component, useCallback, useState, type ErrorInfo, type ReactNode } from "react";
-import { FileText, Loader2, Upload, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { FileText, Loader2, Upload, AlertTriangle, CheckCircle2, UserPlus, Globe } from "lucide-react";
+import UserPicker from "@/features/admin-export/UserPicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
 import {
   createToolboxTemplate,
@@ -17,6 +19,7 @@ import {
 } from "@/features/toolbox-admin/toolboxMarkdownParser";
 import { ToolboxPanel, ToolboxEmptyState } from "@/components/admin/toolbox/ToolboxAdminUi";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   onImported: () => void;
@@ -77,15 +80,58 @@ function itemToDistribution(item: ParsedToolboxMarkdownItem): ToolboxDistributio
   };
 }
 
+function resolveImportDistribution(
+  item: ParsedToolboxMarkdownItem,
+  assignUsers: string[],
+  catalogOnly: boolean,
+): ToolboxDistributionInput {
+  if (catalogOnly) {
+    return { mode: "catalog", locale: "all", assignmentStatus: "waiting" };
+  }
+  if (assignUsers.length === 1) {
+    return {
+      mode: "individual",
+      userId: assignUsers[0],
+      locale: "all",
+      assignmentStatus: "waiting",
+    };
+  }
+  if (assignUsers.length > 1) {
+    return {
+      mode: "group",
+      userIds: assignUsers,
+      locale: "all",
+      assignmentStatus: "waiting",
+    };
+  }
+  return itemToDistribution(item);
+}
+
+function previewUserLabel(
+  item: ParsedToolboxMarkdownItem,
+  assignUsers: string[],
+  catalogOnly: boolean,
+): string {
+  if (catalogOnly) return "catalog";
+  if (assignUsers.length === 1) return assignUsers[0];
+  if (assignUsers.length > 1) return `${assignUsers.length} users`;
+  return (
+    item.distribution.user_id ||
+    (item.distribution.user_ids?.length ? item.distribution.user_ids.join(", ") : item.distribution.mode)
+  );
+}
+
 function ToolboxMarkdownImportPanel({ onImported }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [parseResult, setParseResult] = useState<ReturnType<typeof parseToolboxMarkdownBatch> | null>(
     null,
   );
+  const [assignUsers, setAssignUsers] = useState<string[]>([]);
+  const [catalogOnly, setCatalogOnly] = useState(false);
 
   const handleFiles = useCallback(
     async (fileList: FileList | null) => {
@@ -135,9 +181,15 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
       let assignments = 0;
       let skipped = 0;
 
-      const catalogOnly = parseResult.items.filter((i) => i.distribution.mode === "catalog");
-      if (catalogOnly.length) {
-        const payload = parsedItemsToCatalogPayload(catalogOnly);
+      const catalogItems = parseResult.items.filter(
+        (i) => resolveImportDistribution(i, assignUsers, catalogOnly).mode === "catalog",
+      );
+      const distributedItems = parseResult.items.filter(
+        (i) => resolveImportDistribution(i, assignUsers, catalogOnly).mode !== "catalog",
+      );
+
+      if (catalogItems.length) {
+        const payload = parsedItemsToCatalogPayload(catalogItems);
         payload.default_assignment_status = "waiting";
         payload.toolbox_items = (payload.toolbox_items || []).map((item) => ({
           ...item,
@@ -156,7 +208,19 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
         skipped += summary.skippedDuplicateToolboxAssignments;
       }
 
-      for (const item of parseResult.items.filter((i) => i.distribution.mode !== "catalog")) {
+      for (const item of distributedItems) {
+        const distribution = resolveImportDistribution(item, assignUsers, catalogOnly);
+        if (distribution.mode === "individual" && !distribution.userId) {
+          throw new Error(
+            `${item.external_key}: mode individual sans user — sélectionnez un utilisateur ou activez « Catalogue uniquement ».`,
+          );
+        }
+        if (distribution.mode === "group" && !distribution.userIds?.length && !distribution.companyId) {
+          throw new Error(
+            `${item.external_key}: mode group sans destinataires — sélectionnez des utilisateurs.`,
+          );
+        }
+
         const tpl = await createToolboxTemplate(
           {
             external_key: item.external_key,
@@ -177,7 +241,7 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
         const dist = await distributeToolboxContent({
           actorId: user.id,
           templateId: (tpl as any).id,
-          distribution: itemToDistribution(item),
+          distribution,
         });
         assignments += dist.created;
         skipped += dist.skipped;
@@ -278,14 +342,58 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
             </ul>
           ) : null}
 
+          <div className="mb-4 space-y-3 rounded-lg border border-border/40 bg-secondary/10 p-3">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              Options d&apos;import
+            </p>
+
+            <label className="flex cursor-pointer items-center gap-2.5">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={catalogOnly}
+                onClick={() => setCatalogOnly((v) => !v)}
+                className={`relative h-5 w-9 rounded-full transition-colors ${catalogOnly ? "bg-green-500" : "bg-border"}`}
+              >
+                <span
+                  className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${catalogOnly ? "translate-x-4" : ""}`}
+                />
+              </button>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Globe className="size-3.5" />
+                Catalogue uniquement
+                <span className="text-[10px]">(sans assignation user)</span>
+              </span>
+            </label>
+
+            {!catalogOnly ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="size-3.5 text-cyan-400" />
+                  <span className="text-xs text-muted-foreground">Attribuer à un(des) user(s)</span>
+                  {assignUsers.length > 0 ? (
+                    <Badge variant="outline" className="border-cyan-400/30 px-1.5 py-0 text-[10px] text-cyan-400">
+                      {assignUsers.length} sélectionné(s)
+                    </Badge>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">
+                      (vide = garde le user_id du fichier .md)
+                    </span>
+                  )}
+                </div>
+                <UserPicker selected={assignUsers} onChange={setAssignUsers} />
+              </div>
+            ) : null}
+          </div>
+
           <ul className="mb-6 max-h-[28rem] space-y-3 overflow-y-auto">
             {parseResult.items.map((item) => {
-              const title = item.title_i18n.fr || item.title_i18n.en;
-              const userLabel =
-                item.distribution.user_id ||
-                (item.distribution.user_ids?.length
-                  ? item.distribution.user_ids.join(", ")
-                  : item.distribution.mode);
+              const title = pickCatalogTemplateDisplayTitle(locale, {
+                title: item.title_i18n.fr || item.title_i18n.en,
+                title_i18n: item.title_i18n,
+              });
+              const userLabel = previewUserLabel(item, assignUsers, catalogOnly);
+              const effectiveMode = resolveImportDistribution(item, assignUsers, catalogOnly).mode;
               return (
                 <li
                   key={item.external_key}
@@ -298,7 +406,7 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
                         <div className="min-w-0 space-y-1">
                           <p className="font-medium text-foreground">{title}</p>
                           <p className="text-xs text-muted-foreground">
-                            {item.content_type} · {item.distribution.mode}
+                            {item.content_type} · {effectiveMode}
                           </p>
                           <p className="break-all font-mono text-[11px] text-muted-foreground">
                             {t("admin.toolboxMd.previewUser")}: {userLabel}
@@ -308,8 +416,10 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
                     </div>
                     <ToolboxItemPreview
                       contentType={item.content_type}
-                      title={title}
+                      title={item.title_i18n.fr || item.title_i18n.en}
+                      title_i18n={item.title_i18n}
                       description={item.description_i18n.fr || item.description_i18n.en}
+                      description_i18n={item.description_i18n}
                       widgetConfig={item.widget_config}
                     />
                   </div>

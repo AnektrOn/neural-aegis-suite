@@ -244,7 +244,7 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
 
   return (
     <div className="flex flex-col items-center space-y-5 py-4">
-      {!hideTitle && (
+      {hideTitle === false && (
         <div className="flex items-center gap-2 text-neural-label">
           <ShieldAlert size={14} className="text-destructive" />
           <span className="text-xs uppercase tracking-[0.3em]">{title}</span>

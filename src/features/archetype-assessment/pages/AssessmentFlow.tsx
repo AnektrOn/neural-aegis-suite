@@ -161,7 +161,6 @@ export default function AssessmentFlow() {
     );
   }
 
-  const { template } = loaded;
   const remaining = Math.max(0, session.totalQuestions - (session.questionIndex + 1));
 
   return (
@@ -181,13 +180,9 @@ export default function AssessmentFlow() {
           <Card className="p-6 sm:p-10 backdrop-blur-3xl bg-card/40 border-border/40">
             <div className="flex items-center gap-3 mb-4">
               <Sparkles className="w-6 h-6 text-primary" />
-              <h1 className="text-2xl sm:text-3xl font-serif">
-                {isFR ? template.title_fr : template.title_en}
-              </h1>
+              <h1 className="text-2xl sm:text-3xl font-serif">{t("quiz.public.title")}</h1>
             </div>
-            <p className="text-muted-foreground mb-4">
-              {isFR ? template.description_fr : template.description_en}
-            </p>
+            <p className="text-muted-foreground mb-4">{t("quiz.public.description")}</p>
 
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 mb-4">
               <p className="text-sm font-medium mb-1">
