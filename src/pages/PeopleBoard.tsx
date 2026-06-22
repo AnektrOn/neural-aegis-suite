@@ -155,7 +155,7 @@ function NeuralRelationsSidebar({
                     <p className="text-[10px] text-white/30 truncate mt-0.5">{person.role}</p>
                   )}
                   <p className="text-[9px] uppercase tracking-[0.1em] text-white/35 mt-1">
-                    {CONTACT_PROXIMITY_LABELS[px]}
+                    {proximityLabel(px, t)}
                   </p>
                   {logs.length === 0 ? (
                     <p className="text-[11px] text-white/20 mt-2 italic">{t("people.noRecentJournal")}</p>
