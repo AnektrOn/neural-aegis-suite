@@ -366,7 +366,7 @@ function PersonCard({
               <div className="space-y-1.5">
                 <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-white/30">
                   <MessageSquare size={9} />
-                  Note du jour
+                  {t("people.dailyNote")}
                 </label>
                 <textarea
                   value={localNote}
