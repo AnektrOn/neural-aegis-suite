@@ -967,7 +967,7 @@ export default function PeopleBoard() {
             }}
           >
             <Plus size={14} />
-            Ajouter un contact
+            {t("people.addContact")}
           </button>
         </motion.div>
       ) : view === "places" ? (
