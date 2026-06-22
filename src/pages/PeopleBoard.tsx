@@ -1097,7 +1097,7 @@ export default function PeopleBoard() {
                 ) : (
                   <Send size={14} />
                 )}
-                {saving ? "Enregistrement…" : "Synchroniser les relations"}
+                {saving ? t("people.saving") : t("people.syncRelations")}
               </motion.button>
             )}
             <button
