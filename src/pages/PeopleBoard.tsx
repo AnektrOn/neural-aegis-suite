@@ -69,12 +69,22 @@ const qualityBg = (q: number) => {
   return "hsl(0 70% 50% / 0.12)";
 };
 
-const qualityLabel = (q: number) => {
-  if (q >= 8) return "Excellente";
-  if (q >= 6) return "Bonne";
-  if (q >= 4) return "Neutre";
-  return "À relancer";
+const qualityLabel = (q: number, t: (k: string) => string) => {
+  if (q >= 8) return t("people.qualityExcellent");
+  if (q >= 6) return t("people.qualityGood");
+  if (q >= 4) return t("people.qualityNeutral");
+  return t("people.qualityToFollowUp");
 };
+
+const proximityLabelKey: Record<ContactProximity, string> = {
+  famille: "people.proximityFamille",
+  ami: "people.proximityAmi",
+  equipe_direction: "people.proximityEquipe",
+  prestataire: "people.proximityPrestataire",
+  employe: "people.proximityEmploye",
+};
+const proximityLabel = (v: ContactProximity, t: (k: string) => string) =>
+  t(proximityLabelKey[v]);
 
 type Period = "1d" | "7d" | "30d" | "90d" | "quarter" | "semester" | "year";
 
@@ -119,8 +129,8 @@ function NeuralRelationsSidebar({
       }}
     >
       <div className="px-3 py-2.5 border-b border-white/[0.06] shrink-0">
-        <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Relations</p>
-        <p className="text-[11px] text-white/25 mt-0.5">Derniers journaux par contact</p>
+        <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">{t("people.relationsTitle")}</p>
+        <p className="text-[11px] text-white/25 mt-0.5">{t("people.recentJournalsHint")}</p>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         {people.map((person) => {
@@ -145,7 +155,7 @@ function NeuralRelationsSidebar({
                     <p className="text-[10px] text-white/30 truncate mt-0.5">{person.role}</p>
                   )}
                   <p className="text-[9px] uppercase tracking-[0.1em] text-white/35 mt-1">
-                    {CONTACT_PROXIMITY_LABELS[px]}
+                    {proximityLabel(px, t)}
                   </p>
                   {logs.length === 0 ? (
                     <p className="text-[11px] text-white/20 mt-2 italic">{t("people.noRecentJournal")}</p>
@@ -221,11 +231,12 @@ function QualityBadge({ value }: { value: number }) {
 function QualitySlider({
   value, onChange, id,
 }: { value: number; onChange: (v: number) => void; id: string }) {
+  const { t } = useLanguage();
   const pct = ((value - 1) / 9) * 100;
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <span className="text-[10px] uppercase tracking-[0.14em] text-white/30">Note relation</span>
+        <span className="text-[10px] uppercase tracking-[0.14em] text-white/30">{t("people.qualityNote")}</span>
         <QualityBadge value={value} />
       </div>
       <div className="relative h-6 flex items-center">
@@ -251,9 +262,9 @@ function QualitySlider({
         />
       </div>
       <div className="flex justify-between text-[9px] text-white/20">
-        <span>Difficile</span>
-        <span className="font-medium" style={{ color: `${qualityColor(value)}80` }}>{qualityLabel(value)}</span>
-        <span>Excellente</span>
+        <span>{t("people.qualityLow")}</span>
+        <span className="font-medium" style={{ color: `${qualityColor(value)}80` }}>{qualityLabel(value, t)}</span>
+        <span>{t("people.qualityHigh")}</span>
       </div>
     </div>
   );
@@ -331,7 +342,7 @@ function PersonCard({
               {/* Proximity select */}
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">
-                  Proximité
+                  {t("people.proximityLabel")}
                 </label>
                 <div className="relative">
                   <select
@@ -340,7 +351,8 @@ function PersonCard({
                     className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary/30 appearance-none pr-8"
                   >
                     {CONTACT_PROXIMITY_VALUES.map((v) => (
-                      <option key={v} value={v}>{CONTACT_PROXIMITY_LABELS[v]}</option>
+                      <option key={v} value={v}>{proximityLabel(v, t)}</option>
+
                     ))}
                   </select>
                   <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
@@ -354,7 +366,7 @@ function PersonCard({
               <div className="space-y-1.5">
                 <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-white/30">
                   <MessageSquare size={9} />
-                  Note du jour
+                  {t("people.dailyNote")}
                 </label>
                 <textarea
                   value={localNote}
@@ -386,7 +398,7 @@ function PersonCard({
                   className="flex items-center gap-1.5 text-[11px] text-white/20 hover:text-destructive transition-colors py-2 px-3 rounded-xl hover:bg-destructive/5"
                 >
                   <Trash2 size={12} />
-                  Supprimer
+                  {t("people.deleteAction")}
                 </button>
               </div>
             </div>
@@ -399,6 +411,7 @@ function PersonCard({
 
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 function StatsStrip({ people }: { people: Person[] }) {
+  const { t } = useLanguage();
   if (!people.length) return null;
   const avg = (people.reduce((s, p) => s + p.quality, 0) / people.length).toFixed(1);
   const high = people.filter((p) => p.quality >= 8).length;
@@ -407,9 +420,9 @@ function StatsStrip({ people }: { people: Person[] }) {
   return (
     <div className="flex items-stretch gap-px overflow-hidden rounded-2xl border border-white/[0.06]">
       {[
-        { label: "Moy.", value: avg, icon: <Star size={10} />, color: "text-white/50" },
-        { label: "Top", value: high, icon: <CheckCircle2 size={10} />, color: "text-emerald-400/70" },
-        { label: "Relancer", value: low, icon: <AlertCircle size={10} />, color: "text-red-400/70" },
+        { label: t("people.statAverage"), value: avg, icon: <Star size={10} />, color: "text-white/50" },
+        { label: t("people.statTop"), value: high, icon: <CheckCircle2 size={10} />, color: "text-emerald-400/70" },
+        { label: t("people.statFollowUp"), value: low, icon: <AlertCircle size={10} />, color: "text-red-400/70" },
       ].map((stat, i) => (
         <div
           key={i}
@@ -457,20 +470,20 @@ function AddPersonSheet({
         <SheetHeader className="mb-6">
           <div className="w-10 h-1 rounded-full bg-white/10 mx-auto mb-4" />
           <SheetTitle className="text-foreground text-lg font-['Cormorant_Garamond']">
-            Nouveau contact
+            {t("people.newContact")}
           </SheetTitle>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 px-1 pb-6">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
-              <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">Nom *</label>
+              <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">{t("people.nameLabel")} *</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                placeholder="Sarah Chen"
+                placeholder={t("people.namePlaceholder")}
                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 text-sm text-foreground placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
               />
             </div>
@@ -495,7 +508,7 @@ function AddPersonSheet({
                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 text-sm text-foreground focus:outline-none focus:border-primary/40 appearance-none pr-8"
               >
                 {CONTACT_PROXIMITY_VALUES.map((v) => (
-                  <option key={v} value={v}>{CONTACT_PROXIMITY_LABELS[v]}</option>
+                  <option key={v} value={v}>{proximityLabel(v, t)}</option>
                 ))}
               </select>
               <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
@@ -510,7 +523,7 @@ function AddPersonSheet({
           />
 
           <div className="space-y-1.5">
-            <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">Observation</label>
+            <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">{t("people.observationLabel")}</label>
             <input
               type="text"
               value={form.insight}
@@ -530,7 +543,7 @@ function AddPersonSheet({
             }}
           >
             <Save size={14} />
-            Ajouter le contact
+            {t("people.addContactSubmit")}
           </button>
         </form>
       </SheetContent>
@@ -638,7 +651,7 @@ function HistorySheet({
         {history.length > 0 && (
           <div>
             <p className="text-[10px] uppercase tracking-[0.14em] text-white/25 mb-3 px-1">
-              Journal
+              {t("people.journal")}
             </p>
             <div className="space-y-1">
               {[...history].reverse().map((h) => (
@@ -942,7 +955,7 @@ export default function PeopleBoard() {
           </div>
           <div className="text-center">
             <p className="text-sm text-white/40 mb-1">{t("common.noContactsHint")}</p>
-            <p className="text-xs text-white/20">Commencez par ajouter votre premier contact</p>
+            <p className="text-xs text-white/20">{t("people.noContactsCTA")}</p>
           </div>
           <button
             onClick={() => setShowAddSheet(true)}
@@ -954,7 +967,7 @@ export default function PeopleBoard() {
             }}
           >
             <Plus size={14} />
-            Ajouter un contact
+            {t("people.addContact")}
           </button>
         </motion.div>
       ) : view === "places" ? (
@@ -1084,7 +1097,7 @@ export default function PeopleBoard() {
                 ) : (
                   <Send size={14} />
                 )}
-                {saving ? "Enregistrement…" : "Synchroniser les relations"}
+                {saving ? t("people.saving") : t("people.syncRelations")}
               </motion.button>
             )}
             <button
@@ -1102,7 +1115,7 @@ export default function PeopleBoard() {
               }}
             >
               <Plus size={16} />
-              {!hasUnsavedChanges && "Ajouter un contact"}
+              {!hasUnsavedChanges && t("people.addContact")}
             </button>
           </motion.div>
         )}
