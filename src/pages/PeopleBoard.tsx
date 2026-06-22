@@ -231,11 +231,12 @@ function QualityBadge({ value }: { value: number }) {
 function QualitySlider({
   value, onChange, id,
 }: { value: number; onChange: (v: number) => void; id: string }) {
+  const { t } = useLanguage();
   const pct = ((value - 1) / 9) * 100;
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <span className="text-[10px] uppercase tracking-[0.14em] text-white/30">Note relation</span>
+        <span className="text-[10px] uppercase tracking-[0.14em] text-white/30">{t("people.qualityNote")}</span>
         <QualityBadge value={value} />
       </div>
       <div className="relative h-6 flex items-center">
@@ -261,9 +262,9 @@ function QualitySlider({
         />
       </div>
       <div className="flex justify-between text-[9px] text-white/20">
-        <span>Difficile</span>
-        <span className="font-medium" style={{ color: `${qualityColor(value)}80` }}>{qualityLabel(value)}</span>
-        <span>Excellente</span>
+        <span>{t("people.qualityLow")}</span>
+        <span className="font-medium" style={{ color: `${qualityColor(value)}80` }}>{qualityLabel(value, t)}</span>
+        <span>{t("people.qualityHigh")}</span>
       </div>
     </div>
   );
