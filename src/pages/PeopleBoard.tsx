@@ -477,7 +477,7 @@ function AddPersonSheet({
         <form onSubmit={handleSubmit} className="space-y-5 px-1 pb-6">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
-              <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">Nom *</label>
+              <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">{t("people.nameLabel")} *</label>
               <input
                 type="text"
                 value={form.name}
