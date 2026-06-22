@@ -508,7 +508,7 @@ function AddPersonSheet({
                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 text-sm text-foreground focus:outline-none focus:border-primary/40 appearance-none pr-8"
               >
                 {CONTACT_PROXIMITY_VALUES.map((v) => (
-                  <option key={v} value={v}>{CONTACT_PROXIMITY_LABELS[v]}</option>
+                  <option key={v} value={v}>{proximityLabel(v, t)}</option>
                 ))}
               </select>
               <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
