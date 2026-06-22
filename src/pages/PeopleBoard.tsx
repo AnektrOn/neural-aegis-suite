@@ -69,12 +69,22 @@ const qualityBg = (q: number) => {
   return "hsl(0 70% 50% / 0.12)";
 };
 
-const qualityLabel = (q: number) => {
-  if (q >= 8) return "Excellente";
-  if (q >= 6) return "Bonne";
-  if (q >= 4) return "Neutre";
-  return "À relancer";
+const qualityLabel = (q: number, t: (k: string) => string) => {
+  if (q >= 8) return t("people.qualityExcellent");
+  if (q >= 6) return t("people.qualityGood");
+  if (q >= 4) return t("people.qualityNeutral");
+  return t("people.qualityToFollowUp");
 };
+
+const proximityLabelKey: Record<ContactProximity, string> = {
+  famille: "people.proximityFamille",
+  ami: "people.proximityAmi",
+  equipe_direction: "people.proximityEquipe",
+  prestataire: "people.proximityPrestataire",
+  employe: "people.proximityEmploye",
+};
+const proximityLabel = (v: ContactProximity, t: (k: string) => string) =>
+  t(proximityLabelKey[v]);
 
 type Period = "1d" | "7d" | "30d" | "90d" | "quarter" | "semester" | "year";
 
