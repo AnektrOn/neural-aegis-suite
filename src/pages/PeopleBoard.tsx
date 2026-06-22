@@ -483,7 +483,7 @@ function AddPersonSheet({
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                placeholder="Sarah Chen"
+                placeholder={t("people.namePlaceholder")}
                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 text-sm text-foreground placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-colors"
               />
             </div>
