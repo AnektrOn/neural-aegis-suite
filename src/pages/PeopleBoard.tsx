@@ -1115,7 +1115,7 @@ export default function PeopleBoard() {
               }}
             >
               <Plus size={16} />
-              {!hasUnsavedChanges && "Ajouter un contact"}
+              {!hasUnsavedChanges && t("people.addContact")}
             </button>
           </motion.div>
         )}
