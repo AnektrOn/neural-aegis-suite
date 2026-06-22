@@ -206,7 +206,7 @@ export default function NotificationBell() {
           <BellButton expanded={open} />
         </Drawer.Trigger>
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[90]" />
+          <Drawer.Overlay className="fixed inset-0 bg-background/70 z-[90]" />
           <Drawer.Content
             className="fixed bottom-0 left-0 right-0 z-[100] rounded-t-3xl bg-card border-t border-border focus:outline-none max-h-[70vh] flex flex-col"
             style={{ paddingBottom: "var(--safe-bottom)" }}
