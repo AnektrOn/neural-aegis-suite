@@ -197,7 +197,7 @@ export default function NotificationBell() {
   );
   BellButton.displayName = "BellButton";
 
-  // ── Mobile: custom bottom sheet without Vaul background transforms/blur ─────
+  // ── Mobile: bottom sheet anchored above the mobile dock ─────────────────────
   if (isMobile) {
     return (
       <>
@@ -208,7 +208,7 @@ export default function NotificationBell() {
               <motion.button
                 type="button"
                 aria-label="Fermer les notifications"
-                className="fixed inset-0 z-[90] bg-background/35"
+                className="fixed inset-0 z-[90] bg-background/50"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -219,8 +219,11 @@ export default function NotificationBell() {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="notifications-mobile-title"
-                className="fixed bottom-0 left-0 right-0 z-[100] flex max-h-[70vh] flex-col rounded-t-3xl border-t border-border bg-card shadow-xl focus:outline-none"
-                style={{ paddingBottom: "var(--safe-bottom)" }}
+                className="fixed left-0 right-0 z-[100] flex max-h-[75vh] flex-col rounded-t-3xl border-t border-border bg-card shadow-2xl focus:outline-none"
+                style={{
+                  bottom: 0,
+                  paddingBottom: "calc(var(--safe-bottom) + 4.5rem)",
+                }}
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
@@ -230,7 +233,7 @@ export default function NotificationBell() {
                   {t("notifications.title")}
                 </h2>
                 <div className="mx-auto mb-1 mt-3 h-1 w-10 shrink-0 rounded-full bg-border/50" aria-hidden />
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto overscroll-contain">
                   <NotificationList />
                 </div>
               </motion.div>
@@ -241,17 +244,20 @@ export default function NotificationBell() {
     );
   }
 
-  // ── Desktop: absolute dropdown ──────────────────────────────────────────────
+  // ── Tablet & Desktop: dropdown anchored to the bell button ─────────────────
   return (
     <div ref={ref} className="relative">
       <BellButton expanded={open} />
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            initial={{ opacity: 0, y: -8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            className="fixed left-1/2 top-16 -translate-x-1/2 w-[min(20rem,calc(100vw-1.5rem))] max-h-[70vh] overflow-y-auto rounded-xl bg-card border border-border shadow-xl z-[100]"
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ duration: 0.16 }}
+            role="dialog"
+            aria-label={t("notifications.title")}
+            className="absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70vh,32rem)] overflow-y-auto rounded-xl bg-card border border-border shadow-2xl z-[100]"
           >
             <NotificationList />
           </motion.div>
