@@ -470,7 +470,7 @@ function AddPersonSheet({
         <SheetHeader className="mb-6">
           <div className="w-10 h-1 rounded-full bg-white/10 mx-auto mb-4" />
           <SheetTitle className="text-foreground text-lg font-['Cormorant_Garamond']">
-            Nouveau contact
+            {t("people.newContact")}
           </SheetTitle>
         </SheetHeader>
 
