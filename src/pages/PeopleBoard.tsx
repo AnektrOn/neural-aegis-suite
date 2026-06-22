@@ -523,7 +523,7 @@ function AddPersonSheet({
           />
 
           <div className="space-y-1.5">
-            <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">Observation</label>
+            <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">{t("people.observationLabel")}</label>
             <input
               type="text"
               value={form.insight}
