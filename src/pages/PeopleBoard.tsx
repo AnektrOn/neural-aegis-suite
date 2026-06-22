@@ -651,7 +651,7 @@ function HistorySheet({
         {history.length > 0 && (
           <div>
             <p className="text-[10px] uppercase tracking-[0.14em] text-white/25 mb-3 px-1">
-              Journal
+              {t("people.journal")}
             </p>
             <div className="space-y-1">
               {[...history].reverse().map((h) => (
