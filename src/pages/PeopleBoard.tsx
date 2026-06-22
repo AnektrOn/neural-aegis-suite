@@ -955,7 +955,7 @@ export default function PeopleBoard() {
           </div>
           <div className="text-center">
             <p className="text-sm text-white/40 mb-1">{t("common.noContactsHint")}</p>
-            <p className="text-xs text-white/20">Commencez par ajouter votre premier contact</p>
+            <p className="text-xs text-white/20">{t("people.noContactsCTA")}</p>
           </div>
           <button
             onClick={() => setShowAddSheet(true)}
