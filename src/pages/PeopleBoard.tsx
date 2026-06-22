@@ -543,7 +543,7 @@ function AddPersonSheet({
             }}
           >
             <Save size={14} />
-            Ajouter le contact
+            {t("people.addContactSubmit")}
           </button>
         </form>
       </SheetContent>
