@@ -411,6 +411,7 @@ function PersonCard({
 
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 function StatsStrip({ people }: { people: Person[] }) {
+  const { t } = useLanguage();
   if (!people.length) return null;
   const avg = (people.reduce((s, p) => s + p.quality, 0) / people.length).toFixed(1);
   const high = people.filter((p) => p.quality >= 8).length;
@@ -419,9 +420,9 @@ function StatsStrip({ people }: { people: Person[] }) {
   return (
     <div className="flex items-stretch gap-px overflow-hidden rounded-2xl border border-white/[0.06]">
       {[
-        { label: "Moy.", value: avg, icon: <Star size={10} />, color: "text-white/50" },
-        { label: "Top", value: high, icon: <CheckCircle2 size={10} />, color: "text-emerald-400/70" },
-        { label: "Relancer", value: low, icon: <AlertCircle size={10} />, color: "text-red-400/70" },
+        { label: t("people.statAverage"), value: avg, icon: <Star size={10} />, color: "text-white/50" },
+        { label: t("people.statTop"), value: high, icon: <CheckCircle2 size={10} />, color: "text-emerald-400/70" },
+        { label: t("people.statFollowUp"), value: low, icon: <AlertCircle size={10} />, color: "text-red-400/70" },
       ].map((stat, i) => (
         <div
           key={i}
