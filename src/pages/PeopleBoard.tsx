@@ -129,8 +129,8 @@ function NeuralRelationsSidebar({
       }}
     >
       <div className="px-3 py-2.5 border-b border-white/[0.06] shrink-0">
-        <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Relations</p>
-        <p className="text-[11px] text-white/25 mt-0.5">Derniers journaux par contact</p>
+        <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">{t("people.relationsTitle")}</p>
+        <p className="text-[11px] text-white/25 mt-0.5">{t("people.recentJournalsHint")}</p>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         {people.map((person) => {
