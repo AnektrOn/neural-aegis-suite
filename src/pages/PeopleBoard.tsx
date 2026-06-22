@@ -342,7 +342,7 @@ function PersonCard({
               {/* Proximity select */}
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase tracking-[0.14em] text-white/30">
-                  Proximité
+                  {t("people.proximityLabel")}
                 </label>
                 <div className="relative">
                   <select
