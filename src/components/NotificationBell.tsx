@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -199,47 +200,47 @@ export default function NotificationBell() {
 
   // ── Mobile: bottom sheet anchored above the mobile dock ─────────────────────
   if (isMobile) {
+    const mobilePanel = (
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Fermer les notifications"
+              className="fixed inset-0 z-[90] bg-background/50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16 }}
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="notifications-mobile-title"
+              className="fixed inset-x-0 bottom-0 z-[100] flex max-h-[min(78dvh,38rem)] flex-col rounded-t-3xl border-t border-border bg-card pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl focus:outline-none"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 34, stiffness: 360 }}
+            >
+              <h2 id="notifications-mobile-title" className="sr-only">
+                {t("notifications.title")}
+              </h2>
+              <div className="mx-auto mb-1 mt-3 h-1 w-10 shrink-0 rounded-full bg-border/50" aria-hidden />
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                <NotificationList />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    );
+
     return (
       <>
         <BellButton expanded={open} />
-        <AnimatePresence>
-          {open && (
-            <>
-              <motion.button
-                type="button"
-                aria-label="Fermer les notifications"
-                className="fixed inset-0 z-[90] bg-background/50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.16 }}
-                onClick={() => setOpen(false)}
-              />
-              <motion.div
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="notifications-mobile-title"
-                className="fixed left-0 right-0 z-[100] flex max-h-[75vh] flex-col rounded-t-3xl border-t border-border bg-card shadow-2xl focus:outline-none"
-                style={{
-                  bottom: 0,
-                  paddingBottom: "calc(var(--safe-bottom) + 4.5rem)",
-                }}
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 34, stiffness: 360 }}
-              >
-                <h2 id="notifications-mobile-title" className="sr-only">
-                  {t("notifications.title")}
-                </h2>
-                <div className="mx-auto mb-1 mt-3 h-1 w-10 shrink-0 rounded-full bg-border/50" aria-hidden />
-                <div className="flex-1 overflow-y-auto overscroll-contain">
-                  <NotificationList />
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        {typeof document !== "undefined" ? createPortal(mobilePanel, document.body) : mobilePanel}
       </>
     );
   }
