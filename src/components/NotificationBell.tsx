@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Drawer } from "vaul";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -198,27 +197,47 @@ export default function NotificationBell() {
   );
   BellButton.displayName = "BellButton";
 
-  // ── Mobile: Vaul bottom drawer ──────────────────────────────────────────────
+  // ── Mobile: custom bottom sheet without Vaul background transforms/blur ─────
   if (isMobile) {
     return (
-      <Drawer.Root open={open} onOpenChange={setOpen}>
-        <Drawer.Trigger asChild>
-          <BellButton expanded={open} />
-        </Drawer.Trigger>
-        <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-background/70 z-[90]" />
-          <Drawer.Content
-            className="fixed bottom-0 left-0 right-0 z-[100] rounded-t-3xl bg-card border-t border-border focus:outline-none max-h-[70vh] flex flex-col"
-            style={{ paddingBottom: "var(--safe-bottom)" }}
-          >
-            <Drawer.Title className="sr-only">{t("notifications.title")}</Drawer.Title>
-            <div className="w-10 h-1 bg-border/50 rounded-full mx-auto mt-3 mb-1 shrink-0" aria-hidden />
-            <div className="overflow-y-auto flex-1">
-              <NotificationList />
-            </div>
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
+      <>
+        <BellButton expanded={open} />
+        <AnimatePresence>
+          {open && (
+            <>
+              <motion.button
+                type="button"
+                aria-label={t("common.close")}
+                className="fixed inset-0 z-[90] bg-background/35"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.16 }}
+                onClick={() => setOpen(false)}
+              />
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="notifications-mobile-title"
+                className="fixed bottom-0 left-0 right-0 z-[100] flex max-h-[70vh] flex-col rounded-t-3xl border-t border-border bg-card shadow-xl focus:outline-none"
+                style={{ paddingBottom: "var(--safe-bottom)" }}
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 34, stiffness: 360 }}
+              >
+                <h2 id="notifications-mobile-title" className="sr-only">
+                  {t("notifications.title")}
+                </h2>
+                <div className="mx-auto mb-1 mt-3 h-1 w-10 shrink-0 rounded-full bg-border/50" aria-hidden />
+                <div className="flex-1 overflow-y-auto">
+                  <NotificationList />
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </>
     );
   }
 
