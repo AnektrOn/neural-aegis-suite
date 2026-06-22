@@ -398,7 +398,7 @@ function PersonCard({
                   className="flex items-center gap-1.5 text-[11px] text-white/20 hover:text-destructive transition-colors py-2 px-3 rounded-xl hover:bg-destructive/5"
                 >
                   <Trash2 size={12} />
-                  Supprimer
+                  {t("people.deleteAction")}
                 </button>
               </div>
             </div>
