@@ -207,7 +207,7 @@ export default function NotificationBell() {
             <>
               <motion.button
                 type="button"
-                aria-label={t("common.close")}
+                aria-label="Fermer les notifications"
                 className="fixed inset-0 z-[90] bg-background/35"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
