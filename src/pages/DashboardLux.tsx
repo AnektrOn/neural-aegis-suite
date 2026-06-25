@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Sparkles, Check, Target, Wrench, BookOpen, ArrowUpRight } from "lucide-react";
@@ -42,7 +42,7 @@ export default function DashboardLux() {
     (mobile?.mobileHabits ?? []) as never,
   );
   // Sync local state when fresh data arrives
-  useMemo(() => {
+  useEffect(() => {
     if (mobile?.mobileHabits) setLocalHabits(mobile.mobileHabits as never);
   }, [mobile?.mobileHabits]);
 
