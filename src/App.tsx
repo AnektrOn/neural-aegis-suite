@@ -21,6 +21,7 @@ import { useAndroidVersionReporter } from "@/hooks/useAndroidVersionReporter";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardLux = lazy(() => import("./pages/DashboardLux"));
 const Welcome = lazy(() => import("./pages/Welcome"));
 const Persona = lazy(() => import("./pages/Persona"));
 const MoodTracker = lazy(() => import("./pages/MoodTracker"));
