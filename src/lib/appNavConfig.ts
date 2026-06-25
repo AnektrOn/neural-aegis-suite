@@ -37,7 +37,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     id: "daily",
     labelKey: "layout.navGroup.daily",
     items: [
-      { to: "/", icon: LayoutDashboard, labelKey: "nav.dashboard" },
+      { to: "/dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
       { to: "/mood", icon: Brain, labelKey: "nav.mood" },
       { to: "/habits", icon: ListChecks, labelKey: "nav.habits" },
       { to: "/journal", icon: BookOpen, labelKey: "nav.journal" },
