@@ -21,6 +21,7 @@ import { useAndroidVersionReporter } from "@/hooks/useAndroidVersionReporter";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardLux = lazy(() => import("./pages/DashboardLux"));
 const Welcome = lazy(() => import("./pages/Welcome"));
 const Persona = lazy(() => import("./pages/Persona"));
 const MoodTracker = lazy(() => import("./pages/MoodTracker"));
@@ -277,6 +278,7 @@ const App = () => (
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
                             <Route path="/" element={<Dashboard />} />
+                            <Route path="/dashboard-lux" element={<DashboardLux />} />
                             <Route path="/persona" element={<Persona />} />
                             <Route path="/mood" element={<MoodTracker />} />
                             <Route path="/decisions" element={<DecisionLog />} />
