@@ -22,6 +22,7 @@ import aegisLogo from "@/assets/aegis-logo.png";
 export default function DashboardLux() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
+  const isFR = locale === "fr";
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { fadeUp, slideUp } = useAegisMotion();
@@ -52,17 +53,30 @@ export default function DashboardLux() {
     if (m) return [Number(m[1]), Math.max(Number(m[2]), 1)];
     return [0, 1];
   })();
-
   const moodNum = (() => {
     const n = Number(String(moodAvg).replace(",", "."));
     return Number.isFinite(n) ? n : 0;
   })();
-
   const decisionsCount = Number(String(openDecisions).match(/\d+/)?.[0] ?? 0);
 
   const greetingTitle = firstName
     ? t("welcome.hud.title", { name: firstName })
     : t("welcome.hud.titleNoName");
+
+  const L = {
+    eyebrow: isFR ? "Aegis · Vue" : "Aegis · View",
+    mood: t("mood.label"),
+    habits: isFR ? "Habitudes" : "Habits",
+    decisions: isFR ? "Décisions" : "Decisions",
+    decisionsDetail: isFR ? "Ouvertes" : "Open",
+    toolbox: t("toolbox.title"),
+    toolboxDetail: t("toolbox.viewTodo"),
+    journal: t("journal.title"),
+    journalDetail: isFR ? "Dernière entrée" : "Latest entry",
+    moodCta: isFR ? "Saisir" : "Log",
+    open: isFR ? "Ouvrir" : "Open",
+    slide: isFR ? "Glisser pour saisir" : "Slide to log",
+  };
 
   return (
     <div className="welcome-hud relative flex min-h-[100dvh] flex-col overflow-hidden">
@@ -71,7 +85,7 @@ export default function DashboardLux() {
       <header className="relative z-10 flex flex-col items-center pt-[max(1rem,env(safe-area-inset-top))] px-6">
         <img src={aegisLogo} alt="AEGIS" className="h-9 w-9 rounded-lg object-contain" />
         <p className="mt-2 font-display text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
-          {t("dashboard.mobileThisWeek") ?? "Aegis"}
+          Neural Aegis
         </p>
       </header>
 
@@ -85,7 +99,7 @@ export default function DashboardLux() {
             value={moodNum}
             max={10}
             accent="neural"
-            label={t("mood.label")}
+            label={L.mood}
             centerPrimary={String(moodAvg)}
             centerSecondary="/10"
             showProgressPct={false}
@@ -100,7 +114,7 @@ export default function DashboardLux() {
             value={habitsNum}
             max={habitsMax}
             accent="primary"
-            label={t("habits.title") ?? "Habits"}
+            label={L.habits}
             centerPrimary={String(habitsNum)}
             centerSecondary={`/${habitsMax}`}
           />
@@ -116,7 +130,8 @@ export default function DashboardLux() {
           <div className="inline-flex items-center gap-2 text-primary mb-1">
             <Sparkles className="w-4 h-4" strokeWidth={1.5} aria-hidden />
             <span className="font-display text-[10px] uppercase tracking-[0.28em]">
-              Aegis · {aegisScore ?? "—"}
+              {L.eyebrow}
+              {aegisScore ? ` · ${Math.round(aegisScore.overall_score)}` : ""}
             </span>
           </div>
           <h1 className="font-cormorant-display text-4xl sm:text-5xl text-foreground leading-[1.05] tracking-tight">
@@ -134,18 +149,17 @@ export default function DashboardLux() {
       >
         <div className="grid grid-cols-2 gap-3">
           <WelcomeGlassTile
-            title={t("decisions.title") ?? "Decisions"}
+            title={L.decisions}
             headline={String(decisionsCount)}
-            detail={t("dashboard.openDecisions") ?? ""}
-            actionLabel={t("common.open") ?? "Open"}
+            detail={L.decisionsDetail}
+            actionLabel={L.open}
             icon={<Target size={22} strokeWidth={1.25} aria-hidden />}
             onClick={() => navigate("/decisions")}
           />
           <WelcomeGlassTile
-            title={t("toolbox.title") ?? "Toolbox"}
-            headline={t("toolbox.viewTodo") ?? "→"}
-            detail={t("welcome.hud.tileSystemHeadline") ?? ""}
-            actionLabel={t("common.open") ?? "Open"}
+            title={L.toolbox}
+            headline={L.toolboxDetail}
+            actionLabel={L.open}
             icon={<Wrench size={22} strokeWidth={1.25} aria-hidden />}
             onClick={() => navigate("/toolbox")}
           />
@@ -153,34 +167,25 @@ export default function DashboardLux() {
 
         <div className="grid grid-cols-2 gap-3">
           <WelcomeGlassTile
-            title={t("journal.title") ?? "Journal"}
-            headline={t("dashboard.lastEntry") ?? "—"}
-            actionLabel={t("common.open") ?? "Open"}
+            title={L.journal}
+            headline={L.journalDetail}
+            actionLabel={L.open}
             icon={<BookOpen size={22} strokeWidth={1.25} aria-hidden />}
             onClick={() => navigate("/journal")}
           />
           <WelcomeGlassTile
-            title={t("mood.label") ?? "Mood"}
+            title={L.mood}
             headline={String(moodAvg)}
-            actionLabel={t("dashboard.quickLog") ?? "Quick log"}
+            actionLabel={L.moodCta}
             icon={<Heart size={22} strokeWidth={1.25} aria-hidden />}
             onClick={() => setQuickLog(true)}
           />
         </div>
 
-        <SlideToStart
-          label={t("dashboard.quickLog") ?? "Slide to log"}
-          onComplete={() => setQuickLog(true)}
-        />
+        <SlideToStart label={L.slide} onComplete={() => setQuickLog(true)} />
       </motion.footer>
 
-      {quickLog && user?.id && (
-        <QuickLogModal
-          open={quickLog}
-          onClose={() => setQuickLog(false)}
-          userId={user.id}
-        />
-      )}
+      <QuickLogModal open={quickLog} onClose={() => setQuickLog(false)} />
     </div>
   );
 }
