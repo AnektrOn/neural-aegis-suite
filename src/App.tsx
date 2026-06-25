@@ -278,6 +278,7 @@ const App = () => (
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
                             <Route path="/" element={<Dashboard />} />
+                            <Route path="/dashboard-lux" element={<DashboardLux />} />
                             <Route path="/persona" element={<Persona />} />
                             <Route path="/mood" element={<MoodTracker />} />
                             <Route path="/decisions" element={<DecisionLog />} />
