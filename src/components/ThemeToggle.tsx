@@ -15,6 +15,7 @@ export default function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
       onClick={() => setDark(!dark)}
       className="mx-3 p-3 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors duration-200 flex items-center gap-3"
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
     >
       <motion.div key={dark ? "moon" : "sun"} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} transition={{ duration: 0.3 }}>
         {dark ? <Moon size={16} /> : <Sun size={16} />}
