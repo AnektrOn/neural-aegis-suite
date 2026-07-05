@@ -1,0 +1,13 @@
+# Aegis
+
+> Personal archetype and mental health platform: mood tracking, decision journaling, habit coaching, and AI-guided insights.
+
+Aegis helps individuals discover their personal archetype and build a
+sustained practice around mood, decisions, habits and relationships,
+supported by AI-generated coaching insights.
+
+## Pages
+- [Home](/): Introduction to the Aegis platform.
+- [Sign in](/auth): Access an existing Aegis account.
+- [Newsletter](/newsletter): Public editions on archetypes, mental
+  fitness and leadership.

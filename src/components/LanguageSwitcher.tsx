@@ -11,6 +11,7 @@ export default function LanguageSwitcher({ collapsed = false }: { collapsed?: bo
       onClick={() => setLocale(nextLocale)}
       className="mx-3 flex items-center gap-3 px-3 py-3 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-all duration-200 group"
       title={locale === "fr" ? t("settings.languageSwitchToEn") : t("settings.languageSwitchToFr")}
+      aria-label={locale === "fr" ? t("settings.languageSwitchToEn") : t("settings.languageSwitchToFr")}
     >
       <div className="relative shrink-0 w-4 h-4">
         <Globe size={16} strokeWidth={1.5} className="absolute inset-0 transition-transform duration-300 group-hover:rotate-[30deg]" />

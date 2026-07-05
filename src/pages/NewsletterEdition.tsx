@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, Mail } from "lucide-react";
 import { NeuralCard } from "@/components/ui/neural-card";
@@ -71,8 +72,32 @@ export default function NewsletterEditionPage() {
     );
   }
 
+  const canonicalUrl = `https://aegis.humancatalystbeacon.com/newsletter/${encodeURIComponent(slug)}`;
+  const metaDescription = (excerpt || title).slice(0, 160);
+  const articleLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: title,
+    description: metaDescription,
+    datePublished: edition.publishedAt,
+    author: { "@type": "Organization", name: "Aegis" },
+    mainEntityOfPage: canonicalUrl,
+  };
+
   return (
     <div className="newsletter-edition-page relative min-h-[60vh]">
+      <Helmet>
+        <title>{`${title} — Aegis Newsletter`}</title>
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={metaDescription} />
+        <script type="application/ld+json">{JSON.stringify(articleLd)}</script>
+      </Helmet>
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-[min(520px,55vh)] opacity-80"
         aria-hidden
