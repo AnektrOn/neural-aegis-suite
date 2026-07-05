@@ -160,6 +160,14 @@ export default function Newsletter() {
 
   return (
     <div className="max-w-3xl lg:max-w-[44rem] mx-auto px-4 sm:px-6 py-10 sm:py-14 space-y-10">
+      <Helmet>
+        <title>Aegis Newsletter — Archetypes, mental fitness & leadership</title>
+        <meta name="description" content="Weekly editions on personal archetypes, mental fitness, decision-making and leadership from the Aegis coaching platform." />
+        <link rel="canonical" href="https://aegis.humancatalystbeacon.com/newsletter" />
+        <meta property="og:title" content="Aegis Newsletter" />
+        <meta property="og:description" content="Weekly editions on archetypes, mental fitness and leadership." />
+        <meta property="og:url" content="https://aegis.humancatalystbeacon.com/newsletter" />
+      </Helmet>
       <motion.header {...motionProps} className="space-y-4 text-center sm:text-left">
         <Badge
           variant="outline"
