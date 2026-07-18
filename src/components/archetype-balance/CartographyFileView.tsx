@@ -379,7 +379,7 @@ export function CartographyFileView({
                     <ChevronLeft size={18} strokeWidth={1.5} className={cn("shrink-0 transition-transform group-hover:-translate-x-0.5", cfg.accent)} aria-hidden />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[9px] font-display uppercase tracking-[0.2em] text-text-tertiary">
-                        {t("common.previous", { defaultValue: "Précédent" })}
+                        {t("appendix.previous")}
                       </span>
                       <span className="mt-0.5 block truncate font-display text-xs text-text-secondary">
                         {extractNavLabel(prev.title, idx).label}
