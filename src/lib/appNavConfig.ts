@@ -75,7 +75,6 @@ const EXTRA_ROUTES: { prefix: string; labelKey: TranslationKey; sectionKey?: Tra
   { prefix: "/onboarding/assessment", labelKey: "nav.profile", sectionKey: "layout.navGroup.analysis" },
   { prefix: "/onboarding/results", labelKey: "nav.profile", sectionKey: "layout.navGroup.analysis" },
   { prefix: "/cartographie", labelKey: "cartography.defaultTitle", sectionKey: "layout.navGroup.analysis" },
-  { prefix: "/progress/myss", labelKey: "nav.progressEvolution", sectionKey: "layout.navGroup.analysis" },
 ];
 
 export type AppPageMeta = {
