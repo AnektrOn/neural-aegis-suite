@@ -443,6 +443,22 @@ export function CartographyFileView({
           </div>
         </div>
       </NeuralCard>
+
+      {/* Back-to-top flottant (desktop) */}
+      {doc.sections.length > 1 && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label={t("cartography.fileSectionsNav")}
+          className={cn(
+            "fixed bottom-8 right-8 z-40 hidden h-11 w-11 items-center justify-center rounded-full border border-border-subtle/50 bg-[hsl(var(--aegis-s1))]/90 backdrop-blur-xl shadow-lg transition-all duration-300 hover:border-[hsl(var(--aegis-warm)/0.5)] hover:bg-[hsl(var(--aegis-s1))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex",
+            cfg.accent,
+            showBackTop ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-2 pointer-events-none",
+          )}
+        >
+          <ArrowUp size={16} strokeWidth={1.5} aria-hidden />
+        </button>
+      )}
     </article>
   );
 }
