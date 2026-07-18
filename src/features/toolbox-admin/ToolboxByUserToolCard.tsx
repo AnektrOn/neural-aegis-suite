@@ -4,7 +4,6 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale, TranslationKey } from "@/i18n/translations";
 import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
-import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import type { ToolboxTrackingRow } from "@/services/toolboxAdminService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
