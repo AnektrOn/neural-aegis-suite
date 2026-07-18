@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Layers, BookOpen, Sparkles, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import {
+  FileText,
+  Layers,
+  BookOpen,
+  Sparkles,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
+} from "lucide-react";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -40,15 +50,13 @@ const KIND_CONFIG: Record<
   },
 };
 
-function extractNavLabel(title: string, index: number): { short: string; full: string } {
-  const { num, label } = sectionTitleParts(title);
-  if (num) {
-    const short = label.length > 22 ? `${num} · ${label.slice(0, 20)}…` : `${num} · ${label}`;
-    return { short, full: title };
-  }
-  const short = title.length > 24 ? `${index} · ${title.slice(0, 20)}…` : `${index} · ${title}`;
-  return { short, full: title };
+function extractNavLabel(title: string, index: number): { num: string; label: string; full: string } {
+  const parts = sectionTitleParts(title);
+  const num = parts.num ?? String(index);
+  const label = parts.label || title;
+  return { num, label, full: title };
 }
+
 
 export function CartographyFileView({
   markdown,
@@ -123,8 +131,27 @@ export function CartographyFileView({
     setOpenSections(Object.fromEntries(doc.sections.map((s) => [s.id, next])));
   };
 
+  const articleRef = useRef<HTMLElement | null>(null);
+  const [showBackTop, setShowBackTop] = useState(false);
+
+  useEffect(() => {
+    const el = articleRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const rect = el.getBoundingClientRect();
+      setShowBackTop(rect.top < -200);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    articleRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <article className="scroll-mt-[calc(var(--safe-top)+9rem)]">
+    <article ref={articleRef} className="relative scroll-mt-[calc(var(--safe-top)+9rem)]">
       <NeuralCard variant="premium" glow={cfg.glow} className="overflow-hidden p-0">
         <header className="relative border-b border-border-subtle/40 px-4 py-5 sm:px-6 sm:py-6">
           <div className="flex items-start gap-4">
@@ -156,7 +183,7 @@ export function CartographyFileView({
 
         <div
           className={cn(
-            doc.sections.length > 1 && "lg:grid lg:grid-cols-[minmax(12rem,14rem)_1fr] lg:items-start",
+            doc.sections.length > 1 && "lg:grid lg:grid-cols-[minmax(15rem,17rem)_1fr] lg:items-start",
           )}
         >
           {doc.sections.length > 1 && (
@@ -189,9 +216,15 @@ export function CartographyFileView({
                     </button>
                   )}
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="relative flex flex-col gap-0.5">
+                  {/* Filament vertical décoratif */}
+                  <span
+                    className="pointer-events-none absolute left-[0.6rem] top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"
+                    aria-hidden
+                  />
                   {doc.sections.map((s, i) => {
-                    const { short, full } = extractNavLabel(s.title, i + 1);
+                    const { num, label, full } = extractNavLabel(s.title, i + 1);
+                    const isActive = activeSection === s.id;
                     return (
                       <button
                         key={s.id}
@@ -199,17 +232,64 @@ export function CartographyFileView({
                         title={full}
                         onClick={() => scrollToSection(s.id)}
                         className={cn(
-                          "min-h-[44px] rounded-lg border px-3 py-2.5 text-left text-xs font-display leading-snug tracking-[0.02em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          activeSection === s.id
-                            ? cn("bg-white/[0.08] text-text-primary", cfg.border, "border-opacity-40")
-                            : "border-transparent text-text-tertiary hover:bg-white/[0.04]",
+                          "group relative flex min-h-[44px] items-start gap-3 rounded-lg px-2.5 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          isActive
+                            ? "bg-white/[0.05] text-text-primary"
+                            : "text-text-tertiary hover:bg-white/[0.03] hover:text-text-secondary",
                         )}
-                        aria-current={activeSection === s.id ? "true" : undefined}
+                        aria-current={isActive ? "true" : undefined}
                       >
-                        {short}
+                        {/* Puce numérotée / filament actif */}
+                        <span
+                          className={cn(
+                            "relative z-[1] mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border font-display text-[10px] tabular-nums transition-all",
+                            isActive
+                              ? cn(cfg.border, "bg-[hsl(var(--aegis-s1))] text-text-primary shadow-[0_0_10px_hsl(var(--aegis-warm)/0.3)]")
+                              : "border-border-subtle/40 bg-black/20 text-text-tertiary group-hover:border-border-subtle/70",
+                          )}
+                          aria-hidden
+                        >
+                          {num}
+                        </span>
+                        <span
+                          className={cn(
+                            "block flex-1 font-display text-[11px] leading-[1.35] tracking-[0.03em] line-clamp-2",
+                            isActive && "font-medium",
+                          )}
+                        >
+                          {label}
+                        </span>
                       </button>
                     );
                   })}
+                </div>
+                {/* Progression de lecture */}
+                <div className="mt-4 border-t border-border-subtle/20 pt-3">
+                  <div className="flex items-center justify-between text-[9px] font-display uppercase tracking-[0.18em] text-text-tertiary">
+                    <span>{t("cartography.fileIntro")}</span>
+                    <span className="tabular-nums text-text-secondary">
+                      {Math.max(
+                        1,
+                        doc.sections.findIndex((s) => s.id === activeSection) + 1,
+                      )}
+                      /{doc.sections.length}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-[2px] w-full overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className={cn("h-full transition-all duration-500", cfg.accent.replace("text-", "bg-"))}
+                      style={{
+                        width: `${
+                          ((Math.max(
+                            1,
+                            doc.sections.findIndex((s) => s.id === activeSection) + 1,
+                          )) /
+                            doc.sections.length) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </div>
                 </div>
               </nav>
 
@@ -244,7 +324,8 @@ export function CartographyFileView({
                 </div>
                 <div className="flex gap-1.5 overflow-x-auto pb-0.5">
                   {doc.sections.map((s, i) => {
-                    const { short, full } = extractNavLabel(s.title, i + 1);
+                    const { num, label, full } = extractNavLabel(s.title, i + 1);
+                    const short = `${num} · ${label.length > 20 ? `${label.slice(0, 20)}…` : label}`;
                     return (
                       <button
                         key={s.id}
@@ -301,6 +382,55 @@ export function CartographyFileView({
             />
           ))}
 
+          {/* Pager prev/next — navigation contextuelle entre sections */}
+          {doc.sections.length > 1 && (() => {
+            const idx = doc.sections.findIndex((s) => s.id === activeSection);
+            const prev = idx > 0 ? doc.sections[idx - 1] : null;
+            const next = idx >= 0 && idx < doc.sections.length - 1 ? doc.sections[idx + 1] : null;
+            return (
+              <div className="mt-6 grid gap-3 border-t border-border-subtle/25 pt-6 sm:grid-cols-2">
+                {prev ? (
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection(prev.id)}
+                    className="group flex items-center gap-3 rounded-xl border border-border-subtle/30 bg-white/[0.02] px-4 py-3 text-left transition-all hover:border-border-subtle/60 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <ChevronLeft size={18} strokeWidth={1.5} className={cn("shrink-0 transition-transform group-hover:-translate-x-0.5", cfg.accent)} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[9px] font-display uppercase tracking-[0.2em] text-text-tertiary">
+                        {t("appendix.previous")}
+                      </span>
+                      <span className="mt-0.5 block truncate font-display text-xs text-text-secondary">
+                        {extractNavLabel(prev.title, idx).label}
+                      </span>
+                    </span>
+                  </button>
+                ) : (
+                  <span aria-hidden />
+                )}
+                {next ? (
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection(next.id)}
+                    className="group flex items-center gap-3 rounded-xl border border-border-subtle/30 bg-white/[0.02] px-4 py-3 text-right transition-all hover:border-border-subtle/60 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-start-2"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[9px] font-display uppercase tracking-[0.2em] text-text-tertiary">
+                        {t("appendix.next")}
+                      </span>
+                      <span className="mt-0.5 block truncate font-display text-xs text-text-secondary">
+                        {extractNavLabel(next.title, idx + 2).label}
+                      </span>
+                    </span>
+                    <ChevronRight size={18} strokeWidth={1.5} className={cn("shrink-0 transition-transform group-hover:translate-x-0.5", cfg.accent)} aria-hidden />
+                  </button>
+                ) : (
+                  <span aria-hidden />
+                )}
+              </div>
+            );
+          })()}
+
           {doc.sections.length === 0 && doc.intro.length === 0 && (
             <p className="py-8 text-center text-sm text-text-tertiary">{t("cartography.fileEmpty")}</p>
           )}
@@ -313,6 +443,22 @@ export function CartographyFileView({
           </div>
         </div>
       </NeuralCard>
+
+      {/* Back-to-top flottant (desktop) */}
+      {doc.sections.length > 1 && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label={t("cartography.fileSectionsNav")}
+          className={cn(
+            "fixed bottom-8 right-8 z-40 hidden h-11 w-11 items-center justify-center rounded-full border border-border-subtle/50 bg-[hsl(var(--aegis-s1))]/90 backdrop-blur-xl shadow-lg transition-all duration-300 hover:border-[hsl(var(--aegis-warm)/0.5)] hover:bg-[hsl(var(--aegis-s1))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex",
+            cfg.accent,
+            showBackTop ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-2 pointer-events-none",
+          )}
+        >
+          <ArrowUp size={16} strokeWidth={1.5} aria-hidden />
+        </button>
+      )}
     </article>
   );
 }
