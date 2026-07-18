@@ -1,11 +1,37 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { getLatestSubmittedSessionForUser } from "@/features/archetype-assessment/services/assessmentService";
 
 export function AssessmentCTA() {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const [done, setDone] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    if (!user?.id) {
+      setDone(false);
+      return;
+    }
+    getLatestSubmittedSessionForUser(user.id)
+      .then((session) => {
+        if (alive) setDone(!!session);
+      })
+      .catch(() => {
+        if (alive) setDone(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
+
+  if (done) return null;
+
   return (
     <Card className="p-5 backdrop-blur-3xl bg-card/40 border-border/40">
       <div className="flex items-start gap-3">
