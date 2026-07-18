@@ -177,17 +177,6 @@ export function TrackingProgressBridge({ horizontal }: { horizontal?: boolean })
             {t("persona.checkinCta")}
           </Link>
         </Button>
-        <Button
-          asChild
-          size="lg"
-          variant="outline"
-          className="min-h-[48px] font-display text-xs tracking-wider border-purple-500/30 hover:bg-purple-500/10 w-full"
-        >
-          <Link to="/progress/myss">
-            {l === "fr" ? "Voir mon évolution" : "View my evolution"}
-            <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden />
-          </Link>
-        </Button>
       </div>
     </div>
   );

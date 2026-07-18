@@ -176,12 +176,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       },
       {
         kind: "link",
-        to: "/admin/tracking",
-        icon: TrendingUp,
-        labelKey: "admin.nav.trackingProgress",
-      },
-      {
-        kind: "link",
         to: "/admin/tao-portrait",
         icon: TreePine,
         labelKey: "admin.nav.taoPortrait",
