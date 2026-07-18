@@ -157,26 +157,12 @@ export default function Dashboard() {
 
   // Open quick-log when navigating from MoodTracker with state
   useEffect(() => {
-    const state = location.state as { openQuickLog?: boolean; openCheckin?: boolean } | null;
+    const state = location.state as { openQuickLog?: boolean } | null;
     if (state?.openQuickLog) {
       setShowQuickLog(true);
       navigate(".", { replace: true, state: {} });
     }
-    if (state?.openCheckin) {
-      reopenTrackingCheckin();
-      navigate(".", { replace: true, state: {} });
-    }
-  }, [location.state, navigate, reopenTrackingCheckin]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("checkin") === "1") {
-      reopenTrackingCheckin();
-      params.delete("checkin");
-      const next = params.toString();
-      navigate({ pathname: location.pathname, search: next ? `?${next}` : "" }, { replace: true });
-    }
-  }, [location.search, location.pathname, navigate, reopenTrackingCheckin]);
+  }, [location.state, navigate]);
 
   const timeAgoLabel = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
