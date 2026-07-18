@@ -74,7 +74,6 @@ const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminToolboxHub = lazy(() => import("./pages/admin/AdminToolboxHub"));
 const AdminPlacesHub = lazy(() => import("./pages/admin/AdminPlacesHub"));
 const AdminDeepDiveHub = lazy(() => import("./pages/admin/AdminDeepDiveHub"));
-const AdminTrackingHub = lazy(() => import("./pages/admin/AdminTrackingHub"));
 const AdminTaoPortraitHub = lazy(() => import("./pages/admin/AdminTaoPortraitHub"));
 const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
