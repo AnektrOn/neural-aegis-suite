@@ -238,7 +238,6 @@ export default function Dashboard() {
   if (isMobile && user) {
     return (
       <>
-      <DailyCheckinModal checkin={trackingCheckin} />
       <DashboardMobile
         userId={user.id}
         loading={loading}
@@ -265,7 +264,6 @@ export default function Dashboard() {
         onPullHintDismiss={() => setPullHintVisible(false)}
         toolboxTodo={toolboxTodo}
         toolboxFocusId={toolboxFocusId}
-        trackingCheckin={trackingCheckin}
       />
       </>
     );
@@ -288,9 +286,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full -mx-6 px-5 pb-10 sm:px-8 sm:pb-12 md:-mx-10 md:px-10 bg-aegis-gradient">
-      <DailyCheckinModal checkin={trackingCheckin} />
       <motion.div className="mx-auto max-w-6xl space-y-8 sm:space-y-9 md:space-y-10">
-        <DailyCheckinReopenBanner checkin={trackingCheckin} />
         {showPostAssessment && (
           <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
         )}
@@ -433,7 +429,6 @@ export default function Dashboard() {
       </motion.div>
 
       <QuickLogModal open={showQuickLog} onClose={() => setShowQuickLog(false)} />
-      <DailyCheckinModal userId={user?.id} />
     </div>
   );
 }
