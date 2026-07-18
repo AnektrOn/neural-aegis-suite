@@ -363,6 +363,55 @@ export function CartographyFileView({
             />
           ))}
 
+          {/* Pager prev/next — navigation contextuelle entre sections */}
+          {doc.sections.length > 1 && (() => {
+            const idx = doc.sections.findIndex((s) => s.id === activeSection);
+            const prev = idx > 0 ? doc.sections[idx - 1] : null;
+            const next = idx >= 0 && idx < doc.sections.length - 1 ? doc.sections[idx + 1] : null;
+            return (
+              <div className="mt-6 grid gap-3 border-t border-border-subtle/25 pt-6 sm:grid-cols-2">
+                {prev ? (
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection(prev.id)}
+                    className="group flex items-center gap-3 rounded-xl border border-border-subtle/30 bg-white/[0.02] px-4 py-3 text-left transition-all hover:border-border-subtle/60 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <ChevronLeft size={18} strokeWidth={1.5} className={cn("shrink-0 transition-transform group-hover:-translate-x-0.5", cfg.accent)} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[9px] font-display uppercase tracking-[0.2em] text-text-tertiary">
+                        {t("common.previous", { defaultValue: "Précédent" })}
+                      </span>
+                      <span className="mt-0.5 block truncate font-display text-xs text-text-secondary">
+                        {extractNavLabel(prev.title, idx).label}
+                      </span>
+                    </span>
+                  </button>
+                ) : (
+                  <span aria-hidden />
+                )}
+                {next ? (
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection(next.id)}
+                    className="group flex items-center gap-3 rounded-xl border border-border-subtle/30 bg-white/[0.02] px-4 py-3 text-right transition-all hover:border-border-subtle/60 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:col-start-2"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[9px] font-display uppercase tracking-[0.2em] text-text-tertiary">
+                        {t("common.next", { defaultValue: "Suivant" })}
+                      </span>
+                      <span className="mt-0.5 block truncate font-display text-xs text-text-secondary">
+                        {extractNavLabel(next.title, idx + 2).label}
+                      </span>
+                    </span>
+                    <ChevronRight size={18} strokeWidth={1.5} className={cn("shrink-0 transition-transform group-hover:translate-x-0.5", cfg.accent)} aria-hidden />
+                  </button>
+                ) : (
+                  <span aria-hidden />
+                )}
+              </div>
+            );
+          })()}
+
           {doc.sections.length === 0 && doc.intro.length === 0 && (
             <p className="py-8 text-center text-sm text-text-tertiary">{t("cartography.fileEmpty")}</p>
           )}
