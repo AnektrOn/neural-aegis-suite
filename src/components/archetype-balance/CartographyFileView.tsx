@@ -197,9 +197,15 @@ export function CartographyFileView({
                     </button>
                   )}
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="relative flex flex-col gap-0.5">
+                  {/* Filament vertical décoratif */}
+                  <span
+                    className="pointer-events-none absolute left-[0.6rem] top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"
+                    aria-hidden
+                  />
                   {doc.sections.map((s, i) => {
-                    const { short, full } = extractNavLabel(s.title, i + 1);
+                    const { num, label, full } = extractNavLabel(s.title, i + 1);
+                    const isActive = activeSection === s.id;
                     return (
                       <button
                         key={s.id}
@@ -207,17 +213,64 @@ export function CartographyFileView({
                         title={full}
                         onClick={() => scrollToSection(s.id)}
                         className={cn(
-                          "min-h-[44px] rounded-lg border px-3 py-2.5 text-left text-xs font-display leading-snug tracking-[0.02em] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          activeSection === s.id
-                            ? cn("bg-white/[0.08] text-text-primary", cfg.border, "border-opacity-40")
-                            : "border-transparent text-text-tertiary hover:bg-white/[0.04]",
+                          "group relative flex min-h-[44px] items-start gap-3 rounded-lg px-2.5 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          isActive
+                            ? "bg-white/[0.05] text-text-primary"
+                            : "text-text-tertiary hover:bg-white/[0.03] hover:text-text-secondary",
                         )}
-                        aria-current={activeSection === s.id ? "true" : undefined}
+                        aria-current={isActive ? "true" : undefined}
                       >
-                        {short}
+                        {/* Puce numérotée / filament actif */}
+                        <span
+                          className={cn(
+                            "relative z-[1] mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border font-display text-[10px] tabular-nums transition-all",
+                            isActive
+                              ? cn(cfg.border, "bg-[hsl(var(--aegis-s1))] text-text-primary shadow-[0_0_10px_hsl(var(--aegis-warm)/0.3)]")
+                              : "border-border-subtle/40 bg-black/20 text-text-tertiary group-hover:border-border-subtle/70",
+                          )}
+                          aria-hidden
+                        >
+                          {num}
+                        </span>
+                        <span
+                          className={cn(
+                            "block flex-1 font-display text-[11px] leading-[1.35] tracking-[0.03em] line-clamp-2",
+                            isActive && "font-medium",
+                          )}
+                        >
+                          {label}
+                        </span>
                       </button>
                     );
                   })}
+                </div>
+                {/* Progression de lecture */}
+                <div className="mt-4 border-t border-border-subtle/20 pt-3">
+                  <div className="flex items-center justify-between text-[9px] font-display uppercase tracking-[0.18em] text-text-tertiary">
+                    <span>{t("cartography.fileIntro")}</span>
+                    <span className="tabular-nums text-text-secondary">
+                      {Math.max(
+                        1,
+                        doc.sections.findIndex((s) => s.id === activeSection) + 1,
+                      )}
+                      /{doc.sections.length}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-[2px] w-full overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className={cn("h-full transition-all duration-500", cfg.accent.replace("text-", "bg-"))}
+                      style={{
+                        width: `${
+                          ((Math.max(
+                            1,
+                            doc.sections.findIndex((s) => s.id === activeSection) + 1,
+                          )) /
+                            doc.sections.length) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </div>
                 </div>
               </nav>
 
