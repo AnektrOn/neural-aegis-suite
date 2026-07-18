@@ -12,6 +12,7 @@ import {
 } from "@/components/admin/toolbox/ToolboxAdminUi";
 import ToolboxUserFilterBar from "@/features/toolbox-admin/ToolboxUserFilterBar";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
+import { pickLocalizedText } from "@/lib/content-i18n";
 import {
   loadToolboxAdminProfiles,
   loadWaitingAssignments,
