@@ -29,11 +29,6 @@ import { NarrativeKPICard } from "@/components/NarrativeKPICard";
 import { DashboardMobile } from "@/pages/dashboard/DashboardMobile";
 import { usePersonaTrackingStats } from "@/features/persona/hooks/usePersonaTrackingStats";
 import { PULL_REFRESH_HINT_KEY, type MobileHabit } from "@/pages/dashboard/dashboard-shared";
-import {
-  DailyCheckinModal,
-  DailyCheckinReopenBanner,
-} from "@/features/tracking-progress/components/DailyCheckinModal";
-import { useTrackingCheckin } from "@/features/tracking-progress/hooks/useTrackingCheckin";
 
 interface Person {
   id: string;
