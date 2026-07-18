@@ -50,15 +50,13 @@ const KIND_CONFIG: Record<
   },
 };
 
-function extractNavLabel(title: string, index: number): { short: string; full: string } {
-  const { num, label } = sectionTitleParts(title);
-  if (num) {
-    const short = label.length > 22 ? `${num} · ${label.slice(0, 20)}…` : `${num} · ${label}`;
-    return { short, full: title };
-  }
-  const short = title.length > 24 ? `${index} · ${title.slice(0, 20)}…` : `${index} · ${title}`;
-  return { short, full: title };
+function extractNavLabel(title: string, index: number): { num: string; label: string; full: string } {
+  const parts = sectionTitleParts(title);
+  const num = parts.num ?? String(index);
+  const label = parts.label || title;
+  return { num, label, full: title };
 }
+
 
 export function CartographyFileView({
   markdown,
