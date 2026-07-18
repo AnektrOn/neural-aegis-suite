@@ -614,6 +614,7 @@ export const translations = {
   "admin.hub.tab.deepDiveReport": { fr: "Rapport", en: "Report" },
   "admin.hub.tab.deepDiveScores": { fr: "Scores", en: "Scores" },
   "admin.hub.tab.deepDiveReportV2": { fr: "Rapport V2", en: "Report V2" },
+  "admin.hub.tab.deepDiveUserReports": { fr: "Rapports utilisateur", en: "User reports" },
   "admin.hub.tab.insightsAnalytics": { fr: "Analytiques", en: "Analytics" },
   "admin.hub.tab.insightsExecutive": { fr: "Exécutif", en: "Executive" },
   "admin.nav.pulse": { fr: "Pulse", en: "Pulse" },

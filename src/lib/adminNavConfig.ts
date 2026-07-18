@@ -46,6 +46,7 @@ export type AdminHubTabId =
   | "report"
   | "scores"
   | "reportV2"
+  | "userReports"
   | "analytics"
   | "executive"
   | "import"
@@ -170,6 +171,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
           { id: "report", labelKey: "admin.hub.tab.deepDiveReport" },
           { id: "scores", labelKey: "admin.hub.tab.deepDiveScores" },
           { id: "reportV2", labelKey: "admin.hub.tab.deepDiveReportV2" },
+          { id: "userReports", labelKey: "admin.hub.tab.deepDiveUserReports" },
         ],
       },
       {

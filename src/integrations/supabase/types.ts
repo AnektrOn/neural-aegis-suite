@@ -2985,6 +2985,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_reports: {
+        Row: {
+          content_md: string
+          created_at: string
+          glyph: string | null
+          id: string
+          imported_by: string | null
+          orientation: string | null
+          slug: string
+          tags: string[]
+          tier: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_md: string
+          created_at?: string
+          glyph?: string | null
+          id?: string
+          imported_by?: string | null
+          orientation?: string | null
+          slug: string
+          tags?: string[]
+          tier?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_md?: string
+          created_at?: string
+          glyph?: string | null
+          id?: string
+          imported_by?: string | null
+          orientation?: string | null
+          slug?: string
+          tags?: string[]
+          tier?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
