@@ -164,7 +164,7 @@ export function CartographyFileView({
 
         <div
           className={cn(
-            doc.sections.length > 1 && "lg:grid lg:grid-cols-[minmax(12rem,14rem)_1fr] lg:items-start",
+            doc.sections.length > 1 && "lg:grid lg:grid-cols-[minmax(15rem,17rem)_1fr] lg:items-start",
           )}
         >
           {doc.sections.length > 1 && (
