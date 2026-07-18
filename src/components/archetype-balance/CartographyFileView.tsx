@@ -397,7 +397,7 @@ export function CartographyFileView({
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block text-[9px] font-display uppercase tracking-[0.2em] text-text-tertiary">
-                        {t("common.next", { defaultValue: "Suivant" })}
+                        {t("appendix.next")}
                       </span>
                       <span className="mt-0.5 block truncate font-display text-xs text-text-secondary">
                         {extractNavLabel(next.title, idx + 2).label}
