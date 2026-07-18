@@ -46,6 +46,7 @@ export type AdminHubTabId =
   | "report"
   | "scores"
   | "reportV2"
+  | "userReports"
   | "analytics"
   | "executive"
   | "import"
