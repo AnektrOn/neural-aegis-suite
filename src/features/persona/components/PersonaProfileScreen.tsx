@@ -134,7 +134,8 @@ export function PersonaProfileScreen({
           />
         </section>
 
-        <TrackingProgressBridge />
+
+
 
         <p className="text-center text-[11px] text-muted-foreground/80 font-body px-4 leading-relaxed pb-2">
           {t("persona.glimpse.footerNote")}
