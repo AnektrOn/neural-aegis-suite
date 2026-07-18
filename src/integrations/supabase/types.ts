@@ -2584,6 +2584,7 @@ export type Database = {
         Row: {
           baseline_source: string
           created_at: string
+          daily_popup_enabled: boolean
           description_en: string | null
           description_fr: string | null
           id: string
@@ -2596,6 +2597,7 @@ export type Database = {
         Insert: {
           baseline_source?: string
           created_at?: string
+          daily_popup_enabled?: boolean
           description_en?: string | null
           description_fr?: string | null
           id?: string
@@ -2608,6 +2610,7 @@ export type Database = {
         Update: {
           baseline_source?: string
           created_at?: string
+          daily_popup_enabled?: boolean
           description_en?: string | null
           description_fr?: string | null
           id?: string
@@ -2695,6 +2698,7 @@ export type Database = {
           scale_max: number | null
           scale_min: number | null
           sort_order: number
+          user_id: string | null
           weight: number
         }
         Insert: {
@@ -2713,6 +2717,7 @@ export type Database = {
           scale_max?: number | null
           scale_min?: number | null
           sort_order?: number
+          user_id?: string | null
           weight?: number
         }
         Update: {
@@ -2731,11 +2736,44 @@ export type Database = {
           scale_max?: number | null
           scale_min?: number | null
           sort_order?: number
+          user_id?: string | null
           weight?: number
         }
         Relationships: [
           {
             foreignKeyName: "tracking_questions_perspective_id_fkey"
+            columns: ["perspective_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_perspectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_user_settings: {
+        Row: {
+          created_at: string
+          daily_popup_enabled: boolean
+          perspective_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_popup_enabled?: boolean
+          perspective_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_popup_enabled?: boolean
+          perspective_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_user_settings_perspective_id_fkey"
             columns: ["perspective_id"]
             isOneToOne: false
             referencedRelation: "tracking_perspectives"
