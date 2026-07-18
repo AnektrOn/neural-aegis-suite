@@ -37,7 +37,6 @@ export const MOBILE_RADIAL_CATALOG_ORDER = [
   "calendar",
   "deep_dive",
   "deep_dive_scores",
-  "progress_myss",
   "install",
 ] as const;
 
