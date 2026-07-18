@@ -33,41 +33,57 @@ export function parseFrontmatter(md: string): {
 
 /**
  * Filter Markdown body by locale.
- * The reports use headings such as `### 🇫🇷 ... (FR)` and `### 🇬🇧 ... (EN)`.
- * Everything under a heading of the opposite locale is stripped until the
- * next heading (of same or lower depth) is reached.
- * Neutral content (before any locale marker) is always kept.
+ *
+ * Reports use language markers such as `🇫🇷`, `🇬🇧`, `(FR)`, `(EN)`,
+ * `Français`, `English`, either on a Markdown heading OR as a standalone
+ * (bold) label paragraph. Every line following a marker belongs to that
+ * language until either the next marker OR a top-level heading (# / ##)
+ * without a marker resets the mode to neutral.
+ *
+ * Neutral content (no marker seen yet, or after a reset) is always kept.
+ * Marker lines themselves are stripped so the reader never sees the flag.
  */
 export function filterMarkdownByLocale(md: string, locale: "fr" | "en"): string {
-  const lines = md.split("\n");
-  const out: string[] = [];
-  let skip = false;
-  let skipDepth = 0;
-
   const detectLang = (line: string): "fr" | "en" | null => {
-    if (/🇫🇷|\(FR\)|\bFR\b\s*[:\)]|Français|Francais/i.test(line)) return "fr";
-    if (/🇬🇧|🇺🇸|\(EN\)|\bEN\b\s*[:\)]|English/i.test(line)) return "en";
+    if (/🇫🇷|\(FR\)|\bFR\s*[:\/\)]|Français|Francais/i.test(line)) return "fr";
+    if (/🇬🇧|🇺🇸|\(EN\)|\bEN\s*[:\/\)]|English/i.test(line)) return "en";
     return null;
   };
 
-  for (const line of lines) {
+  const lines = md.split("\n");
+  const out: string[] = [];
+  let mode: "fr" | "en" | null = null;
+
+  for (const raw of lines) {
+    const line = raw;
     const headingMatch = line.match(/^(#{1,6})\s/);
-    if (headingMatch) {
-      const depth = headingMatch[1].length;
-      const lang = detectLang(line);
-      if (skip && depth <= skipDepth) {
-        skip = false;
-      }
-      if (lang && lang !== locale) {
-        skip = true;
-        skipDepth = depth;
-        continue;
-      }
-      if (lang === locale) {
-        skip = false;
-      }
+    const lang = detectLang(line);
+
+    // Top-level heading without a marker → neutral again
+    if (headingMatch && !lang && headingMatch[1].length <= 2) {
+      mode = null;
     }
-    if (!skip) out.push(line);
+
+    if (lang) {
+      // Switch mode; if the marker line is a heading, keep it only when
+      // it belongs to the current locale (strip the marker text itself).
+      mode = lang;
+      if (lang === locale && headingMatch) {
+        const cleaned = line
+          .replace(/🇫🇷|🇬🇧|🇺🇸/g, "")
+          .replace(/\s*\((?:FR|EN)\)\s*/gi, " ")
+          .replace(/\s{2,}/g, " ")
+          .trimEnd();
+        out.push(cleaned);
+      }
+      continue;
+    }
+
+    if (mode === null || mode === locale) {
+      out.push(line);
+    }
   }
+
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
+
