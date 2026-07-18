@@ -29,11 +29,6 @@ import { NarrativeKPICard } from "@/components/NarrativeKPICard";
 import { DashboardMobile } from "@/pages/dashboard/DashboardMobile";
 import { usePersonaTrackingStats } from "@/features/persona/hooks/usePersonaTrackingStats";
 import { PULL_REFRESH_HINT_KEY, type MobileHabit } from "@/pages/dashboard/dashboard-shared";
-import {
-  DailyCheckinModal,
-  DailyCheckinReopenBanner,
-} from "@/features/tracking-progress/components/DailyCheckinModal";
-import { useTrackingCheckin } from "@/features/tracking-progress/hooks/useTrackingCheckin";
 
 interface Person {
   id: string;
@@ -60,8 +55,6 @@ export default function Dashboard() {
   const aegisYesterday = aegisTrend.length >= 2 ? aegisTrend[aegisTrend.length - 2] : null;
   const queryClient = useQueryClient();
   const dashData = useDashboardData(user?.id, isMobile, locale);
-  const trackingCheckin = useTrackingCheckin(user?.id);
-  const reopenTrackingCheckin = trackingCheckin.reopen;
 
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [mobileHabits, setMobileHabits] = useState<MobileHabit[]>([]);
@@ -164,26 +157,12 @@ export default function Dashboard() {
 
   // Open quick-log when navigating from MoodTracker with state
   useEffect(() => {
-    const state = location.state as { openQuickLog?: boolean; openCheckin?: boolean } | null;
+    const state = location.state as { openQuickLog?: boolean } | null;
     if (state?.openQuickLog) {
       setShowQuickLog(true);
       navigate(".", { replace: true, state: {} });
     }
-    if (state?.openCheckin) {
-      reopenTrackingCheckin();
-      navigate(".", { replace: true, state: {} });
-    }
-  }, [location.state, navigate, reopenTrackingCheckin]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("checkin") === "1") {
-      reopenTrackingCheckin();
-      params.delete("checkin");
-      const next = params.toString();
-      navigate({ pathname: location.pathname, search: next ? `?${next}` : "" }, { replace: true });
-    }
-  }, [location.search, location.pathname, navigate, reopenTrackingCheckin]);
+  }, [location.state, navigate]);
 
   const timeAgoLabel = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -259,7 +238,6 @@ export default function Dashboard() {
   if (isMobile && user) {
     return (
       <>
-      <DailyCheckinModal checkin={trackingCheckin} />
       <DashboardMobile
         userId={user.id}
         loading={loading}
@@ -286,7 +264,6 @@ export default function Dashboard() {
         onPullHintDismiss={() => setPullHintVisible(false)}
         toolboxTodo={toolboxTodo}
         toolboxFocusId={toolboxFocusId}
-        trackingCheckin={trackingCheckin}
       />
       </>
     );
@@ -309,9 +286,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full -mx-6 px-5 pb-10 sm:px-8 sm:pb-12 md:-mx-10 md:px-10 bg-aegis-gradient">
-      <DailyCheckinModal checkin={trackingCheckin} />
       <motion.div className="mx-auto max-w-6xl space-y-8 sm:space-y-9 md:space-y-10">
-        <DailyCheckinReopenBanner checkin={trackingCheckin} />
         {showPostAssessment && (
           <PostAssessmentBanner onClose={() => setShowPostAssessment(false)} />
         )}
@@ -454,7 +429,6 @@ export default function Dashboard() {
       </motion.div>
 
       <QuickLogModal open={showQuickLog} onClose={() => setShowQuickLog(false)} />
-      <DailyCheckinModal userId={user?.id} />
     </div>
   );
 }
