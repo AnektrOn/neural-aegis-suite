@@ -131,8 +131,27 @@ export function CartographyFileView({
     setOpenSections(Object.fromEntries(doc.sections.map((s) => [s.id, next])));
   };
 
+  const articleRef = useRef<HTMLElement | null>(null);
+  const [showBackTop, setShowBackTop] = useState(false);
+
+  useEffect(() => {
+    const el = articleRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const rect = el.getBoundingClientRect();
+      setShowBackTop(rect.top < -200);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    articleRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <article className="scroll-mt-[calc(var(--safe-top)+9rem)]">
+    <article ref={articleRef} className="relative scroll-mt-[calc(var(--safe-top)+9rem)]">
       <NeuralCard variant="premium" glow={cfg.glow} className="overflow-hidden p-0">
         <header className="relative border-b border-border-subtle/40 px-4 py-5 sm:px-6 sm:py-6">
           <div className="flex items-start gap-4">
