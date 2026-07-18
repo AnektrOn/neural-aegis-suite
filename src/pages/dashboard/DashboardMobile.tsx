@@ -11,8 +11,6 @@ import QuickLogModal from "@/components/QuickLogModal";
 import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
 import { PostAssessmentBanner } from "@/components/PostAssessmentBanner";
 import { WelcomeExperience, SetupProgressBanner } from "@/components/WelcomeExperience";
-import { DailyCheckinReopenBanner } from "@/features/tracking-progress/components/DailyCheckinModal";
-import type { TrackingCheckinState } from "@/features/tracking-progress/hooks/useTrackingCheckin";
 import type { UserMaturityProfile } from "@/lib/userMaturity";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { fadeUp, priorityBadge, PULL_REFRESH_HINT_KEY, type MobileHabit, type WeeklyDigest } from "./dashboard-shared";
@@ -43,7 +41,6 @@ export interface DashboardMobileProps {
   onPullHintDismiss: () => void;
   toolboxTodo?: number;
   toolboxFocusId?: string | null;
-  trackingCheckin?: TrackingCheckinState;
 }
 
 export function DashboardMobile({
@@ -72,7 +69,6 @@ export function DashboardMobile({
   onPullHintDismiss,
   toolboxTodo = 0,
   toolboxFocusId = null,
-  trackingCheckin,
 }: DashboardMobileProps) {
   const { t } = useLanguage();
 
@@ -113,7 +109,6 @@ export function DashboardMobile({
 
   return (
     <div className="mobile-section-gap max-w-full pt-1 sm:mx-auto sm:max-w-lg md:max-w-2xl">
-      {trackingCheckin && <DailyCheckinReopenBanner checkin={trackingCheckin} />}
       {showPostAssessment && <PostAssessmentBanner onClose={onPostAssessmentClose} />}
       {showWelcome && maturity && (
         <WelcomeExperience maturityProfile={maturity} onDismiss={onWelcomeDismiss} />
