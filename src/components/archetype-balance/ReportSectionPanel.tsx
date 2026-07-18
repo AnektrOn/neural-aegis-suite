@@ -34,8 +34,9 @@ export function ReportSectionPanel({
     if (controlledOpen === undefined) setInternalOpen(next);
   };
 
-  const { num, label, pole } = sectionTitleParts(section.title);
-  const displayNum = num ?? String(index);
+  const { label, pole } = sectionTitleParts(section.title);
+  // Numérotation cohérente avec la nav sticky : toujours l'index arabe.
+  const displayNum = String(index);
   const poleStyle = poleAccentClasses(pole);
   const borderClass = pole ? poleStyle.border : accentClass;
 
@@ -167,7 +168,7 @@ function SubsectionPanel({
   index: number;
   pole: "shadow" | "light" | "balance" | null;
 }) {
-  const { num, label } = sectionTitleParts(section.title);
+  const { label } = sectionTitleParts(section.title);
   const poleStyle = poleAccentClasses(pole);
 
   return (
@@ -179,8 +180,8 @@ function SubsectionPanel({
       )}
     >
       <div className="mb-3 flex items-start gap-3">
-        <span className="font-display text-[11px] uppercase tracking-[0.16em] text-text-tertiary">
-          {num ?? index}
+        <span className="font-display text-[11px] uppercase tracking-[0.16em] text-text-tertiary tabular-nums">
+          {index}
         </span>
         <h4 className="font-display text-sm leading-snug text-text-primary sm:text-[15px]">{label}</h4>
       </div>
