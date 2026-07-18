@@ -305,10 +305,9 @@ const App = () => (
                             <Route path="/onboarding/assessment" element={<AssessmentFlow />} />
                             <Route path="/onboarding/results" element={<AssessmentResults />} />
                             <Route path="/assessment/maisons" element={<Houses72Flow />} />
-                            <Route path="/deep-dive" element={<DeepDiveUserReport />} />
-                            <Route path="/deep-dive/scores" element={<DeepDiveScores />} />
-                            <Route path="/progress/myss" element={<ProgressEvolutionPage />} />
-                            <Route path="/cartographie/:pole/:mode" element={<ArchetypeCartographyReport />} />
+            <Route path="/deep-dive" element={<DeepDiveUserReport />} />
+            <Route path="/deep-dive/scores" element={<DeepDiveScores />} />
+            <Route path="/cartographie/:pole/:mode" element={<ArchetypeCartographyReport />} />
                             <Route path="/cartographie/:pole" element={<ArchetypeCartographyReport />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
