@@ -237,9 +237,8 @@ const App = () => (
                               <Route path="/assessments" element={<AdminAssessments />} />
                               <Route path="/alerts" element={<AdminAlertsPanel />} />
                               <Route path="/export" element={<AdminExport />} />
-                              <Route path="/deep-dive" element={<AdminDeepDiveHub />} />
-                              <Route path="/tracking" element={<AdminTrackingHub />} />
-                              <Route path="/tao-portrait" element={<AdminTaoPortraitHub />} />
+              <Route path="/deep-dive" element={<AdminDeepDiveHub />} />
+              <Route path="/tao-portrait" element={<AdminTaoPortraitHub />} />
                               <Route
                                 path="/deep-dive-sample"
                                 element={<AdminLegacyRedirect from="/admin/deep-dive-sample" />}
