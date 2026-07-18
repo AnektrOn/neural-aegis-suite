@@ -44,9 +44,42 @@ export function parseFrontmatter(md: string): {
  * Marker lines themselves are stripped so the reader never sees the flag.
  */
 export function filterMarkdownByLocale(md: string, locale: "fr" | "en"): string {
-  const detectLang = (line: string): "fr" | "en" | null => {
+  const other: "fr" | "en" = locale === "fr" ? "en" : "fr";
+
+  const detectMarker = (line: string): "fr" | "en" | null => {
     if (/🇫🇷|\(FR\)|\bFR\s*[:\/\)]|Français|Francais/i.test(line)) return "fr";
     if (/🇬🇧|🇺🇸|\(EN\)|\bEN\s*[:\/\)]|English/i.test(line)) return "en";
+    return null;
+  };
+
+  const scoreLang = (text: string): { fr: number; en: number } => {
+    const t = " " + text.toLowerCase() + " ";
+    const frAccents = (t.match(/[àâçéèêëîïôùûüœ]/g) || []).length;
+    const frWords = (t.match(/\s(le|la|les|des|du|de|un|une|et|ou|est|sont|dans|pour|avec|sur|par|aux?|ce|cette|ces|qui|que|se|sa|son|ses|nous|vous|ils|elles|mais|pas|plus|non|oui|au|aussi|donc|entre|vers|chez|sans)\s/g) || []).length;
+    const enWords = (t.match(/\s(the|and|of|is|are|was|were|with|for|from|this|that|these|those|it|its|as|at|by|on|in|to|be|been|has|have|had|not|but|or|an|a|which|who|what|when|where|why|how|we|you|they|our|your|their)\s/g) || []).length;
+    return { fr: frAccents * 2 + frWords, en: enWords };
+  };
+
+  const splitInline = (line: string): string | null => {
+    const prefixMatch = line.match(/^(\s*(?:#{1,6}\s+|[-*+]\s+|\d+\.\s+)?(?:\*\*|__|\*|_)?)(.*?)((?:\*\*|__|\*|_)?\s*)$/);
+    if (!prefixMatch) return null;
+    const [, prefix, core, suffix] = prefixMatch;
+    const parts = core.split(/\s+\/\s+/);
+    if (parts.length !== 2) return null;
+    const [left, right] = parts.map((s) => s.trim());
+    if (!left || !right) return null;
+    if (left.length < 3 || right.length < 3) return null;
+    if (/https?:|\d{4}-\d{2}-\d{2}/.test(core)) return null;
+    const sL = scoreLang(left);
+    const sR = scoreLang(right);
+    const leftLang: "fr" | "en" | null =
+      sL.fr > sL.en ? "fr" : sL.en > sL.fr ? "en" : null;
+    const rightLang: "fr" | "en" | null =
+      sR.fr > sR.en ? "fr" : sR.en > sR.fr ? "en" : null;
+    if (leftLang && rightLang && leftLang !== rightLang) {
+      const keep = leftLang === locale ? left : right;
+      return prefix + keep + suffix;
+    }
     return null;
   };
 
@@ -54,36 +87,74 @@ export function filterMarkdownByLocale(md: string, locale: "fr" | "en"): string 
   const out: string[] = [];
   let mode: "fr" | "en" | null = null;
 
-  for (const raw of lines) {
-    const line = raw;
-    const headingMatch = line.match(/^(#{1,6})\s/);
-    const lang = detectLang(line);
+  let i = 0;
+  while (i < lines.length) {
+    const raw = lines[i];
+    const headingMatch = raw.match(/^(#{1,6})\s/);
+    const marker = detectMarker(raw);
 
-    // Top-level heading without a marker → neutral again
-    if (headingMatch && !lang && headingMatch[1].length <= 2) {
-      mode = null;
-    }
-
-    if (lang) {
-      // Switch mode; if the marker line is a heading, keep it only when
-      // it belongs to the current locale (strip the marker text itself).
-      mode = lang;
-      if (lang === locale && headingMatch) {
-        const cleaned = line
+    if (marker) {
+      mode = marker;
+      if (marker === locale && headingMatch) {
+        const cleaned = raw
           .replace(/🇫🇷|🇬🇧|🇺🇸/g, "")
           .replace(/\s*\((?:FR|EN)\)\s*/gi, " ")
           .replace(/\s{2,}/g, " ")
           .trimEnd();
         out.push(cleaned);
       }
+      i++;
       continue;
     }
 
-    if (mode === null || mode === locale) {
-      out.push(line);
+    if (headingMatch && headingMatch[1].length <= 2) {
+      mode = null;
+    }
+
+    if (headingMatch) {
+      const inline = splitInline(raw);
+      out.push(inline ?? raw);
+      i++;
+      continue;
+    }
+
+    if (raw.trim() === "") {
+      out.push(raw);
+      i++;
+      continue;
+    }
+
+    if (mode && mode !== locale) {
+      i++;
+      continue;
+    }
+
+    const inline = splitInline(raw);
+    if (inline) {
+      out.push(inline);
+      i++;
+      continue;
+    }
+
+    const start = i;
+    while (
+      i < lines.length &&
+      lines[i].trim() !== "" &&
+      !/^#{1,6}\s/.test(lines[i]) &&
+      !detectMarker(lines[i])
+    ) {
+      i++;
+    }
+    const paragraph = lines.slice(start, i).join("\n");
+    const s = scoreLang(paragraph);
+    const paraLang: "fr" | "en" | null =
+      s.fr > s.en + 1 ? "fr" : s.en > s.fr + 1 ? "en" : null;
+    if (paraLang !== other) {
+      out.push(paragraph);
     }
   }
 
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
+
 
