@@ -6,6 +6,7 @@ const DeepDiveSampleReport = lazy(
 );
 const AdminDeepDive = lazy(() => import("./AdminDeepDive"));
 const AdminDeepDiveV2 = lazy(() => import("./AdminDeepDiveV2"));
+const AdminUserReports = lazy(() => import("./AdminUserReports"));
 
 function HubPanelLoader() {
   return (
@@ -33,6 +34,11 @@ export default function AdminDeepDiveHub() {
         reportV2: (
           <Suspense fallback={<HubPanelLoader />}>
             <AdminDeepDiveV2 />
+          </Suspense>
+        ),
+        userReports: (
+          <Suspense fallback={<HubPanelLoader />}>
+            <AdminUserReports />
           </Suspense>
         ),
       }}
