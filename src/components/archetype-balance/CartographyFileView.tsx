@@ -305,7 +305,8 @@ export function CartographyFileView({
                 </div>
                 <div className="flex gap-1.5 overflow-x-auto pb-0.5">
                   {doc.sections.map((s, i) => {
-                    const { short, full } = extractNavLabel(s.title, i + 1);
+                    const { num, label, full } = extractNavLabel(s.title, i + 1);
+                    const short = `${num} · ${label.length > 20 ? `${label.slice(0, 20)}…` : label}`;
                     return (
                       <button
                         key={s.id}
