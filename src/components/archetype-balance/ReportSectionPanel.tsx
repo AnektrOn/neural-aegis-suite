@@ -34,8 +34,9 @@ export function ReportSectionPanel({
     if (controlledOpen === undefined) setInternalOpen(next);
   };
 
-  const { num, label, pole } = sectionTitleParts(section.title);
-  const displayNum = num ?? String(index);
+  const { label, pole } = sectionTitleParts(section.title);
+  // Numérotation cohérente avec la nav sticky : toujours l'index arabe.
+  const displayNum = String(index);
   const poleStyle = poleAccentClasses(pole);
   const borderClass = pole ? poleStyle.border : accentClass;
 
