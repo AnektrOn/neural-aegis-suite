@@ -382,48 +382,32 @@ export function isPulseDeckExhausted(diag: PulseDiagnostic): boolean {
 
 export async function fetchPulseDiagnostic(): Promise<PulseDiagnostic> {
   try {
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData.user?.id ?? null;
+    const { data: diagData, error: diagError } = await supabase.rpc(
+      "get_aegis_pulse_diagnostic" as never,
+    );
 
-    const { data: allCards } = await supabase
-      .from("aegis_synapse_cards" as never)
-      .select("id, external_key, is_active, target_user_ids, archetype_targets" as never);
-
-    const rows = (allCards as {
-      id: string;
-      external_key: string | null;
-      is_active: boolean;
-      target_user_ids: string[] | null;
-      archetype_targets: string[] | null;
-    }[]) ?? [];
-
-    const total = rows.length;
-    const active = rows.filter((c) => c.is_active).length;
-
+    let userId: string | null = null;
+    let total = 0;
+    let active = 0;
     let forYou = 0;
-    const sampleKeys: string[] = [];
-    if (userId) {
-      for (const c of rows) {
-        if (!c.is_active) continue;
-        const targets = c.target_user_ids ?? [];
-        const visible =
-          targets.length === 0
-            ? true
-            : targets.includes(userId);
-        if (visible) {
-          forYou++;
-          if (c.external_key) sampleKeys.push(c.external_key);
-        }
-      }
-    }
-
     let swiped = 0;
-    if (userId) {
-      const { count } = await supabase
-        .from("aegis_user_card_interactions" as never)
-        .select("id" as never, { count: "exact", head: true })
-        .eq("user_id" as never, userId as never);
-      swiped = count ?? 0;
+    let sampleKeys: string[] = [];
+
+    if (!diagError && diagData) {
+      const d = diagData as {
+        userId?: string | null;
+        total?: number;
+        active?: number;
+        forYou?: number;
+        swiped?: number;
+        sampleKeys?: string[];
+      };
+      userId = d.userId ?? null;
+      total = d.total ?? 0;
+      active = d.active ?? 0;
+      forYou = d.forYou ?? 0;
+      swiped = d.swiped ?? 0;
+      sampleKeys = Array.isArray(d.sampleKeys) ? d.sampleKeys : [];
     }
 
     let rpcError: string | null = null;
@@ -457,6 +441,7 @@ export async function fetchPulseDiagnostic(): Promise<PulseDiagnostic> {
     };
   }
 }
+
 
 export async function fetchPulseGrimoire(
   locale: Locale,

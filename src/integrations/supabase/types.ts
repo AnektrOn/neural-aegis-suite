@@ -3244,6 +3244,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_aegis_pulse_diagnostic: { Args: never; Returns: Json }
       get_aegis_synapse_deck: {
         Args: { p_limit?: number; p_locale?: string }
         Returns: Json
