@@ -153,7 +153,7 @@ export function CartographyFileView({
 
   return (
     <article ref={articleRef} className="relative scroll-mt-[calc(var(--safe-top)+9rem)]">
-      <NeuralCard variant="premium" glow={cfg.glow} className="overflow-hidden p-0">
+      <NeuralCard variant="premium" glow={cfg.glow} className="p-0">
         <header className="relative border-b border-border-subtle/40 px-4 py-5 sm:px-6 sm:py-6">
           <div className="flex items-start gap-4">
             <span
