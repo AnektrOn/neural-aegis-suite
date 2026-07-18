@@ -117,10 +117,28 @@ export function filterMarkdownByLocale(md: string, locale: "fr" | "en"): string 
 
     if (headingMatch) {
       const inline = splitInline(raw);
-      out.push(inline ?? raw);
+      if (inline) {
+        out.push(inline);
+      } else {
+        // No " / " split: score the heading itself and drop if it's clearly in the other language.
+        const headingText = raw.replace(/^#{1,6}\s+/, "");
+        const s = scoreLang(headingText);
+        const hLang: "fr" | "en" | null =
+          s.fr > s.en ? "fr" : s.en > s.fr ? "en" : null;
+        if (hLang !== other) {
+          out.push(raw);
+        }
+      }
       i++;
       continue;
     }
+
+    if (raw.trim() === "") {
+      out.push(raw);
+      i++;
+      continue;
+    }
+
 
     if (raw.trim() === "") {
       out.push(raw);
