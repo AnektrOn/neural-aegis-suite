@@ -14,6 +14,7 @@ import {
 } from "./personaParts";
 import { PersonaPortraitLibrary } from "./PersonaPortraitLibrary";
 import { Houses72PersonaCTA } from "@/features/houses72/components/Houses72PersonaCTA";
+import { UserReportsSection } from "@/features/user-reports/UserReportsSection";
 
 /** Mobile-only Persona hub — centered profile cover, single column. */
 export function PersonaProfileScreen({
@@ -91,6 +92,8 @@ export function PersonaProfileScreen({
           shadowTheme={n.primaryShadowTheme}
           headingId="persona-portraits-heading-mobile"
         />
+
+        {user?.id ? <UserReportsSection userId={user.id} /> : null}
 
         <PersonaStatsSection profile={profile} />
 
