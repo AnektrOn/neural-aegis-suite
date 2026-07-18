@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Layers, BookOpen, Sparkles, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import {
+  FileText,
+  Layers,
+  BookOpen,
+  Sparkles,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
+} from "lucide-react";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
