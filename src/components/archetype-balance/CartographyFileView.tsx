@@ -52,7 +52,8 @@ const KIND_CONFIG: Record<
 
 function extractNavLabel(title: string, index: number): { num: string; label: string; full: string } {
   const parts = sectionTitleParts(title);
-  const num = parts.num ?? String(index);
+  // Numérotation cohérente : toujours l'index arabe (1, 2, 3…), on ignore les préfixes romains du markdown.
+  const num = String(index);
   const label = parts.label || title;
   return { num, label, full: title };
 }
