@@ -63,7 +63,6 @@ const AssessmentResults = lazy(() => import("./features/archetype-assessment/pag
 const Houses72Flow = lazy(() => import("./features/houses72/pages/Houses72Flow"));
 const DeepDiveUserReport = lazy(() => import("./features/archetype-deepdive-v2/pages/DeepDiveUserReport"));
 const DeepDiveScores = lazy(() => import("./pages/DeepDiveScores"));
-const ProgressEvolutionPage = lazy(() => import("./pages/ProgressEvolution"));
 const PulsePage = lazy(() => import("./features/aegis-pulse/pages/PulsePage"));
 const ArchetypeCartographyReport = lazy(() => import("./pages/ArchetypeCartographyReport"));
 const CartographyManagement = lazy(() => import("./pages/admin/CartographyManagement"));
