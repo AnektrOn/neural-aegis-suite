@@ -3,7 +3,6 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale, TranslationKey } from "@/i18n/translations";
 import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
-import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import { formatElapsedMinutes } from "@/lib/toolbox-completion";
 import type { ToolboxTrackingBucket, ToolboxTrackingRow } from "@/services/toolboxAdminService";
 import { Badge } from "@/components/ui/badge";
