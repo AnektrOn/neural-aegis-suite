@@ -49,7 +49,6 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     labelKey: "layout.navGroup.analysis",
     items: [
       { to: "/persona", icon: Sparkles, labelKey: "nav.profile" },
-      { to: "/progress/myss", icon: LineChart, labelKey: "nav.progressEvolution" },
       { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" },
       { to: "/pulse", icon: Sparkles, labelKey: "nav.pulse" },
       { to: "/deep-dive", icon: FileText, labelKey: "nav.deepDive" },
