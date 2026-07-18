@@ -55,8 +55,6 @@ export default function Dashboard() {
   const aegisYesterday = aegisTrend.length >= 2 ? aegisTrend[aegisTrend.length - 2] : null;
   const queryClient = useQueryClient();
   const dashData = useDashboardData(user?.id, isMobile, locale);
-  const trackingCheckin = useTrackingCheckin(user?.id);
-  const reopenTrackingCheckin = trackingCheckin.reopen;
 
   const [showQuickLog, setShowQuickLog] = useState(false);
   const [mobileHabits, setMobileHabits] = useState<MobileHabit[]>([]);
