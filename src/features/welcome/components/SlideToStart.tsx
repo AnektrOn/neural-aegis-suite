@@ -59,9 +59,6 @@ export function SlideToStart({ label, onComplete, className }: SlideToStartProps
         completed && "opacity-70",
         className,
       )}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
     >
       <div
         role="slider"
@@ -71,12 +68,15 @@ export function SlideToStart({ label, onComplete, className }: SlideToStartProps
         aria-valuenow={progressPercent}
         aria-label={label}
         className={cn(
-          "welcome-slide-knob absolute top-1 left-1 flex h-12 w-12 items-center justify-center rounded-full",
+          "welcome-slide-knob absolute top-1 left-1 flex h-12 w-12 items-center justify-center rounded-full touch-none",
           "transition-transform",
           completed && "translate-x-[calc(100%-3.5rem)]",
         )}
         style={completed ? undefined : { transform: `translateX(${dragX}px)` }}
         onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -92,3 +92,4 @@ export function SlideToStart({ label, onComplete, className }: SlideToStartProps
     </div>
   );
 }
+
