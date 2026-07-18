@@ -105,7 +105,8 @@ export function PersonaDesktopScreen({
             />
           ) : null}
 
-          <TrackingProgressBridge horizontal />
+
+
 
           <p className="text-[11px] text-muted-foreground/80 font-body leading-relaxed">
             {t("persona.glimpse.footerNote")}
