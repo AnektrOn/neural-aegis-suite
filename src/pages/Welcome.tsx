@@ -64,7 +64,7 @@ export default function Welcome() {
     };
   }, [user, locale, reloadKey]);
 
-  const goDashboard = () => navigate("/", { replace: true });
+  const goDashboard = () => navigate("/dashboard", { replace: true });
   const goPersona = () => navigate("/persona", { replace: true });
   const goAssessment = () => navigate("/onboarding/assessment", { replace: true });
 
