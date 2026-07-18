@@ -72,16 +72,20 @@ export function filterMarkdownByLocale(md: string, locale: "fr" | "en"): string 
     if (/https?:|\d{4}-\d{2}-\d{2}/.test(core)) return null;
     const sL = scoreLang(left);
     const sR = scoreLang(right);
-    const leftLang: "fr" | "en" | null =
+    let leftLang: "fr" | "en" | null =
       sL.fr > sL.en ? "fr" : sL.en > sL.fr ? "en" : null;
-    const rightLang: "fr" | "en" | null =
+    let rightLang: "fr" | "en" | null =
       sR.fr > sR.en ? "fr" : sR.en > sR.fr ? "en" : null;
+    // If only one side is detected, assume the other is the opposite language.
+    if (leftLang && !rightLang) rightLang = leftLang === "fr" ? "en" : "fr";
+    if (rightLang && !leftLang) leftLang = rightLang === "fr" ? "en" : "fr";
     if (leftLang && rightLang && leftLang !== rightLang) {
       const keep = leftLang === locale ? left : right;
       return prefix + keep + suffix;
     }
     return null;
   };
+
 
   const lines = md.split("\n");
   const out: string[] = [];
