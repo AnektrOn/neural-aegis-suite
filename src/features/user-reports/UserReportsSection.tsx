@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { FileText, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { listUserReports } from "./service";
+import { listUserReports, markUserReportRead } from "./service";
 import type { UserReport } from "./types";
 import { UserReportModal } from "./UserReportModal";
 
