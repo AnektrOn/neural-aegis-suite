@@ -2993,6 +2993,7 @@ export type Database = {
           id: string
           imported_by: string | null
           orientation: string | null
+          read_at: string | null
           slug: string
           tags: string[]
           tier: string | null
@@ -3007,6 +3008,7 @@ export type Database = {
           id?: string
           imported_by?: string | null
           orientation?: string | null
+          read_at?: string | null
           slug: string
           tags?: string[]
           tier?: string | null
@@ -3021,6 +3023,7 @@ export type Database = {
           id?: string
           imported_by?: string | null
           orientation?: string | null
+          read_at?: string | null
           slug?: string
           tags?: string[]
           tier?: string | null
