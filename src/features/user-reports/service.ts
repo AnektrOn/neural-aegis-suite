@@ -61,3 +61,12 @@ export async function deleteUserReport(id: string): Promise<void> {
   const { error } = await supabase.from("user_reports" as any).delete().eq("id", id);
   if (error) throw error;
 }
+
+export async function markUserReportRead(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("user_reports" as any)
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("read_at", null);
+  if (error) console.error("[UserReports] markRead failed", error);
+}
