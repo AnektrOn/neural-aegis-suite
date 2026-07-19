@@ -19,6 +19,14 @@ window.addEventListener("vite:preloadError", (event) => {
   }
 });
 
+// After the app has successfully booted, clear the reload guard so a future
+// stale-chunk event isn't misread as a reload loop.
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
+  }, 4000);
+});
+
 void initNativeApp().finally(() => {
   createRoot(document.getElementById("root")!).render(
     <HelmetProvider>
