@@ -87,7 +87,7 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
           clearChunkReloadAttempt();
           return loaded;
         } catch {
-          return triggerReload();
+          return triggerReload(error);
         }
       }
       clearChunkReloadAttempt();
