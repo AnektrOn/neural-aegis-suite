@@ -52,13 +52,18 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
   let pending: Promise<void> | null = null;
   let failed: unknown = null;
 
-  const triggerReload = (): Promise<T> => {
+  const triggerReload = (originalError: unknown): Promise<T> => {
     if (!wasChunkReloadAttempted() && typeof window !== "undefined") {
       markChunkReloadAttempted();
       window.location.reload();
       return new Promise<T>(() => {});
     }
-    throw new Error("Chunk reload loop suppressed");
+    // Already reloaded once — clear the flag so future navigations can retry,
+    // and surface the original error to the ErrorBoundary instead of blanking.
+    clearChunkReloadAttempt();
+    throw originalError instanceof Error
+      ? originalError
+      : new Error("Failed to load module");
   };
 
   const loadOnce = async (): Promise<T> => {
@@ -82,7 +87,7 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
           clearChunkReloadAttempt();
           return loaded;
         } catch {
-          return triggerReload();
+          return triggerReload(error);
         }
       }
       clearChunkReloadAttempt();
