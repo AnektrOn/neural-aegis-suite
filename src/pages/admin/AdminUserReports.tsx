@@ -52,6 +52,7 @@ function stagedToPreview(s: StagedFile, userId: string): UserReport {
     imported_by: null,
     created_at: now,
     updated_at: now,
+    read_at: null,
   };
 }
 
