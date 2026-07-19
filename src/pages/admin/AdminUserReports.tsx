@@ -52,6 +52,7 @@ function stagedToPreview(s: StagedFile, userId: string): UserReport {
     imported_by: null,
     created_at: now,
     updated_at: now,
+    read_at: null,
   };
 }
 
@@ -324,6 +325,19 @@ export default function AdminUserReports() {
                       {r.slug} · {new Date(r.updated_at).toLocaleString()}
                     </p>
                   </div>
+                  {r.read_at ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-emerald-400"
+                      title={new Date(r.read_at).toLocaleString()}
+                    >
+                      <Check size={10} />
+                      {isFR ? "Lu" : "Read"} · {new Date(r.read_at).toLocaleDateString(isFR ? "fr-FR" : "en-US", { day: "2-digit", month: "short" })}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-amber-400">
+                      {isFR ? "Non lu" : "Unread"}
+                    </span>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

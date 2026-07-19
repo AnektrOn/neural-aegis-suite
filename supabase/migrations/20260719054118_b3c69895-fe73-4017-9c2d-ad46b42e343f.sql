@@ -1,0 +1,1 @@
+ALTER TABLE public.user_reports ADD COLUMN IF NOT EXISTS read_at timestamptz;

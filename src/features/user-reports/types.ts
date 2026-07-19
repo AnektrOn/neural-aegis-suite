@@ -11,6 +11,7 @@ export interface UserReport {
   imported_by: string | null;
   created_at: string;
   updated_at: string;
+  read_at: string | null;
 }
 
 export interface ParsedReportFrontmatter {
