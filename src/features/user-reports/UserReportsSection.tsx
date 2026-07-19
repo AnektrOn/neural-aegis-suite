@@ -52,7 +52,17 @@ export function UserReportsSection({ userId }: Props) {
           <li key={r.id}>
             <button
               type="button"
-              onClick={() => setSelected(r)}
+              onClick={() => {
+                setSelected(r);
+                if (!r.read_at) {
+                  void markUserReportRead(r.id);
+                  setReports((prev) =>
+                    prev.map((x) =>
+                      x.id === r.id ? { ...x, read_at: new Date().toISOString() } : x,
+                    ),
+                  );
+                }
+              }}
               className="w-full text-left group flex items-center gap-3 rounded-xl border border-border/30 bg-background/40 hover:bg-background/60 transition-colors p-3"
             >
               <span
