@@ -336,6 +336,8 @@ export default function Dashboard() {
 
         <AssessmentCTA />
 
+        <PulseFeatureButton />
+
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-5" aria-label={t("dashboard.pageTitle")}>
           <NavLink
             to="/analytics"
