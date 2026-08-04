@@ -220,6 +220,19 @@ export default function HabitTracker() {
     setToolboxModalOpen(true);
   };
 
+  useEffect(() => {
+    const habitId = new URLSearchParams(window.location.search).get("habit");
+    if (!habitId || habits.length === 0) return;
+    const habit = habits.find((h) => h.id === habitId);
+    if (!habit) return;
+    if (habit.toolbox_assignment_id && toolboxItemsById[habit.toolbox_assignment_id]) {
+      openToolboxModal(habit);
+    }
+    document.getElementById(`habit-${habitId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.history.replaceState({}, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habits, toolboxItemsById]);
+
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
   }
@@ -309,6 +322,7 @@ export default function HabitTracker() {
             return (
               <motion.div
                 key={habit.id}
+                id={`habit-${habit.id}`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.08 + i * 0.04 }}
@@ -346,6 +360,7 @@ export default function HabitTracker() {
                     title={habit.template_name}
                     description={habit.template_category}
                     duration={habit.duration_override_min ? `${habit.duration_override_min} min` : null}
+                    url={`${window.location.origin}/habits?habit=${habit.id}`}
                     compact
                   />
                 </div>
