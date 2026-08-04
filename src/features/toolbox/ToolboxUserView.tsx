@@ -922,13 +922,20 @@ export function ToolboxUserView({
                         >
                           <ToolboxAssignmentStatsStrip stats={getStatsForItem(item.id)} className="min-w-0" />
                           {!isWaiting ? (
-                            <ToolboxHabitLinkButton
-                              itemId={item.id}
-                              linked={linkedToHabits}
-                              busy={habitBusy}
-                              onToggle={(id) => void toggleHabitLink(id)}
-                              compact={false}
-                            />
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <ToolboxHabitLinkButton
+                                itemId={item.id}
+                                linked={linkedToHabits}
+                                busy={habitBusy}
+                                onToggle={(id) => void toggleHabitLink(id)}
+                                compact={false}
+                              />
+                              <AddToCalendarButton
+                                title={getLocalizedTitle(item)}
+                                description={getLocalizedDescription?.(item) ?? item.description}
+                                duration={item.duration}
+                              />
+                            </div>
                           ) : null}
                         </div>
                       </article>
