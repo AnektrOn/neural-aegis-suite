@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Circle, CheckCircle2, Brain, Target, BookOpen, ListChecks } from "lucide-react";
+import { ChevronLeft, ChevronRight, Circle, CheckCircle2, Brain, Target, BookOpen, ListChecks, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -10,6 +10,7 @@ interface DayData {
   habits: number;
   decisions: number;
   journal: number;
+  toolbox: number;
 }
 
 export default function CalendarView() {
