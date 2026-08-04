@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMaturity";
 import { WelcomeHudScreen } from "@/features/welcome/components/WelcomeHudScreen";
+import PulseFeatureAnnounceModal from "@/components/PulseFeatureAnnounceModal";
 import {
   fetchWelcomeHubStats,
   type WelcomeHubStats,
