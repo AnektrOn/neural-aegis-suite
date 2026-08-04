@@ -322,6 +322,7 @@ export default function HabitTracker() {
             return (
               <motion.div
                 key={habit.id}
+                id={`habit-${habit.id}`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.08 + i * 0.04 }}
