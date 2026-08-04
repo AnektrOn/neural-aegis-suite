@@ -37,7 +37,7 @@ export default function AddToCalendarButton({
   extraLines,
   compact = false,
 }: AddToCalendarButtonProps) {
-  const { t, language } = useLanguage();
+  const { t, locale } = useLanguage();
   const [daily, setDaily] = useState(false);
 
   const event = (): CalendarEventInput => ({
