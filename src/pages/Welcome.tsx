@@ -104,16 +104,19 @@ export default function Welcome() {
   }
 
   return (
-    <WelcomeHudScreen
-      firstName={firstName}
-      maturity={maturity}
-      stats={stats}
-      isFR={locale === "fr"}
-      t={t}
-      onPersona={goPersona}
-      onDashboard={goDashboard}
-      onAssessment={goAssessment}
-      onSlideComplete={goDashboard}
-    />
+    <>
+      <WelcomeHudScreen
+        firstName={firstName}
+        maturity={maturity}
+        stats={stats}
+        isFR={locale === "fr"}
+        t={t}
+        onPersona={goPersona}
+        onDashboard={goDashboard}
+        onAssessment={goAssessment}
+        onSlideComplete={goDashboard}
+      />
+      <PulseFeatureAnnounceModal />
+    </>
   );
 }
