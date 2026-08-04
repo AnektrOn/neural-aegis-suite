@@ -932,7 +932,7 @@ export function ToolboxUserView({
                               />
                               <AddToCalendarButton
                                 title={getLocalizedTitle(item)}
-                                description={getLocalizedDescription?.(item) ?? item.description}
+                                description={getLocalizedDescription(item)}
                                 duration={item.duration}
                               />
                             </div>
