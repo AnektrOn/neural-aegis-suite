@@ -48,7 +48,7 @@ export default function AddToCalendarButton({
     category: category ?? undefined,
     extraLines,
     recurringDaily: daily,
-    lang: language === "en" ? "en" : "fr",
+    lang: locale === "en" ? "en" : "fr",
     url: path ? buildAppLink(path) : undefined,
   });
 
