@@ -2038,6 +2038,18 @@ export const translations = {
     en: "Could not load your welcome hub. Check your connection.",
   },
   "welcome.loading": { fr: "Chargement…", en: "Loading…" },
+
+  // Pulse feature announcement
+  "pulseAnnounce.title": {
+    fr: "Nouveau : les Pulse Cards",
+    en: "New: Pulse Cards",
+  },
+  "pulseAnnounce.body": {
+    fr: "Découvrez Aegis Pulse : des cartes courtes et ciblées pour nourrir votre réflexion au quotidien, à lire en quelques minutes.",
+    en: "Discover Aegis Pulse: short, focused cards to feed your daily reflection, readable in just a few minutes.",
+  },
+  "pulseAnnounce.cta": { fr: "Découvrir Pulse", en: "Discover Pulse" },
+  "pulseAnnounce.later": { fr: "Plus tard", en: "Later" },
   "welcome.title": { fr: "Bienvenue sur AEGIS, {name}.", en: "Welcome to AEGIS, {name}." },
   "welcome.title.noname": { fr: "Bienvenue sur AEGIS.", en: "Welcome to AEGIS." },
   "welcome.subtitle": {
