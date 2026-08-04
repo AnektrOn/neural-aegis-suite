@@ -37,6 +37,7 @@ import {
   type ToolboxAssignmentStats,
 } from "@/features/toolbox/ToolboxAssignmentStatsStrip";
 import { useToolboxExerciseSessionOptional } from "@/features/toolbox/ToolboxExerciseSessionContext";
+import AddToCalendarButton from "@/features/toolbox/AddToCalendarButton";
 
 interface ToolboxItem {
   id: string;
