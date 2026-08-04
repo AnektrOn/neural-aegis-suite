@@ -33,17 +33,18 @@ export default function CalendarView() {
     const startDate = new Date(year, month, 1).toISOString().split("T")[0];
     const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
 
-    const [moodRes, habitRes, decRes, journalRes] = await Promise.all([
+    const [moodRes, habitRes, decRes, journalRes, toolboxRes] = await Promise.all([
       supabase.from("mood_entries" as any).select("value, logged_at").eq("user_id", user!.id).gte("logged_at", start).lte("logged_at", end),
       supabase.from("habit_completions" as any).select("completed_date").eq("user_id", user!.id).gte("completed_date", startDate).lte("completed_date", endDate),
       supabase.from("decisions" as any).select("created_at").eq("user_id", user!.id).gte("created_at", start).lte("created_at", end),
       supabase.from("journal_entries").select("created_at").eq("user_id", user!.id).gte("created_at", start).lte("created_at", end),
+      supabase.from("toolbox_completions" as any).select("completed_at, status").eq("user_id", user!.id).eq("status", "completed").gte("completed_at", start).lte("completed_at", end),
     ]);
 
     const map = new Map<string, DayData>();
 
     const getOrCreate = (dateStr: string): DayData => {
-      if (!map.has(dateStr)) map.set(dateStr, { mood: null, habits: 0, decisions: 0, journal: 0 });
+      if (!map.has(dateStr)) map.set(dateStr, { mood: null, habits: 0, decisions: 0, journal: 0, toolbox: 0 });
       return map.get(dateStr)!;
     };
 
@@ -63,6 +64,11 @@ export default function CalendarView() {
 
     ((journalRes.data as any[]) || []).forEach((j) => {
       getOrCreate(j.created_at.split("T")[0]).journal++;
+    });
+
+    ((toolboxRes.data as any[]) || []).forEach((tb) => {
+      if (!tb?.completed_at) return;
+      getOrCreate(String(tb.completed_at).split("T")[0]).toolbox++;
     });
 
     setMonthData(map);
