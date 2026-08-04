@@ -177,13 +177,24 @@ export function ToolboxUserView({
 
   useEffect(() => {
     if (!enableDeepLinkOpen) return;
-    const openId = (location.state as { openToolboxId?: string } | null)?.openToolboxId;
+    const stateId = (location.state as { openToolboxId?: string } | null)?.openToolboxId;
+    const queryId = new URLSearchParams(location.search).get("item");
+    const openId = stateId || queryId || null;
     if (openId && items.some((i) => i.id === openId)) {
       if (exerciseSession && !readOnly) exerciseSession.openExercise(openId);
       else setActiveWidget(openId);
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [enableDeepLinkOpen, location.state, location.pathname, items, navigate, exerciseSession, readOnly]);
+  }, [
+    enableDeepLinkOpen,
+    location.state,
+    location.search,
+    location.pathname,
+    items,
+    navigate,
+    exerciseSession,
+    readOnly,
+  ]);
 
   const blockReadOnlyAction = useCallback(() => {
     toast({ title: t("admin.toolboxPreview.readOnlyHint") });
