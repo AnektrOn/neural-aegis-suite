@@ -417,6 +417,8 @@ export function DashboardMobile({
       {/* 7. Assessment — secondaire, en bas */}
       <motion.div {...fadeUp(0.08)}>
         <AssessmentCTA />
+
+        <PulseFeatureButton className="w-full" />
       </motion.div>
 
       <QuickLogModal open={showQuickLog} onClose={onQuickLogClose} />
