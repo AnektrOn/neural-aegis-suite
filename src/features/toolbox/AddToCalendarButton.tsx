@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLanguage } from "@/i18n/LanguageContext";
 import {
+  buildAppLink,
   buildGoogleCalendarUrl,
   downloadIcs,
   parseDurationMinutes,
@@ -20,7 +21,10 @@ interface AddToCalendarButtonProps {
   title: string;
   description?: string | null;
   duration?: string | null;
-  url?: string;
+  /** Chemin interne pour le lien profond, ex: "/toolbox?item=123" */
+  path?: string;
+  category?: string | null;
+  extraLines?: string[];
   compact?: boolean;
 }
 
@@ -28,18 +32,24 @@ export default function AddToCalendarButton({
   title,
   description,
   duration,
-  url,
+  path,
+  category,
+  extraLines,
   compact = false,
 }: AddToCalendarButtonProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [daily, setDaily] = useState(false);
 
   const event = (): CalendarEventInput => ({
     title,
     description: description ?? undefined,
     durationMin: parseDurationMinutes(duration),
+    durationLabel: duration ?? undefined,
+    category: category ?? undefined,
+    extraLines,
     recurringDaily: daily,
-    url,
+    lang: language === "en" ? "en" : "fr",
+    url: path ? buildAppLink(path) : undefined,
   });
 
   return (
