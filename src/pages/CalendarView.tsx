@@ -185,7 +185,7 @@ export default function CalendarView() {
             const data = monthData.get(dateStr);
             const isToday = dateStr === new Date().toISOString().split("T")[0];
             const isSelected = selectedDay === dateStr;
-            const hasActivity = data && (data.mood !== null || data.habits > 0 || data.decisions > 0 || data.journal > 0);
+            const hasActivity = data && (data.mood !== null || data.habits > 0 || data.decisions > 0 || data.journal > 0 || data.toolbox > 0);
 
             return (
               <button
