@@ -946,7 +946,7 @@ export function ToolboxUserView({
                                 description={getLocalizedDescription(item)}
                                 duration={item.duration}
                                 path={`/toolbox?item=${item.id}`}
-                                category={item.category ?? undefined}
+                                category={getTypeLabel(item.content_type)}
                               />
                             </div>
                           ) : null}
@@ -1099,7 +1099,7 @@ export function ToolboxUserView({
                         description={getLocalizedDescription(item)}
                         duration={item.duration}
                         path={`/toolbox?item=${item.id}`}
-                                category={item.category ?? undefined}
+                                category={getTypeLabel(item.content_type)}
                       />
                     </div>
                   ) : null}

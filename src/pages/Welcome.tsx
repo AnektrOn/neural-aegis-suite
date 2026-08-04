@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMaturity";
 import { WelcomeHudScreen } from "@/features/welcome/components/WelcomeHudScreen";
+import PulseFeatureAnnounceModal from "@/components/PulseFeatureAnnounceModal";
 import {
   fetchWelcomeHubStats,
   type WelcomeHubStats,
@@ -104,16 +105,19 @@ export default function Welcome() {
   }
 
   return (
-    <WelcomeHudScreen
-      firstName={firstName}
-      maturity={maturity}
-      stats={stats}
-      isFR={locale === "fr"}
-      t={t}
-      onPersona={goPersona}
-      onDashboard={goDashboard}
-      onAssessment={goAssessment}
-      onSlideComplete={goDashboard}
-    />
+    <>
+      <WelcomeHudScreen
+        firstName={firstName}
+        maturity={maturity}
+        stats={stats}
+        isFR={locale === "fr"}
+        t={t}
+        onPersona={goPersona}
+        onDashboard={goDashboard}
+        onAssessment={goAssessment}
+        onSlideComplete={goDashboard}
+      />
+      <PulseFeatureAnnounceModal />
+    </>
   );
 }
