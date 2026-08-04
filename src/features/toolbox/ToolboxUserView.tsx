@@ -37,6 +37,7 @@ import {
   type ToolboxAssignmentStats,
 } from "@/features/toolbox/ToolboxAssignmentStatsStrip";
 import { useToolboxExerciseSessionOptional } from "@/features/toolbox/ToolboxExerciseSessionContext";
+import AddToCalendarButton from "@/features/toolbox/AddToCalendarButton";
 
 interface ToolboxItem {
   id: string;
@@ -921,13 +922,20 @@ export function ToolboxUserView({
                         >
                           <ToolboxAssignmentStatsStrip stats={getStatsForItem(item.id)} className="min-w-0" />
                           {!isWaiting ? (
-                            <ToolboxHabitLinkButton
-                              itemId={item.id}
-                              linked={linkedToHabits}
-                              busy={habitBusy}
-                              onToggle={(id) => void toggleHabitLink(id)}
-                              compact={false}
-                            />
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <ToolboxHabitLinkButton
+                                itemId={item.id}
+                                linked={linkedToHabits}
+                                busy={habitBusy}
+                                onToggle={(id) => void toggleHabitLink(id)}
+                                compact={false}
+                              />
+                              <AddToCalendarButton
+                                title={getLocalizedTitle(item)}
+                                description={getLocalizedDescription(item)}
+                                duration={item.duration}
+                              />
+                            </div>
                           ) : null}
                         </div>
                       </article>
@@ -1065,13 +1073,20 @@ export function ToolboxUserView({
                   onClick={(e) => e.stopPropagation()}
                 >
                   {!isWaiting ? (
-                    <ToolboxHabitLinkButton
-                      itemId={item.id}
-                      linked={linkedToHabits}
-                      busy={habitBusy}
-                      onToggle={(id) => void toggleHabitLink(id)}
-                      compact={false}
-                    />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <ToolboxHabitLinkButton
+                        itemId={item.id}
+                        linked={linkedToHabits}
+                        busy={habitBusy}
+                        onToggle={(id) => void toggleHabitLink(id)}
+                        compact={false}
+                      />
+                      <AddToCalendarButton
+                        title={getLocalizedTitle(item)}
+                        description={getLocalizedDescription(item)}
+                        duration={item.duration}
+                      />
+                    </div>
                   ) : null}
                   <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:ml-auto sm:justify-end">
                   {isWaiting ? (

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Check, Flame, ListChecks, Dumbbell, Brain, Heart, BookOpen, Moon, Zap, Target, Play, Headphones, Clock } from "lucide-react";
 import { getHabitToolboxDurationOptions, formatHabitDurationBadge } from "@/lib/toolbox-widget-duration";
+import AddToCalendarButton from "@/features/toolbox/AddToCalendarButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -339,6 +340,14 @@ export default function HabitTracker() {
                       </span>
                     ) : null}
                   </div>
+                </div>
+                <div className="shrink-0">
+                  <AddToCalendarButton
+                    title={habit.template_name}
+                    description={habit.template_category}
+                    duration={habit.duration_override_min ? `${habit.duration_override_min} min` : null}
+                    compact
+                  />
                 </div>
                 {habit.isToolboxLinked && habit.toolbox_assignment_id ? (() => {
                   const toolbox = toolboxItemsById[habit.toolbox_assignment_id];
