@@ -945,7 +945,8 @@ export function ToolboxUserView({
                                 title={getLocalizedTitle(item)}
                                 description={getLocalizedDescription(item)}
                                 duration={item.duration}
-                                url={`${window.location.origin}/toolbox?item=${item.id}`}
+                                path={`/toolbox?item=${item.id}`}
+                                category={item.category ?? undefined}
                               />
                             </div>
                           ) : null}
@@ -1097,7 +1098,8 @@ export function ToolboxUserView({
                         title={getLocalizedTitle(item)}
                         description={getLocalizedDescription(item)}
                         duration={item.duration}
-                        url={`${window.location.origin}/toolbox?item=${item.id}`}
+                        path={`/toolbox?item=${item.id}`}
+                                category={item.category ?? undefined}
                       />
                     </div>
                   ) : null}
