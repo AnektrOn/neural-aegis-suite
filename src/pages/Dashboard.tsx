@@ -16,6 +16,7 @@ import QuickLogModal from "@/components/QuickLogModal";
 import HabitsMiniCard from "@/components/HabitsMiniCard";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
+import PulseFeatureButton from "@/components/PulseFeatureButton";
 import { AegisHealthCard } from "@/components/AegisHealthCard";
 import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
 import { useDashboardData } from "@/hooks/useDashboardData";
