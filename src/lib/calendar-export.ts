@@ -83,7 +83,8 @@ export function buildIcs(input: CalendarEventInput): string {
     `DTEND:${toUtcStamp(end)}`,
     `SUMMARY:${escapeIcsText(input.title)}`,
   ];
-  if (input.description) lines.push(`DESCRIPTION:${escapeIcsText(input.description)}`);
+  const icsDetails = [input.description, input.url].filter(Boolean).join("\n\n");
+  if (icsDetails) lines.push(`DESCRIPTION:${escapeIcsText(icsDetails)}`);
   if (input.url) lines.push(`URL:${input.url}`);
   if (input.recurringDaily) lines.push("RRULE:FREQ=DAILY");
   lines.push("BEGIN:VALARM", "TRIGGER:-PT10M", "ACTION:DISPLAY", "DESCRIPTION:Reminder", "END:VALARM");
