@@ -133,6 +133,11 @@ export default function CalendarView() {
             <p className="text-lg font-cinzel text-foreground">{selectedData.journal}</p>
             <p className="text-neural-label">{t("nav.journal")}</p>
           </div>
+          <div className="bg-secondary/20 rounded-xl p-4 text-center">
+            <Wrench size={16} className="text-cyan-400 mx-auto mb-2" />
+            <p className="text-lg font-cinzel text-foreground">{selectedData.toolbox}</p>
+            <p className="text-neural-label">{t("nav.toolbox")}</p>
+          </div>
         </div>
       ) : (
         <p className="text-sm text-muted-foreground text-center py-4">{t("common.noActivityToday")}</p>
