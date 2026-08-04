@@ -16,6 +16,7 @@ import QuickLogModal from "@/components/QuickLogModal";
 import HabitsMiniCard from "@/components/HabitsMiniCard";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
+import PulseFeatureButton from "@/components/PulseFeatureButton";
 import { AegisHealthCard } from "@/components/AegisHealthCard";
 import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -335,6 +336,8 @@ export default function Dashboard() {
         </header>
 
         <AssessmentCTA />
+
+        <PulseFeatureButton />
 
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-5" aria-label={t("dashboard.pageTitle")}>
           <NavLink
