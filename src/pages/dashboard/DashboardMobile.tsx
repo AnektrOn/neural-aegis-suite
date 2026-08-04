@@ -9,6 +9,7 @@ import ScoreCard from "@/components/ScoreCard";
 import ScoreboardWidget from "@/components/ScoreboardWidget";
 import QuickLogModal from "@/components/QuickLogModal";
 import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
+import PulseFeatureButton from "@/components/PulseFeatureButton";
 import { PostAssessmentBanner } from "@/components/PostAssessmentBanner";
 import { WelcomeExperience, SetupProgressBanner } from "@/components/WelcomeExperience";
 import type { UserMaturityProfile } from "@/lib/userMaturity";
