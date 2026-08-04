@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Circle, CheckCircle2, Brain, Target, BookOpen, ListChecks } from "lucide-react";
+import { ChevronLeft, ChevronRight, Circle, CheckCircle2, Brain, Target, BookOpen, ListChecks, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -10,6 +10,7 @@ interface DayData {
   habits: number;
   decisions: number;
   journal: number;
+  toolbox: number;
 }
 
 export default function CalendarView() {
@@ -32,17 +33,18 @@ export default function CalendarView() {
     const startDate = new Date(year, month, 1).toISOString().split("T")[0];
     const endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
 
-    const [moodRes, habitRes, decRes, journalRes] = await Promise.all([
+    const [moodRes, habitRes, decRes, journalRes, toolboxRes] = await Promise.all([
       supabase.from("mood_entries" as any).select("value, logged_at").eq("user_id", user!.id).gte("logged_at", start).lte("logged_at", end),
       supabase.from("habit_completions" as any).select("completed_date").eq("user_id", user!.id).gte("completed_date", startDate).lte("completed_date", endDate),
       supabase.from("decisions" as any).select("created_at").eq("user_id", user!.id).gte("created_at", start).lte("created_at", end),
       supabase.from("journal_entries").select("created_at").eq("user_id", user!.id).gte("created_at", start).lte("created_at", end),
+      supabase.from("toolbox_completions" as any).select("completed_at, status").eq("user_id", user!.id).eq("status", "completed").gte("completed_at", start).lte("completed_at", end),
     ]);
 
     const map = new Map<string, DayData>();
 
     const getOrCreate = (dateStr: string): DayData => {
-      if (!map.has(dateStr)) map.set(dateStr, { mood: null, habits: 0, decisions: 0, journal: 0 });
+      if (!map.has(dateStr)) map.set(dateStr, { mood: null, habits: 0, decisions: 0, journal: 0, toolbox: 0 });
       return map.get(dateStr)!;
     };
 
@@ -62,6 +64,11 @@ export default function CalendarView() {
 
     ((journalRes.data as any[]) || []).forEach((j) => {
       getOrCreate(j.created_at.split("T")[0]).journal++;
+    });
+
+    ((toolboxRes.data as any[]) || []).forEach((tb) => {
+      if (!tb?.completed_at) return;
+      getOrCreate(String(tb.completed_at).split("T")[0]).toolbox++;
     });
 
     setMonthData(map);
@@ -126,6 +133,11 @@ export default function CalendarView() {
             <p className="text-lg font-cinzel text-foreground">{selectedData.journal}</p>
             <p className="text-neural-label">{t("nav.journal")}</p>
           </div>
+          <div className="bg-secondary/20 rounded-xl p-4 text-center">
+            <Wrench size={16} className="text-cyan-400 mx-auto mb-2" />
+            <p className="text-lg font-cinzel text-foreground">{selectedData.toolbox}</p>
+            <p className="text-neural-label">{t("nav.toolbox")}</p>
+          </div>
         </div>
       ) : (
         <p className="text-sm text-muted-foreground text-center py-4">{t("common.noActivityToday")}</p>
@@ -173,7 +185,7 @@ export default function CalendarView() {
             const data = monthData.get(dateStr);
             const isToday = dateStr === new Date().toISOString().split("T")[0];
             const isSelected = selectedDay === dateStr;
-            const hasActivity = data && (data.mood !== null || data.habits > 0 || data.decisions > 0 || data.journal > 0);
+            const hasActivity = data && (data.mood !== null || data.habits > 0 || data.decisions > 0 || data.journal > 0 || data.toolbox > 0);
 
             return (
               <button
@@ -196,6 +208,7 @@ export default function CalendarView() {
                     {data!.habits > 0 && <div className="w-1 h-1 rounded-full bg-emerald-500" />}
                     {data!.decisions > 0 && <div className="w-1 h-1 rounded-full bg-amber-500" />}
                     {data!.journal > 0 && <div className="w-1 h-1 rounded-full bg-violet-500" />}
+                    {data!.toolbox > 0 && <div className="w-1 h-1 rounded-full bg-cyan-400" />}
                   </div>
                 )}
               </button>
@@ -210,6 +223,7 @@ export default function CalendarView() {
             { color: "bg-emerald-500", label: t("nav.habits") },
             { color: "bg-amber-500", label: t("calendar.legendDecisions") },
             { color: "bg-violet-500", label: t("nav.journal") },
+            { color: "bg-cyan-400", label: t("nav.toolbox") },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${item.color}`} />
