@@ -360,6 +360,7 @@ export default function HabitTracker() {
                     title={habit.template_name}
                     description={habit.template_category}
                     duration={habit.duration_override_min ? `${habit.duration_override_min} min` : null}
+                    url={`${window.location.origin}/habits?habit=${habit.id}`}
                     compact
                   />
                 </div>
