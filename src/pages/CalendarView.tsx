@@ -223,6 +223,7 @@ export default function CalendarView() {
             { color: "bg-emerald-500", label: t("nav.habits") },
             { color: "bg-amber-500", label: t("calendar.legendDecisions") },
             { color: "bg-violet-500", label: t("nav.journal") },
+            { color: "bg-cyan-400", label: t("nav.toolbox") },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${item.color}`} />
