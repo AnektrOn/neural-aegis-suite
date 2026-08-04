@@ -945,6 +945,7 @@ export function ToolboxUserView({
                                 title={getLocalizedTitle(item)}
                                 description={getLocalizedDescription(item)}
                                 duration={item.duration}
+                                url={`${window.location.origin}/toolbox?item=${item.id}`}
                               />
                             </div>
                           ) : null}
