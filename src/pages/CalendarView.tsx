@@ -208,6 +208,7 @@ export default function CalendarView() {
                     {data!.habits > 0 && <div className="w-1 h-1 rounded-full bg-emerald-500" />}
                     {data!.decisions > 0 && <div className="w-1 h-1 rounded-full bg-amber-500" />}
                     {data!.journal > 0 && <div className="w-1 h-1 rounded-full bg-violet-500" />}
+                    {data!.toolbox > 0 && <div className="w-1 h-1 rounded-full bg-cyan-400" />}
                   </div>
                 )}
               </button>
