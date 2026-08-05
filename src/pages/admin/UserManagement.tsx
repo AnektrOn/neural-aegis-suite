@@ -277,7 +277,10 @@ export default function UserManagement() {
                   </select>
                 </div>
 
+                <AdminCredentialsForm userId={userData.id} displayName={userData.display_name} />
+
                 <ToolboxAssignmentForm userId={userData.id} onAssigned={loadUsers} />
+
               </motion.div>
             )}
           </motion.div>
