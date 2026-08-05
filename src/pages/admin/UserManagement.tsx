@@ -10,6 +10,7 @@ import { getActiveAlertCountsByUser } from "@/services/alertService";
 import CSVImport from "@/components/admin/CSVImport";
 import CreateUserForm from "@/components/admin/CreateUserForm";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
+import AdminCredentialsForm from "@/components/admin/AdminCredentialsForm";
 import { bilingualPair } from "@/lib/content-i18n";
 
 interface UserData {
