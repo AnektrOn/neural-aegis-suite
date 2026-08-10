@@ -3238,6 +3238,10 @@ export type Database = {
         Args: { p_email: string; p_locale?: string }
         Returns: undefined
       }
+      export_deep_dive_bundle_async: {
+        Args: { p_assessment_id?: string; p_user_id: string }
+        Returns: undefined
+      }
       export_to_drive_async: {
         Args: {
           p_category: string
