@@ -1087,10 +1087,8 @@ export async function submitSession(opts: {
   questions: RuntimeQuestion[];
   responses: ResponseValue[];
   startedAt: number;
-  /** Auto-upload the full data dump to Google Drive after submission (default true). */
-  autoExportToDrive?: boolean;
 }): Promise<{ analysis: AnalysisResult }> {
-  const { userId, sessionId, questions, responses, startedAt, autoExportToDrive = true } = opts;
+  const { userId, sessionId, questions, responses, startedAt } = opts;
 
 
   const questionById = new Map(questions.map((q) => [q.id, q]));
