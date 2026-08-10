@@ -161,6 +161,7 @@ export default function AdminGuestPreview() {
         questions: loaded.questions,
         responses,
         startedAt: Date.now(),
+        autoExportToDrive: false,
       });
       toast({
         title: t("admin.guest.fastQuiz.success"),
