@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     let userId: string | undefined = body.user_id;
 
     // Resolve by email when no user_id is supplied
-    if (!userId && typeof body.email === "string" && body.email.trim()) {
+    if (!userId && (action === "delete" || action === "get") && typeof body.email === "string" && body.email.trim()) {
       const target = body.email.trim().toLowerCase();
       let page = 1;
       while (page <= 20 && !userId) {
