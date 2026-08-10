@@ -1087,10 +1087,8 @@ export async function submitSession(opts: {
   questions: RuntimeQuestion[];
   responses: ResponseValue[];
   startedAt: number;
-  /** Auto-upload the full data dump to Google Drive after submission (default true). */
-  autoExportToDrive?: boolean;
 }): Promise<{ analysis: AnalysisResult }> {
-  const { userId, sessionId, questions, responses, startedAt, autoExportToDrive = true } = opts;
+  const { userId, sessionId, questions, responses, startedAt } = opts;
 
 
   const questionById = new Map(questions.map((q) => [q.id, q]));
@@ -1250,27 +1248,6 @@ export async function submitSession(opts: {
     });
   } catch (e) {
     console.warn("createSnapshot (core_assessment) failed", e);
-  }
-
-  // Auto-upload the full data dump to Google Drive (fire-and-forget)
-  if (autoExportToDrive) {
-    void (async () => {
-      try {
-        const { exportDeepDiveV2ToDrive } = await import(
-          "@/features/archetype-deepdive-v2/services/exportDeepDiveToDrive"
-        );
-        await exportDeepDiveV2ToDrive({
-          userId,
-          assessmentId: sessionId,
-          exportType: "user",
-          format: "json",
-          filenameStem: "auto-submission",
-          payload: { source: "auto_submit", analysis },
-        });
-      } catch (e) {
-        console.warn("[Drive] auto export after submit failed", e);
-      }
-    })();
   }
 
   return { analysis };

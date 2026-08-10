@@ -1,0 +1,9 @@
+REVOKE ALL ON FUNCTION public.trg_auto_export_deep_dive_bundle_on_assessment() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_auto_export_completed_deep_dive_bundle() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_export_relation_quality_log() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_export_daily_action_log() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_export_pulse_interaction_log() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_export_finished_user_session_log() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_export_input_hesitation_log() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_export_app_update_event_log() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_export_user_app_version_log() FROM PUBLIC, anon, authenticated;
