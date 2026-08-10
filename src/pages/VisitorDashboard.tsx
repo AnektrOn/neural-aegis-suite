@@ -20,10 +20,7 @@ import {
   getLatestSubmittedSessionForUser,
   archetypeMeta,
 } from "@/features/archetype-assessment/services/assessmentService";
-import {
-  VISITOR_AUDIT_BOOKING_URL,
-  VISITOR_PAYMENT_CTA_URL,
-} from "@/lib/authVisitor";
+import { VISITOR_PAYMENT_CTA_URL } from "@/lib/authVisitor";
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
 
 export default function VisitorDashboard() {
@@ -80,18 +77,6 @@ export default function VisitorDashboard() {
     toast({
       title: t("visitor.payment.soonTitle"),
       description: t("visitor.payment.soonDesc"),
-    });
-  };
-
-  const handleAudit = () => {
-    if (VISITOR_AUDIT_BOOKING_URL) {
-      window.open(VISITOR_AUDIT_BOOKING_URL, "_blank", "noopener,noreferrer");
-      return;
-    }
-    toast({
-      title: t("toast.error"),
-      description: t("visitor.audit.missingUrl"),
-      variant: "destructive",
     });
   };
 
@@ -174,25 +159,14 @@ export default function VisitorDashboard() {
         </Button>
       </NeuralCard>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <NeuralCard className="p-5 space-y-3">
-          <CreditCard className="w-5 h-5 text-primary" />
-          <h3 className="font-serif">{t("visitor.payment.title")}</h3>
-          <p className="text-xs text-muted-foreground">{t("visitor.payment.desc")}</p>
-          <Button variant="outline" className="w-full" onClick={handlePayment}>
-            {t("visitor.payment.cta")}
-          </Button>
-        </NeuralCard>
-
-        <NeuralCard className="p-5 space-y-3">
-          <CalendarCheck className="w-5 h-5 text-primary" />
-          <h3 className="font-serif">{t("visitor.audit.title")}</h3>
-          <p className="text-xs text-muted-foreground">{t("visitor.audit.desc")}</p>
-          <Button className="w-full" onClick={handleAudit}>
-            {t("visitor.audit.cta")}
-          </Button>
-        </NeuralCard>
-      </div>
+      <NeuralCard className="p-5 space-y-3">
+        <CreditCard className="w-5 h-5 text-primary" />
+        <h3 className="font-serif">{t("visitor.payment.title")}</h3>
+        <p className="text-xs text-muted-foreground">{t("visitor.payment.desc")}</p>
+        <Button variant="outline" className="w-full" onClick={handlePayment}>
+          {t("visitor.payment.cta")}
+        </Button>
+      </NeuralCard>
     </div>
   );
 }
