@@ -42,7 +42,7 @@ for (const q of CATALOG_QUESTIONS) for (const o of q.options) CATALOG_OPT_BY_COD
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-internal-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -268,6 +268,33 @@ function renderProfileMd(d: any, generatedAt: string): string {
   lines.push("---", "", "# Profil utilisateur", "");
   lines.push(`_Généré le ${generatedAt}_`, "");
   lines.push("```json", JSON.stringify(d.profile, null, 2), "```", "");
+  return lines.join("\n");
+}
+
+function renderAutomaticReportMd(d: any, computed: DeepDiveComputed, generatedAt: string): string {
+  const profileName = d.profile?.display_name || d.profile?.id || "Utilisateur";
+  const latestSession = d.assessment_sessions?.[0];
+  const top = computed.archRanking.slice(0, 5);
+  const lines = [
+    "# Deep Dive — export automatique",
+    "",
+    `_Synchronisé automatiquement le ${generatedAt}_`,
+    "",
+    `- **Utilisateur :** ${profileName}`,
+    `- **Session :** ${d.targetSessionId ?? latestSession?.id ?? "-"}`,
+    `- **Statut :** ${latestSession?.status ?? "-"}`,
+    `- **Réponses Deep Dive :** ${computed.answered}/${CATALOG_QUESTIONS.length}`,
+    "",
+    "## Synthèse des archétypes",
+    "",
+  ];
+  if (top.length === 0) {
+    lines.push("_Aucun score disponible pour le moment._");
+  } else {
+    lines.push("| Rang | Archétype | Lumière | Ombre | Net | Total |", "|---|---|---:|---:|---:|---:|");
+    top.forEach((a, index) => lines.push(`| ${index + 1} | ${a.archetype} | ${a.light} | ${a.shadow} | ${a.net} | ${a.total} |`));
+  }
+  lines.push("", "_Les fichiers annexes de ce dossier contiennent toutes les réponses, analyses, scores et données brutes._", "");
   return lines.join("\n");
 }
 
@@ -521,19 +548,31 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
 
     const auth = req.headers.get("Authorization") || "";
-    if (!auth.startsWith("Bearer ")) {
+    const internalSecret = Deno.env.get("EXPORT_INTERNAL_SECRET") || "";
+    const suppliedInternalSecret = req.headers.get("x-internal-secret") || "";
+    const isInternal = !!internalSecret && suppliedInternalSecret === internalSecret;
+    if (!isInternal && !auth.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: auth } },
-    });
-    const { data: { user }, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let callerUserId = "system:auto-export";
+    let isAdmin = isInternal;
+    if (!isInternal) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: auth } },
       });
+      const { data: { user }, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      callerUserId = user.id;
+      const { data: roleRow } = await admin
+        .from("user_roles").select("role")
+        .eq("user_id", user.id).eq("role", "admin").maybeSingle();
+      isAdmin = !!roleRow;
     }
 
     const body = await req.json().catch(() => ({}));
@@ -551,17 +590,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: roleRow } = await admin
-      .from("user_roles").select("role")
-      .eq("user_id", user.id).eq("role", "admin").maybeSingle();
-    const isAdmin = !!roleRow;
-
     if (exportType === "admin" && !isAdmin) {
       return new Response(JSON.stringify({ error: "Admin role required for admin export" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (exportType === "user" && user.id !== userId && !isAdmin) {
+    if (exportType === "user" && callerUserId !== userId && !isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden: cannot export another user's report" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -582,7 +616,7 @@ Deno.serve(async (req) => {
       generatedAt: generatedAtIso,
       userId,
       assessmentId: assessmentId ?? null,
-      generatedBy: user.id,
+      generatedBy: callerUserId,
     });
 
     // ---- Fetch ALL related data (deep dive + quiz + archetypes) ----
@@ -600,7 +634,7 @@ Deno.serve(async (req) => {
           generatedAt: generatedAtIso,
           userId,
           assessmentId: assessmentId ?? null,
-          generatedBy: user.id,
+          generatedBy: callerUserId,
           data: obj,
         },
         null,
@@ -626,7 +660,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (typeof content !== "string" || !content.trim()) {
+    const resolvedContent = typeof content === "string" && content.trim()
+      ? content.trim()
+      : isInternal
+        ? renderAutomaticReportMd(fullData, computed, generatedAtIso)
+        : null;
+
+    if (!resolvedContent) {
       return new Response(JSON.stringify({ error: "Missing 'content' (markdown report) for format=markdown" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -634,7 +674,7 @@ Deno.serve(async (req) => {
 
     if (singleMarkdownFile) {
       const appendix = renderFullDataAppendix(fullData, computed);
-      const fileBody = metaComment + content.trim() + "\n\n" + appendix;
+      const fileBody = metaComment + resolvedContent + "\n\n" + appendix;
       const fileName = `${ts}_${stem}.md`;
       const uploaded = await uploadFile(ddFolderId, fileName, fileBody, "text/markdown");
       return new Response(
@@ -679,7 +719,7 @@ Deno.serve(async (req) => {
         }),
         mimeType: "text/markdown",
       },
-      { name: "01-rapport.md", body: metaComment + content.trim(), mimeType: "text/markdown" },
+      { name: "01-rapport.md", body: metaComment + resolvedContent, mimeType: "text/markdown" },
       { name: "02-profil.md", body: metaComment + renderProfileMd(fullData, generatedAtIso), mimeType: "text/markdown" },
       {
         name: "03-deep-dive-70-questions.md",
