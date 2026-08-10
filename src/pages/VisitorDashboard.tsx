@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Sparkles,
   CreditCard,
-  CalendarCheck,
   ArrowRight,
   CheckCircle2,
   Circle,
