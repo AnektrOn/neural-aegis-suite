@@ -1252,27 +1252,6 @@ export async function submitSession(opts: {
     console.warn("createSnapshot (core_assessment) failed", e);
   }
 
-  // Auto-upload the full data dump to Google Drive (fire-and-forget)
-  if (autoExportToDrive) {
-    void (async () => {
-      try {
-        const { exportDeepDiveV2ToDrive } = await import(
-          "@/features/archetype-deepdive-v2/services/exportDeepDiveToDrive"
-        );
-        await exportDeepDiveV2ToDrive({
-          userId,
-          assessmentId: sessionId,
-          exportType: "user",
-          format: "json",
-          filenameStem: "auto-submission",
-          payload: { source: "auto_submit", analysis },
-        });
-      } catch (e) {
-        console.warn("[Drive] auto export after submit failed", e);
-      }
-    })();
-  }
-
   return { analysis };
 
 }
