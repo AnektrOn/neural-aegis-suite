@@ -39,8 +39,31 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const action = body.action ?? "update";
-    const userId: string | undefined = body.user_id;
+    let userId: string | undefined = body.user_id;
+
+    // Resolve by email when no user_id is supplied
+    if (!userId && (action === "delete" || action === "get") && typeof body.email === "string" && body.email.trim()) {
+      const target = body.email.trim().toLowerCase();
+      let page = 1;
+      while (page <= 20 && !userId) {
+        const { data: list, error: listErr } = await adminClient.auth.admin.listUsers({ page, perPage: 200 });
+        if (listErr) return json({ error: listErr.message }, 400);
+        const found = list.users.find((u) => (u.email ?? "").toLowerCase() === target);
+        if (found) userId = found.id;
+        if (list.users.length < 200) break;
+        page++;
+      }
+      if (!userId) return json({ error: `User not found: ${body.email}` }, 404);
+    }
+
     if (!userId) return json({ error: "user_id is required" }, 400);
+
+    if (action === "delete") {
+      if (userId === caller.id) return json({ error: "Cannot delete yourself" }, 400);
+      const { error } = await adminClient.auth.admin.deleteUser(userId);
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true, deleted: userId });
+    }
 
     if (action === "get") {
       const { data, error } = await adminClient.auth.admin.getUserById(userId);
