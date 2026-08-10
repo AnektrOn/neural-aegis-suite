@@ -177,9 +177,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const internalSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const serviceSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const exportSecret = Deno.env.get("EXPORT_INTERNAL_SECRET") || "";
     const auth = req.headers.get("Authorization") || "";
-    const isInternal = auth === `Bearer ${internalSecret}`;
+    const internalHeader = req.headers.get("x-internal-secret") || "";
+    const isInternal =
+      (!!serviceSecret && auth === `Bearer ${serviceSecret}`) ||
+      (!!exportSecret && internalHeader === exportSecret);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
