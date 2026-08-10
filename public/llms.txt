@@ -1,13 +1,19 @@
 # Aegis
 
-> Personal archetype and mental health platform: mood tracking, decision journaling, habit coaching, and AI-guided insights.
+> A private, clinically rigorous coaching suite for executives and leaders:
+> archetype exegesis, mood and decision analytics, habit architecture and
+> confidential deep-dive reports.
 
-Aegis helps individuals discover their personal archetype and build a
-sustained practice around mood, decisions, habits and relationships,
-supported by AI-generated coaching insights.
+Aegis pairs clinical assessment with daily practice. Each member works from a
+personal archetype cartography, then sustains it through measured mood,
+decision, habit and relationship tracking — with AI-assisted insight and
+coach-authored deep-dive reports delivered privately in the app.
+
+Aegis is invitation-only: accounts are created by coaches and administrators,
+there is no public sign-up. The interface is bilingual (French / English).
 
 ## Pages
-- [Home](/): Introduction to the Aegis platform.
-- [Sign in](/auth): Access an existing Aegis account.
+- [Home](/): The Aegis practice — positioning and entry point.
+- [Sign in](/auth): Private access for existing members.
 - [Newsletter](/newsletter): Public editions on archetypes, mental
   fitness and leadership.
