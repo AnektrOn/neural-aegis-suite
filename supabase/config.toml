@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.get-paddle-price]
 verify_jwt = false
+
+[functions.manage-subscription]
+verify_jwt = false

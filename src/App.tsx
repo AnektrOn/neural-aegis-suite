@@ -11,6 +11,7 @@ import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RequireSubscription from "@/components/RequireSubscription";
 import VisitorRoute from "@/components/VisitorRoute";
 import AdminRoute from "@/components/AdminRoute";
 import AdminLegacyRedirect from "@/components/admin/AdminLegacyRedirect";
@@ -285,6 +286,7 @@ const App = () => (
                   path="/*"
                   element={
                     <ProtectedRoute>
+                      <RequireSubscription>
                       <AppLayout>
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
@@ -314,6 +316,7 @@ const App = () => (
                           </Routes>
                         </Suspense>
                       </AppLayout>
+                      </RequireSubscription>
                     </ProtectedRoute>
                   }
                 />
