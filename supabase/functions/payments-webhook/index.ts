@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { verifyWebhook, EventName, type PaddleEnv } from '../_shared/paddle.ts';
+import { verifyWebhook, getPaddleClient, EventName, type PaddleEnv } from '../_shared/paddle.ts';
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -85,6 +85,9 @@ async function onPurchaseActivated(userId: string, productId: string, priceId: s
   }
 }
 
+/** Ultra en mensualités : 6 prélèvements de 1 500 €, puis arrêt automatique. */
+const INSTALLMENT_PLANS: Record<string, number> = { aegis_ultra_monthly: 6 };
+
 async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
   const { id, customerId, items, status, currentBillingPeriod, customData } = data;
 
@@ -105,6 +108,8 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     return;
   }
 
+  const total = INSTALLMENT_PLANS[priceId] ?? null;
+
   const { error } = await getSupabase().from('subscriptions').upsert(
     {
       user_id: userId,
@@ -116,6 +121,7 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
       current_period_start: currentBillingPeriod?.startsAt,
       current_period_end: currentBillingPeriod?.endsAt,
       environment: env,
+      installments_total: total,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'paddle_subscription_id' },
@@ -129,6 +135,7 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     await onPurchaseActivated(userId, productId, priceId);
   }
 }
+
 
 async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
   const { id, status, currentBillingPeriod, scheduledChange, items } = data;
@@ -224,29 +231,95 @@ async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
   const supabase = getSupabase();
   const { data: existing } = await supabase
     .from('subscriptions')
-    .select('user_id')
+    .select('user_id, installments_total, installments_paid, current_period_end')
     .eq('paddle_subscription_id', data.id)
     .eq('environment', env)
     .maybeSingle();
+
+  // Plan échelonné soldé : l'annulation est volontaire côté plateforme,
+  // l'accès reste ouvert jusqu'à la date déjà provisionnée (12 mois).
+  const settled =
+    !!existing?.installments_total &&
+    (existing.installments_paid as number) >= (existing.installments_total as number);
 
   await supabase
     .from('subscriptions')
     .update({
       status: 'canceled',
-      current_period_end: data.currentBillingPeriod?.endsAt ?? data.canceledAt,
+      current_period_end: settled
+        ? existing?.current_period_end
+        : (data.currentBillingPeriod?.endsAt ?? data.canceledAt),
       updated_at: new Date().toISOString(),
     })
     .eq('paddle_subscription_id', data.id)
     .eq('environment', env);
 
-  if (existing?.user_id) {
+  if (existing?.user_id && !settled) {
     await notifyAdmins('Abonnement annulé', `Abonnement ${data.id} annulé.`, '/admin/users');
   }
 }
 
+/** Compte les mensualités Ultra et stoppe le prélèvement après la 6e. */
+async function handleInstallmentPayment(subscriptionId: string, env: PaddleEnv) {
+  const supabase = getSupabase();
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('user_id, installments_paid, installments_total, current_period_start')
+    .eq('paddle_subscription_id', subscriptionId)
+    .eq('environment', env)
+    .maybeSingle();
+
+  const total = sub?.installments_total as number | null;
+  if (!sub || !total) return;
+
+  const paid = ((sub.installments_paid as number) ?? 0) + 1;
+  const patch: Record<string, unknown> = {
+    installments_paid: paid,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (paid >= total) {
+    // Accès Ultra garanti 12 mois à partir du 1er prélèvement.
+    const start = sub.current_period_start ? new Date(sub.current_period_start as string) : new Date();
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + 12);
+    patch.current_period_end = end.toISOString();
+
+    try {
+      const paddle = getPaddleClient(env);
+      await paddle.subscriptions.cancel(subscriptionId, { effectiveFrom: 'next_billing_period' });
+    } catch (e) {
+      console.error('installment cancel failed:', e);
+      await notifyAdmins(
+        '⚠️ Arrêt automatique Ultra échoué',
+        `Impossible d'annuler ${subscriptionId} après la ${total}e mensualité. Annuler manuellement.`,
+        '/admin/users',
+      );
+    }
+
+    if (sub.user_id) {
+      await notifyUser(
+        sub.user_id as string,
+        'Ultra intégralement réglé',
+        `Votre ${total}e et dernière mensualité est réglée. Aucun autre prélèvement ne sera effectué.`,
+        '/dashboard',
+      );
+    }
+  }
+
+  await supabase
+    .from('subscriptions')
+    .update(patch)
+    .eq('paddle_subscription_id', subscriptionId)
+    .eq('environment', env);
+}
+
 /** One-time purchases (e.g. Ultra upfront) have no subscription entity. */
 async function handleTransactionCompleted(data: any, env: PaddleEnv) {
-  if (data.subscriptionId) return; // handled by subscription events
+  if (data.subscriptionId) {
+    await handleInstallmentPayment(data.subscriptionId, env);
+    return;
+  }
 
   const userId = data.customData?.userId;
   const item = data.items?.[0];
@@ -284,6 +357,25 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
   await onPurchaseActivated(userId, productId, priceId);
 }
 
+/** Échec de paiement isolé — l'accès n'est coupé qu'au passage en past_due. */
+async function handleTransactionPaymentFailed(data: any, env: PaddleEnv) {
+  if (!data.subscriptionId) return;
+  const { data: sub } = await getSupabase()
+    .from('subscriptions')
+    .select('user_id')
+    .eq('paddle_subscription_id', data.subscriptionId)
+    .eq('environment', env)
+    .maybeSingle();
+  if (!sub?.user_id) return;
+  await notifyUser(
+    sub.user_id as string,
+    'Prélèvement refusé',
+    "Votre banque a refusé le dernier prélèvement. Mettez à jour votre moyen de paiement pour éviter la suspension.",
+    '/pricing',
+  );
+}
+
+
 async function handleWebhook(req: Request, env: PaddleEnv) {
   const event = await verifyWebhook(req, env);
 
@@ -300,6 +392,10 @@ async function handleWebhook(req: Request, env: PaddleEnv) {
     case EventName.TransactionCompleted:
       await handleTransactionCompleted(event.data, env);
       break;
+    case EventName.TransactionPaymentFailed:
+      await handleTransactionPaymentFailed(event.data, env);
+      break;
+
     default:
       console.log('Unhandled event:', event.eventType);
   }

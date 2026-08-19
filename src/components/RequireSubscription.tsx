@@ -5,9 +5,11 @@ import { useLanguage } from "@/i18n/LanguageContext";
 
 /**
  * Gates the member application behind an active plan.
- * Admins always pass. Users with a failed payment (past_due) are sent to
- * the pricing page so they can fix their payment method.
+ * Admins always pass. Account-management routes stay reachable without a plan
+ * so free / past_due users can still manage their account and pay.
  */
+const FREE_PATHS = ["/profile", "/settings", "/install"];
+
 export default function RequireSubscription({ children }: { children: React.ReactNode }) {
   const { isActive, loading } = useSubscription();
   const { isAdmin, loading: adminLoading } = useAdmin();
@@ -26,9 +28,14 @@ export default function RequireSubscription({ children }: { children: React.Reac
     );
   }
 
-  if (!isAdmin && !isActive) {
+  const isFreePath = FREE_PATHS.some(
+    (p) => location.pathname === p || location.pathname.startsWith(`${p}/`),
+  );
+
+  if (!isAdmin && !isActive && !isFreePath) {
     return <Navigate to="/pricing" replace state={{ from: location.pathname }} />;
   }
 
   return <>{children}</>;
 }
+
