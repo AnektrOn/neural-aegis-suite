@@ -12,6 +12,7 @@ export interface SubscriptionRow {
   status: string;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
+  paddle_subscription_id: string;
 }
 
 function tierFromProduct(productId?: string | null): PlanTier {
@@ -20,11 +21,17 @@ function tierFromProduct(productId?: string | null): PlanTier {
   return "free";
 }
 
+/**
+ * Business rules:
+ * - active / trialing → access while the period is not over
+ * - canceled → access kept until the end of the paid period
+ * - past_due → access restricted immediately (payment must be fixed)
+ */
 function computeActive(row: SubscriptionRow | null): boolean {
   if (!row) return false;
   const end = row.current_period_end ? new Date(row.current_period_end).getTime() : null;
   const future = end === null || end > Date.now();
-  if (["active", "trialing", "past_due"].includes(row.status)) return future;
+  if (row.status === "active" || row.status === "trialing") return future;
   if (row.status === "canceled") return end !== null && end > Date.now();
   return false;
 }
@@ -32,23 +39,36 @@ function computeActive(row: SubscriptionRow | null): boolean {
 export function useSubscription() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
+  const [planOverride, setPlanOverride] = useState<PlanTier | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchSubscription = useCallback(async () => {
     if (!user?.id) {
       setSubscription(null);
+      setPlanOverride(null);
       setLoading(false);
       return;
     }
-    const { data } = await supabase
-      .from("subscriptions")
-      .select("id, product_id, price_id, status, current_period_end, cancel_at_period_end")
-      .eq("user_id", user.id)
-      .eq("environment", getPaddleEnvironment())
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setSubscription((data as SubscriptionRow) ?? null);
+
+    const [{ data: sub }, { data: profile }] = await Promise.all([
+      supabase
+        .from("subscriptions")
+        .select(
+          "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
+        )
+        .eq("user_id", user.id)
+        .eq("environment", getPaddleEnvironment())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from("profiles").select("plan_override").eq("id", user.id).maybeSingle(),
+    ]);
+
+    setSubscription((sub as SubscriptionRow) ?? null);
+    const override = (profile as { plan_override?: string | null } | null)?.plan_override;
+    setPlanOverride(
+      override === "ultra" || override === "matrix" ? (override as PlanTier) : null,
+    );
     setLoading(false);
   }, [user?.id]);
 
@@ -71,15 +91,21 @@ export function useSubscription() {
     };
   }, [user?.id, fetchSubscription]);
 
-  const isActive = computeActive(subscription);
-  const tier: PlanTier = isActive ? tierFromProduct(subscription?.product_id) : "free";
+  const paidActive = computeActive(subscription);
+  const paidTier: PlanTier = paidActive ? tierFromProduct(subscription?.product_id) : "free";
+  const tier: PlanTier = paidTier !== "free" ? paidTier : (planOverride ?? "free");
+  const isPastDue = subscription?.status === "past_due";
 
   return {
     subscription,
     loading,
-    isActive,
+    /** Paid access is currently valid (Paddle or admin override). */
+    isActive: tier !== "free",
+    /** Payment failed — access is restricted until it is fixed. */
+    isPastDue,
+    isRestricted: isPastDue && !planOverride,
     tier,
-    isPastDue: subscription?.status === "past_due",
+    planOverride,
     refetch: fetchSubscription,
   };
 }

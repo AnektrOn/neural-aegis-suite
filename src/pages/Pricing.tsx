@@ -13,6 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import PaymentTestModeBanner from "@/components/PaymentTestModeBanner";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { getPaddleEnvironment } from "@/lib/paddle";
+import { toast } from "sonner";
 
 type Billing = "monthly" | "yearly";
 
@@ -20,7 +23,8 @@ export default function Pricing() {
   const { locale } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { tier } = useSubscription();
+  const { tier, subscription, refetch } = useSubscription();
+
   const { openCheckout, loading } = usePaddleCheckout();
   const [billing, setBilling] = useState<Billing>("monthly");
   const [pending, setPending] = useState<string | null>(null);
@@ -110,6 +114,17 @@ export default function Pricing() {
     }
     setPending(priceId);
     try {
+      // Déjà abonné → changement de forfait immédiat au prorata (pas de nouveau checkout).
+      if (subscription && subscription.status !== "canceled" && !subscription.paddle_subscription_id.startsWith("txn_")) {
+        const { data, error } = await supabase.functions.invoke("manage-subscription", {
+          body: { action: "change_plan", priceId, environment: getPaddleEnvironment() },
+        });
+        if (!error && !(data as { error?: string })?.error) {
+          toast.success(isFR ? "Forfait mis à jour au prorata." : "Plan updated with proration.");
+          await refetch();
+          return;
+        }
+      }
       await openCheckout({
         priceId,
         customerEmail: user.email ?? undefined,
@@ -121,7 +136,25 @@ export default function Pricing() {
     }
   };
 
+  const openPortal = async () => {
+    setPending("portal");
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-subscription", {
+        body: { action: "portal", environment: getPaddleEnvironment() },
+      });
+      const url = (data as { url?: string })?.url;
+      if (error || !url) {
+        toast.error(isFR ? "Portail indisponible." : "Portal unavailable.");
+        return;
+      }
+      window.open(url, "_blank", "noopener");
+    } finally {
+      setPending(null);
+    }
+  };
+
   const busy = (priceId: string) => loading && pending === priceId;
+
 
   return (
     <div className="min-h-screen bg-aegis-gradient">
@@ -157,7 +190,26 @@ export default function Pricing() {
           </Badge>
           <h1 className="font-display text-3xl sm:text-4xl tracking-wide text-foreground">{copy.title}</h1>
           <p className="text-sm text-muted-foreground">{copy.subtitle}</p>
+          {subscription?.status === "past_due" && (
+            <p className="text-sm text-destructive">
+              {isFR
+                ? "Paiement échoué : votre accès est suspendu. Mettez à jour votre moyen de paiement."
+                : "Payment failed: your access is suspended. Please update your payment method."}
+            </p>
+          )}
+          {subscription && (
+            <Button
+              variant="outline"
+              className="min-h-[44px]"
+              onClick={openPortal}
+              disabled={pending === "portal"}
+            >
+              {pending === "portal" ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : null}
+              {isFR ? "Gérer mon abonnement" : "Manage my subscription"}
+            </Button>
+          )}
         </motion.header>
+
 
         <div className="flex justify-center mb-10">
           <div className="inline-flex rounded-full border border-border p-1 bg-background/40 backdrop-blur">
