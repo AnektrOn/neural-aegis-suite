@@ -190,7 +190,26 @@ export default function Pricing() {
           </Badge>
           <h1 className="font-display text-3xl sm:text-4xl tracking-wide text-foreground">{copy.title}</h1>
           <p className="text-sm text-muted-foreground">{copy.subtitle}</p>
+          {subscription?.status === "past_due" && (
+            <p className="text-sm text-destructive">
+              {isFR
+                ? "Paiement échoué : votre accès est suspendu. Mettez à jour votre moyen de paiement."
+                : "Payment failed: your access is suspended. Please update your payment method."}
+            </p>
+          )}
+          {subscription && (
+            <Button
+              variant="outline"
+              className="min-h-[44px]"
+              onClick={openPortal}
+              disabled={pending === "portal"}
+            >
+              {pending === "portal" ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : null}
+              {isFR ? "Gérer mon abonnement" : "Manage my subscription"}
+            </Button>
+          )}
         </motion.header>
+
 
         <div className="flex justify-center mb-10">
           <div className="inline-flex rounded-full border border-border p-1 bg-background/40 backdrop-blur">
