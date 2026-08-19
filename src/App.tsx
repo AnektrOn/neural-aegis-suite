@@ -168,6 +168,7 @@ const App = () => (
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/checkout/success" element={<CheckoutSuccess />} />
                 <Route path="/install-android" element={<InstallAndroid />} />
+                <Route path="/newsletter" element={<NewsletterLayout />}>
                   <Route index element={<Newsletter />} />
                   <Route path=":slug" element={<NewsletterEditionPage />} />
                 </Route>
