@@ -13,6 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import PaymentTestModeBanner from "@/components/PaymentTestModeBanner";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { getPaddleEnvironment } from "@/lib/paddle";
+import { toast } from "sonner";
 
 type Billing = "monthly" | "yearly";
 
@@ -20,7 +23,8 @@ export default function Pricing() {
   const { locale } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { tier } = useSubscription();
+  const { tier, subscription, refetch } = useSubscription();
+
   const { openCheckout, loading } = usePaddleCheckout();
   const [billing, setBilling] = useState<Billing>("monthly");
   const [pending, setPending] = useState<string | null>(null);
