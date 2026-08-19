@@ -37,19 +37,21 @@ Deno.serve(async (req) => {
     const user = userData?.user;
     if (userError || !user) return json({ error: 'Unauthorized' }, 401);
 
-    const { action, priceId, environment } = await req.json();
-    const env: PaddleEnv = environment === 'live' ? 'live' : 'sandbox';
+    const { action, priceId } = await req.json();
 
+    // L'environnement n'est jamais pris du client : il vient de l'abonnement stocké.
     const { data: sub } = await supabase
       .from('subscriptions')
-      .select('paddle_subscription_id, paddle_customer_id, status, product_id')
+      .select('paddle_subscription_id, paddle_customer_id, status, product_id, environment')
       .eq('user_id', user.id)
-      .eq('environment', env)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (!sub) return json({ error: 'No subscription found' }, 404);
+
+    const env: PaddleEnv = sub.environment === 'live' ? 'live' : 'sandbox';
+
 
     const paddle = getPaddleClient(env);
 
