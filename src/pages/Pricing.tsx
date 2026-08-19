@@ -261,7 +261,7 @@ export default function Pricing() {
               {tier === "matrix" && <Badge variant="secondary">{copy.current}</Badge>}
             </div>
             <p className="font-display text-3xl">
-              {billing === "monthly" ? "29 €" : "299 €"}
+              {billing === "monthly" ? "39 €" : "299 €"}
               <span className="text-sm text-muted-foreground font-sans">
                 {billing === "monthly" ? (isFR ? " / mois" : " / month") : isFR ? " / an" : " / year"}
               </span>
