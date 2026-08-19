@@ -3,12 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { Button } from "@/components/ui/button";
 
 export default function CheckoutSuccess() {
   const { locale } = useLanguage();
   const { refetch, isActive } = useSubscription();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const isFR = locale === "fr";
 
@@ -21,12 +24,29 @@ export default function CheckoutSuccess() {
     };
   }, [refetch]);
 
-  // Onboarding automatique dès que l'accès est activé.
+  // Onboarding automatique dès que l'accès est activé — sauf si le bilan est déjà fait.
   useEffect(() => {
     if (!isActive) return;
-    const id = setTimeout(() => navigate("/onboarding/assessment", { replace: true }), 2500);
-    return () => clearTimeout(id);
-  }, [isActive, navigate]);
+    let cancelled = false;
+    const id = setTimeout(async () => {
+      let done = false;
+      if (user?.id) {
+        const { data } = await supabase
+          .from("assessment_sessions")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("status", "submitted")
+          .limit(1);
+        done = !!data?.length;
+      }
+      if (!cancelled) navigate(done ? "/dashboard" : "/onboarding/assessment", { replace: true });
+    }, 2500);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [isActive, navigate, user?.id]);
+
 
 
   return (
