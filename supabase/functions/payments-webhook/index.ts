@@ -85,6 +85,9 @@ async function onPurchaseActivated(userId: string, productId: string, priceId: s
   }
 }
 
+/** Ultra en mensualités : 6 prélèvements de 1 500 €, puis arrêt automatique. */
+const INSTALLMENT_PLANS: Record<string, number> = { aegis_ultra_monthly: 6 };
+
 async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
   const { id, customerId, items, status, currentBillingPeriod, customData } = data;
 
@@ -105,6 +108,8 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     return;
   }
 
+  const total = INSTALLMENT_PLANS[priceId] ?? null;
+
   const { error } = await getSupabase().from('subscriptions').upsert(
     {
       user_id: userId,
@@ -116,6 +121,7 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
       current_period_start: currentBillingPeriod?.startsAt,
       current_period_end: currentBillingPeriod?.endsAt,
       environment: env,
+      installments_total: total,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'paddle_subscription_id' },
@@ -129,6 +135,7 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     await onPurchaseActivated(userId, productId, priceId);
   }
 }
+
 
 async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
   const { id, status, currentBillingPeriod, scheduledChange, items } = data;
