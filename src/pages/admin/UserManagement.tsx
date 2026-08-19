@@ -290,6 +290,20 @@ export default function UserManagement() {
                   </select>
                 </div>
 
+                <div>
+                  <p className="text-neural-label mb-2">Accès accordé manuellement</p>
+                  <select value={userData.plan_override || ""} onChange={(e) => assignPlanOverride(userData.id, e.target.value || null)}
+                    className="bg-secondary/20 border border-border/20 rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:border-neural-accent/30">
+                    <option value="">Aucun (paiement requis)</option>
+                    <option value="matrix">Matrice (offert)</option>
+                    <option value="ultra">Ultra (offert)</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Débloque l'application sans abonnement Paddle.
+                  </p>
+                </div>
+
+
                 <AdminCredentialsForm userId={userData.id} displayName={userData.display_name} />
 
                 <ToolboxAssignmentForm userId={userData.id} onAssigned={loadUsers} />
