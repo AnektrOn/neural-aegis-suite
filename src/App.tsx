@@ -38,6 +38,8 @@ const InstallApp = lazy(() => import("./pages/InstallApp"));
 const CalendarView = lazy(() => import("./pages/CalendarView"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 const PublicAssessmentFlow = lazy(
   () => import("./features/archetype-assessment/pages/PublicAssessmentFlow")
 );
@@ -163,6 +165,8 @@ const App = () => (
                   <Route path="/__loader" element={<BootLoadingScreen />} />
                 ) : null}
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/checkout/success" element={<CheckoutSuccess />} />
                 <Route path="/install-android" element={<InstallAndroid />} />
                 <Route path="/newsletter" element={<NewsletterLayout />}>
                   <Route index element={<Newsletter />} />
