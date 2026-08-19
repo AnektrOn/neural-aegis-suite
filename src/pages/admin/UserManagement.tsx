@@ -138,6 +138,15 @@ export default function UserManagement() {
     else { toast({ title: t("toast.companyUpdated") }); loadUsers(); }
   };
 
+  /** Accès accordé manuellement (hors paiement Paddle). */
+  const assignPlanOverride = async (userId: string, plan: string | null) => {
+    const { error } = await supabase.from("profiles").update({ plan_override: plan } as any).eq("id", userId);
+    if (error) { toast({ title: t("toast.error"), description: error.message, variant: "destructive" }); }
+    else { toast({ title: plan ? `Forfait ${plan} accordé` : "Accès manuel retiré" }); loadUsers(); }
+  };
+
+
+
   const filtered = users.filter((u) => (u.display_name || "").toLowerCase().includes(search.toLowerCase()));
   const getCompanyName = (cid: string | null) => !cid ? null : companies.find((c) => c.id === cid)?.name || null;
 
