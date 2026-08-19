@@ -2301,6 +2301,8 @@ export type Database = {
           current_period_start: string | null
           environment: string
           id: string
+          installments_paid: number
+          installments_total: number | null
           paddle_customer_id: string
           paddle_subscription_id: string
           price_id: string
@@ -2316,6 +2318,8 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          installments_paid?: number
+          installments_total?: number | null
           paddle_customer_id: string
           paddle_subscription_id: string
           price_id: string
@@ -2331,6 +2335,8 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          installments_paid?: number
+          installments_total?: number | null
           paddle_customer_id?: string
           paddle_subscription_id?: string
           price_id?: string
