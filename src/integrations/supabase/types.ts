@@ -1988,6 +1988,7 @@ export type Database = {
           last_name: string | null
           linkedin: string | null
           mobile_radial_menu: Json | null
+          plan_override: string | null
           timezone: string | null
           updated_at: string
         }
@@ -2005,6 +2006,7 @@ export type Database = {
           last_name?: string | null
           linkedin?: string | null
           mobile_radial_menu?: Json | null
+          plan_override?: string | null
           timezone?: string | null
           updated_at?: string
         }
@@ -2022,6 +2024,7 @@ export type Database = {
           last_name?: string | null
           linkedin?: string | null
           mobile_radial_menu?: Json | null
+          plan_override?: string | null
           timezone?: string | null
           updated_at?: string
         }
