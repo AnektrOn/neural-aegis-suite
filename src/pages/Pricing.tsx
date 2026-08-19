@@ -110,6 +110,17 @@ export default function Pricing() {
     }
     setPending(priceId);
     try {
+      // Déjà abonné → changement de forfait immédiat au prorata (pas de nouveau checkout).
+      if (subscription && subscription.status !== "canceled" && !subscription.paddle_subscription_id.startsWith("txn_")) {
+        const { data, error } = await supabase.functions.invoke("manage-subscription", {
+          body: { action: "change_plan", priceId, environment: getPaddleEnvironment() },
+        });
+        if (!error && !(data as { error?: string })?.error) {
+          toast.success(isFR ? "Forfait mis à jour au prorata." : "Plan updated with proration.");
+          await refetch();
+          return;
+        }
+      }
       await openCheckout({
         priceId,
         customerEmail: user.email ?? undefined,
@@ -121,7 +132,25 @@ export default function Pricing() {
     }
   };
 
+  const openPortal = async () => {
+    setPending("portal");
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-subscription", {
+        body: { action: "portal", environment: getPaddleEnvironment() },
+      });
+      const url = (data as { url?: string })?.url;
+      if (error || !url) {
+        toast.error(isFR ? "Portail indisponible." : "Portal unavailable.");
+        return;
+      }
+      window.open(url, "_blank", "noopener");
+    } finally {
+      setPending(null);
+    }
+  };
+
   const busy = (priceId: string) => loading && pending === priceId;
+
 
   return (
     <div className="min-h-screen bg-aegis-gradient">
