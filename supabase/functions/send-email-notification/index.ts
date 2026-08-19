@@ -127,6 +127,10 @@ serve(async (req) => {
         subject = "Alerte admin - Nouvelle entrée utilisateur";
         htmlBody = `<h2>Nouvelle entrée utilisateur</h2><p><strong>${data?.user_name || "Utilisateur inconnu"}</strong> (${data?.user_email || "email indisponible"}) a créé une nouvelle entrée.</p><p>Titre: <strong>${data?.entry_title || "Sans titre"}</strong></p><p>Aperçu:</p><blockquote style="border-left:3px solid #2dd4bf;padding-left:12px;margin:16px 0;color:#555;">${data?.entry_preview || "Aucun contenu"}</blockquote><p>Horodatage: ${data?.created_at || new Date().toISOString()}</p>`;
         break;
+      case "subscription_update":
+        subject = data?.title || "Votre abonnement AEGIS";
+        htmlBody = `<p>${data?.message || ""}</p>`;
+        break;
       default:
         subject = "Notification Aegis";
         htmlBody = `<p>${data?.message || "Vous avez une nouvelle notification."}</p>`;
@@ -142,7 +146,9 @@ serve(async (req) => {
     console.log(`Email notification: to=${email ?? "(none)"}, subject=${subject}, type=${type}`);
 
     // In-app: user-targeted vs admin-targeted (see plan: admin_user_entry_alert = email only — DB triggers own in-app).
-    if (type === "admin_user_entry_alert") {
+    if (type === "subscription_update") {
+      // In-app notification déjà créée par le webhook paiement.
+    } else if (type === "admin_user_entry_alert") {
       // Journal in-app notifications come from Postgres triggers; avoid duplicates.
     } else if (type === "admin_login_alert") {
       const msg =
