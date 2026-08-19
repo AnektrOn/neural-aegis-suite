@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { verifyWebhook, EventName, type PaddleEnv } from '../_shared/paddle.ts';
+import { verifyWebhook, getPaddleClient, EventName, type PaddleEnv } from '../_shared/paddle.ts';
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -392,6 +392,10 @@ async function handleWebhook(req: Request, env: PaddleEnv) {
     case EventName.TransactionCompleted:
       await handleTransactionCompleted(event.data, env);
       break;
+    case EventName.TransactionPaymentFailed:
+      await handleTransactionPaymentFailed(event.data, env);
+      break;
+
     default:
       console.log('Unhandled event:', event.eventType);
   }
