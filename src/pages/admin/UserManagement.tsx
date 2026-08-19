@@ -26,7 +26,9 @@ interface UserData {
   toolboxCount: number;
   moodCount: number;
   lastSeen: string | null;
+  plan_override: string | null;
   alertCounts: { critical: number; high: number; medium: number; low: number; total: number };
+
 }
 
 interface Company {
@@ -79,6 +81,8 @@ export default function UserManagement() {
     const userData: UserData[] = (profilesRes.data || []).map((p: any) => ({
       id: p.id, display_name: p.display_name, created_at: p.created_at,
       is_disabled: p.is_disabled || false, company_id: p.company_id || null, country: p.country || null,
+      plan_override: p.plan_override ?? null,
+
       isAdmin: roles.some((r: any) => r.user_id === p.id && r.role === "admin"),
       auditCount: audits.filter((a: any) => a.user_id === p.id).length,
       habitCount: habits.filter((h: any) => h.user_id === p.id).length,
