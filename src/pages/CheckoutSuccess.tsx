@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 export default function CheckoutSuccess() {
   const { locale } = useLanguage();
   const { refetch, isActive } = useSubscription();
+  const navigate = useNavigate();
   const isFR = locale === "fr";
 
   useEffect(() => {
@@ -19,6 +20,14 @@ export default function CheckoutSuccess() {
       clearTimeout(stop);
     };
   }, [refetch]);
+
+  // Onboarding automatique dès que l'accès est activé.
+  useEffect(() => {
+    if (!isActive) return;
+    const id = setTimeout(() => navigate("/onboarding/assessment", { replace: true }), 2500);
+    return () => clearTimeout(id);
+  }, [isActive, navigate]);
+
 
   return (
     <div className="min-h-screen bg-aegis-gradient flex items-center justify-center p-4">
