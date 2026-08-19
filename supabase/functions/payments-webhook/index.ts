@@ -12,6 +12,79 @@ function getSupabase() {
   return _supabase;
 }
 
+const PLAN_LABEL: Record<string, string> = {
+  aegis_matrix: 'Matrice',
+  aegis_ultra: 'Ultra',
+};
+
+async function notifyUser(userId: string, title: string, message: string, link: string) {
+  const { error } = await getSupabase()
+    .from('notifications')
+    .insert({ user_id: userId, title, message, type: 'info', link });
+  if (error) console.error('notifyUser:', error.message);
+}
+
+async function notifyAdmins(title: string, message: string, link: string) {
+  const supabase = getSupabase();
+  const { data: admins } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+  if (!admins?.length) return;
+  const { error } = await supabase.from('notifications').insert(
+    admins.map((a: { user_id: string }) => ({
+      user_id: a.user_id,
+      title,
+      message,
+      type: 'admin_payment',
+      link,
+    })),
+  );
+  if (error) console.error('notifyAdmins:', error.message);
+}
+
+async function sendEmail(userId: string, subject: string, message: string) {
+  try {
+    await getSupabase().functions.invoke('send-email-notification', {
+      body: { type: 'subscription_update', user_id: userId, data: { message, title: subject } },
+    });
+  } catch (e) {
+    console.error('sendEmail:', e);
+  }
+}
+
+/** Purchase business logic: unlock app, notify user + admins, flag Ultra for the coach. */
+async function onPurchaseActivated(userId: string, productId: string, priceId: string) {
+  const plan = PLAN_LABEL[productId] ?? productId;
+
+  await notifyUser(
+    userId,
+    `Accès ${plan} activé`,
+    `Votre forfait ${plan} est actif. Toutes les fonctionnalités sont débloquées — commencez par votre Deep Dive.`,
+    '/dashboard',
+  );
+
+  await sendEmail(
+    userId,
+    `Bienvenue dans AEGIS ${plan}`,
+    `Votre forfait ${plan} est activé. Connectez-vous pour accéder à votre espace complet.`,
+  );
+
+  const { data: userData } = await getSupabase().auth.admin.getUserById(userId);
+  const email = userData?.user?.email ?? userId;
+
+  if (productId === 'aegis_ultra') {
+    await notifyAdmins(
+      '🥇 Nouvelle vente ULTRA — action requise',
+      `${email} a rejoint l'Inner Circle (${priceId}). Planifier l'audit et l'accompagnement individuel.`,
+      '/admin/calls',
+    );
+  } else {
+    await notifyAdmins(
+      '🥈 Nouvelle vente Matrice',
+      `${email} a activé le forfait ${plan} (${priceId}).`,
+      '/admin/users',
+    );
+  }
+}
+
 async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
   const { id, customerId, items, status, currentBillingPeriod, customData } = data;
 
@@ -32,7 +105,7 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     return;
   }
 
-  await getSupabase().from('subscriptions').upsert(
+  const { error } = await getSupabase().from('subscriptions').upsert(
     {
       user_id: userId,
       paddle_subscription_id: id,
@@ -47,15 +120,37 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
     },
     { onConflict: 'paddle_subscription_id' },
   );
+  if (error) {
+    console.error('subscription upsert:', error.message);
+    return;
+  }
+
+  if (status === 'active' || status === 'trialing') {
+    await onPurchaseActivated(userId, productId, priceId);
+  }
 }
 
 async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
-  const { id, status, currentBillingPeriod, scheduledChange } = data;
+  const { id, status, currentBillingPeriod, scheduledChange, items } = data;
+  const supabase = getSupabase();
 
-  await getSupabase()
+  const { data: existing } = await supabase
+    .from('subscriptions')
+    .select('user_id, product_id, price_id, status')
+    .eq('paddle_subscription_id', id)
+    .eq('environment', env)
+    .maybeSingle();
+
+  const item = items?.[0];
+  const priceId = item?.price?.importMeta?.externalId ?? existing?.price_id;
+  const productId = item?.product?.importMeta?.externalId ?? existing?.product_id;
+
+  await supabase
     .from('subscriptions')
     .update({
       status,
+      product_id: productId,
+      price_id: priceId,
       current_period_start: currentBillingPeriod?.startsAt,
       current_period_end: currentBillingPeriod?.endsAt,
       cancel_at_period_end: scheduledChange?.action === 'cancel',
@@ -63,14 +158,90 @@ async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
     })
     .eq('paddle_subscription_id', id)
     .eq('environment', env);
+
+  const userId = existing?.user_id as string | undefined;
+  if (!userId) return;
+
+  // Payment failure → access restricted immediately.
+  if (status === 'past_due' && existing?.status !== 'past_due') {
+    await notifyUser(
+      userId,
+      'Paiement échoué — accès suspendu',
+      "Votre dernier paiement n'a pas abouti. Mettez à jour votre moyen de paiement pour retrouver l'accès.",
+      '/pricing',
+    );
+    await sendEmail(
+      userId,
+      'Paiement échoué — AEGIS',
+      "Votre dernier paiement n'a pas abouti et votre accès est suspendu. Mettez à jour votre moyen de paiement.",
+    );
+    await notifyAdmins('⚠️ Paiement échoué', `Abonnement ${id} en échec de paiement.`, '/admin/users');
+    return;
+  }
+
+  // Payment recovered.
+  if (existing?.status === 'past_due' && (status === 'active' || status === 'trialing')) {
+    await notifyUser(userId, 'Paiement régularisé', 'Votre accès complet est rétabli.', '/dashboard');
+    return;
+  }
+
+  // Plan change (upgrade / downgrade).
+  if (productId && existing?.product_id && productId !== existing.product_id) {
+    const plan = PLAN_LABEL[productId] ?? productId;
+    await notifyUser(
+      userId,
+      `Forfait mis à jour — ${plan}`,
+      `Votre forfait est désormais ${plan}. Le changement est effectif immédiatement.`,
+      '/dashboard',
+    );
+    if (productId === 'aegis_ultra') {
+      const { data: userData } = await supabase.auth.admin.getUserById(userId);
+      await notifyAdmins(
+        '🥇 Passage en ULTRA — action requise',
+        `${userData?.user?.email ?? userId} est passé en Ultra. Planifier l'audit.`,
+        '/admin/calls',
+      );
+    }
+  }
+
+  // Cancellation scheduled → keeps access until period end.
+  if (scheduledChange?.action === 'cancel') {
+    const end = currentBillingPeriod?.endsAt
+      ? new Date(currentBillingPeriod.endsAt).toLocaleDateString('fr-FR')
+      : null;
+    await notifyUser(
+      userId,
+      'Annulation enregistrée',
+      end
+        ? `Votre abonnement prendra fin le ${end}. Vous conservez l'accès complet jusqu'à cette date.`
+        : "Votre abonnement prendra fin à l'échéance. Vous conservez l'accès jusque-là.",
+      '/pricing',
+    );
+  }
 }
 
 async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
-  await getSupabase()
+  const supabase = getSupabase();
+  const { data: existing } = await supabase
     .from('subscriptions')
-    .update({ status: 'canceled', updated_at: new Date().toISOString() })
+    .select('user_id')
+    .eq('paddle_subscription_id', data.id)
+    .eq('environment', env)
+    .maybeSingle();
+
+  await supabase
+    .from('subscriptions')
+    .update({
+      status: 'canceled',
+      current_period_end: data.currentBillingPeriod?.endsAt ?? data.canceledAt,
+      updated_at: new Date().toISOString(),
+    })
     .eq('paddle_subscription_id', data.id)
     .eq('environment', env);
+
+  if (existing?.user_id) {
+    await notifyAdmins('Abonnement annulé', `Abonnement ${data.id} annulé.`, '/admin/users');
+  }
 }
 
 /** One-time purchases (e.g. Ultra upfront) have no subscription entity. */
@@ -88,9 +259,9 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
   const productId = priceId.startsWith('aegis_ultra') ? 'aegis_ultra' : 'aegis_matrix';
   const start = new Date();
   const end = new Date(start);
-  end.setMonth(end.getMonth() + 6); // Ultra: engagement 6 mois
+  end.setMonth(end.getMonth() + 12); // Ultra comptant : 12 mois d'accès
 
-  await getSupabase().from('subscriptions').upsert(
+  const { error } = await getSupabase().from('subscriptions').upsert(
     {
       user_id: userId,
       paddle_subscription_id: `txn_${data.id}`,
@@ -105,6 +276,12 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
     },
     { onConflict: 'paddle_subscription_id' },
   );
+  if (error) {
+    console.error('one-time upsert:', error.message);
+    return;
+  }
+
+  await onPurchaseActivated(userId, productId, priceId);
 }
 
 async function handleWebhook(req: Request, env: PaddleEnv) {
