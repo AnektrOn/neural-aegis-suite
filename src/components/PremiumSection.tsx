@@ -3,11 +3,14 @@ import { Lock } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAdmin } from "@/hooks/use-admin";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useFreePreview } from "@/hooks/useFreePreview";
 
 /** True when the current member has no paid access (admins always pass). */
 export function usePremiumLocked(): boolean {
   const { isActive, loading } = useSubscription();
   const { isAdmin, loading: adminLoading } = useAdmin();
+  const { enabled: freePreview } = useFreePreview();
+  if (freePreview) return true;
   if (loading || adminLoading) return false;
   return !isAdmin && !isActive;
 }

@@ -32,6 +32,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ThemeToggle from "@/components/ThemeToggle";
+import FreePreviewToggle from "@/components/FreePreviewToggle";
 import NotificationBell from "@/components/NotificationBell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
@@ -468,6 +469,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <AppFooter />
         </main>
 
+        <FreePreviewToggle />
+
         <div
           role="navigation"
           aria-label={t("nav.dockMoreAria")}
@@ -551,6 +554,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <PageWrapper key={location.pathname}>{children}</PageWrapper>
         <AppFooter />
       </main>
+
+      <FreePreviewToggle />
 
       <AppCommandPalette
         open={commandOpen}
