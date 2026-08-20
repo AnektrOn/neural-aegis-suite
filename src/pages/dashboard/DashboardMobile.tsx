@@ -10,6 +10,7 @@ import ScoreboardWidget from "@/components/ScoreboardWidget";
 import QuickLogModal from "@/components/QuickLogModal";
 import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
 import PulseFeatureButton from "@/components/PulseFeatureButton";
+import PremiumSection from "@/components/PremiumSection";
 import { PostAssessmentBanner } from "@/components/PostAssessmentBanner";
 import { WelcomeExperience, SetupProgressBanner } from "@/components/WelcomeExperience";
 import type { UserMaturityProfile } from "@/lib/userMaturity";
@@ -419,7 +420,7 @@ export function DashboardMobile({
       <motion.div {...fadeUp(0.08)}>
         <AssessmentCTA />
 
-        <PulseFeatureButton className="w-full" />
+        <PremiumSection><PulseFeatureButton className="w-full" /></PremiumSection>
       </motion.div>
 
       <QuickLogModal open={showQuickLog} onClose={onQuickLogClose} />
