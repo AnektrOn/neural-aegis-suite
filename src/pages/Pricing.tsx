@@ -47,17 +47,18 @@ export default function Pricing() {
         cta: isFR ? "Commencer" : "Get started",
         features: isFR
           ? [
-              "Quiz des archétypes",
-              "Rapport de synthèse",
+              "Quiz des archétypes & rapport de synthèse",
+              "Suivi quotidien : humeur, décisions, habitudes",
+              "Historique illimité de vos saisies",
               "Newsletter & contenus publics",
-              "Espace invité",
             ]
           : [
-              "Archetype quiz",
-              "Synthesis report",
+              "Archetype quiz & synthesis report",
+              "Daily logging: mood, decisions, habits",
+              "Unlimited history of your entries",
               "Newsletter & public content",
-              "Guest space",
             ],
+
       },
       matrix: {
         name: "Matrice",
