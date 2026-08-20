@@ -4278,6 +4278,40 @@ excerpt_fr: email brief
     fr: "Scanne ce QR depuis ton téléphone Android.",
     en: "Scan this QR from your Android phone.",
   },
+
+  // Pricing comparison table
+  "pricing.compare.title": { fr: "Ce qui est inclus", en: "What's included" },
+  "pricing.compare.subtitle": {
+    fr: "Initiation couvre la saisie quotidienne et l'historique personnel. La Matrice débloque les analyses, exports et outils avancés.",
+    en: "Initiation covers daily logging and personal history. Matrix unlocks analytics, exports, and advanced tools.",
+  },
+  "pricing.compare.feature": { fr: "Fonctionnalité", en: "Feature" },
+  "pricing.compare.free": { fr: "Initiation", en: "Initiation" },
+  "pricing.compare.matrix": { fr: "Matrice", en: "Matrix" },
+  "pricing.compare.ultra": { fr: "Ultra", en: "Ultra" },
+  "pricing.compare.view": { fr: "Consulter", en: "View" },
+  "pricing.compare.enter": { fr: "Saisir", en: "Enter" },
+  "pricing.compare.notAvailable": { fr: "—", en: "—" },
+  "pricing.compare.account": { fr: "Compte, profil, réglages, app Android", en: "Account, profile, settings, Android app" },
+  "pricing.compare.dailyLogs": { fr: "Humeur, décisions, habitudes", en: "Mood, decisions, habits" },
+  "pricing.compare.history": { fr: "Historique illimité de ses propres données", en: "Unlimited history of own data" },
+  "pricing.compare.archetypeQuiz": { fr: "Quiz archétypes & rapport de synthèse", en: "Archetype quiz & synthesis report" },
+  "pricing.compare.dashboard": { fr: "Dashboard personnalisé avec insights", en: "Personalized dashboard with insights" },
+  "pricing.compare.deepDive": { fr: "Deep Dive & cartographie d'archétypes", en: "Deep Dive & archetype cartography" },
+  "pricing.compare.analytics": { fr: "Analyses, corrélations et insights IA", en: "Analytics, correlations, AI insights" },
+  "pricing.compare.toolbox": { fr: "Toolbox (breathwork, body scan, affirmations)", en: "Toolbox (breathwork, body scan, affirmations)" },
+  "pricing.compare.pulse": { fr: "Pulse cards — micro-apprentissage", en: "Pulse cards — micro-learning" },
+  "pricing.compare.people": { fr: "Tableau de relations & proximité", en: "Relationship board & proximity" },
+  "pricing.compare.calendar": { fr: "Calendrier (mood, habitudes, décisions, journal)", en: "Calendar (mood, habits, decisions, journal)" },
+  "pricing.compare.journal": { fr: "Journal avec tags d'humeur", en: "Journal with mood tags" },
+  "pricing.compare.exports": { fr: "Exports rapports, PDF et données", en: "Reports, PDF and data exports" },
+  "pricing.compare.personalReports": { fr: "Rapports personnels admin", en: "Admin personal reports" },
+  "pricing.compare.humanCoaching": { fr: "Accompagnement humain, audit, appels", en: "Human coaching, audit, calls" },
+  "pricing.compare.footnote": {
+    fr: "Ultra = Matrice + accès Inner Circle. L'expérience produit reste la même ; la différence est humaine.",
+    en: "Ultra = Matrix + Inner Circle access. The product experience is the same; the difference is human.",
+  },
+
 } as const;
 
 export type TranslationKey = keyof typeof translations;
