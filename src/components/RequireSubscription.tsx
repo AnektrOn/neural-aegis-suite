@@ -1,15 +1,15 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAdmin } from "@/hooks/use-admin";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { isFreePath } from "@/lib/planAccess";
+import PremiumLock from "@/components/PremiumLock";
 
 /**
  * Gates the member application behind an active plan.
- * Admins always pass. Account-management routes stay reachable without a plan
- * so free / past_due users can still manage their account and pay.
+ * Admins always pass. Free members keep account management and daily logging
+ * (mood, decisions, habits); paid areas render a blurred preview with a CTA.
  */
-const FREE_PATHS = ["/profile", "/settings", "/install"];
-
 export default function RequireSubscription({ children }: { children: React.ReactNode }) {
   const { isActive, loading } = useSubscription();
   const { isAdmin, loading: adminLoading } = useAdmin();
@@ -28,14 +28,9 @@ export default function RequireSubscription({ children }: { children: React.Reac
     );
   }
 
-  const isFreePath = FREE_PATHS.some(
-    (p) => location.pathname === p || location.pathname.startsWith(`${p}/`),
-  );
-
-  if (!isAdmin && !isActive && !isFreePath) {
-    return <Navigate to="/pricing" replace state={{ from: location.pathname }} />;
+  if (!isAdmin && !isActive && !isFreePath(location.pathname)) {
+    return <PremiumLock>{children}</PremiumLock>;
   }
 
   return <>{children}</>;
 }
-
