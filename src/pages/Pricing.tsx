@@ -368,6 +368,91 @@ export default function Pricing() {
             </div>
           </NeuralCard>
         </div>
+
+        {/* Feature comparison */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="mt-16"
+        >
+          <NeuralCard variant="elevated" className="overflow-hidden">
+            <div className="p-6 border-b border-border/50">
+              <h2 className="font-display text-xl tracking-wide text-foreground mb-1">
+                {copy.compare.title}
+              </h2>
+              <p className="text-sm text-muted-foreground">{copy.compare.subtitle}</p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 bg-background/30">
+                    <th className="text-left px-6 py-4 font-medium text-foreground w-[45%]">
+                      {copy.compare.feature}
+                    </th>
+                    <th className="text-center px-4 py-4 font-medium text-muted-foreground w-[18%]">
+                      {copy.compare.free}
+                    </th>
+                    <th className="text-center px-4 py-4 font-medium text-primary w-[18%]">
+                      {copy.compare.matrix}
+                    </th>
+                    <th className="text-center px-4 py-4 font-medium text-accent-foreground w-[18%]">
+                      {copy.compare.ultra}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {copy.compare.rows.map((row, i) => {
+                    const label = {
+                      account: isFR ? "Compte, profil, réglages, app Android" : "Account, profile, settings, Android app",
+                      dailyLogs: isFR ? "Humeur, décisions, habitudes" : "Mood, decisions, habits",
+                      history: isFR ? "Historique illimité de ses propres données" : "Unlimited history of own data",
+                      archetypeQuiz: isFR ? "Quiz archétypes & rapport de synthèse" : "Archetype quiz & synthesis report",
+                      dashboard: isFR ? "Dashboard personnalisé avec insights" : "Personalized dashboard with insights",
+                      deepDive: isFR ? "Deep Dive & cartographie d'archétypes" : "Deep Dive & archetype cartography",
+                      analytics: isFR ? "Analyses, corrélations et insights IA" : "Analytics, correlations, AI insights",
+                      toolbox: isFR ? "Toolbox (breathwork, body scan, affirmations)" : "Toolbox (breathwork, body scan, affirmations)",
+                      pulse: isFR ? "Pulse cards — micro-apprentissage" : "Pulse cards — micro-learning",
+                      people: isFR ? "Tableau de relations & proximité" : "Relationship board & proximity",
+                      calendar: isFR ? "Calendrier (mood, habitudes, décisions, journal)" : "Calendar (mood, habits, decisions, journal)",
+                      journal: isFR ? "Journal avec tags d'humeur" : "Journal with mood tags",
+                      exports: isFR ? "Exports rapports, PDF et données" : "Reports, PDF and data exports",
+                      personalReports: isFR ? "Rapports personnels admin" : "Admin personal reports",
+                      humanCoaching: isFR ? "Accompagnement humain, audit, appels" : "Human coaching, audit, calls",
+                    }[row.key];
+
+                    const cell = (value: string) => {
+                      if (value === "none") {
+                        return <X className="w-4 h-4 text-muted-foreground/50 mx-auto" aria-hidden />;
+                      }
+                      if (value === "full") {
+                        return <Check className="w-4 h-4 text-primary mx-auto" aria-hidden />;
+                      }
+                      return <span className="text-xs text-muted-foreground">{isFR ? "Saisir" : "Enter"}</span>;
+                    };
+
+                    return (
+                      <tr
+                        key={row.key}
+                        className={`border-b border-border/30 last:border-0 ${i % 2 === 1 ? "bg-background/20" : ""}`}
+                      >
+                        <td className="px-6 py-3 text-foreground">{label}</td>
+                        <td className="px-4 py-3 text-center">{cell(row.free)}</td>
+                        <td className="px-4 py-3 text-center">{cell(row.matrix)}</td>
+                        <td className="px-4 py-3 text-center">{cell(row.ultra)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="px-6 py-4 text-xs text-muted-foreground border-t border-border/50">
+              {copy.compare.footnote}
+            </p>
+          </NeuralCard>
+        </motion.div>
       </div>
     </div>
   );
