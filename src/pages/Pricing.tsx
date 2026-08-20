@@ -105,9 +105,40 @@ export default function Pricing() {
       },
       upfrontLabel: isFR ? "Comptant" : "Upfront",
       installmentLabel: isFR ? "6 × mensualités" : "6 monthly payments",
+      compare: {
+        title: isFR ? "Ce qui est inclus" : "What's included",
+        subtitle: isFR
+          ? "Initiation couvre la saisie quotidienne et l'historique personnel. La Matrice débloque les analyses, exports et outils avancés."
+          : "Initiation covers daily logging and personal history. Matrix unlocks analytics, exports, and advanced tools.",
+        feature: isFR ? "Fonctionnalité" : "Feature",
+        free: isFR ? "Initiation" : "Initiation",
+        matrix: "Matrice",
+        ultra: "Ultra",
+        footnote: isFR
+          ? "Ultra = Matrice + accès Inner Circle. L'expérience produit reste la même ; la différence est humaine."
+          : "Ultra = Matrix + Inner Circle access. The product experience is the same; the difference is human.",
+        rows: [
+          { key: "account", free: "full", matrix: "full", ultra: "full" },
+          { key: "dailyLogs", free: "enter", matrix: "enter", ultra: "enter" },
+          { key: "history", free: "full", matrix: "full", ultra: "full" },
+          { key: "archetypeQuiz", free: "full", matrix: "full", ultra: "full" },
+          { key: "dashboard", free: "none", matrix: "full", ultra: "full" },
+          { key: "deepDive", free: "none", matrix: "full", ultra: "full" },
+          { key: "analytics", free: "none", matrix: "full", ultra: "full" },
+          { key: "toolbox", free: "none", matrix: "full", ultra: "full" },
+          { key: "pulse", free: "none", matrix: "full", ultra: "full" },
+          { key: "people", free: "none", matrix: "full", ultra: "full" },
+          { key: "calendar", free: "none", matrix: "full", ultra: "full" },
+          { key: "journal", free: "none", matrix: "full", ultra: "full" },
+          { key: "exports", free: "none", matrix: "full", ultra: "full" },
+          { key: "personalReports", free: "none", matrix: "full", ultra: "full" },
+          { key: "humanCoaching", free: "none", matrix: "none", ultra: "full" },
+        ],
+      },
     }),
     [isFR],
   );
+
 
   const handleCheckout = async (priceId: string) => {
     if (!user) {
