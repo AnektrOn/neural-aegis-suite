@@ -4,6 +4,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { isFreePath } from "@/lib/planAccess";
 import PremiumLock from "@/components/PremiumLock";
+import { useFreePreview } from "@/hooks/useFreePreview";
 
 /**
  * Gates the member application behind an active plan.
@@ -15,6 +16,7 @@ export default function RequireSubscription({ children }: { children: React.Reac
   const { isAdmin, loading: adminLoading } = useAdmin();
   const { t } = useLanguage();
   const location = useLocation();
+  const { enabled: freePreview } = useFreePreview();
 
   if (loading || adminLoading) {
     return (
@@ -28,7 +30,7 @@ export default function RequireSubscription({ children }: { children: React.Reac
     );
   }
 
-  if (!isAdmin && !isActive && !isFreePath(location.pathname)) {
+  if ((freePreview || (!isAdmin && !isActive)) && !isFreePath(location.pathname)) {
     return <PremiumLock>{children}</PremiumLock>;
   }
 
