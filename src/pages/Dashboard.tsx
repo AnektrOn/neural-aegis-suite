@@ -17,6 +17,7 @@ import HabitsMiniCard from "@/components/HabitsMiniCard";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { AssessmentCTA } from "@/features/archetype-assessment/components/AssessmentCTA";
 import PulseFeatureButton from "@/components/PulseFeatureButton";
+import PremiumSection from "@/components/PremiumSection";
 import { AegisHealthCard } from "@/components/AegisHealthCard";
 import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -337,8 +338,9 @@ export default function Dashboard() {
 
         <AssessmentCTA />
 
-        <PulseFeatureButton />
+        <PremiumSection><PulseFeatureButton /></PremiumSection>
 
+        <PremiumSection>
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-5" aria-label={t("dashboard.pageTitle")}>
           <NavLink
             to="/analytics"
@@ -355,6 +357,7 @@ export default function Dashboard() {
             <MoodDecisionInsightCard userId={user?.id} />
           </NavLink>
         </section>
+        </PremiumSection>
 
         {highlight && !loading && (
           <motion.section {...fadeUp(0)} className="dashboard-panel px-5 py-5 sm:px-7 sm:py-6">
@@ -365,6 +368,7 @@ export default function Dashboard() {
           </motion.section>
         )}
 
+        <PremiumSection>
         <section className="space-y-4">
           <p className="dashboard-section-label">{t("dashboard.mobileThisWeek")}</p>
           <motion.div
@@ -380,10 +384,12 @@ export default function Dashboard() {
             ))}
           </motion.div>
         </section>
+        </PremiumSection>
 
         {/* Hidden trend label (kept to avoid unused-var lint) */}
         <span className="sr-only">{moodTrendLabel}</span>
 
+        <PremiumSection>
         <section>
           <NeuralCard variant="premium" className="p-5 md:p-6" glow="blue">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -409,6 +415,7 @@ export default function Dashboard() {
             </div>
           </NeuralCard>
         </section>
+        </PremiumSection>
 
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           {user ? (
@@ -421,6 +428,7 @@ export default function Dashboard() {
             </NavLink>
           ) : null}
           <ScoreboardWidget />
+          <PremiumSection>
           <NavLink
             to="/analytics"
             aria-label={t("dashboard.a11yOpenAnalytics")}
@@ -428,6 +436,7 @@ export default function Dashboard() {
           >
             <ScoreCard />
           </NavLink>
+          </PremiumSection>
         </section>
       </motion.div>
 
