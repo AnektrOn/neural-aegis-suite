@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Check, Crown, Sparkles, Loader2 } from "lucide-react";
+import { Check, Crown, Sparkles, Loader2, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -10,6 +10,7 @@ import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
 import PaymentTestModeBanner from "@/components/PaymentTestModeBanner";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
