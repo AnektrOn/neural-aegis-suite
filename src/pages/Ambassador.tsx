@@ -56,6 +56,10 @@ const COPY: Record<string, { fr: string; en: string }> = {
   colMember: { fr: "Membre", en: "Member" },
   colSignup: { fr: "Inscription", en: "Signed up" },
   colPlan: { fr: "Formule", en: "Plan" },
+  colCycle: { fr: "Cycle", en: "Billing" },
+  cycleMonthly: { fr: "Mensuel", en: "Monthly" },
+  cycleYearly: { fr: "Annuel", en: "Yearly" },
+  cycleInstallment: { fr: "6 × mensualités", en: "6 installments" },
   colStatus: { fr: "Statut", en: "Status" },
   colRenewal: { fr: "Renouvellement", en: "Renewal" },
   colPayments: { fr: "Paiements", en: "Payments" },
@@ -80,6 +84,7 @@ type SortKey =
   | "label"
   | "created_at"
   | "plan"
+  | "billing_cycle"
   | "status"
   | "current_period_end"
   | "payments_count"
@@ -90,6 +95,7 @@ const SORT_COLUMNS: { key: SortKey; label: keyof typeof COPY }[] = [
   { key: "label", label: "colMember" },
   { key: "created_at", label: "colSignup" },
   { key: "plan", label: "colPlan" },
+  { key: "billing_cycle", label: "colCycle" },
   { key: "status", label: "colStatus" },
   { key: "current_period_end", label: "colRenewal" },
   { key: "payments_count", label: "colPayments" },
@@ -110,6 +116,12 @@ function planLabel(plan?: string | null): string {
   if (!plan) return PLAN_LABELS.free;
   return PLAN_LABELS[plan] ?? plan;
 }
+
+const CYCLE_COPY_KEYS = {
+  monthly: "cycleMonthly",
+  yearly: "cycleYearly",
+  installment: "cycleInstallment",
+} as const;
 
 function isPaidReferral(r: AffiliateReferralRow): boolean {
   const plan = (r.plan ?? "free").replace("aegis_", "");
@@ -354,6 +366,11 @@ export default function Ambassador() {
                       <Badge variant={r.plan && r.plan !== "free" ? "default" : "outline"}>
                         {planLabel(r.plan)}
                       </Badge>
+                    </td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">
+                      {r.billing_cycle
+                        ? tr(CYCLE_COPY_KEYS[r.billing_cycle] ?? "cycleMonthly")
+                        : "—"}
                     </td>
                     <td className="py-2.5 pr-3">
                       <Badge variant={r.status === "converted" ? "secondary" : "outline"}>
