@@ -63,10 +63,7 @@ export type AdminCommission = {
 
 /** Referral link shared by an ambassador. */
 export function buildReferralLink(code: string): string {
-  const origin =
-    typeof window !== "undefined" && window.location.origin.includes("localhost")
-      ? "https://aegis.humancatalystbeacon.com"
-      : window.location.origin;
+  const origin = "https://aegis.humancatalystbeacon.com";
   return `${origin}/pricing?ref=${encodeURIComponent(code)}`;
 }
 
