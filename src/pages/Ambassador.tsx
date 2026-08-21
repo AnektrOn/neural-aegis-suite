@@ -140,27 +140,59 @@ export default function Ambassador() {
 
 
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-5">
-          <h2 className="font-heading text-lg">{tr("referrals")}</h2>
-          <div className="mt-4 space-y-2">
-            {(data.referrals ?? []).length === 0 && (
-              <p className="text-sm text-muted-foreground">{tr("empty")}</p>
-            )}
-            {(data.referrals ?? []).map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between rounded-md border border-border/40 px-3 py-2 text-sm"
-              >
-                <span>{r.label}</span>
-                <Badge variant={r.status === "converted" ? "default" : "outline"}>
-                  {r.status === "converted" ? tr("statusConverted") : tr("statusSignedUp")}
-                </Badge>
-              </div>
-            ))}
+      <Card className="p-5">
+        <h2 className="font-heading text-lg">{tr("referrals")}</h2>
+        {(data.referrals ?? []).length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">{tr("empty")}</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr className="border-b border-border/40 text-left text-xs uppercase tracking-widest text-muted-foreground">
+                  <th className="py-2 pr-3 font-normal">{tr("colMember")}</th>
+                  <th className="py-2 pr-3 font-normal">{tr("colSignup")}</th>
+                  <th className="py-2 pr-3 font-normal">{tr("colPlan")}</th>
+                  <th className="py-2 pr-3 font-normal">{tr("colStatus")}</th>
+                  <th className="py-2 pr-3 font-normal">{tr("colRenewal")}</th>
+                  <th className="py-2 pr-3 font-normal">{tr("colPayments")}</th>
+                  <th className="py-2 text-right font-normal">{tr("colEarned")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data.referrals ?? []).map((r) => (
+                  <tr key={r.id} className="border-b border-border/20 last:border-0">
+                    <td className="py-2.5 pr-3 font-medium">{r.label}</td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">{fmtDate(r.created_at)}</td>
+                    <td className="py-2.5 pr-3">
+                      <Badge variant={r.plan && r.plan !== "free" ? "default" : "outline"}>
+                        {planLabel(r.plan)}
+                      </Badge>
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <Badge variant={r.status === "converted" ? "secondary" : "outline"}>
+                        {r.status === "converted" ? tr("statusConverted") : tr("statusSignedUp")}
+                      </Badge>
+                      {r.plan_status && r.plan_status !== "none" && (
+                        <span className="ml-2 text-xs text-muted-foreground">{r.plan_status}</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">
+                      {r.current_period_end ? fmtDate(r.current_period_end) : "—"}
+                      {r.cancel_at_period_end ? ` · ${tr("cancels")}` : ""}
+                    </td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">{r.payments_count ?? 0}</td>
+                    <td className="py-2.5 text-right font-medium">
+                      {formatMoney(r.commission_cents ?? 0, "EUR", locale === "en" ? "en-GB" : "fr-FR")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </Card>
+        )}
+      </Card>
 
+      <div className="grid gap-4">
         <Card className="p-5">
           <h2 className="font-heading text-lg">{tr("commissions")}</h2>
           <div className="mt-4 space-y-2">
