@@ -2116,6 +2116,7 @@ export type Database = {
           id: string
           instagram: string | null
           is_disabled: boolean
+          last_badge_check: string | null
           last_name: string | null
           linkedin: string | null
           mobile_radial_menu: Json | null
@@ -2134,6 +2135,7 @@ export type Database = {
           id: string
           instagram?: string | null
           is_disabled?: boolean
+          last_badge_check?: string | null
           last_name?: string | null
           linkedin?: string | null
           mobile_radial_menu?: Json | null
@@ -2152,6 +2154,7 @@ export type Database = {
           id?: string
           instagram?: string | null
           is_disabled?: boolean
+          last_badge_check?: string | null
           last_name?: string | null
           linkedin?: string | null
           mobile_radial_menu?: Json | null
