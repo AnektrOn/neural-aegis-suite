@@ -1,0 +1,2 @@
+UPDATE public.profiles SET plan_override = 'ultra' WHERE id = '9ca20e9d-a623-4aa4-b61a-5aa1c3aed4b4';
+UPDATE public.profiles SET plan_override = 'matrix' WHERE id = '0461df6a-d6a3-4f24-84a5-6b1f328336b2';
