@@ -361,11 +361,11 @@ export default function GenerativeArtSceneV3({
     }
 
     if (autoPlayAudio) {
-      void audioContextRef.current
-        ?.resume()
-        .then(() => audioElement.play())
-        .catch(() => undefined);
+      // Best-effort resume, but never block playback on it (mobile).
+      void audioContextRef.current?.resume().catch(() => undefined);
+      void audioElement.play().catch(() => undefined);
     }
+
   }, [audioPaused, audioSrc, autoPlayAudio, state]);
 
   useEffect(() => {
