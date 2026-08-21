@@ -34,19 +34,45 @@ export default function AffiliateManagement() {
   const [code, setCode] = useState("");
   const [rate, setRate] = useState("20");
   const [saving, setSaving] = useState(false);
+  const [candidates, setCandidates] = useState<AffiliateCandidate[]>([]);
+  const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [a, c] = await Promise.all([fetchAffiliatesAdmin(), fetchCommissionsAdmin()]);
+      const [a, c, u] = await Promise.all([
+        fetchAffiliatesAdmin(),
+        fetchCommissionsAdmin(),
+        fetchAffiliateCandidates().catch(() => [] as AffiliateCandidate[]),
+      ]);
       setAffiliates(a);
       setCommissions(c);
+      setCandidates(u);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const filteredCandidates = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return candidates;
+    return candidates.filter(
+      (c) =>
+        (c.email ?? "").toLowerCase().includes(q) ||
+        (c.display_name ?? "").toLowerCase().includes(q),
+    );
+  }, [candidates, search]);
+
+  const candidateLabel = (c: AffiliateCandidate) => {
+    const name = c.display_name ? `${c.display_name} · ` : "";
+    const last = c.last_active_at
+      ? new Date(c.last_active_at).toLocaleDateString("fr-FR")
+      : "jamais vu";
+    return `${name}${c.email ?? c.user_id} — ${c.activity_count} logs · ${last}`;
+  };
+
 
   useEffect(() => {
     void load();
