@@ -83,6 +83,7 @@ type SortKey =
   | "status"
   | "current_period_end"
   | "payments_count"
+  | "gross_cents"
   | "commission_cents";
 
 const SORT_COLUMNS: { key: SortKey; label: keyof typeof COPY }[] = [
@@ -92,7 +93,9 @@ const SORT_COLUMNS: { key: SortKey; label: keyof typeof COPY }[] = [
   { key: "status", label: "colStatus" },
   { key: "current_period_end", label: "colRenewal" },
   { key: "payments_count", label: "colPayments" },
+  { key: "gross_cents", label: "colGross" },
   { key: "commission_cents", label: "colEarned" },
+
 ];
 
 const PLAN_LABELS: Record<string, string> = {
