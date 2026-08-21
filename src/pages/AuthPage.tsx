@@ -70,14 +70,23 @@ export default function AuthPage() {
 
     const guestAccount = isAnonymousUser(user) || isGuestUser(user);
 
+    // Guardian onboarding wins over any ?redirect= target (a redirect back to
+    // /visitor used to skip Guardian entirely for returning guests).
+    const target = postLoginPath(guestAccount, user.id);
+    if (target === GUARDIAN_ONBOARDING_PATH) {
+      navigate(target, { replace: true });
+      return;
+    }
+
     const path = redirectParam?.trim();
     if (path?.startsWith("/")) {
       navigate(path, { replace: true });
       return;
     }
 
-    navigate(postLoginPath(guestAccount, user.id), { replace: true });
+    navigate(target, { replace: true });
   }, [user, authLoading, redirectParam, navigate, mode]);
+
 
   const showAuthError = (err: unknown) => {
     toast({
