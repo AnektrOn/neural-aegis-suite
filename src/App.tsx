@@ -94,6 +94,33 @@ const AdminMarkdownPdfRender = lazy(() => import("./pages/admin/AdminMarkdownPdf
 const InstallAndroid = lazy(() => import("./pages/InstallAndroid"));
 const Ambassador = lazy(() => import("./pages/Ambassador"));
 const AffiliateManagement = lazy(() => import("./pages/admin/AffiliateManagement"));
+const Landing = lazy(() => import("./pages/Landing"));
+const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
+const RefundPolicy = lazy(() => import("./pages/legal/RefundPolicy"));
+
+/** Root route: public marketing page for visitors, Welcome hub for signed-in users. */
+function HomeRoute() {
+  const { user, session, loading } = useAuth();
+  const resolvedUser = user ?? session?.user ?? null;
+
+  if (!loading && !resolvedUser) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Landing />
+      </Suspense>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <Suspense fallback={<PageLoader />}>
+        <Welcome />
+      </Suspense>
+    </ProtectedRoute>
+  );
+}
+
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -117,11 +144,17 @@ const BOOT_GATE_MAX_MS = 6000;
 function isBootGateSkippedPath(pathname: string): boolean {
   return (
     pathname === "/auth" ||
+    pathname === "/pricing" ||
     pathname === "/install-android" ||
+    pathname.startsWith("/legal") ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
+    pathname === "/refund" ||
     pathname.startsWith("/newsletter") ||
     pathname.startsWith("/dev/")
   );
 }
+
 
 function AuthBootGate({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
@@ -185,6 +218,13 @@ const App = () => (
                 ) : null}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+                <Route path="/legal/terms" element={<TermsOfService />} />
+                <Route path="/legal/refund" element={<RefundPolicy />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/refund" element={<RefundPolicy />} />
+
                 <Route path="/checkout/success" element={<CheckoutSuccess />} />
                 <Route path="/install-android" element={<InstallAndroid />} />
                 <Route path="/newsletter" element={<NewsletterLayout />}>
@@ -304,16 +344,8 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Suspense fallback={<PageLoader />}>
-                        <Welcome />
-                      </Suspense>
-                    </ProtectedRoute>
-                  }
-                />
+                <Route path="/" element={<HomeRoute />} />
+
                 <Route
                   path="/*"
                   element={
