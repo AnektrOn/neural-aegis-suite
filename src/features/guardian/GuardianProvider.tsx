@@ -54,6 +54,17 @@ interface GuardianContextValue {
 
 const GuardianContext = createContext<GuardianContextValue | null>(null);
 
+const REMOTE_HYDRATE_TIMEOUT_MS = 8_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => {
+      window.setTimeout(() => resolve(null), ms);
+    }),
+  ]);
+}
+
 function derivePhase(
   state: GuardianPersistedState,
   activateRequested: boolean,
@@ -109,7 +120,7 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     setHydrated(false);
 
     (async () => {
-      const remote = await fetchGuardianState(userId);
+      const remote = await withTimeout(fetchGuardianState(userId), REMOTE_HYDRATE_TIMEOUT_MS);
       if (!alive) return;
       // Keep whichever source is further along (new device = empty local).
       const winner =
