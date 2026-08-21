@@ -4490,6 +4490,10 @@ excerpt_fr: email brief
     fr: "La voix est indisponible — réessayer",
     en: "Voice unavailable — try again",
   },
+  "guardian.audio.continueWithoutVoice": {
+    fr: "Continuer sans la voix",
+    en: "Continue without voice",
+  },
 
   "guardian.audio.tapToPlay": {
     fr: "Appuyer pour lancer la voix du Guardian",

@@ -490,6 +490,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
 
     const tryPlay = async (): Promise<boolean> => {
       if (audioPausedRef.current) return false;
+      if (audioElement.error) audioElement.load();
       // Both calls must happen synchronously inside the mobile gesture. Waiting
       // for AudioContext.resume() before play() loses Safari's activation token.
       if (audioContext && audioContext.state === "suspended") {

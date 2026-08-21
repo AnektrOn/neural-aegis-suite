@@ -230,6 +230,7 @@ export default function GuardianOnboardingPage() {
         onAudioError={() => {
           setAudioBlocked(false);
           setAudioFailed(true);
+          setVoiceStarted(false);
           setSpeaking(false);
         }}
         onAudioPlay={() => {
@@ -249,20 +250,31 @@ export default function GuardianOnboardingPage() {
       <GuardianCaptions text={activeCaption?.text ?? null} />
 
       {audioEnabled && (audioBlocked || audioFailed) && !voiceStarted ? (
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => {
-            setAudioPaused(false);
-            setAudioFailed(false);
-            void nebulaRef.current?.playAudio();
-          }}
-          className="fixed inset-0 z-40 h-auto w-auto rounded-none bg-background/40 backdrop-blur-[2px] hover:bg-background/40"
-        >
-          <span className="rounded-full border border-border/40 bg-background/80 px-6 py-3 font-display text-sm tracking-wide text-foreground shadow-2xl">
+        <div className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-background/40 backdrop-blur-[2px]">
+          <Button
+            type="button"
+            onClick={() => {
+              setAudioPaused(false);
+              setAudioFailed(false);
+              void nebulaRef.current?.playAudio();
+            }}
+            className="rounded-full px-6 font-display tracking-wide shadow-2xl"
+          >
             {audioFailed ? t("guardian.audio.retry") : t("guardian.audio.tapToStart")}
-          </span>
-        </Button>
+          </Button>
+          {audioFailed ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setVoiceEnded(true);
+                setCompletedClipKey(clipKeyRef.current);
+              }}
+            >
+              {t("guardian.audio.continueWithoutVoice")}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       <GuardianActivateModal
