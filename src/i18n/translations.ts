@@ -4482,6 +4482,11 @@ excerpt_fr: email brief
   "guardian.language.fr": { fr: "Français", en: "French" },
   "guardian.language.en": { fr: "English", en: "English" },
   "guardian.skip": { fr: "Passer", en: "Skip" },
+  "guardian.audio.tapToStart": {
+    fr: "Touchez pour activer la voix",
+    en: "Tap to enable the voice",
+  },
+
   "guardian.audio.tapToPlay": {
     fr: "Appuyer pour lancer la voix du Guardian",
     en: "Tap to play Guardian’s voice",
