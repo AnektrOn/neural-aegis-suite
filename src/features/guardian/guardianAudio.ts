@@ -2,7 +2,7 @@ import type { GuardianGender, GuardianLocale, GuardianStep } from "./types";
 
 /**
  * Exact filenames under `public/audio/guardian/{gender}/{locale}/`.
- * Keep in sync with files on disk (naming varies slightly across packs).
+ * Keep in sync with files on disk (and Supabase bucket `guardian-audio` if used).
  */
 const GUARDIAN_AUDIO_FILES: Record<
   GuardianGender,
@@ -38,6 +38,17 @@ const GUARDIAN_AUDIO_FILES: Record<
   },
 };
 
+/** Lovable production omits `.mp3` from static deploy — serve from GitHub raw until Supabase bucket is set. */
+const DEFAULT_PROD_AUDIO_BASE =
+  "https://raw.githubusercontent.com/AnektrOn/neural-aegis-suite/main/public/audio/guardian";
+
+function getGuardianAudioBase(): string {
+  const configured = import.meta.env.VITE_GUARDIAN_AUDIO_BASE_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+  if (import.meta.env.PROD) return DEFAULT_PROD_AUDIO_BASE;
+  return "/audio/guardian";
+}
+
 /** Public URLs for per-gender, per-locale, per-step guide audio. */
 export function getGuardianAudioSrc(
   gender: GuardianGender,
@@ -45,5 +56,6 @@ export function getGuardianAudioSrc(
   step: GuardianStep,
 ): string {
   const file = GUARDIAN_AUDIO_FILES[gender][locale][step];
-  return `/audio/guardian/${gender}/${locale}/${encodeURIComponent(file)}`;
+  const base = getGuardianAudioBase();
+  return `${base}/${gender}/${locale}/${encodeURIComponent(file)}`;
 }
