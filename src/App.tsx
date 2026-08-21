@@ -119,6 +119,7 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
   const { bootScreenActive } = useAuth();
   const [appReady, setAppReady] = useState(skipBoot);
   useAndroidVersionReporter();
+  useReferralCapture();
 
   useEffect(() => {
     if (skipBoot) {
