@@ -117,6 +117,12 @@ function planLabel(plan?: string | null): string {
   return PLAN_LABELS[plan] ?? plan;
 }
 
+const CYCLE_COPY_KEYS = {
+  monthly: "cycleMonthly",
+  yearly: "cycleYearly",
+  installment: "cycleInstallment",
+} as const;
+
 function isPaidReferral(r: AffiliateReferralRow): boolean {
   const plan = (r.plan ?? "free").replace("aegis_", "");
   if (plan === "matrix" || plan === "ultra") return true;
