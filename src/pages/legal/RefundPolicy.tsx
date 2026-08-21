@@ -60,14 +60,19 @@ export default function RefundPolicy() {
               première échéance.
             </li>
             <li>
-              Passé ce délai, l'arrêt du programme est possible, mais les échéances déjà exigibles
-              restent dues. À titre d'exemple, un arrêt demandé au 45<sup>e</sup> jour laisse les
-              deux premières échéances dues et non remboursables.
+              Passé ce délai, vous pouvez arrêter à tout moment : les échéances restantes ne sont
+              alors plus dues, mais les montants déjà versés ne sont pas remboursés.
+            </li>
+            <li>
+              Exemple : un arrêt demandé au 45<sup>e</sup> jour, alors que deux échéances de 1 500 €
+              ont déjà été prélevées, met fin aux prélèvements suivants ; les 3 000 € déjà versés
+              restent acquis à Protocole Nomos.
             </li>
             <li>
               Les montants déjà versés au titre du forfait Ultra ne sont en aucun cas remboursés
               après la fenêtre de rétractation.
             </li>
+
           </ul>
 
           <h2>5. Nature de l'engagement</h2>
