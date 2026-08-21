@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 import PaymentTestModeBanner from "@/components/PaymentTestModeBanner";
+import PublicFooter from "@/components/public/PublicFooter";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
@@ -454,6 +455,7 @@ export default function Pricing() {
           </NeuralCard>
         </motion.div>
       </div>
+      <PublicFooter />
     </div>
   );
 }
