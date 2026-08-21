@@ -368,6 +368,10 @@ export default function Ambassador() {
                       {r.cancel_at_period_end ? ` · ${tr("cancels")}` : ""}
                     </td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{r.payments_count ?? 0}</td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">
+                      {formatMoney(r.gross_cents ?? 0, "EUR", locale === "en" ? "en-GB" : "fr-FR")}
+                    </td>
+
                     <td className="py-2.5 text-right font-medium">
                       {formatMoney(r.commission_cents ?? 0, "EUR", locale === "en" ? "en-GB" : "fr-FR")}
                     </td>
