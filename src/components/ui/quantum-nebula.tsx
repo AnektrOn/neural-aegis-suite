@@ -361,11 +361,11 @@ export default function GenerativeArtSceneV3({
     }
 
     if (autoPlayAudio) {
-      void audioContextRef.current
-        ?.resume()
-        .then(() => audioElement.play())
-        .catch(() => undefined);
+      // Best-effort resume, but never block playback on it (mobile).
+      void audioContextRef.current?.resume().catch(() => undefined);
+      void audioElement.play().catch(() => undefined);
     }
+
   }, [audioPaused, audioSrc, autoPlayAudio, state]);
 
   useEffect(() => {
@@ -383,32 +383,59 @@ export default function GenerativeArtSceneV3({
     audioElement.setAttribute("playsinline", "");
     audioElement.setAttribute("webkit-playsinline", "");
 
-    // Web Audio graph is best-effort: some mobile browsers refuse
-    // createMediaElementSource / AudioContext. Voice must still play.
+    // Web Audio graph is best-effort AND lazy: on mobile an AudioContext created
+    // outside a gesture stays "suspended". Connecting the element to a suspended
+    // graph makes playback silent, so we only build the graph once the context is
+    // actually running (after playback started from a gesture). Otherwise the
+    // element plays straight to the speakers, without spectrum reactivity.
     let audioContext: AudioContext | null = null;
     let analyser: AnalyserNode | null = null;
-    try {
+    let graphRequested = false;
+
+    const ensureGraph = () => {
+      if (graphRequested || audioContext) return;
+      graphRequested = true;
       const Ctor: typeof AudioContext | undefined =
         window.AudioContext ??
         (window as unknown as { webkitAudioContext?: typeof AudioContext })
           .webkitAudioContext;
-      if (Ctor) {
-        audioContext = new Ctor();
-        audioContextRef.current = audioContext;
-        const source = audioContext.createMediaElementSource(audioElement);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.28;
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-        analyserRef.current = analyser;
+      if (!Ctor) return;
+      let ctx: AudioContext;
+      try {
+        ctx = new Ctor();
+      } catch {
+        return;
       }
-    } catch {
-      audioContext = null;
-      analyser = null;
-      audioContextRef.current = null;
-      analyserRef.current = null;
-    }
+      const connect = () => {
+        if (ctx.state !== "running") {
+          void ctx.close().catch(() => undefined);
+          graphRequested = false;
+          return;
+        }
+        try {
+          const source = ctx.createMediaElementSource(audioElement);
+          const node = ctx.createAnalyser();
+          node.fftSize = 512;
+          node.smoothingTimeConstant = 0.28;
+          source.connect(node);
+          node.connect(ctx.destination);
+          audioContext = ctx;
+          analyser = node;
+          audioContextRef.current = ctx;
+          analyserRef.current = node;
+        } catch {
+          void ctx.close().catch(() => undefined);
+          graphRequested = false;
+        }
+      };
+      void ctx
+        .resume()
+        .then(connect)
+        .catch(() => {
+          void ctx.close().catch(() => undefined);
+          graphRequested = false;
+        });
+    };
 
     const syncPlayingState = () => {
       audioPlayingRef.current = !audioElement.paused && !audioElement.ended;
@@ -416,9 +443,12 @@ export default function GenerativeArtSceneV3({
 
     const handlePlay = () => {
       syncPlayingState();
+      // Playback started (gesture satisfied) → safe to build the reactive graph.
+      ensureGraph();
       onAudioBlockedRef.current?.(false);
       onAudioPlayRef.current?.();
     };
+
 
     const handleEnded = () => {
       syncPlayingState();
