@@ -66,8 +66,9 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (authLoading || !user) return;
-    if (isAnonymousUser(user) || isGuestUser(user)) return;
     if (mode === "guest" || mode === "upgrade" || mode === "signup") return;
+
+    const guestAccount = isAnonymousUser(user) || isGuestUser(user);
 
     const path = redirectParam?.trim();
     if (path?.startsWith("/")) {
@@ -75,7 +76,7 @@ export default function AuthPage() {
       return;
     }
 
-    navigate(postLoginPath(false, user.id), { replace: true });
+    navigate(postLoginPath(guestAccount, user.id), { replace: true });
   }, [user, authLoading, redirectParam, navigate, mode]);
 
   const showAuthError = (err: unknown) => {
