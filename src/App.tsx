@@ -286,13 +286,14 @@ const App = () => (
                 <Route
                   path="/onboarding"
                   element={
-                    <ProtectedRoute>
+                    <VisitorRoute>
                       <Suspense fallback={<PageLoader />}>
                         <GuardianOnboardingPage />
                       </Suspense>
-                    </ProtectedRoute>
+                    </VisitorRoute>
                   }
                 />
+
                 <Route
                   path="/welcome"
                   element={
