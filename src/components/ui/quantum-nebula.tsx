@@ -371,21 +371,39 @@ export default function GenerativeArtSceneV3({
 
     if (!audioSrc) return;
 
-    const audioContext = new AudioContext();
     const audioElement = new Audio(audioSrc);
-    audioContextRef.current = audioContext;
     audioElementRef.current = audioElement;
-    audioElement.crossOrigin = "anonymous";
     audioElement.loop = audioLoop;
+    audioElement.preload = "auto";
     audioElement.setAttribute("playsinline", "");
+    audioElement.setAttribute("webkit-playsinline", "");
 
-    const source = audioContext.createMediaElementSource(audioElement);
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 512;
-    analyser.smoothingTimeConstant = 0.28;
-    source.connect(analyser);
-    analyser.connect(audioContext.destination);
-    analyserRef.current = analyser;
+    // Web Audio graph is best-effort: some mobile browsers refuse
+    // createMediaElementSource / AudioContext. Voice must still play.
+    let audioContext: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    try {
+      const Ctor: typeof AudioContext | undefined =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (Ctor) {
+        audioContext = new Ctor();
+        audioContextRef.current = audioContext;
+        const source = audioContext.createMediaElementSource(audioElement);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.28;
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        analyserRef.current = analyser;
+      }
+    } catch {
+      audioContext = null;
+      analyser = null;
+      audioContextRef.current = null;
+      analyserRef.current = null;
+    }
 
     const syncPlayingState = () => {
       audioPlayingRef.current = !audioElement.paused && !audioElement.ended;
@@ -393,6 +411,7 @@ export default function GenerativeArtSceneV3({
 
     const handlePlay = () => {
       syncPlayingState();
+      onAudioBlockedRef.current?.(false);
       onAudioPlayRef.current?.();
     };
 
@@ -412,7 +431,16 @@ export default function GenerativeArtSceneV3({
 
     const tryPlay = () => {
       if (audioPausedRef.current) return;
-      void audioContext.resume().then(() => audioElement.play()).catch(() => undefined);
+      const start = () =>
+        audioElement.play().then(
+          () => onAudioBlockedRef.current?.(false),
+          () => onAudioBlockedRef.current?.(true),
+        );
+      if (audioContext && audioContext.state === "suspended") {
+        void audioContext.resume().then(start, start);
+      } else {
+        void start();
+      }
     };
 
     audioElement.addEventListener("play", handlePlay);
@@ -426,27 +454,48 @@ export default function GenerativeArtSceneV3({
       tryPlay();
     }
 
+    // Mobile: autoplay is blocked until a gesture. Keep listening for gestures
+    // until playback actually started (a single `once` listener is not enough).
     const resumeOnGesture = () => {
-      void audioContext.resume().catch(() => undefined);
+      if (!audioElement.paused && !audioElement.ended) {
+        detachGestureListeners();
+        return;
+      }
+      if (audioContext && audioContext.state === "suspended") {
+        void audioContext.resume().catch(() => undefined);
+      }
       if (autoPlayAudio) tryPlay();
     };
-    window.addEventListener("pointerdown", resumeOnGesture, { once: true });
+    const gestureEvents: (keyof WindowEventMap)[] = [
+      "pointerdown",
+      "touchend",
+      "keydown",
+    ];
+    const detachGestureListeners = () => {
+      gestureEvents.forEach((evt) =>
+        window.removeEventListener(evt, resumeOnGesture),
+      );
+    };
+    gestureEvents.forEach((evt) =>
+      window.addEventListener(evt, resumeOnGesture, { passive: true }),
+    );
 
     return () => {
-      window.removeEventListener("pointerdown", resumeOnGesture);
+      detachGestureListeners();
       audioElement.removeEventListener("play", handlePlay);
       audioElement.removeEventListener("pause", syncPlayingState);
       audioElement.removeEventListener("ended", handleEnded);
       audioElement.removeEventListener("error", handleError);
       audioElement.removeEventListener("timeupdate", handleTimeUpdate);
       audioElement.pause();
-      audioContext.close().catch(() => undefined);
+      audioContext?.close().catch(() => undefined);
       if (audioElementRef.current === audioElement) audioElementRef.current = null;
       if (audioContextRef.current === audioContext) audioContextRef.current = null;
-      if (analyserRef.current === analyser) analyserRef.current = null;
+      if (analyser && analyserRef.current === analyser) analyserRef.current = null;
       audioPlayingRef.current = false;
     };
   }, [audioSrc, autoPlayAudio, audioLoop]);
+
 
   useEffect(() => {
     audioTuningRef.current = {
