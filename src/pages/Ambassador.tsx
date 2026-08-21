@@ -11,6 +11,7 @@ import {
   fetchMyAffiliateDashboard,
   formatMoney,
 } from "@/services/affiliateService";
+import UltraDiscountTier from "@/components/ambassador/UltraDiscountTier";
 
 const COPY: Record<string, { fr: string; en: string }> = {
   title: { fr: "Programme Ambassadeur", en: "Ambassador program" },
