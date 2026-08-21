@@ -136,11 +136,17 @@ export default function Ambassador() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const allRows = data?.referrals ?? [];
+  const paidCount = useMemo(() => allRows.filter(isPaidReferral).length, [allRows]);
+  const freeCount = allRows.length - paidCount;
+
   const visibleReferrals = useMemo(() => {
-    const rows = [...(data?.referrals ?? [])];
+    const rows = [...allRows];
     const q = search.trim().toLowerCase();
     const filtered = rows.filter((r) => {
       const normalizedPlan = (r.plan ?? "free").replace("aegis_", "");
+      if (category === "paid" && !isPaidReferral(r)) return false;
+      if (category === "free" && isPaidReferral(r)) return false;
       if (planFilter !== "all" && normalizedPlan !== planFilter) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (q && !r.label.toLowerCase().includes(q)) return false;
@@ -153,7 +159,8 @@ export default function Ambassador() {
       if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
       return String(av).localeCompare(String(bv)) * dir;
     });
-  }, [data?.referrals, search, planFilter, statusFilter, sortKey, sortDir]);
+  }, [allRows, search, category, planFilter, statusFilter, sortKey, sortDir]);
+
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
