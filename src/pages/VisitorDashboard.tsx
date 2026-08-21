@@ -21,6 +21,8 @@ import {
   archetypeMeta,
 } from "@/features/archetype-assessment/services/assessmentService";
 import { VISITOR_PAYMENT_CTA_URL } from "@/lib/authVisitor";
+import { loadGuardianState } from "@/features/guardian/guardianStorage";
+import { needsGuardianOnboarding } from "@/features/guardian/needsGuardianOnboarding";
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
 
 export default function VisitorDashboard() {
@@ -33,6 +35,13 @@ export default function VisitorDashboard() {
   const [quizDone, setQuizDone] = useState<boolean | null>(null);
   const [topArchetype, setTopArchetype] = useState<ArchetypeKey | null>(null);
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    if (needsGuardianOnboarding(loadGuardianState(user.id))) {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [user?.id, navigate]);
 
   useEffect(() => {
     let alive = true;
