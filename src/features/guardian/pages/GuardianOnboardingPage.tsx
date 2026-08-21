@@ -40,6 +40,7 @@ export default function GuardianOnboardingPage() {
   const isMobile = useIsMobile();
   const {
     state,
+    hydrated,
     phase,
     audioSrc,
     setSpeaking,
@@ -55,6 +56,7 @@ export default function GuardianOnboardingPage() {
     completeDecisionLog,
     completeGuardian,
     adminSkipToPart2,
+    openActivateIfNeeded,
   } = useGuardian();
 
   const audioEnabled = AUDIO_PHASES.has(phase) && Boolean(audioSrc);
@@ -182,6 +184,10 @@ export default function GuardianOnboardingPage() {
   }, [isGuestAccount, navigate]);
 
   useEffect(() => {
+    openActivateIfNeeded();
+  }, [openActivateIfNeeded]);
+
+  useEffect(() => {
 
     if (phase !== "done") return;
     if (state.status === "declined" || state.status === "skipped") {
@@ -208,6 +214,21 @@ export default function GuardianOnboardingPage() {
   };
 
   if (!user) return null;
+
+  if (!hydrated) {
+    return (
+      <div className="relative flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-white dark:bg-black">
+        <GuardianNebula state="solid" />
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-background/30"
+          role="status"
+          aria-label={t("general.loading")}
+        >
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+        </div>
+      </div>
+    );
+  }
 
   if (phase === "done" || phase === "idle") {
     return (

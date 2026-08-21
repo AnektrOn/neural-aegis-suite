@@ -105,6 +105,7 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     let alive = true;
     const local = loadGuardianState(userId);
     setState(local);
+    setActivateRequested(local.status === "pending");
     setHydrated(false);
 
     (async () => {
