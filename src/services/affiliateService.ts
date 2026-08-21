@@ -13,6 +13,8 @@ export type AffiliateReferralRow = {
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
   commission_cents: number;
+  gross_cents?: number;
+
   payments_count: number;
   last_payment_at: string | null;
 };
