@@ -3503,6 +3503,7 @@ export type Database = {
         Returns: Json
       }
       get_aegis_synapse_grimoire: { Args: { p_locale?: string }; Returns: Json }
+      get_affiliate_candidates_admin: { Args: never; Returns: Json }
       get_affiliate_commissions_admin: {
         Args: { p_affiliate_id?: string }
         Returns: Json
