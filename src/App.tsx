@@ -83,6 +83,8 @@ const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
 const InstallAndroid = lazy(() => import("./pages/InstallAndroid"));
+const Ambassador = lazy(() => import("./pages/Ambassador"));
+const AffiliateManagement = lazy(() => import("./pages/admin/AffiliateManagement"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
