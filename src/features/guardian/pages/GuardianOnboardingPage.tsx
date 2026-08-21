@@ -67,6 +67,7 @@ export default function GuardianOnboardingPage() {
   const [ctaReady, setCtaReady] = useState(false);
   const [audioTimeSec, setAudioTimeSec] = useState(0);
   const [audioPaused, setAudioPaused] = useState(false);
+  const [audioBlocked, setAudioBlocked] = useState(false);
   /** Desktop: keep daily rail visible into part 4. */
   const [pinDailyRail, setPinDailyRail] = useState(false);
   /** Only set when the *current* clip's `ended` fires — never reuse previous step. */
@@ -97,6 +98,7 @@ export default function GuardianOnboardingPage() {
     setSpeaking(false);
     setAudioTimeSec(0);
     setAudioPaused(false);
+    setAudioBlocked(false);
     setCompletedClipKey(null);
     advancedClipRef.current = null;
   }, [audioEnabled, clipKey, setSpeaking]);
@@ -212,7 +214,9 @@ export default function GuardianOnboardingPage() {
         autoPlayAudio={audioEnabled}
         audioLoop={false}
         audioPaused={audioPaused}
+        onAudioBlocked={setAudioBlocked}
         onAudioPlay={() => {
+          setAudioBlocked(false);
           setVoiceStarted(true);
           setSpeaking(true);
           setAudioPaused(false);
@@ -226,6 +230,18 @@ export default function GuardianOnboardingPage() {
       />
 
       <GuardianCaptions text={activeCaption?.text ?? null} />
+
+      {audioEnabled && audioBlocked && !voiceStarted ? (
+        <button
+          type="button"
+          onClick={() => setAudioPaused(false)}
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
+        >
+          <span className="rounded-full border border-white/20 bg-black/70 px-6 py-3 font-display text-sm tracking-wide text-white shadow-2xl">
+            {t("guardian.audio.tapToStart")}
+          </span>
+        </button>
+      ) : null}
 
       <GuardianActivateModal
         open={phase === "activate"}

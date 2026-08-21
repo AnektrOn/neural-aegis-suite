@@ -34,6 +34,7 @@ interface GuardianNebulaProps {
   audioPaused?: boolean;
   onAudioEnded?: () => void;
   onAudioPlay?: () => void;
+  onAudioBlocked?: (blocked: boolean) => void;
   onAudioTimeUpdate?: (currentTimeSec: number) => void;
   className?: string;
   fullscreen?: boolean;
@@ -48,6 +49,7 @@ export function GuardianNebula({
   audioPaused = false,
   onAudioEnded,
   onAudioPlay,
+  onAudioBlocked,
   onAudioTimeUpdate,
   className = "z-0",
   fullscreen = true,
@@ -65,6 +67,7 @@ export function GuardianNebula({
         audioPaused={audioPaused}
         onAudioEnded={onAudioEnded}
         onAudioPlay={onAudioPlay}
+        onAudioBlocked={onAudioBlocked}
         onAudioTimeUpdate={onAudioTimeUpdate}
         audioTuning={audioSrc ? GUARDIAN_VOICE_AUDIO_TUNING : undefined}
         className={className}
