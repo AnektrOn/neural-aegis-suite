@@ -59,7 +59,9 @@ const COPY: Record<string, { fr: string; en: string }> = {
   colStatus: { fr: "Statut", en: "Status" },
   colRenewal: { fr: "Renouvellement", en: "Renewal" },
   colPayments: { fr: "Paiements", en: "Payments" },
+  colGross: { fr: "Encaissé", en: "Billed" },
   colEarned: { fr: "Commissions", en: "Earned" },
+
   cancels: { fr: "résiliation prévue", en: "cancels at period end" },
   searchPlaceholder: { fr: "Rechercher un filleul", en: "Search a referral" },
   allPlans: { fr: "Toutes les formules", en: "All plans" },
@@ -81,6 +83,7 @@ type SortKey =
   | "status"
   | "current_period_end"
   | "payments_count"
+  | "gross_cents"
   | "commission_cents";
 
 const SORT_COLUMNS: { key: SortKey; label: keyof typeof COPY }[] = [
@@ -90,7 +93,9 @@ const SORT_COLUMNS: { key: SortKey; label: keyof typeof COPY }[] = [
   { key: "status", label: "colStatus" },
   { key: "current_period_end", label: "colRenewal" },
   { key: "payments_count", label: "colPayments" },
+  { key: "gross_cents", label: "colGross" },
   { key: "commission_cents", label: "colEarned" },
+
 ];
 
 const PLAN_LABELS: Record<string, string> = {
@@ -363,6 +368,10 @@ export default function Ambassador() {
                       {r.cancel_at_period_end ? ` · ${tr("cancels")}` : ""}
                     </td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{r.payments_count ?? 0}</td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">
+                      {formatMoney(r.gross_cents ?? 0, "EUR", locale === "en" ? "en-GB" : "fr-FR")}
+                    </td>
+
                     <td className="py-2.5 text-right font-medium">
                       {formatMoney(r.commission_cents ?? 0, "EUR", locale === "en" ? "en-GB" : "fr-FR")}
                     </td>
