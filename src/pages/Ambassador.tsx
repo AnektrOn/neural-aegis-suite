@@ -11,6 +11,7 @@ import {
   fetchMyAffiliateDashboard,
   formatMoney,
 } from "@/services/affiliateService";
+import UltraDiscountTier from "@/components/ambassador/UltraDiscountTier";
 
 const COPY: Record<string, { fr: string; en: string }> = {
   title: { fr: "Programme Ambassadeur", en: "Ambassador program" },
@@ -134,6 +135,10 @@ export default function Ambassador() {
           </Card>
         ))}
       </div>
+
+      <UltraDiscountTier totalCents={(data.pending_cents ?? 0) + (data.paid_cents ?? 0)} />
+
+
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
