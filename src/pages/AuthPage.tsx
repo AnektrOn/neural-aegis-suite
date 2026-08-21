@@ -70,21 +70,29 @@ export default function AuthPage() {
 
     const guestAccount = isAnonymousUser(user) || isGuestUser(user);
 
-    // Guardian onboarding wins over any ?redirect= target (a redirect back to
-    // /visitor used to skip Guardian entirely for returning guests).
-    const target = postLoginPath(guestAccount, user.id);
+    const path = redirectParam?.trim();
+
+    // Guests never go through Guardian onboarding, even via ?redirect=/onboarding.
+    if (guestAccount) {
+      const safeGuestPath =
+        path?.startsWith("/") && !path.startsWith(GUARDIAN_ONBOARDING_PATH) ? path : "/quiz";
+      navigate(safeGuestPath, { replace: true });
+      return;
+    }
+
+    const target = postLoginPath(false, user.id);
     if (target === GUARDIAN_ONBOARDING_PATH) {
       navigate(target, { replace: true });
       return;
     }
 
-    const path = redirectParam?.trim();
     if (path?.startsWith("/")) {
       navigate(path, { replace: true });
       return;
     }
 
     navigate(target, { replace: true });
+
   }, [user, authLoading, redirectParam, navigate, mode]);
 
 
