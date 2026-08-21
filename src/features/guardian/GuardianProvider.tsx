@@ -86,24 +86,53 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GuardianPersistedState>(GUARDIAN_DEFAULT_STATE);
   const [activateRequested, setActivateRequested] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     if (!userId) {
       setState(GUARDIAN_DEFAULT_STATE);
       setActivateRequested(false);
+      setHydrated(false);
       return;
     }
-    const loaded = loadGuardianState(userId);
-    setState(loaded);
-    if (loaded.status === "pending") {
-      setActivateRequested(true);
-    }
+    let alive = true;
+    const local = loadGuardianState(userId);
+    setState(local);
+    setHydrated(false);
+
+    (async () => {
+      const remote = await fetchGuardianState(userId);
+      if (!alive) return;
+      // Keep whichever source is further along (new device = empty local).
+      const winner =
+        remote && guardianProgressRank(remote) >= guardianProgressRank(local)
+          ? remote
+          : local;
+      setState(winner);
+      saveGuardianState(userId, winner);
+      if (!remote || guardianProgressRank(local) > guardianProgressRank(remote)) {
+        void persistGuardianState(userId, winner).catch(() => undefined);
+      }
+      setActivateRequested(winner.status === "pending");
+      setHydrated(true);
+    })().catch(() => {
+      if (!alive) return;
+      setActivateRequested(local.status === "pending");
+      setHydrated(true);
+    });
+
+    return () => {
+      alive = false;
+    };
   }, [userId]);
 
   const persist = useCallback(
     (next: GuardianPersistedState) => {
       setState(next);
-      if (userId) saveGuardianState(userId, next);
+      if (userId) {
+        saveGuardianState(userId, next);
+        void persistGuardianState(userId, next).catch(() => undefined);
+      }
     },
     [userId],
   );
