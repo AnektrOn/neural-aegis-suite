@@ -862,6 +862,11 @@ export const translations = {
   "auth.email": { fr: "Courriel", en: "Email" },
   "auth.password": { fr: "Mot de passe", en: "Password" },
   "auth.signIn": { fr: "Se connecter", en: "Sign In" },
+  "auth.signUp": { fr: "Créer mon compte", en: "Create my account" },
+  "auth.signUp.cta": { fr: "Créer un compte", en: "Create an account" },
+  "auth.signUp.hasAccount": { fr: "Déjà un compte ? Se connecter", en: "Already have an account? Sign in" },
+  "auth.google": { fr: "Continuer avec Google", en: "Continue with Google" },
+
   "auth.backendUnavailable": {
     fr: "Le serveur Supabase ne répond pas (projet peut-être en pause). Ouvre le dashboard Supabase → Restore project, attends 1–2 min, puis réessaie.",
     en: "The Supabase server is not responding (project may be paused). Open the Supabase dashboard → Restore project, wait 1–2 minutes, then try again.",
