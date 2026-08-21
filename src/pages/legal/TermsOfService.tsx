@@ -91,8 +91,9 @@ export default function TermsOfService() {
             renouvellements futurs, sans remboursement au prorata. Le forfait <strong>Ultra</strong>{" "}
             n'est pas un abonnement mensuel mais un engagement unique dont le prix total peut être
             réglé en plusieurs échéances, à titre de facilité de paiement : après la fenêtre de
-            rétractation de 30 jours, l'arrêt du programme est possible mais les échéances déjà
-            exigibles restent dues et les sommes versées ne sont pas remboursées.
+            rétractation de 30 jours, vous pouvez arrêter à tout moment — les échéances restantes ne
+            sont plus dues, mais les sommes déjà versées ne sont pas remboursées.
+
           </p>
           <p>
             Nous sommes tenus à une <strong>obligation de moyens</strong> et non à une obligation de
