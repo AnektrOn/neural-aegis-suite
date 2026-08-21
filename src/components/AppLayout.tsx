@@ -121,11 +121,11 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                         {isActive && (
                           <motion.div
                             layoutId="sidebar-active"
-                            className="absolute inset-0 rounded-lg bg-accent-primary/10 border border-accent-primary/20 pointer-events-none"
+                            className="absolute inset-0 rounded-lg bg-accent-primary/20 border border-accent-primary/30 pointer-events-none"
                             transition={{ duration: 0.25 }}
                           />
                         )}
-                        <item.icon size={16} strokeWidth={1.5} className="relative z-10 shrink-0" aria-hidden />
+                        <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} fill={isActive ? "currentColor" : "none"} className="relative z-10 shrink-0" aria-hidden />
                         {!collapsed && (
                           <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.labelKey)}</span>
                         )}

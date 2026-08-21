@@ -8,6 +8,7 @@ import type { WelcomeHubStats } from "../services/welcomeHubStats";
 import { ArcGauge } from "./ArcGauge";
 import { WelcomeGlassTile } from "./WelcomeGlassTile";
 import { SlideToStart } from "./SlideToStart";
+import { WelcomeQuantumNebula } from "./WelcomeQuantumNebula";
 
 interface WelcomeHudScreenProps {
   firstName: string;
@@ -49,6 +50,7 @@ export function WelcomeHudScreen({
 
   return (
     <div className="welcome-hud relative flex min-h-[100dvh] flex-col overflow-hidden">
+      <WelcomeQuantumNebula />
       <div className="welcome-hud-bg" aria-hidden />
 
       <header className="relative z-10 flex flex-col items-center pt-[max(1.25rem,env(safe-area-inset-top))] px-6">
@@ -108,7 +110,6 @@ export function WelcomeHudScreen({
         {...fadeUp(0.15)}
         className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-6 min-h-[200px]"
       >
-        <div className="welcome-hud-hero-glow" aria-hidden />
         <div className="relative text-center max-w-md space-y-3">
           <div className="inline-flex items-center gap-2 text-primary mb-1">
             <Sparkles className="w-4 h-4" strokeWidth={1.5} aria-hidden />

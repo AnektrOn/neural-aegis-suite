@@ -75,7 +75,7 @@ export default function AuthPage() {
       return;
     }
 
-    navigate(postLoginPath(false), { replace: true });
+    navigate(postLoginPath(false, user.id), { replace: true });
   }, [user, authLoading, redirectParam, navigate, mode]);
 
   const showAuthError = (err: unknown) => {
@@ -153,7 +153,7 @@ export default function AuthPage() {
         title: t("visitor.upgrade.successTitle"),
         description: t("visitor.upgrade.successDesc"),
       });
-      navigate(postLoginPath(false));
+      navigate(postLoginPath(false, user.id));
     } catch (err: unknown) {
       showAuthError(err);
     } finally {

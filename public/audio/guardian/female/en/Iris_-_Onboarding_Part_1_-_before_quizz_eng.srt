@@ -1,0 +1,53 @@
+1
+00:00:00,140 --> 00:00:02,119
+Hello. My name is Iris.
+
+2
+00:00:02,939 --> 00:00:08,119
+I'm here to welcome you to AEGIS and guide
+you through the onboarding process, if
+
+3
+00:00:08,119 --> 00:00:08,699
+you choose.
+
+4
+00:00:09,779 --> 00:00:12,420
+Before we begin, one important point about
+your data.
+
+5
+00:00:13,359 --> 00:00:16,159
+Your information remains private and
+belongs to you.
+
+6
+00:00:16,819 --> 00:00:20,420
+It is not sold, shared, or distributed to
+3rd parties.
+
+7
+00:00:21,459 --> 00:00:25,479
+AEGIS uses your input only to create your
+personal experience and generate your
+
+8
+00:00:25,479 --> 00:00:26,619
+individual insights.
+
+9
+00:00:27,939 --> 00:00:29,619
+We will begin with a short questionnaire.
+
+10
+00:00:30,239 --> 00:00:32,540
+Take your time. There are no right
+answers.
+
+11
+00:00:33,340 --> 00:00:35,619
+When you are ready, select Start the Quiz.
+
+12
+00:00:36,540 --> 00:00:37,939
+I will be here when you are finished.

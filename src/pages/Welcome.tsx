@@ -9,11 +9,22 @@ import {
   fetchWelcomeHubStats,
   type WelcomeHubStats,
 } from "@/features/welcome/services/welcomeHubStats";
+import { WelcomeQuantumNebula } from "@/features/welcome/components/WelcomeQuantumNebula";
+import { useGuardianOptional, needsGuardianOnboarding } from "@/features/guardian";
+import { GUARDIAN_ONBOARDING_PATH } from "@/lib/welcomeHud";
 
 export default function Welcome() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
   const navigate = useNavigate();
+  const guardian = useGuardianOptional();
+
+  useEffect(() => {
+    if (!guardian) return;
+    if (needsGuardianOnboarding(guardian.state)) {
+      navigate(GUARDIAN_ONBOARDING_PATH, { replace: true });
+    }
+  }, [guardian, navigate]);
 
   const [maturity, setMaturity] = useState<UserMaturityProfile | null>(null);
   const [stats, setStats] = useState<WelcomeHubStats | null>(null);
@@ -76,6 +87,7 @@ export default function Welcome() {
   if (loadError && !loading) {
     return (
       <div className="welcome-hud flex min-h-[100dvh] items-center justify-center px-6">
+        <WelcomeQuantumNebula />
         <div className="welcome-hud-bg fixed inset-0" aria-hidden />
         <div className="relative z-10 flex max-w-sm flex-col items-center gap-4 text-center">
           <p className="font-barlow text-sm text-destructive">{t("welcome.loadError")}</p>
@@ -94,6 +106,7 @@ export default function Welcome() {
   if (loading || !maturity || !stats) {
     return (
       <div className="welcome-hud flex min-h-[100dvh] items-center justify-center">
+        <WelcomeQuantumNebula />
         <div className="welcome-hud-bg fixed inset-0" aria-hidden />
         <div
           className="relative z-10 w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin"

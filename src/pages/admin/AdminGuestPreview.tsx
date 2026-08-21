@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ExternalLink,
   Zap,
@@ -11,10 +12,13 @@ import {
   Trash2,
   AlertTriangle,
   History,
+  RotateCcw,
+  SkipForward,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
+import { useGuardianOptional } from "@/features/guardian";
 import {
   loadGuestQuizTemplate,
   createSession,
@@ -90,6 +94,8 @@ export default function AdminGuestPreview() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const guardian = useGuardianOptional();
   const isFR = locale === "fr";
 
   const [quizDone, setQuizDone] = useState<boolean | null>(null);
@@ -97,6 +103,7 @@ export default function AdminGuestPreview() {
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [fastQuizLoading, setFastQuizLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [guardianResetLoading, setGuardianResetLoading] = useState(false);
   const [snapshots, setSnapshots] = useState<ArchetypeProfileSnapshot[]>([]);
   const [realProfileMissing, setRealProfileMissing] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
@@ -410,6 +417,90 @@ export default function AdminGuestPreview() {
             </p>
           </div>
         )}
+      </div>
+
+      {/* Guardian onboarding reset */}
+      <div className="dashboard-panel p-4 sm:p-5 space-y-4">
+        <div>
+          <h2 className="font-barlow text-xs font-medium uppercase tracking-[0.14em] text-text-secondary">
+            {t("admin.guest.guardian.title")}
+          </h2>
+          <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
+            {t("admin.guest.guardian.desc")}
+          </p>
+          {guardian ? (
+            <p className="mt-2 font-mono text-[10px] text-muted-foreground">
+              {t("admin.guest.guardian.status")}: {guardian.state.status}
+              {guardian.state.gender ? ` · ${guardian.state.gender}` : ""}
+              {guardian.state.status === "active" ? ` · step ${guardian.state.step}` : ""}
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (!guardian) {
+              toast({
+                title: t("toast.error"),
+                description: t("admin.guest.guardian.unavailable"),
+                variant: "destructive",
+              });
+              return;
+            }
+            setGuardianResetLoading(true);
+            try {
+              guardian.resetOnboardingFlow();
+              toast({
+                title: t("admin.guest.guardian.resetSuccess"),
+                description: t("admin.guest.guardian.resetSuccessDesc"),
+              });
+              navigate("/onboarding", { replace: true });
+            } finally {
+              setGuardianResetLoading(false);
+            }
+          }}
+          disabled={guardianResetLoading || !guardian}
+          className="px-4 py-2.5 font-barlow text-[11px] uppercase tracking-[0.12em] flex items-center gap-2 text-accent-warning hover:bg-accent-warning/10 rounded-lg border border-accent-warning/25 transition-colors disabled:opacity-50"
+        >
+          {guardianResetLoading ? (
+            <Loader2 size={13} className="animate-spin" />
+          ) : (
+            <RotateCcw size={13} />
+          )}
+          {t("admin.guest.guardian.resetCta")}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!guardian) {
+              toast({
+                title: t("toast.error"),
+                description: t("admin.guest.guardian.unavailable"),
+                variant: "destructive",
+              });
+              return;
+            }
+            const ok = guardian.adminSkipToPart2();
+            if (!ok) {
+              toast({
+                title: t("toast.error"),
+                description: t("admin.guest.guardian.skipPart2NeedSetup"),
+                variant: "destructive",
+              });
+              navigate("/onboarding", { replace: true });
+              return;
+            }
+            toast({
+              title: t("admin.guest.guardian.skipPart2Success"),
+            });
+            navigate("/onboarding", { replace: true });
+          }}
+          disabled={!guardian}
+          className="px-4 py-2.5 font-barlow text-[11px] uppercase tracking-[0.12em] flex items-center gap-2 text-accent-primary hover:bg-accent-primary/10 rounded-lg border border-accent-primary/25 transition-colors disabled:opacity-50"
+        >
+          <SkipForward size={13} />
+          {t("admin.guest.guardian.skipPart2Cta")}
+        </button>
       </div>
 
       {/* Shortcut links */}

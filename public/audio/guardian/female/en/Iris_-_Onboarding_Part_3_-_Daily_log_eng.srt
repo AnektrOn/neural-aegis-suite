@@ -1,0 +1,18 @@
+1
+00:00:00,119 --> 00:00:01,199
+This is your daily log.
+
+2
+00:00:01,839 --> 00:00:06,919
+Here, you can record a few daily signals:
+your meals, sleep, stress level, and
+
+3
+00:00:06,920 --> 00:00:11,420
+overall mood. These entries are not meant
+to judge your routine. They help you
+
+4
+00:00:11,420 --> 00:00:15,119
+notice patterns over time and provide
+context for your personal observations.

@@ -1,0 +1,23 @@
+1
+00:00:00,239 --> 00:00:01,360
+This is your decision log.
+
+2
+00:00:02,119 --> 00:00:04,759
+Use it to record important decisions as
+they arise.
+
+3
+00:00:05,739 --> 00:00:09,819
+You can mark each decision as pending,
+postponed, or completed.
+
+4
+00:00:10,939 --> 00:00:14,579
+Over time, the analytics panel helps you
+observe your decision patterns,
+
+5
+00:00:15,319 --> 00:00:19,059
+what moves forward, what is delayed, and
+where attention may be needed.

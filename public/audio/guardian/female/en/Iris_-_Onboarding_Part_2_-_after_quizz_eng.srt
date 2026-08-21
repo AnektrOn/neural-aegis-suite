@@ -1,0 +1,18 @@
+1
+00:00:00,079 --> 00:00:01,639
+Your onboarding is now complete.
+
+2
+00:00:02,319 --> 00:00:06,239
+Your personal report is being prepared and
+should be available within 24 hours.
+
+3
+00:00:07,299 --> 00:00:11,199
+While you wait, I would like to show you
+the core areas of your Aegis workspace.
+
+4
+00:00:12,000 --> 00:00:14,599
+You can explore them with me or continue
+on your own.

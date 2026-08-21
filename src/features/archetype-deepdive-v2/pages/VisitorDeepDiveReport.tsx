@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
+import { useGuardianOptional } from "@/features/guardian";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,9 +25,15 @@ export default function VisitorDeepDiveReport() {
   const { locale, setLocale, t } = useLanguage();
   const isFR = locale === "fr";
   const { toast } = useToast();
+  const guardian = useGuardianOptional();
   const exportRef = useRef<HTMLDivElement>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingPng, setExportingPng] = useState(false);
+
+  useEffect(() => {
+    guardian?.markQuizComplete();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { profile, loading, error } = useDeepDiveProfile({
     userId: user?.id,
