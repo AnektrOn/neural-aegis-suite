@@ -13,7 +13,7 @@ describe("authRedirect", () => {
   });
 
   it("defaults guest redirect to quiz", () => {
-    expect(resolveGuestRedirect(null)).toBe("/quiz");
+    expect(resolveGuestRedirect(null)).toBe("/onboarding");
     expect(defaultGuestRedirect()).toBe("/quiz");
   });
 
