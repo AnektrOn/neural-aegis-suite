@@ -19,6 +19,7 @@ import AppLayout from "./components/AppLayout";
 import AdminLayout from "./components/AdminLayout";
 import VisitorLayout from "./layouts/VisitorLayout";
 import { useAndroidVersionReporter } from "@/hooks/useAndroidVersionReporter";
+import { useReferralCapture } from "@/hooks/useReferralCapture";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -83,6 +84,8 @@ const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
 const InstallAndroid = lazy(() => import("./pages/InstallAndroid"));
+const Ambassador = lazy(() => import("./pages/Ambassador"));
+const AffiliateManagement = lazy(() => import("./pages/admin/AffiliateManagement"));
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
@@ -117,6 +120,7 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
   const { bootScreenActive } = useAuth();
   const [appReady, setAppReady] = useState(skipBoot);
   useAndroidVersionReporter();
+  useReferralCapture();
 
   useEffect(() => {
     if (skipBoot) {
@@ -255,6 +259,7 @@ const App = () => (
                               <Route path="/newsletter" element={<NewsletterManagement />} />
                               <Route path="/guest-preview" element={<AdminGuestPreview />} />
                               <Route path="/mobile-releases" element={<MobileReleases />} />
+                              <Route path="/affiliates" element={<AffiliateManagement />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
@@ -304,6 +309,7 @@ const App = () => (
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/install" element={<InstallApp />} />
+                            <Route path="/ambassadeur" element={<Ambassador />} />
                             <Route path="/calendar" element={<CalendarView />} />
                             <Route path="/onboarding/assessment" element={<AssessmentFlow />} />
                             <Route path="/onboarding/results" element={<AssessmentResults />} />

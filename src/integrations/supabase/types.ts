@@ -404,6 +404,137 @@ export type Database = {
           },
         ]
       }
+      affiliate_clicks: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          id: string
+          landing_path: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          id?: string
+          landing_path?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          id?: string
+          landing_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_clicks_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_commissions: {
+        Row: {
+          affiliate_id: string
+          amount_cents: number
+          commission_cents: number
+          commission_rate: number
+          created_at: string
+          currency: string
+          id: string
+          note: string | null
+          occurred_at: string
+          paid_at: string | null
+          product_id: string | null
+          referral_id: string | null
+          referred_user_id: string
+          status: string
+          transaction_ref: string
+        }
+        Insert: {
+          affiliate_id: string
+          amount_cents?: number
+          commission_cents?: number
+          commission_rate?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          paid_at?: string | null
+          product_id?: string | null
+          referral_id?: string | null
+          referred_user_id: string
+          status?: string
+          transaction_ref: string
+        }
+        Update: {
+          affiliate_id?: string
+          amount_cents?: number
+          commission_cents?: number
+          commission_rate?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          paid_at?: string | null
+          product_id?: string | null
+          referral_id?: string | null
+          referred_user_id?: string
+          status?: string
+          transaction_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_commissions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          code: string
+          commission_rate: number
+          created_at: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alert_rules: {
         Row: {
           created_at: string
@@ -2222,6 +2353,44 @@ export type Database = {
           },
         ]
       }
+      referrals: {
+        Row: {
+          affiliate_id: string
+          code: string
+          converted_at: string | null
+          created_at: string
+          id: string
+          referred_user_id: string
+          status: string
+        }
+        Insert: {
+          affiliate_id: string
+          code: string
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referred_user_id: string
+          status?: string
+        }
+        Update: {
+          affiliate_id?: string
+          code?: string
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referred_user_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relation_quality_history: {
         Row: {
           contact_id: string
@@ -3270,10 +3439,19 @@ export type Database = {
         Args: { p_template_id: string }
         Returns: Json
       }
+      admin_create_affiliate: {
+        Args: { p_code: string; p_email: string; p_rate?: number }
+        Returns: Json
+      }
+      admin_set_commission_status: {
+        Args: { p_ids: string[]; p_status: string }
+        Returns: Json
+      }
       bump_toolbox_assignment_stat: {
         Args: { p_assignment_id: string; p_status: string; p_user_id: string }
         Returns: undefined
       }
+      claim_referral: { Args: { p_code: string }; Returns: Json }
       complete_aegis_card: { Args: { p_card_id: string }; Returns: Json }
       confirm_waiting_toolbox_assignment: {
         Args: { p_assignment_id: string }
@@ -3325,6 +3503,12 @@ export type Database = {
         Returns: Json
       }
       get_aegis_synapse_grimoire: { Args: { p_locale?: string }; Returns: Json }
+      get_affiliate_commissions_admin: {
+        Args: { p_affiliate_id?: string }
+        Returns: Json
+      }
+      get_affiliates_admin_overview: { Args: never; Returns: Json }
+      get_my_affiliate_dashboard: { Args: never; Returns: Json }
       get_pulse_admin_card_stats: { Args: never; Returns: Json }
       get_pulse_admin_card_users: { Args: { p_card_id: string }; Returns: Json }
       get_pulse_admin_swipe_log: {
@@ -3412,6 +3596,16 @@ export type Database = {
         }
         Returns: Json
       }
+      record_affiliate_commission: {
+        Args: {
+          p_amount_cents: number
+          p_currency?: string
+          p_product_id?: string
+          p_transaction_ref: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       recycle_pulse_ignored: { Args: never; Returns: Json }
       refresh_archetype_scores_by_user: { Args: never; Returns: undefined }
       remove_habit_from_tracker: {
@@ -3466,6 +3660,10 @@ export type Database = {
       subscribe_newsletter: {
         Args: { p_email: string; p_locale?: string; p_source?: string }
         Returns: Json
+      }
+      track_affiliate_click: {
+        Args: { p_code: string; p_path?: string }
+        Returns: undefined
       }
       unsubscribe_newsletter: { Args: { p_email: string }; Returns: Json }
     }

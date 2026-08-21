@@ -17,6 +17,7 @@ import {
   Settings2,
   Mail,
   Sparkles,
+  Handshake,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
@@ -66,6 +67,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
       { to: "/newsletter", icon: Mail, labelKey: "nav.newsletter" },
       { to: "/install-android", icon: Smartphone, labelKey: "nav.installApp" },
       { to: "/settings", icon: Settings2, labelKey: "nav.settings" },
+      { to: "/ambassadeur", icon: Handshake, labelKey: "nav.ambassador" },
       { to: "/profile", icon: UserCircle, labelKey: "nav.account" },
     ],
   },
