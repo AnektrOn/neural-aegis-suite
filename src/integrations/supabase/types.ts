@@ -1478,6 +1478,36 @@ export type Database = {
         }
         Relationships: []
       }
+      guardian_onboarding: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          state: Json
+          status: string
+          step: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          state?: Json
+          status?: string
+          step?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          state?: Json
+          status?: string
+          step?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       habit_completions: {
         Row: {
           assigned_habit_id: string
