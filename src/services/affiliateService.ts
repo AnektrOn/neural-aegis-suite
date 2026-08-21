@@ -12,13 +12,7 @@ export type AffiliateDashboard = {
   conversions?: number;
   pending_cents?: number;
   paid_cents?: number;
-  referrals?: {
-    id: string;
-    label: string;
-    status: string;
-    created_at: string;
-    converted_at: string | null;
-  }[];
+  referrals?: AffiliateReferralRow[];
   commissions?: {
     id: string;
     commission_cents: number;
