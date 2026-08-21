@@ -170,7 +170,14 @@ export default function GuardianOnboardingPage() {
   const dailyPlacement = isMobile ? "mobile" : "right";
   const decisionPlacement = isMobile ? "mobile" : "left";
 
+  // Guests never get Guardian onboarding — send them straight to the quiz.
+  const isGuestAccount = Boolean(user) && (isGuestUser(user) || user?.is_anonymous === true);
   useEffect(() => {
+    if (isGuestAccount) navigate("/quiz", { replace: true });
+  }, [isGuestAccount, navigate]);
+
+  useEffect(() => {
+
     if (phase !== "done") return;
     if (state.status === "declined" || state.status === "skipped") {
       navigate("/dashboard", { replace: true });
