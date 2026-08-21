@@ -104,6 +104,15 @@ function planLabel(plan?: string | null): string {
   return PLAN_LABELS[plan] ?? plan;
 }
 
+function isPaidReferral(r: AffiliateReferralRow): boolean {
+  const plan = (r.plan ?? "free").replace("aegis_", "");
+  if (plan === "matrix" || plan === "ultra") return true;
+  if ((r.commission_cents ?? 0) > 0) return true;
+  if ((r.payments_count ?? 0) > 0) return true;
+  return false;
+}
+
+
 export default function Ambassador() {
   const { locale } = useLanguage();
   const tr = (k: keyof typeof COPY) => COPY[k][locale === "en" ? "en" : "fr"];
