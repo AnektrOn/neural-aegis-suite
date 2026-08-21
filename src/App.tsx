@@ -212,6 +212,13 @@ const App = () => (
                 ) : null}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+                <Route path="/legal/terms" element={<TermsOfService />} />
+                <Route path="/legal/refund" element={<RefundPolicy />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/refund" element={<RefundPolicy />} />
+
                 <Route path="/checkout/success" element={<CheckoutSuccess />} />
                 <Route path="/install-android" element={<InstallAndroid />} />
                 <Route path="/newsletter" element={<NewsletterLayout />}>
