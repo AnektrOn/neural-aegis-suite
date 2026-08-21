@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import { NeuralCard } from "@/components/ui/neural-card";
-import AppFooter from "@/components/AppFooter";
+import PublicFooter from "@/components/public/PublicFooter";
 import BackendHealthBanner from "@/components/BackendHealthBanner";
 import { signUpGuest, upgradeGuestToMember } from "@/lib/guestAuth";
 import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
@@ -450,7 +450,7 @@ export default function AuthPage() {
           {t("nav.newsletter")}
         </Link>
       </p>
-      <AppFooter />
+      <PublicFooter />
     </div>
   );
 }
