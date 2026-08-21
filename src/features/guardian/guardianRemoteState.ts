@@ -53,13 +53,15 @@ export async function persistGuardianState(
     state.status === "declined" ||
     state.status === "skipped";
   await supabase.from("guardian_onboarding").upsert(
-    {
-      user_id: userId,
-      state: state as unknown as Record<string, unknown>,
-      status: state.status,
-      step: state.step,
-      completed_at: completed ? new Date().toISOString() : null,
-    },
+    [
+      {
+        user_id: userId,
+        state: state as unknown as Record<string, unknown>,
+        status: state.status,
+        step: state.step,
+        completed_at: completed ? new Date().toISOString() : null,
+      },
+    ],
     { onConflict: "user_id" },
   );
 }
