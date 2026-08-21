@@ -308,6 +308,7 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   const value = useMemo<GuardianContextValue>(
     () => ({
       state,
+      hydrated,
       phase,
       audioSrc,
       speaking,
