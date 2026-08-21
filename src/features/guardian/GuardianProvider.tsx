@@ -11,6 +11,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getGuardianAudioSrc } from "./guardianAudio";
 import { clearGuardianState, loadGuardianState, saveGuardianState } from "./guardianStorage";
 import {
+  fetchGuardianState,
+  guardianProgressRank,
+  persistGuardianState,
+} from "./guardianRemoteState";
+import {
   GUARDIAN_DEFAULT_STATE,
   type GuardianGender,
   type GuardianLocale,
