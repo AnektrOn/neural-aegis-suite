@@ -81,6 +81,8 @@ export default function Ambassador() {
   }, []);
 
   const link = data?.code ? buildReferralLink(data.code) : "";
+  const fmtDate = (iso?: string | null) =>
+    iso ? new Date(iso).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR") : "—";
 
   const copy = async () => {
     await navigator.clipboard.writeText(link);
