@@ -1,11 +1,10 @@
-import { lazy, Suspense, forwardRef } from "react";
+import { forwardRef } from "react";
+import QuantumNebula from "@/components/ui/quantum-nebula";
 import type {
   QuantumNebulaAudioTuning,
   QuantumNebulaHandle,
   QuantumNebulaState,
 } from "@/components/ui/quantum-nebula";
-
-const QuantumNebula = lazy(() => import("@/components/ui/quantum-nebula"));
 
 /** Voice-friendly tuning so spoken guide still drives visible mouvement. */
 const GUARDIAN_VOICE_AUDIO_TUNING: Partial<QuantumNebulaAudioTuning> = {
@@ -58,9 +57,8 @@ export const GuardianNebula = forwardRef<QuantumNebulaHandle, GuardianNebulaProp
   fullscreen = true,
 }, ref) {
   return (
-    <Suspense fallback={null}>
-      <QuantumNebula
-        ref={ref}
+    <QuantumNebula
+      ref={ref}
         fullscreen={fullscreen}
         cloudHeightRatio={0.4}
         theme="auto"
@@ -77,7 +75,6 @@ export const GuardianNebula = forwardRef<QuantumNebulaHandle, GuardianNebulaProp
         audioTuning={audioSrc ? GUARDIAN_VOICE_AUDIO_TUNING : undefined}
         className={className}
       />
-    </Suspense>
   );
 });
 

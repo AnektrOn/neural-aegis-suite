@@ -20,6 +20,9 @@ export const FREE_PATHS = [
   "/mood",
   "/decisions",
   "/habits",
+  // Guardian onboarding quiz (must stay free for Initiation users)
+  "/onboarding/assessment",
+  "/onboarding/results",
 ] as const;
 
 export function isFreePath(pathname: string): boolean {

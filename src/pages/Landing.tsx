@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import PublicFooter from "@/components/public/PublicFooter";
 
 export default function Landing() {
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
   const isFR = locale === "fr";
 
   const features = [
@@ -82,6 +82,12 @@ export default function Landing() {
           Aegis
         </span>
         <div className="flex items-center gap-3">
+          <Link
+            to="/auth"
+            className="text-[11px] uppercase tracking-[0.16em] text-text-tertiary transition-colors hover:text-foreground"
+          >
+            {t("auth.signIn")}
+          </Link>
           <Link
             to="/pricing"
             className="text-[11px] uppercase tracking-[0.16em] text-text-tertiary transition-colors hover:text-foreground"
