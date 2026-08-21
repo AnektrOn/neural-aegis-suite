@@ -72,7 +72,7 @@ export const GuardianNebula = forwardRef<QuantumNebulaHandle, GuardianNebulaProp
         onAudioBlocked={onAudioBlocked}
         onAudioError={onAudioError}
         onAudioTimeUpdate={onAudioTimeUpdate}
-        enableAudioAnalyser={false}
+        enableAudioAnalyser
         audioTuning={audioSrc ? GUARDIAN_VOICE_AUDIO_TUNING : undefined}
         className={className}
       />
