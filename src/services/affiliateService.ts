@@ -2,6 +2,21 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const REFERRAL_STORAGE_KEY = "aegis:ref-code";
 
+export type AffiliateReferralRow = {
+  id: string;
+  label: string;
+  status: string;
+  created_at: string;
+  converted_at: string | null;
+  plan: string | null;
+  plan_status: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
+  commission_cents: number;
+  payments_count: number;
+  last_payment_at: string | null;
+};
+
 export type AffiliateDashboard = {
   is_affiliate: boolean;
   code?: string;
@@ -12,13 +27,7 @@ export type AffiliateDashboard = {
   conversions?: number;
   pending_cents?: number;
   paid_cents?: number;
-  referrals?: {
-    id: string;
-    label: string;
-    status: string;
-    created_at: string;
-    converted_at: string | null;
-  }[];
+  referrals?: AffiliateReferralRow[];
   commissions?: {
     id: string;
     commission_cents: number;
