@@ -4486,6 +4486,10 @@ excerpt_fr: email brief
     fr: "Touchez pour activer la voix",
     en: "Tap to enable the voice",
   },
+  "guardian.audio.retry": {
+    fr: "La voix est indisponible — réessayer",
+    en: "Voice unavailable — try again",
+  },
 
   "guardian.audio.tapToPlay": {
     fr: "Appuyer pour lancer la voix du Guardian",

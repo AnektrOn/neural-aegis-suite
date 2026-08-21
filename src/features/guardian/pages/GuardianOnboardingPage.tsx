@@ -20,6 +20,7 @@ import { GuardianDashboardCta } from "../components/GuardianDashboardCta";
 import { GuardianNebula } from "../components/GuardianNebula";
 import { GuardianCaptions } from "../components/GuardianCaptions";
 import type { GuardianStep } from "../types";
+import type { QuantumNebulaHandle } from "@/components/ui/quantum-nebula";
 
 export const GUARDIAN_ONBOARDING_PATH = "/onboarding";
 
@@ -61,6 +62,7 @@ export default function GuardianOnboardingPage() {
   const clipKeyRef = useRef(clipKey);
   clipKeyRef.current = clipKey;
   const advancedClipRef = useRef<string | null>(null);
+  const nebulaRef = useRef<QuantumNebulaHandle | null>(null);
 
   const [voiceStarted, setVoiceStarted] = useState(false);
   const [voiceEnded, setVoiceEnded] = useState(false);
@@ -68,6 +70,7 @@ export default function GuardianOnboardingPage() {
   const [audioTimeSec, setAudioTimeSec] = useState(0);
   const [audioPaused, setAudioPaused] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [audioFailed, setAudioFailed] = useState(false);
   /** Desktop: keep daily rail visible into part 4. */
   const [pinDailyRail, setPinDailyRail] = useState(false);
   /** Only set when the *current* clip's `ended` fires — never reuse previous step. */
@@ -89,6 +92,7 @@ export default function GuardianOnboardingPage() {
       setAudioTimeSec(0);
       setAudioPaused(false);
       setCompletedClipKey(null);
+      setAudioFailed(false);
       advancedClipRef.current = null;
       return;
     }
@@ -99,6 +103,7 @@ export default function GuardianOnboardingPage() {
     setAudioTimeSec(0);
     setAudioPaused(false);
     setAudioBlocked(false);
+    setAudioFailed(false);
     setCompletedClipKey(null);
     advancedClipRef.current = null;
   }, [audioEnabled, clipKey, setSpeaking]);
@@ -116,13 +121,13 @@ export default function GuardianOnboardingPage() {
   }, [audioEnabled, voiceEnded, setSpeaking, phase]);
 
   useEffect(() => {
-    if (!audioEnabled || voiceEnded) return;
+    if (!audioEnabled || voiceEnded || audioBlocked || audioFailed) return;
     const timer = window.setTimeout(() => {
       setVoiceEnded(true);
       setCompletedClipKey(clipKeyRef.current);
     }, AUDIO_FAILSAFE_MS);
     return () => window.clearTimeout(timer);
-  }, [audioEnabled, clipKey, voiceEnded]);
+  }, [audioEnabled, clipKey, voiceEnded, audioBlocked, audioFailed]);
 
   // Part 3 finished → part 4 (only for this clip, not leftover ended from part 2).
   useEffect(() => {
@@ -215,13 +220,18 @@ export default function GuardianOnboardingPage() {
   return (
     <div className="relative min-h-[100dvh] w-full overflow-hidden bg-white dark:bg-black">
       <GuardianNebula
-        key={audioSrc ?? "idle"}
+        ref={nebulaRef}
         state={nebulaState}
         audioSrc={audioEnabled ? audioSrc : null}
         autoPlayAudio={audioEnabled}
         audioLoop={false}
         audioPaused={audioPaused}
         onAudioBlocked={setAudioBlocked}
+        onAudioError={() => {
+          setAudioBlocked(false);
+          setAudioFailed(true);
+          setSpeaking(false);
+        }}
         onAudioPlay={() => {
           setAudioBlocked(false);
           setVoiceStarted(true);
@@ -238,17 +248,21 @@ export default function GuardianOnboardingPage() {
 
       <GuardianCaptions text={activeCaption?.text ?? null} />
 
-      {audioEnabled && audioBlocked && !voiceStarted ? (
-        <button
+      {audioEnabled && (audioBlocked || audioFailed) && !voiceStarted ? (
+        <Button
           type="button"
-          onPointerDown={() => setAudioPaused(false)}
-          onTouchEnd={() => setAudioPaused(false)}
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
+          variant="ghost"
+          onClick={() => {
+            setAudioPaused(false);
+            setAudioFailed(false);
+            void nebulaRef.current?.playAudio();
+          }}
+          className="fixed inset-0 z-40 h-auto w-auto rounded-none bg-background/40 backdrop-blur-[2px] hover:bg-background/40"
         >
-          <span className="rounded-full border border-white/20 bg-black/70 px-6 py-3 font-display text-sm tracking-wide text-white shadow-2xl">
-            {t("guardian.audio.tapToStart")}
+          <span className="rounded-full border border-border/40 bg-background/80 px-6 py-3 font-display text-sm tracking-wide text-foreground shadow-2xl">
+            {audioFailed ? t("guardian.audio.retry") : t("guardian.audio.tapToStart")}
           </span>
-        </button>
+        </Button>
       ) : null}
 
       <GuardianActivateModal
