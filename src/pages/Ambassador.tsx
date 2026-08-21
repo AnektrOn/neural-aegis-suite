@@ -43,7 +43,28 @@ const COPY: Record<string, { fr: string; en: string }> = {
     fr: "Les commissions sont validées puis versées manuellement par l'équipe AEGIS.",
     en: "Commissions are reviewed then paid out manually by the AEGIS team.",
   },
+  colMember: { fr: "Membre", en: "Member" },
+  colSignup: { fr: "Inscription", en: "Signed up" },
+  colPlan: { fr: "Formule", en: "Plan" },
+  colStatus: { fr: "Statut", en: "Status" },
+  colRenewal: { fr: "Renouvellement", en: "Renewal" },
+  colPayments: { fr: "Paiements", en: "Payments" },
+  colEarned: { fr: "Commissions", en: "Earned" },
+  cancels: { fr: "résiliation prévue", en: "cancels at period end" },
 };
+
+const PLAN_LABELS: Record<string, string> = {
+  aegis_ultra: "Ultra",
+  aegis_matrix: "Matrice",
+  ultra: "Ultra",
+  matrix: "Matrice",
+  free: "Initiation",
+};
+
+function planLabel(plan?: string | null): string {
+  if (!plan) return PLAN_LABELS.free;
+  return PLAN_LABELS[plan] ?? plan;
+}
 
 export default function Ambassador() {
   const { locale } = useLanguage();
