@@ -140,14 +140,18 @@ export default function RefundPolicy() {
           <ul>
             <li>A 30-day withdrawal window also applies, from the first instalment.</li>
             <li>
-              After that window, you may stop the programme, but instalments already due remain
-              payable. For example, stopping on day 45 leaves the first two instalments due and
-              non-refundable.
+              After that window you may stop at any time: remaining instalments are no longer owed,
+              but amounts already paid are not refunded.
+            </li>
+            <li>
+              Example: stopping on day 45, after two instalments of €1,500 have been charged, ends
+              all further charges; the €3,000 already paid stays with Protocole Nomos.
             </li>
             <li>
               Amounts already paid under the Ultra plan are not refunded after the withdrawal
               window.
             </li>
+
           </ul>
 
           <h2>5. Nature of the commitment</h2>
