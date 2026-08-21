@@ -201,8 +201,9 @@ export default function TermsOfService() {
             The <strong>Matrice</strong> plan is a recurring subscription: cancelling stops future
             renewals, with no pro-rata refund. The <strong>Ultra</strong> plan is not a monthly
             subscription but a single commitment whose total price may be split into instalments as a
-            payment facility: after the 30-day withdrawal window, you may stop the programme, but
-            instalments already due remain payable and amounts paid are not refunded.
+            payment facility: after the 30-day withdrawal window, you may stop at any time —
+            remaining instalments are no longer owed, but amounts already paid are not refunded.
+
           </p>
           <p>
             We are bound by a <strong>best-efforts obligation</strong>, not an obligation of result:
