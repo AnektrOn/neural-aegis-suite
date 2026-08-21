@@ -8,6 +8,8 @@ export const WELCOME_HUB_PATH = "/welcome";
 export const GUARDIAN_ONBOARDING_PATH = "/onboarding";
 
 export function postLoginPath(isGuest: boolean, userId?: string | null): string {
+  // Guests never see Guardian onboarding: they go straight to the quiz.
+  if (isGuest) return "/quiz";
   if (userId) {
     const guardian = loadGuardianState(userId);
     if (needsGuardianOnboarding(guardian)) return GUARDIAN_ONBOARDING_PATH;

@@ -164,12 +164,8 @@ export default function AuthPage() {
           ? t("auth.guest.successDescNewsletter")
           : t("auth.guest.successDesc"),
       });
-      // A redirect back to /visitor used to bypass Guardian entirely. Keep the
-      // explicit newsletter flow, but send every normal guest through Guardian.
-      navigate(
-        newsletterIntent ? redirectTo : postLoginPath(true, session.user.id),
-        { replace: true },
-      );
+      // Guests go to the quiz (Guardian onboarding is for real accounts only).
+      navigate(newsletterIntent ? redirectTo : "/quiz", { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       if (message === "EMAIL_ALREADY_REGISTERED") {
