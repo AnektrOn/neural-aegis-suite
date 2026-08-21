@@ -300,8 +300,9 @@ export default function GuardianOnboardingPage() {
             onClick={() => {
               setAudioPaused(false);
               setAudioFailed(false);
-              setNeedsTapToStart(false);
-              void nebulaRef.current?.playAudio();
+              void nebulaRef.current?.playAudio()?.then((ok) => {
+                if (ok) setNeedsTapToStart(false);
+              });
             }}
             className="rounded-full px-6 font-display tracking-wide shadow-2xl"
           >
