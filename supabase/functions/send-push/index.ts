@@ -97,7 +97,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
+    const rawPrivateKey =
+      Deno.env.get("VAPID_PRIVATE_KEY_V2") || Deno.env.get("VAPID_PRIVATE_KEY");
+    const VAPID_PRIVATE_KEY = rawPrivateKey ? normalizeVapidKey(rawPrivateKey) : undefined;
     const rawSubject = (Deno.env.get("VAPID_SUBJECT") || "admin@aegis.local").trim();
     // web-push requires mailto: or https:// — auto-fix common misconfig (bare email)
     const VAPID_SUBJECT =
