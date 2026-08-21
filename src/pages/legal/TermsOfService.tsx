@@ -86,6 +86,19 @@ export default function TermsOfService() {
             et par notre <a href="/legal/refund">politique de remboursement</a>. Les abonnements se
             renouvellent automatiquement jusqu'à annulation.
           </p>
+          <p>
+            Le forfait <strong>Matrice</strong> est un abonnement récurrent : l'annulation stoppe les
+            renouvellements futurs, sans remboursement au prorata. Le forfait <strong>Ultra</strong>{" "}
+            n'est pas un abonnement mensuel mais un engagement unique dont le prix total peut être
+            réglé en plusieurs échéances, à titre de facilité de paiement : après la fenêtre de
+            rétractation de 30 jours, l'arrêt du programme est possible mais les échéances déjà
+            exigibles restent dues et les sommes versées ne sont pas remboursées.
+          </p>
+          <p>
+            Nous sommes tenus à une <strong>obligation de moyens</strong> et non à une obligation de
+            résultat : aucun résultat personnel, professionnel ou financier n'est garanti.
+          </p>
+
 
           <h2>8. Disponibilité</h2>
           <p>
