@@ -10,6 +10,7 @@ export type AffiliateReferralRow = {
   converted_at: string | null;
   plan: string | null;
   plan_status: string | null;
+  billing_cycle?: "monthly" | "yearly" | "installment" | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
   commission_cents: number;
