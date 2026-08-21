@@ -56,7 +56,7 @@ export async function persistGuardianState(
     [
       {
         user_id: userId,
-        state: state as unknown as Record<string, unknown>,
+        state: JSON.parse(JSON.stringify(state)),
         status: state.status,
         step: state.step,
         completed_at: completed ? new Date().toISOString() : null,
