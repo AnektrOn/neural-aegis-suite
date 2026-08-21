@@ -15,7 +15,7 @@
   :root {
     color-scheme: dark;
     font-family: "Barlow", sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 
@@ -51,7 +51,7 @@
     --secondary-foreground: 24 48% 95%;
     --secondary-hover: 19 33% 28%;
     --muted: 10 5% 22%;
-    --muted-foreground: 24 10% 60%;
+    --muted-foreground: 24 10% 75%;
     --accent: 24 48% 65%;
     --accent-foreground: 200 35% 7%;
     --accent-hover: 24 48% 55%;
@@ -68,8 +68,8 @@
     --info: 200 80% 60%;
     --info-foreground: 200 80% 5%;
     --info-muted: 200 40% 15%;
-    --border: 201 28% 20%;
-    --input: 201 28% 20%;
+    --border: 201 28% 30%;
+    --input: 201 28% 15%;
     --ring: 24 48% 65%;
     --radius: 0.75rem;
 
@@ -130,7 +130,7 @@
     --secondary-foreground: 0 0% 7%;
     --secondary-hover: 240 4% 88%;
     --muted: 240 6% 96%;
-    --muted-foreground: 240 2% 54%;
+    --muted-foreground: 240 2% 40%;
     --accent: 0 0% 20%;
     --accent-foreground: 0 0% 100%;
     --accent-hover: 0 0% 12%;
@@ -147,8 +147,8 @@
     --info: 211 100% 50%;
     --info-foreground: 0 0% 100%;
     --info-muted: 211 60% 95%;
-    --border: 240 4% 83%;
-    --input: 240 4% 83%;
+    --border: 240 4% 75%;
+    --input: 240 4% 90%;
     --ring: 0 0% 0%;
 
     --sidebar-background: 0 0% 100%;
@@ -189,6 +189,17 @@
 
   * {
     @apply border-border;
+  }
+
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  article a, p a {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1.5px;
   }
 
   body {
@@ -271,16 +282,16 @@ html.light .bg-aegis-gradient {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
   background:
-    radial-gradient(ellipse 120% 80% at 50% 0%, hsl(var(--primary) / 0.24) 0%, transparent 55%),
-    radial-gradient(ellipse 80% 50% at 85% 100%, hsl(var(--neural-accent) / 0.14) 0%, transparent 50%),
-    radial-gradient(ellipse 55% 45% at 10% 65%, hsl(var(--secondary) / 0.1) 0%, transparent 48%),
+    radial-gradient(ellipse 120% 80% at 50% 0%, hsl(var(--primary) / 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 50% at 85% 100%, hsl(var(--neural-accent) / 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 55% 45% at 10% 65%, hsl(var(--secondary) / 0.05) 0%, transparent 48%),
     linear-gradient(
       180deg,
-      hsl(var(--background)) 0%,
-      hsl(var(--aegis-hero-bg)) 42%,
-      hsl(var(--background)) 100%
+      hsl(var(--background) / 0.12) 0%,
+      hsl(var(--aegis-hero-bg) / 0.08) 42%,
+      hsl(var(--background) / 0.18) 100%
     );
 }
 
@@ -289,9 +300,9 @@ html.light .bg-aegis-gradient {
   position: absolute;
   inset: 0;
   background: radial-gradient(
-    ellipse 95% 85% at 50% 45%,
+    ellipse 95% 85% at 50% 42%,
     transparent 35%,
-    hsl(var(--background) / 0.72) 100%
+    hsl(var(--background) / 0.22) 100%
   );
 }
 
@@ -349,11 +360,22 @@ html.light .bg-aegis-gradient {
 }
 
 html.light .welcome-hud-bg {
-  background: hsl(var(--background));
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 0%, hsl(var(--primary) / 0.06) 0%, transparent 55%),
+    linear-gradient(
+      180deg,
+      hsl(var(--background) / 0.08) 0%,
+      transparent 45%,
+      hsl(var(--background) / 0.14) 100%
+    );
 }
 
 html.light .welcome-hud-bg::after {
-  background: none;
+  background: radial-gradient(
+    ellipse 95% 85% at 50% 42%,
+    transparent 40%,
+    hsl(var(--background) / 0.12) 100%
+  );
 }
 
 html.light .welcome-hud-hero-glow {
@@ -733,8 +755,20 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
   .stat-number-mobile {
     font-family: "DM Mono", monospace;
-    font-weight: 400;
+    font-weight: 600;
     letter-spacing: -0.02em;
+  }
+
+  h1, .h1-strict {
+    @apply text-3xl sm:text-4xl lg:text-5xl font-light tracking-tight;
+  }
+  
+  h2, .h2-strict {
+    @apply text-2xl sm:text-3xl font-medium tracking-tight;
+  }
+  
+  h3, .h3-strict {
+    @apply text-xl sm:text-2xl font-semibold tracking-normal;
   }
 
   .mobile-section-gap {

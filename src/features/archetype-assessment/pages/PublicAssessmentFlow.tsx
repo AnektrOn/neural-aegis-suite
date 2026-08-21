@@ -25,6 +25,7 @@ import {
 import { useAssessmentSession } from "../hooks/useAssessmentSession";
 import type { LoadedTemplate } from "../services/assessmentService";
 import { AssessmentQuestionRenderer } from "../components/AssessmentQuestionRenderer";
+import { useGuardianOptional } from "@/features/guardian";
 
 const SECONDS_PER_QUESTION = 18;
 
@@ -39,6 +40,7 @@ export default function PublicAssessmentFlow() {
   const { user, loading: authLoading, bootScreenActive } = useAuth();
   const { t, locale } = useLanguage();
   const isFR = locale === "fr";
+  const guardian = useGuardianOptional();
 
   const [loaded, setLoaded] = useState<LoadedTemplate | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -105,6 +107,7 @@ export default function PublicAssessmentFlow() {
         responses: session.responsesArray,
         startedAt: session.startedAt,
       });
+      guardian?.markQuizComplete();
       navigate("/visitor/report", { replace: true });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);

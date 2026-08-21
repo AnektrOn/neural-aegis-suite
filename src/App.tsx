@@ -10,6 +10,7 @@ import { BrowserRouter, MemoryRouter, Routes, Route, useLocation } from "react-r
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import { GuardianProvider } from "@/features/guardian";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RequireSubscription from "@/components/RequireSubscription";
 import VisitorRoute from "@/components/VisitorRoute";
@@ -25,6 +26,9 @@ import { useReferralCapture } from "@/hooks/useReferralCapture";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 
 const Welcome = lazy(() => import("./pages/Welcome"));
+const GuardianOnboardingPage = lazy(
+  () => import("@/features/guardian/pages/GuardianOnboardingPage"),
+);
 const Persona = lazy(() => import("./pages/Persona"));
 const MoodTracker = lazy(() => import("./pages/MoodTracker"));
 const DecisionLog = lazy(() => import("./pages/DecisionLog"));
@@ -82,7 +86,11 @@ const AdminTaoPortraitHub = lazy(() => import("./pages/admin/AdminTaoPortraitHub
 const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
+const AegisCorePreview = lazy(() => import("./pages/dev/AegisCorePreview"));
+const QuantumNebulaDemo = lazy(() => import("./pages/dev/QuantumNebulaDemo"));
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
+const AdminMarkdownPdf = lazy(() => import("./pages/admin/AdminMarkdownPdf"));
+const AdminMarkdownPdfRender = lazy(() => import("./pages/admin/AdminMarkdownPdfRender"));
 const InstallAndroid = lazy(() => import("./pages/InstallAndroid"));
 const Ambassador = lazy(() => import("./pages/Ambassador"));
 const AffiliateManagement = lazy(() => import("./pages/admin/AffiliateManagement"));
@@ -110,7 +118,8 @@ function isBootGateSkippedPath(pathname: string): boolean {
   return (
     pathname === "/auth" ||
     pathname === "/install-android" ||
-    pathname.startsWith("/newsletter")
+    pathname.startsWith("/newsletter") ||
+    pathname.startsWith("/dev/")
   );
 }
 
@@ -163,11 +172,16 @@ const App = () => (
       <Router>
         <LanguageProvider>
           <AuthProvider>
+            <GuardianProvider>
             <AuthBootGate>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 {import.meta.env.DEV ? (
-                  <Route path="/__loader" element={<BootLoadingScreen />} />
+                  <>
+                    <Route path="/__loader" element={<BootLoadingScreen />} />
+                    <Route path="/dev/aegis-core" element={<AegisCorePreview />} />
+                    <Route path="/dev/quantum-nebula" element={<QuantumNebulaDemo />} />
+                  </>
                 ) : null}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/pricing" element={<Pricing />} />
@@ -245,6 +259,8 @@ const App = () => (
                               <Route path="/assessments" element={<AdminAssessments />} />
                               <Route path="/alerts" element={<AdminAlertsPanel />} />
                               <Route path="/export" element={<AdminExport />} />
+                              <Route path="/md-pdf/render" element={<AdminMarkdownPdfRender />} />
+                              <Route path="/md-pdf" element={<AdminMarkdownPdf />} />
               <Route path="/deep-dive" element={<AdminDeepDiveHub />} />
               <Route path="/tao-portrait" element={<AdminTaoPortraitHub />} />
                               <Route
@@ -264,6 +280,16 @@ const App = () => (
                           </Suspense>
                         </AdminLayout>
                       </AdminRoute>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/onboarding"
+                  element={
+                    <ProtectedRoute>
+                      <Suspense fallback={<PageLoader />}>
+                        <GuardianOnboardingPage />
+                      </Suspense>
                     </ProtectedRoute>
                   }
                 />
@@ -330,6 +356,7 @@ const App = () => (
             </Suspense>
             <AppUpdatePrompt />
             </AuthBootGate>
+            </GuardianProvider>
           </AuthProvider>
         </LanguageProvider>
       </Router>

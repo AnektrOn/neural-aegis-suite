@@ -97,6 +97,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const pageMeta = getAdminPageMeta(location.pathname, location.search, t);
   const headerTitle = pageMeta.subtitle ? `${pageMeta.title} · ${pageMeta.subtitle}` : pageMeta.title;
+  const isMdPdfRender = location.pathname.includes("/md-pdf/render");
+
+  if (isMdPdfRender) {
+    return <>{children}</>;
+  }
 
   if (isMobile) {
     return (

@@ -61,11 +61,11 @@ function NavItemLink({
       {active && (
         <motion.div
           layoutId="admin-sidebar-active"
-          className="pointer-events-none absolute inset-0 rounded-lg border border-accent-warning/25 bg-accent-warning/10"
+          className="pointer-events-none absolute inset-0 rounded-lg border border-accent-warning/30 bg-accent-warning/20"
           transition={{ duration: 0.25 }}
         />
       )}
-      <item.icon size={16} strokeWidth={1.5} className="relative z-10 shrink-0" />
+      <item.icon size={16} strokeWidth={active ? 2 : 1.5} fill={active ? "currentColor" : "none"} className="relative z-10 shrink-0" />
       {!collapsed && (
         <span className="relative z-10 text-[11px] font-medium uppercase tracking-[0.1em]">{t(item.labelKey)}</span>
       )}

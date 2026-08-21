@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useGuardianOptional } from "@/features/guardian";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,14 @@ export default function AssessmentResults() {
   const { user } = useAuth();
   const { locale, t } = useLanguage();
   const isFR = locale === "fr";
+  const guardian = useGuardianOptional();
+
+  useEffect(() => {
+    if (!guardian || guardian.state.status !== "active") return;
+    guardian.markQuizComplete();
+    navigate("/onboarding", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on results mount
+  }, []);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<SessionResultsSummary | null>(null);

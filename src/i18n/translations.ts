@@ -655,6 +655,47 @@ export const translations = {
     fr: "Aucune session Fast Quiz à supprimer.",
     en: "No Fast Quiz session to delete.",
   },
+  "admin.guest.guardian.title": {
+    fr: "Guardian — onboarding",
+    en: "Guardian — onboarding",
+  },
+  "admin.guest.guardian.desc": {
+    fr: "Réinitialise le flow Guardian pour ce compte (localStorage) et rouvre le modal d’activation.",
+    en: "Resets the Guardian flow for this account (localStorage) and reopens the activation modal.",
+  },
+  "admin.guest.guardian.status": { fr: "État", en: "Status" },
+  "admin.guest.guardian.resetCta": {
+    fr: "Reset flow onboarding",
+    en: "Reset onboarding flow",
+  },
+  "admin.guest.guardian.resetSuccess": {
+    fr: "Flow Guardian réinitialisé",
+    en: "Guardian flow reset",
+  },
+  "admin.guest.guardian.resetSuccessDesc": {
+    fr: "Redirection vers /onboarding — le modal d’activation devrait apparaître.",
+    en: "Redirecting to /onboarding — the activation modal should appear.",
+  },
+  "admin.guest.guardian.unavailable": {
+    fr: "GuardianProvider indisponible.",
+    en: "GuardianProvider unavailable.",
+  },
+  "admin.guest.guardian.skipPart2Cta": {
+    fr: "Skip quiz → Part 2",
+    en: "Skip quiz → Part 2",
+  },
+  "admin.guest.guardian.skipPart2Success": {
+    fr: "Part 2 lancée (quiz ignoré)",
+    en: "Part 2 started (quiz skipped)",
+  },
+  "admin.guest.guardian.skipPart2NeedSetup": {
+    fr: "Choisis d’abord genre + langue dans /onboarding, puis réessaie.",
+    en: "Pick gender + language on /onboarding first, then try again.",
+  },
+  "guardian.admin.skipPart2": {
+    fr: "Admin · Skip quiz → Part 2",
+    en: "Admin · Skip quiz → Part 2",
+  },
   "admin.guest.restore.banner": {
     fr: "Profil réel introuvable — sauvegarde disponible",
     en: "Real profile missing — backup available",
@@ -1775,6 +1816,21 @@ export const translations = {
   "people.qualityLabel": { fr: "Qualité de la relation ({value}/10)", en: "Relationship quality ({value}/10)" },
   "people.observation": { fr: "Observation", en: "Observation" },
   "people.relationsUpdated": { fr: "{count} relation(s) mise(s) à jour", en: "{count} relation(s) updated" },
+  "people.relations": { fr: "Relations", en: "Relations" },
+  "people.recentJournals": { fr: "Derniers journaux par contact", en: "Latest journals per contact" },
+  "people.relationScore": { fr: "Note relation", en: "Relation score" },
+  "people.difficult": { fr: "Difficile", en: "Difficult" },
+  "people.excellentLabel": { fr: "Excellente", en: "Excellent" },
+  "people.dailyNote": { fr: "Note du jour", en: "Daily note" },
+  "people.delete": { fr: "Supprimer", en: "Delete" },
+  "people.newContact": { fr: "Nouveau contact", en: "New contact" },
+  "people.addContactBtn": { fr: "Ajouter le contact", en: "Add contact" },
+  "people.journal": { fr: "Journal", en: "Journal" },
+  "people.proximity.famille": { fr: "Famille", en: "Family" },
+  "people.proximity.ami": { fr: "Amis", en: "Friends" },
+  "people.proximity.equipe_direction": { fr: "Équipe de direction", en: "Leadership team" },
+  "people.proximity.prestataire": { fr: "Prestataires", en: "Contractors" },
+  "people.proximity.employe": { fr: "Employé", en: "Employee" },
 
   "neural.immersiveTitle": { fr: "Réseau relationnel", en: "Relationship network" },
   "neural.immersiveHint": {
@@ -1991,6 +2047,7 @@ export const translations = {
   // Smart admin alerts
   "admin.nav.alerts": { fr: "Alertes", en: "Alerts" },
   "admin.nav.export": { fr: "Export", en: "Export" },
+  "admin.nav.mdPdf": { fr: "MD → PDF", en: "MD → PDF" },
   "admin.alerts.title": { fr: "Alertes intelligentes", en: "Smart alerts" },
   "admin.alerts.subtitle": {
     fr: "Détection automatique des risques et signaux de désengagement.",
@@ -2253,7 +2310,6 @@ export const translations = {
   "people.noContactsCTA": { fr: "Commencez par ajouter votre premier contact", en: "Start by adding your first contact" },
   "people.addContact": { fr: "Ajouter un contact", en: "Add a contact" },
   "people.addContactSubmit": { fr: "Ajouter le contact", en: "Add contact" },
-  "people.newContact": { fr: "Nouveau contact", en: "New contact" },
   "people.nameLabel": { fr: "Nom", en: "Name" },
   "people.namePlaceholder": { fr: "Sarah Chen", en: "Sarah Chen" },
   "people.observationLabel": { fr: "Observation", en: "Observation" },
@@ -2264,12 +2320,10 @@ export const translations = {
   "people.qualityGood": { fr: "Bonne", en: "Good" },
   "people.qualityNeutral": { fr: "Neutre", en: "Neutral" },
   "people.qualityToFollowUp": { fr: "À relancer", en: "To follow up" },
-  "people.dailyNote": { fr: "Note du jour", en: "Today's note" },
   "people.deleteAction": { fr: "Supprimer", en: "Delete" },
   "people.statAverage": { fr: "Moy.", en: "Avg." },
   "people.statTop": { fr: "Top", en: "Top" },
   "people.statFollowUp": { fr: "Relancer", en: "Follow up" },
-  "people.journal": { fr: "Journal", en: "Journal" },
   "people.saving": { fr: "Enregistrement…", en: "Saving…" },
   "people.syncRelations": { fr: "Synchroniser les relations", en: "Sync relations" },
   "people.proximityFamille": { fr: "Famille", en: "Family" },
@@ -3172,6 +3226,80 @@ export const translations = {
   "admin.export.dateFrom": { fr: "Du", en: "From" },
   "admin.export.dateTo": { fr: "Au", en: "To" },
   "admin.export.pickDate": { fr: "Choisir", en: "Pick" },
+
+  "admin.mdPdf.kicker": { fr: "Atelier document", en: "Document studio" },
+  "admin.mdPdf.title": { fr: "Markdown → PDF", en: "Markdown → PDF" },
+  "admin.mdPdf.subtitle": {
+    fr: "Dépose tes .md, prévisualise le rendu Aegis, puis enregistre en PDF depuis le dialogue d'impression.",
+    en: "Drop your .md files, preview the Aegis layout, then save as PDF from the print dialog.",
+  },
+  "admin.mdPdf.openRender": { fr: "Ouvrir le rendu A4", en: "Open A4 render" },
+  "admin.mdPdf.sample": { fr: "Charger un exemple", en: "Load sample" },
+  "admin.mdPdf.exportCurrent": { fr: "PDF de ce document", en: "PDF this document" },
+  "admin.mdPdf.exportAll": { fr: "PDF de tous", en: "PDF all" },
+  "admin.mdPdf.dropHint": {
+    fr: "Déposer des fichiers .md, un dossier, ou cliquer pour choisir",
+    en: "Drop .md files, a folder, or click to choose",
+  },
+  "admin.mdPdf.theme": { fr: "Thème", en: "Theme" },
+  "admin.mdPdf.language": { fr: "Langue du PDF", en: "PDF language" },
+  "admin.mdPdf.langFr": { fr: "Français", en: "French" },
+  "admin.mdPdf.langEn": { fr: "English", en: "English" },
+  "admin.mdPdf.langBoth": { fr: "Bilingue", en: "Bilingual" },
+  "admin.mdPdf.themeNocturne": { fr: "Nocturne", en: "Nocturne" },
+  "admin.mdPdf.themeIvoire": { fr: "Ivoire", en: "Ivory" },
+  "admin.mdPdf.themeObsidian": { fr: "Obsidian", en: "Obsidian" },
+  "admin.mdPdf.cover": { fr: "Page de couverture", en: "Cover page" },
+  "admin.mdPdf.remove": { fr: "Retirer", en: "Remove" },
+  "admin.mdPdf.docTitle": { fr: "Titre", en: "Title" },
+  "admin.mdPdf.docSubtitle": { fr: "Sous-titre", en: "Subtitle" },
+  "admin.mdPdf.placeholder": {
+    fr: "Colle ton Markdown Vault ici (titre, glyphe, orientation…)",
+    en: "Paste your Vault Markdown here (titre, glyphe, orientation…)",
+  },
+  "admin.mdPdf.chars": { fr: "{n} caractères", en: "{n} characters" },
+  "admin.mdPdf.emptyEditor": {
+    fr: "Aucun document chargé.",
+    en: "No document loaded.",
+  },
+  "admin.mdPdf.preview": { fr: "Aperçu A4", en: "A4 preview" },
+  "admin.mdPdf.previewEmpty": {
+    fr: "L'aperçu apparaîtra ici.",
+    en: "The preview will appear here.",
+  },
+  "admin.mdPdf.printHelp": {
+    fr: "Dans le dialogue : « Enregistrer au format PDF », marges par défaut, échelle 100 %, pas d'en-têtes, arrière-plans activés.",
+    en: "In the dialog: “Save as PDF”, default margins, 100% scale, headers off, background graphics on.",
+  },
+  "admin.mdPdf.loaded": { fr: "{n} document(s) chargé(s)", en: "{n} document(s) loaded" },
+  "admin.mdPdf.errorNoMd": {
+    fr: "Aucun fichier Markdown (.md) trouvé.",
+    en: "No Markdown (.md) file found.",
+  },
+  "admin.mdPdf.errorEmpty": {
+    fr: "Ajoute un document avant d'exporter.",
+    en: "Add a document before exporting.",
+  },
+  "admin.mdPdf.errorPopup": {
+    fr: "Pop-up bloquée — autorise les fenêtres pour ce site.",
+    en: "Popup blocked — allow pop-ups for this site.",
+  },
+  "admin.mdPdf.printHint": {
+    fr: "Choisis « Enregistrer au format PDF » dans le dialogue.",
+    en: "Choose “Save as PDF” in the dialog.",
+  },
+  "admin.mdPdf.userLoading": {
+    fr: "Recherche du profil {user}…",
+    en: "Looking up profile {user}…",
+  },
+  "admin.mdPdf.userLinked": {
+    fr: "Profil lié : {user} — radar et scores inclus",
+    en: "Linked profile: {user} — radar and scores included",
+  },
+  "admin.mdPdf.userMissing": {
+    fr: "Aucun assessment trouvé pour {user}",
+    en: "No assessment found for {user}",
+  },
 
   // Admin — Alerts (compute + UI)
   "admin.alerts.loadError": {
@@ -4314,6 +4442,107 @@ excerpt_fr: email brief
 
   "nav.ambassador": { fr: "Ambassadeur", en: "Ambassador" },
   "admin.nav.affiliates": { fr: "Ambassadeurs", en: "Ambassadors" },
+
+  "guardian.activate.title": {
+    fr: "Activer le Guardian ?",
+    en: "Activate Guardian?",
+  },
+  "guardian.activate.body": {
+    fr: "Le Guardian est votre guide personnel dans AEGIS. Il vous accompagne pas à pas pour découvrir l'essentiel.",
+    en: "Guardian is your personal guide in AEGIS. It walks you through the essentials step by step.",
+  },
+  "guardian.activate.yes": { fr: "Oui, activer", en: "Yes, activate" },
+  "guardian.activate.no": {
+    fr: "Non, continuer avec le guide texte",
+    en: "No, continue with text onboarding",
+  },
+  "guardian.gender.title": {
+    fr: "Choisissez le genre du Guardian",
+    en: "Choose Guardian's voice",
+  },
+  "guardian.gender.body": {
+    fr: "La voix du guide s'adaptera à votre choix.",
+    en: "The guide voice will match your choice.",
+  },
+  "guardian.gender.male": { fr: "Homme", en: "Male" },
+  "guardian.gender.female": { fr: "Femme", en: "Female" },
+  "guardian.language.title": {
+    fr: "Langue du Guardian",
+    en: "Guardian language",
+  },
+  "guardian.language.body": {
+    fr: "Choisissez la langue de la voix du guide (FR ou EN).",
+    en: "Choose the language for the guide’s voice (FR or EN).",
+  },
+  "guardian.language.fr": { fr: "Français", en: "French" },
+  "guardian.language.en": { fr: "English", en: "English" },
+  "guardian.skip": { fr: "Passer", en: "Skip" },
+  "guardian.audio.tapToPlay": {
+    fr: "Appuyer pour lancer la voix du Guardian",
+    en: "Tap to play Guardian’s voice",
+  },
+  "guardian.audio.pause": { fr: "Pause", en: "Pause" },
+  "guardian.audio.resume": { fr: "Reprendre", en: "Resume" },
+  "guardian.step1.title": {
+    fr: "Bienvenue — prochaine étape : le Quiz",
+    en: "Welcome — next: the Quiz",
+  },
+  "guardian.step1.body": {
+    fr: "Le Guardian vous accompagne vers votre cartographie archétypale.",
+    en: "Guardian will guide you to your archetype cartography.",
+  },
+  "guardian.step1.cta": { fr: "Commencer le quiz", en: "Start the quiz" },
+  "guardian.step2.title": {
+    fr: "Quiz terminé — Daily log",
+    en: "Quiz done — Daily log",
+  },
+  "guardian.step2.body": {
+    fr: "Prenez un instant pour logger votre état du jour.",
+    en: "Take a moment to log how you feel today.",
+  },
+  "guardian.step2.cta": { fr: "Ouvrir le daily log", en: "Open daily log" },
+  "guardian.postQuiz.title": {
+    fr: "Continuer avec le Guardian ?",
+    en: "Continue with Guardian?",
+  },
+  "guardian.postQuiz.body": {
+    fr: "Voulez-vous retourner au Guardian, ou explorer AEGIS de manière autonome ?",
+    en: "Would you like to return to Guardian, or explore AEGIS on your own?",
+  },
+  "guardian.postQuiz.return": {
+    fr: "Retourner au Guardian",
+    en: "Return to Guardian",
+  },
+  "guardian.postQuiz.autonomous": {
+    fr: "Explorer de manière autonome",
+    en: "Continue autonomously",
+  },
+  "guardian.daily.title": { fr: "Daily log", en: "Daily log" },
+  "guardian.daily.saveContinue": {
+    fr: "Enregistrer et continuer",
+    en: "Save and continue",
+  },
+  "guardian.decision.title": { fr: "Decision log", en: "Decision log" },
+  "guardian.decision.saveContinue": {
+    fr: "Enregistrer et continuer",
+    en: "Save and continue",
+  },
+  "guardian.decision.saved": {
+    fr: "Décision enregistrée",
+    en: "Decision saved",
+  },
+  "guardian.dashboard.title": {
+    fr: "Votre espace est prêt",
+    en: "Your space is ready",
+  },
+  "guardian.dashboard.body": {
+    fr: "Le Guardian vous ouvre le tableau de bord AEGIS.",
+    en: "Guardian will take you to the AEGIS dashboard.",
+  },
+  "guardian.dashboard.cta": {
+    fr: "Aller au dashboard",
+    en: "Go to dashboard",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
