@@ -259,6 +259,7 @@ const App = () => (
                               <Route path="/newsletter" element={<NewsletterManagement />} />
                               <Route path="/guest-preview" element={<AdminGuestPreview />} />
                               <Route path="/mobile-releases" element={<MobileReleases />} />
+                              <Route path="/affiliates" element={<AffiliateManagement />} />
                             </Routes>
                           </Suspense>
                         </AdminLayout>
