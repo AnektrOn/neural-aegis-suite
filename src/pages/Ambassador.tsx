@@ -95,6 +95,7 @@ const SORT_COLUMNS: { key: SortKey; label: keyof typeof COPY }[] = [
   { key: "label", label: "colMember" },
   { key: "created_at", label: "colSignup" },
   { key: "plan", label: "colPlan" },
+  { key: "billing_cycle", label: "colCycle" },
   { key: "status", label: "colStatus" },
   { key: "current_period_end", label: "colRenewal" },
   { key: "payments_count", label: "colPayments" },
