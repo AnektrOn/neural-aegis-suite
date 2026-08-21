@@ -121,6 +121,34 @@ export default function Ambassador() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const visibleReferrals = useMemo(() => {
+    const rows = [...(data?.referrals ?? [])];
+    const q = search.trim().toLowerCase();
+    const filtered = rows.filter((r) => {
+      const normalizedPlan = (r.plan ?? "free").replace("aegis_", "");
+      if (planFilter !== "all" && normalizedPlan !== planFilter) return false;
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (q && !r.label.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    const dir = sortDir === "asc" ? 1 : -1;
+    return filtered.sort((a, b) => {
+      const av = a[sortKey] ?? "";
+      const bv = b[sortKey] ?? "";
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+  }, [data?.referrals, search, planFilter, statusFilter, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
