@@ -14,6 +14,7 @@ import { GuardianProvider } from "@/features/guardian";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RequireSubscription from "@/components/RequireSubscription";
 import VisitorRoute from "@/components/VisitorRoute";
+import RequireQuizOnboarding from "@/components/RequireQuizOnboarding";
 import AdminRoute from "@/components/AdminRoute";
 import AdminLegacyRedirect from "@/components/admin/AdminLegacyRedirect";
 import AppLayout from "./components/AppLayout";
@@ -114,9 +115,11 @@ function HomeRoute() {
 
   return (
     <ProtectedRoute>
-      <Suspense fallback={<PageLoader />}>
-        <Welcome />
-      </Suspense>
+      <RequireQuizOnboarding>
+        <Suspense fallback={<PageLoader />}>
+          <Welcome />
+        </Suspense>
+      </RequireQuizOnboarding>
     </ProtectedRoute>
   );
 }
@@ -338,9 +341,11 @@ const App = () => (
                   path="/welcome"
                   element={
                     <ProtectedRoute>
-                      <Suspense fallback={<PageLoader />}>
-                        <Welcome />
-                      </Suspense>
+                      <RequireQuizOnboarding>
+                        <Suspense fallback={<PageLoader />}>
+                          <Welcome />
+                        </Suspense>
+                      </RequireQuizOnboarding>
                     </ProtectedRoute>
                   }
                 />
@@ -350,6 +355,7 @@ const App = () => (
                   path="/*"
                   element={
                     <ProtectedRoute>
+                      <RequireQuizOnboarding>
                       <RequireSubscription>
                       <AppLayout>
                         <Suspense fallback={<PageLoader />}>
@@ -382,6 +388,7 @@ const App = () => (
                         </Suspense>
                       </AppLayout>
                       </RequireSubscription>
+                      </RequireQuizOnboarding>
                     </ProtectedRoute>
                   }
                 />
