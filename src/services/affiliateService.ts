@@ -209,3 +209,22 @@ export async function fetchAffiliateCandidates(): Promise<AffiliateCandidate[]> 
 
   return candidatesRequest;
 }
+
+/** Nomme un membre ambassadeur depuis la fiche utilisateur (par identifiant). */
+export async function createAffiliateByUser(userId: string, code: string, rate: number) {
+  const { data, error } = await supabase.rpc("admin_create_affiliate_by_user" as never, {
+    p_user_id: userId,
+    p_code: code,
+    p_rate: rate,
+  } as never);
+  if (error) throw error;
+  return data as unknown as { ok: boolean; reason?: string; code?: string };
+}
+
+/** Retire le statut ambassadeur d'un membre. */
+export async function revokeAffiliateByUser(userId: string) {
+  const { error } = await supabase.rpc("admin_revoke_affiliate_by_user" as never, {
+    p_user_id: userId,
+  } as never);
+  if (error) throw error;
+}

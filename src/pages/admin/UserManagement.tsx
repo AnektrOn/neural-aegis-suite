@@ -11,6 +11,7 @@ import CSVImport from "@/components/admin/CSVImport";
 import CreateUserForm from "@/components/admin/CreateUserForm";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
 import AdminCredentialsForm from "@/components/admin/AdminCredentialsForm";
+import AmbassadorForm from "@/components/admin/AmbassadorForm";
 import { bilingualPair } from "@/lib/content-i18n";
 
 interface UserData {
@@ -27,6 +28,8 @@ interface UserData {
   moodCount: number;
   lastSeen: string | null;
   plan_override: string | null;
+  affiliateCode: string | null;
+  isAffiliate: boolean;
   alertCounts: { critical: number; high: number; medium: number; low: number; total: number };
 
 }
@@ -52,7 +55,7 @@ export default function UserManagement() {
 
   const loadUsers = async () => {
     setLoading(true);
-    const [profilesRes, rolesRes, auditsRes, habitsRes, toolboxRes, companiesRes, moodsRes, sessionsRes] = await Promise.all([
+    const [profilesRes, rolesRes, auditsRes, habitsRes, toolboxRes, companiesRes, moodsRes, sessionsRes, affiliatesRes] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("user_roles" as any).select("*"),
       supabase.from("audit_calls" as any).select("user_id"),
@@ -63,6 +66,7 @@ export default function UserManagement() {
         .gte("logged_at", new Date(Date.now() - 30 * 86400000).toISOString()),
       supabase.from("user_sessions" as any).select("user_id, started_at")
         .order("started_at", { ascending: false }).limit(500),
+      supabase.from("affiliates" as any).select("user_id, code, status"),
     ]);
 
     const roles = (rolesRes.data || []) as any[];
@@ -71,6 +75,7 @@ export default function UserManagement() {
     const toolbox = (toolboxRes.data || []) as any[];
     const moods = (moodsRes.data || []) as any[];
     const recentSessions = (sessionsRes.data || []) as any[];
+    const affiliates = (affiliatesRes.data || []) as any[];
     setCompanies((companiesRes.data || []) as any);
 
     const profileIds = (profilesRes.data || []).map((p: any) => p.id);
@@ -90,6 +95,8 @@ export default function UserManagement() {
       moodCount: moods.filter((m: any) => m.user_id === p.id).length,
       lastSeen: recentSessions
         .filter((s: any) => s.user_id === p.id)[0]?.started_at ?? null,
+      affiliateCode: affiliates.find((a: any) => a.user_id === p.id)?.code ?? null,
+      isAffiliate: affiliates.some((a: any) => a.user_id === p.id && a.status === "active"),
       alertCounts: alertCountsMap.get(p.id) ?? { critical: 0, high: 0, medium: 0, low: 0, total: 0 },
     }));
 
@@ -303,6 +310,14 @@ export default function UserManagement() {
                   </p>
                 </div>
 
+
+                <AmbassadorForm
+                  userId={userData.id}
+                  displayName={userData.display_name}
+                  isAffiliate={userData.isAffiliate}
+                  affiliateCode={userData.affiliateCode}
+                  onChanged={loadUsers}
+                />
 
                 <AdminCredentialsForm userId={userData.id} displayName={userData.display_name} />
 
