@@ -288,6 +288,31 @@ export default function Ambassador() {
             </select>
           </div>
         </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {([
+            { key: "all", label: tr("catAll"), count: allRows.length },
+            { key: "paid", label: tr("catPaid"), count: paidCount },
+            { key: "free", label: tr("catFree"), count: freeCount },
+          ] as const).map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setCategory(t.key)}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                category === t.key
+                  ? "border-primary/60 bg-primary/10 text-foreground"
+                  : "border-border/40 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.label} · {t.count}
+            </button>
+          ))}
+        </div>
+        {category === "free" && (
+          <p className="mt-2 text-xs text-muted-foreground">{tr("catFreeNote")}</p>
+        )}
+
         {visibleReferrals.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">{tr("empty")}</p>
         ) : (
