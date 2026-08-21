@@ -91,8 +91,9 @@ export default function TermsOfService() {
             renouvellements futurs, sans remboursement au prorata. Le forfait <strong>Ultra</strong>{" "}
             n'est pas un abonnement mensuel mais un engagement unique dont le prix total peut être
             réglé en plusieurs échéances, à titre de facilité de paiement : après la fenêtre de
-            rétractation de 30 jours, l'arrêt du programme est possible mais les échéances déjà
-            exigibles restent dues et les sommes versées ne sont pas remboursées.
+            rétractation de 30 jours, vous pouvez arrêter à tout moment — les échéances restantes ne
+            sont plus dues, mais les sommes déjà versées ne sont pas remboursées.
+
           </p>
           <p>
             Nous sommes tenus à une <strong>obligation de moyens</strong> et non à une obligation de
@@ -200,8 +201,9 @@ export default function TermsOfService() {
             The <strong>Matrice</strong> plan is a recurring subscription: cancelling stops future
             renewals, with no pro-rata refund. The <strong>Ultra</strong> plan is not a monthly
             subscription but a single commitment whose total price may be split into instalments as a
-            payment facility: after the 30-day withdrawal window, you may stop the programme, but
-            instalments already due remain payable and amounts paid are not refunded.
+            payment facility: after the 30-day withdrawal window, you may stop at any time —
+            remaining instalments are no longer owed, but amounts already paid are not refunded.
+
           </p>
           <p>
             We are bound by a <strong>best-efforts obligation</strong>, not an obligation of result:

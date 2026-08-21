@@ -60,14 +60,19 @@ export default function RefundPolicy() {
               première échéance.
             </li>
             <li>
-              Passé ce délai, l'arrêt du programme est possible, mais les échéances déjà exigibles
-              restent dues. À titre d'exemple, un arrêt demandé au 45<sup>e</sup> jour laisse les
-              deux premières échéances dues et non remboursables.
+              Passé ce délai, vous pouvez arrêter à tout moment : les échéances restantes ne sont
+              alors plus dues, mais les montants déjà versés ne sont pas remboursés.
+            </li>
+            <li>
+              Exemple : un arrêt demandé au 45<sup>e</sup> jour, alors que deux échéances de 1 500 €
+              ont déjà été prélevées, met fin aux prélèvements suivants ; les 3 000 € déjà versés
+              restent acquis à Protocole Nomos.
             </li>
             <li>
               Les montants déjà versés au titre du forfait Ultra ne sont en aucun cas remboursés
               après la fenêtre de rétractation.
             </li>
+
           </ul>
 
           <h2>5. Nature de l'engagement</h2>
@@ -135,14 +140,18 @@ export default function RefundPolicy() {
           <ul>
             <li>A 30-day withdrawal window also applies, from the first instalment.</li>
             <li>
-              After that window, you may stop the programme, but instalments already due remain
-              payable. For example, stopping on day 45 leaves the first two instalments due and
-              non-refundable.
+              After that window you may stop at any time: remaining instalments are no longer owed,
+              but amounts already paid are not refunded.
+            </li>
+            <li>
+              Example: stopping on day 45, after two instalments of €1,500 have been charged, ends
+              all further charges; the €3,000 already paid stays with Protocole Nomos.
             </li>
             <li>
               Amounts already paid under the Ultra plan are not refunded after the withdrawal
               window.
             </li>
+
           </ul>
 
           <h2>5. Nature of the commitment</h2>
