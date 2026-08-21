@@ -4312,6 +4312,8 @@ excerpt_fr: email brief
     en: "Ultra = Matrix + Inner Circle access. The product experience is the same; the difference is human.",
   },
 
+  "nav.ambassador": { fr: "Ambassadeur", en: "Ambassador" },
+  "admin.nav.affiliates": { fr: "Ambassadeurs", en: "Ambassadors" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

@@ -13,6 +13,7 @@ export const FREE_PATHS = [
   "/profile",
   "/settings",
   "/install",
+  "/ambassadeur",
   // home (premium blocks are blurred in place)
   "/dashboard",
   // daily logging
