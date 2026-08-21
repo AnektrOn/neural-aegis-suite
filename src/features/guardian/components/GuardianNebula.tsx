@@ -1,6 +1,7 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, forwardRef } from "react";
 import type {
   QuantumNebulaAudioTuning,
+  QuantumNebulaHandle,
   QuantumNebulaState,
 } from "@/components/ui/quantum-nebula";
 
@@ -35,13 +36,14 @@ interface GuardianNebulaProps {
   onAudioEnded?: () => void;
   onAudioPlay?: () => void;
   onAudioBlocked?: (blocked: boolean) => void;
+  onAudioError?: () => void;
   onAudioTimeUpdate?: (currentTimeSec: number) => void;
   className?: string;
   fullscreen?: boolean;
 }
 
 /** Product wrapper around Quantum Nebula for the Guardian guide. */
-export function GuardianNebula({
+export const GuardianNebula = forwardRef<QuantumNebulaHandle, GuardianNebulaProps>(function GuardianNebula({
   state = "solid",
   audioSrc = null,
   autoPlayAudio = false,
@@ -50,13 +52,15 @@ export function GuardianNebula({
   onAudioEnded,
   onAudioPlay,
   onAudioBlocked,
+  onAudioError,
   onAudioTimeUpdate,
   className = "z-0",
   fullscreen = true,
-}: GuardianNebulaProps) {
+}, ref) {
   return (
     <Suspense fallback={null}>
       <QuantumNebula
+        ref={ref}
         fullscreen={fullscreen}
         cloudHeightRatio={0.4}
         theme="auto"
@@ -68,10 +72,13 @@ export function GuardianNebula({
         onAudioEnded={onAudioEnded}
         onAudioPlay={onAudioPlay}
         onAudioBlocked={onAudioBlocked}
+        onAudioError={onAudioError}
         onAudioTimeUpdate={onAudioTimeUpdate}
         audioTuning={audioSrc ? GUARDIAN_VOICE_AUDIO_TUNING : undefined}
         className={className}
       />
     </Suspense>
   );
-}
+});
+
+GuardianNebula.displayName = "GuardianNebula";

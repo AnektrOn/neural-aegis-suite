@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -65,6 +72,8 @@ export interface QuantumNebulaProps {
   onAudioPlay?: () => void;
   /** Fired when autoplay is blocked (mobile) or unblocked. */
   onAudioBlocked?: (blocked: boolean) => void;
+  /** Fired for unrecoverable loading/decoding errors, not autoplay restrictions. */
+  onAudioError?: () => void;
   /** Current playback time in seconds (for captions). */
   onAudioTimeUpdate?: (currentTimeSec: number) => void;
   audioPaused?: boolean;
@@ -73,6 +82,10 @@ export interface QuantumNebulaProps {
   visualTuning?: Partial<QuantumNebulaVisualTuning>;
   reflexionTuning?: Partial<QuantumNebulaReflexionTuning>;
   children?: ReactNode;
+}
+
+export interface QuantumNebulaHandle {
+  playAudio: () => Promise<boolean>;
 }
 
 export interface QuantumNebulaAudioTuning {
@@ -256,7 +269,7 @@ const config = {
   },
 };
 
-export default function GenerativeArtSceneV3({
+const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>(function GenerativeArtSceneV3({
   className,
   fullscreen = true,
   theme = "auto",
@@ -267,6 +280,7 @@ export default function GenerativeArtSceneV3({
   onAudioEnded,
   onAudioPlay,
   onAudioBlocked,
+  onAudioError,
   onAudioTimeUpdate,
   audioPaused = false,
   showAudioSpectrum = false,
@@ -274,7 +288,7 @@ export default function GenerativeArtSceneV3({
   visualTuning,
   reflexionTuning,
   children,
-}: QuantumNebulaProps) {
+}, forwardedRef) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const composerRef = useRef<EffectComposer | null>(null);
@@ -303,7 +317,9 @@ export default function GenerativeArtSceneV3({
   const onAudioEndedRef = useRef(onAudioEnded);
   const onAudioPlayRef = useRef(onAudioPlay);
   const onAudioBlockedRef = useRef(onAudioBlocked);
+  const onAudioErrorRef = useRef(onAudioError);
   const onAudioTimeUpdateRef = useRef(onAudioTimeUpdate);
+  const playAudioRef = useRef<() => Promise<boolean>>(async () => false);
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() =>
     resolveNebulaTheme(theme),
   );
@@ -312,7 +328,14 @@ export default function GenerativeArtSceneV3({
   onAudioEndedRef.current = onAudioEnded;
   onAudioPlayRef.current = onAudioPlay;
   onAudioBlockedRef.current = onAudioBlocked;
+  onAudioErrorRef.current = onAudioError;
   onAudioTimeUpdateRef.current = onAudioTimeUpdate;
+
+  useImperativeHandle(
+    forwardedRef,
+    () => ({ playAudio: () => playAudioRef.current() }),
+    [],
+  );
 
   useEffect(() => {
     const sync = () => setResolvedTheme(resolveNebulaTheme(theme));
@@ -457,25 +480,34 @@ export default function GenerativeArtSceneV3({
 
     const handleError = () => {
       syncPlayingState();
-      if (!audioLoop) onAudioEndedRef.current?.();
+      onAudioBlockedRef.current?.(false);
+      onAudioErrorRef.current?.();
     };
 
     const handleTimeUpdate = () => {
       onAudioTimeUpdateRef.current?.(audioElement.currentTime);
     };
 
-    const tryPlay = () => {
-      if (audioPausedRef.current) return;
+    const tryPlay = async (): Promise<boolean> => {
+      if (audioPausedRef.current) return false;
+      if (audioElement.error) audioElement.load();
       // Both calls must happen synchronously inside the mobile gesture. Waiting
       // for AudioContext.resume() before play() loses Safari's activation token.
       if (audioContext && audioContext.state === "suspended") {
         void audioContext.resume().catch(() => undefined);
       }
-      void audioElement.play().then(
-        () => onAudioBlockedRef.current?.(false),
-        () => onAudioBlockedRef.current?.(true),
-      );
+      try {
+        await audioElement.play();
+        onAudioBlockedRef.current?.(false);
+        return true;
+      } catch (error) {
+        const blocked = error instanceof DOMException && error.name === "NotAllowedError";
+        onAudioBlockedRef.current?.(blocked);
+        if (!blocked) onAudioErrorRef.current?.();
+        return false;
+      }
     };
+    playAudioRef.current = tryPlay;
 
     audioElement.addEventListener("play", handlePlay);
     audioElement.addEventListener("pause", syncPlayingState);
@@ -485,7 +517,7 @@ export default function GenerativeArtSceneV3({
 
     if (autoPlayAudio) {
       audioElement.addEventListener("canplay", tryPlay, { once: true });
-      tryPlay();
+       void tryPlay();
     }
 
     // Mobile: autoplay is blocked until a gesture. Keep listening for gestures
@@ -495,7 +527,7 @@ export default function GenerativeArtSceneV3({
         detachGestureListeners();
         return;
       }
-      if (autoPlayAudio) tryPlay();
+       if (autoPlayAudio) void tryPlay();
     };
     const gestureEvents: (keyof WindowEventMap)[] = [
       "pointerdown",
@@ -511,8 +543,17 @@ export default function GenerativeArtSceneV3({
       window.addEventListener(evt, resumeOnGesture, { passive: true }),
     );
 
+    const resumeAfterForeground = () => {
+      if (document.visibilityState === "visible" && autoPlayAudio && !audioPausedRef.current) {
+        void audioContextRef.current?.resume().catch(() => undefined);
+        void tryPlay();
+      }
+    };
+    document.addEventListener("visibilitychange", resumeAfterForeground);
+
     return () => {
       detachGestureListeners();
+      document.removeEventListener("visibilitychange", resumeAfterForeground);
       audioElement.removeEventListener("play", handlePlay);
       audioElement.removeEventListener("pause", syncPlayingState);
       audioElement.removeEventListener("ended", handleEnded);
@@ -524,6 +565,7 @@ export default function GenerativeArtSceneV3({
       if (audioContextRef.current === audioContext) audioContextRef.current = null;
       if (analyser && analyserRef.current === analyser) analyserRef.current = null;
       audioPlayingRef.current = false;
+      playAudioRef.current = async () => false;
     };
   }, [audioSrc, autoPlayAudio, audioLoop]);
 
@@ -892,11 +934,12 @@ export default function GenerativeArtSceneV3({
 
       const analyser = analyserRef.current;
       const audioElement = audioElementRef.current;
-      const hasAudio = Boolean(analyser && audioElement);
+      const hasAudio = Boolean(audioElement);
+      const hasAnalyser = Boolean(analyser && audioElement);
       const isAudioPlaying =
         hasAudio &&
-        !audioElement!.paused &&
-        !audioElement!.ended &&
+        !audioElement?.paused &&
+        !audioElement?.ended &&
         audioPlayingRef.current;
 
       if (state === "mouvement") {
@@ -911,7 +954,7 @@ export default function GenerativeArtSceneV3({
             12,
           ) * tuning.ambientBoomStrength;
 
-        if (hasAudio && isAudioPlaying) {
+        if (hasAnalyser && isAudioPlaying) {
           const buffer = new Uint8Array(analyser!.frequencyBinCount);
           analyser!.getByteFrequencyData(buffer);
           spectrumBuffer = buffer;
@@ -951,7 +994,7 @@ export default function GenerativeArtSceneV3({
           silenceFrames = globalEnergy < tuning.silenceThreshold ? silenceFrames + 1 : 0;
           audioOverlayActive = silenceFrames <= visual.silenceFramesBeforeBase;
           effectiveState = movementBaseState;
-        } else if (hasAudio && audioElement!.ended) {
+        } else if (hasAudio && audioElement?.ended) {
           bassLevel *= 0.9;
           midLevel *= 0.9;
           highLevel *= 0.9;
@@ -966,11 +1009,11 @@ export default function GenerativeArtSceneV3({
           boomLevel = 0;
           kickLevel *= 0.92;
           // Ambient fallback can move the cloud, but never reveals Metatron.
-          boomPulse = hasAudio ? 0 : fallbackBoom;
+          boomPulse = isAudioPlaying || !hasAudio ? fallbackBoom : 0;
           audioBoomPulse = 0;
           silenceFrames = 0;
           effectiveState = movementBaseState;
-          audioOverlayActive = false;
+          audioOverlayActive = isAudioPlaying;
         }
       } else {
         bassLevel *= 0.92;
@@ -981,7 +1024,7 @@ export default function GenerativeArtSceneV3({
         silenceFrames = 0;
       }
 
-      if (showAudioSpectrumRef.current && hasAudio && !spectrumBuffer && analyser) {
+      if (showAudioSpectrumRef.current && hasAnalyser && !spectrumBuffer && analyser) {
         const buffer = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(buffer);
         spectrumBuffer = buffer;
@@ -1443,6 +1486,10 @@ export default function GenerativeArtSceneV3({
       ) : null}
     </div>
   );
-}
+});
+
+GenerativeArtSceneV3.displayName = "GenerativeArtSceneV3";
+
+export default GenerativeArtSceneV3;
 
 export { GenerativeArtSceneV3 as QuantumNebula };
