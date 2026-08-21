@@ -59,7 +59,29 @@ const COPY: Record<string, { fr: string; en: string }> = {
   colPayments: { fr: "Paiements", en: "Payments" },
   colEarned: { fr: "Commissions", en: "Earned" },
   cancels: { fr: "résiliation prévue", en: "cancels at period end" },
+  searchPlaceholder: { fr: "Rechercher un filleul", en: "Search a referral" },
+  allPlans: { fr: "Toutes les formules", en: "All plans" },
+  allStatuses: { fr: "Tous les statuts", en: "All statuses" },
 };
+
+type SortKey =
+  | "label"
+  | "created_at"
+  | "plan"
+  | "status"
+  | "current_period_end"
+  | "payments_count"
+  | "commission_cents";
+
+const SORT_COLUMNS: { key: SortKey; label: keyof typeof COPY }[] = [
+  { key: "label", label: "colMember" },
+  { key: "created_at", label: "colSignup" },
+  { key: "plan", label: "colPlan" },
+  { key: "status", label: "colStatus" },
+  { key: "current_period_end", label: "colRenewal" },
+  { key: "payments_count", label: "colPayments" },
+  { key: "commission_cents", label: "colEarned" },
+];
 
 const PLAN_LABELS: Record<string, string> = {
   aegis_ultra: "Ultra",
