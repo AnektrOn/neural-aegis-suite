@@ -27,6 +27,8 @@ export const GUARDIAN_ONBOARDING_PATH = "/onboarding";
 const AUDIO_PHASES = new Set(["step1", "step2", "step3", "step4"]);
 const POST_AUDIO_CTA_DELAY_MS = 3000;
 const AUDIO_FAILSAFE_MS = 90_000;
+/** If autoplay never fires `play`, show tap-to-start (mobile browsers stay silent). */
+const TAP_TO_START_GRACE_MS = 450;
 
 /**
  * Guardian onboarding page.
@@ -73,6 +75,7 @@ export default function GuardianOnboardingPage() {
   const [audioPaused, setAudioPaused] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [audioFailed, setAudioFailed] = useState(false);
+  const [needsTapToStart, setNeedsTapToStart] = useState(false);
   /** Desktop: keep daily rail visible into part 4. */
   const [pinDailyRail, setPinDailyRail] = useState(false);
   /** Only set when the *current* clip's `ended` fires — never reuse previous step. */
@@ -95,6 +98,7 @@ export default function GuardianOnboardingPage() {
       setAudioPaused(false);
       setCompletedClipKey(null);
       setAudioFailed(false);
+      setNeedsTapToStart(false);
       advancedClipRef.current = null;
       return;
     }
@@ -106,9 +110,21 @@ export default function GuardianOnboardingPage() {
     setAudioPaused(false);
     setAudioBlocked(false);
     setAudioFailed(false);
+    setNeedsTapToStart(false);
     setCompletedClipKey(null);
     advancedClipRef.current = null;
   }, [audioEnabled, clipKey, setSpeaking]);
+
+  // Mobile autoplay often fails without NotAllowedError — show tap overlay proactively.
+  useEffect(() => {
+    if (!audioEnabled || voiceStarted || voiceEnded) {
+      setNeedsTapToStart(false);
+      return;
+    }
+    const delay = isMobile ? TAP_TO_START_GRACE_MS : 1_200;
+    const timer = window.setTimeout(() => setNeedsTapToStart(true), delay);
+    return () => window.clearTimeout(timer);
+  }, [audioEnabled, clipKey, voiceStarted, voiceEnded, isMobile]);
 
   useEffect(() => {
     if (!audioEnabled || !voiceEnded) return;
@@ -123,13 +139,13 @@ export default function GuardianOnboardingPage() {
   }, [audioEnabled, voiceEnded, setSpeaking, phase]);
 
   useEffect(() => {
-    if (!audioEnabled || voiceEnded || audioBlocked || audioFailed) return;
+    if (!audioEnabled || voiceEnded || audioBlocked || audioFailed || needsTapToStart) return;
     const timer = window.setTimeout(() => {
       setVoiceEnded(true);
       setCompletedClipKey(clipKeyRef.current);
     }, AUDIO_FAILSAFE_MS);
     return () => window.clearTimeout(timer);
-  }, [audioEnabled, clipKey, voiceEnded, audioBlocked, audioFailed]);
+  }, [audioEnabled, clipKey, voiceEnded, audioBlocked, audioFailed, needsTapToStart]);
 
   // Part 3 finished → part 4 (only for this clip, not leftover ended from part 2).
   useEffect(() => {
@@ -157,6 +173,12 @@ export default function GuardianOnboardingPage() {
       setPinDailyRail(false);
     }
   }, [phase]);
+
+  const showTapOverlay =
+    audioEnabled &&
+    !voiceStarted &&
+    !voiceEnded &&
+    (audioBlocked || audioFailed || needsTapToStart);
 
   const quizPath = user && isGuestUser(user) ? "/quiz" : "/onboarding/assessment";
   const showAfterAudio = !audioEnabled || ctaReady;
@@ -256,6 +278,7 @@ export default function GuardianOnboardingPage() {
         }}
         onAudioPlay={() => {
           setAudioBlocked(false);
+          setNeedsTapToStart(false);
           setVoiceStarted(true);
           setSpeaking(true);
           setAudioPaused(false);
@@ -270,13 +293,14 @@ export default function GuardianOnboardingPage() {
 
       <GuardianCaptions text={activeCaption?.text ?? null} />
 
-      {audioEnabled && (audioBlocked || audioFailed) && !voiceStarted ? (
-        <div className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-background/40 backdrop-blur-[2px]">
+      {showTapOverlay ? (
+        <div className="fixed inset-0 z-[250] flex flex-col items-center justify-center gap-3 bg-background/40 backdrop-blur-[2px]">
           <Button
             type="button"
             onClick={() => {
               setAudioPaused(false);
               setAudioFailed(false);
+              setNeedsTapToStart(false);
               void nebulaRef.current?.playAudio();
             }}
             className="rounded-full px-6 font-display tracking-wide shadow-2xl"

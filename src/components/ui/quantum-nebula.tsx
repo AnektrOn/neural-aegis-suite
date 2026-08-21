@@ -507,9 +507,13 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
         const name = error instanceof DOMException ? error.name : "";
         // AbortError: a concurrent play()/load() superseded this call — not a failure.
         if (name === "AbortError") return false;
-        const blocked = name === "NotAllowedError";
-        onAudioBlockedRef.current?.(blocked);
-        if (!blocked && audioElement.error) onAudioErrorRef.current?.();
+        if (audioElement.error) {
+          onAudioBlockedRef.current?.(false);
+          onAudioErrorRef.current?.();
+          return false;
+        }
+        // iOS/Android often fail play() without NotAllowedError — still need a tap.
+        onAudioBlockedRef.current?.(true);
         return false;
       }
     };
