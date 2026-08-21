@@ -36,23 +36,41 @@ export default function AffiliateManagement() {
   const [saving, setSaving] = useState(false);
   const [candidates, setCandidates] = useState<AffiliateCandidate[]>([]);
   const [search, setSearch] = useState("");
+  const [candidatesLoading, setCandidatesLoading] = useState(true);
+  const [candidatesError, setCandidatesError] = useState<string | null>(null);
+
+  const loadCandidates = useCallback(async () => {
+    setCandidatesLoading(true);
+    setCandidatesError(null);
+    try {
+      setCandidates(await fetchAffiliateCandidates());
+    } catch (error) {
+      setCandidatesError((error as Error).message || "Impossible de charger les membres");
+    } finally {
+      setCandidatesLoading(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const [a, c, u] = await Promise.all([
-        fetchAffiliatesAdmin(),
-        fetchCommissionsAdmin(),
-        fetchAffiliateCandidates().catch(() => [] as AffiliateCandidate[]),
-      ]);
-      setAffiliates(a);
-      setCommissions(c);
-      setCandidates(u);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setLoading(false);
+    const [affiliatesResult, commissionsResult] = await Promise.allSettled([
+      fetchAffiliatesAdmin(),
+      fetchCommissionsAdmin(),
+    ]);
+
+    if (affiliatesResult.status === "fulfilled") {
+      setAffiliates(affiliatesResult.value);
+    } else {
+      toast.error((affiliatesResult.reason as Error).message);
     }
+
+    if (commissionsResult.status === "fulfilled") {
+      setCommissions(commissionsResult.value);
+    } else {
+      toast.error((commissionsResult.reason as Error).message);
+    }
+
+    setLoading(false);
   }, []);
 
   const filteredCandidates = useMemo(() => {
@@ -76,7 +94,8 @@ export default function AffiliateManagement() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadCandidates();
+  }, [load, loadCandidates]);
 
   const submit = async () => {
     if (!email.trim() || code.trim().length < 3) {
@@ -98,7 +117,7 @@ export default function AffiliateManagement() {
       toast.success("Ambassadeur créé");
       setEmail("");
       setCode("");
-      await load();
+      await Promise.all([load(), loadCandidates()]);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -136,6 +155,9 @@ export default function AffiliateManagement() {
             <Label htmlFor="aff-email">Membre (trié par activité récente)</Label>
             <Select
               value={email}
+              onOpenChange={(open) => {
+                if (open && candidates.length === 0 && !candidatesLoading) void loadCandidates();
+              }}
               onValueChange={(v) => {
                 setEmail(v);
                 if (!code) {
@@ -157,10 +179,21 @@ export default function AffiliateManagement() {
                     className="h-8"
                   />
                 </div>
-                {filteredCandidates.length === 0 && (
+                {candidatesLoading && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">Chargement des membres…</p>
+                )}
+                {!candidatesLoading && candidatesError && (
+                  <div className="flex items-center justify-between gap-3 px-3 py-2">
+                    <p className="text-xs text-destructive">Chargement impossible</p>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => void loadCandidates()}>
+                      Réessayer
+                    </Button>
+                  </div>
+                )}
+                {!candidatesLoading && !candidatesError && filteredCandidates.length === 0 && (
                   <p className="px-3 py-2 text-xs text-muted-foreground">Aucun membre trouvé</p>
                 )}
-                {filteredCandidates.map((c) => (
+                {!candidatesError && filteredCandidates.map((c) => (
                   <SelectItem key={c.user_id} value={c.email ?? c.user_id} disabled={!c.email}>
                     <span className="flex items-center gap-2">
                       {candidateLabel(c)}
@@ -174,6 +207,9 @@ export default function AffiliateManagement() {
                 ))}
               </SelectContent>
             </Select>
+            {!candidatesLoading && !candidatesError && (
+              <p className="text-xs text-muted-foreground">{candidates.length} membres disponibles</p>
+            )}
           </div>
 
           <div>
