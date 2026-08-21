@@ -94,6 +94,33 @@ const AdminMarkdownPdfRender = lazy(() => import("./pages/admin/AdminMarkdownPdf
 const InstallAndroid = lazy(() => import("./pages/InstallAndroid"));
 const Ambassador = lazy(() => import("./pages/Ambassador"));
 const AffiliateManagement = lazy(() => import("./pages/admin/AffiliateManagement"));
+const Landing = lazy(() => import("./pages/Landing"));
+const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
+const RefundPolicy = lazy(() => import("./pages/legal/RefundPolicy"));
+
+/** Root route: public marketing page for visitors, Welcome hub for signed-in users. */
+function HomeRoute() {
+  const { user, session, loading } = useAuth();
+  const resolvedUser = user ?? session?.user ?? null;
+
+  if (!loading && !resolvedUser) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Landing />
+      </Suspense>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <Suspense fallback={<PageLoader />}>
+        <Welcome />
+      </Suspense>
+    </ProtectedRoute>
+  );
+}
+
 
 const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
