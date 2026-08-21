@@ -1032,6 +1032,29 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           kickLevel *= 0.9;
           silenceFrames = 0;
           effectiveState = movementBaseState === "reflexion" ? "reflexion" : "solid";
+        } else if (isAudioPlaying) {
+          // Voice playing without analyser (mobile/cross-origin): synthesize a
+          // living pulse so "mouvement" stays visibly animated.
+          const t = elapsedTime;
+          const bass = 0.34 + 0.22 * Math.abs(Math.sin(t * 1.15));
+          const mid = 0.26 + 0.2 * Math.abs(Math.sin(t * 1.9 + 1.1));
+          const high = 0.16 + 0.14 * Math.abs(Math.sin(t * 3.3 + 2.2));
+          const kick = 0.3 + 0.3 * Math.pow(Math.max(0, Math.sin(t * 2.2)), 6);
+          bassLevel += (bass - bassLevel) * 0.18;
+          midLevel += (mid - midLevel) * 0.16;
+          highLevel += (high - highLevel) * 0.14;
+          kickLevel += (kick - kickLevel) * 0.3;
+          bassEnergy = bassLevel;
+          midEnergy = midLevel;
+          trebleEnergy = highLevel;
+          kickEnergy = kickLevel;
+          boomLevel = Math.max(boomLevel * tuning.boomDecay, kickLevel * 0.9);
+          boomPulse = boomLevel * Math.max(tuning.boomStrength, 0.8) + fallbackBoom;
+          audioBoomPulse = 0;
+          cinematicEnergy = bassLevel * 0.9 + midLevel * 0.7 + highLevel * 0.35;
+          silenceFrames = 0;
+          effectiveState = movementBaseState;
+          audioOverlayActive = true;
         } else {
           bassLevel *= 0.92;
           midLevel *= 0.92;
@@ -1039,12 +1062,13 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           boomLevel = 0;
           kickLevel *= 0.92;
           // Ambient fallback can move the cloud, but never reveals Metatron.
-          boomPulse = isAudioPlaying || !hasAudio ? fallbackBoom : 0;
+          boomPulse = hasAudio ? 0 : fallbackBoom;
           audioBoomPulse = 0;
           silenceFrames = 0;
           effectiveState = movementBaseState;
-          audioOverlayActive = isAudioPlaying;
+          audioOverlayActive = false;
         }
+
       } else {
         bassLevel *= 0.92;
         midLevel *= 0.92;
