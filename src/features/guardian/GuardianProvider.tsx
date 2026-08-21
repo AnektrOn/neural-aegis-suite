@@ -27,6 +27,8 @@ import {
 
 interface GuardianContextValue {
   state: GuardianPersistedState;
+  /** True once the server-side onboarding progress has been loaded. */
+  hydrated: boolean;
   phase: GuardianUiPhase;
   audioSrc: string | null;
   speaking: boolean;
