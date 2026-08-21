@@ -77,6 +77,12 @@ export interface QuantumNebulaProps {
   /** Current playback time in seconds (for captions). */
   onAudioTimeUpdate?: (currentTimeSec: number) => void;
   audioPaused?: boolean;
+  /**
+   * Route audio through Web Audio for spectrum / nebula reactivity.
+   * Disable for cross-origin voice clips on mobile (MediaElementSource is silent without CORS
+   * and can mute playback even when `currentTime` advances).
+   */
+  enableAudioAnalyser?: boolean;
   showAudioSpectrum?: boolean;
   audioTuning?: Partial<QuantumNebulaAudioTuning>;
   visualTuning?: Partial<QuantumNebulaVisualTuning>;
@@ -283,6 +289,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
   onAudioError,
   onAudioTimeUpdate,
   audioPaused = false,
+  enableAudioAnalyser = true,
   showAudioSpectrum = false,
   audioTuning,
   visualTuning,
@@ -319,6 +326,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
   const onAudioBlockedRef = useRef(onAudioBlocked);
   const onAudioErrorRef = useRef(onAudioError);
   const onAudioTimeUpdateRef = useRef(onAudioTimeUpdate);
+  const enableAudioAnalyserRef = useRef(enableAudioAnalyser);
   const playAudioRef = useRef<() => Promise<boolean>>(async () => false);
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() =>
     resolveNebulaTheme(theme),
@@ -330,6 +338,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
   onAudioBlockedRef.current = onAudioBlocked;
   onAudioErrorRef.current = onAudioError;
   onAudioTimeUpdateRef.current = onAudioTimeUpdate;
+  enableAudioAnalyserRef.current = enableAudioAnalyser;
 
   useImperativeHandle(
     forwardedRef,
@@ -399,8 +408,18 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
 
     if (!audioSrc) return;
 
-    const audioElement = new Audio(audioSrc);
+    const audioElement = new Audio();
     audioElementRef.current = audioElement;
+    // Required before src when using MediaElementSource on cross-origin MP3 (GitHub CDN).
+    try {
+      const resolved = new URL(audioSrc, window.location.href);
+      if (resolved.origin !== window.location.origin) {
+        audioElement.crossOrigin = "anonymous";
+      }
+    } catch {
+      /* relative URL — same origin */
+    }
+    audioElement.src = audioSrc;
     audioElement.loop = audioLoop;
     audioElement.preload = "auto";
     audioElement.setAttribute("playsinline", "");
@@ -466,8 +485,8 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
 
     const handlePlay = () => {
       syncPlayingState();
-      // Playback started (gesture satisfied) → safe to build the reactive graph.
-      ensureGraph();
+      // Voice / mobile: keep direct element output — analyser graph can mute cross-origin audio.
+      if (enableAudioAnalyserRef.current) ensureGraph();
       onAudioBlockedRef.current?.(false);
       onAudioPlayRef.current?.();
     };
