@@ -38,7 +38,12 @@ const GUARDIAN_AUDIO_FILES: Record<
   },
 };
 
-/** Lovable production omits `.mp3` from static deploy — serve from GitHub raw until Supabase bucket is set. */
+/**
+ * Lovable's static deploy does not serve `.mp3` from `public/` (404 in prod), so we fall back to
+ * the GitHub raw copy of the exact same files. Raw sends `access-control-allow-origin: *`, so the
+ * Web Audio analyser (crossOrigin="anonymous") stays functional and audio is NOT muted.
+ * Set `VITE_GUARDIAN_AUDIO_BASE_URL` to override with a CDN / same-origin path once available.
+ */
 const DEFAULT_PROD_AUDIO_BASE =
   "https://raw.githubusercontent.com/AnektrOn/neural-aegis-suite/main/public/audio/guardian";
 
@@ -48,6 +53,7 @@ function getGuardianAudioBase(): string {
   if (import.meta.env.PROD) return DEFAULT_PROD_AUDIO_BASE;
   return "/audio/guardian";
 }
+
 
 /** Public URLs for per-gender, per-locale, per-step guide audio. */
 export function getGuardianAudioSrc(
