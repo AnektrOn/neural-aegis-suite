@@ -309,6 +309,7 @@ const App = () => (
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/install" element={<InstallApp />} />
+                            <Route path="/ambassadeur" element={<Ambassador />} />
                             <Route path="/calendar" element={<CalendarView />} />
                             <Route path="/onboarding/assessment" element={<AssessmentFlow />} />
                             <Route path="/onboarding/results" element={<AssessmentResults />} />
