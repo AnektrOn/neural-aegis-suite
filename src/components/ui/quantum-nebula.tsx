@@ -480,6 +480,9 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
 
     const handleError = () => {
       syncPlayingState();
+      // Only a real MediaError (network/decode/src) is a failure. Ignore stray
+      // error events fired while swapping sources or tearing the element down.
+      if (!audioElement.error) return;
       onAudioBlockedRef.current?.(false);
       onAudioErrorRef.current?.();
     };
@@ -501,12 +504,16 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
         onAudioBlockedRef.current?.(false);
         return true;
       } catch (error) {
-        const blocked = error instanceof DOMException && error.name === "NotAllowedError";
+        const name = error instanceof DOMException ? error.name : "";
+        // AbortError: a concurrent play()/load() superseded this call — not a failure.
+        if (name === "AbortError") return false;
+        const blocked = name === "NotAllowedError";
         onAudioBlockedRef.current?.(blocked);
-        if (!blocked) onAudioErrorRef.current?.();
+        if (!blocked && audioElement.error) onAudioErrorRef.current?.();
         return false;
       }
     };
+
     playAudioRef.current = tryPlay;
 
     audioElement.addEventListener("play", handlePlay);
