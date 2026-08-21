@@ -144,11 +144,17 @@ const BOOT_GATE_MAX_MS = 6000;
 function isBootGateSkippedPath(pathname: string): boolean {
   return (
     pathname === "/auth" ||
+    pathname === "/pricing" ||
     pathname === "/install-android" ||
+    pathname.startsWith("/legal") ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
+    pathname === "/refund" ||
     pathname.startsWith("/newsletter") ||
     pathname.startsWith("/dev/")
   );
 }
+
 
 function AuthBootGate({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
