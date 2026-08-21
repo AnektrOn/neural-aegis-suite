@@ -331,16 +331,8 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Suspense fallback={<PageLoader />}>
-                        <Welcome />
-                      </Suspense>
-                    </ProtectedRoute>
-                  }
-                />
+                <Route path="/" element={<HomeRoute />} />
+
                 <Route
                   path="/*"
                   element={
