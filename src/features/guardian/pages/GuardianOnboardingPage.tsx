@@ -234,7 +234,8 @@ export default function GuardianOnboardingPage() {
       {audioEnabled && audioBlocked && !voiceStarted ? (
         <button
           type="button"
-          onClick={() => setAudioPaused(false)}
+          onPointerDown={() => setAudioPaused(false)}
+          onTouchEnd={() => setAudioPaused(false)}
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
         >
           <span className="rounded-full border border-white/20 bg-black/70 px-6 py-3 font-display text-sm tracking-wide text-white shadow-2xl">
