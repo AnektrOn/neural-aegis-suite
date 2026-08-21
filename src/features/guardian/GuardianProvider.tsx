@@ -331,6 +331,7 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     }),
     [
       state,
+      hydrated,
       phase,
       audioSrc,
       speaking,
