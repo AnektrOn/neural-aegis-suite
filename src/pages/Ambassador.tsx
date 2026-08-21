@@ -62,7 +62,15 @@ const COPY: Record<string, { fr: string; en: string }> = {
   searchPlaceholder: { fr: "Rechercher un filleul", en: "Search a referral" },
   allPlans: { fr: "Toutes les formules", en: "All plans" },
   allStatuses: { fr: "Tous les statuts", en: "All statuses" },
+  catAll: { fr: "Tous", en: "All" },
+  catPaid: { fr: "Abonnés (Matrice / Ultra)", en: "Subscribers (Matrix / Ultra)" },
+  catFree: { fr: "Inscrits sans abonnement", en: "Signed up, no subscription" },
+  catFreeNote: {
+    fr: "Comptes créés via ton lien mais qui n'ont pas encore souscrit.",
+    en: "Accounts created through your link that haven't subscribed yet.",
+  },
 };
+
 
 type SortKey =
   | "label"
