@@ -129,3 +129,20 @@ export async function updateAffiliate(
   const { error } = await supabase.from("affiliates").update(patch).eq("id", id);
   if (error) throw error;
 }
+
+export type AffiliateCandidate = {
+  user_id: string;
+  email: string | null;
+  display_name: string | null;
+  created_at: string;
+  last_active_at: string | null;
+  activity_count: number;
+  is_affiliate: boolean;
+};
+
+/** Members ranked by recent activity, for the ambassador picker. */
+export async function fetchAffiliateCandidates(): Promise<AffiliateCandidate[]> {
+  const { data, error } = await supabase.rpc("get_affiliate_candidates_admin" as never);
+  if (error) throw error;
+  return (data ?? []) as unknown as AffiliateCandidate[];
+}
