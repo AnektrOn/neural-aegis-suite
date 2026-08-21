@@ -8,10 +8,10 @@ export const WELCOME_HUB_PATH = "/welcome";
 export const GUARDIAN_ONBOARDING_PATH = "/onboarding";
 
 export function postLoginPath(isGuest: boolean, userId?: string | null): string {
-  if (isGuest) return "/visitor";
   if (userId) {
     const guardian = loadGuardianState(userId);
     if (needsGuardianOnboarding(guardian)) return GUARDIAN_ONBOARDING_PATH;
   }
+  if (isGuest) return "/visitor";
   return WELCOME_HUB_PATH;
 }
