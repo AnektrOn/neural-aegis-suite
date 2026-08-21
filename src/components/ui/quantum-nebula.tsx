@@ -436,16 +436,15 @@ export default function GenerativeArtSceneV3({
 
     const tryPlay = () => {
       if (audioPausedRef.current) return;
-      const start = () =>
-        audioElement.play().then(
-          () => onAudioBlockedRef.current?.(false),
-          () => onAudioBlockedRef.current?.(true),
-        );
+      // Both calls must happen synchronously inside the mobile gesture. Waiting
+      // for AudioContext.resume() before play() loses Safari's activation token.
       if (audioContext && audioContext.state === "suspended") {
-        void audioContext.resume().then(start, start);
-      } else {
-        void start();
+        void audioContext.resume().catch(() => undefined);
       }
+      void audioElement.play().then(
+        () => onAudioBlockedRef.current?.(false),
+        () => onAudioBlockedRef.current?.(true),
+      );
     };
 
     audioElement.addEventListener("play", handlePlay);
@@ -465,9 +464,6 @@ export default function GenerativeArtSceneV3({
       if (!audioElement.paused && !audioElement.ended) {
         detachGestureListeners();
         return;
-      }
-      if (audioContext && audioContext.state === "suspended") {
-        void audioContext.resume().catch(() => undefined);
       }
       if (autoPlayAudio) tryPlay();
     };

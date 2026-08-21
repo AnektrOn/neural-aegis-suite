@@ -145,7 +145,7 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      await signUpGuest({
+      const session = await signUpGuest({
         email,
         ...(newsletterIntent && firstName.trim() ? { firstName: firstName.trim() } : {}),
       });
@@ -155,7 +155,12 @@ export default function AuthPage() {
           ? t("auth.guest.successDescNewsletter")
           : t("auth.guest.successDesc"),
       });
-      navigate(redirectTo, { replace: true });
+      // A redirect back to /visitor used to bypass Guardian entirely. Keep the
+      // explicit newsletter flow, but send every normal guest through Guardian.
+      navigate(
+        newsletterIntent ? redirectTo : postLoginPath(true, session.user.id),
+        { replace: true },
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       if (message === "EMAIL_ALREADY_REGISTERED") {
