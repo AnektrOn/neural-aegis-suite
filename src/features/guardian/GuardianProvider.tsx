@@ -283,6 +283,7 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     if (userId) {
       clearGuardianState(userId);
       saveGuardianState(userId, next);
+      void persistGuardianState(userId, next).catch(() => undefined);
     }
   }, [userId]);
 
