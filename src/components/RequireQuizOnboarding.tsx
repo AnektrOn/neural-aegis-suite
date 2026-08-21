@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isVisitorOnlyUser } from "@/lib/authVisitor";
 import { useQuizCompletion } from "@/hooks/useQuizCompletion";
 import { GUARDIAN_ONBOARDING_PATH } from "@/lib/welcomeHud";
+import { useGuardianOptional, needsGuardianOnboarding } from "@/features/guardian";
 
 /** Chemins toujours accessibles même si le questionnaire n'est pas terminé. */
 const EXEMPT_PREFIXES = [
@@ -36,11 +37,21 @@ export default function RequireQuizOnboarding({
   const { user } = useAuth();
   const { pathname } = useLocation();
   const { loading, completed } = useQuizCompletion();
+  const guardian = useGuardianOptional();
 
   const skip = !user || isVisitorOnlyUser(user) || isExempt(pathname);
 
   if (!skip && !loading && !completed) {
-    return <Navigate to={GUARDIAN_ONBOARDING_PATH} replace />;
+    // Guardian déjà terminé/refusé → on envoie directement au questionnaire
+    // pour éviter une boucle de redirection avec la page d'onboarding.
+    const guardianDone =
+      guardian?.hydrated && !needsGuardianOnboarding(guardian.state);
+    return (
+      <Navigate
+        to={guardianDone ? "/onboarding/assessment" : GUARDIAN_ONBOARDING_PATH}
+        replace
+      />
+    );
   }
 
   return <>{children}</>;
