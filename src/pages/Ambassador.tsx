@@ -164,25 +164,68 @@ export default function Ambassador() {
 
 
       <Card className="p-5">
-        <h2 className="font-heading text-lg">{tr("referrals")}</h2>
-        {(data.referrals ?? []).length === 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-heading text-lg">{tr("referrals")}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={tr("searchPlaceholder")}
+              aria-label={tr("searchPlaceholder")}
+              className="h-9 rounded-md border border-border/50 bg-transparent px-3 text-sm outline-none focus:border-primary/60"
+            />
+            <select
+              value={planFilter}
+              onChange={(e) => setPlanFilter(e.target.value)}
+              aria-label={tr("colPlan")}
+              className="h-9 rounded-md border border-border/50 bg-transparent px-2 text-sm"
+            >
+              <option value="all">{tr("allPlans")}</option>
+              <option value="free">Initiation</option>
+              <option value="matrix">Matrice</option>
+              <option value="ultra">Ultra</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              aria-label={tr("colStatus")}
+              className="h-9 rounded-md border border-border/50 bg-transparent px-2 text-sm"
+            >
+              <option value="all">{tr("allStatuses")}</option>
+              <option value="converted">{tr("statusConverted")}</option>
+              <option value="pending">{tr("statusSignedUp")}</option>
+            </select>
+          </div>
+        </div>
+        {visibleReferrals.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">{tr("empty")}</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-border/40 text-left text-xs uppercase tracking-widest text-muted-foreground">
-                  <th className="py-2 pr-3 font-normal">{tr("colMember")}</th>
-                  <th className="py-2 pr-3 font-normal">{tr("colSignup")}</th>
-                  <th className="py-2 pr-3 font-normal">{tr("colPlan")}</th>
-                  <th className="py-2 pr-3 font-normal">{tr("colStatus")}</th>
-                  <th className="py-2 pr-3 font-normal">{tr("colRenewal")}</th>
-                  <th className="py-2 pr-3 font-normal">{tr("colPayments")}</th>
-                  <th className="py-2 text-right font-normal">{tr("colEarned")}</th>
+                  {SORT_COLUMNS.map((col) => (
+                    <th
+                      key={col.key}
+                      className={`py-2 font-normal ${col.key === "commission_cents" ? "text-right" : "pr-3"}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(col.key)}
+                        className="inline-flex items-center gap-1 uppercase tracking-widest transition-colors hover:text-foreground"
+                      >
+                        {tr(col.label)}
+                        <ArrowUpDown
+                          className={`h-3 w-3 ${sortKey === col.key ? "text-primary" : "opacity-40"}`}
+                          strokeWidth={1.4}
+                        />
+                      </button>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {(data.referrals ?? []).map((r) => (
+                {visibleReferrals.map((r) => (
                   <tr key={r.id} className="border-b border-border/20 last:border-0">
                     <td className="py-2.5 pr-3 font-medium">{r.label}</td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{fmtDate(r.created_at)}</td>
