@@ -20,7 +20,7 @@ export default function Welcome() {
   const guardian = useGuardianOptional();
 
   useEffect(() => {
-    if (!guardian) return;
+    if (!guardian || !guardian.hydrated) return;
     if (needsGuardianOnboarding(guardian.state)) {
       navigate(GUARDIAN_ONBOARDING_PATH, { replace: true });
     }
