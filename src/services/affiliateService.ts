@@ -163,7 +163,9 @@ export type AffiliateCandidate = {
 
 /** Members ranked by recent activity, for the ambassador picker. */
 export async function fetchAffiliateCandidates(): Promise<AffiliateCandidate[]> {
-  const { data, error } = await supabase.rpc("get_affiliate_candidates_admin" as never);
-  if (error) throw error;
-  return (data ?? []) as unknown as AffiliateCandidate[];
+  return withRetry(async () => {
+    const { data, error } = await supabase.rpc("get_affiliate_candidates_admin" as never);
+    if (error) throw error;
+    return (data ?? []) as unknown as AffiliateCandidate[];
+  });
 }
