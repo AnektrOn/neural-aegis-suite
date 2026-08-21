@@ -135,6 +135,10 @@ export default function Ambassador() {
         ))}
       </div>
 
+      <UltraDiscountTier totalCents={(data.pending_cents ?? 0) + (data.paid_cents ?? 0)} />
+
+
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
           <h2 className="font-heading text-lg">{tr("referrals")}</h2>
