@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   type AffiliateDashboard,
+  type AffiliateReferralRow,
+
   buildReferralLink,
   fetchMyAffiliateDashboard,
   formatMoney,
@@ -62,7 +64,15 @@ const COPY: Record<string, { fr: string; en: string }> = {
   searchPlaceholder: { fr: "Rechercher un filleul", en: "Search a referral" },
   allPlans: { fr: "Toutes les formules", en: "All plans" },
   allStatuses: { fr: "Tous les statuts", en: "All statuses" },
+  catAll: { fr: "Tous", en: "All" },
+  catPaid: { fr: "Abonnés (Matrice / Ultra)", en: "Subscribers (Matrix / Ultra)" },
+  catFree: { fr: "Inscrits sans abonnement", en: "Signed up, no subscription" },
+  catFreeNote: {
+    fr: "Comptes créés via ton lien mais qui n'ont pas encore souscrit.",
+    en: "Accounts created through your link that haven't subscribed yet.",
+  },
 };
+
 
 type SortKey =
   | "label"
@@ -96,6 +106,15 @@ function planLabel(plan?: string | null): string {
   return PLAN_LABELS[plan] ?? plan;
 }
 
+function isPaidReferral(r: AffiliateReferralRow): boolean {
+  const plan = (r.plan ?? "free").replace("aegis_", "");
+  if (plan === "matrix" || plan === "ultra") return true;
+  if ((r.commission_cents ?? 0) > 0) return true;
+  if ((r.payments_count ?? 0) > 0) return true;
+  return false;
+}
+
+
 export default function Ambassador() {
   const { locale } = useLanguage();
   const tr = (k: keyof typeof COPY) => COPY[k][locale === "en" ? "en" : "fr"];
@@ -105,6 +124,8 @@ export default function Ambassador() {
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [category, setCategory] = useState<"all" | "paid" | "free">("all");
+
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
@@ -126,11 +147,17 @@ export default function Ambassador() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const allRows = data?.referrals ?? [];
+  const paidCount = useMemo(() => allRows.filter(isPaidReferral).length, [allRows]);
+  const freeCount = allRows.length - paidCount;
+
   const visibleReferrals = useMemo(() => {
-    const rows = [...(data?.referrals ?? [])];
+    const rows = [...allRows];
     const q = search.trim().toLowerCase();
     const filtered = rows.filter((r) => {
       const normalizedPlan = (r.plan ?? "free").replace("aegis_", "");
+      if (category === "paid" && !isPaidReferral(r)) return false;
+      if (category === "free" && isPaidReferral(r)) return false;
       if (planFilter !== "all" && normalizedPlan !== planFilter) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (q && !r.label.toLowerCase().includes(q)) return false;
@@ -143,7 +170,8 @@ export default function Ambassador() {
       if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
       return String(av).localeCompare(String(bv)) * dir;
     });
-  }, [data?.referrals, search, planFilter, statusFilter, sortKey, sortDir]);
+  }, [allRows, search, category, planFilter, statusFilter, sortKey, sortDir]);
+
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -260,6 +288,31 @@ export default function Ambassador() {
             </select>
           </div>
         </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {([
+            { key: "all", label: tr("catAll"), count: allRows.length },
+            { key: "paid", label: tr("catPaid"), count: paidCount },
+            { key: "free", label: tr("catFree"), count: freeCount },
+          ] as const).map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setCategory(t.key)}
+              className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                category === t.key
+                  ? "border-primary/60 bg-primary/10 text-foreground"
+                  : "border-border/40 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.label} · {t.count}
+            </button>
+          ))}
+        </div>
+        {category === "free" && (
+          <p className="mt-2 text-xs text-muted-foreground">{tr("catFreeNote")}</p>
+        )}
+
         {visibleReferrals.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">{tr("empty")}</p>
         ) : (
