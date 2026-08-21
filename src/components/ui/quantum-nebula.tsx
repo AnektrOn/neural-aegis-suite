@@ -63,6 +63,8 @@ export interface QuantumNebulaProps {
   onAudioEnded?: () => void;
   /** Fires once when playback actually starts (not on page mount). */
   onAudioPlay?: () => void;
+  /** Fired when autoplay is blocked (mobile) or unblocked. */
+  onAudioBlocked?: (blocked: boolean) => void;
   /** Current playback time in seconds (for captions). */
   onAudioTimeUpdate?: (currentTimeSec: number) => void;
   audioPaused?: boolean;
@@ -264,6 +266,7 @@ export default function GenerativeArtSceneV3({
   audioLoop = true,
   onAudioEnded,
   onAudioPlay,
+  onAudioBlocked,
   onAudioTimeUpdate,
   audioPaused = false,
   showAudioSpectrum = false,
@@ -299,6 +302,7 @@ export default function GenerativeArtSceneV3({
   const showAudioSpectrumRef = useRef(showAudioSpectrum);
   const onAudioEndedRef = useRef(onAudioEnded);
   const onAudioPlayRef = useRef(onAudioPlay);
+  const onAudioBlockedRef = useRef(onAudioBlocked);
   const onAudioTimeUpdateRef = useRef(onAudioTimeUpdate);
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() =>
     resolveNebulaTheme(theme),
@@ -307,6 +311,7 @@ export default function GenerativeArtSceneV3({
   showAudioSpectrumRef.current = showAudioSpectrum;
   onAudioEndedRef.current = onAudioEnded;
   onAudioPlayRef.current = onAudioPlay;
+  onAudioBlockedRef.current = onAudioBlocked;
   onAudioTimeUpdateRef.current = onAudioTimeUpdate;
 
   useEffect(() => {
