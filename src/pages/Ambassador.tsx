@@ -367,6 +367,11 @@ export default function Ambassador() {
                         {planLabel(r.plan)}
                       </Badge>
                     </td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">
+                      {r.billing_cycle
+                        ? tr(CYCLE_COPY_KEYS[r.billing_cycle] ?? "cycleMonthly")
+                        : "—"}
+                    </td>
                     <td className="py-2.5 pr-3">
                       <Badge variant={r.status === "converted" ? "secondary" : "outline"}>
                         {r.status === "converted" ? tr("statusConverted") : tr("statusSignedUp")}
