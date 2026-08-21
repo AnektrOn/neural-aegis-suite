@@ -90,18 +90,39 @@ export async function fetchMyAffiliateDashboard(): Promise<AffiliateDashboard> {
   return (data ?? { is_affiliate: false }) as unknown as AffiliateDashboard;
 }
 
+/** Retries transient network failures (aborted fetch, gateway hiccups). */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e;
+      const msg = String((e as { message?: string })?.message ?? e);
+      const transient = /network|fetch|timeout|aborted|failed to fetch/i.test(msg);
+      if (!transient || i === attempts - 1) throw e;
+      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  throw lastError;
+}
+
 export async function fetchAffiliatesAdmin(): Promise<AdminAffiliate[]> {
-  const { data, error } = await supabase.rpc("get_affiliates_admin_overview");
-  if (error) throw error;
-  return (data ?? []) as unknown as AdminAffiliate[];
+  return withRetry(async () => {
+    const { data, error } = await supabase.rpc("get_affiliates_admin_overview");
+    if (error) throw error;
+    return (data ?? []) as unknown as AdminAffiliate[];
+  });
 }
 
 export async function fetchCommissionsAdmin(affiliateId?: string): Promise<AdminCommission[]> {
-  const { data, error } = await supabase.rpc("get_affiliate_commissions_admin", {
-    p_affiliate_id: affiliateId ?? null,
+  return withRetry(async () => {
+    const { data, error } = await supabase.rpc("get_affiliate_commissions_admin", {
+      p_affiliate_id: affiliateId ?? null,
+    });
+    if (error) throw error;
+    return (data ?? []) as unknown as AdminCommission[];
   });
-  if (error) throw error;
-  return (data ?? []) as unknown as AdminCommission[];
 }
 
 export async function createAffiliate(email: string, code: string, rate: number) {
@@ -142,7 +163,9 @@ export type AffiliateCandidate = {
 
 /** Members ranked by recent activity, for the ambassador picker. */
 export async function fetchAffiliateCandidates(): Promise<AffiliateCandidate[]> {
-  const { data, error } = await supabase.rpc("get_affiliate_candidates_admin" as never);
-  if (error) throw error;
-  return (data ?? []) as unknown as AffiliateCandidate[];
+  return withRetry(async () => {
+    const { data, error } = await supabase.rpc("get_affiliate_candidates_admin" as never);
+    if (error) throw error;
+    return (data ?? []) as unknown as AffiliateCandidate[];
+  });
 }
