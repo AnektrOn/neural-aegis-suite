@@ -132,15 +132,50 @@ export default function AffiliateManagement() {
       <Card className="space-y-4 p-5">
         <h2 className="font-heading text-lg">Nommer un ambassadeur</h2>
         <div className="grid gap-3 md:grid-cols-4">
-          <div className="md:col-span-2">
-            <Label htmlFor="aff-email">Email du membre</Label>
-            <Input
-              id="aff-email"
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="aff-email">Membre (trié par activité récente)</Label>
+            <Select
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="membre@exemple.com"
-            />
+              onValueChange={(v) => {
+                setEmail(v);
+                if (!code) {
+                  const local = v.split("@")[0]?.replace(/[^a-z0-9_-]/gi, "").toLowerCase() ?? "";
+                  if (local.length >= 3) setCode(local);
+                }
+              }}
+            >
+              <SelectTrigger id="aff-email">
+                <SelectValue placeholder="Choisir un membre…" />
+              </SelectTrigger>
+              <SelectContent className="max-h-80">
+                <div className="p-2">
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Rechercher…"
+                    className="h-8"
+                  />
+                </div>
+                {filteredCandidates.length === 0 && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">Aucun membre trouvé</p>
+                )}
+                {filteredCandidates.map((c) => (
+                  <SelectItem key={c.user_id} value={c.email ?? c.user_id} disabled={!c.email}>
+                    <span className="flex items-center gap-2">
+                      {candidateLabel(c)}
+                      {c.is_affiliate && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          déjà ambassadeur
+                        </Badge>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
           <div>
             <Label htmlFor="aff-code">Code de parrainage</Label>
             <Input
