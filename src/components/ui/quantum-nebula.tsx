@@ -1489,4 +1489,6 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
 
 GenerativeArtSceneV3.displayName = "GenerativeArtSceneV3";
 
+export default GenerativeArtSceneV3;
+
 export { GenerativeArtSceneV3 as QuantumNebula };
