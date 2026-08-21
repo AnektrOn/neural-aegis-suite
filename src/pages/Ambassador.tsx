@@ -59,7 +59,9 @@ const COPY: Record<string, { fr: string; en: string }> = {
   colStatus: { fr: "Statut", en: "Status" },
   colRenewal: { fr: "Renouvellement", en: "Renewal" },
   colPayments: { fr: "Paiements", en: "Payments" },
+  colGross: { fr: "Encaissé", en: "Billed" },
   colEarned: { fr: "Commissions", en: "Earned" },
+
   cancels: { fr: "résiliation prévue", en: "cancels at period end" },
   searchPlaceholder: { fr: "Rechercher un filleul", en: "Search a referral" },
   allPlans: { fr: "Toutes les formules", en: "All plans" },
