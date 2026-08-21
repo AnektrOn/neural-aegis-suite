@@ -22,7 +22,7 @@ import { withAuthTimeout } from "@/lib/authResilience";
 import { postLoginPath } from "@/lib/welcomeHud";
 import { formatAuthError } from "@/lib/authErrorMessage";
 
-type AuthMode = "signin" | "guest" | "upgrade";
+type AuthMode = "signin" | "signup" | "guest" | "upgrade";
 
 const inputCls =
   "w-full bg-bg-base border border-border-active rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all duration-200";
@@ -67,7 +67,7 @@ export default function AuthPage() {
   useEffect(() => {
     if (authLoading || !user) return;
     if (isAnonymousUser(user) || isGuestUser(user)) return;
-    if (mode === "guest" || mode === "upgrade") return;
+    if (mode === "guest" || mode === "upgrade" || mode === "signup") return;
 
     const path = redirectParam?.trim();
     if (path?.startsWith("/")) {
@@ -100,6 +100,41 @@ export default function AuthPage() {
     } catch (err: unknown) {
       showAuthError(err);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await withAuthTimeout(
+        supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+        }),
+        15_000,
+      );
+      if (error) throw error;
+      navigate("/onboarding", { replace: true });
+    } catch (err: unknown) {
+      showAuthError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/onboarding` },
+      });
+      if (error) throw error;
+    } catch (err: unknown) {
+      showAuthError(err);
       setLoading(false);
     }
   };
@@ -162,11 +197,20 @@ export default function AuthPage() {
   };
 
   const submitHandler =
-    mode === "guest" ? handleGuestSignup : mode === "upgrade" ? handleUpgrade : handleSignIn;
+    mode === "guest"
+      ? handleGuestSignup
+      : mode === "upgrade"
+        ? handleUpgrade
+        : mode === "signup"
+          ? handleSignUp
+          : handleSignIn;
 
-  const showPasswordField = mode === "signin" || mode === "upgrade";
+  const showPasswordField = mode === "signin" || mode === "signup" || mode === "upgrade";
   const showEmailField =
-    mode === "signin" || mode === "guest" || (mode === "upgrade" && isAnonymousUser(user));
+    mode === "signin" ||
+    mode === "signup" ||
+    mode === "guest" ||
+    (mode === "upgrade" && isAnonymousUser(user));
 
   return (
     <div className="min-h-screen bg-aegis-gradient flex flex-col p-4 relative overflow-hidden">
@@ -302,14 +346,16 @@ export default function AuthPage() {
                           : t("auth.guest.submit")
                         : mode === "upgrade"
                           ? t("visitor.upgrade.submit")
-                          : t("auth.signIn")}
+                          : mode === "signup"
+                            ? t("auth.signUp")
+                            : t("auth.signIn")}
                       <ArrowRight size={14} strokeWidth={1.5} />
                     </>
                   )}
                 </button>
               </form>
 
-              {mode === "signin" && (
+              {(mode === "signin" || mode === "signup") && (
                 <>
                   <div className="relative my-5">
                     <div className="absolute inset-0 flex items-center">
@@ -319,6 +365,27 @@ export default function AuthPage() {
                       <span className="bg-bg-elevated px-2 text-text-tertiary">{t("auth.or")}</span>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleGoogle}
+                    disabled={loading}
+                    className="w-full min-h-[44px] py-2.5 mb-3 rounded-lg font-medium text-sm border border-border-active text-text-primary hover:bg-bg-elevated/60 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+                      <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z" />
+                      <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z" />
+                      <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.8l4-3.1z" />
+                      <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8z" />
+                    </svg>
+                    {t("auth.google")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                    className="w-full min-h-[44px] py-2.5 mb-3 rounded-lg font-medium text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    {mode === "signin" ? t("auth.signUp.cta") : t("auth.signUp.hasAccount")}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setMode("guest")}
