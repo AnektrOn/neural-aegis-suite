@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { Copy, Check, Users, MousePointerClick, TrendingUp, Wallet } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Copy,
+  Check,
+  Users,
+  MousePointerClick,
+  TrendingUp,
+  Wallet,
+  ArrowUpDown,
+} from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
