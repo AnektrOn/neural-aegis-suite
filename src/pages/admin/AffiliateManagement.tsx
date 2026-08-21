@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   type AdminAffiliate,
@@ -35,7 +38,7 @@ export default function AffiliateManagement() {
   const [rate, setRate] = useState("20");
   const [saving, setSaving] = useState(false);
   const [candidates, setCandidates] = useState<AffiliateCandidate[]>([]);
-  const [search, setSearch] = useState("");
+  const [candidatePickerOpen, setCandidatePickerOpen] = useState(false);
   const [candidatesLoading, setCandidatesLoading] = useState(true);
   const [candidatesError, setCandidatesError] = useState<string | null>(null);
 
@@ -72,16 +75,6 @@ export default function AffiliateManagement() {
 
     setLoading(false);
   }, []);
-
-  const filteredCandidates = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return candidates;
-    return candidates.filter(
-      (c) =>
-        (c.email ?? "").toLowerCase().includes(q) ||
-        (c.display_name ?? "").toLowerCase().includes(q),
-    );
-  }, [candidates, search]);
 
   const candidateLabel = (c: AffiliateCandidate) => {
     const name = c.display_name ? `${c.display_name} · ` : "";
@@ -153,60 +146,74 @@ export default function AffiliateManagement() {
         <div className="grid gap-3 md:grid-cols-4">
           <div className="md:col-span-2 space-y-2">
             <Label htmlFor="aff-email">Membre (trié par activité récente)</Label>
-            <Select
-              value={email}
+            <Popover
+              open={candidatePickerOpen}
               onOpenChange={(open) => {
+                setCandidatePickerOpen(open);
                 if (open && candidates.length === 0 && !candidatesLoading) void loadCandidates();
               }}
-              onValueChange={(v) => {
-                setEmail(v);
-                if (!code) {
-                  const local = v.split("@")[0]?.replace(/[^a-z0-9_-]/gi, "").toLowerCase() ?? "";
-                  if (local.length >= 3) setCode(local);
-                }
-              }}
             >
-              <SelectTrigger id="aff-email">
-                <SelectValue placeholder="Choisir un membre…" />
-              </SelectTrigger>
-              <SelectContent className="max-h-80">
-                <div className="p-2">
-                  <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={(e) => e.stopPropagation()}
-                    placeholder="Rechercher…"
-                    className="h-8"
-                  />
-                </div>
-                {candidatesLoading && (
-                  <p className="px-3 py-2 text-xs text-muted-foreground">Chargement des membres…</p>
-                )}
-                {!candidatesLoading && candidatesError && (
-                  <div className="flex items-center justify-between gap-3 px-3 py-2">
-                    <p className="text-xs text-destructive">Chargement impossible</p>
-                    <Button type="button" size="sm" variant="ghost" onClick={() => void loadCandidates()}>
-                      Réessayer
-                    </Button>
-                  </div>
-                )}
-                {!candidatesLoading && !candidatesError && filteredCandidates.length === 0 && (
-                  <p className="px-3 py-2 text-xs text-muted-foreground">Aucun membre trouvé</p>
-                )}
-                {!candidatesError && filteredCandidates.map((c) => (
-                  <SelectItem key={c.user_id} value={c.email ?? c.user_id} disabled={!c.email}>
-                    <span className="flex items-center gap-2">
-                      {candidateLabel(c)}
-                      {c.is_affiliate && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          déjà ambassadeur
-                        </Badge>
-                      )}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <PopoverTrigger asChild>
+                <Button
+                  id="aff-email"
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={candidatePickerOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="truncate">{email || "Choisir un membre…"}</span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Rechercher un membre…" />
+                  <CommandList>
+                    {candidatesLoading && (
+                      <p className="px-3 py-4 text-center text-xs text-muted-foreground">Chargement des membres…</p>
+                    )}
+                    {!candidatesLoading && candidatesError && (
+                      <div className="space-y-2 px-3 py-4 text-center">
+                        <p className="text-xs text-destructive">{candidatesError}</p>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => void loadCandidates()}>
+                          Réessayer
+                        </Button>
+                      </div>
+                    )}
+                    {!candidatesLoading && !candidatesError && <CommandEmpty>Aucun membre trouvé</CommandEmpty>}
+                    {!candidatesError && candidates.map((candidate) => (
+                      <CommandItem
+                        key={candidate.user_id}
+                        value={`${candidate.display_name ?? ""} ${candidate.email ?? ""} ${candidate.user_id}`}
+                        disabled={!candidate.email}
+                        onSelect={() => {
+                          if (!candidate.email) return;
+                          setEmail(candidate.email);
+                          if (!code) {
+                            const local = candidate.email
+                              .split("@")[0]
+                              ?.replace(/[^a-z0-9_-]/gi, "")
+                              .toLowerCase() ?? "";
+                            if (local.length >= 3) setCode(local);
+                          }
+                          setCandidatePickerOpen(false);
+                        }}
+                        className="gap-2"
+                      >
+                        <Check className={cn("h-4 w-4 shrink-0", email === candidate.email ? "opacity-100" : "opacity-0")} />
+                        <span className="min-w-0 flex-1 truncate">{candidateLabel(candidate)}</span>
+                        {candidate.is_affiliate && (
+                          <Badge variant="secondary" className="shrink-0 text-[10px]">
+                            déjà ambassadeur
+                          </Badge>
+                        )}
+                      </CommandItem>
+                    ))}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {!candidatesLoading && !candidatesError && (
               <p className="text-xs text-muted-foreground">{candidates.length} membres disponibles</p>
             )}
