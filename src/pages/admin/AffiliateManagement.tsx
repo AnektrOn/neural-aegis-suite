@@ -1,19 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   type AdminAffiliate,
@@ -38,7 +28,6 @@ export default function AffiliateManagement() {
   const [rate, setRate] = useState("20");
   const [saving, setSaving] = useState(false);
   const [candidates, setCandidates] = useState<AffiliateCandidate[]>([]);
-  const [candidatePickerOpen, setCandidatePickerOpen] = useState(false);
   const [candidatesLoading, setCandidatesLoading] = useState(true);
   const [candidatesError, setCandidatesError] = useState<string | null>(null);
 
@@ -146,74 +135,41 @@ export default function AffiliateManagement() {
         <div className="grid gap-3 md:grid-cols-4">
           <div className="md:col-span-2 space-y-2">
             <Label htmlFor="aff-email">Membre (trié par activité récente)</Label>
-            <Popover
-              open={candidatePickerOpen}
-              onOpenChange={(open) => {
-                setCandidatePickerOpen(open);
-                if (open && candidates.length === 0 && !candidatesLoading) void loadCandidates();
+            <select
+              id="aff-email"
+              value={email}
+              disabled={candidatesLoading}
+              onChange={(event) => {
+                const candidate = candidates.find((item) => item.email === event.target.value);
+                if (!candidate?.email) return;
+                setEmail(candidate.email);
+                if (!code) {
+                  const local = candidate.email
+                    .split("@")[0]
+                    ?.replace(/[^a-z0-9_-]/gi, "")
+                    .toLowerCase() ?? "";
+                  if (local.length >= 3) setCode(local);
+                }
               }}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <PopoverTrigger asChild>
-                <Button
-                  id="aff-email"
-                  type="button"
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={candidatePickerOpen}
-                  className="w-full justify-between font-normal"
-                >
-                  <span className="truncate">{email || "Choisir un membre…"}</span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <option value="">
+                {candidatesLoading ? "Chargement des membres…" : "Choisir un membre…"}
+              </option>
+              {candidates.map((candidate) => (
+                <option key={candidate.user_id} value={candidate.email ?? ""} disabled={!candidate.email}>
+                  {candidateLabel(candidate)}{candidate.is_affiliate ? " · déjà ambassadeur" : ""}
+                </option>
+              ))}
+            </select>
+            {!candidatesLoading && candidatesError && (
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-destructive">{candidatesError}</p>
+                <Button type="button" size="sm" variant="ghost" onClick={() => void loadCandidates()}>
+                  Réessayer
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Rechercher un membre…" />
-                  <CommandList>
-                    {candidatesLoading && (
-                      <p className="px-3 py-4 text-center text-xs text-muted-foreground">Chargement des membres…</p>
-                    )}
-                    {!candidatesLoading && candidatesError && (
-                      <div className="space-y-2 px-3 py-4 text-center">
-                        <p className="text-xs text-destructive">{candidatesError}</p>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => void loadCandidates()}>
-                          Réessayer
-                        </Button>
-                      </div>
-                    )}
-                    {!candidatesLoading && !candidatesError && <CommandEmpty>Aucun membre trouvé</CommandEmpty>}
-                    {!candidatesError && candidates.map((candidate) => (
-                      <CommandItem
-                        key={candidate.user_id}
-                        value={`${candidate.display_name ?? ""} ${candidate.email ?? ""} ${candidate.user_id}`}
-                        disabled={!candidate.email}
-                        onSelect={() => {
-                          if (!candidate.email) return;
-                          setEmail(candidate.email);
-                          if (!code) {
-                            const local = candidate.email
-                              .split("@")[0]
-                              ?.replace(/[^a-z0-9_-]/gi, "")
-                              .toLowerCase() ?? "";
-                            if (local.length >= 3) setCode(local);
-                          }
-                          setCandidatePickerOpen(false);
-                        }}
-                        className="gap-2"
-                      >
-                        <Check className={cn("h-4 w-4 shrink-0", email === candidate.email ? "opacity-100" : "opacity-0")} />
-                        <span className="min-w-0 flex-1 truncate">{candidateLabel(candidate)}</span>
-                        {candidate.is_affiliate && (
-                          <Badge variant="secondary" className="shrink-0 text-[10px]">
-                            déjà ambassadeur
-                          </Badge>
-                        )}
-                      </CommandItem>
-                    ))}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+              </div>
+            )}
             {!candidatesLoading && !candidatesError && (
               <p className="text-xs text-muted-foreground">{candidates.length} membres disponibles</p>
             )}
