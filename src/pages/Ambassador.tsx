@@ -84,6 +84,7 @@ type SortKey =
   | "label"
   | "created_at"
   | "plan"
+  | "billing_cycle"
   | "status"
   | "current_period_end"
   | "payments_count"
