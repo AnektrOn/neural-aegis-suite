@@ -3446,6 +3446,14 @@ export type Database = {
         Args: { p_code: string; p_email: string; p_rate?: number }
         Returns: Json
       }
+      admin_create_affiliate_by_user: {
+        Args: { p_code: string; p_rate?: number; p_user_id: string }
+        Returns: Json
+      }
+      admin_revoke_affiliate_by_user: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       admin_set_commission_status: {
         Args: { p_ids: string[]; p_status: string }
         Returns: Json
