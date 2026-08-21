@@ -107,6 +107,34 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
   throw lastError;
 }
 
+const candidateCacheKey = "aegis:affiliate-candidates";
+let candidatesRequest: Promise<AffiliateCandidate[]> | null = null;
+
+function readCandidateCache(): AffiliateCandidate[] | null {
+  try {
+    const raw = window.sessionStorage.getItem(candidateCacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { savedAt?: number; candidates?: AffiliateCandidate[] };
+    if (!parsed.savedAt || Date.now() - parsed.savedAt > 5 * 60_000 || !Array.isArray(parsed.candidates)) {
+      return null;
+    }
+    return parsed.candidates;
+  } catch {
+    return null;
+  }
+}
+
+function writeCandidateCache(candidates: AffiliateCandidate[]) {
+  try {
+    window.sessionStorage.setItem(
+      candidateCacheKey,
+      JSON.stringify({ savedAt: Date.now(), candidates }),
+    );
+  } catch {
+    // Storage can be unavailable in private browsing; fresh data still works.
+  }
+}
+
 export async function fetchAffiliatesAdmin(): Promise<AdminAffiliate[]> {
   return withRetry(async () => {
     const { data, error } = await supabase.rpc("get_affiliates_admin_overview");
@@ -163,9 +191,21 @@ export type AffiliateCandidate = {
 
 /** Members ranked by recent activity, for the ambassador picker. */
 export async function fetchAffiliateCandidates(): Promise<AffiliateCandidate[]> {
-  return withRetry(async () => {
+  if (candidatesRequest) return candidatesRequest;
+
+  candidatesRequest = withRetry(async () => {
     const { data, error } = await supabase.rpc("get_affiliate_candidates_admin" as never);
     if (error) throw error;
-    return (data ?? []) as unknown as AffiliateCandidate[];
+    const candidates = (data ?? []) as unknown as AffiliateCandidate[];
+    writeCandidateCache(candidates);
+    return candidates;
+  }).catch((error) => {
+    const cached = readCandidateCache();
+    if (cached) return cached;
+    throw error;
+  }).finally(() => {
+    candidatesRequest = null;
   });
+
+  return candidatesRequest;
 }
