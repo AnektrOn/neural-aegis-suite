@@ -50,6 +50,31 @@ async function sendEmail(userId: string, subject: string, message: string) {
   }
 }
 
+/** Affiliate: record a commission when a referred user pays. */
+async function recordAffiliateCommission(
+  userId: string,
+  transactionRef: string,
+  amountCents: number,
+  currency: string,
+  productId: string | null,
+) {
+  if (!userId || !amountCents) return;
+  const { error } = await getSupabase().rpc('record_affiliate_commission', {
+    p_user_id: userId,
+    p_transaction_ref: transactionRef,
+    p_amount_cents: amountCents,
+    p_currency: currency || 'EUR',
+    p_product_id: productId,
+  });
+  if (error) console.error('recordAffiliateCommission:', error.message);
+}
+
+function txnAmountCents(data: any): number {
+  const raw = data?.details?.totals?.total ?? data?.details?.totals?.grandTotal ?? '0';
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
 /** Purchase business logic: unlock app, notify user + admins, flag Ultra for the coach. */
 async function onPurchaseActivated(userId: string, productId: string, priceId: string) {
   const plan = PLAN_LABEL[productId] ?? productId;
@@ -318,6 +343,21 @@ async function handleInstallmentPayment(subscriptionId: string, env: PaddleEnv) 
 async function handleTransactionCompleted(data: any, env: PaddleEnv) {
   if (data.subscriptionId) {
     await handleInstallmentPayment(data.subscriptionId, env);
+    const { data: sub } = await getSupabase()
+      .from('subscriptions')
+      .select('user_id, product_id')
+      .eq('paddle_subscription_id', data.subscriptionId)
+      .eq('environment', env)
+      .maybeSingle();
+    if (sub?.user_id) {
+      await recordAffiliateCommission(
+        sub.user_id as string,
+        `${env}:${data.id}`,
+        txnAmountCents(data),
+        data.currencyCode ?? 'EUR',
+        (sub.product_id as string) ?? null,
+      );
+    }
     return;
   }
 
@@ -353,6 +393,14 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
     console.error('one-time upsert:', error.message);
     return;
   }
+
+  await recordAffiliateCommission(
+    userId,
+    `${env}:${data.id}`,
+    txnAmountCents(data),
+    data.currencyCode ?? 'EUR',
+    productId,
+  );
 
   await onPurchaseActivated(userId, productId, priceId);
 }
