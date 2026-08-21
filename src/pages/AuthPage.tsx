@@ -19,7 +19,7 @@ import {
   resolveGuestRedirect,
 } from "@/lib/authRedirect";
 import { withAuthTimeout } from "@/lib/authResilience";
-import { postLoginPath } from "@/lib/welcomeHud";
+import { GUARDIAN_ONBOARDING_PATH, postLoginPath } from "@/lib/welcomeHud";
 import { formatAuthError } from "@/lib/authErrorMessage";
 
 type AuthMode = "signin" | "signup" | "guest" | "upgrade";

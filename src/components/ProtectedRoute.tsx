@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
+import { postLoginPath } from "@/lib/welcomeHud";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -55,7 +56,14 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }
 
   if (isAnonymousUser(resolvedUser) || isGuestUser(resolvedUser)) {
-    return <Navigate to="/visitor" replace state={{ from: location.pathname }} />;
+    // Guests still owing Guardian onboarding go there first, not to /visitor.
+    return (
+      <Navigate
+        to={postLoginPath(true, resolvedUser.id)}
+        replace
+        state={{ from: location.pathname }}
+      />
+    );
   }
 
   if (showOnboarding) {
