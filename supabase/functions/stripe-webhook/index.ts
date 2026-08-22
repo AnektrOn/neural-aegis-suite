@@ -150,15 +150,21 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
   const { data: existing } = await supabase
     .from('subscriptions')
-    .select('user_id, status')
+    .select('user_id, status, price_id, product_id')
     .eq('paddle_subscription_id', sub.id)
     .maybeSingle();
 
   const item = sub.items.data[0];
+  const newPriceId = (item?.price?.lookup_key as string | undefined)
+    ?? (item?.price?.metadata?.planKey as string | undefined)
+    ?? (existing?.price_id as string | undefined)
+    ?? null;
+
   await supabase
     .from('subscriptions')
     .update({
       status: sub.status,
+      ...(newPriceId ? { price_id: newPriceId } : {}),
       current_period_start: item?.current_period_start
         ? new Date(item.current_period_start * 1000).toISOString()
         : null,
@@ -173,6 +179,27 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
   const userId = existing?.user_id as string | undefined;
   if (!userId) return;
 
+  const { data: userData } = await supabase.auth.admin.getUserById(userId);
+  const email = userData?.user?.email ?? userId;
+
+  // Changement de formule
+  if (newPriceId && existing?.price_id && newPriceId !== existing.price_id) {
+    await notifyAdmins(
+      '🔄 Changement de formule',
+      `${email} est passé de ${existing.price_id} à ${newPriceId}.`,
+      '/admin/users',
+    );
+  }
+
+  // Résiliation programmée
+  if (sub.cancel_at_period_end) {
+    await notifyAdmins(
+      '🛑 Résiliation programmée',
+      `${email} a programmé l'arrêt de son abonnement en fin de période.`,
+      '/admin/users',
+    );
+  }
+
   if (sub.status === 'past_due' && existing?.status !== 'past_due') {
     await notifyUser(
       userId,
@@ -180,11 +207,13 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
       "Votre dernier paiement n'a pas abouti. Mettez à jour votre moyen de paiement.",
       '/pricing',
     );
-    await notifyAdmins('⚠️ Paiement échoué', `Abonnement ${sub.id} en échec.`, '/admin/users');
+    await notifyAdmins('⚠️ Paiement échoué', `Abonnement ${sub.id} en échec (${email}).`, '/admin/users');
   } else if (existing?.status === 'past_due' && sub.status === 'active') {
     await notifyUser(userId, 'Paiement régularisé', 'Votre accès complet est rétabli.', '/dashboard');
+    await notifyAdmins('✅ Paiement régularisé', `${email} a régularisé son paiement.`, '/admin/users');
   }
 }
+
 
 async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
   const { data: existing } = await supabase
