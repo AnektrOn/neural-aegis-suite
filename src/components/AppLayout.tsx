@@ -11,6 +11,8 @@ import {
   MoreVertical,
   Settings2,
   Smartphone,
+  Sparkles,
+
 } from "lucide-react";
 import AppCommandPalette from "@/components/AppCommandPalette";
 import DesktopTopBar from "@/components/DesktopTopBar";
@@ -29,6 +31,8 @@ import {
 import aegisLogo from "@/assets/aegis-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
+import { useSubscription } from "@/hooks/useSubscription";
+
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -56,7 +60,9 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   const location = useLocation();
   const { signOut } = useAuth();
   const { isAdmin } = useAdmin();
+  const { tier, loading: subLoading } = useSubscription();
   const { t } = useLanguage();
+
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     daily: true,
     analysis: false,
