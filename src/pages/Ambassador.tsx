@@ -53,6 +53,18 @@ const COPY: Record<string, { fr: string; en: string }> = {
     fr: "Les commissions sont validées puis versées manuellement par l'équipe AEGIS.",
     en: "Commissions are reviewed then paid out manually by the AEGIS team.",
   },
+  feeTitle: { fr: "Comment votre solde est calculé", en: "How your balance is calculated" },
+  feeNote: {
+    fr: "Les montants affichés sont calculés sur le prix payé par le filleul, avant les frais de traitement Stripe (env. 1,5 % + 0,25 € par paiement sur cartes européennes, davantage hors UE). Votre versement réel est donc légèrement inférieur au montant affiché.",
+    en: "Amounts shown are based on the price paid by your referral, before Stripe processing fees (approx. 1.5% + €0.25 per payment on European cards, more outside the EU). Your actual payout is therefore slightly lower than the amount displayed.",
+  },
+  feeEstimate: { fr: "Estimation nette (après frais)", en: "Net estimate (after fees)" },
+  feeGross: { fr: "Solde brut affiché", en: "Gross balance shown" },
+  feeDisclaimer: {
+    fr: "Estimation indicative : les frais exacts dépendent du moyen de paiement et du pays du filleul. Aucun autre prélèvement n'est appliqué par AEGIS. Un remboursement ou un impayé annule la commission correspondante.",
+    en: "Indicative estimate: exact fees depend on the payment method and the referral's country. AEGIS applies no other deduction. A refund or failed payment cancels the matching commission.",
+  },
+
   colMember: { fr: "Membre", en: "Member" },
   colSignup: { fr: "Inscription", en: "Signed up" },
   colPlan: { fr: "Formule", en: "Plan" },
@@ -266,6 +278,34 @@ export default function Ambassador() {
           </Card>
         ))}
       </div>
+
+      {(() => {
+        const money = (c: number) => formatMoney(c, "EUR", locale === "en" ? "en-GB" : "fr-FR");
+        const gross = data.pending_cents ?? 0;
+        const payments = (data.commissions ?? []).filter((c) => c.status !== "paid").length;
+        const rate = data.commission_rate ?? 0;
+        const fees = Math.round(gross * 0.015 + payments * 25 * rate);
+        const net = Math.max(0, gross - fees);
+        return (
+          <Card className="space-y-3 p-5">
+            <h2 className="font-heading text-lg">{tr("feeTitle")}</h2>
+            <p className="text-sm text-muted-foreground">{tr("feeNote")}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-md border border-border/40 p-3">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">{tr("feeGross")}</p>
+                <p className="mt-1 text-lg font-medium">{money(gross)}</p>
+              </div>
+              <div className="rounded-md border border-primary/30 p-3">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">{tr("feeEstimate")}</p>
+                <p className="mt-1 text-lg font-medium text-primary">≈ {money(net)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">{tr("feeDisclaimer")}</p>
+          </Card>
+        );
+      })()}
+
+
 
       <UltraDiscountTier totalCents={(data.pending_cents ?? 0) + (data.paid_cents ?? 0)} />
 
