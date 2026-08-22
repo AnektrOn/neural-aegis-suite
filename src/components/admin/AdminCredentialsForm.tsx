@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyRound, Mail, Loader2, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { KeyRound, Mail, Loader2, Eye, EyeOff, RefreshCw, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,6 +23,7 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   const invoke = async (payload: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke("admin-update-user", {
@@ -42,6 +43,25 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
       toast({ title: "Erreur", description: (e as Error).message, variant: "destructive" });
     } finally {
       setFetching(false);
+    }
+  };
+
+  const sendResetEmail = async () => {
+    setSendingReset(true);
+    try {
+      const data = await invoke({
+        action: "reset_password",
+        redirect_to: `${window.location.origin}/reset-password`,
+      });
+      toast({
+        title: "E-mail de réinitialisation envoyé",
+        description: `Lien envoyé à ${data?.sent_to ?? displayName ?? "l'utilisateur"}.`,
+      });
+      if (data?.sent_to) setCurrentEmail(data.sent_to);
+    } catch (e) {
+      toast({ title: "Erreur", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setSendingReset(false);
     }
   };
 
@@ -121,6 +141,17 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
         >
           {loading && <Loader2 size={12} className="animate-spin" />}
           Mettre à jour
+        </button>
+
+        <button
+          type="button"
+          onClick={sendResetEmail}
+          disabled={sendingReset}
+          title="Envoie un e-mail de réinitialisation de mot de passe à l'utilisateur"
+          className="px-4 py-2 rounded-xl border border-border/30 text-muted-foreground text-xs uppercase tracking-[0.2em] hover:text-foreground hover:border-neural-accent/30 transition-colors disabled:opacity-40 inline-flex items-center gap-2"
+        >
+          {sendingReset ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+          Envoyer un lien de réinitialisation
         </button>
       </div>
     </div>

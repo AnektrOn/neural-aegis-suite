@@ -42,7 +42,11 @@ Deno.serve(async (req) => {
     let userId: string | undefined = body.user_id;
 
     // Resolve by email when no user_id is supplied
-    if (!userId && (action === "delete" || action === "get") && typeof body.email === "string" && body.email.trim()) {
+    if (
+      !userId &&
+      (action === "delete" || action === "get" || action === "reset_password") &&
+      typeof body.email === "string" && body.email.trim()
+    ) {
       const target = body.email.trim().toLowerCase();
       let page = 1;
       while (page <= 20 && !userId) {
@@ -57,6 +61,24 @@ Deno.serve(async (req) => {
     }
 
     if (!userId) return json({ error: "user_id is required" }, 400);
+
+    // Send a password-reset email to the target user.
+    if (action === "reset_password") {
+      const { data: target, error: getErr } = await adminClient.auth.admin.getUserById(userId);
+      if (getErr) return json({ error: getErr.message }, 400);
+      const targetEmail = target.user?.email;
+      if (!targetEmail) return json({ error: "This account has no email address" }, 400);
+
+      const redirectTo = typeof body.redirect_to === "string" && body.redirect_to.startsWith("http")
+        ? body.redirect_to
+        : "https://aegis.humancatalystbeacon.com/reset-password";
+
+      const publicClient = createClient(supabaseUrl, anonKey);
+      const { error: resetErr } = await publicClient.auth.resetPasswordForEmail(targetEmail, { redirectTo });
+      if (resetErr) return json({ error: resetErr.message }, 400);
+
+      return json({ ok: true, sent_to: targetEmail, redirect_to: redirectTo });
+    }
 
     if (action === "delete") {
       if (userId === caller.id) return json({ error: "Cannot delete yourself" }, 400);
