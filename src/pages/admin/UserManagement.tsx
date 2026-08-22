@@ -12,6 +12,8 @@ import CreateUserForm from "@/components/admin/CreateUserForm";
 import ToolboxAssignmentForm from "@/components/admin/ToolboxAssignmentForm";
 import AdminCredentialsForm from "@/components/admin/AdminCredentialsForm";
 import AmbassadorForm from "@/components/admin/AmbassadorForm";
+import AdminDangerZone from "@/components/admin/AdminDangerZone";
+
 import { bilingualPair } from "@/lib/content-i18n";
 
 interface UserData {
