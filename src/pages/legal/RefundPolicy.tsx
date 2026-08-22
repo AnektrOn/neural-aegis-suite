@@ -42,7 +42,7 @@ export default function RefundPolicy() {
           <h2>3. Forfait Matrice (abonnement)</h2>
           <p>
             Le forfait Matrice est un abonnement récurrent, mensuel ou annuel. Vous pouvez
-            l'annuler à tout moment depuis votre espace de facturation Paddle ou depuis les réglages
+            l'annuler à tout moment depuis votre portail de facturation Stripe ou depuis les réglages
             de l'application. L'annulation stoppe les renouvellements suivants ; vous conservez
             l'accès jusqu'à la fin de la période déjà payée. Aucun remboursement au prorata n'est
             effectué pour la période en cours ou les périodes écoulées.
@@ -85,11 +85,11 @@ export default function RefundPolicy() {
 
           <h2>6. Comment annuler ou demander un remboursement</h2>
           <p>
-            Nos paiements sont traités par notre revendeur Paddle.com, Merchant of Record de toutes
-            nos commandes. Pour annuler ou demander un remboursement dans la fenêtre de 30 jours,
-            rendez-vous sur{" "}
-            <a href="https://paddle.net" target="_blank" rel="noreferrer noopener">
-              paddle.net
+            Nos paiements sont traités par Stripe pour le compte de Protocole Nomos. Pour annuler ou
+            demander un remboursement dans la fenêtre de 30 jours, utilisez le portail de
+            facturation depuis{" "}
+            <a href="/pricing">
+              la page Forfaits
             </a>{" "}
             avec l'e-mail utilisé lors de l'achat, ou contactez notre support depuis l'application.
           </p>
@@ -126,7 +126,7 @@ export default function RefundPolicy() {
           <h2>3. Matrice plan (subscription)</h2>
           <p>
             Matrice is a recurring monthly or yearly subscription. You can cancel it at any time
-            from your Paddle billing portal or from the app settings. Cancelling stops future
+            from your Stripe billing portal or from the app settings. Cancelling stops future
             renewals; access remains until the end of the period you already paid for. No pro-rata
             refund is issued for the current or past periods.
           </p>
@@ -164,10 +164,10 @@ export default function RefundPolicy() {
 
           <h2>6. How to cancel or request a refund</h2>
           <p>
-            Payments are processed by our reseller Paddle.com, the Merchant of Record for all our
-            orders. To cancel or request a refund within the 30-day window, visit{" "}
-            <a href="https://paddle.net" target="_blank" rel="noreferrer noopener">
-              paddle.net
+            Payments are processed by Stripe on behalf of Protocole Nomos. To cancel or request a
+            refund within the 30-day window, use the billing portal from{" "}
+            <a href="/pricing">
+              the Plans page
             </a>{" "}
             using the email address you purchased with, or contact our support from inside the app.
           </p>
