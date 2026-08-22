@@ -259,8 +259,24 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     (sub.product_id as string) ?? null,
   );
 
+  // Notification admin : encaissement (renouvellement ou échéance)
+  {
+    const { data: userData } = await supabase.auth.admin.getUserById(sub.user_id as string);
+    const email = userData?.user?.email ?? (sub.user_id as string);
+    const amount = ((invoice.amount_paid ?? 0) / 100).toFixed(2);
+    const currency = (invoice.currency ?? 'eur').toUpperCase();
+    const reason = (invoice as unknown as { billing_reason?: string }).billing_reason;
+    const isRenewal = reason === 'subscription_cycle';
+    await notifyAdmins(
+      isRenewal ? '🔁 Renouvellement encaissé' : '💶 Paiement encaissé',
+      `${email} — ${amount} ${currency} (${PLAN_LABEL[(sub.product_id as string) ?? ''] ?? sub.product_id}).`,
+      '/admin/users',
+    );
+  }
+
   const total = sub.installments_total as number | null;
   if (!total) return;
+
 
   const paid = ((sub.installments_paid as number) ?? 0) + 1;
   const patch: Record<string, unknown> = { installments_paid: paid, updated_at: new Date().toISOString() };
