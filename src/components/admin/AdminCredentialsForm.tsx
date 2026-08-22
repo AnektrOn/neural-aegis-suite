@@ -23,6 +23,7 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   const invoke = async (payload: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke("admin-update-user", {
@@ -42,6 +43,25 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
       toast({ title: "Erreur", description: (e as Error).message, variant: "destructive" });
     } finally {
       setFetching(false);
+    }
+  };
+
+  const sendResetEmail = async () => {
+    setSendingReset(true);
+    try {
+      const data = await invoke({
+        action: "reset_password",
+        redirect_to: `${window.location.origin}/reset-password`,
+      });
+      toast({
+        title: "E-mail de réinitialisation envoyé",
+        description: `Lien envoyé à ${data?.sent_to ?? displayName ?? "l'utilisateur"}.`,
+      });
+      if (data?.sent_to) setCurrentEmail(data.sent_to);
+    } catch (e) {
+      toast({ title: "Erreur", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setSendingReset(false);
     }
   };
 
