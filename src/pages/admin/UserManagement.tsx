@@ -323,6 +323,14 @@ export default function UserManagement() {
 
                 <ToolboxAssignmentForm userId={userData.id} onAssigned={loadUsers} />
 
+                <AdminDangerZone
+                  userId={userData.id}
+                  displayName={userData.display_name}
+                  isSelf={userData.id === currentUser?.id}
+                  onDeleted={loadUsers}
+                />
+
+
               </motion.div>
             )}
           </motion.div>
