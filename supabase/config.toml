@@ -9,11 +9,11 @@ verify_jwt = false
 [functions.scan-alerts]
 verify_jwt = true
 
-[functions.payments-webhook]
+[functions.stripe-webhook]
 verify_jwt = false
 
-[functions.get-paddle-price]
+[functions.stripe-checkout]
 verify_jwt = false
 
-[functions.manage-subscription]
+[functions.stripe-portal]
 verify_jwt = false

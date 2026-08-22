@@ -6,7 +6,7 @@ import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useSubscription } from "@/hooks/useSubscription";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import PublicFooter from "@/components/public/PublicFooter";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
-import { getPaddleEnvironment } from "@/lib/paddle";
+
 import { toast } from "sonner";
 
 type Billing = "monthly" | "yearly";
@@ -27,7 +27,7 @@ export default function Pricing() {
   const navigate = useNavigate();
   const { tier, subscription, refetch } = useSubscription();
 
-  const { openCheckout, loading } = usePaddleCheckout();
+  const { openCheckout, loading } = useStripeCheckout();
   const [billing, setBilling] = useState<Billing>("monthly");
   const [pending, setPending] = useState<string | null>(null);
 
@@ -148,23 +148,9 @@ export default function Pricing() {
     }
     setPending(priceId);
     try {
-      // Déjà abonné → changement de forfait immédiat au prorata (pas de nouveau checkout).
-      if (subscription && subscription.status !== "canceled" && !subscription.paddle_subscription_id.startsWith("txn_")) {
-        const { data, error } = await supabase.functions.invoke("manage-subscription", {
-          body: { action: "change_plan", priceId, environment: getPaddleEnvironment() },
-        });
-        if (!error && !(data as { error?: string })?.error) {
-          toast.success(isFR ? "Forfait mis à jour au prorata." : "Plan updated with proration.");
-          await refetch();
-          return;
-        }
-      }
-      await openCheckout({
-        priceId,
-        customerEmail: user.email ?? undefined,
-        customData: { userId: user.id },
-        successUrl: `${window.location.origin}/checkout/success`,
-      });
+      await openCheckout(priceId);
+    } catch {
+      toast.error(isFR ? "Paiement indisponible." : "Payment unavailable.");
     } finally {
       setPending(null);
     }
@@ -173,15 +159,15 @@ export default function Pricing() {
   const openPortal = async () => {
     setPending("portal");
     try {
-      const { data, error } = await supabase.functions.invoke("manage-subscription", {
-        body: { action: "portal", environment: getPaddleEnvironment() },
+      const { data, error } = await supabase.functions.invoke("stripe-portal", {
+        body: { origin: window.location.origin },
       });
       const url = (data as { url?: string })?.url;
       if (error || !url) {
         toast.error(isFR ? "Portail indisponible." : "Portal unavailable.");
         return;
       }
-      window.open(url, "_blank", "noopener");
+      window.location.href = url;
     } finally {
       setPending(null);
     }
