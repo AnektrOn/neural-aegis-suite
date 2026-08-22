@@ -17,6 +17,8 @@ export const translations = {
   "nav.account": { fr: "Mon compte", en: "My account" },
   "nav.settings": { fr: "Réglages", en: "Settings" },
   "nav.installApp": { fr: "Installer l'app", en: "Install app" },
+  "nav.upgradePlan": { fr: "Passer à la vitesse supérieure", en: "Upgrade plan" },
+
   "nav.newsletter": { fr: "Newsletter", en: "Newsletter" },
   "nav.deepDiveScores": { fr: "Scores Deep Dive", en: "Deep Dive scores" },
   "nav.deepDive": { fr: "Deep Dive", en: "Deep Dive" },
