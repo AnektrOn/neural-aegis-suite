@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyRound, Mail, Loader2, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { KeyRound, Mail, Loader2, Eye, EyeOff, RefreshCw, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
