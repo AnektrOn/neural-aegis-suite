@@ -142,6 +142,17 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
           {loading && <Loader2 size={12} className="animate-spin" />}
           Mettre à jour
         </button>
+
+        <button
+          type="button"
+          onClick={sendResetEmail}
+          disabled={sendingReset}
+          title="Envoie un e-mail de réinitialisation de mot de passe à l'utilisateur"
+          className="px-4 py-2 rounded-xl border border-border/30 text-muted-foreground text-xs uppercase tracking-[0.2em] hover:text-foreground hover:border-neural-accent/30 transition-colors disabled:opacity-40 inline-flex items-center gap-2"
+        >
+          {sendingReset ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+          Envoyer un lien de réinitialisation
+        </button>
       </div>
     </div>
   );
