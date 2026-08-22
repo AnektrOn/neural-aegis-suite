@@ -145,6 +145,25 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
         })}
       </nav>
 
+      {!subLoading && tier === "free" && (
+        <NavLink
+          to="/pricing"
+          onClick={onNavigate}
+          aria-current={location.pathname === "/pricing" ? "page" : undefined}
+          className="mx-2 mb-1 flex shrink-0 items-center gap-3 rounded-lg border border-accent-primary/25 bg-accent-primary/10 px-3 py-2.5 text-accent-primary transition-all hover:border-accent-primary/50 hover:bg-accent-primary/20"
+          title={t("nav.upgradePlan")}
+        >
+          <Sparkles size={16} strokeWidth={1.5} className="shrink-0" />
+          {!collapsed && (
+            <span className="text-[11px] font-medium uppercase tracking-[0.1em]">
+              {t("nav.upgradePlan")}
+            </span>
+          )}
+        </NavLink>
+      )}
+
+
+
       <NavLink
         to="/install-android"
         onClick={onNavigate}
