@@ -279,6 +279,34 @@ export default function Ambassador() {
         ))}
       </div>
 
+      {(() => {
+        const money = (c: number) => formatMoney(c, "EUR", locale === "en" ? "en-GB" : "fr-FR");
+        const gross = data.pending_cents ?? 0;
+        const payments = (data.commissions ?? []).filter((c) => c.status !== "paid").length;
+        const rate = data.commission_rate ?? 0;
+        const fees = Math.round(gross * 0.015 + payments * 25 * rate);
+        const net = Math.max(0, gross - fees);
+        return (
+          <Card className="space-y-3 p-5">
+            <h2 className="font-heading text-lg">{tr("feeTitle")}</h2>
+            <p className="text-sm text-muted-foreground">{tr("feeNote")}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-md border border-border/40 p-3">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">{tr("feeGross")}</p>
+                <p className="mt-1 text-lg font-medium">{money(gross)}</p>
+              </div>
+              <div className="rounded-md border border-primary/30 p-3">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">{tr("feeEstimate")}</p>
+                <p className="mt-1 text-lg font-medium text-primary">≈ {money(net)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">{tr("feeDisclaimer")}</p>
+          </Card>
+        );
+      })()}
+
+
+
       <UltraDiscountTier totalCents={(data.pending_cents ?? 0) + (data.paid_cents ?? 0)} />
 
 
