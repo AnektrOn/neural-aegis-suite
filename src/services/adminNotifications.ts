@@ -14,12 +14,27 @@ function resolveUserDisplayName(
   return metadataName || user.email || fallback;
 }
 
-/** Notifies admins of login: in-app via edge (always); email optional if VITE_ADMIN_NOTIFICATION_EMAIL is set; push via send-push. */
+/** Notifies admins of login: in-app via edge (always); email optional if VITE_ADMIN_NOTIFICATION_EMAIL is set; push via send-push.
+ *  Les connexions des admins eux-mêmes ne déclenchent aucune alerte. */
 export async function notifyAdminOnLogin(
   user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> | null },
 ) {
+  // Ne pas s'auto-notifier : si l'utilisateur qui se connecte est admin, on sort.
+  try {
+    const { data: role } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (role) return;
+  } catch {
+    /* en cas d'échec de lecture, on continue avec la notification */
+  }
+
   const userName = resolveUserDisplayName(user);
   const userEmail = user.email ?? "unknown";
+
 
   // 1) email + in-app (existing)
   try {
