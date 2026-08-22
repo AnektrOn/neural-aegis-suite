@@ -53,6 +53,18 @@ const COPY: Record<string, { fr: string; en: string }> = {
     fr: "Les commissions sont validées puis versées manuellement par l'équipe AEGIS.",
     en: "Commissions are reviewed then paid out manually by the AEGIS team.",
   },
+  feeTitle: { fr: "Comment votre solde est calculé", en: "How your balance is calculated" },
+  feeNote: {
+    fr: "Les montants affichés sont calculés sur le prix payé par le filleul, avant les frais de traitement Stripe (env. 1,5 % + 0,25 € par paiement sur cartes européennes, davantage hors UE). Votre versement réel est donc légèrement inférieur au montant affiché.",
+    en: "Amounts shown are based on the price paid by your referral, before Stripe processing fees (approx. 1.5% + €0.25 per payment on European cards, more outside the EU). Your actual payout is therefore slightly lower than the amount displayed.",
+  },
+  feeEstimate: { fr: "Estimation nette (après frais)", en: "Net estimate (after fees)" },
+  feeGross: { fr: "Solde brut affiché", en: "Gross balance shown" },
+  feeDisclaimer: {
+    fr: "Estimation indicative : les frais exacts dépendent du moyen de paiement et du pays du filleul. Aucun autre prélèvement n'est appliqué par AEGIS. Un remboursement ou un impayé annule la commission correspondante.",
+    en: "Indicative estimate: exact fees depend on the payment method and the referral's country. AEGIS applies no other deduction. A refund or failed payment cancels the matching commission.",
+  },
+
   colMember: { fr: "Membre", en: "Member" },
   colSignup: { fr: "Inscription", en: "Signed up" },
   colPlan: { fr: "Formule", en: "Plan" },
