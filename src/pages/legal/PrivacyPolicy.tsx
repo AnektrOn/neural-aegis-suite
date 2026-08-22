@@ -44,9 +44,8 @@ export default function PrivacyPolicy() {
           <h2>3. Partage des données</h2>
           <ul>
             <li>
-              <strong>Merchant of Record :</strong> Paddle.com Market Ltd, notre revendeur, pour la
-              vente de l'abonnement, la gestion des abonnements, les paiements, la facturation et la
-              conformité fiscale.
+              <strong>Prestataire de paiement :</strong> Stripe Payments Europe, Ltd., pour le
+              traitement des paiements, la gestion des abonnements et la facturation.
             </li>
             <li>Sous-traitants techniques : hébergement, base de données, envoi d'e-mails et de notifications, stockage de fichiers, fournisseurs d'IA utilisés pour générer vos analyses.</li>
             <li>Conseils professionnels (juridiques, comptables).</li>
@@ -121,8 +120,8 @@ export default function PrivacyPolicy() {
           <h2>3. Data sharing</h2>
           <ul>
             <li>
-              <strong>Merchant of Record:</strong> Paddle.com Market Ltd, our reseller, for the sale
-              of subscriptions, subscription management, payments, invoicing and tax compliance.
+              <strong>Payment provider:</strong> Stripe Payments Europe, Ltd., for payment
+              processing, subscription management and invoicing.
             </li>
             <li>Service providers: hosting, database, email and push notifications, file storage, AI providers used to generate your analyses.</li>
             <li>Professional advisers (legal, accounting).</li>

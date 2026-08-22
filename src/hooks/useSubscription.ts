@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPaddleEnvironment } from "@/lib/paddle";
+
 
 export type PlanTier = "free" | "matrix" | "ultra";
 
@@ -57,7 +57,7 @@ export function useSubscription() {
           "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
         )
         .eq("user_id", user.id)
-        .eq("environment", getPaddleEnvironment())
+        
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),

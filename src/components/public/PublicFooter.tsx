@@ -32,8 +32,8 @@ export default function PublicFooter() {
       <p className="mt-6 text-center text-[10px] tracking-[0.14em] uppercase text-text-tertiary/60">
         © {new Date().getFullYear()} Protocole Nomos —{" "}
         {isFR
-          ? "Paiements traités par Paddle.com, Merchant of Record."
-          : "Payments handled by Paddle.com, Merchant of Record."}
+          ? "Paiements sécurisés traités par Stripe."
+          : "Secure payments processed by Stripe."}
       </p>
     </footer>
   );

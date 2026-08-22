@@ -72,18 +72,11 @@ export default function TermsOfService() {
 
           <h2>7. Paiement, abonnement et remboursement</h2>
           <p>
-            Notre processus de commande est assuré par notre revendeur en ligne Paddle.com.
-            Paddle.com est le Merchant of Record de toutes nos commandes. Paddle gère l'ensemble des
-            demandes du service client et les retours. Les modalités de paiement, de facturation, de
-            taxes, de renouvellement, d'annulation et de remboursement sont régies par les{" "}
-            <a
-              href="https://www.paddle.com/legal/checkout-buyer-terms"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              Buyer Terms de Paddle
-            </a>{" "}
-            et par notre <a href="/legal/refund">politique de remboursement</a>. Les abonnements se
+            Les commandes sont vendues directement par Protocole Nomos. Les paiements sont traités
+            par notre prestataire de paiement Stripe Payments Europe, Ltd., qui gère la transaction
+            bancaire, la facturation et la sécurité des données de carte. Les modalités de paiement,
+            de renouvellement, d'annulation et de remboursement sont régies par les présentes
+            conditions et par notre <a href="/legal/refund">politique de remboursement</a>. Les abonnements se
             renouvellent automatiquement jusqu'à annulation.
           </p>
           <p>
@@ -183,18 +176,10 @@ export default function TermsOfService() {
 
           <h2>7. Payment, subscription and refunds</h2>
           <p>
-            Our order process is conducted by our online reseller Paddle.com. Paddle.com is the
-            Merchant of Record for all our orders. Paddle provides all customer service inquiries and
-            handles returns. Payment, billing, tax, renewal, cancellation and refund mechanics are
-            governed by the{" "}
-            <a
-              href="https://www.paddle.com/legal/checkout-buyer-terms"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              Paddle Buyer Terms
-            </a>{" "}
-            and our <a href="/legal/refund">refund policy</a>. Subscriptions renew automatically
+            Orders are sold directly by Protocole Nomos. Payments are processed by our payment
+            provider Stripe Payments Europe, Ltd., which handles the card transaction, invoicing and
+            card data security. Payment, renewal, cancellation and refund mechanics are governed by
+            these terms and our <a href="/legal/refund">refund policy</a>. Subscriptions renew automatically
             until cancelled.
           </p>
           <p>
