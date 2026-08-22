@@ -34,8 +34,15 @@ Deno.serve(async (req) => {
     if (!isPlanKey(priceId)) return json({ error: 'Invalid priceId' }, 400);
     const plan = PLANS[priceId];
 
-    const baseUrl = typeof origin === 'string' && origin.startsWith('http')
-      ? origin
+    // Seules les origines officielles sont acceptées : l'iframe de preview
+    // renverrait l'utilisateur sur un domaine jetable après paiement.
+    const ALLOWED_ORIGINS = [
+      'https://aegis.humancatalystbeacon.com',
+      'https://neural-aegis-suite.lovable.app',
+      'http://localhost:8080',
+    ];
+    const baseUrl = typeof origin === 'string' && ALLOWED_ORIGINS.includes(origin.replace(/\/$/, ''))
+      ? origin.replace(/\/$/, '')
       : 'https://aegis.humancatalystbeacon.com';
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
