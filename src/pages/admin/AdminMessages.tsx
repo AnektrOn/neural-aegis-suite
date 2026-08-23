@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Send, Mail, Search, CheckCheck, User } from "lucide-react";
+import { Send, Mail, Search, CheckCheck, User, Megaphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -36,6 +36,37 @@ export default function AdminMessages() {
   const [search, setSearch] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Pop-up broadcast
+  const [popupAudience, setPopupAudience] = useState<"all" | "one">("all");
+  const [popupUser, setPopupUser] = useState("");
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupBody, setPopupBody] = useState("");
+  const [popupLink, setPopupLink] = useState("");
+  const [popupSending, setPopupSending] = useState(false);
+
+  const sendPopup = async () => {
+    const targets = popupAudience === "all" ? profiles.map((p) => p.id) : popupUser ? [popupUser] : [];
+    if (!popupTitle.trim() || !popupBody.trim() || targets.length === 0) return;
+    setPopupSending(true);
+    const rows = targets.map((id) => ({
+      user_id: id,
+      title: popupTitle.trim(),
+      message: popupBody.trim(),
+      type: "popup",
+      link: popupLink.trim() || null,
+    }));
+    const { error } = await supabase.from("notifications").insert(rows);
+    setPopupSending(false);
+    if (error) {
+      toast.error(t("common.sendError"));
+      return;
+    }
+    toast.success(t("admin.popup.sent").replace("{count}", String(targets.length)));
+    setPopupTitle("");
+    setPopupBody("");
+    setPopupLink("");
+  };
 
   useEffect(() => { loadData(); }, []);
 
@@ -128,6 +159,48 @@ export default function AdminMessages() {
           <Send size={14} /> Send
         </button>
       </motion.div>
+
+      {/* Pop-up broadcast */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="ethereal-glass p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Megaphone size={14} className="text-primary" />
+          <p className="text-neural-label text-neural-accent/60">{t("admin.popup.section")}</p>
+        </div>
+        <p className="text-[11px] text-muted-foreground">{t("admin.popup.hint")}</p>
+
+        <div className="flex gap-2">
+          {(["all", "one"] as const).map(a => (
+            <button key={a} type="button" onClick={() => setPopupAudience(a)}
+              className={`px-3 py-1.5 rounded-xl text-xs border transition-colors ${popupAudience === a ? "border-primary/40 text-primary bg-primary/10" : "border-border/20 text-muted-foreground hover:text-foreground"}`}>
+              {a === "all" ? t("admin.popup.audienceAll") : t("admin.popup.audienceOne")}
+            </button>
+          ))}
+        </div>
+
+        {popupAudience === "one" && (
+          <select value={popupUser} onChange={e => setPopupUser(e.target.value)}
+            className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary/30">
+            <option value="">Select a recipient...</option>
+            {profiles.map(p => <option key={p.id} value={p.id}>{p.display_name || "No name"}</option>)}
+          </select>
+        )}
+
+        <input type="text" value={popupTitle} onChange={e => setPopupTitle(e.target.value)} placeholder="Title"
+          className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30" />
+
+        <textarea value={popupBody} onChange={e => setPopupBody(e.target.value)} placeholder="Your message..." rows={3}
+          className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 resize-none" />
+
+        <input type="text" value={popupLink} onChange={e => setPopupLink(e.target.value)} placeholder={t("admin.popup.linkPlaceholder")}
+          className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30" />
+
+        <button onClick={sendPopup}
+          disabled={popupSending || !popupTitle.trim() || !popupBody.trim() || (popupAudience === "one" && !popupUser)}
+          className="btn-neural disabled:opacity-40 disabled:cursor-not-allowed">
+          <Megaphone size={14} /> {t("admin.popup.send")}
+        </button>
+      </motion.div>
+
 
       {/* Message history */}
       <div className="space-y-3">
