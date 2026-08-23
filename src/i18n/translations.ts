@@ -1787,6 +1787,19 @@ export const translations = {
   "notifications.openPanel": { fr: "Ouvrir les notifications", en: "Open notifications" },
   "notifications.markAllRead": { fr: "Tout marquer comme lu", en: "Mark all as read" },
   "notifications.none": { fr: "Aucune notification", en: "No notifications" },
+  "popup.open": { fr: "Ouvrir", en: "Open" },
+  "popup.dismiss": { fr: "Plus tard", en: "Later" },
+  "popup.close": { fr: "Fermer", en: "Close" },
+  "admin.popup.section": { fr: "Message pop-up", en: "Pop-up message" },
+  "admin.popup.hint": {
+    fr: "Affiché en modale plein écran dès la prochaine ouverture de l'app par l'utilisateur.",
+    en: "Shown as a full-screen modal the next time the user opens the app.",
+  },
+  "admin.popup.audienceAll": { fr: "Tous les utilisateurs", en: "All users" },
+  "admin.popup.audienceOne": { fr: "Un utilisateur", en: "One user" },
+  "admin.popup.linkPlaceholder": { fr: "Lien interne optionnel (ex : /pricing)", en: "Optional internal link (e.g. /pricing)" },
+  "admin.popup.send": { fr: "Envoyer le pop-up", en: "Send pop-up" },
+  "admin.popup.sent": { fr: "Pop-up envoyé à {count} utilisateur(s)", en: "Pop-up sent to {count} user(s)" },
 
   // Common empty states & actions
   "common.noActivityToday": { fr: "Aucune activité ce jour.", en: "No activity this day." },

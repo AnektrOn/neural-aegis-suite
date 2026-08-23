@@ -38,6 +38,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import ThemeToggle from "@/components/ThemeToggle";
 import FreePreviewToggle from "@/components/FreePreviewToggle";
 import NotificationBell from "@/components/NotificationBell";
+import PopupAnnouncement from "@/components/PopupAnnouncement";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
 import AppFooter from "@/components/AppFooter";
@@ -329,6 +330,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     return (
       <ToolboxExerciseSessionProvider userId={user?.id}>
+      <PopupAnnouncement />
       <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
         <div
           className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle"
@@ -541,6 +543,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ToolboxExerciseSessionProvider userId={user?.id}>
+    <PopupAnnouncement />
     <div className="flex min-h-screen w-full relative z-10 bg-bg-base">
       {!online && (
         <div
