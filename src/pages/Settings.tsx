@@ -8,6 +8,7 @@ import {
   Smartphone,
   LayoutGrid,
   Save,
+  PanelLeft,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,15 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { APP_NAV_SECTIONS } from "@/lib/appNavConfig";
+import {
+  cacheSidebarItems,
+  DEFAULT_SIDEBAR_ITEMS,
+  normalizeSidebarItems,
+  readCachedSidebarItems,
+  SIDEBAR_LOCKED_IDS,
+  SIDEBAR_PREFS_EVENT,
+} from "@/lib/sidebarPreferences";
 import {
   DEFAULT_MOBILE_RADIAL_MENU_IDS,
   MOBILE_RADIAL_CATALOG_ORDER,
@@ -34,6 +44,8 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false);
   const [radialIds, setRadialIds] = useState<MobileRadialMenuId[]>(DEFAULT_MOBILE_RADIAL_MENU_IDS);
   const [savingRadial, setSavingRadial] = useState(false);
+  const [sidebarItems, setSidebarItems] = useState<string[]>(() => readCachedSidebarItems());
+  const [savingSidebar, setSavingSidebar] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -48,6 +60,45 @@ export default function Settings() {
       if (raw !== undefined) setRadialIds(orderSelectedRadialIds(raw));
     })();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    void (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("sidebar_items")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error) return;
+      const raw = (data as { sidebar_items?: unknown } | null)?.sidebar_items;
+      if (raw != null) setSidebarItems(normalizeSidebarItems(raw));
+    })();
+  }, [user]);
+
+  const toggleSidebarItem = (to: string) => {
+    if (SIDEBAR_LOCKED_IDS.includes(to)) return;
+    setSidebarItems((prev) =>
+      normalizeSidebarItems(prev.includes(to) ? prev.filter((x) => x !== to) : [...prev, to]),
+    );
+  };
+
+  const saveSidebarItems = async () => {
+    if (!user) return;
+    setSavingSidebar(true);
+    const next = normalizeSidebarItems(sidebarItems);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ sidebar_items: next as unknown as Json })
+      .eq("id", user.id);
+    setSavingSidebar(false);
+    if (error) {
+      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
+      return;
+    }
+    cacheSidebarItems(next);
+    window.dispatchEvent(new CustomEvent(SIDEBAR_PREFS_EVENT));
+    toast({ title: t("settings.sidebarSavedTitle"), description: t("settings.sidebarSavedDesc") });
+  };
 
   const exportData = async () => {
     if (!user) return;
@@ -233,6 +284,62 @@ export default function Settings() {
           <button type="button" onClick={saveRadialMenu} disabled={savingRadial} className="btn-neural flex-1">
             <Save size={14} />
             {savingRadial ? t("profile.radialSaving") : t("profile.radialSave")}
+          </button>
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.07 }}
+        className="ethereal-glass hidden space-y-5 p-8 md:block"
+      >
+        <div className="flex items-center gap-3">
+          <PanelLeft size={18} strokeWidth={1.5} className="text-primary" />
+          <div>
+            <p className="text-neural-label">{t("settings.sidebarTitle")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("settings.sidebarHint")}</p>
+          </div>
+        </div>
+        <div className="space-y-5">
+          {APP_NAV_SECTIONS.map((section) => (
+            <div key={section.id} className="space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t(section.labelKey)}</p>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {section.items.map((item) => {
+                  const checked = sidebarItems.includes(item.to);
+                  const locked = SIDEBAR_LOCKED_IDS.includes(item.to);
+                  return (
+                    <li key={item.to}>
+                      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5 transition-colors hover:border-primary/25">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 shrink-0 rounded border-border accent-primary"
+                          checked={checked}
+                          disabled={locked}
+                          onChange={() => toggleSidebarItem(item.to)}
+                        />
+                        <item.icon size={14} strokeWidth={1.5} className="shrink-0 text-muted-foreground" aria-hidden />
+                        <span className="text-sm text-foreground">{t(item.labelKey)}</span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setSidebarItems([...DEFAULT_SIDEBAR_ITEMS])}
+            className="btn-neural flex-1 border border-border/40 bg-transparent"
+          >
+            {t("settings.sidebarReset")}
+          </button>
+          <button type="button" onClick={() => void saveSidebarItems()} disabled={savingSidebar} className="btn-neural flex-1">
+            <Save size={14} />
+            {savingSidebar ? t("settings.sidebarSaving") : t("settings.sidebarSave")}
           </button>
         </div>
       </motion.div>
