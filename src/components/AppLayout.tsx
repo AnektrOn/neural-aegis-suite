@@ -329,6 +329,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     return (
       <ToolboxExerciseSessionProvider userId={user?.id}>
+      <PopupAnnouncement />
       <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
         <div
           className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle"
