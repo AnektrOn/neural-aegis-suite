@@ -2036,6 +2036,7 @@ export type Database = {
           is_read: boolean
           link: string | null
           message: string
+          scope: string
           title: string
           type: string
           user_id: string
@@ -2046,6 +2047,7 @@ export type Database = {
           is_read?: boolean
           link?: string | null
           message: string
+          scope?: string
           title: string
           type?: string
           user_id: string
@@ -2056,6 +2058,7 @@ export type Database = {
           is_read?: boolean
           link?: string | null
           message?: string
+          scope?: string
           title?: string
           type?: string
           user_id?: string
@@ -2151,6 +2154,7 @@ export type Database = {
           linkedin: string | null
           mobile_radial_menu: Json | null
           plan_override: string | null
+          sidebar_items: Json | null
           timezone: string | null
           updated_at: string
         }
@@ -2170,6 +2174,7 @@ export type Database = {
           linkedin?: string | null
           mobile_radial_menu?: Json | null
           plan_override?: string | null
+          sidebar_items?: Json | null
           timezone?: string | null
           updated_at?: string
         }
@@ -2189,6 +2194,7 @@ export type Database = {
           linkedin?: string | null
           mobile_radial_menu?: Json | null
           plan_override?: string | null
+          sidebar_items?: Json | null
           timezone?: string | null
           updated_at?: string
         }

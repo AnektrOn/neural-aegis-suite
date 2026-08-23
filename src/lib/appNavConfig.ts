@@ -18,6 +18,7 @@ import {
   Mail,
   Sparkles,
   Handshake,
+  MessageSquare,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
@@ -64,6 +65,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     items: [
       { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" },
       { to: "/bibliotheque", icon: Library, labelKey: "nav.bibliotheque" },
+      { to: "/messages", icon: MessageSquare, labelKey: "nav.messages" },
       { to: "/newsletter", icon: Mail, labelKey: "nav.newsletter" },
       { to: "/install-android", icon: Smartphone, labelKey: "nav.installApp" },
       { to: "/settings", icon: Settings2, labelKey: "nav.settings" },

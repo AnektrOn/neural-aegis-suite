@@ -54,6 +54,7 @@ export default function AdminMessages() {
       title: popupTitle.trim(),
       message: popupBody.trim(),
       type: "popup",
+      scope: popupAudience === "all" ? "global" : "personal",
       link: popupLink.trim() || null,
     }));
     const { error } = await supabase.from("notifications").insert(rows);
