@@ -18,6 +18,7 @@ import AppCommandPalette from "@/components/AppCommandPalette";
 import DesktopTopBar from "@/components/DesktopTopBar";
 import QuickLogModal from "@/components/QuickLogModal";
 import { APP_NAV_SECTIONS } from "@/lib/appNavConfig";
+import { useSidebarItems } from "@/hooks/useSidebarItems";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { MobileDockCircleMenu } from "@/components/MobileDockCircleMenu";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,6 +64,15 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   const { isAdmin } = useAdmin();
   const { tier, loading: subLoading } = useSubscription();
   const { t } = useLanguage();
+  const enabledItems = useSidebarItems();
+  const navSections = useMemo(
+    () =>
+      APP_NAV_SECTIONS.map((section) => ({
+        ...section,
+        items: section.items.filter((i) => enabledItems.includes(i.to)),
+      })).filter((section) => section.items.length > 0),
+    [enabledItems],
+  );
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     daily: true,
@@ -76,11 +86,11 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
 
   // Auto-expand group containing active route
   useEffect(() => {
-    const match = APP_NAV_SECTIONS.find((g) => g.items.some((i) => i.to === location.pathname));
+    const match = navSections.find((g) => g.items.some((i) => i.to === location.pathname));
     if (match) {
       setOpenGroups((prev) => ({ ...prev, [match.id]: true }));
     }
-  }, [location.pathname]);
+  }, [location.pathname, navSections]);
 
   return (
     <>
@@ -94,7 +104,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2 px-0">
-        {APP_NAV_SECTIONS.map((group) => {
+        {navSections.map((group) => {
           const isOpen = collapsed || openGroups[group.id];
           return (
             <div key={group.id} className="mb-1">
