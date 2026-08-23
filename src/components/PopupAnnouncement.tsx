@@ -95,7 +95,7 @@ export default function PopupAnnouncement() {
             type="button"
             onClick={() => void dismiss(false)}
             className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label={t("common.close")}
+            aria-label={t("popup.close")}
           >
             <X size={16} strokeWidth={1.5} />
           </button>
