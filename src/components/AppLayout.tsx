@@ -38,6 +38,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import ThemeToggle from "@/components/ThemeToggle";
 import FreePreviewToggle from "@/components/FreePreviewToggle";
 import NotificationBell from "@/components/NotificationBell";
+import PopupAnnouncement from "@/components/PopupAnnouncement";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
 import AppFooter from "@/components/AppFooter";
