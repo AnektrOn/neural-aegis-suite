@@ -543,6 +543,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ToolboxExerciseSessionProvider userId={user?.id}>
+    <PopupAnnouncement />
     <div className="flex min-h-screen w-full relative z-10 bg-bg-base">
       {!online && (
         <div
