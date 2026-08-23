@@ -37,6 +37,37 @@ export default function AdminMessages() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Pop-up broadcast
+  const [popupAudience, setPopupAudience] = useState<"all" | "one">("all");
+  const [popupUser, setPopupUser] = useState("");
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupBody, setPopupBody] = useState("");
+  const [popupLink, setPopupLink] = useState("");
+  const [popupSending, setPopupSending] = useState(false);
+
+  const sendPopup = async () => {
+    const targets = popupAudience === "all" ? profiles.map((p) => p.id) : popupUser ? [popupUser] : [];
+    if (!popupTitle.trim() || !popupBody.trim() || targets.length === 0) return;
+    setPopupSending(true);
+    const rows = targets.map((id) => ({
+      user_id: id,
+      title: popupTitle.trim(),
+      message: popupBody.trim(),
+      type: "popup",
+      link: popupLink.trim() || null,
+    }));
+    const { error } = await supabase.from("notifications").insert(rows);
+    setPopupSending(false);
+    if (error) {
+      toast.error(t("common.sendError"));
+      return;
+    }
+    toast.success(t("admin.popup.sent").replace("{count}", String(targets.length)));
+    setPopupTitle("");
+    setPopupBody("");
+    setPopupLink("");
+  };
+
   useEffect(() => { loadData(); }, []);
 
   useEffect(() => {
