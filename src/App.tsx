@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BootLoadingScreen } from "@/components/BootLoadingScreen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
-import { BrowserRouter, MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, MemoryRouter, Navigate, Routes, Route, useLocation } from "react-router-dom";
 import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
@@ -108,6 +108,10 @@ function HomeRoute() {
   const resolvedUser = user ?? session?.user ?? null;
 
   if (!loading && !resolvedUser) {
+    // Native APK/iOS: skip marketing homepage, open sign-in immediately.
+    if (Capacitor.isNativePlatform()) {
+      return <Navigate to="/auth" replace />;
+    }
     return (
       <Suspense fallback={<PageLoader />}>
         <Landing />
@@ -127,7 +131,12 @@ function HomeRoute() {
 }
 
 
-const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
+function AppRouter({ children }: { children: ReactNode }) {
+  if (Capacitor.isNativePlatform()) {
+    return <MemoryRouter initialEntries={["/auth"]}>{children}</MemoryRouter>;
+  }
+  return <BrowserRouter>{children}</BrowserRouter>;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -207,7 +216,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <Router>
+      <AppRouter>
         <LanguageProvider>
           <AuthProvider>
             <GuardianProvider>
@@ -403,7 +412,7 @@ const App = () => (
             </GuardianProvider>
           </AuthProvider>
         </LanguageProvider>
-      </Router>
+      </AppRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
