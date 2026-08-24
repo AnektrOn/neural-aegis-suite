@@ -354,7 +354,7 @@ export default function AssessmentResults() {
         </div>
 
         {v4Analysis ? (
-          <V4PoleCartographyZones isFR={isFR} analysis={v4Analysis} />
+          <V4PoleCartographyZones isFR={isFR} analysis={v4Analysis} embedded />
         ) : (
           <div ref={radarRef} className="bg-background/0">
             <DualLayerRadar

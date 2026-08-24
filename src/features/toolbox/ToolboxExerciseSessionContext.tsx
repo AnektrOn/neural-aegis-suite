@@ -22,6 +22,7 @@ import {
   renderToolboxWidget,
   type ToolboxRenderableItem,
 } from "@/lib/toolbox-renderer-registry";
+import { formatToolboxDurationLabel } from "@/lib/toolbox-widget-duration";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +69,7 @@ function toRenderableItem(row: ToolboxAssignmentRow): ToolboxRenderableItem {
     content_type: row.content_type,
     title: row.title,
     widget_config: widgetConfig,
+    duration: row.duration,
     external_url: row.external_url,
   };
 }
@@ -317,7 +319,12 @@ function ToolboxExerciseModalLayer({
                   <div className="min-w-0 flex-1">
                     <DialogDescription className="text-neural-label mb-0.5 truncate">
                       {getTypeLabel(item.content_type)}
-                      {item.duration ? <span className="opacity-60"> · {item.duration}</span> : null}
+                      {formatToolboxDurationLabel(item.duration, item.content_type, item.widget_config) ? (
+                        <span className="opacity-60">
+                          {" "}
+                          · {formatToolboxDurationLabel(item.duration, item.content_type, item.widget_config)}
+                        </span>
+                      ) : null}
                     </DialogDescription>
                     <DialogTitle className="text-left text-foreground leading-snug break-words">
                       {getLocalizedTitle(item)}

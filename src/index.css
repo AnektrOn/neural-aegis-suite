@@ -1095,24 +1095,164 @@ input[type="range"]::-moz-range-thumb {
       radial-gradient(ellipse 60% 50% at 100% 100%, hsl(220 60% 50% / 0.08), transparent 50%);
   }
   .deep-dive-v4-hero {
-    background: hsl(var(--card) / 0.42);
-    box-shadow: 0 0 0 1px hsl(var(--border) / 0.25);
+    background: hsl(var(--background) / 0.78);
+    box-shadow: 0 0 0 1px hsl(var(--border) / 0.28);
   }
   .deep-dive-v4-hero-body {
-    background: hsl(var(--background) / 0.3);
+    background: transparent;
   }
   .v4-constellation-stage {
-    background:
-      radial-gradient(ellipse 88% 74% at 50% 28%, hsl(var(--aegis-warm) / 0.1), transparent 56%),
-      radial-gradient(ellipse 72% 62% at 50% 68%, hsl(var(--v4-constellation-glow-shadow) / 0.22), transparent 54%),
-      linear-gradient(
-        168deg,
-        hsl(var(--v4-constellation-surface)) 0%,
-        hsl(var(--v4-constellation-surface-end)) 100%
-      );
-    box-shadow:
-      inset 0 0 0 1px hsl(var(--border) / 0.38),
-      inset 0 1px 0 hsl(var(--foreground) / 0.04);
+    background-color: hsl(var(--background) / 0.55);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.28);
+  }
+
+  .v4-hud-node {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition:
+      background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .v4-hud-node:focus {
+    outline: none;
+  }
+  .v4-hud-node:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+  }
+  .v4-hud-node.is-quiet {
+    opacity: 0.34;
+  }
+  .v4-hud-node::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .v4-hud-node:hover,
+  .v4-hud-node.is-hot,
+  .v4-hud-node.is-selected {
+    background: hsl(var(--foreground) / 0.05);
+  }
+  .v4-hud-node.is-hot::after,
+  .v4-hud-node.is-selected::after {
+    transform: scale(1.2);
+    box-shadow: 0 0 8px currentColor;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .v4-hud-node:hover::after {
+      transform: scale(1.2);
+      box-shadow: 0 0 8px currentColor;
+    }
+    .v4-hud-node:hover .v4-hud-node-ring {
+      animation: v4-expand-ring 1.5s cubic-bezier(0.1, 0.7, 0.1, 1) infinite;
+    }
+  }
+  .v4-hud-node:active {
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  .v4-hud-node-flow {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+  }
+  .v4-hud-node-flow:active {
+    transform: scale(0.95);
+  }
+  .v4-hud-node.is-dominant {
+    box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
+  }
+  .v4-hud-node-ring {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(100% + 16px);
+    height: calc(100% + 16px);
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+  .v4-hud-node.is-hot .v4-hud-node-ring,
+  .v4-hud-node.is-selected .v4-hud-node-ring {
+    animation: v4-expand-ring 1.5s cubic-bezier(0.1, 0.7, 0.1, 1) infinite;
+  }
+  @keyframes v4-expand-ring {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    50% { opacity: 0.9; }
+    100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+  }
+
+  .v4-hud-core {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid hsl(var(--muted-foreground) / 0.55);
+    color: hsl(var(--muted-foreground));
+  }
+  .v4-hud-core::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    transform: translate(-50%, -50%);
+  }
+  .v4-hud-core-compact {
+    width: 14px;
+    height: 14px;
+  }
+  .v4-hud-core-compact::after {
+    width: 4px;
+    height: 4px;
+  }
+
+  .v4-line-light,
+  .v4-line-shadow {
+    fill: none;
+    stroke-width: 1px;
+    stroke-linecap: round;
+  }
+  .v4-line-light { stroke: var(--v4-light); stroke-opacity: 0.22; }
+  .v4-line-shadow { stroke: var(--v4-shadow); stroke-opacity: 0.34; }
+  .v4-path-active-light {
+    stroke: var(--v4-light);
+    stroke-opacity: 1;
+    stroke-width: 1.5px;
+    filter: drop-shadow(0 0 2px var(--v4-light));
+  }
+  .v4-path-active-shadow {
+    stroke: var(--v4-shadow);
+    stroke-opacity: 1;
+    stroke-width: 1.5px;
+    filter: drop-shadow(0 0 2px var(--v4-shadow));
+  }
+  .v4-path-active-survival {
+    stroke: var(--v4-survival);
+    stroke-opacity: 1;
+    stroke-width: 1.5px;
+    filter: drop-shadow(0 0 2px var(--v4-survival));
   }
   .deep-dive-clinical-panel {
     border-left: 3px solid hsl(var(--aegis-warm) / 0.55);
@@ -1144,6 +1284,16 @@ input[type="range"]::-moz-range-thumb {
     }
     .neural-card:hover {
       transform: none;
+    }
+    .v4-hud-node,
+    .v4-hud-node::after {
+      transition: none;
+    }
+    .v4-hud-node.is-hot .v4-hud-node-ring,
+    .v4-hud-node.is-selected .v4-hud-node-ring,
+    .v4-hud-node:hover .v4-hud-node-ring {
+      animation: none;
+      opacity: 0.4;
     }
   }
 }

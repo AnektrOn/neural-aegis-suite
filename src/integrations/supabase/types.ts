@@ -3556,6 +3556,7 @@ export type Database = {
         Returns: Json
       }
       get_affiliates_admin_overview: { Args: never; Returns: Json }
+      get_affiliates_admin_tracking: { Args: { p_days?: number }; Returns: Json }
       get_my_affiliate_dashboard: { Args: never; Returns: Json }
       get_pulse_admin_card_stats: { Args: never; Returns: Json }
       get_pulse_admin_card_users: { Args: { p_card_id: string }; Returns: Json }

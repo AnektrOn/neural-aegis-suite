@@ -21,6 +21,12 @@ import {
 import { withAuthTimeout } from "@/lib/authResilience";
 import { GUARDIAN_ONBOARDING_PATH, postLoginPath } from "@/lib/welcomeHud";
 import { formatAuthError } from "@/lib/authErrorMessage";
+import {
+  SIGNUP_MIN_PASSWORD_LENGTH,
+  normalizeAuthEmail,
+  signupPasswordIssues,
+  signupPasswordScore,
+} from "@/lib/passwordPolicy";
 
 type AuthMode = "signin" | "signup" | "guest" | "upgrade";
 
@@ -33,6 +39,7 @@ const labelCls =
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -47,16 +54,20 @@ export default function AuthPage() {
   const newsletterIntent = isNewsletterRedirect(redirectParam);
   const guestFromUrl = searchParams.get("guest") === "1";
   const upgradeFromUrl = searchParams.get("upgrade") === "1";
+  const signupFromUrl =
+    searchParams.get("signup") === "1" || searchParams.get("mode") === "signup";
 
-  const [mode, setMode] = useState<AuthMode>("signin");
+  const [mode, setMode] = useState<AuthMode>(signupFromUrl ? "signup" : "signin");
 
   useEffect(() => {
     if (upgradeFromUrl && (isGuest || isAnonymousUser(user))) {
       setMode("upgrade");
     } else if (guestFromUrl) {
       setMode("guest");
+    } else if (signupFromUrl) {
+      setMode("signup");
     }
-  }, [upgradeFromUrl, guestFromUrl, isGuest, user]);
+  }, [upgradeFromUrl, guestFromUrl, signupFromUrl, isGuest, user]);
 
   useEffect(() => {
     if (user?.email && (mode === "upgrade" || mode === "guest")) {
@@ -110,7 +121,7 @@ export default function AuthPage() {
     try {
       await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
       const { error } = await withAuthTimeout(
-        supabase.auth.signInWithPassword({ email, password }),
+        supabase.auth.signInWithPassword({ email: normalizeAuthEmail(email), password }),
         15_000,
       );
       if (error) throw error;
@@ -124,17 +135,50 @@ export default function AuthPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = normalizeAuthEmail(email);
+    const issues = signupPasswordIssues(password);
+    if (issues.length) {
+      toast({
+        title: t("toast.error"),
+        description: t("auth.passwordTooWeak"),
+        variant: "destructive",
+      });
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast({
+        title: t("toast.error"),
+        description: t("auth.passwordMismatch"),
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
-      const { error } = await withAuthTimeout(
+      const givenName = firstName.trim();
+      const { data, error } = await withAuthTimeout(
         supabase.auth.signUp({
-          email,
+          email: cleanEmail,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+          options: {
+            emailRedirectTo: `${window.location.origin}/onboarding`,
+            data: {
+              account_type: "member",
+              first_name: givenName || undefined,
+              display_name: givenName || undefined,
+            },
+          },
         }),
         15_000,
       );
       if (error) throw error;
+      if (!data.session) {
+        toast({
+          title: t("auth.checkEmailTitle"),
+          description: t("auth.checkEmailDesc"),
+        });
+        return;
+      }
       navigate("/onboarding", { replace: true });
     } catch (err: unknown) {
       showAuthError(err);
@@ -194,10 +238,30 @@ export default function AuthPage() {
   const handleUpgrade = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    const issues = signupPasswordIssues(password);
+    if (issues.length) {
+      toast({
+        title: t("toast.error"),
+        description: t("auth.passwordTooWeak"),
+        variant: "destructive",
+      });
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast({
+        title: t("toast.error"),
+        description: t("auth.passwordMismatch"),
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       if (isAnonymousUser(user)) {
-        const { error } = await supabase.auth.updateUser({ email, password });
+        const { error } = await supabase.auth.updateUser({
+          email: normalizeAuthEmail(email),
+          password,
+        });
         if (error) throw error;
       } else {
         await upgradeGuestToMember(password);
@@ -291,8 +355,17 @@ export default function AuthPage() {
                 </div>
               )}
 
+              {mode === "signup" && (
+                <div className="mb-4 text-center space-y-1">
+                  <p className="text-xs uppercase tracking-[0.2em] font-display text-primary">
+                    {t("auth.signupFreeBadge")}
+                  </p>
+                  <p className="text-sm text-text-secondary">{t("auth.signupIntro")}</p>
+                </div>
+              )}
+
               <form onSubmit={submitHandler} className="space-y-3">
-                {mode === "guest" && newsletterIntent && (
+                {(mode === "signup" || (mode === "guest" && newsletterIntent)) && (
                   <div className="space-y-1">
                     <label className={labelCls}>{t("auth.guest.firstName")}</label>
                     <input
@@ -334,7 +407,7 @@ export default function AuthPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder={t("auth.password")}
                         required
-                        minLength={6}
+                        minLength={mode === "signin" ? 6 : SIGNUP_MIN_PASSWORD_LENGTH}
                         autoComplete={mode === "signin" ? "current-password" : "new-password"}
                         className={`${inputCls} pr-11`}
                       />
@@ -347,6 +420,40 @@ export default function AuthPage() {
                         {showPassword ? <EyeOff size={15} strokeWidth={1.5} /> : <Eye size={15} strokeWidth={1.5} />}
                       </button>
                     </div>
+                    {(mode === "signup" || mode === "upgrade") && (
+                      <div className="space-y-1.5 pt-1">
+                        <p className="text-[11px] text-text-tertiary">{t("auth.passwordHint")}</p>
+                        <div className="flex gap-1" aria-hidden>
+                          {[1, 2, 3].map((step) => {
+                            const score = signupPasswordScore(password);
+                            return (
+                              <span
+                                key={step}
+                                className={`h-1 flex-1 rounded-full ${
+                                  score >= step ? "bg-primary" : "bg-border-active"
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(mode === "signup" || mode === "upgrade") && (
+                  <div className="space-y-1">
+                    <label className={labelCls}>{t("auth.passwordConfirm")}</label>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder={t("auth.passwordConfirm")}
+                      required
+                      minLength={SIGNUP_MIN_PASSWORD_LENGTH}
+                      autoComplete="new-password"
+                      className={inputCls}
+                    />
                   </div>
                 )}
 
@@ -405,14 +512,16 @@ export default function AuthPage() {
                   >
                     {mode === "signin" ? t("auth.signUp.cta") : t("auth.signUp.hasAccount")}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setMode("guest")}
-                    className="w-full min-h-[44px] py-2.5 rounded-lg font-medium text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Sparkles size={14} aria-hidden />
-                    {t("auth.guest.cta")}
-                  </button>
+                  {mode === "signin" && !signupFromUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setMode("guest")}
+                      className="w-full min-h-[44px] py-2.5 rounded-lg font-medium text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Sparkles size={14} aria-hidden />
+                      {t("auth.guest.cta")}
+                    </button>
+                  ) : null}
                   <Link
                     to="/newsletter"
                     className="w-full min-h-[44px] py-2.5 rounded-lg font-medium text-sm border border-border-active text-text-primary hover:bg-bg-elevated/60 transition-all duration-200 flex items-center justify-center gap-2"

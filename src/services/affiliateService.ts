@@ -73,6 +73,50 @@ export type AdminCommission = {
   paid_at: string | null;
 };
 
+export type AdminTrackingPath = { path: string; clicks: number };
+
+export type AdminTrackingReferral = {
+  id: string;
+  email: string | null;
+  label: string;
+  status: string;
+  created_at: string;
+  converted_at: string | null;
+  plan: string | null;
+};
+
+export type AdminAffiliateTracked = AdminAffiliate & {
+  display_name?: string | null;
+  clicks_30d?: number;
+  signups_30d?: number;
+  conversions_30d?: number;
+  last_click_at?: string | null;
+  top_paths?: AdminTrackingPath[];
+  recent_referrals?: AdminTrackingReferral[];
+};
+
+export type AdminAffiliateTracking = {
+  days: number;
+  kpis: {
+    affiliates: number;
+    active: number;
+    clicks: number;
+    signups: number;
+    conversions: number;
+    pending_cents: number;
+    paid_cents: number;
+    clicks_30d: number;
+    signups_30d: number;
+    conversions_30d: number;
+    gross_30d_cents: number;
+    commission_30d_cents: number;
+  };
+  funnel: { clicks: number; signups: number; conversions: number };
+  daily: { day: string; clicks: number; signups: number; conversions: number }[];
+  landing_paths: AdminTrackingPath[];
+  affiliates: AdminAffiliateTracked[];
+};
+
 /** Referral link shared by an ambassador. */
 export function buildReferralLink(code: string): string {
   const origin = "https://aegis.humancatalystbeacon.com";
@@ -149,6 +193,158 @@ export async function fetchAffiliatesAdmin(): Promise<AdminAffiliate[]> {
     const { data, error } = await supabase.rpc("get_affiliates_admin_overview");
     if (error) throw error;
     return (data ?? []) as unknown as AdminAffiliate[];
+  });
+}
+
+function emptyTracking(days: number, affiliates: AdminAffiliate[] = []): AdminAffiliateTracking {
+  const clicks = affiliates.reduce((n, a) => n + (a.clicks ?? 0), 0);
+  const signups = affiliates.reduce((n, a) => n + (a.signups ?? 0), 0);
+  const conversions = affiliates.reduce((n, a) => n + (a.conversions ?? 0), 0);
+  return {
+    days,
+    kpis: {
+      affiliates: affiliates.length,
+      active: affiliates.filter((a) => a.status === "active").length,
+      clicks,
+      signups,
+      conversions,
+      pending_cents: affiliates.reduce((n, a) => n + (a.pending_cents ?? 0), 0),
+      paid_cents: affiliates.reduce((n, a) => n + (a.paid_cents ?? 0), 0),
+      clicks_30d: 0,
+      signups_30d: 0,
+      conversions_30d: 0,
+      gross_30d_cents: 0,
+      commission_30d_cents: 0,
+    },
+    funnel: { clicks, signups, conversions },
+    daily: [],
+    landing_paths: [],
+    affiliates,
+  };
+}
+
+function isMissingRpc(error: { message?: string; code?: string } | null): boolean {
+  const msg = error?.message ?? "";
+  return (
+    error?.code === "PGRST202" ||
+    error?.code === "42883" ||
+    /does not exist|schema cache|could not find the function/i.test(msg)
+  );
+}
+
+async function buildTrackingFromTables(
+  days: number,
+  affiliates: AdminAffiliate[],
+): Promise<AdminAffiliateTracking> {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const [clicksRes, referralsRes, commissionsRes] = await Promise.all([
+    supabase
+      .from("affiliate_clicks")
+      .select("affiliate_id, landing_path, created_at")
+      .gte("created_at", since),
+    supabase.from("referrals").select("affiliate_id, status, created_at, converted_at"),
+    supabase
+      .from("affiliate_commissions")
+      .select("amount_cents, commission_cents, occurred_at")
+      .gte("occurred_at", since),
+  ]);
+
+  const clicks = clicksRes.data ?? [];
+  const referrals = referralsRes.data ?? [];
+  const commissions = commissionsRes.data ?? [];
+  const fallback = emptyTracking(days, affiliates);
+
+  if (clicksRes.error && referralsRes.error) return fallback;
+
+  const dayKey = (iso: string) => iso.slice(0, 10);
+  const dailyMap = new Map<string, { day: string; clicks: number; signups: number; conversions: number }>();
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
+    dailyMap.set(day, { day, clicks: 0, signups: 0, conversions: 0 });
+  }
+  for (const c of clicks) {
+    const row = dailyMap.get(dayKey(c.created_at));
+    if (row) row.clicks += 1;
+  }
+  for (const r of referrals) {
+    const signupDay = dailyMap.get(dayKey(r.created_at));
+    if (signupDay) signupDay.signups += 1;
+    if (r.status === "converted") {
+      const convDay = dailyMap.get(dayKey(r.converted_at ?? r.created_at));
+      if (convDay) convDay.conversions += 1;
+    }
+  }
+
+  const pathMap = new Map<string, number>();
+  for (const c of clicks) {
+    const path = c.landing_path?.trim() || "/pricing";
+    pathMap.set(path, (pathMap.get(path) ?? 0) + 1);
+  }
+
+  const clicksByAff = new Map<string, number>();
+  const lastClick = new Map<string, string>();
+  for (const c of clicks) {
+    clicksByAff.set(c.affiliate_id, (clicksByAff.get(c.affiliate_id) ?? 0) + 1);
+    const prev = lastClick.get(c.affiliate_id);
+    if (!prev || c.created_at > prev) lastClick.set(c.affiliate_id, c.created_at);
+  }
+  const signupsByAff = new Map<string, number>();
+  const convByAff = new Map<string, number>();
+  for (const r of referrals) {
+    if (r.created_at >= since) {
+      signupsByAff.set(r.affiliate_id, (signupsByAff.get(r.affiliate_id) ?? 0) + 1);
+    }
+    if (r.status === "converted" && (r.converted_at ?? r.created_at) >= since) {
+      convByAff.set(r.affiliate_id, (convByAff.get(r.affiliate_id) ?? 0) + 1);
+    }
+  }
+
+  return {
+    days,
+    kpis: {
+      ...fallback.kpis,
+      clicks_30d: clicks.length,
+      signups_30d: referrals.filter((r) => r.created_at >= since).length,
+      conversions_30d: referrals.filter(
+        (r) => r.status === "converted" && (r.converted_at ?? r.created_at) >= since,
+      ).length,
+      gross_30d_cents: commissions.reduce((n, c) => n + (c.amount_cents ?? 0), 0),
+      commission_30d_cents: commissions.reduce((n, c) => n + (c.commission_cents ?? 0), 0),
+    },
+    funnel: fallback.funnel,
+    daily: [...dailyMap.values()],
+    landing_paths: [...pathMap.entries()]
+      .map(([path, n]) => ({ path, clicks: n }))
+      .sort((a, b) => b.clicks - a.clicks)
+      .slice(0, 12),
+    affiliates: affiliates.map((a) => ({
+      ...a,
+      clicks_30d: clicksByAff.get(a.id) ?? 0,
+      signups_30d: signupsByAff.get(a.id) ?? 0,
+      conversions_30d: convByAff.get(a.id) ?? 0,
+      last_click_at: lastClick.get(a.id) ?? null,
+    })),
+  };
+}
+
+export async function fetchAffiliatesAdminTracking(
+  days = 30,
+): Promise<AdminAffiliateTracking> {
+  return withRetry(async () => {
+    const { data, error } = await supabase.rpc("get_affiliates_admin_tracking", {
+      p_days: days,
+    });
+    if (!error && data && typeof data === "object") {
+      return data as unknown as AdminAffiliateTracking;
+    }
+    if (error && !isMissingRpc(error)) throw error;
+
+    const affiliates = await fetchAffiliatesAdmin();
+    try {
+      return await buildTrackingFromTables(days, affiliates);
+    } catch {
+      return emptyTracking(days, affiliates);
+    }
   });
 }
 

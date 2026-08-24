@@ -15,6 +15,7 @@ import {
   isInteractiveToolboxType,
   renderToolboxWidget,
 } from "@/lib/toolbox-renderer-registry";
+import { formatToolboxDurationLabel } from "@/lib/toolbox-widget-duration";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -480,6 +481,9 @@ export function ToolboxUserView({
   const getLocalizedDescription = (item: ToolboxItem) =>
     pickWidgetCatalogCopy(locale as Locale, item.description_i18n as any, item.description);
 
+  const durationLabel = (item: ToolboxItem) =>
+    formatToolboxDurationLabel(item.duration, item.content_type, item.widget_config);
+
   const renderWidget = (item: ToolboxItem) =>
     renderToolboxWidget({
       item,
@@ -887,7 +891,7 @@ export function ToolboxUserView({
                               </div>
                               <p className="font-display text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground truncate">
                                 {getTypeLabel(item.content_type)}
-                                {item.duration ? <span className="opacity-50"> · {item.duration}</span> : null}
+                                {durationLabel(item) ? <span className="opacity-50"> · {durationLabel(item)}</span> : null}
                               </p>
                               {description ? (
                                 <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground/80 break-words">
@@ -944,7 +948,7 @@ export function ToolboxUserView({
                               <AddToCalendarButton
                                 title={getLocalizedTitle(item)}
                                 description={getLocalizedDescription(item)}
-                                duration={item.duration}
+                                duration={durationLabel(item) ?? item.duration}
                                 path={`/toolbox?item=${item.id}`}
                                 category={getTypeLabel(item.content_type)}
                               />
@@ -1062,7 +1066,7 @@ export function ToolboxUserView({
                     </p>
                     <p className="font-display text-[9px] uppercase tracking-[0.16em] text-muted-foreground">
                       {getTypeLabel(item.content_type)}
-                      {item.duration ? <span className="opacity-50"> · {item.duration}</span> : null}
+                      {durationLabel(item) ? <span className="opacity-50"> · {durationLabel(item)}</span> : null}
                     </p>
                     <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground/80">
                       {getLocalizedDescription(item) ||
@@ -1097,7 +1101,7 @@ export function ToolboxUserView({
                       <AddToCalendarButton
                         title={getLocalizedTitle(item)}
                         description={getLocalizedDescription(item)}
-                        duration={item.duration}
+                        duration={durationLabel(item) ?? item.duration}
                         path={`/toolbox?item=${item.id}`}
                                 category={getTypeLabel(item.content_type)}
                       />

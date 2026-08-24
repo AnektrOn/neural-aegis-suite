@@ -11,7 +11,7 @@ import {
   resolveToolboxWidget,
 } from "@/lib/toolbox-widget-resolver";
 import { resolveToolboxContentSlug } from "@/lib/toolbox-content-slug";
-import { overlayHabitDurationOnWidgetConfig } from "@/lib/toolbox-widget-duration";
+import { overlayHabitDurationOnWidgetConfig, hydrateToolboxWidgetDuration } from "@/lib/toolbox-widget-duration";
 
 export interface ToolboxRenderableItem {
   id?: string;
@@ -19,6 +19,7 @@ export interface ToolboxRenderableItem {
   content_type_slug?: string | null;
   title: string;
   widget_config: Record<string, unknown> | null;
+  duration?: string | null;
   external_url?: string | null;
 }
 
@@ -136,10 +137,11 @@ function renderResolved(
   const noop = () => {};
   const safeOnComplete = onComplete ?? noop;
   const safeOnAbandon = onAbandon ?? noop;
-  const itemCfg =
+  const itemCfgRaw =
     item.widget_config && typeof item.widget_config === "object"
       ? (item.widget_config as Record<string, unknown>)
       : undefined;
+  const itemCfg = hydrateToolboxWidgetDuration(itemSlug(item), itemCfgRaw, item.duration);
   const cfg = overlayHabitDurationOnWidgetConfig(resolved.config, itemCfg);
 
   const kindMap: Record<string, DynamicToolboxWidgetKind | null> = {
@@ -195,11 +197,11 @@ export function renderToolboxWidget({
   fallbackForExternalLink,
 }: RenderArgs): ReactNode {
   const noop = () => {};
-  const cfg = item.widget_config ?? {};
+  const slug = itemSlug(item);
+  const cfg = hydrateToolboxWidgetDuration(slug, item.widget_config, item.duration);
   const safeOnComplete = onComplete ?? noop;
   const safeOnAbandon = onAbandon ?? noop;
   const sessionKey = sessionKeyOverride ?? widgetSessionKey(item);
-  const slug = itemSlug(item);
 
   const baseProps = {
     config: cfg,

@@ -15,6 +15,7 @@ import {
   normalizeToolboxUserDeliveryStatus,
 } from "@/services/programBuilderService";
 import { parseArchetypeTargets } from "@/pages/admin/pulse/pulsePrinciples";
+import { parseAssignmentDurationSec } from "@/lib/toolbox-widget-duration";
 
 const REQUIRED_LOCALES = ["fr", "en"] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -599,6 +600,24 @@ function parseDistribution(meta: Record<string, unknown>): ParsedToolboxMarkdown
   };
 }
 
+function normalizeDurationMeta(raw: unknown): string | undefined {
+  if (typeof raw === "string" && raw.trim()) return raw.trim();
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) return `${raw} min`;
+  return undefined;
+}
+
+function seedDurationMin(cfg: Record<string, unknown>, raw: unknown) {
+  const existing = cfg.duration_min;
+  if (typeof existing === "number" && existing > 0) return;
+  if (typeof existing === "string" && Number(existing) > 0) {
+    cfg.duration_min = Number(existing);
+    return;
+  }
+  const label = normalizeDurationMeta(raw);
+  const sec = parseAssignmentDurationSec(label);
+  if (sec > 0) cfg.duration_min = Math.max(1, Math.round(sec / 60));
+}
+
 export function parseToolboxMarkdownDocument(
   raw: string,
   source: string,
@@ -666,6 +685,7 @@ export function parseToolboxMarkdownDocument(
 
   const widget_config = buildWidgetConfig(contentType, config, sections);
   if (externalUrl) widget_config.external_url = externalUrl;
+  seedDurationMin(widget_config, meta.duration);
 
   const distribution = parseDistribution(meta);
   if (distribution.mode === "individual" && distribution.user_id && !UUID_RE.test(distribution.user_id)) {
@@ -693,7 +713,7 @@ export function parseToolboxMarkdownDocument(
       content_type: contentType,
       title_i18n: titleI18n,
       description_i18n: descI18n,
-      duration: typeof meta.duration === "string" ? meta.duration : undefined,
+      duration: normalizeDurationMeta(meta.duration),
       is_active: meta.is_active !== false,
       archetype_targets: archetypeTargets,
       shadow_targets: Array.isArray(meta.shadow_targets)
