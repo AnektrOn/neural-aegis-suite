@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Check, Crown, Sparkles, Loader2, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
+import { isAnonymousUser } from "@/lib/authVisitor";
+import { postLoginPath } from "@/lib/welcomeHud";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
@@ -23,7 +25,7 @@ type Billing = "monthly" | "yearly";
 
 export default function Pricing() {
   const { locale } = useLanguage();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const navigate = useNavigate();
   const { tier, subscription, refetch } = useSubscription();
 
@@ -264,7 +266,17 @@ export default function Pricing() {
               ))}
             </ul>
             <Button asChild variant="outline" className="w-full min-h-[44px]">
-              <Link to={user ? "/visitor" : "/auth?guest=1"}>{copy.free.cta}</Link>
+              <Link
+                to={
+                  !user
+                    ? "/auth?signup=1"
+                    : isGuest || isAnonymousUser(user)
+                      ? "/auth?upgrade=1"
+                      : postLoginPath(false, user.id)
+                }
+              >
+                {copy.free.cta}
+              </Link>
             </Button>
           </NeuralCard>
 

@@ -147,5 +147,5 @@ export function V4ConstellationOrbCanvas({ instances }: Props) {
     };
   }, []);
 
-  return <div ref={containerRef} className="pointer-events-none absolute inset-0 z-[1]" aria-hidden />;
+  return <div ref={containerRef} className="pointer-events-none absolute inset-0 z-[3]" aria-hidden />;
 }

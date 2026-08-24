@@ -14,18 +14,7 @@ interface Props {
 export function V4PoleCartographyZones({ isFR: isFRProp, analysis, className, embedded = false }: Props) {
   const { locale, t } = useLanguage();
   const isFR = isFRProp ?? locale === "fr";
-  const { totalPolePoints } = analysis;
-
-  const body = (
-    <>
-      <V4CartographyConstellation isFR={isFR} analysis={analysis} />
-      {totalPolePoints > 0 && (
-        <p className="text-center text-[11px] text-text-tertiary/80 tabular-nums">
-          {t("assessment.v4TotalScore", { total: totalPolePoints.toFixed(0) })}
-        </p>
-      )}
-    </>
-  );
+  const body = <V4CartographyConstellation isFR={isFR} analysis={analysis} />;
 
   if (embedded) {
     return <div className={cn("space-y-3", className)}>{body}</div>;

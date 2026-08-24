@@ -62,10 +62,11 @@ function padStep(n: number) {
 }
 
 const DEEP_DIVE_TAB_LIST = cn(
-  "flex h-auto w-full flex-wrap gap-1 rounded-xl border border-white/10 bg-white/[0.04] p-1",
+  "no-scrollbar flex h-auto w-full snap-x snap-mandatory gap-1 overflow-x-auto overscroll-x-contain rounded-xl border border-white/10 bg-white/[0.04] p-1",
+  "[-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:snap-none",
 );
 const DEEP_DIVE_TAB_TRIGGER = cn(
-  "flex min-h-[44px] min-w-[7.5rem] flex-1 items-center gap-2 rounded-lg px-3 py-2",
+  "flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-lg px-3 py-2 sm:min-w-[7.5rem] sm:flex-1",
   "text-xs font-medium text-text-tertiary transition-all hover:text-text-secondary",
   "data-[state=active]:border data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.08]",
   "data-[state=active]:text-text-primary data-[state=active]:shadow-sm",

@@ -5,8 +5,26 @@ function cloneConfig(cfg: Record<string, unknown>): Record<string, unknown> {
 }
 
 function readPositiveInt(v: unknown): number {
-  return typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+  if (typeof v === "number" && Number.isFinite(v) && v > 0) return Math.floor(v);
+  if (typeof v === "string" && v.trim()) {
+    const n = Number(v.replace(",", "."));
+    if (Number.isFinite(n) && n > 0) return Math.floor(n);
+  }
+  return 0;
 }
+
+const TIMED_TOOLBOX_SLUGS = new Set([
+  "focus_introspectif",
+  "breathwork",
+  "visualization",
+  "body_scan",
+  "affirmations",
+  "stop_protocol",
+  "intention",
+  "micro_practice",
+  "journal_timed",
+  "meditation",
+]);
 
 export function countToolboxGuideSteps(cfg: Record<string, unknown>): number {
   if (Array.isArray(cfg.steps) && cfg.steps.length > 0) return cfg.steps.length;
@@ -34,13 +52,20 @@ export function usesHabitTimeBudget(
   return MULTI_SEGMENT_CONTENT_TYPES.has(contentType);
 }
 
-/** Parse assignment duration label e.g. "15 min", "3×5 min". */
+/** Parse assignment duration label e.g. "15 min", "3×5 min", "10:00". */
 export function parseAssignmentDurationSec(duration: string | null | undefined): number {
   if (!duration?.trim()) return 0;
-  const triple = duration.match(/(\d+)\s*[x×]\s*(\d+)\s*min/i);
+  const raw = duration.trim();
+  if (/nan/i.test(raw)) return 0;
+  const triple = raw.match(/(\d+)\s*[x×]\s*(\d+)\s*min/i);
   if (triple) return parseInt(triple[1], 10) * parseInt(triple[2], 10) * 60;
-  const single = duration.match(/(\d+)\s*min/i);
-  if (single) return parseInt(single[1], 10) * 60;
+  const clock = raw.match(/^(\d+):([0-5]\d)$/);
+  if (clock) return parseInt(clock[1], 10) * 60 + parseInt(clock[2], 10);
+  const min = raw.match(/(\d+)\s*min/i);
+  if (min) return parseInt(min[1], 10) * 60;
+  const sec = raw.match(/^(\d+)\s*s(?:ec(?:ondes?)?)?$/i);
+  if (sec) return parseInt(sec[1], 10);
+  if (/^\d+$/.test(raw)) return parseInt(raw, 10) * 60;
   return 0;
 }
 
@@ -91,10 +116,11 @@ export function getToolboxTotalDurationSec(
 ): number {
   const cfg = widgetConfig && typeof widgetConfig === "object" ? widgetConfig : {};
 
-  if (typeof cfg.duration_min === "number" && cfg.duration_min > 0) {
+  const durationMin = readPositiveInt(cfg.duration_min);
+  if (durationMin > 0) {
     const stepCountEarly = countToolboxGuideSteps(cfg);
     if (stepCountEarly <= 1) {
-      return cfg.duration_min * 60;
+      return durationMin * 60;
     }
   }
 
@@ -108,25 +134,27 @@ export function getToolboxTotalDurationSec(
 
   const stepCount = countToolboxGuideSteps(cfg);
   if (stepCount > 0) {
-    if (typeof cfg.duration_sec === "number" && cfg.duration_sec > 0) {
-      return cfg.duration_sec;
+    const durationSec = readPositiveInt(cfg.duration_sec);
+    if (durationSec > 0) {
+      return durationSec;
     }
     const perStep = readPositiveInt(cfg.step_duration_sec);
     if (perStep > 0) {
       return perStep * stepCount;
     }
-    if (typeof cfg.duration_min === "number" && cfg.duration_min > 0) {
-      return cfg.duration_min * 60;
+    if (durationMin > 0) {
+      return durationMin * 60;
     }
   }
 
-  if (typeof cfg.duration_min === "number" && cfg.duration_min > 0) {
-    return cfg.duration_min * 60;
+  if (durationMin > 0) {
+    return durationMin * 60;
   }
 
-  if (typeof cfg.duration_sec === "number" && cfg.duration_sec > 0) {
+  const durationSec = readPositiveInt(cfg.duration_sec);
+  if (durationSec > 0) {
     if (!Array.isArray(cfg.scenes) && !Array.isArray(cfg.zones)) {
-      return cfg.duration_sec;
+      return durationSec;
     }
   }
 
@@ -360,27 +388,26 @@ export function overlayHabitDurationOnWidgetConfig(
   if (!itemCfg || typeof itemCfg !== "object") return resolvedCfg;
 
   const out = { ...resolvedCfg };
-  if (itemCfg.time_budget_mode === true && typeof itemCfg.duration_sec === "number") {
+  const durationSec = readPositiveInt(itemCfg.duration_sec);
+  if (itemCfg.time_budget_mode === true && durationSec > 0) {
     out.time_budget_mode = true;
-    out.duration_sec = itemCfg.duration_sec;
+    out.duration_sec = durationSec;
     out.mode = "manual";
     return out;
   }
-  if (typeof itemCfg.duration_sec === "number" && itemCfg.duration_sec > 0) {
-    out.duration_sec = itemCfg.duration_sec;
-    if (typeof itemCfg.duration_min === "number") {
-      out.duration_min = itemCfg.duration_min;
-    } else {
-      out.duration_min = Math.max(1, Math.round(itemCfg.duration_sec / 60));
-    }
+  if (durationSec > 0) {
+    out.duration_sec = durationSec;
+    const durationMin = readPositiveInt(itemCfg.duration_min);
+    out.duration_min = durationMin > 0 ? durationMin : Math.max(1, Math.round(durationSec / 60));
     if (itemCfg.time_budget_mode === true) {
       out.time_budget_mode = true;
       out.mode = "manual";
     }
     return out;
   }
-  if (typeof itemCfg.duration_min === "number") {
-    out.duration_min = itemCfg.duration_min;
+  const durationMin = readPositiveInt(itemCfg.duration_min);
+  if (durationMin > 0) {
+    out.duration_min = durationMin;
   }
   return out;
 }
@@ -401,4 +428,45 @@ export function formatHabitDurationBadge(
     return `${options.guideStepCount}×${perStepMinutes} min`;
   }
   return `${perStepMinutes} min`;
+}
+
+/** Never returns NaN:NaN — invalid values render as 0:00. */
+export function formatClockMmSs(totalSec: number): string {
+  const s = Number.isFinite(totalSec) ? Math.max(0, Math.floor(totalSec)) : 0;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${String(r).padStart(2, "0")}`;
+}
+
+/**
+ * Fill duration_min / duration_sec from widget config, assignment label, or a
+ * 10 min default for timed tools (focus introspectif, breathwork, …).
+ */
+export function hydrateToolboxWidgetDuration(
+  contentType: string,
+  widgetConfig: Record<string, unknown> | null | undefined,
+  assignmentDuration?: string | null,
+): Record<string, unknown> {
+  const cfg = widgetConfig && typeof widgetConfig === "object" ? { ...widgetConfig } : {};
+  const totalSec = getToolboxTotalDurationSec(contentType, cfg, assignmentDuration);
+  if (totalSec > 0) {
+    const minutes = Math.max(1, Math.round(totalSec / 60));
+    return { ...cfg, duration_sec: totalSec, duration_min: minutes };
+  }
+  if (TIMED_TOOLBOX_SLUGS.has(contentType)) {
+    return { ...cfg, duration_min: 10, duration_sec: 600 };
+  }
+  return cfg;
+}
+
+export function formatToolboxDurationLabel(
+  duration: string | null | undefined,
+  contentType: string,
+  widgetConfig: Record<string, unknown> | null | undefined,
+): string | null {
+  if (duration?.trim() && !/nan/i.test(duration)) return duration.trim();
+  const cfg = hydrateToolboxWidgetDuration(contentType, widgetConfig, duration);
+  const sec = getToolboxTotalDurationSec(contentType, cfg, duration);
+  if (sec > 0) return `${Math.max(1, Math.round(sec / 60))} min`;
+  return null;
 }

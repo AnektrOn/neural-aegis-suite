@@ -908,6 +908,29 @@ export const translations = {
     en: "Too many attempts. Try again in a few minutes.",
   },
   "auth.or": { fr: "ou", en: "or" },
+  "auth.signupFreeBadge": { fr: "Compte Initiation gratuit", en: "Free Initiation account" },
+  "auth.signupIntro": {
+    fr: "Crée ton compte membre — email, mot de passe, et tu es dans AEGIS. Pas d'accès invité.",
+    en: "Create your member account — email, password, and you're in AEGIS. Not guest access.",
+  },
+  "auth.passwordConfirm": { fr: "Confirmer le mot de passe", en: "Confirm password" },
+  "auth.passwordHint": {
+    fr: "Au moins 8 caractères, une lettre et un chiffre.",
+    en: "At least 8 characters, one letter and one number.",
+  },
+  "auth.passwordMismatch": {
+    fr: "Les deux mots de passe ne correspondent pas.",
+    en: "The two passwords do not match.",
+  },
+  "auth.passwordTooWeak": {
+    fr: "Choisis un mot de passe d'au moins 8 caractères, avec une lettre et un chiffre.",
+    en: "Choose a password of at least 8 characters, with a letter and a number.",
+  },
+  "auth.checkEmailTitle": { fr: "Vérifie ta boîte mail", en: "Check your inbox" },
+  "auth.checkEmailDesc": {
+    fr: "Un lien de confirmation t'a été envoyé. Ouvre-le pour activer ton compte gratuit.",
+    en: "A confirmation link has been sent. Open it to activate your free account.",
+  },
   "auth.guest.cta": { fr: "Continuer en tant qu'invité", en: "Continue as guest" },
   "auth.guest.badge": { fr: "Accès invité", en: "Guest access" },
   "auth.guest.intro": {
@@ -1160,9 +1183,15 @@ export const translations = {
     en: "Constellation — Alliance above, Shadow below, survival guardians in orbit.",
   },
   "assessment.v4ConstellationTitle": { fr: "Constellation des pôles", en: "Pole constellation" },
+  "assessment.v4SysReq": { fr: "SYS.REQ // V4", en: "SYS.REQ // V4" },
+  "assessment.v4SelectNode": { fr: "Sélectionner un nœud", en: "Select a node" },
   "assessment.v4HoverHint": {
-    fr: "Alliance en haut, Ombre en bas — survole une bulle pour lire son score.",
-    en: "Alliance above, Shadow below — hover a node to read its score.",
+    fr: "Alliance en haut, Ombre en bas — survole un nœud pour éclairer ses connexions et lire son score.",
+    en: "Alliance above, Shadow below — hover a node to light its connections and read its score.",
+  },
+  "assessment.v4InspectHint": {
+    fr: "Touchez un nœud pour lire son score. Échap pour désélectionner.",
+    en: "Touch a node to read its score. Escape to deselect.",
   },
   "assessment.v4ZoneLight": { fr: "ALLIANCE DE LUMIÈRE", en: "ALLIANCE OF LIGHT" },
   "assessment.v4ZoneShadow": { fr: "CONSEIL DE L'OMBRE", en: "COUNCIL OF SHADOW" },
@@ -1181,6 +1210,7 @@ export const translations = {
   "assessment.radarShadowProfile": { fr: "Profil ombre", en: "Shadow profile" },
   "assessment.profileEmerging": { fr: "Ton profil émerge…", en: "Your profile is emerging…" },
   "assessment.waitingSignals": { fr: "En attente de signaux…", en: "Waiting for signals…" },
+  "assessment.v4TotalScoreShort": { fr: "{total} pts", en: "{total} pts" },
   "assessment.v4TotalScore": {
     fr: "Score total : {total} pts · chaque pôle = % du total",
     en: "Total score: {total} pts · each pole = % of total",

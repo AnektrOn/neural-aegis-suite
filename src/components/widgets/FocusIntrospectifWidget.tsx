@@ -5,6 +5,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import { formatClockMmSs, hydrateToolboxWidgetDuration } from "@/lib/toolbox-widget-duration";
 import type { Locale } from "@/i18n/translations";
 
 interface Props {
@@ -30,7 +31,12 @@ export default function FocusIntrospectifWidget({
     () => pickWidgetCatalogCopy(locale as Locale, config.intention_i18n as any, config.intention),
     [locale, config.intention_i18n, config.intention]
   );
-  const totalSeconds = config.duration_min * 60;
+  const hydrated = useMemo(
+    () => hydrateToolboxWidgetDuration("focus_introspectif", config as unknown as Record<string, unknown>),
+    [config],
+  );
+  const durationMin = Number(hydrated.duration_min) || 10;
+  const totalSeconds = durationMin * 60;
   const elapsedRef = useRef(0);
 
   const {
@@ -55,9 +61,8 @@ export default function FocusIntrospectifWidget({
 
   useWidgetAbandonGuard(hasStartedRef, completedRef, onAbandon);
 
-  const remaining = totalSeconds - elapsed;
-  const progress = elapsed / totalSeconds;
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const remaining = Math.max(0, totalSeconds - elapsed);
+  const progress = totalSeconds > 0 ? elapsed / totalSeconds : 0;
   const pulseScale = isRunning ? 1 + Math.sin(elapsed * 0.3) * 0.08 : 1;
 
   return (
@@ -92,11 +97,11 @@ export default function FocusIntrospectifWidget({
           {completed ? (
             <div>
               <p className="text-neural-accent font-cinzel text-lg">{t("toolbox.focus.namaste")}</p>
-              <p className="text-xs text-muted-foreground mt-1">{t("toolbox.focus.minutesDone", { n: config.duration_min })}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("toolbox.focus.minutesDone", { n: durationMin })}</p>
             </div>
           ) : (
             <div>
-              <p className="text-2xl font-cinzel text-foreground">{formatTime(remaining)}</p>
+              <p className="text-2xl font-cinzel text-foreground">{formatClockMmSs(remaining)}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {isRunning ? t("toolbox.focus.running") : t("toolbox.focus.ready")}
               </p>

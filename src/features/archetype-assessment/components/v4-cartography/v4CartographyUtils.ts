@@ -37,6 +37,11 @@ export function poleDisplayName(entry: PoleActivationEntry, isFR: boolean): stri
   return isFR ? meta.name_fr : meta.name_en;
 }
 
+/** Strip articles so node labels stay short (Le Sage → Sage). */
+export function shortDisplayName(name: string): string {
+  return name.replace(/^(l['’]|le |la |les |the )/i, "").trim();
+}
+
 export function poleColor(entry: PoleActivationEntry): string {
   return getArchetype(entry.archetype).color;
 }
