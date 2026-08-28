@@ -12,6 +12,7 @@ import {
 import { WelcomeQuantumNebula } from "@/features/welcome/components/WelcomeQuantumNebula";
 import { useGuardianOptional, needsGuardianOnboarding } from "@/features/guardian";
 import { GUARDIAN_ONBOARDING_PATH } from "@/lib/welcomeHud";
+import { useQuizCompletion } from "@/hooks/useQuizCompletion";
 
 export default function Welcome() {
   const { user } = useAuth();
