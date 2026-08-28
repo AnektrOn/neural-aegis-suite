@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -3556,7 +3556,10 @@ export type Database = {
         Returns: Json
       }
       get_affiliates_admin_overview: { Args: never; Returns: Json }
-      get_affiliates_admin_tracking: { Args: { p_days?: number }; Returns: Json }
+      get_affiliates_admin_tracking: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
       get_my_affiliate_dashboard: { Args: never; Returns: Json }
       get_pulse_admin_card_stats: { Args: never; Returns: Json }
       get_pulse_admin_card_users: { Args: { p_card_id: string }; Returns: Json }
