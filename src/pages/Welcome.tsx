@@ -19,12 +19,17 @@ export default function Welcome() {
   const navigate = useNavigate();
   const guardian = useGuardianOptional();
 
+  const { loading: quizLoading, completed: quizCompleted } = useQuizCompletion();
+
   useEffect(() => {
     if (!guardian || !guardian.hydrated) return;
+    // Les membres ayant déjà terminé le questionnaire ne sont jamais renvoyés
+    // vers l'onboarding Guardian (nouveau navigateur = état local vide).
+    if (quizLoading || quizCompleted) return;
     if (needsGuardianOnboarding(guardian.state)) {
       navigate(GUARDIAN_ONBOARDING_PATH, { replace: true });
     }
-  }, [guardian, navigate]);
+  }, [guardian, navigate, quizLoading, quizCompleted]);
 
   const [maturity, setMaturity] = useState<UserMaturityProfile | null>(null);
   const [stats, setStats] = useState<WelcomeHubStats | null>(null);
