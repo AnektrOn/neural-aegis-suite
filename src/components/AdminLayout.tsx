@@ -20,6 +20,7 @@ import AppFooter from "@/components/AppFooter";
 import { useNetwork } from "@/hooks/use-network";
 import AdminSidebarNav from "@/components/admin/AdminSidebarNav";
 import { getAdminPageMeta } from "@/lib/adminNavConfig";
+import { usePushKeepAlive } from "@/hooks/usePushKeepAlive";
 
 function AdminSidebarContent({
   collapsed,
@@ -88,6 +89,7 @@ function AdminSidebarContent({
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  usePushKeepAlive();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();

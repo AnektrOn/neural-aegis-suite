@@ -84,3 +84,37 @@ export async function isCurrentlySubscribed(): Promise<boolean> {
   const sub = await reg?.pushManager.getSubscription();
   return !!sub;
 }
+
+/**
+ * Réenregistre silencieusement l'abonnement push si la permission est déjà
+ * accordée (les abonnements navigateur expirent / se perdent au changement de
+ * domaine ou de service worker, ce qui coupe tous les push sans avertissement).
+ */
+export async function ensurePushSubscription(userId: string): Promise<void> {
+  if (!isPushSupported()) return;
+  if (Notification.permission !== "granted") return;
+  try {
+    const reg = await getRegistration();
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
+      });
+    }
+    const json = sub.toJSON();
+    await supabase.from("push_subscriptions" as any).upsert(
+      {
+        user_id: userId,
+        endpoint: sub.endpoint,
+        p256dh: json.keys?.p256dh ?? bufToBase64(sub.getKey("p256dh")),
+        auth: json.keys?.auth ?? bufToBase64(sub.getKey("auth")),
+        user_agent: navigator.userAgent,
+        last_used_at: new Date().toISOString(),
+      },
+      { onConflict: "endpoint" },
+    );
+  } catch (err) {
+    console.warn("ensurePushSubscription failed", err);
+  }
+}

@@ -47,6 +47,7 @@ import { ToolboxExerciseSessionProvider } from "@/features/toolbox/ToolboxExerci
 import { useNetwork } from "@/hooks/use-network";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { usePushKeepAlive } from "@/hooks/usePushKeepAlive";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -227,6 +228,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  usePushKeepAlive();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileUtilityOpen, setMobileUtilityOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
