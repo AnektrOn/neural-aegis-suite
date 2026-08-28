@@ -1,19 +1,13 @@
-import { loadGuardianState } from "@/features/guardian/guardianStorage";
-import { needsGuardianOnboarding } from "@/features/guardian/needsGuardianOnboarding";
-
 /** Post-login hub — shown after each sign-in once Guardian onboarding is done. */
 export const WELCOME_HUB_PATH = "/welcome";
 
 /** Dedicated Guardian onboarding page (full page, not Welcome overlay). */
 export const GUARDIAN_ONBOARDING_PATH = "/onboarding";
 
-export function postLoginPath(isGuest: boolean, userId?: string | null): string {
+export function postLoginPath(isGuest: boolean, _userId?: string | null): string {
   // Guests never see Guardian onboarding: they go straight to the quiz.
   if (isGuest) return "/quiz";
-  if (userId) {
-    const guardian = loadGuardianState(userId);
-    if (needsGuardianOnboarding(guardian)) return GUARDIAN_ONBOARDING_PATH;
-  }
-  if (isGuest) return "/visitor";
+  // Les membres vont au hub ; RequireQuizOnboarding redirige vers /onboarding
+  // uniquement si le questionnaire n'est pas terminé (source serveur).
   return WELCOME_HUB_PATH;
 }
