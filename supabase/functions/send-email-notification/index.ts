@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,6 +46,64 @@ async function sendWithResend({
   }
 
   return { sent: true, provider: "resend" };
+}
+
+/** Envoi via la boîte SMTP existante (fallback quand Resend n'est pas configuré). */
+async function sendWithSmtp({
+  to,
+  subject,
+  html,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<{ sent: boolean; provider: string }> {
+  const host = Deno.env.get("SMTP_HOST")?.trim();
+  const user = Deno.env.get("SMTP_USER")?.trim();
+  const password = Deno.env.get("SMTP_PASSWORD")?.trim();
+  if (!host || !user || !password) return { sent: false, provider: "none" };
+
+  const port = Number(Deno.env.get("SMTP_PORT")?.trim() || "465");
+  const from =
+    Deno.env.get("NEWSLETTER_FROM_EMAIL")?.trim() ||
+    Deno.env.get("SMTP_FROM")?.trim() ||
+    "Protocol Nomos <contact@protocolenomos.com>";
+
+  const client = new SMTPClient({
+    connection: {
+      hostname: host,
+      port,
+      tls: port === 465,
+      auth: { username: user, password },
+    },
+  });
+  try {
+    await client.send({ from, to, subject, html, content: "auto" });
+    return { sent: true, provider: "smtp" };
+  } finally {
+    await client.close();
+  }
+}
+
+async function sendEmail(params: { to: string; subject: string; html: string }) {
+  if (Deno.env.get("RESEND_API_KEY")) return await sendWithResend(params);
+  return await sendWithSmtp(params);
+}
+
+/** E-mails de tous les comptes admin (destinataires par défaut des alertes admin). */
+async function getAdminEmails(supabase: SupabaseClient): Promise<string[]> {
+  const { data: admins, error } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "admin");
+  if (error || !admins?.length) return [];
+  const emails: string[] = [];
+  for (const a of admins) {
+    const { data } = await supabase.auth.admin.getUserById(a.user_id);
+    const mail = data?.user?.email?.trim();
+    if (mail) emails.push(mail);
+  }
+  return [...new Set(emails)];
 }
 
 /** One in-app notification per admin account (distinct from end-user notifications). */
@@ -136,14 +195,24 @@ serve(async (req) => {
         htmlBody = `<p>${data?.message || "Vous avez une nouvelle notification."}</p>`;
     }
 
+    let recipients: string[] = email ? [email] : [];
+    if (!recipients.length && adminEmailTypes.has(type)) {
+      recipients = await getAdminEmails(supabase);
+    }
+
     let sendResult: { sent: boolean; provider: string } = { sent: false, provider: "none" };
-    if (email) {
-      sendResult = await sendWithResend({ to: email, subject, html: htmlBody });
-    } else {
+    for (const to of recipients) {
+      try {
+        sendResult = await sendEmail({ to, subject, html: htmlBody });
+      } catch (err) {
+        console.error("email delivery failed", to, err instanceof Error ? err.message : err);
+      }
+    }
+    if (!recipients.length) {
       console.log(`Email notification skipped (no recipient): subject=${subject}, type=${type}`);
     }
 
-    console.log(`Email notification: to=${email ?? "(none)"}, subject=${subject}, type=${type}`);
+    console.log(`Email notification: to=${recipients.join(", ") || "(none)"}, subject=${subject}, type=${type}`);
 
     // In-app: user-targeted vs admin-targeted (see plan: admin_user_entry_alert = email only — DB triggers own in-app).
     if (type === "subscription_update") {
@@ -185,7 +254,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, email, subject, delivery: sendResult }),
+      JSON.stringify({ success: true, recipients, subject, delivery: sendResult }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
