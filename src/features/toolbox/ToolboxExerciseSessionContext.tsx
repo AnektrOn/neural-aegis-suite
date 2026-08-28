@@ -319,10 +319,10 @@ function ToolboxExerciseModalLayer({
                   <div className="min-w-0 flex-1">
                     <DialogDescription className="text-neural-label mb-0.5 truncate">
                       {getTypeLabel(item.content_type)}
-                      {formatToolboxDurationLabel(item.duration, item.content_type, item.widget_config) ? (
+                      {formatToolboxDurationLabel(item.duration, item.content_type, (item.widget_config ?? undefined) as Record<string, unknown> | undefined) ? (
                         <span className="opacity-60">
                           {" "}
-                          · {formatToolboxDurationLabel(item.duration, item.content_type, item.widget_config)}
+                          · {formatToolboxDurationLabel(item.duration, item.content_type, (item.widget_config ?? undefined) as Record<string, unknown> | undefined)}
                         </span>
                       ) : null}
                     </DialogDescription>
