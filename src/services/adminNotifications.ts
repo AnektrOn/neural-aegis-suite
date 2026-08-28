@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 /** Used only for optional Resend delivery; in-app admin alerts use DB triggers + edge (login). */
 const adminNotificationEmail = import.meta.env.VITE_ADMIN_NOTIFICATION_EMAIL;
 
+/** Compte propriétaire : ses propres connexions ne génèrent pas d'alerte. */
+const SELF_ALERT_EXEMPT_EMAIL = "humancatalystnote@gmail.com";
+
 function resolveUserDisplayName(
   user: { email?: string | null; user_metadata?: Record<string, unknown> | null },
   fallback = "Utilisateur inconnu",
@@ -19,18 +22,8 @@ function resolveUserDisplayName(
 export async function notifyAdminOnLogin(
   user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> | null },
 ) {
-  // Ne pas s'auto-notifier : si l'utilisateur qui se connecte est admin, on sort.
-  try {
-    const { data: role } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (role) return;
-  } catch {
-    /* en cas d'échec de lecture, on continue avec la notification */
-  }
+  // Seul le compte propriétaire ne déclenche pas d'alerte pour ses propres connexions.
+  if ((user.email ?? "").trim().toLowerCase() === SELF_ALERT_EXEMPT_EMAIL) return;
 
   const userName = resolveUserDisplayName(user);
   const userEmail = user.email ?? "unknown";
