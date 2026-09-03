@@ -190,11 +190,11 @@ export default function AuthPage() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/onboarding` },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/`,
       });
-      if (error) throw error;
+      if (result?.error) throw result.error;
+      if (!result?.redirected) setLoading(false);
     } catch (err: unknown) {
       showAuthError(err);
       setLoading(false);
