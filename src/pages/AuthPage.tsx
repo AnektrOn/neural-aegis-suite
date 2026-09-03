@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { ArrowRight, Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -190,11 +191,11 @@ export default function AuthPage() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/onboarding` },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/`,
       });
-      if (error) throw error;
+      if (result?.error) throw result.error;
+      if (!result?.redirected) setLoading(false);
     } catch (err: unknown) {
       showAuthError(err);
       setLoading(false);
