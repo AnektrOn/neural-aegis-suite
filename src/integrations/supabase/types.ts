@@ -1478,6 +1478,78 @@ export type Database = {
         }
         Relationships: []
       }
+      email_alert_log: {
+        Row: {
+          alert_id: string | null
+          audience: string | null
+          created_at: string
+          id: string
+          language: string | null
+          mode: string
+          recipients: number
+          subject: string | null
+        }
+        Insert: {
+          alert_id?: string | null
+          audience?: string | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          mode?: string
+          recipients?: number
+          subject?: string | null
+        }
+        Update: {
+          alert_id?: string | null
+          audience?: string | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          mode?: string
+          recipients?: number
+          subject?: string | null
+        }
+        Relationships: []
+      }
+      email_alert_settings: {
+        Row: {
+          alert_id: string | null
+          body: string | null
+          enabled: boolean
+          id: boolean
+          language: string
+          last_sent_at: string | null
+          link: string | null
+          send_hour_utc: number
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          alert_id?: string | null
+          body?: string | null
+          enabled?: boolean
+          id?: boolean
+          language?: string
+          last_sent_at?: string | null
+          link?: string | null
+          send_hour_utc?: number
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alert_id?: string | null
+          body?: string | null
+          enabled?: boolean
+          id?: boolean
+          language?: string
+          last_sent_at?: string | null
+          link?: string | null
+          send_hour_utc?: number
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       guardian_onboarding: {
         Row: {
           completed_at: string | null
