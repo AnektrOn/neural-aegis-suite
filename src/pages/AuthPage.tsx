@@ -198,7 +198,14 @@ export default function AuthPage() {
         redirect_uri: `${window.location.origin}/`,
       });
       if (result?.error) throw result.error;
-      if (!result?.redirected) setLoading(false);
+      if (!result?.redirected) {
+        // Session set in-page: navigate explicitly (the auth-state effect may
+        // not re-run if the tab/mode didn't change). RequireQuizOnboarding
+        // sends new users to /onboarding from here if needed.
+        const { data } = await supabase.auth.getUser();
+        navigate(postLoginPath(false, data.user?.id), { replace: true });
+        setLoading(false);
+      }
     } catch (err: unknown) {
       showAuthError(err);
       setLoading(false);
