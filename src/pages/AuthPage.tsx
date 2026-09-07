@@ -78,7 +78,10 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (authLoading || !user) return;
-    if (mode === "guest" || mode === "upgrade" || mode === "signup") return;
+    // Guest/upgrade flows manage their own navigation. "signup" mode must NOT
+    // early-return: Google sign-in can complete in-page while that tab is
+    // active, and the user would otherwise stay stuck on the auth form.
+    if (mode === "guest" || mode === "upgrade") return;
 
     const guestAccount = isAnonymousUser(user) || isGuestUser(user);
 
