@@ -310,6 +310,7 @@ const App = () => (
                               <Route path="/video-library" element={<VideoLibraryAdmin />} />
                               <Route path="/decisions" element={<AdminDecisions />} />
                               <Route path="/messages" element={<AdminMessages />} />
+                              <Route path="/email-alerts" element={<AdminEmailAlerts />} />
                               <Route path="/scoreboard" element={<ScoreboardConfig />} />
                               <Route path="/notification-registry" element={<AdminNotificationRegistry />} />
                               <Route path="/assessments" element={<AdminAssessments />} />
