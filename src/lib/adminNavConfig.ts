@@ -195,6 +195,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     items: [
       { kind: "link", to: "/admin/decisions", icon: Target, labelKey: "admin.nav.decisions" },
       { kind: "link", to: "/admin/messages", icon: MessageSquare, labelKey: "admin.nav.messages" },
+      { kind: "link", to: "/admin/email-alerts", icon: Mail, labelKey: "admin.nav.emailAlerts" },
       { kind: "link", to: "/admin/newsletter", icon: Mail, labelKey: "admin.nav.newsletter" },
       { kind: "link", to: "/admin/scoreboard", icon: Trophy, labelKey: "admin.nav.scoreboard" },
     ],
