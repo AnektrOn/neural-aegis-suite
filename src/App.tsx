@@ -64,6 +64,7 @@ const CompanyManagement = lazy(() => import("./pages/admin/CompanyManagement"));
 const VideoLibraryAdmin = lazy(() => import("./pages/admin/VideoLibraryAdmin"));
 const AdminDecisions = lazy(() => import("./pages/admin/AdminDecisions"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
+const AdminEmailAlerts = lazy(() => import("./pages/admin/AdminEmailAlerts"));
 const ScoreboardConfig = lazy(() => import("./pages/admin/ScoreboardConfig"));
 const AdminNotificationRegistry = lazy(() => import("./pages/admin/AdminNotificationRegistry"));
 const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
