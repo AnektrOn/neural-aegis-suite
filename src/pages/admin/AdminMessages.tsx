@@ -10,6 +10,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 interface Profile {
   id: string;
   display_name: string | null;
+  preferred_language?: string | null;
 }
 
 interface Message {
