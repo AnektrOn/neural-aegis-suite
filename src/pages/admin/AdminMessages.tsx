@@ -78,6 +78,8 @@ export default function AdminMessages() {
     toast.success(t("admin.popup.sent").replace("{count}", String(targets.length)));
     setPopupTitle("");
     setPopupBody("");
+    setPopupTitleEn("");
+    setPopupBodyEn("");
     setPopupLink("");
   };
 
