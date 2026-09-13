@@ -240,7 +240,7 @@ const KIND_PRESETS: Partial<Record<ResolvedWidgetKind, ToolboxNebulaPreset>> = {
   decision_matrix: SLUG_PRESETS.decision_matrix,
   empathy_perspective: SLUG_PRESETS.empathy_perspective,
   shadow_checkin: SLUG_PRESETS.shadow_checkin,
-  focus_introspectif: REFLEXION_FOCUS,
+  composed: REFLEXION_FOCUS,
 };
 
 export function getToolboxNebulaPreset(

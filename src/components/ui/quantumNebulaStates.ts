@@ -972,7 +972,7 @@ function mountSvgForSampling(svgText: string): { host: HTMLDivElement; svg: SVGS
       svgLocalName(parsedSvg) === "svg" &&
       !parsed.querySelector("parsererror")
     ) {
-      svg = document.importNode(parsedSvg, true) as SVGSVGElement;
+      svg = document.importNode(parsedSvg, true) as unknown as SVGSVGElement;
       host.replaceChildren(svg);
     }
   }
