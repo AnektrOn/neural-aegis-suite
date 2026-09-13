@@ -156,14 +156,28 @@ serve(async (req) => {
         });
       }
       alertId = settings.alert_id;
-      language = settings.language === "en" ? "en" : "fr";
+      language =
+        settings.language === "en" ? "en" : settings.language === "auto" ? "auto" : "fr";
       subject = settings.subject;
       body = settings.body;
       link = settings.link;
       audience = "all";
+      if (language === "auto") {
+        variants = {
+          fr: { subject: settings.subject, body: settings.body },
+          en: {
+            subject: settings.subject_en || settings.subject,
+            body: settings.body_en || settings.body,
+          },
+        };
+      }
     }
 
-    if (!subject.trim() || !body.trim()) {
+    if (language === "auto" && (!variants?.fr?.subject || !variants?.en?.subject)) {
+      language = "fr";
+    }
+
+    if (language !== "auto" && (!subject.trim() || !body.trim())) {
       return new Response(JSON.stringify({ error: "subject and body are required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -171,19 +185,47 @@ serve(async (req) => {
     }
 
     const recipients = await listRecipients(supabase, audience, userIds);
+
+    // Per-user language preference (used when language === "auto").
+    const langByUser = new Map<string, string>();
+    if (language === "auto" && recipients.length) {
+      const { data: prefs } = await supabase
+        .from("profiles")
+        .select("id, preferred_language")
+        .in(
+          "id",
+          recipients.map((r) => r.id),
+        );
+      for (const p of (prefs || []) as { id: string; preferred_language: string | null }[]) {
+        langByUser.set(p.id, p.preferred_language === "en" ? "en" : "fr");
+      }
+    }
+
+    const resolve = (r: { id: string }) => {
+      const lang = language === "auto" ? langByUser.get(r.id) || "fr" : language;
+      const v = language === "auto" ? variants?.[lang as "fr" | "en"] : null;
+      return { lang, subject: v?.subject || subject, body: v?.body || body };
+    };
+
     const smtp = await smtpClient();
     let sent = 0;
 
     for (const r of recipients) {
-      const personalBody = body.replace(/\{name\}/g, r.name || "");
-      const html = htmlTemplate({ subject, body: personalBody, link, lang: language });
+      const res = resolve(r);
+      const personalBody = res.body.replace(/\{name\}/g, r.name || "");
+      const html = htmlTemplate({
+        subject: res.subject,
+        body: personalBody,
+        link,
+        lang: res.lang,
+      });
       try {
-        const viaResend = await sendWithResend(r.email, subject, html);
+        const viaResend = await sendWithResend(r.email, res.subject, html);
         if (!viaResend && smtp) {
           await smtp.client.send({
             from: smtp.from,
             to: r.email,
-            subject,
+            subject: res.subject,
             html,
             content: "auto",
           });
@@ -197,13 +239,16 @@ serve(async (req) => {
 
     // In-app mirror of the alert.
     if (recipients.length) {
-      const rows = recipients.map((r) => ({
-        user_id: r.id,
-        title: subject,
-        message: body.replace(/\{name\}/g, r.name || ""),
-        type: "info",
-        link,
-      }));
+      const rows = recipients.map((r) => {
+        const res = resolve(r);
+        return {
+          user_id: r.id,
+          title: res.subject,
+          message: res.body.replace(/\{name\}/g, r.name || ""),
+          type: "info",
+          link,
+        };
+      });
       const { error: notifErr } = await supabase.from("notifications").insert(rows);
       if (notifErr) console.error("alert in-app insert", notifErr.message);
     }
