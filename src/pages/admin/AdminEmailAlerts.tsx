@@ -75,7 +75,7 @@ export default function AdminEmailAlerts() {
     if (s) {
       setAutoEnabled(!!s.enabled);
       if (s.alert_id) setAutoAlertId(s.alert_id);
-      setAutoLang(s.language === "en" ? "en" : "fr");
+      setAutoLang(s.language === "en" ? "en" : s.language === "auto" ? "auto" : "fr");
     }
   };
 
@@ -83,21 +83,42 @@ export default function AdminEmailAlerts() {
     loadData();
   }, []);
 
+  const setUserLanguage = async (id: string, value: AlertLang) => {
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, preferred_language: value } : p)),
+    );
+    const { error } = await supabase
+      .from("profiles")
+      .update({ preferred_language: value })
+      .eq("id", id);
+    if (error) {
+      toast.error(t("common.saveError"));
+      loadData();
+      return;
+    }
+    toast.success(t("admin.emailAlerts.langSaved"));
+  };
+
   const sendNow = async () => {
     if (!template) return;
     if (audience === "users" && !targetUser) return;
     setSending(true);
-    const rendered = renderAlert(template, lang);
+    const effective: AlertLang = lang === "auto" ? "fr" : lang;
+    const rendered = renderAlert(template, effective);
     const { data, error } = await supabase.functions.invoke("send-user-alert", {
       body: {
         mode: "manual",
         alertId: template.id,
         language: lang,
         subject: rendered.subject,
-        body: template[lang === "fr" ? "body_fr" : "body_en"],
+        body: template[effective === "fr" ? "body_fr" : "body_en"],
         link: template.link,
         audience,
         userIds: audience === "users" ? [targetUser] : [],
+        variants: {
+          fr: { subject: template.subject_fr, body: template.body_fr },
+          en: { subject: template.subject_en, body: template.body_en },
+        },
       },
     });
     setSending(false);
