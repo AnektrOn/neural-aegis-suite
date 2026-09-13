@@ -43,18 +43,23 @@ export default function AdminEmailAlerts() {
 
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [autoAlertId, setAutoAlertId] = useState(EMAIL_ALERT_TEMPLATES[0]?.id ?? "");
-  const [autoLang, setAutoLang] = useState<AlertLang>("fr");
+  const [autoLang, setAutoLang] = useState<SendLang>("fr");
   const [savingAuto, setSavingAuto] = useState(false);
+  const [langSearch, setLangSearch] = useState("");
 
   const template = useMemo(() => getAlertTemplate(alertId), [alertId]);
+  const previewLang: AlertLang = lang === "auto" ? "fr" : lang;
   const preview = useMemo(
-    () => (template ? renderAlert(template, lang, "Alex") : null),
-    [template, lang],
+    () => (template ? renderAlert(template, previewLang, "Alex") : null),
+    [template, previewLang],
   );
 
   const loadData = async () => {
     const [profRes, logRes, settingsRes] = await Promise.all([
-      supabase.from("profiles").select("id, display_name").order("display_name"),
+      supabase
+        .from("profiles")
+        .select("id, display_name, preferred_language")
+        .order("display_name"),
       supabase
         .from("email_alert_log" as never)
         .select("*")
