@@ -157,9 +157,9 @@ export default function AdminEmailAlerts() {
     toast.success(t("admin.emailAlerts.autoSaved"));
   };
 
-  const langButtons = (value: AlertLang, onChange: (l: AlertLang) => void) => (
-    <div className="flex gap-2">
-      {(["fr", "en"] as const).map((l) => (
+  const langButtons = (value: SendLang, onChange: (l: SendLang) => void) => (
+    <div className="flex flex-wrap gap-2">
+      {(["fr", "en", "auto"] as const).map((l) => (
         <button
           key={l}
           type="button"
@@ -170,10 +170,14 @@ export default function AdminEmailAlerts() {
               : "border-border/20 text-muted-foreground hover:text-foreground"
           }`}
         >
-          {l === "fr" ? "Français" : "English"}
+          {l === "fr" ? "Français" : l === "en" ? "English" : t("admin.emailAlerts.langAuto")}
         </button>
       ))}
     </div>
+  );
+
+  const filteredProfiles = profiles.filter((p) =>
+    (p.display_name || p.id).toLowerCase().includes(langSearch.toLowerCase()),
   );
 
   return (
