@@ -14,7 +14,10 @@ import {
 interface Profile {
   id: string;
   display_name: string | null;
+  preferred_language?: string | null;
 }
+
+type SendLang = AlertLang | "auto";
 
 interface AlertLogRow {
   id: string;
