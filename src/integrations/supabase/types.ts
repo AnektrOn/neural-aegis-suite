@@ -2303,6 +2303,7 @@ export type Database = {
           linkedin: string | null
           mobile_radial_menu: Json | null
           plan_override: string | null
+          preferred_language: string
           sidebar_items: Json | null
           timezone: string | null
           updated_at: string
@@ -2323,6 +2324,7 @@ export type Database = {
           linkedin?: string | null
           mobile_radial_menu?: Json | null
           plan_override?: string | null
+          preferred_language?: string
           sidebar_items?: Json | null
           timezone?: string | null
           updated_at?: string
@@ -2343,6 +2345,7 @@ export type Database = {
           linkedin?: string | null
           mobile_radial_menu?: Json | null
           plan_override?: string | null
+          preferred_language?: string
           sidebar_items?: Json | null
           timezone?: string | null
           updated_at?: string
