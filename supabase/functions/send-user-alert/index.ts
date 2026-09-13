@@ -102,13 +102,16 @@ serve(async (req) => {
     const payload = await req.json().catch(() => ({}));
     const mode: "manual" | "auto" = payload?.mode === "auto" ? "auto" : "manual";
 
+    type Variant = { subject: string; body: string };
     let alertId: string | null = payload?.alertId ?? null;
-    let language: string = payload?.language === "en" ? "en" : "fr";
+    let language: string =
+      payload?.language === "en" ? "en" : payload?.language === "auto" ? "auto" : "fr";
     let subject: string = payload?.subject ?? "";
     let body: string = payload?.body ?? "";
     let link: string | null = payload?.link ?? null;
     let audience: string = payload?.audience === "users" ? "users" : "all";
     const userIds: string[] = Array.isArray(payload?.userIds) ? payload.userIds : [];
+    let variants: { fr?: Variant; en?: Variant } | null = payload?.variants ?? null;
 
     if (mode === "manual") {
       // Only admins may trigger a manual broadcast.
