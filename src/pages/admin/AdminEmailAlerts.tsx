@@ -36,7 +36,7 @@ export default function AdminEmailAlerts() {
   const [logs, setLogs] = useState<AlertLogRow[]>([]);
 
   const [alertId, setAlertId] = useState(EMAIL_ALERT_TEMPLATES[0]?.id ?? "");
-  const [lang, setLang] = useState<AlertLang>("fr");
+  const [lang, setLang] = useState<SendLang>("fr");
   const [audience, setAudience] = useState<"all" | "users">("all");
   const [targetUser, setTargetUser] = useState("");
   const [sending, setSending] = useState(false);
