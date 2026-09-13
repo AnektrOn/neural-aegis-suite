@@ -94,7 +94,7 @@ export default function AdminMessages() {
   const loadData = async () => {
     setLoading(true);
     const [profRes, msgRes] = await Promise.all([
-      supabase.from("profiles").select("id, display_name"),
+      supabase.from("profiles").select("id, display_name, preferred_language"),
       supabase.from("admin_messages" as any).select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     setProfiles((profRes.data || []) as unknown as Profile[]);
