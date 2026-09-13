@@ -219,7 +219,7 @@ export default function AdminEmailAlerts() {
             >
               <span className="flex items-center gap-2 text-sm text-foreground">
                 {alertId === tpl.id && <Check size={13} className="text-primary" />}
-                {lang === "fr" ? tpl.subject_fr : tpl.subject_en}
+                {previewLang === "fr" ? tpl.subject_fr : tpl.subject_en}
               </span>
               <span className="block text-[11px] text-muted-foreground mt-1 font-mono">
                 {tpl.id}
