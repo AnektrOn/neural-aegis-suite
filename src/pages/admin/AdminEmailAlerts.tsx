@@ -141,8 +141,10 @@ export default function AdminEmailAlerts() {
         enabled: autoEnabled,
         alert_id: tpl.id,
         language: autoLang,
-        subject: autoLang === "fr" ? tpl.subject_fr : tpl.subject_en,
-        body: autoLang === "fr" ? tpl.body_fr : tpl.body_en,
+        subject: autoLang === "en" ? tpl.subject_en : tpl.subject_fr,
+        body: autoLang === "en" ? tpl.body_en : tpl.body_fr,
+        subject_en: tpl.subject_en,
+        body_en: tpl.body_en,
         link: tpl.link,
         updated_at: new Date().toISOString(),
       } as never)
