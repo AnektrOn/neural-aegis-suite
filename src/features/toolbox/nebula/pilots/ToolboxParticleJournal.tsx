@@ -65,7 +65,11 @@ export function ToolboxParticleJournal({
   const { t, locale } = useLanguage();
   const mode = journalNebulaMode(slug);
   const merged = useMemo(
-    () => hydrateToolboxWidgetDuration(slug, applySlugTheme(slug, config)),
+    () =>
+      hydrateToolboxWidgetDuration(
+        slug,
+        applySlugTheme(slug, config) as unknown as Record<string, unknown>,
+      ),
     [slug, config],
   );
   const accent = resolveToolboxAccent(
