@@ -331,6 +331,57 @@ Action EN
     expect(result.cards[0].principle).toBe("SHIELDING");
   });
 
+  it("parses TOLLE card with principle equal to rune", () => {
+    const md = `<!-- pulse-item -->
+
+---
+external_key: pulse_presence_001
+glyph: TOLLE
+rune: PRESENCE
+principle: PRESENCE
+sort_order: 1
+time_label: "2 MIN"
+is_active: true
+title:
+  fr: "Le Seul Moment Réel"
+  en: "The Only Real Moment"
+format:
+  fr: "MICRO-CONCEPT"
+  en: "MICRO-CONCEPT"
+problem:
+  fr: "Problème FR"
+  en: "Problem EN"
+bullets:
+  fr:
+    - "Point FR"
+  en:
+    - "Point EN"
+---
+
+# Hook FR
+Hook FR
+
+# Hook EN
+Hook EN
+
+# Concept FR
+Concept FR
+
+# Concept EN
+Concept EN
+
+# Action FR
+Action FR
+
+# Action EN
+Action EN
+`;
+    const result = parseMarkdownCards([{ name: "tolle-batch.md", content: md }]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(1);
+    expect(result.cards[0].principle).toBe("PRESENCE");
+  });
+
   it("normalizes Title Case archetype_targets (Sovereign → sovereign)", () => {
     const md = `---
 external_key: pulse_SHIELDING_space
@@ -390,10 +441,11 @@ Action EN
   it("imports vault cards when folder also contains course files", () => {
     const files = walkMd(VAULT);
     const result = parseMarkdownCards(files);
-    expect(result.valid).toBe(3);
+    expect(result.valid).toBe(4);
     expect(result.cards.map((c) => c.external_key).sort()).toEqual([
       "pulse_mentalism_filter",
       "pulse_polarity_emotions",
+      "pulse_presence_001",
       "pulse_vibration_media_diet",
     ]);
   });

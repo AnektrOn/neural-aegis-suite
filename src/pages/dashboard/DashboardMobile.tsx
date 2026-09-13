@@ -120,7 +120,7 @@ export function DashboardMobile({
       )}
       {pullHintVisible && (
         <div className="flex items-start gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2.5 sm:px-4">
-          <p className="min-w-0 flex-1 font-barlow text-[11px] leading-snug text-text-secondary sm:text-xs">
+          <p className="min-w-0 flex-1 font-barlow text-[11px] leading-snug text-muted-foreground sm:text-xs">
             {t("dashboard.pullRefreshHint")}
           </p>
           <button
@@ -187,10 +187,10 @@ export function DashboardMobile({
                 <span className="h-2 w-2 rounded-full bg-[hsl(var(--aegis-warm))] shadow-[0_0_10px_hsla(var(--aegis-warm)/0.55)]" />
               </div>
               <div className="min-w-0 text-left">
-                <p className="font-barlow text-[14px] font-medium leading-snug text-text-primary sm:text-[15px]">
+                <p className="font-barlow text-[14px] font-medium leading-snug text-foreground sm:text-[15px]">
                   {t("dashboard.mobileLogNow")}
                 </p>
-                <p className="mt-1 font-barlow text-[10px] font-medium uppercase tracking-[0.18em] text-text-tertiary/80 sm:tracking-[0.2em] sm:text-[11px]">
+                <p className="mt-1 font-barlow text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80/80 sm:tracking-[0.2em] sm:text-[11px]">
                   {t("dashboard.mobileLogSubtitle")}
                 </p>
               </div>
@@ -228,7 +228,7 @@ export function DashboardMobile({
             <div className="flex min-w-0 items-center gap-3">
               <Wrench size={18} className="shrink-0 text-primary" strokeWidth={1.5} aria-hidden />
               <div className="min-w-0 text-left">
-                <p className="font-barlow text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary/85">
+                <p className="font-barlow text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80/85">
                   {t("dashboard.mobileToolboxTodo")}
                 </p>
                 <p className="font-barlow text-sm text-foreground">
@@ -315,7 +315,7 @@ export function DashboardMobile({
         <motion.div {...fadeUp(0.05)}>
           <DashboardNavCard to="/habits" ariaLabel={t("dashboard.a11yOpenAllHabits")} className="p-4 sm:p-5">
             <div className="mb-3 flex min-h-[40px] items-center justify-between gap-2 sm:mb-4 sm:min-h-[44px]">
-              <p className="font-barlow text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary/85 sm:text-xs sm:tracking-[0.18em]">
+              <p className="font-barlow text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80/85 sm:text-xs sm:tracking-[0.18em]">
                 {t("dashboard.mobileHabitsToday")}
               </p>
               <div className="flex items-center gap-2 sm:gap-2.5">
@@ -400,7 +400,7 @@ export function DashboardMobile({
               style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
             >
               <div className="mb-2 flex items-center justify-between gap-2 sm:mb-3">
-                <p className="font-barlow text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary/85 sm:text-xs sm:tracking-[0.18em]">
+                <p className="font-barlow text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80/85 sm:text-xs sm:tracking-[0.18em]">
                   {t("dashboard.mobileLastEntry")}
                 </p>
                 <span className="inline-flex shrink-0 items-center gap-1 font-barlow text-[10px] tabular-nums text-muted-foreground/50 sm:text-[11px]">

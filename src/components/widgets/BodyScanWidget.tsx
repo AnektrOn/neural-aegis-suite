@@ -1,12 +1,20 @@
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Scan } from "lucide-react";
+import { Scan } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale } from "@/i18n/translations";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { resolveSequenceFromElapsed } from "@/lib/exercise-sequence-position";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import {
+  TOOLBOX_PHASE_COLORS,
+  ToolboxWidgetHeader,
+  ToolboxWidgetProgress,
+  ToolboxWidgetRoot,
+  ToolboxWidgetTimerControls,
+  hslWithAlpha,
+} from "@/features/toolbox/ui";
 
 export interface BodyScanZone {
   id: string;
@@ -30,7 +38,7 @@ interface Props {
   onAbandon?: () => void;
 }
 
-// SVG zone highlight positions (as % of body silhouette viewBox 0 0 80 200)
+// SVG zone highlight positions (viewBox 0 0 80 200)
 const ZONE_POSITIONS: Record<string, { cx: number; cy: number; rx: number; ry: number }> = {
   head: { cx: 40, cy: 18, rx: 14, ry: 16 },
   jaw: { cx: 40, cy: 32, rx: 10, ry: 6 },
@@ -47,10 +55,10 @@ const ZONE_POSITIONS: Record<string, { cx: number; cy: number; rx: number; ry: n
   feet: { cx: 40, cy: 174, rx: 16, ry: 8 },
 };
 
-const ZONE_COLOR = "hsl(176 70% 48%)";
-const ZONE_COLOR_DONE_FILL = "hsl(176 70% 48% / 0.25)";
-const ZONE_COLOR_ACTIVE_FILL = "hsl(176 70% 48% / 0.18)";
-const ZONE_COLOR_DONE_STROKE = "hsl(176 70% 48% / 0.4)";
+const ZONE_COLOR = TOOLBOX_PHASE_COLORS.inhale;
+const ZONE_COLOR_DONE_FILL = hslWithAlpha(ZONE_COLOR, 0.25);
+const ZONE_COLOR_ACTIVE_FILL = hslWithAlpha(ZONE_COLOR, 0.18);
+const ZONE_COLOR_DONE_STROKE = hslWithAlpha(ZONE_COLOR, 0.4);
 
 export const DEFAULT_BODY_SCAN_ZONES: BodyScanZone[] = [
   { id: "head", label: "Head & Forehead", instruction: "Soften your forehead, eyes, and jaw. Feel the weight of your head.", duration_sec: 20 },
@@ -65,7 +73,7 @@ export const DEFAULT_BODY_SCAN_ZONES: BodyScanZone[] = [
 
 export const DEFAULT_BODY_SCAN_TOTAL_SEC = DEFAULT_BODY_SCAN_ZONES.reduce((s, z) => s + z.duration_sec, 0);
 
-function normalizeZones(config: BodyScanConfig): BodyScanZone[] {
+export function normalizeBodyScanZones(config: BodyScanConfig): BodyScanZone[] {
   const raw = config.zones;
   if (!Array.isArray(raw) || raw.length === 0) {
     return DEFAULT_BODY_SCAN_ZONES;
@@ -96,7 +104,7 @@ export default function BodyScanWidget({
   onAbandon,
 }: Props) {
   const { t, locale } = useLanguage();
-  const zones = normalizeZones(config);
+  const zones = normalizeBodyScanZones(config);
   const totalSeconds = Math.max(1, zones.reduce((s, z) => s + z.duration_sec, 0));
   const segments = useMemo(
     () => zones.map((z) => ({ id: z.id, durationSec: z.duration_sec })),
@@ -133,13 +141,10 @@ export default function BodyScanWidget({
   const scanLineTop = `${((ZONE_POSITIONS[currentZone.id]?.cy ?? 100) / 200) * 100}%`;
 
   return (
-    <div className="flex flex-col items-center space-y-5 py-4">
-      {!hideTitle && (
-        <div className="flex items-center gap-2 text-neural-label">
-          <Scan size={14} className="text-primary" />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
+    <ToolboxWidgetRoot className="items-center space-y-5">
+      {!hideTitle ? (
+        <ToolboxWidgetHeader title={title} icon={Scan} iconClassName="text-primary" />
+      ) : null}
 
       <div className="relative flex items-start gap-6">
         <div className="relative w-[80px] h-[200px] shrink-0">
@@ -275,30 +280,22 @@ export default function BodyScanWidget({
         <div className="w-full h-1 rounded-full bg-secondary overflow-hidden">
           <motion.div
             className="h-full rounded-full"
-            style={{ background: `linear-gradient(90deg, hsl(176 70% 48% / 0.5), ${ZONE_COLOR})` }}
+            style={{ background: `linear-gradient(90deg, ${hslWithAlpha(ZONE_COLOR, 0.5)}, ${ZONE_COLOR})` }}
             animate={{ width: `${overallProgress * 100}%` }}
             transition={{ duration: 0.5 }}
           />
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={toggleRunning}
-          disabled={completed}
-          className="w-12 h-12 rounded-2xl border border-primary/30 bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
-        >
-          {isRunning ? <Pause size={18} /> : <Play size={18} />}
-        </button>
-        <button
-          type="button"
-          onClick={reset}
-          className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-        >
-          <RotateCcw size={18} />
-        </button>
-      </div>
-    </div>
+      <ToolboxWidgetTimerControls
+        isRunning={isRunning}
+        onToggle={toggleRunning}
+        onReset={reset}
+        disabled={completed}
+        playLabel={t("toolbox.launch")}
+        pauseLabel={t("toolbox.pause")}
+        resetLabel="Reset"
+      />
+    </ToolboxWidgetRoot>
   );
 }

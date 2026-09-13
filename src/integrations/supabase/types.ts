@@ -1916,6 +1916,83 @@ export type Database = {
         }
         Relationships: []
       }
+      meditation_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          id: string
+          track_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          id?: string
+          track_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meditation_assignments_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "meditation_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meditation_tracks: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          drive_file_id: string
+          duration_label: string | null
+          duration_sec: number | null
+          id: string
+          library_scope: string
+          meta: Json
+          mime_type: string | null
+          size_bytes: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          drive_file_id: string
+          duration_label?: string | null
+          duration_sec?: number | null
+          id?: string
+          library_scope: string
+          meta?: Json
+          mime_type?: string | null
+          size_bytes?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          drive_file_id?: string
+          duration_label?: string | null
+          duration_sec?: number | null
+          id?: string
+          library_scope?: string
+          meta?: Json
+          mime_type?: string | null
+          size_bytes?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       mood_entries: {
         Row: {
           id: string

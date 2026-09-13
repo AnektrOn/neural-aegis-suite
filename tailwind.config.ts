@@ -30,7 +30,7 @@ export default {
         text: {
           primary: "hsl(var(--foreground))",
           secondary: "hsl(var(--muted-foreground))",
-          tertiary: "hsl(var(--muted-foreground))",
+          tertiary: "hsl(var(--muted-foreground-subtle))",
         },
         "accent-primary": "hsl(var(--primary))",
         "accent-secondary": "hsl(var(--secondary))",
@@ -132,6 +132,10 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      fontSize: {
+        caption: ["0.75rem", { lineHeight: "1.35" }],
+        label: ["0.75rem", { lineHeight: "1.25", letterSpacing: "0.12em" }],
       },
       keyframes: {
         "accordion-down": {

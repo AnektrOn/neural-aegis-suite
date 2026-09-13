@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { LayoutGrid, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Z_INDEX } from "@/lib/zIndex";
 
 const ITEM = 44;
 const OPEN_STAGGER = 0.022;
@@ -119,14 +120,17 @@ export function MobileDockCircleMenu({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-[94] bg-bg-base/70 backdrop-blur-[4px]"
+              className={cn("fixed inset-0 bg-bg-base/70 backdrop-blur-[4px]", `z-[${Z_INDEX.dockScrim}]`)}
               onClick={() => setOpen(false)}
             />
             <div
               role="dialog"
               aria-modal="true"
               aria-labelledby="mobile-dock-radial-title"
-              className="pointer-events-none fixed inset-0 z-[95] flex items-center justify-center overflow-visible p-4"
+              className={cn(
+                "pointer-events-none fixed inset-0 flex items-center justify-center overflow-visible p-4",
+                `z-[${Z_INDEX.dockRadial}]`,
+              )}
               style={
                 {
                   paddingTop: "max(1rem, var(--safe-top, env(safe-area-inset-top, 0px)))",

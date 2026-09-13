@@ -16,6 +16,7 @@ import {
   UserCircle,
   Settings2,
   Sparkles,
+  Flower2,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
@@ -32,6 +33,7 @@ export const MOBILE_RADIAL_CATALOG_ORDER = [
   "toolbox",
   "pulse",
   "bibliotheque",
+  "meditation",
   "journal",
   "analytics",
   "calendar",
@@ -68,6 +70,7 @@ export const RADIAL_CATALOG: Record<
   toolbox: { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" },
   pulse: { to: "/pulse", icon: Sparkles, labelKey: "nav.pulse" },
   bibliotheque: { to: "/bibliotheque", icon: Library, labelKey: "nav.bibliotheque" },
+  meditation: { to: "/meditation", icon: Flower2, labelKey: "nav.meditation" },
   journal: { to: "/journal", icon: PenLine, labelKey: "nav.journal" },
   analytics: { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" },
   calendar: { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" },

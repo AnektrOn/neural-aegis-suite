@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAegisMotion } from "@/hooks/useAegisMotion";
-import { BookOpen, Plus, Search, Tag, Trash2, Edit3, Save, X } from "lucide-react";
+import { BookOpen, Plus, Search, Tag, Trash2, Edit3, Save, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,13 @@ interface JournalEntry {
 }
 
 const MOOD_EMOJIS = ["😔", "😕", "😐", "🙂", "😊"];
+const MOOD_LABEL_KEYS = [
+  "journal.mood.1",
+  "journal.mood.2",
+  "journal.mood.3",
+  "journal.mood.4",
+  "journal.mood.5",
+] as const;
 
 export default function Journal() {
   const { user } = useAuth();
@@ -33,6 +40,7 @@ export default function Journal() {
   const [editing, setEditing] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ title: "", content: "", tags: [] as string[], mood_score: null as number | null });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (user) loadEntries();
@@ -62,7 +70,8 @@ export default function Journal() {
   };
 
   const saveEntry = async () => {
-    if (!form.content.trim() || !user) return;
+    if (!form.content.trim() || !user || saving) return;
+    setSaving(true);
     try {
       if (editing) {
         const { error } = await supabase.from("journal_entries").update({
@@ -97,6 +106,8 @@ export default function Journal() {
         description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -180,12 +191,24 @@ export default function Journal() {
             <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder={t("journal.writeThoughts")} rows={5} className="w-full px-3 py-2 rounded-lg bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none" />
             <div>
               <p className="text-xs text-muted-foreground mb-2">{t("journal.associatedMood")}</p>
-              <div className="flex gap-2">
-                {MOOD_EMOJIS.map((emoji, i) => (
-                  <button key={i} onClick={() => setForm(f => ({ ...f, mood_score: f.mood_score === i + 1 ? null : i + 1 }))} className={`text-xl p-1 rounded-lg transition-all ${form.mood_score === i + 1 ? "bg-primary/20 scale-110" : "opacity-50 hover:opacity-100"}`}>
-                    {emoji}
-                  </button>
-                ))}
+              <div className="flex gap-2" role="group" aria-label={t("journal.associatedMood")}>
+                {MOOD_EMOJIS.map((emoji, i) => {
+                  const score = i + 1;
+                  const selected = form.mood_score === score;
+                  const label = t(MOOD_LABEL_KEYS[i]);
+                  return (
+                    <button
+                      key={score}
+                      type="button"
+                      aria-label={label}
+                      aria-pressed={selected}
+                      onClick={() => setForm((f) => ({ ...f, mood_score: selected ? null : score }))}
+                      className={`min-h-[44px] min-w-[44px] text-xl rounded-lg transition-all cursor-pointer ${selected ? "bg-primary/20 ring-2 ring-primary/40" : "opacity-50 hover:opacity-100"}`}
+                    >
+                      <span aria-hidden>{emoji}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div>
@@ -198,8 +221,14 @@ export default function Journal() {
                 ))}
               </div>
             </div>
-            <button onClick={saveEntry} disabled={!form.content.trim()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm disabled:opacity-50">
-              <Save size={14} /> {t("general.save")}
+            <button
+              type="button"
+              onClick={() => void saveEntry()}
+              disabled={!form.content.trim() || saving}
+              className="flex min-h-[44px] items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm disabled:opacity-50 cursor-pointer"
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Save size={14} aria-hidden />}
+              {t("general.save")}
             </button>
           </motion.div>
         )}

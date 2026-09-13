@@ -22,10 +22,27 @@ AEGIS-Pulse/                      ← ton vault (ou dossier dans un vault exista
 ├── POLARITY/
 ├── RHYTHM/
 ├── CAUSE_EFFECT/
-└── GENDER/
+├── GENDER/
+├── PRESENCE/                     ← collection TOLLE (Eckhart Tolle)
+│   └── 001-le-seul-moment-reel.md
+├── PAIN_BODY/
+├── WATCHER/
+├── ACCEPTANCE/
+└── STILLNESS/
 ```
 
 Les sous-dossiers par principe sont **optionnels** (le principe vient du frontmatter, pas du dossier). Mais c'est recommande pour l'organisation.
+
+### Collections Pulse (Glyphes)
+
+| Code collection | Runes (`principle`) |
+|-----------------|---------------------|
+| `KYBALION` | `MENTALISM`, `CORRESPONDENCE`, `VIBRATION`, `POLARITY`, `RHYTHM`, `CAUSE_EFFECT`, `GENDER` |
+| `MYSS_ARCHETYPE` | `CHILD`, `VICTIM`, … `JESTER` (16 archétypes) |
+| `ECHOLS` | `ENERGY`, `GROUNDING`, `SHIELDING`, `DIRECTING`, `CENTERING` |
+| `TOLLE` | `PRESENCE`, `PAIN_BODY`, `WATCHER`, `ACCEPTANCE`, `STILLNESS` |
+
+La collection (glyphe) est definie en base via `aegis_rune_collections` + `aegis_rune_principles.collection_id`. Les champs `glyph:` / `rune:` dans le frontmatter sont optionnels (aide redaction uniquement) ; seul `principle:` est importe.
 
 ## Format d'une carte
 

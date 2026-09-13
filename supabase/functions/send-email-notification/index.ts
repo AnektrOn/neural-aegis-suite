@@ -190,8 +190,12 @@ serve(async (req) => {
         subject = data?.title || "Votre abonnement AEGIS";
         htmlBody = `<p>${data?.message || ""}</p>`;
         break;
+      case "pulse_card":
+        subject = data?.title || "Nouvelle carte Pulse - Aegis";
+        htmlBody = `<h2>Bonjour,</h2><p>Une nouvelle carte Pulse est disponible : <strong>${data?.message || data?.title || "Nouvelle carte"}</strong></p><p>Ouvrez l'app pour la découvrir.</p>`;
+        break;
       default:
-        subject = "Notification Aegis";
+        subject = data?.title || "Notification Aegis";
         htmlBody = `<p>${data?.message || "Vous avez une nouvelle notification."}</p>`;
     }
 
@@ -214,8 +218,12 @@ serve(async (req) => {
 
     console.log(`Email notification: to=${recipients.join(", ") || "(none)"}, subject=${subject}, type=${type}`);
 
+    const skipInApp = data?.skip_in_app === true;
+
     // In-app: user-targeted vs admin-targeted (see plan: admin_user_entry_alert = email only — DB triggers own in-app).
-    if (type === "subscription_update") {
+    if (skipInApp) {
+      // In-app déjà créée par le trigger SQL (Toolbox / Pulse).
+    } else if (type === "subscription_update") {
       // In-app notification déjà créée par le webhook paiement.
     } else if (type === "admin_user_entry_alert") {
       // Journal in-app notifications come from Postgres triggers; avoid duplicates.

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { FileDown } from "lucide-react";
 import { Link } from "react-router-dom";
-import { buildMdPdfHtml, type MdPdfContentLang } from "@/features/md-pdf/exportMarkdownPdf";
+import { toast } from "sonner";
+import { buildMdPdfHtml, openMdPdfPrintWindow, type MdPdfContentLang } from "@/features/md-pdf/exportMarkdownPdf";
 import {
   loadMdPdfRenderSession,
   saveMdPdfRenderSession,
@@ -8,10 +10,12 @@ import {
 import { SAMPLE_VAULT_MD } from "@/features/md-pdf/sampleVaultMd";
 import { MD_PDF_THEMES, type MdPdfThemeId } from "@/features/md-pdf/printThemes";
 import { useMdPdfAssessment } from "@/features/md-pdf/useMdPdfAssessment";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const A4_WIDTH_PX = 794;
 
 export default function AdminMarkdownPdfRender() {
+  const { t } = useLanguage();
   const [theme, setTheme] = useState<MdPdfThemeId>("nocturne");
   const [showCover, setShowCover] = useState(true);
   const [contentLang, setContentLang] = useState<MdPdfContentLang>("fr");
@@ -63,6 +67,23 @@ export default function AdminMarkdownPdfRender() {
   useEffect(() => {
     measure();
   }, [html]);
+
+  const exportPdf = () => {
+    if (!markdown.trim()) {
+      toast.error(t("admin.mdPdf.errorEmpty"));
+      return;
+    }
+    const ok = openMdPdfPrintWindow({
+      sources: [{ filename, markdown }],
+      theme,
+      showCover,
+      locale: pdfLocale,
+      contentLang,
+      assessment,
+    });
+    if (!ok) toast.error(t("admin.mdPdf.errorPopup"));
+    else toast.success(t("admin.mdPdf.printHint"));
+  };
 
   return (
     <div id="aegis-md-pdf-render" data-testid="md-pdf-render" className="min-h-screen bg-[#171717] text-white">
@@ -119,6 +140,14 @@ export default function AdminMarkdownPdfRender() {
                 : `Pas d'assessment pour ${userHandle}`}
           </p>
         ) : null}
+        <button
+          type="button"
+          onClick={exportPdf}
+          className="ml-auto inline-flex items-center gap-2 rounded-full border border-rose-400/50 bg-rose-400/15 px-4 py-1.5 text-[11px] uppercase tracking-wider text-rose-200 hover:bg-rose-400/25"
+        >
+          <FileDown size={14} aria-hidden />
+          {t("admin.mdPdf.exportCurrent")}
+        </button>
       </header>
 
       <div className="overflow-auto px-6 py-8">

@@ -1,12 +1,20 @@
 import { useMemo, useRef } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, RotateCcw, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import { formatClockMmSs, hydrateToolboxWidgetDuration } from "@/lib/toolbox-widget-duration";
 import type { Locale } from "@/i18n/translations";
+import {
+  TOOLBOX_PHASE_COLORS,
+  ToolboxWidgetHeader,
+  ToolboxWidgetProgress,
+  ToolboxWidgetRoot,
+  ToolboxWidgetTimerControls,
+  hslWithAlpha,
+} from "@/features/toolbox/ui";
 
 interface Props {
   config: { duration_min: number; intention: string; intention_i18n?: unknown };
@@ -65,14 +73,13 @@ export default function FocusIntrospectifWidget({
   const progress = totalSeconds > 0 ? elapsed / totalSeconds : 0;
   const pulseScale = isRunning ? 1 + Math.sin(elapsed * 0.3) * 0.08 : 1;
 
+  const accent = TOOLBOX_PHASE_COLORS.hold;
+
   return (
-    <div className="flex flex-col items-center space-y-6 py-4">
-      {!hideTitle && (
-        <div className="flex items-center gap-2 text-neural-label">
-          <Eye size={14} className="text-neural-accent" />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
+    <ToolboxWidgetRoot className="items-center">
+      {!hideTitle ? (
+        <ToolboxWidgetHeader title={title} icon={Eye} iconClassName="text-neural-accent" />
+      ) : null}
 
       <p className="text-sm text-foreground/80 italic text-center max-w-sm">
         « {intentionDisplay} »
@@ -80,8 +87,8 @@ export default function FocusIntrospectifWidget({
 
       <div className="relative w-48 h-48 flex items-center justify-center">
         <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full -rotate-90">
-          <circle cx="100" cy="100" r="88" fill="none" stroke="hsl(270 50% 60% / 0.1)" strokeWidth="2" />
-          <circle cx="100" cy="100" r="88" fill="none" stroke="hsl(270 50% 60% / 0.6)" strokeWidth="2"
+          <circle cx="100" cy="100" r="88" fill="none" stroke={hslWithAlpha(accent, 0.1)} strokeWidth="2" />
+          <circle cx="100" cy="100" r="88" fill="none" stroke={hslWithAlpha(accent, 0.6)} strokeWidth="2"
             strokeDasharray={2 * Math.PI * 88}
             strokeDashoffset={2 * Math.PI * 88 * (1 - progress)}
             strokeLinecap="round"
@@ -89,7 +96,7 @@ export default function FocusIntrospectifWidget({
         </svg>
 
         <motion.div className="absolute inset-8 rounded-full"
-          style={{ background: "radial-gradient(circle, hsl(270 50% 60% / 0.08) 0%, transparent 70%)" }}
+          style={{ background: `radial-gradient(circle, ${hslWithAlpha(accent, 0.08)} 0%, transparent 70%)` }}
           animate={{ scale: pulseScale }}
           transition={{ duration: 0.1 }} />
 
@@ -120,22 +127,17 @@ export default function FocusIntrospectifWidget({
         })}
       </div>
 
-      <div className="w-full max-w-xs h-1 rounded-full bg-secondary overflow-hidden">
-        <div className="h-full rounded-full bg-neural-accent/60 transition-all duration-1000"
-          style={{ width: `${progress * 100}%` }} />
-      </div>
+      <ToolboxWidgetProgress className="max-w-xs" value={elapsed} max={totalSeconds} accentColor={accent} />
 
-      <div className="flex gap-3">
-        <button onClick={toggleRunning}
-          className="w-12 h-12 rounded-2xl border border-neural-accent/30 bg-neural-accent/10 flex items-center justify-center text-neural-accent hover:bg-neural-accent/20 transition-colors"
-          disabled={completed}>
-          {isRunning ? <Pause size={18} /> : <Play size={18} />}
-        </button>
-        <button onClick={reset}
-          className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
-          <RotateCcw size={18} />
-        </button>
-      </div>
-    </div>
+      <ToolboxWidgetTimerControls
+        isRunning={isRunning}
+        onToggle={toggleRunning}
+        onReset={reset}
+        disabled={completed}
+        playLabel={t("toolbox.launch")}
+        pauseLabel={t("toolbox.pause")}
+        resetLabel="Reset"
+      />
+    </ToolboxWidgetRoot>
   );
 }

@@ -19,6 +19,7 @@ import {
   Sparkles,
   Handshake,
   MessageSquare,
+  Flower2,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
@@ -64,6 +65,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     labelKey: "layout.navGroup.resources",
     items: [
       { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" },
+      { to: "/meditation", icon: Flower2, labelKey: "nav.meditation" },
       { to: "/bibliotheque", icon: Library, labelKey: "nav.bibliotheque" },
       { to: "/messages", icon: MessageSquare, labelKey: "nav.messages" },
       { to: "/newsletter", icon: Mail, labelKey: "nav.newsletter" },
@@ -76,6 +78,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
 ];
 
 const EXTRA_ROUTES: { prefix: string; labelKey: TranslationKey; sectionKey?: TranslationKey }[] = [
+  { prefix: "/meditation", labelKey: "nav.meditation", sectionKey: "layout.navGroup.resources" },
   { prefix: "/onboarding/assessment", labelKey: "nav.profile", sectionKey: "layout.navGroup.analysis" },
   { prefix: "/onboarding/results", labelKey: "nav.profile", sectionKey: "layout.navGroup.analysis" },
   { prefix: "/cartographie", labelKey: "cartography.defaultTitle", sectionKey: "layout.navGroup.analysis" },

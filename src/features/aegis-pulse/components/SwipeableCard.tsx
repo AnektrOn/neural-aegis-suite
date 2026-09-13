@@ -122,6 +122,11 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
       <span className="sr-only" aria-live="polite">
         {liveMessage}
       </span>
+      {isTop ? (
+        <p className="pointer-events-none absolute -bottom-8 left-0 right-0 text-center text-caption text-muted-foreground px-4">
+          {t("pulse.swipeHint")}
+        </p>
+      ) : null}
       <div
         className="relative w-full h-full cursor-grab active:cursor-grabbing"
         style={{ perspective: "1000px" }}

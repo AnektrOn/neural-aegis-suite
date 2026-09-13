@@ -1,10 +1,19 @@
 import { useMemo, type CSSProperties } from "react";
 import { motion } from "framer-motion";
-import { Play, Pause, RotateCcw, Wind } from "lucide-react";
+import { Wind } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { resolveCyclicSequenceFromElapsed } from "@/lib/exercise-sequence-position";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import {
+  TOOLBOX_PHASE_COLORS,
+  ToolboxWidgetHeader,
+  ToolboxWidgetInstructions,
+  ToolboxWidgetProgress,
+  ToolboxWidgetRoot,
+  ToolboxWidgetTimerControls,
+  hslWithAlpha,
+} from "@/features/toolbox/ui";
 
 export interface BreathworkConfig {
   cycles: number;
@@ -37,10 +46,10 @@ const PHASE_LABEL_KEYS: Record<Phase, "toolbox.breath.phase.in" | "toolbox.breat
 };
 
 const PHASE_COLORS: Record<Phase, string> = {
-  breath_in: "hsl(176 70% 48%)",
-  pause1: "hsl(270 50% 60%)",
-  breath_out: "hsl(35 80% 58%)",
-  pause2: "hsl(270 50% 60%)",
+  breath_in: TOOLBOX_PHASE_COLORS.inhale,
+  pause1: TOOLBOX_PHASE_COLORS.hold,
+  breath_out: TOOLBOX_PHASE_COLORS.exhale,
+  pause2: TOOLBOX_PHASE_COLORS.hold,
 };
 
 export default function BreathworkWidget({
@@ -165,26 +174,21 @@ export default function BreathworkWidget({
   );
 
   return (
-    <div className="flex flex-col items-center space-y-6 py-4">
-      {!hideTitle && (
-        <div className="flex items-center gap-2 text-neural-label">
-          <Wind size={14} className="text-primary" />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
-      {config.instructions?.trim() ? (
-        <p className="max-w-sm px-2 text-center text-xs leading-relaxed text-muted-foreground">{config.instructions}</p>
+    <ToolboxWidgetRoot className="items-center">
+      {!hideTitle ? (
+        <ToolboxWidgetHeader title={title} icon={Wind} iconClassName="text-primary" />
       ) : null}
+      <ToolboxWidgetInstructions>{config.instructions?.trim() ? config.instructions : null}</ToolboxWidgetInstructions>
 
       {visualVariant === "box" ? (
         <div className="relative w-52 h-52 flex items-center justify-center">
           <motion.div
             className="absolute inset-[8%] rounded-[24%] border-2"
             style={{
-              borderColor: `${PHASE_COLORS[currentPhase]}aa`,
+              borderColor: hslWithAlpha(PHASE_COLORS[currentPhase], 0.65),
               boxShadow: isRunning
-                ? `0 0 32px ${PHASE_COLORS[currentPhase]}38, inset 0 0 28px ${PHASE_COLORS[currentPhase]}14`
-                : `inset 0 0 0 1px ${PHASE_COLORS[currentPhase]}22`,
+                ? `0 0 32px ${hslWithAlpha(PHASE_COLORS[currentPhase], 0.22)}, inset 0 0 28px ${hslWithAlpha(PHASE_COLORS[currentPhase], 0.08)}`
+                : `inset 0 0 0 1px ${hslWithAlpha(PHASE_COLORS[currentPhase], 0.13)}`,
             }}
             animate={{
               scale: getScale(),
@@ -208,7 +212,7 @@ export default function BreathworkWidget({
         <div className="relative flex h-48 w-48 items-center justify-center">
           <motion.div
             className="absolute inset-0 rounded-full"
-            style={{ background: `radial-gradient(circle, ${PHASE_COLORS[currentPhase]}15 0%, transparent 70%)` }}
+            style={{ background: `radial-gradient(circle, ${hslWithAlpha(PHASE_COLORS[currentPhase], 0.15)} 0%, transparent 70%)` }}
             animate={{ scale: getScale() }}
             transition={{ duration: 0.05, ease: "linear" }}
           />
@@ -216,7 +220,7 @@ export default function BreathworkWidget({
             className="flex h-32 w-32 items-center justify-center rounded-full border-2"
             style={{
               borderColor: PHASE_COLORS[currentPhase],
-              boxShadow: isRunning ? `0 0 30px ${PHASE_COLORS[currentPhase]}40, inset 0 0 20px ${PHASE_COLORS[currentPhase]}10` : "none",
+              boxShadow: isRunning ? `0 0 30px ${hslWithAlpha(PHASE_COLORS[currentPhase], 0.25)}, inset 0 0 20px ${hslWithAlpha(PHASE_COLORS[currentPhase], 0.06)}` : "none",
             }}
             animate={{ scale: getScale() }}
             transition={{ duration: 0.05, ease: "linear" }}
@@ -236,8 +240,8 @@ export default function BreathworkWidget({
                 style={{
                   left: cx - 6,
                   top: cy - 6,
-                  backgroundColor: isActive ? PHASE_COLORS[p.phase] : `${PHASE_COLORS[p.phase]}30`,
-                  boxShadow: isActive ? `0 0 8px ${PHASE_COLORS[p.phase]}80` : "none",
+                  backgroundColor: isActive ? PHASE_COLORS[p.phase] : hslWithAlpha(PHASE_COLORS[p.phase], 0.3),
+                  boxShadow: isActive ? `0 0 8px ${hslWithAlpha(PHASE_COLORS[p.phase], 0.5)}` : "none",
                 }}
               />
             );
@@ -252,23 +256,22 @@ export default function BreathworkWidget({
         <p className="text-neural-label">{formatTime(elapsed)} / {formatTime(totalTime)}</p>
       </div>
 
-      <div className="w-full max-w-xs h-1 rounded-full bg-secondary overflow-hidden">
-        <motion.div className="h-full rounded-full" style={{ backgroundColor: PHASE_COLORS[currentPhase] }}
-          animate={{ width: `${Math.min((elapsed / totalTime) * 100, 100)}%` }}
-          transition={{ duration: 0.1 }} />
-      </div>
+      <ToolboxWidgetProgress
+        className="max-w-xs"
+        value={elapsed}
+        max={totalTime}
+        accentColor={PHASE_COLORS[currentPhase]}
+      />
 
-      <div className="flex gap-3">
-        <button onClick={toggleRunning}
-          className="w-12 h-12 rounded-2xl border border-primary/30 bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors glow-node"
-          disabled={completed}>
-          {isRunning ? <Pause size={18} /> : <Play size={18} />}
-        </button>
-        <button onClick={reset}
-          className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
-          <RotateCcw size={18} />
-        </button>
-      </div>
+      <ToolboxWidgetTimerControls
+        isRunning={isRunning}
+        onToggle={toggleRunning}
+        onReset={reset}
+        disabled={completed}
+        playLabel={t("toolbox.launch")}
+        pauseLabel={t("toolbox.pause")}
+        resetLabel="Reset"
+      />
 
       <div className="flex items-center gap-3 text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
         <span>{t("toolbox.breath.legendIn", { n: config.breath_in_sec })}</span>
@@ -276,6 +279,6 @@ export default function BreathworkWidget({
         <span>{t("toolbox.breath.legendOut", { n: config.breath_out_sec })}</span>
         {config.pause2_sec > 0 && <span>{t("toolbox.breath.legendHold", { n: config.pause2_sec })}</span>}
       </div>
-    </div>
+    </ToolboxWidgetRoot>
   );
 }

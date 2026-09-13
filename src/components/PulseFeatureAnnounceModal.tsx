@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { isProductTourDone } from "@/lib/productTour";
 
 const KEY_PREFIX = "aegis_pulse_feature_announced_";
 
@@ -23,6 +24,7 @@ export default function PulseFeatureAnnounceModal() {
 
   useEffect(() => {
     if (!user) return;
+    if (isProductTourDone(user.id)) return;
     try {
       if (localStorage.getItem(`${KEY_PREFIX}${user.id}`) === "1") return;
     } catch {

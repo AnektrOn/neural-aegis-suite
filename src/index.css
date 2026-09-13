@@ -11,6 +11,13 @@
   }
 }
 
+/*
+ * Z-index scale (user-facing overlays) — prefer src/lib/zIndex.ts in TSX
+ * 10 elevated · 50 sticky header · 51 ambient nebula · 60 offline banner
+ * 90 notification scrim · 94–95 mobile dock · 100 toast / sheets / pulse course
+ * 200 guardian / announcements · 250 guardian blocker
+ */
+
 @layer base {
   :root {
     color-scheme: dark;
@@ -52,6 +59,7 @@
     --secondary-hover: 19 33% 28%;
     --muted: 10 5% 22%;
     --muted-foreground: 24 10% 75%;
+    --muted-foreground-subtle: 24 8% 58%;
     --accent: 24 48% 65%;
     --accent-foreground: 200 35% 7%;
     --accent-hover: 24 48% 55%;
@@ -131,6 +139,7 @@
     --secondary-hover: 240 4% 88%;
     --muted: 240 6% 96%;
     --muted-foreground: 240 2% 40%;
+    --muted-foreground-subtle: 240 2% 52%;
     --accent: 0 0% 20%;
     --accent-foreground: 0 0% 100%;
     --accent-hover: 0 0% 12%;
@@ -185,6 +194,12 @@
 
   .dark {
     color-scheme: dark;
+  }
+
+  @media (max-width: 767px) {
+    html {
+      font-size: 16px;
+    }
   }
 
   * {
@@ -309,32 +324,33 @@ html.light .bg-aegis-gradient {
 .welcome-hud-hero-glow {
   position: absolute;
   left: 50%;
-  top: 50%;
-  width: min(90vw, 420px);
-  height: 200px;
+  top: 42%;
+  width: min(92vw, 440px);
+  height: 220px;
   transform: translate(-50%, -50%);
-  background: radial-gradient(ellipse, hsl(var(--primary) / 0.3) 0%, transparent 70%);
+  background: radial-gradient(ellipse, hsl(var(--primary) / 0.28) 0%, transparent 72%);
   filter: blur(28px);
   pointer-events: none;
+  z-index: 0;
 }
 
 .welcome-glass-tile {
-  border-radius: 16px;
-  border: 1px solid hsl(var(--border) / 0.35);
+  border-radius: 18px;
+  border: 1px solid hsl(var(--border) / 0.38);
   background: linear-gradient(
-    145deg,
-    hsl(var(--card) / 0.58) 0%,
-    hsl(var(--card) / 0.32) 100%
+    155deg,
+    hsl(var(--card) / 0.62) 0%,
+    hsl(var(--card) / 0.34) 100%
   );
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow:
-    inset 0 1px 0 hsl(var(--foreground) / 0.06),
-    0 12px 40px -20px hsl(0 0% 0% / 0.55);
+    inset 0 1px 0 hsl(var(--foreground) / 0.07),
+    0 14px 44px -22px hsl(0 0% 0% / 0.58);
 }
 
 .welcome-glass-tile:active {
-  transform: scale(0.98);
+  transform: scale(0.985);
 }
 
 .welcome-slide-track {
@@ -823,6 +839,15 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
   .btn-neural:hover::after {
     animation: shimmer-effect 2s infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-neural:hover::after {
+      animation: none;
+    }
+    .btn-neural:hover {
+      transform: none;
+    }
   }
 
   .text-neural-title {

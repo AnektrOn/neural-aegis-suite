@@ -189,7 +189,7 @@ export async function publishWaitingAssignment(params: {
     metadata: { title },
   });
 
-  await notifyUserToolboxAssignment(userId, title);
+  // Email + push + in-app : trigger SQL notify_user_on_toolbox_assignment (waiting → active).
 }
 
 export async function publishWaitingAssignments(params: {

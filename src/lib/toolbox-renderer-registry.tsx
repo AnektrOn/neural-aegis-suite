@@ -168,6 +168,7 @@ function renderResolved(
     config: cfg,
     title,
     hideTitle,
+    journal: { slug: itemSlug(item), title },
     onComplete: safeOnComplete,
     onAbandon: safeOnAbandon,
     ...(sessionKey ? { sessionKey } : {}),
@@ -208,6 +209,7 @@ export function renderToolboxWidget({
     title,
     hideTitle,
     sessionKey,
+    journal: { slug, title },
     onComplete: safeOnComplete,
     onAbandon: safeOnAbandon,
   };
@@ -261,6 +263,31 @@ export function renderToolboxWidget({
         : (fallbackForExternalLink ?? null);
     default: {
       const resolved = resolveToolboxWidget(slug, cfg as Record<string, unknown>, definitionsBySlug);
+      // #region agent log
+      if (slug.includes("journal") || slug === "worry_dump" || slug === "evening_review" || slug === "morning_pages" || slug === "letter_unsent") {
+        fetch("http://127.0.0.1:7734/ingest/5c724db7-3dd7-4e14-aa0c-d7fe395f7450", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c757ff" },
+          body: JSON.stringify({
+            sessionId: "c757ff",
+            runId: "journal-panel-pre",
+            hypothesisId: "H1-H3",
+            location: "toolbox-renderer-registry.tsx:renderToolboxWidget",
+            message: "journal widget resolve",
+            data: {
+              slug,
+              resolvedKind: resolved?.kind ?? null,
+              hasPrompt: Boolean(
+                typeof (resolved?.config as Record<string, unknown> | undefined)?.prompt === "string"
+                && String((resolved?.config as Record<string, unknown>).prompt).trim(),
+              ),
+              cfgKeys: cfg ? Object.keys(cfg as object) : [],
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      }
+      // #endregion
       if (resolved && resolved.kind !== "composed") {
         return renderResolved(resolved, {
           item,

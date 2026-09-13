@@ -21,6 +21,7 @@ import { PeoplePlacesPanel } from "@/components/PeoplePlacesPanel";
 
 const NeuralMap = lazy(() => import("@/components/NeuralMap"));
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   CONTACT_PROXIMITY_LABELS,
@@ -33,11 +34,15 @@ import {
 type MapPeriod = "1d" | "3d" | "7d" | "14d" | "1m" | "3m" | "6m" | "1y" | "all";
 
 const MAP_PERIOD_KEYS: Record<MapPeriod, string> = {
-  "1d": "1J", "3d": "3J", "7d": "1 Sem", "14d": "2 Sem",
-  "1m": "people.tf.1m", "3m": "people.tf.3m", "6m": "people.tf.6m", "1y": "people.tf.1y", all: "people.tf.all",
-};
-const MAP_PERIOD_PLAIN: Partial<Record<MapPeriod, string>> = {
-  "1d": "1J", "3d": "3J", "7d": "1 Sem", "14d": "2 Sem",
+  "1d": "people.tf.1d",
+  "3d": "people.tf.3d",
+  "7d": "people.tf.7d",
+  "14d": "people.tf.14d",
+  "1m": "people.tf.1m",
+  "3m": "people.tf.3m",
+  "6m": "people.tf.6m",
+  "1y": "people.tf.1y",
+  all: "people.tf.all",
 };
 
 interface Person {
@@ -981,7 +986,7 @@ export default function PeopleBoard() {
             >
               {(Object.keys(MAP_PERIOD_KEYS) as MapPeriod[]).map((id) => {
                 const k = MAP_PERIOD_KEYS[id];
-                const label = MAP_PERIOD_PLAIN[id] ?? t(k as any);
+                const label = t(k as TranslationKey);
                 return (
                   <button
                     key={id}
