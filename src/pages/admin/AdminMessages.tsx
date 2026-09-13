@@ -43,6 +43,9 @@ export default function AdminMessages() {
   const [popupUser, setPopupUser] = useState("");
   const [popupTitle, setPopupTitle] = useState("");
   const [popupBody, setPopupBody] = useState("");
+  const [popupTitleEn, setPopupTitleEn] = useState("");
+  const [popupBodyEn, setPopupBodyEn] = useState("");
+  const [popupLang, setPopupLang] = useState<"fr" | "en" | "auto">("fr");
   const [popupLink, setPopupLink] = useState("");
   const [popupSending, setPopupSending] = useState(false);
 
@@ -50,14 +53,22 @@ export default function AdminMessages() {
     const targets = popupAudience === "all" ? profiles.map((p) => p.id) : popupUser ? [popupUser] : [];
     if (!popupTitle.trim() || !popupBody.trim() || targets.length === 0) return;
     setPopupSending(true);
-    const rows = targets.map((id) => ({
-      user_id: id,
-      title: popupTitle.trim(),
-      message: popupBody.trim(),
-      type: "popup",
-      scope: popupAudience === "all" ? "global" : "personal",
-      link: popupLink.trim() || null,
-    }));
+    const langOf = (id: string) => {
+      if (popupLang !== "auto") return popupLang;
+      const p = profiles.find((x) => x.id === id);
+      return p?.preferred_language === "en" ? "en" : "fr";
+    };
+    const rows = targets.map((id) => {
+      const useEn = langOf(id) === "en" && popupTitleEn.trim() && popupBodyEn.trim();
+      return {
+        user_id: id,
+        title: (useEn ? popupTitleEn : popupTitle).trim(),
+        message: (useEn ? popupBodyEn : popupBody).trim(),
+        type: "popup",
+        scope: popupAudience === "all" ? "global" : "personal",
+        link: popupLink.trim() || null,
+      };
+    });
     const { error } = await supabase.from("notifications").insert(rows);
     setPopupSending(false);
     if (error) {
