@@ -320,7 +320,7 @@ export default function AdminEmailAlerts() {
         >
           {EMAIL_ALERT_TEMPLATES.map((tpl) => (
             <option key={tpl.id} value={tpl.id}>
-              {autoLang === "fr" ? tpl.subject_fr : tpl.subject_en}
+              {autoLang === "en" ? tpl.subject_en : tpl.subject_fr}
             </option>
           ))}
         </select>
@@ -335,6 +335,60 @@ export default function AdminEmailAlerts() {
           <Check size={14} /> {t("common.save")}
         </button>
       </motion.div>
+
+      {/* Per-user language */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="ethereal-glass p-6 space-y-4"
+      >
+        <div className="flex items-center gap-2">
+          <Languages size={14} className="text-primary" />
+          <p className="text-neural-label text-neural-accent/60">
+            {t("admin.emailAlerts.langSection")}
+          </p>
+        </div>
+        <p className="text-[11px] text-muted-foreground">{t("admin.emailAlerts.langHint")}</p>
+
+        <input
+          type="text"
+          value={langSearch}
+          onChange={(e) => setLangSearch(e.target.value)}
+          placeholder={t("common.searchUser")}
+          className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30"
+        />
+
+        <div className="max-h-80 overflow-y-auto divide-y divide-border/10">
+          {filteredProfiles.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-3">{t("common.noUserFound")}</p>
+          ) : (
+            filteredProfiles.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="text-sm text-foreground truncate">
+                  {p.display_name || p.id.slice(0, 8)}
+                </span>
+                <div className="flex gap-1.5 shrink-0">
+                  {(["fr", "en"] as const).map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setUserLanguage(p.id, l)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] border transition-colors ${
+                        (p.preferred_language === "en" ? "en" : "fr") === l
+                          ? "border-primary/40 text-primary bg-primary/10"
+                          : "border-border/20 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {l.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
+
 
       {/* History */}
       <motion.div
