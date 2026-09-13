@@ -264,14 +264,23 @@ function ToolboxExerciseModalLayer({
           )}
         >
           <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3 sm:p-4">
-            {item && activeCfg ? (
+            {item ? (
               <div className="pointer-events-auto min-w-0 max-w-[min(100%,20rem)] rounded-2xl border border-border/30 bg-background/70 px-3 py-2 backdrop-blur-md sm:max-w-xs sm:px-4">
                 <p className="truncate text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   {getTypeLabel(item.content_type)}
-                  {formatToolboxDurationLabel(item.duration, item.content_type, item.widget_config) ? (
+                  {formatToolboxDurationLabel(
+                    item.duration,
+                    item.content_type,
+                    toRenderableItem(item).widget_config,
+                  ) ? (
                     <span className="opacity-70">
                       {" "}
-                      · {formatToolboxDurationLabel(item.duration, item.content_type, item.widget_config)}
+                      ·{" "}
+                      {formatToolboxDurationLabel(
+                        item.duration,
+                        item.content_type,
+                        toRenderableItem(item).widget_config,
+                      )}
                     </span>
                   ) : null}
                 </p>
