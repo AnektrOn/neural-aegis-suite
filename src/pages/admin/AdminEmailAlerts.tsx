@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Send, Clock, Users, User as UserIcon, Check } from "lucide-react";
+import { Mail, Send, Clock, Users, User as UserIcon, Check, Languages } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -14,7 +14,10 @@ import {
 interface Profile {
   id: string;
   display_name: string | null;
+  preferred_language?: string | null;
 }
+
+type SendLang = AlertLang | "auto";
 
 interface AlertLogRow {
   id: string;
@@ -33,25 +36,30 @@ export default function AdminEmailAlerts() {
   const [logs, setLogs] = useState<AlertLogRow[]>([]);
 
   const [alertId, setAlertId] = useState(EMAIL_ALERT_TEMPLATES[0]?.id ?? "");
-  const [lang, setLang] = useState<AlertLang>("fr");
+  const [lang, setLang] = useState<SendLang>("fr");
   const [audience, setAudience] = useState<"all" | "users">("all");
   const [targetUser, setTargetUser] = useState("");
   const [sending, setSending] = useState(false);
 
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [autoAlertId, setAutoAlertId] = useState(EMAIL_ALERT_TEMPLATES[0]?.id ?? "");
-  const [autoLang, setAutoLang] = useState<AlertLang>("fr");
+  const [autoLang, setAutoLang] = useState<SendLang>("fr");
   const [savingAuto, setSavingAuto] = useState(false);
+  const [langSearch, setLangSearch] = useState("");
 
   const template = useMemo(() => getAlertTemplate(alertId), [alertId]);
+  const previewLang: AlertLang = lang === "auto" ? "fr" : lang;
   const preview = useMemo(
-    () => (template ? renderAlert(template, lang, "Alex") : null),
-    [template, lang],
+    () => (template ? renderAlert(template, previewLang, "Alex") : null),
+    [template, previewLang],
   );
 
   const loadData = async () => {
     const [profRes, logRes, settingsRes] = await Promise.all([
-      supabase.from("profiles").select("id, display_name").order("display_name"),
+      supabase
+        .from("profiles")
+        .select("id, display_name, preferred_language")
+        .order("display_name"),
       supabase
         .from("email_alert_log" as never)
         .select("*")
@@ -67,7 +75,7 @@ export default function AdminEmailAlerts() {
     if (s) {
       setAutoEnabled(!!s.enabled);
       if (s.alert_id) setAutoAlertId(s.alert_id);
-      setAutoLang(s.language === "en" ? "en" : "fr");
+      setAutoLang(s.language === "en" ? "en" : s.language === "auto" ? "auto" : "fr");
     }
   };
 
@@ -75,21 +83,42 @@ export default function AdminEmailAlerts() {
     loadData();
   }, []);
 
+  const setUserLanguage = async (id: string, value: AlertLang) => {
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, preferred_language: value } : p)),
+    );
+    const { error } = await supabase
+      .from("profiles")
+      .update({ preferred_language: value })
+      .eq("id", id);
+    if (error) {
+      toast.error(t("common.saveError"));
+      loadData();
+      return;
+    }
+    toast.success(t("admin.emailAlerts.langSaved"));
+  };
+
   const sendNow = async () => {
     if (!template) return;
     if (audience === "users" && !targetUser) return;
     setSending(true);
-    const rendered = renderAlert(template, lang);
+    const effective: AlertLang = lang === "auto" ? "fr" : lang;
+    const rendered = renderAlert(template, effective);
     const { data, error } = await supabase.functions.invoke("send-user-alert", {
       body: {
         mode: "manual",
         alertId: template.id,
         language: lang,
         subject: rendered.subject,
-        body: template[lang === "fr" ? "body_fr" : "body_en"],
+        body: template[effective === "fr" ? "body_fr" : "body_en"],
         link: template.link,
         audience,
         userIds: audience === "users" ? [targetUser] : [],
+        variants: {
+          fr: { subject: template.subject_fr, body: template.body_fr },
+          en: { subject: template.subject_en, body: template.body_en },
+        },
       },
     });
     setSending(false);
@@ -112,8 +141,10 @@ export default function AdminEmailAlerts() {
         enabled: autoEnabled,
         alert_id: tpl.id,
         language: autoLang,
-        subject: autoLang === "fr" ? tpl.subject_fr : tpl.subject_en,
-        body: autoLang === "fr" ? tpl.body_fr : tpl.body_en,
+        subject: autoLang === "en" ? tpl.subject_en : tpl.subject_fr,
+        body: autoLang === "en" ? tpl.body_en : tpl.body_fr,
+        subject_en: tpl.subject_en,
+        body_en: tpl.body_en,
         link: tpl.link,
         updated_at: new Date().toISOString(),
       } as never)
@@ -126,9 +157,9 @@ export default function AdminEmailAlerts() {
     toast.success(t("admin.emailAlerts.autoSaved"));
   };
 
-  const langButtons = (value: AlertLang, onChange: (l: AlertLang) => void) => (
-    <div className="flex gap-2">
-      {(["fr", "en"] as const).map((l) => (
+  const langButtons = (value: SendLang, onChange: (l: SendLang) => void) => (
+    <div className="flex flex-wrap gap-2">
+      {(["fr", "en", "auto"] as const).map((l) => (
         <button
           key={l}
           type="button"
@@ -139,10 +170,14 @@ export default function AdminEmailAlerts() {
               : "border-border/20 text-muted-foreground hover:text-foreground"
           }`}
         >
-          {l === "fr" ? "Français" : "English"}
+          {l === "fr" ? "Français" : l === "en" ? "English" : t("admin.emailAlerts.langAuto")}
         </button>
       ))}
     </div>
+  );
+
+  const filteredProfiles = profiles.filter((p) =>
+    (p.display_name || p.id).toLowerCase().includes(langSearch.toLowerCase()),
   );
 
   return (
@@ -184,7 +219,7 @@ export default function AdminEmailAlerts() {
             >
               <span className="flex items-center gap-2 text-sm text-foreground">
                 {alertId === tpl.id && <Check size={13} className="text-primary" />}
-                {lang === "fr" ? tpl.subject_fr : tpl.subject_en}
+                {previewLang === "fr" ? tpl.subject_fr : tpl.subject_en}
               </span>
               <span className="block text-[11px] text-muted-foreground mt-1 font-mono">
                 {tpl.id}
@@ -285,7 +320,7 @@ export default function AdminEmailAlerts() {
         >
           {EMAIL_ALERT_TEMPLATES.map((tpl) => (
             <option key={tpl.id} value={tpl.id}>
-              {autoLang === "fr" ? tpl.subject_fr : tpl.subject_en}
+              {autoLang === "en" ? tpl.subject_en : tpl.subject_fr}
             </option>
           ))}
         </select>
@@ -300,6 +335,60 @@ export default function AdminEmailAlerts() {
           <Check size={14} /> {t("common.save")}
         </button>
       </motion.div>
+
+      {/* Per-user language */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="ethereal-glass p-6 space-y-4"
+      >
+        <div className="flex items-center gap-2">
+          <Languages size={14} className="text-primary" />
+          <p className="text-neural-label text-neural-accent/60">
+            {t("admin.emailAlerts.langSection")}
+          </p>
+        </div>
+        <p className="text-[11px] text-muted-foreground">{t("admin.emailAlerts.langHint")}</p>
+
+        <input
+          type="text"
+          value={langSearch}
+          onChange={(e) => setLangSearch(e.target.value)}
+          placeholder={t("common.searchUser")}
+          className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30"
+        />
+
+        <div className="max-h-80 overflow-y-auto divide-y divide-border/10">
+          {filteredProfiles.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-3">{t("common.noUserFound")}</p>
+          ) : (
+            filteredProfiles.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="text-sm text-foreground truncate">
+                  {p.display_name || p.id.slice(0, 8)}
+                </span>
+                <div className="flex gap-1.5 shrink-0">
+                  {(["fr", "en"] as const).map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setUserLanguage(p.id, l)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] border transition-colors ${
+                        (p.preferred_language === "en" ? "en" : "fr") === l
+                          ? "border-primary/40 text-primary bg-primary/10"
+                          : "border-border/20 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {l.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
+
 
       {/* History */}
       <motion.div

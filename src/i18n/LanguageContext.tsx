@@ -20,6 +20,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
     localStorage.setItem("app-locale", l);
+    // Mirror the choice on the user profile so alerts/pop-ups use the right language.
+    void (async () => {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data } = await supabase.auth.getUser();
+        if (data?.user?.id) {
+          await supabase.from("profiles").update({ preferred_language: l }).eq("id", data.user.id);
+        }
+      } catch {
+        /* silent: language still applies locally */
+      }
+    })();
   }, []);
 
   const t = useCallback((key: TranslationKey, params?: Record<string, string | number>): string => {

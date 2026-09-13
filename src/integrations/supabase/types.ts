@@ -1515,6 +1515,7 @@ export type Database = {
         Row: {
           alert_id: string | null
           body: string | null
+          body_en: string | null
           enabled: boolean
           id: boolean
           language: string
@@ -1522,11 +1523,13 @@ export type Database = {
           link: string | null
           send_hour_utc: number
           subject: string | null
+          subject_en: string | null
           updated_at: string
         }
         Insert: {
           alert_id?: string | null
           body?: string | null
+          body_en?: string | null
           enabled?: boolean
           id?: boolean
           language?: string
@@ -1534,11 +1537,13 @@ export type Database = {
           link?: string | null
           send_hour_utc?: number
           subject?: string | null
+          subject_en?: string | null
           updated_at?: string
         }
         Update: {
           alert_id?: string | null
           body?: string | null
+          body_en?: string | null
           enabled?: boolean
           id?: boolean
           language?: string
@@ -1546,6 +1551,7 @@ export type Database = {
           link?: string | null
           send_hour_utc?: number
           subject?: string | null
+          subject_en?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2303,6 +2309,7 @@ export type Database = {
           linkedin: string | null
           mobile_radial_menu: Json | null
           plan_override: string | null
+          preferred_language: string
           sidebar_items: Json | null
           timezone: string | null
           updated_at: string
@@ -2323,6 +2330,7 @@ export type Database = {
           linkedin?: string | null
           mobile_radial_menu?: Json | null
           plan_override?: string | null
+          preferred_language?: string
           sidebar_items?: Json | null
           timezone?: string | null
           updated_at?: string
@@ -2343,6 +2351,7 @@ export type Database = {
           linkedin?: string | null
           mobile_radial_menu?: Json | null
           plan_override?: string | null
+          preferred_language?: string
           sidebar_items?: Json | null
           timezone?: string | null
           updated_at?: string
