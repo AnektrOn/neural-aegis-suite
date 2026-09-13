@@ -33,12 +33,12 @@ export function useSaveToolboxWritingToJournal(meta?: ToolboxJournalMeta | null)
         if (!result.ok) {
           toast({
             title: t("journal.saveError"),
-            description: result.error,
+            description: "error" in result ? result.error : undefined,
             variant: "destructive",
           });
           return false;
         }
-        if (!result.skipped) {
+        if (!("skipped" in result) || !result.skipped) {
           toast({ title: t("journal.entryAdded") });
         }
         return true;
