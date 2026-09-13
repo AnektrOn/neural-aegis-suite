@@ -200,11 +200,31 @@ export default function AdminMessages() {
           </select>
         )}
 
+        <div className="flex flex-wrap gap-2">
+          {(["fr", "en", "auto"] as const).map(l => (
+            <button key={l} type="button" onClick={() => setPopupLang(l)}
+              className={`px-3 py-1.5 rounded-xl text-xs border transition-colors ${popupLang === l ? "border-primary/40 text-primary bg-primary/10" : "border-border/20 text-muted-foreground hover:text-foreground"}`}>
+              {l === "fr" ? "Français" : l === "en" ? "English" : t("admin.popup.langAuto")}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-[11px] text-muted-foreground">{t("admin.popup.frVersion")}</p>
         <input type="text" value={popupTitle} onChange={e => setPopupTitle(e.target.value)} placeholder="Title"
           className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30" />
 
         <textarea value={popupBody} onChange={e => setPopupBody(e.target.value)} placeholder="Your message..." rows={3}
           className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 resize-none" />
+
+        {popupLang !== "fr" && (
+          <>
+            <p className="text-[11px] text-muted-foreground">{t("admin.popup.enVersion")}</p>
+            <input type="text" value={popupTitleEn} onChange={e => setPopupTitleEn(e.target.value)} placeholder="Title"
+              className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30" />
+            <textarea value={popupBodyEn} onChange={e => setPopupBodyEn(e.target.value)} placeholder="Your message..." rows={3}
+              className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 resize-none" />
+          </>
+        )}
 
         <input type="text" value={popupLink} onChange={e => setPopupLink(e.target.value)} placeholder={t("admin.popup.linkPlaceholder")}
           className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30" />
