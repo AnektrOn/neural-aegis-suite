@@ -4,6 +4,7 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  type MutableRefObject,
   type ReactNode,
 } from "react";
 import * as THREE from "three";
@@ -12,21 +13,52 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { cn } from "@/lib/utils";
 import { getStoredThemeIsDark } from "@/lib/theme";
-import { buildMetatronTargets, buildNeuralMicrograph, type QuantumNebulaState } from "./quantumNebulaStates";
+import {
+  buildDnaTargets,
+  buildMetatronTargets,
+  buildNeuralMicrograph,
+  buildObjTargets,
+  buildSriYantraTargets,
+  buildSvgTargets,
+  buildSvgTargetsAsync,
+  type QuantumNebulaFigure,
+  type QuantumNebulaState,
+} from "./quantumNebulaStates";
 
 export type QuantumNebulaTheme = "dark" | "light" | "auto";
 export type QuantumNebulaPulsePattern = "organic" | "spiral" | "ripple";
-export type { QuantumNebulaState };
+export type { QuantumNebulaFigure, QuantumNebulaState };
 export {
   QUANTUM_NEBULA_STATES,
   QUANTUM_NEBULA_STATE_LABELS,
 } from "./quantumNebulaStates";
 
 /** Dark: 95% bleu + 5% or. Light: 95% noir + 5% or. */
-const PARTICLE_PALETTES: Record<"dark" | "light", { dominant: THREE.Color; accent: THREE.Color }> = {
+const DEFAULT_PARTICLE_PALETTES: Record<"dark" | "light", { dominant: THREE.Color; accent: THREE.Color }> = {
   dark: { dominant: new THREE.Color(0x18bec7), accent: new THREE.Color(0xe8b923) },
   light: { dominant: new THREE.Color(0x000000), accent: new THREE.Color(0xb8860b) },
 };
+
+export interface QuantumNebulaParticlePalette {
+  dark: { dominant: number; accent: number };
+  light: { dominant: number; accent: number };
+}
+
+function resolveParticlePalettes(
+  custom?: QuantumNebulaParticlePalette | null,
+): Record<"dark" | "light", { dominant: THREE.Color; accent: THREE.Color }> {
+  if (!custom) return DEFAULT_PARTICLE_PALETTES;
+  return {
+    dark: {
+      dominant: new THREE.Color(custom.dark.dominant),
+      accent: new THREE.Color(custom.dark.accent),
+    },
+    light: {
+      dominant: new THREE.Color(custom.light.dominant),
+      accent: new THREE.Color(custom.light.accent),
+    },
+  };
+}
 
 const PARTICLE_ACCENT_RATIO = 0.05;
 /** Light mode needs larger points — no additive glow to “inflate” them. */
@@ -42,8 +74,12 @@ function resolveNebulaTheme(theme: QuantumNebulaTheme): "dark" | "light" {
   return getStoredThemeIsDark() ? "dark" : "light";
 }
 
-function pickParticleColor(resolved: "dark" | "light", out: THREE.Color): void {
-  const { dominant, accent } = PARTICLE_PALETTES[resolved];
+function pickParticleColor(
+  resolved: "dark" | "light",
+  palettes: Record<"dark" | "light", { dominant: THREE.Color; accent: THREE.Color }>,
+  out: THREE.Color,
+): void {
+  const { dominant, accent } = palettes[resolved];
   if (Math.random() < PARTICLE_ACCENT_RATIO) {
     out.copy(accent);
     out.offsetHSL((Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.06, (Math.random() - 0.5) * 0.08);
@@ -86,13 +122,77 @@ export interface QuantumNebulaProps {
   showAudioSpectrum?: boolean;
   audioTuning?: Partial<QuantumNebulaAudioTuning>;
   visualTuning?: Partial<QuantumNebulaVisualTuning>;
+  /** Override default cyan/gold particle colors (Guardian palette). */
+  particlePalette?: QuantumNebulaParticlePalette;
   reflexionTuning?: Partial<QuantumNebulaReflexionTuning>;
+  /** Particle figure on boom. Default stays Metatron. */
+  figure?: QuantumNebulaFigure;
+  /** Blob or URL of a .obj sampled when `figure` is `"obj"`. */
+  objUrl?: string | null;
+  /** Raw .obj text — preferred over `objUrl` (survives remounts). */
+  objText?: string | null;
+  /** Blob or URL of an .svg sampled when `figure` is `"svg"`. */
+  svgUrl?: string | null;
+  /** Raw SVG markup — preferred over `svgUrl` (survives remounts). */
+  svgText?: string | null;
+  /** Toolbox / exercise pilots — updated every frame via ref (no re-render). */
+  driveRef?: MutableRefObject<QuantumNebulaDrive>;
+  /** Named particle geometries for `drive.shapeId` morphing. */
+  shapeLibrary?: Record<string, QuantumNebulaShapeBuilder>;
+  /**
+   * Transparent canvas (alpha clear) so particles float over glass/modal UI.
+   * Matches original GenerativeArtSceneV3 (`alpha: true`, no solid backdrop).
+   */
+  transparent?: boolean;
   children?: ReactNode;
 }
 
 export interface QuantumNebulaHandle {
   playAudio: () => Promise<boolean>;
 }
+
+export type QuantumNebulaShapeBuilder = (
+  particleCount: number,
+  radius: number,
+) => Float32Array;
+
+/** Per-frame animation overrides (toolbox pilots). Read every rAF — mutate via ref, not React state. */
+export interface QuantumNebulaDrive {
+  /** Key into `shapeLibrary` — particles morph toward that geometry. */
+  shapeId?: string;
+  /** 0 = organic cloud, 1 = full shape morph. */
+  morphBlend?: number;
+  /** Anisotropic stretch of the morph target (e.g. lung inflate). */
+  scaleX?: number;
+  scaleY?: number;
+  scaleZ?: number;
+  /** Push left/right halves apart (dual lobes). */
+  lobeSeparation?: number;
+  /** Twist around vertical axis (helix feel). */
+  twist?: number;
+  /** Soft residual cloud scale (prefer morph shapes over this). */
+  radialScale?: number;
+  /** Black core scale — keep small for figurative shapes. */
+  pupilScale?: number;
+  /** Outer boundary multiplier. */
+  sphereRadiusMul?: number;
+  /** Curl chaos 0 = calme, 1+ = agité (STOP « S »). */
+  turbulence?: number;
+  /** Pull toward center 0–1. */
+  centerPull?: number;
+  /** Push outward 0–1. */
+  radialPush?: number;
+  /** Downward drift 0–1 (ancrage). */
+  gravity?: number;
+  /** Force Metatron / figure reveal 0–1. */
+  figureReveal?: number;
+  /** Rotation speed multiplier. */
+  spin?: number;
+  /** Organic micro-motion even at rest. */
+  breatheMotion?: number;
+}
+
+const EMPTY_DRIVE: QuantumNebulaDrive = {};
 
 export interface QuantumNebulaAudioTuning {
   pulsePattern: QuantumNebulaPulsePattern;
@@ -279,7 +379,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
   className,
   fullscreen = true,
   theme = "auto",
-  state = "solid",
+  state = "repos",
   audioSrc = null,
   autoPlayAudio = false,
   audioLoop = true,
@@ -293,7 +393,16 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
   showAudioSpectrum = false,
   audioTuning,
   visualTuning,
+  particlePalette = null,
   reflexionTuning,
+  figure = "metatron",
+  objUrl = null,
+  objText = null,
+  svgUrl = null,
+  svgText = null,
+  driveRef,
+  shapeLibrary,
+  transparent = false,
   children,
 }, forwardedRef) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -318,7 +427,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
     ...defaultReflexionTuning,
     ...reflexionTuning,
   });
-  const movementBaseStateRef = useRef<QuantumNebulaState>("solid");
+  const movementBaseStateRef = useRef<QuantumNebulaState>("repos");
   const stateRef = useRef<QuantumNebulaState>(state);
   const showAudioSpectrumRef = useRef(showAudioSpectrum);
   const onAudioEndedRef = useRef(onAudioEnded);
@@ -327,7 +436,31 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
   const onAudioErrorRef = useRef(onAudioError);
   const onAudioTimeUpdateRef = useRef(onAudioTimeUpdate);
   const enableAudioAnalyserRef = useRef(enableAudioAnalyser);
+  const driveRefStable = useRef(driveRef);
+  driveRefStable.current = driveRef;
+  const shapeLibraryRef = useRef(shapeLibrary);
+  shapeLibraryRef.current = shapeLibrary;
+  const shapeTargetsRef = useRef<Record<string, Float32Array>>({});
+  const smoothMorphRef = useRef({
+    blend: 0,
+    scaleX: 1,
+    scaleY: 1,
+    scaleZ: 1,
+    lobeSeparation: 0,
+    twist: 0,
+  });
   const playAudioRef = useRef<() => Promise<boolean>>(async () => false);
+  const figureRef = useRef<QuantumNebulaFigure>(figure);
+  const objTextRef = useRef<string | null>(null);
+  const objTargetsRef = useRef<Float32Array | null>(null);
+  const svgTextRef = useRef<string | null>(null);
+  const svgTargetsRef = useRef<Float32Array | null>(null);
+  const builtinFiguresRef = useRef<{
+    metatron: Float32Array;
+    sriYantra: Float32Array;
+    dna: Float32Array;
+  } | null>(null);
+  figureRef.current = figure;
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() =>
     resolveNebulaTheme(theme),
   );
@@ -360,7 +493,11 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
     };
   }, [theme]);
 
-  const rebuildKey = `${visualTuning?.particleCount ?? defaultVisualTuning.particleCount}-${
+  const paletteKey = particlePalette
+    ? `${particlePalette.dark.dominant}-${particlePalette.dark.accent}-${particlePalette.light.dominant}-${particlePalette.light.accent}`
+    : "default";
+
+  const rebuildKey = `${transparent ? "tx" : "op"}-${paletteKey}-${visualTuning?.particleCount ?? defaultVisualTuning.particleCount}-${
     visualTuning?.baseHue ?? defaultVisualTuning.baseHue
   }-${visualTuning?.hueVariance ?? defaultVisualTuning.hueVariance}-${
     visualTuning?.pupilRadius ?? defaultVisualTuning.pupilRadius
@@ -622,28 +759,114 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
   }, [reflexionTuning]);
 
   useEffect(() => {
+    const applyObj = (text: string) => {
+      objTextRef.current = text;
+      const visual = visualTuningRef.current;
+      const count = Math.max(1000, Math.floor(visual.particleCount));
+      objTargetsRef.current = buildObjTargets(text, count, visual.sphereRadius * 0.92);
+    };
+    if (objText) {
+      applyObj(objText);
+      return;
+    }
+    if (!objUrl) {
+      objTextRef.current = null;
+      objTargetsRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(objUrl);
+        const text = await response.text();
+        if (cancelled) return;
+        applyObj(text);
+      } catch {
+        if (cancelled) return;
+        objTextRef.current = null;
+        objTargetsRef.current = null;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [objText, objUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const applySvg = async (text: string) => {
+      svgTextRef.current = text;
+      const visual = visualTuningRef.current;
+      const count = Math.max(1000, Math.floor(visual.particleCount));
+      const targets = await buildSvgTargetsAsync(text, count, visual.sphereRadius * 0.92);
+      if (cancelled) return;
+      svgTargetsRef.current = targets;
+    };
+    if (svgText) {
+      void applySvg(svgText);
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (!svgUrl) {
+      svgTextRef.current = null;
+      svgTargetsRef.current = null;
+      return;
+    }
+    void (async () => {
+      try {
+        const response = await fetch(svgUrl);
+        const text = await response.text();
+        if (cancelled) return;
+        await applySvg(text);
+      } catch {
+        if (cancelled) return;
+        svgTextRef.current = null;
+        svgTargetsRef.current = null;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [svgText, svgUrl]);
+
+  useEffect(() => {
     const currentMount = mountRef.current;
     if (!currentMount) return;
 
     const visual = visualTuningRef.current;
     const isLightTheme = resolvedTheme === "light";
+    const useTransparent = transparent;
     const scene = new THREE.Scene();
     const bgHex = isLightTheme ? 0xffffff : 0x000000;
-    scene.background = new THREE.Color(bgHex);
+    if (useTransparent) {
+      scene.background = null;
+    } else {
+      scene.background = new THREE.Color(bgHex);
+    }
     const camera = new THREE.PerspectiveCamera(
       75,
-      currentMount.clientWidth / currentMount.clientHeight,
+      Math.max(currentMount.clientWidth, 1) / Math.max(currentMount.clientHeight, 1),
       0.1,
       1000,
     );
     camera.position.z = visual.cameraDistance;
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setClearColor(bgHex, 1);
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: useTransparent,
+      premultipliedAlpha: false,
+    });
+    if (useTransparent) {
+      renderer.setClearColor(0x000000, 0);
+    } else {
+      renderer.setClearColor(bgHex, 1);
+    }
     renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     rendererRef.current = renderer;
+    renderer.domElement.style.pointerEvents = "none";
     currentMount.appendChild(renderer.domElement);
 
     const renderPass = new RenderPass(scene, camera);
@@ -653,10 +876,12 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       visual.bloomRadius,
       visual.bloomThreshold,
     );
-    const composer = new EffectComposer(renderer);
-    composer.addPass(renderPass);
-    // Bloom kills dark particles on white — only use it in dark mode.
-    if (!isLightTheme) {
+    // UnrealBloomPass forces opaque alpha and often blacks out transparent canvases.
+    // Match original V3 spirit: additive particles; use bloom only on opaque backdrops.
+    const useComposer = !useTransparent && !isLightTheme;
+    const composer = useComposer ? new EffectComposer(renderer) : null;
+    if (composer) {
+      composer.addPass(renderPass);
       composer.addPass(bloomPass);
     }
     composerRef.current = composer;
@@ -690,7 +915,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       basePositions[i3 + 1] = positions[i3 + 1];
       basePositions[i3 + 2] = positions[i3 + 2];
 
-      pickParticleColor(resolvedTheme, baseColor);
+      pickParticleColor(resolvedTheme, resolveParticlePalettes(particlePalette), baseColor);
       colors[i3] = baseColor.r;
       colors[i3 + 1] = baseColor.g;
       colors[i3 + 2] = baseColor.b;
@@ -710,6 +935,48 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       ringDensityOuterThick: reflexionTuningRef.current.ringDensityOuterThick,
     });
     const metatronTargets = buildMetatronTargets(particleCount, visual.sphereRadius * 0.92);
+    const sriYantraTargets = buildSriYantraTargets(particleCount, visual.sphereRadius * 0.92);
+    const dnaTargets = buildDnaTargets(particleCount, visual.sphereRadius * 0.92);
+    builtinFiguresRef.current = {
+      metatron: metatronTargets,
+      sriYantra: sriYantraTargets,
+      dna: dnaTargets,
+    };
+    const shapeCache: Record<string, Float32Array> = {};
+    const lib = shapeLibraryRef.current;
+    if (lib) {
+      const shapeRadius = visual.sphereRadius * 0.92;
+      for (const [id, builder] of Object.entries(lib)) {
+        try {
+          shapeCache[id] = builder(particleCount, shapeRadius);
+        } catch {
+          // skip broken builders
+        }
+      }
+    }
+    shapeTargetsRef.current = shapeCache;
+    if (objTextRef.current) {
+      objTargetsRef.current = buildObjTargets(
+        objTextRef.current,
+        particleCount,
+        visual.sphereRadius * 0.92,
+      );
+    }
+    if (svgTextRef.current) {
+      const markup = svgTextRef.current;
+      const rebuiltSvg = buildSvgTargets(markup, particleCount, visual.sphereRadius * 0.92);
+      if (rebuiltSvg) {
+        svgTargetsRef.current = rebuiltSvg;
+      } else {
+        void buildSvgTargetsAsync(markup, particleCount, visual.sphereRadius * 0.92).then(
+          (targets) => {
+            if (targets && svgTextRef.current === markup) {
+              svgTargetsRef.current = targets;
+            }
+          },
+        );
+      }
+    }
     const pointSizes = new Float32Array(particleCount).fill(1);
     const restColors = colors.slice();
 
@@ -759,13 +1026,14 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           vec2 c = gl_PointCoord - vec2(0.5);
           float d = length(c);
           if (d > 0.5) discard;
-          // Soft edge; keep alpha high so dark particles stay visible on white.
-          float alpha = smoothstep(0.5, 0.28, d);
+          // Soft circular particle (original V3 style).
+          float alpha = 1.0 - smoothstep(0.22, 0.5, d);
+          if (alpha < 0.01) discard;
           gl_FragColor = vec4(vColor, alpha);
         }
       `,
       transparent: true,
-      blending: isLightTheme ? THREE.NormalBlending : THREE.AdditiveBlending,
+      blending: useTransparent || !isLightTheme ? THREE.AdditiveBlending : THREE.NormalBlending,
       depthWrite: false,
       depthTest: true,
     });
@@ -773,7 +1041,11 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
     const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
     scene.add(particleSystem);
 
-    const sizeScale = isLightTheme ? LIGHT_PARTICLE_SIZE_SCALE : 1;
+    const sizeScale = useTransparent
+      ? 2.4
+      : isLightTheme
+        ? LIGHT_PARTICLE_SIZE_SCALE
+        : 1;
     const syncPointSize = () => {
       const base = visualTuningRef.current.particleSize * renderer.getPixelRatio();
       particleMaterial.uniforms.u_pointSizeCull.value = base;
@@ -793,6 +1065,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
     const pupilMesh = new THREE.Mesh(pupilGeometry, pupilMaterial);
     pupilMesh.scale.setScalar(initialPupil);
     pupilMesh.renderOrder = 10;
+    pupilMesh.visible = !useTransparent;
     scene.add(pupilMesh);
 
     // Second copy drawn after bloom so glow never leaks into the pupil.
@@ -808,6 +1081,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       }),
     );
     pupilOverlayMesh.scale.setScalar(initialPupil);
+    pupilOverlayMesh.visible = !useTransparent;
     pupilOverlayScene.add(pupilOverlayMesh);
 
     let frameId = 0;
@@ -916,6 +1190,8 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
     let silenceFrames = 0;
     let smoothBoomPulse = 0;
     let smoothMetatronMix = 0;
+    let smoothRadialScale = 1;
+    let smoothPupilScale = 1;
     let prevState: QuantumNebulaState = stateRef.current;
 
     const animate = () => {
@@ -924,15 +1200,29 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       const visual = visualTuningRef.current;
       const reflexion = reflexionTuningRef.current;
       const tuning = audioTuningRef.current;
+      const drive = driveRefStable.current?.current ?? EMPTY_DRIVE;
       syncPointSize();
 
-      const pupilRadius = Math.max(
-        0.02,
-        Math.min(visual.pupilRadius, visual.sphereRadius * 0.85),
-      );
+      const sphereMul = drive.sphereRadiusMul ?? 1;
+      const targetRadial = drive.radialScale ?? 1;
+      smoothRadialScale += (targetRadial - smoothRadialScale) * 0.17;
+      const targetPupil = drive.pupilScale ?? 1;
+      smoothPupilScale += (targetPupil - smoothPupilScale) * 0.15;
+
+      const pupilRadius = useTransparent
+        ? 0.001
+        : Math.max(
+            0.02,
+            Math.min(
+              visual.pupilRadius * smoothPupilScale,
+              visual.sphereRadius * sphereMul * 0.85,
+            ),
+          );
       particleMaterial.uniforms.u_pupilRadius.value = pupilRadius;
-      pupilMesh.scale.setScalar(pupilRadius);
-      pupilOverlayMesh.scale.setScalar(pupilRadius);
+      if (!useTransparent) {
+        pupilMesh.scale.setScalar(pupilRadius);
+        pupilOverlayMesh.scale.setScalar(pupilRadius);
+      }
 
       // Keep current cloud when entering mouvement — no Metatron flash from ambient/fallback.
       if (state === "mouvement" && prevState !== "mouvement") {
@@ -944,6 +1234,29 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
         silenceFrames = 0;
       }
       prevState = state;
+
+      const figureId = figureRef.current;
+      const builtins = builtinFiguresRef.current;
+      let figureTargets = metatronTargets;
+      if (
+        figureId === "obj" &&
+        objTargetsRef.current &&
+        objTargetsRef.current.length === particleCount * 3
+      ) {
+        figureTargets = objTargetsRef.current;
+      } else if (
+        figureId === "svg" &&
+        svgTargetsRef.current &&
+        svgTargetsRef.current.length === particleCount * 3
+      ) {
+        figureTargets = svgTargetsRef.current;
+      } else if (figureId === "sriYantra") {
+        figureTargets = builtins?.sriYantra ?? metatronTargets;
+      } else if (figureId === "dna") {
+        figureTargets = builtins?.dna ?? metatronTargets;
+      }
+      const lockFigureUpright =
+        figureId === "svg" || figureId === "obj" || figureId === "sriYantra";
 
       const positionArray = particleSystem.geometry.attributes.position.array as Float32Array;
       const colorArray = particleSystem.geometry.attributes.color.array as Float32Array;
@@ -1031,7 +1344,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           boomLevel = 0;
           kickLevel *= 0.9;
           silenceFrames = 0;
-          effectiveState = movementBaseState === "reflexion" ? "reflexion" : "solid";
+          effectiveState = movementBaseState === "reflexion" ? "reflexion" : "repos";
         } else if (isAudioPlaying) {
           // Voice playing without analyser (mobile/cross-origin): synthesize a
           // living pulse so "mouvement" stays visibly animated.
@@ -1131,7 +1444,36 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       if (Math.abs(targetMetatronMix - smoothMetatronMix) < 0.0005) {
         smoothMetatronMix = targetMetatronMix;
       }
-      const frameMetatronMix = onReflexionBase ? smoothMetatronMix : targetMetatronMix;
+      const frameMetatronMix = Math.max(
+        onReflexionBase ? smoothMetatronMix : targetMetatronMix,
+        drive.figureReveal ?? 0,
+      );
+
+      const turbulence = drive.turbulence ?? 0;
+      const centerPull = drive.centerPull ?? 0;
+      const radialPush = drive.radialPush ?? 0;
+      const gravity = drive.gravity ?? 0;
+      const breatheMotion = drive.breatheMotion ?? 0;
+      const morph = smoothMorphRef.current;
+      morph.blend += ((drive.morphBlend ?? 0) - morph.blend) * 0.14;
+      morph.scaleX += ((drive.scaleX ?? 1) - morph.scaleX) * 0.14;
+      morph.scaleY += ((drive.scaleY ?? 1) - morph.scaleY) * 0.14;
+      morph.scaleZ += ((drive.scaleZ ?? 1) - morph.scaleZ) * 0.14;
+      morph.lobeSeparation += ((drive.lobeSeparation ?? 0) - morph.lobeSeparation) * 0.14;
+      morph.twist += ((drive.twist ?? 0) - morph.twist) * 0.12;
+      const morphTargets =
+        drive.shapeId && morph.blend > 0.01
+          ? shapeTargetsRef.current[drive.shapeId] ?? null
+          : null;
+      const morphActive = Boolean(morphTargets && morph.blend > 0.01);
+      // Only snap toward home when breath/morph drive is active — otherwise repos
+      // stays an organic curl cloud (lungBlend=0.18 was freezing the calm look).
+      const lungBlend = morphActive
+        ? Math.min(0.62, 0.28 + morph.blend * 0.34 + breatheMotion * 0.12)
+        : breatheMotion > 0.01
+          ? Math.min(0.55, 0.18 + breatheMotion * 0.28)
+          : 0;
+      const boundaryR = visual.sphereRadius * sphereMul;
 
       for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3;
@@ -1148,15 +1490,22 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
         );
 
         let forceMul = visual.baseForce * cloudMix;
-        let returnPull = 0.00025 * cloudMix;
-        let metatronMix = frameMetatronMix;
+        if (turbulence > 0) {
+          forceMul *= 1 + turbulence * 2.8;
+        }
+        if (breatheMotion > 0 && state !== "mouvement") {
+          forceMul *= 1 + breatheMotion * 0.85;
+        }
+        const returnPull = 0.00025 * cloudMix;
+        const metatronMix = frameMetatronMix;
 
         if (state === "mouvement") {
           const pulse = 1 + ambientPulse + bassLevel * visual.mouvementBassPulse;
           const audioForce = bassEnergy * 2 + midEnergy * 1.5 + trebleEnergy;
           const orbital =
             (visual.mouvementOrbital * 0.35 + midLevel * visual.mouvementOrbitalBoost * 0.22) *
-            mouvementScale;
+            mouvementScale *
+            (lockFigureUpright ? 1 - metatronMix * 0.95 : 1);
           const shimmer =
             (highLevel * 0.00035 + ambientPulse * 0.00012) * mouvementScale;
           const radialLength = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) + 0.001;
@@ -1217,9 +1566,9 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           velocities[i3 + 1] += boomY * boomForce * radialRemain;
           velocities[i3 + 2] += boomZ * boomForce * radialRemain;
 
-          const mx = metatronTargets[i3];
-          const my = metatronTargets[i3 + 1];
-          const mz = metatronTargets[i3 + 2];
+          const mx = figureTargets[i3];
+          const my = figureTargets[i3 + 1];
+          const mz = figureTargets[i3 + 2];
           const pull =
             metatronMix *
             tuning.metatronPull *
@@ -1261,14 +1610,51 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           }
         }
 
+        const driveFigureMix = drive.figureReveal ?? 0;
+        if (driveFigureMix > 0.02 && state !== "mouvement") {
+          const mx = figureTargets[i3];
+          const my = figureTargets[i3 + 1];
+          const mz = figureTargets[i3 + 2];
+          const pull = driveFigureMix * 0.028;
+          velocities[i3] += (mx - p.x) * pull;
+          velocities[i3 + 1] += (my - p.y) * pull;
+          velocities[i3 + 2] += (mz - p.z) * pull;
+          if (driveFigureMix > 0.45) {
+            const snap = (driveFigureMix - 0.45) * 0.08;
+            positionArray[i3] += (mx - positionArray[i3]) * snap;
+            positionArray[i3 + 1] += (my - positionArray[i3 + 1]) * snap;
+            positionArray[i3 + 2] += (mz - positionArray[i3 + 2]) * snap;
+          }
+        }
+
         if (cloudMix > 0.01 || (state === "mouvement" && onReflexionBase)) {
           velocities[i3] += curlForce.x * forceMul;
           velocities[i3 + 1] += curlForce.y * forceMul;
           velocities[i3 + 2] += curlForce.z * forceMul;
 
-          velocities[i3] += (basePositions[i3] - p.x) * returnPull;
-          velocities[i3 + 1] += (basePositions[i3 + 1] - p.y) * returnPull;
-          velocities[i3 + 2] += (basePositions[i3 + 2] - p.z) * returnPull;
+          const cloudHomeX = basePositions[i3] * smoothRadialScale;
+          const cloudHomeY = basePositions[i3 + 1] * smoothRadialScale;
+          const cloudHomeZ = basePositions[i3 + 2] * smoothRadialScale;
+          velocities[i3] += (cloudHomeX - p.x) * returnPull * (morphActive ? 0.35 : 1);
+          velocities[i3 + 1] += (cloudHomeY - p.y) * returnPull * (morphActive ? 0.35 : 1);
+          velocities[i3 + 2] += (cloudHomeZ - p.z) * returnPull * (morphActive ? 0.35 : 1);
+
+          if (centerPull > 0) {
+            const pull = centerPull * 0.0005;
+            velocities[i3] -= p.x * pull;
+            velocities[i3 + 1] -= p.y * pull;
+            velocities[i3 + 2] -= p.z * pull;
+          }
+          if (radialPush > 0) {
+            const pr = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) + 0.001;
+            const push = radialPush * 0.00062;
+            velocities[i3] += (p.x / pr) * push;
+            velocities[i3 + 1] += (p.y / pr) * push;
+            velocities[i3 + 2] += (p.z / pr) * push;
+          }
+          if (gravity > 0) {
+            velocities[i3 + 1] -= gravity * 0.00075;
+          }
 
           const damp =
             state === "mouvement" && onReflexionBase
@@ -1287,6 +1673,34 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           velocities[i3 + 2] = 0;
         }
 
+        if (lungBlend > 0.01) {
+          let tx = basePositions[i3] * smoothRadialScale;
+          let ty = basePositions[i3 + 1] * smoothRadialScale;
+          let tz = basePositions[i3 + 2] * smoothRadialScale;
+          if (morphActive && morphTargets) {
+            let mx = morphTargets[i3] * morph.scaleX;
+            let my = morphTargets[i3 + 1] * morph.scaleY;
+            let mz = morphTargets[i3 + 2] * morph.scaleZ;
+            if (morph.lobeSeparation > 0.0001) {
+              const side = mx >= 0 ? 1 : -1;
+              mx += side * morph.lobeSeparation;
+            }
+            if (Math.abs(morph.twist) > 0.0001) {
+              const rr = Math.sqrt(mx * mx + mz * mz) + 0.0001;
+              const ang = Math.atan2(mz, mx) + morph.twist * (0.55 + my * 0.4);
+              mx = Math.cos(ang) * rr;
+              mz = Math.sin(ang) * rr;
+            }
+            const b = morph.blend;
+            tx = tx * (1 - b) + mx * b;
+            ty = ty * (1 - b) + my * b;
+            tz = tz * (1 - b) + mz * b;
+          }
+          positionArray[i3] += (tx - positionArray[i3]) * lungBlend;
+          positionArray[i3 + 1] += (ty - positionArray[i3 + 1]) * lungBlend;
+          positionArray[i3 + 2] += (tz - positionArray[i3 + 2]) * lungBlend;
+        }
+
         const thought = Math.sin(
           elapsedTime * reflexion.pulseSpeed + neural.phase[i],
         );
@@ -1302,7 +1716,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
         {
           const nr = Math.sqrt(neuralX * neuralX + neuralY * neuralY + neuralZ * neuralZ);
           const keepOut = pupilRadius * 1.2;
-          const keepIn = visual.sphereRadius * 0.98;
+          const keepIn = boundaryR * 0.98;
           if (nr < keepOut) {
             if (nr < 0.0001) {
               neuralX = keepOut;
@@ -1357,9 +1771,9 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           }
         }
 
-        // Shared spherical container for all states (solid / mouvement / reflexion).
+        // Shared spherical container for all states (repos / mouvement / reflexion).
         {
-          const maxR = visual.sphereRadius;
+          const maxR = boundaryR;
           const px = positionArray[i3];
           const py = positionArray[i3 + 1];
           const pz = positionArray[i3 + 2];
@@ -1428,7 +1842,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
         isLightTheme || state !== "mouvement"
           ? 0
           : (boomPulse * tuning.bloomBoost + trebleEnergy * 0.12) * mouvementScale;
-      if (!isLightTheme) {
+      if (useComposer) {
         bloomPass.strength += (bloomTarget + movementBloomBoost - bloomPass.strength) * 0.1;
         bloomPass.radius +=
           (visual.bloomRadius * cloudMix + reflexion.bloomRadius * reflexionMix -
@@ -1440,16 +1854,26 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
             bloomPass.threshold) *
           0.1;
       }
-      renderer.setClearColor(bgHex, 1);
+      if (!useTransparent) {
+        renderer.setClearColor(bgHex, 1);
+      } else {
+        renderer.setClearColor(0x000000, 0);
+      }
 
       const cameraZTarget = visual.cameraDistance - reflexion.cameraZoom * reflexionMix;
+      if (lockFigureUpright) {
+        particleSystem.rotation.z += (0 - particleSystem.rotation.z) * 0.16;
+      }
       if (state === "mouvement") {
-        const rotationBoost =
-          (visual.solidRotation +
-            visual.mouvementRotation * (0.28 + ambientPulse * 0.4) +
-            midLevel * 0.0012) *
-          (onReflexionBase ? 0.45 : 1);
-        particleSystem.rotation.z += rotationBoost;
+        if (!lockFigureUpright) {
+          const rotationBoost =
+            (visual.solidRotation +
+              visual.mouvementRotation * (0.28 + ambientPulse * 0.4) +
+              midLevel * 0.0012) *
+            (onReflexionBase ? 0.45 : 1) *
+            (drive.spin ?? 1);
+          particleSystem.rotation.z += rotationBoost;
+        }
         const zoomPulse =
           (ambientPulse +
             bassLevel * visual.mouvementCameraZoom +
@@ -1466,13 +1890,17 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           Math.cos(elapsedTime * config.motion.cameraOrbitY) *
           (orbitStrength * 0.75 + midLevel * 0.012 * mouvementScale);
       } else if (reflexionMix > 0.02) {
-        particleSystem.rotation.z +=
-          reflexion.rotationSpeed * reflexionMix + visual.solidRotation * cloudMix;
+        if (!lockFigureUpright) {
+          particleSystem.rotation.z +=
+            reflexion.rotationSpeed * reflexionMix + visual.solidRotation * cloudMix;
+        }
         camera.position.x += (0 - camera.position.x) * 0.08;
         camera.position.y += (0 - camera.position.y) * 0.08;
         camera.position.z += (cameraZTarget - camera.position.z) * 0.08;
       } else {
-        particleSystem.rotation.z += visual.solidRotation;
+        if (!lockFigureUpright) {
+          particleSystem.rotation.z += visual.solidRotation * (drive.spin ?? 1);
+        }
         camera.position.x += (0 - camera.position.x) * visual.cameraReturnLerp;
         camera.position.y += (0 - camera.position.y) * visual.cameraReturnLerp;
         camera.position.z +=
@@ -1480,12 +1908,18 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       }
       camera.lookAt(scene.position);
 
-      composer.render();
+      if (composer) {
+        composer.render();
+      } else {
+        renderer.render(scene, camera);
+      }
       // Punch absolute black after bloom so no particle glow can appear inside.
-      renderer.autoClear = false;
-      renderer.clearDepth();
-      renderer.render(pupilOverlayScene, camera);
-      renderer.autoClear = true;
+      if (!useTransparent) {
+        renderer.autoClear = false;
+        renderer.clearDepth();
+        renderer.render(pupilOverlayScene, camera);
+        renderer.autoClear = true;
+      }
       frameId = requestAnimationFrame(animate);
     };
     animate();
@@ -1493,16 +1927,21 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
     const handleResize = () => {
       const w = currentMount.clientWidth;
       const h = currentMount.clientHeight;
+      if (w <= 0 || h <= 0) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
-      composer.setSize(w, h);
+      composer?.setSize(w, h);
     };
 
+    handleResize();
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(currentMount);
     window.addEventListener("resize", handleResize);
 
     return () => {
       cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
       if (currentMount && renderer.domElement.parentNode === currentMount) {
         currentMount.removeChild(renderer.domElement);
@@ -1512,10 +1951,11 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       pupilGeometry.dispose();
       pupilMaterial.dispose();
       (pupilOverlayMesh.material as THREE.Material).dispose();
-      composer.dispose();
+      composer?.dispose();
       renderer.dispose();
+      builtinFiguresRef.current = null;
     };
-  }, [rebuildKey, resolvedTheme]);
+  }, [rebuildKey, resolvedTheme, particlePalette]);
 
   return (
     <div
@@ -1523,9 +1963,13 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
         fullscreen ? "fixed inset-0 h-screen w-screen z-0" : "absolute inset-0 h-full w-full z-0",
         className,
       )}
-      style={{ backgroundColor: resolvedTheme === "light" ? "#ffffff" : "#000000" }}
+      style={
+        transparent
+          ? { backgroundColor: "transparent" }
+          : { backgroundColor: resolvedTheme === "light" ? "#ffffff" : "#000000" }
+      }
     >
-      <div ref={mountRef} className="absolute inset-0 h-full w-full" />
+      <div ref={mountRef} className="pointer-events-none absolute inset-0 h-full w-full" />
       {showAudioSpectrum && state === "mouvement" ? (
         <canvas
           ref={spectrumCanvasRef}
@@ -1534,8 +1978,15 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
         />
       ) : null}
       {children ? (
-        <div className="pointer-events-none relative z-10 flex h-full w-full flex-col">
-          <div className="pointer-events-auto">{children}</div>
+        <div
+          className={cn(
+            "absolute inset-0 z-10 flex min-h-full flex-col",
+            "[&_a]:pointer-events-auto [&_aside]:pointer-events-auto [&_button]:pointer-events-auto",
+            "[&_header]:pointer-events-auto [&_input]:pointer-events-auto [&_label]:pointer-events-auto",
+            "[&_select]:pointer-events-auto [&_[role=button]]:pointer-events-auto",
+          )}
+        >
+          {children}
         </div>
       ) : null}
     </div>

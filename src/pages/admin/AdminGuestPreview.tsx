@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { useGuardianOptional } from "@/features/guardian";
+import { clearProductTour } from "@/lib/productTour";
 import {
   loadGuestQuizTemplate,
   createSession,
@@ -450,6 +451,7 @@ export default function AdminGuestPreview() {
             setGuardianResetLoading(true);
             try {
               guardian.resetOnboardingFlow();
+              if (user?.id) clearProductTour(user.id);
               toast({
                 title: t("admin.guest.guardian.resetSuccess"),
                 description: t("admin.guest.guardian.resetSuccessDesc"),

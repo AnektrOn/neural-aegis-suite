@@ -231,26 +231,32 @@ export function buildMdPdfHtml({
   };
 }
 
-function htmlWithPrintScript(html: string): string {
-  return html.replace(
-    "</body>",
-    `<script>
-      (function () {
-        function go() {
-          try { window.focus(); window.print(); } catch (e) {}
-        }
-        function start() {
-          if (document.fonts && document.fonts.ready) {
-            document.fonts.ready.then(function () { setTimeout(go, 200); });
-          } else {
-            setTimeout(go, 450);
-          }
-        }
-        if (document.readyState === "complete") start();
-        else window.addEventListener("load", start);
-      })();
-    </script></body>`,
-  );
+function schedulePrint(win: Window): void {
+  let printed = false;
+  const go = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      win.focus();
+      win.print();
+    } catch (err) {
+      console.error("[md-pdf] print failed", err);
+    }
+  };
+  const start = () => {
+    const fonts = win.document.fonts;
+    if (fonts?.ready) {
+      void fonts.ready.then(() => {
+        window.setTimeout(go, 250);
+      });
+      // Cap wait so a slow font CDN never blocks export.
+      window.setTimeout(go, 2500);
+      return;
+    }
+    window.setTimeout(go, 450);
+  };
+  if (win.document.readyState === "complete") start();
+  else win.addEventListener("load", start, { once: true });
 }
 
 function printViaHiddenIframe(html: string): boolean {
@@ -290,25 +296,25 @@ function printViaHiddenIframe(html: string): boolean {
   };
   win.addEventListener("afterprint", cleanup);
   window.setTimeout(cleanup, 120_000);
-  win.focus();
-  win.print();
+  schedulePrint(win);
   return true;
 }
 
 export function openMdPdfPrintWindow(args: BuildMdPdfArgs): boolean {
   try {
     const { html } = buildMdPdfHtml(args);
-    const printable = htmlWithPrintScript(html);
 
     if (printViaHiddenIframe(html)) return true;
 
-    const blob = new Blob([printable], { type: "text/html;charset=utf-8" });
+    // Popup fallback when iframe is unavailable (rare).
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, "_blank");
     if (!win) {
       URL.revokeObjectURL(url);
       return false;
     }
+    schedulePrint(win);
     window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     return true;
   } catch (err) {

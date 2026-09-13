@@ -38,10 +38,20 @@ export const ECHOLS_PRINCIPLES = [
   "CENTERING",
 ] as const;
 
+/** Eckhart Tolle presence runes (collection TOLLE). */
+export const TOLLE_PRINCIPLES = [
+  "PRESENCE",
+  "PAIN_BODY",
+  "WATCHER",
+  "ACCEPTANCE",
+  "STILLNESS",
+] as const;
+
 export const VALID_PRINCIPLES = [
   ...KYBALION_PRINCIPLES,
   ...MYSS_PRINCIPLES,
   ...ECHOLS_PRINCIPLES,
+  ...TOLLE_PRINCIPLES,
 ] as const;
 
 export type PulsePrincipleCode = (typeof VALID_PRINCIPLES)[number];

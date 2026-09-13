@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
 import { buildMdPdfHtml, openMdPdfPrintWindow, type MdPdfContentLang } from "@/features/md-pdf/exportMarkdownPdf";
+import { importWordOrTextFile, isStudioImportFile } from "@/features/md-pdf/importWordDocument";
 import { resolveMdPdfMeta } from "@/features/md-pdf/markdownToPrintHtml";
+import { normalizeReportToMarkdown } from "@/features/md-pdf/normalizeReportMarkdown";
 import { MD_PDF_THEMES, type MdPdfThemeId } from "@/features/md-pdf/printThemes";
 import { saveMdPdfRenderSession } from "@/features/md-pdf/mdPdfRenderSession";
 import { SAMPLE_VAULT_MD } from "@/features/md-pdf/sampleVaultMd";
@@ -23,10 +25,6 @@ type DocFile = {
 
 function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function isMarkdownFile(file: File): boolean {
-  return /\.(md|markdown|txt)$/i.test(file.name) || /markdown|text\/plain/.test(file.type);
 }
 
 async function collectDroppedFiles(data: DataTransfer): Promise<File[]> {
@@ -72,7 +70,7 @@ function readEntry(entry: FileSystemEntry): Promise<File[]> {
 }
 
 function docFromMarkdown(filename: string, markdown: string): DocFile {
-  const meta = resolveMdPdfMeta(markdown, filename.replace(/\.(md|markdown|txt)$/i, "") || filename);
+  const meta = resolveMdPdfMeta(markdown, filename.replace(/\.(md|markdown|txt|docx|doc)$/i, "") || filename);
   return {
     id: newId(),
     filename,
@@ -91,6 +89,7 @@ export default function AdminMarkdownPdf() {
   const [showCover, setShowCover] = useState(true);
   const [contentLang, setContentLang] = useState<MdPdfContentLang>("fr");
   const [dragOver, setDragOver] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const active = docs.find((d) => d.id === activeId) ?? docs[0] ?? null;
   const pdfLocale = contentLang === "en" ? "en" : "fr";
@@ -131,17 +130,33 @@ export default function AdminMarkdownPdf() {
 
   const ingest = useCallback(
     async (files: File[]) => {
-      const mdFiles = files.filter(isMarkdownFile);
-      if (mdFiles.length === 0) {
+      const supported = files.filter(isStudioImportFile);
+      if (supported.length === 0) {
         toast.error(t("admin.mdPdf.errorNoMd"));
         return;
       }
-      const next = await Promise.all(
-        mdFiles.map(async (file) => docFromMarkdown(file.name, await file.text())),
-      );
-      setDocs((prev) => [...prev, ...next]);
-      setActiveId((cur) => cur ?? next[0]?.id ?? null);
-      toast.success(t("admin.mdPdf.loaded", { n: next.length }));
+      setImporting(true);
+      try {
+        const next: DocFile[] = [];
+        const warnings: string[] = [];
+        for (const file of supported) {
+          try {
+            const imported = await importWordOrTextFile(file);
+            next.push(docFromMarkdown(imported.filename, imported.markdown));
+            warnings.push(...imported.warnings);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            toast.error(`${file.name}: ${message}`);
+          }
+        }
+        if (next.length === 0) return;
+        setDocs((prev) => [...prev, ...next]);
+        setActiveId((cur) => cur ?? next[0]?.id ?? null);
+        toast.success(t("admin.mdPdf.loaded", { n: next.length }));
+        for (const warning of warnings.slice(0, 3)) toast.message(warning);
+      } finally {
+        setImporting(false);
+      }
     },
     [t],
   );
@@ -153,17 +168,23 @@ export default function AdminMarkdownPdf() {
 
   const applyMarkdown = (value: string) => {
     if (!active) {
-      const created = docFromMarkdown("document.md", value);
+      const normalized = normalizeReportToMarkdown(value, "document");
+      const created = docFromMarkdown("document.md", normalized);
       setDocs([created]);
       setActiveId(created.id);
       return;
     }
-    const fallback = active.filename.replace(/\.(md|markdown|txt)$/i, "") || active.filename;
-    const meta = resolveMdPdfMeta(value, fallback);
+    const fallback = active.filename.replace(/\.(md|markdown|txt|docx|doc)$/i, "") || active.filename;
+    const looksLikeRawReport =
+      !value.trimStart().startsWith("---") &&
+      !/^#{1,3}\s+\S/m.test(value) &&
+      /Session Date:|Masterclass Report:|^\d+\.\s+\S+/m.test(value);
+    const nextValue = looksLikeRawReport ? normalizeReportToMarkdown(value, fallback) : value;
+    const meta = resolveMdPdfMeta(nextValue, fallback);
     updateActive(
-      value.trimStart().startsWith("---")
-        ? { markdown: value, title: meta.title, subtitle: meta.subtitle }
-        : { markdown: value },
+      nextValue.trimStart().startsWith("---") || looksLikeRawReport
+        ? { markdown: nextValue, title: meta.title, subtitle: meta.subtitle }
+        : { markdown: nextValue },
     );
   };
 
@@ -226,9 +247,9 @@ export default function AdminMarkdownPdf() {
           <Button type="button" variant="outline" onClick={loadSample}>
             {t("admin.mdPdf.sample")}
           </Button>
-          <Button type="button" disabled={!active || userStatus === "loading"} onClick={() => exportPdf(false)}>
+          <Button type="button" disabled={!active} onClick={() => exportPdf(false)}>
             <FileDown size={16} aria-hidden />
-            {t("admin.mdPdf.exportCurrent")}
+            {userStatus === "loading" ? t("admin.mdPdf.exportCurrentLoading") : t("admin.mdPdf.exportCurrent")}
           </Button>
           <Button type="button" disabled={docs.length === 0} onClick={() => exportPdf(true)}>
             <FileDown size={16} aria-hidden />
@@ -258,7 +279,7 @@ export default function AdminMarkdownPdf() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".md,.markdown,.txt,text/markdown,text/plain"
+          accept=".md,.markdown,.txt,.docx,.doc,text/markdown,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           multiple
           className="sr-only"
           onChange={(e) => {
@@ -270,10 +291,11 @@ export default function AdminMarkdownPdf() {
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex min-h-14 w-full items-center justify-center gap-3 text-sm text-muted-foreground hover:text-foreground"
+          disabled={importing}
+          className="flex min-h-14 w-full items-center justify-center gap-3 text-sm text-muted-foreground hover:text-foreground disabled:opacity-60"
         >
           <Upload size={18} aria-hidden />
-          {t("admin.mdPdf.dropHint")}
+          {importing ? t("admin.mdPdf.importing") : t("admin.mdPdf.dropHint")}
         </button>
       </div>
 

@@ -10,6 +10,7 @@ export const translations = {
   "nav.journal": { fr: "Journal", en: "Journal" },
   "nav.toolbox": { fr: "Boîte à outils", en: "Toolbox" },
   "nav.bibliotheque": { fr: "Bibliothèque", en: "Library" },
+  "nav.meditation": { fr: "Méditation", en: "Meditation" },
   "nav.people": { fr: "Relations", en: "Relationships" },
   "nav.analytics": { fr: "Analytiques", en: "Analytics" },
   "nav.calendar": { fr: "Calendrier", en: "Calendar" },
@@ -49,6 +50,10 @@ export const translations = {
   "pulse.title": { fr: "Pulse", en: "Pulse" },
   "pulse.swipeAssimilate": { fr: "ASSIMILER", en: "ASSIMILATE" },
   "pulse.swipeIgnore": { fr: "IGNORER", en: "IGNORE" },
+  "pulse.swipeHint": {
+    fr: "Glissez à gauche ou à droite · flèches clavier · Espace pour retourner",
+    en: "Swipe left or right · arrow keys · Space to flip",
+  },
   "pulse.reveal": { fr: "Dévoiler", en: "Reveal" },
   "pulse.question": { fr: "La Question", en: "The Question" },
   "pulse.teaching": { fr: "L'Enseignement", en: "The Teaching" },
@@ -544,6 +549,7 @@ export const translations = {
   },
   "admin.nav.programBuilder": { fr: "Program Builder", en: "Program Builder" },
   "admin.nav.videoLibrary": { fr: "Bibliothèque vidéo", en: "Video library" },
+  "admin.nav.meditation": { fr: "Méditation", en: "Meditation" },
   "admin.nav.decisions": { fr: "Décisions", en: "Decisions" },
   "admin.nav.messages": { fr: "Messagerie", en: "Messages" },
   "admin.nav.scoreboard": { fr: "Scoreboard", en: "Scoreboard" },
@@ -684,8 +690,8 @@ export const translations = {
     en: "Guardian — onboarding",
   },
   "admin.guest.guardian.desc": {
-    fr: "Réinitialise le flow Guardian pour ce compte (localStorage) et rouvre le modal d’activation.",
-    en: "Resets the Guardian flow for this account (localStorage) and reopens the activation modal.",
+    fr: "Réinitialise le flow Guardian et le tour produit (localStorage) pour ce compte, puis rouvre le modal d’activation.",
+    en: "Resets the Guardian flow and product tour (localStorage) for this account, then reopens the activation modal.",
   },
   "admin.guest.guardian.status": { fr: "État", en: "Status" },
   "admin.guest.guardian.resetCta": {
@@ -1288,6 +1294,25 @@ export const translations = {
     fr: "Quitter — reprendre plus tard",
     en: "Leave — resume later",
   },
+  "houses72.resumePrompt.titleStart": {
+    fr: "Complète la suite du questionnaire",
+    en: "Finish the rest of the questionnaire",
+  },
+  "houses72.resumePrompt.titleResume": {
+    fr: "Il te reste des questions",
+    en: "You still have questions left",
+  },
+  "houses72.resumePrompt.bodyStart": {
+    fr: "Le Casting des 12 Maisons affine ton profil. Tes réponses sont sauvegardées automatiquement — tu peux reprendre à tout moment.",
+    en: "The Casting of the 12 Houses refines your profile. Your answers are saved automatically — you can pick up anytime.",
+  },
+  "houses72.resumePrompt.bodyResume": {
+    fr: "Tu as répondu à {answered} questions sur {total}. Tes réponses sont déjà sauvegardées — tu peux reprendre exactement où tu t'étais arrêté.",
+    en: "You've answered {answered} of {total} questions. Your answers are already saved — you can resume right where you left off.",
+  },
+  "houses72.resumePrompt.ctaStart": { fr: "Commencer", en: "Start" },
+  "houses72.resumePrompt.ctaResume": { fr: "Reprendre", en: "Resume" },
+  "houses72.resumePrompt.later": { fr: "Plus tard", en: "Later" },
   "houses72.houseSavedToast": {
     fr: "Maison {roman} enregistrée",
     en: "House {roman} saved",
@@ -1345,6 +1370,11 @@ export const translations = {
   "journal.titleOptional": { fr: "Titre (optionnel)", en: "Title (optional)" },
   "journal.writeThoughts": { fr: "Écrivez vos pensées...", en: "Write your thoughts..." },
   "journal.associatedMood": { fr: "Humeur associée", en: "Associated mood" },
+  "journal.mood.1": { fr: "Très bas", en: "Very low" },
+  "journal.mood.2": { fr: "Bas", en: "Low" },
+  "journal.mood.3": { fr: "Neutre", en: "Neutral" },
+  "journal.mood.4": { fr: "Bien", en: "Good" },
+  "journal.mood.5": { fr: "Très bien", en: "Very good" },
   "journal.tags": { fr: "Tags", en: "Tags" },
   "journal.noEntries": { fr: "Aucune entrée trouvée", en: "No entries found" },
   "journal.noTitle": { fr: "Sans titre", en: "Untitled" },
@@ -1545,6 +1575,7 @@ export const translations = {
   "toolbox.markDone": { fr: "J'ai terminé", en: "Mark as done" },
   "toolbox.pause": { fr: "Pause", en: "Pause" },
   "toolbox.restart": { fr: "Recommencer", en: "Restart" },
+  "toolbox.resume": { fr: "Reprendre", en: "Resume" },
   "toolbox.duration": { fr: "Durée", en: "Duration" },
   "toolbox.journalTimed.start": { fr: "Commencer l'écriture", en: "Start writing" },
   "toolbox.journalTimed.writing": { fr: "En cours…", en: "Writing…" },
@@ -2146,7 +2177,7 @@ export const translations = {
   // Smart admin alerts
   "admin.nav.alerts": { fr: "Alertes", en: "Alerts" },
   "admin.nav.export": { fr: "Export", en: "Export" },
-  "admin.nav.mdPdf": { fr: "MD → PDF", en: "MD → PDF" },
+  "admin.nav.mdPdf": { fr: "MD / Word → PDF", en: "MD / Word → PDF" },
   "admin.alerts.title": { fr: "Alertes intelligentes", en: "Smart alerts" },
   "admin.alerts.subtitle": {
     fr: "Détection automatique des risques et signaux de désengagement.",
@@ -2390,6 +2421,10 @@ export const translations = {
   "neural.resetView": { fr: "Réinitialiser zoom, position et rotation", en: "Reset zoom, position and rotation" },
 
   // PeopleBoard
+  "people.tf.1d": { fr: "1 Jour", en: "1 Day" },
+  "people.tf.3d": { fr: "3 Jours", en: "3 Days" },
+  "people.tf.7d": { fr: "1 Sem.", en: "1 Wk" },
+  "people.tf.14d": { fr: "2 Sem.", en: "2 Wk" },
   "people.tf.1m": { fr: "1 Mois", en: "1 Month" },
   "people.tf.3m": { fr: "Trim.", en: "Quarter" },
   "people.tf.6m": { fr: "Sem.", en: "Half" },
@@ -2456,6 +2491,88 @@ export const translations = {
   "onboarding.skip": { fr: "Passer", en: "Skip" },
   "onboarding.next": { fr: "Suivant", en: "Next" },
   "onboarding.start": { fr: "Commencer", en: "Begin" },
+
+  "onboarding.tour.1.title": { fr: "La carte Aegis", en: "The Aegis map" },
+  "onboarding.tour.1.description": {
+    fr: "Trois groupes de navigation : Daily, Analysis, Resources — plus le dock et ⌘K.",
+    en: "Three nav groups: Daily, Analysis, Resources — plus the dock and ⌘K.",
+  },
+  "onboarding.tour.1.detail": {
+    fr: "Daily pour la journée, Analysis pour la lecture de soi, Resources pour les pratiques. Sur mobile, le dock radial ouvre les raccourcis. Sur desktop, ⌘K lance la palette de commandes.",
+    en: "Daily for the day, Analysis for self-reading, Resources for practices. On mobile, the radial dock opens shortcuts. On desktop, ⌘K opens the command palette.",
+  },
+  "onboarding.tour.2.title": { fr: "Votre tableau de bord", en: "Your dashboard" },
+  "onboarding.tour.2.description": {
+    fr: "Score de santé, Quick log et scoreboard — l’état du jour en un coup d’œil.",
+    en: "Health score, Quick log, and scoreboard — the day at a glance.",
+  },
+  "onboarding.tour.2.detail": {
+    fr: "Le dashboard résume votre santé Aegis, le scoreboard, et un Quick log pour enregistrer humeur, décision ou journal sans quitter l’écran.",
+    en: "The dashboard summarizes your Aegis health score, the scoreboard, and Quick log to record mood, a decision, or a journal entry without leaving the screen.",
+  },
+  "onboarding.tour.3.title": { fr: "La boucle du jour", en: "Your daily loop" },
+  "onboarding.tour.3.description": {
+    fr: "Humeur, décisions, habitudes, journal et calendrier.",
+    en: "Mood, decisions, habits, journal, and calendar.",
+  },
+  "onboarding.tour.3.detail": {
+    fr: "Mood (sommeil, stress, repas), Decisions, Habits et Journal forment la boucle quotidienne. Le calendrier relie ces traces dans le temps.",
+    en: "Mood (sleep, stress, meals), Decisions, Habits, and Journal form the daily loop. The calendar ties those traces together over time.",
+  },
+  "onboarding.tour.4.title": { fr: "Votre identité intérieure", en: "Your inner identity" },
+  "onboarding.tour.4.description": {
+    fr: "Persona, Quiz V4, 72 Maisons, Deep Dive et Cartographie.",
+    en: "Persona, Quiz V4, Houses 72, Deep Dive, and Cartography.",
+  },
+  "onboarding.tour.4.detail": {
+    fr: "Persona affiche votre profil. Le Quiz V4 et les 72 Maisons affinent le casting. Deep Dive et Cartographie détaillent les pôles et les rapports.",
+    en: "Persona shows your profile. Quiz V4 and Houses 72 refine the casting. Deep Dive and Cartography detail the poles and reports.",
+  },
+  "onboarding.tour.5.title": { fr: "Pulse", en: "Pulse" },
+  "onboarding.tour.5.description": {
+    fr: "Swipe, Grimoire et Runes — un deck à explorer.",
+    en: "Swipe, Grimoire, and Runes — a deck to explore.",
+  },
+  "onboarding.tour.5.detail": {
+    fr: "Pulse est un jeu de cartes à swiper, avec Grimoire et Runes. Un guide in-app s’ouvre au premier passage sur /pulse.",
+    en: "Pulse is a swipeable card deck, with Grimoire and Runes. An in-app guide opens the first time you visit /pulse.",
+  },
+  "onboarding.tour.6.title": { fr: "Pratiques guidées", en: "Guided practices" },
+  "onboarding.tour.6.description": {
+    fr: "Toolbox, Méditation (nébuleuse) et Bibliothèque.",
+    en: "Toolbox, Meditation (nebula), and Library.",
+  },
+  "onboarding.tour.6.detail": {
+    fr: "La Toolbox propose des protocoles. La Méditation ouvre une nébuleuse Quantum avec l’audio. La Bibliothèque rassemble les ressources assignées.",
+    en: "The Toolbox offers protocols. Meditation opens a Quantum nebula with audio. The Library gathers assigned resources.",
+  },
+  "onboarding.tour.7.title": { fr: "Votre réseau", en: "Your network" },
+  "onboarding.tour.7.description": {
+    fr: "Relations, carte et Messages.",
+    en: "Relationships, map, and Messages.",
+  },
+  "onboarding.tour.7.detail": {
+    fr: "People cartographie vos relations et leur proximité. La carte situe les lieux. Messages reçoit les communications de l’équipe Aegis.",
+    en: "People maps your relationships and proximity. The map places locations. Messages receives communications from the Aegis team.",
+  },
+  "onboarding.tour.8.title": { fr: "Insights", en: "Insights" },
+  "onboarding.tour.8.description": {
+    fr: "Analytiques et corrélations humeur ↔ décisions.",
+    en: "Analytics and mood ↔ decision correlations.",
+  },
+  "onboarding.tour.8.detail": {
+    fr: "Analytics croise humeur, décisions et habitudes pour faire apparaître des patterns — notamment les liens entre mood et décisions.",
+    en: "Analytics crosses mood, decisions, and habits to surface patterns — especially links between mood and decisions.",
+  },
+  "onboarding.tour.9.title": { fr: "Compte et installation", en: "Account and install" },
+  "onboarding.tour.9.description": {
+    fr: "Réglages, PWA / APK, Newsletter et Ambassadeur.",
+    en: "Settings, PWA / APK, Newsletter, and Ambassador.",
+  },
+  "onboarding.tour.9.detail": {
+    fr: "Settings : thème, menu radial, sidebar. Installez l’app (PWA ou APK Android). Newsletter et Ambassador complètent le compte.",
+    en: "Settings: theme, radial menu, sidebar. Install the app (PWA or Android APK). Newsletter and Ambassador round out the account.",
+  },
 
   // Habits mini card (dashboard)
   "habits.mini.fallbackName": { fr: "Habitude", en: "Habit" },
@@ -2974,6 +3091,62 @@ export const translations = {
   },
   "admin.videoLibrary.videoDeleted": { fr: "Vidéo supprimée", en: "Video removed" },
 
+  "meditation.kicker": { fr: "Présence", en: "Presence" },
+  "meditation.title": { fr: "Méditation", en: "Meditation" },
+  "meditation.loading": { fr: "Chargement des pistes…", en: "Loading tracks…" },
+  "meditation.subtitle": {
+    fr: "Pistes audio assignées, jouées avec le nebula. Rien n’est embarqué dans l’app : l’audio reste sur Drive.",
+    en: "Assigned audio tracks, played with the nebula. Nothing is bundled in the app: audio stays on Drive.",
+  },
+  "meditation.filterAll": { fr: "Tout", en: "All" },
+  "meditation.filterGlobalFr": { fr: "Global FR", en: "Global FR" },
+  "meditation.filterGlobalEn": { fr: "Global EN", en: "Global EN" },
+  "meditation.filterPerso": { fr: "Perso", en: "Personal" },
+  "meditation.empty": {
+    fr: "Aucune méditation assignée pour le moment.",
+    en: "No meditations assigned yet.",
+  },
+  "meditation.emptyFilter": {
+    fr: "Aucune piste dans cette catégorie.",
+    en: "No tracks in this category.",
+  },
+  "meditation.sessionMissing": {
+    fr: "Cette piste n’est pas disponible.",
+    en: "This track is not available.",
+  },
+  "meditation.back": { fr: "Retour", en: "Back" },
+  "meditation.nowPlaying": { fr: "En lecture", en: "Now playing" },
+  "meditation.playbackError": {
+    fr: "Impossible de lire l’audio. Réessayez.",
+    en: "Could not play audio. Try again.",
+  },
+  "meditation.tapToStart": { fr: "Appuyer pour démarrer", en: "Tap to start" },
+  "meditation.resume": { fr: "Reprendre", en: "Resume" },
+  "meditation.pause": { fr: "Pause", en: "Pause" },
+
+  "admin.meditation.kicker": { fr: "Audio Drive", en: "Drive audio" },
+  "admin.meditation.pageTitle": { fr: "Méditation", en: "Meditation" },
+  "admin.meditation.subtitle": {
+    fr: "Collez des liens Google Drive (audio). Les fichiers restent sur Drive ; l’app ne stocke que le pointeur et les attributions (global FR/EN ou perso).",
+    en: "Paste Google Drive audio links. Files stay on Drive; the app only stores the pointer and assignments (global FR/EN or personal).",
+  },
+  "admin.meditation.importTitle": { fr: "Import audio Drive", en: "Drive audio import" },
+  "admin.meditation.importSubtitle": {
+    fr: "Un lien Drive par ligne. Partagez les fichiers avec le compte de service Google AEGIS.",
+    en: "One Drive link per line. Share the files with the AEGIS Google service account.",
+  },
+  "admin.meditation.importCta": { fr: "Importer les audios", en: "Import audio" },
+  "admin.meditation.organizeEmpty": {
+    fr: "Aucune piste de méditation pour le moment.",
+    en: "No meditation tracks yet.",
+  },
+  "admin.meditation.deleteTrack": { fr: "Supprimer la piste", en: "Delete track" },
+  "admin.meditation.confirmDelete": {
+    fr: "Cette piste et toutes ses attributions seront supprimées. Les fichiers Drive ne sont pas touchés.",
+    en: "This track and all its assignments will be removed. Drive files are left untouched.",
+  },
+  "admin.meditation.trackDeleted": { fr: "Piste supprimée", en: "Track removed" },
+
   // Admin — Toolbox assignment form
   "admin.toolboxForm.assignHeading": { fr: "Assigner un outil", en: "Assign a tool" },
   "admin.toolboxForm.type.focus_introspectif": { fr: "Focus Introspectif", en: "Introspective focus" },
@@ -3327,18 +3500,26 @@ export const translations = {
   "admin.export.pickDate": { fr: "Choisir", en: "Pick" },
 
   "admin.mdPdf.kicker": { fr: "Atelier document", en: "Document studio" },
-  "admin.mdPdf.title": { fr: "Markdown → PDF", en: "Markdown → PDF" },
+  "admin.mdPdf.title": { fr: "Markdown / Word → PDF", en: "Markdown / Word → PDF" },
   "admin.mdPdf.subtitle": {
-    fr: "Dépose tes .md, prévisualise le rendu Aegis, puis enregistre en PDF depuis le dialogue d'impression.",
-    en: "Drop your .md files, preview the Aegis layout, then save as PDF from the print dialog.",
+    fr: "Dépose tes .md ou .docx, prévisualise le rendu Aegis, puis enregistre en PDF depuis le dialogue d'impression.",
+    en: "Drop your .md or .docx files, preview the Aegis layout, then save as PDF from the print dialog.",
   },
   "admin.mdPdf.openRender": { fr: "Ouvrir le rendu A4", en: "Open A4 render" },
   "admin.mdPdf.sample": { fr: "Charger un exemple", en: "Load sample" },
   "admin.mdPdf.exportCurrent": { fr: "PDF de ce document", en: "PDF this document" },
+  "admin.mdPdf.exportCurrentLoading": {
+    fr: "PDF (profil en cours…)",
+    en: "PDF (profile loading…)",
+  },
   "admin.mdPdf.exportAll": { fr: "PDF de tous", en: "PDF all" },
   "admin.mdPdf.dropHint": {
-    fr: "Déposer des fichiers .md, un dossier, ou cliquer pour choisir",
-    en: "Drop .md files, a folder, or click to choose",
+    fr: "Déposer .md / .docx / .doc, un dossier, ou cliquer pour choisir",
+    en: "Drop .md / .docx / .doc, a folder, or click to choose",
+  },
+  "admin.mdPdf.importing": {
+    fr: "Import Word en cours…",
+    en: "Importing Word…",
   },
   "admin.mdPdf.theme": { fr: "Thème", en: "Theme" },
   "admin.mdPdf.language": { fr: "Langue du PDF", en: "PDF language" },
@@ -3353,8 +3534,8 @@ export const translations = {
   "admin.mdPdf.docTitle": { fr: "Titre", en: "Title" },
   "admin.mdPdf.docSubtitle": { fr: "Sous-titre", en: "Subtitle" },
   "admin.mdPdf.placeholder": {
-    fr: "Colle ton Markdown Vault ici (titre, glyphe, orientation…)",
-    en: "Paste your Vault Markdown here (titre, glyphe, orientation…)",
+    fr: "Colle ton Markdown Vault ou un rapport Word ici…",
+    en: "Paste your Vault Markdown or a Word report here…",
   },
   "admin.mdPdf.chars": { fr: "{n} caractères", en: "{n} characters" },
   "admin.mdPdf.emptyEditor": {
@@ -3372,8 +3553,8 @@ export const translations = {
   },
   "admin.mdPdf.loaded": { fr: "{n} document(s) chargé(s)", en: "{n} document(s) loaded" },
   "admin.mdPdf.errorNoMd": {
-    fr: "Aucun fichier Markdown (.md) trouvé.",
-    en: "No Markdown (.md) file found.",
+    fr: "Aucun fichier supporté (.md, .txt, .docx, .doc).",
+    en: "No supported file found (.md, .txt, .docx, .doc).",
   },
   "admin.mdPdf.errorEmpty": {
     fr: "Ajoute un document avant d'exporter.",

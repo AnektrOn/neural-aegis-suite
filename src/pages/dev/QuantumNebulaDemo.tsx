@@ -8,6 +8,7 @@ import GenerativeArtSceneV3, {
   defaultReflexionTuning,
   defaultVisualTuning,
   type QuantumNebulaAudioTuning,
+  type QuantumNebulaFigure,
   type QuantumNebulaReflexionTuning,
   type QuantumNebulaState,
   type QuantumNebulaVisualTuning,
@@ -42,8 +43,8 @@ const tuningSliders: Array<{
   { key: "spiralTwist", label: "Spiral twist", min: 0, max: 2.5, step: 0.05 },
   { key: "rippleSharpness", label: "Ripple sharpness", min: 0.5, max: 6, step: 0.05 },
   { key: "bloomBoost", label: "Bloom boost", min: 0, max: 1.5, step: 0.02 },
-  { key: "metatronReveal", label: "Metatron reveal", min: 0, max: 1, step: 0.01 },
-  { key: "metatronPull", label: "Metatron pull", min: 0, max: 0.2, step: 0.001 },
+  { key: "metatronReveal", label: "Forme reveal", min: 0, max: 1, step: 0.01 },
+  { key: "metatronPull", label: "Forme pull", min: 0, max: 0.2, step: 0.001 },
   {
     key: "reflexionAudioScale",
     label: "Mouvement on réflexion",
@@ -53,10 +54,23 @@ const tuningSliders: Array<{
   },
 ];
 
+const FIGURE_OPTIONS: Array<{ id: QuantumNebulaFigure; label: string }> = [
+  { id: "metatron", label: "Metatron" },
+  { id: "sriYantra", label: "Sri Yantra" },
+  { id: "dna", label: "ADN" },
+  { id: "svg", label: "SVG" },
+  { id: "obj", label: ".obj" },
+];
+
 export default function QuantumNebulaDemo() {
-  const [state, setState] = useState<QuantumNebulaState>("solid");
+  const [state, setState] = useState<QuantumNebulaState>("repos");
+  const [figure, setFigure] = useState<QuantumNebulaFigure>("metatron");
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioLabel, setAudioLabel] = useState<string | null>(null);
+  const [objText, setObjText] = useState<string | null>(null);
+  const [objLabel, setObjLabel] = useState<string | null>(null);
+  const [svgText, setSvgText] = useState<string | null>(null);
+  const [svgLabel, setSvgLabel] = useState<string | null>(null);
   const [audioPaused, setAudioPaused] = useState(false);
   const [audioTuning, setAudioTuning] =
     useState<QuantumNebulaAudioTuning>(defaultAudioTuning);
@@ -83,6 +97,26 @@ export default function QuantumNebulaDemo() {
     setAudioLabel(file.name);
     setAudioPaused(false);
     setState("mouvement");
+  };
+
+  const handleObjFile = (file: File | undefined) => {
+    if (!file) return;
+    void file.text().then((text) => {
+      setObjText(text);
+      setObjLabel(file.name);
+      setFigure("obj");
+      setState("mouvement");
+    });
+  };
+
+  const handleSvgFile = (file: File | undefined) => {
+    if (!file) return;
+    void file.text().then((text) => {
+      setSvgText(text);
+      setSvgLabel(file.name);
+      setFigure("svg");
+      setState("mouvement");
+    });
   };
 
   const updateTuning = <K extends keyof QuantumNebulaAudioTuning>(
@@ -119,6 +153,9 @@ export default function QuantumNebulaDemo() {
       audioTuning={audioTuning}
       visualTuning={visualTuning}
       reflexionTuning={reflexionTuning}
+      figure={figure}
+      objText={objText}
+      svgText={svgText}
     >
       <header className="border-b border-border/30 bg-background/70 backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
@@ -134,6 +171,9 @@ export default function QuantumNebulaDemo() {
             <h1 className="text-base font-semibold tracking-tight">Quantum Nebula</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
+              <Link to="/dev/toolbox-nebula">Toolbox × Nebula</Link>
+            </Button>
             {state === "reflexion" ? (
               <QuantumNebulaReflexionSettingsModal
                 tuning={reflexionTuning}
@@ -176,6 +216,65 @@ export default function QuantumNebulaDemo() {
         </div>
 
         <p className="max-w-md text-center text-sm text-muted-foreground">{stateDescription}</p>
+
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+            Forme des particules
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {FIGURE_OPTIONS.map((option) => (
+              <Button
+                key={option.id}
+                type="button"
+                size="sm"
+                variant={figure === option.id ? "default" : "outline"}
+                className={cn(
+                  "border-border/40 bg-background/80 text-xs backdrop-blur-sm",
+                  figure === option.id && "bg-primary text-primary-foreground",
+                )}
+                onClick={() => setFigure(option.id)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+          <p className="max-w-md text-center text-[11px] text-muted-foreground">
+            Metatron reste la forme par défaut. SVG est le plus simple à trouver (icônes,
+            géométrie). Les formes importées n’apparaissent que sur cette page test, pendant
+            le boom audio en Mouvement.
+          </p>
+          {figure === "svg" ? (
+            <>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border/30 bg-background/80 px-4 py-2 text-sm text-muted-foreground backdrop-blur-sm transition-colors hover:bg-secondary/20">
+                <Upload className="h-4 w-4" />
+                {svgLabel ?? "Importer un fichier .svg"}
+                <input
+                  type="file"
+                  accept=".svg,image/svg+xml,text/xml"
+                  className="sr-only"
+                  onChange={(e) => handleSvgFile(e.target.files?.[0])}
+                />
+              </label>
+              {!svgLabel ? (
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Sans fichier, le boom reste sur Metatron. Importe un .svg (traits ou icône).
+                </p>
+              ) : null}
+            </>
+          ) : null}
+          {figure === "obj" ? (
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border/30 bg-background/80 px-4 py-2 text-sm text-muted-foreground backdrop-blur-sm transition-colors hover:bg-secondary/20">
+              <Upload className="h-4 w-4" />
+              {objLabel ?? "Importer un fichier .obj"}
+              <input
+                type="file"
+                accept=".obj,model/obj,text/plain"
+                className="sr-only"
+                onChange={(e) => handleObjFile(e.target.files?.[0])}
+              />
+            </label>
+          ) : null}
+        </div>
 
         {state === "mouvement" ? (
           <div className="flex flex-wrap items-center justify-center gap-2">

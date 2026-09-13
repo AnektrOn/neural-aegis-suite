@@ -40,6 +40,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import FreePreviewToggle from "@/components/FreePreviewToggle";
 import NotificationBell from "@/components/NotificationBell";
 import PopupAnnouncement from "@/components/PopupAnnouncement";
+import { Houses72ResumeModal } from "@/features/houses72/components/Houses72ResumeModal";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
 import AppFooter from "@/components/AppFooter";
@@ -48,6 +49,7 @@ import { useNetwork } from "@/hooks/use-network";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { usePushKeepAlive } from "@/hooks/usePushKeepAlive";
+import { Z_INDEX } from "@/lib/zIndex";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -98,7 +100,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
       <div className="h-14 flex items-center px-4 border-b border-border-subtle shrink-0">
         <img src={aegisLogo} alt="Aegis" className="w-7 h-7 rounded-lg object-contain" />
         {!collapsed && (
-          <span className="ml-3 font-display text-[10px] tracking-[0.2em] uppercase text-text-secondary">
+          <span className="ml-3 font-display text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
             Neural Aegis
           </span>
         )}
@@ -114,7 +116,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                   type="button"
                   onClick={() => toggleGroup(group.id)}
                   aria-expanded={isOpen}
-                  className="w-full flex items-center gap-1 px-4 py-1.5 text-[9px] font-display tracking-[0.22em] uppercase text-text-tertiary/50 hover:text-text-tertiary transition-colors"
+                  className="w-full flex items-center gap-1 px-4 py-1.5 text-[9px] font-display tracking-[0.22em] uppercase text-muted-foreground/80/50 hover:text-muted-foreground/80 transition-colors"
                 >
                   <span className="flex-1 text-left">{t(group.labelKey)}</span>
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>
@@ -133,7 +135,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                         onClick={onNavigate}
                         aria-current={isActive ? "page" : undefined}
                         className={`relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg mx-2 transition-all duration-200 border border-transparent ${
-                          isActive ? "text-accent-primary" : "text-text-tertiary hover:text-text-primary hover:bg-bg-elevated"
+                          isActive ? "text-accent-primary" : "text-muted-foreground/80 hover:text-foreground hover:bg-bg-elevated"
                         }`}
                       >
                         {isActive && (
@@ -184,7 +186,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
           `mx-2 mb-1 flex shrink-0 items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-all ${
             isActive
               ? "text-accent-primary bg-accent-primary/10 border-accent-primary/20"
-              : "text-text-tertiary hover:text-accent-primary hover:bg-accent-primary/5"
+              : "text-muted-foreground/80 hover:text-accent-primary hover:bg-accent-primary/5"
           }`
         }
       >
@@ -218,7 +220,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
       </div>
       <button
         onClick={signOut}
-        className="mx-3 shrink-0 rounded-lg p-3 text-text-secondary transition-colors duration-200 hover:bg-accent-danger/5 hover:text-accent-danger"
+        className="mx-3 shrink-0 rounded-lg p-3 text-muted-foreground transition-colors duration-200 hover:bg-accent-danger/5 hover:text-accent-danger"
         title={t("nav.logout")}
       >
         <LogOut size={16} strokeWidth={1.5} />
@@ -343,6 +345,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <ToolboxExerciseSessionProvider userId={user?.id}>
       <PopupAnnouncement />
+      <Houses72ResumeModal />
       <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
         <div
           className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle"
@@ -367,7 +370,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     "inline-flex h-10 w-10 min-h-[44px] min-w-[44px] select-none items-center justify-center rounded-xl transition-colors active:scale-[0.98]",
                     isActive
                       ? "bg-accent-primary/12 ring-1 ring-accent-primary/35"
-                      : "text-text-tertiary hover:bg-bg-elevated/70 hover:text-text-secondary active:bg-bg-elevated",
+                      : "text-muted-foreground/80 hover:bg-bg-elevated/70 hover:text-muted-foreground active:bg-bg-elevated",
                   )
                 }
                 style={
@@ -381,7 +384,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </NavLink>
             </div>
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none text-center max-w-[55%]">
-              <span className="font-barlow text-[10px] font-medium text-text-tertiary/80 tracking-[0.22em] uppercase leading-tight">
+              <span className="font-barlow text-[10px] font-medium text-muted-foreground/80/80 tracking-[0.22em] uppercase leading-tight">
                 {dateStr}
               </span>
               <span className="font-cormorant text-[13px] font-light tracking-[0.2em] text-primary/80 leading-tight mt-0.5">
@@ -394,7 +397,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SheetTrigger asChild>
                   <button
                     type="button"
-                    className="relative z-[60] inline-flex min-h-[44px] min-w-[44px] select-none items-center justify-center rounded-xl p-2 text-text-tertiary transition-colors hover:bg-bg-elevated/70 hover:text-text-secondary active:bg-bg-elevated/80"
+                    className={`relative z-[${Z_INDEX.stickyHeader}] inline-flex min-h-[44px] min-w-[44px] select-none items-center justify-center rounded-xl p-2 text-muted-foreground transition-colors hover:bg-popover hover:text-foreground active:bg-popover cursor-pointer`}
                     aria-label={t("layout.openUtilityMenu")}
                     aria-expanded={mobileUtilityOpen}
                     aria-haspopup="dialog"
@@ -416,7 +419,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <div className="mx-auto h-1 w-10 shrink-0 rounded-full bg-border/60" aria-hidden />
                   <div className="border-b border-border-subtle/80 px-5 pb-3 pt-3 text-center">
                     <p className="font-cormorant text-[14px] tracking-[0.22em] text-primary">{t("layout.mobileUtilityTitle")}</p>
-                    <p className="mt-1 truncate px-2 text-[10px] text-text-tertiary">{user?.email ?? ""}</p>
+                    <p className="mt-1 truncate px-2 text-[10px] text-muted-foreground/80">{user?.email ?? ""}</p>
                     <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{t("layout.mobileUtilityIntro")}</p>
                   </div>
                   <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
@@ -436,20 +439,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       className={`flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors ${
                         location.pathname === "/settings"
                           ? "border-accent-primary/30 bg-accent-primary/10 text-accent-primary"
-                          : "border-border/40 bg-secondary/10 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+                          : "border-border/40 bg-secondary/10 text-muted-foreground hover:bg-bg-elevated hover:text-foreground"
                       }`}
                     >
                       <Settings2 size={18} strokeWidth={1.5} className="shrink-0" />
                       <span className="text-[12px] font-medium uppercase tracking-[0.08em]">{t("settings.title")}</span>
                     </Link>
                     <div className="space-y-2 rounded-xl border border-border/30 bg-secondary/5 p-3">
-                      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-text-tertiary/80">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80/80">
                         {t("settings.notifications")}
                       </p>
                       <PushNotificationToggle className="w-full justify-start" />
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/30 bg-secondary/5 px-3 py-3">
-                      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-text-tertiary/80">
+                      <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80/80">
                         {t("settings.appearance")}
                       </span>
                       <div className="flex items-center gap-2">
@@ -556,10 +559,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <ToolboxExerciseSessionProvider userId={user?.id}>
     <PopupAnnouncement />
+    <Houses72ResumeModal />
     <div className="flex min-h-screen w-full relative z-10 bg-bg-base">
       {!online && (
         <div
-          className="fixed top-0 left-0 right-0 z-[60] bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2"
+          className={`fixed top-0 left-0 right-0 z-[${Z_INDEX.offlineBanner}] bg-warning text-warning-foreground text-center text-xs py-1.5 font-medium px-2`}
           role="status"
         >
           {t("layout.offlineMessage")}
@@ -574,7 +578,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-bg-elevated border border-border-active text-text-secondary hover:text-accent-primary hover:border-accent-primary/40 flex items-center justify-center transition-all duration-200 z-10 shadow-card"
+          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-bg-elevated border border-border-active text-muted-foreground hover:text-accent-primary hover:border-accent-primary/40 flex items-center justify-center transition-all duration-200 z-10 shadow-card"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight size={14} strokeWidth={1.5} /> : <ChevronLeft size={14} strokeWidth={1.5} />}

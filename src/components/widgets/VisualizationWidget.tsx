@@ -9,6 +9,14 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { playToolboxTimerCompleteSound } from "@/lib/toolbox-timer-sound";
 import type { Locale } from "@/i18n/translations";
+import {
+  sceneColorForIndex,
+  TOOLBOX_PHASE_COLORS,
+  ToolboxWidgetHeader,
+  ToolboxWidgetRoot,
+  ToolboxWidgetSecondaryButton,
+  ToolboxWidgetTimerControls,
+} from "@/features/toolbox/ui";
 
 export interface VisualizationScene {
   id: string;
@@ -54,7 +62,7 @@ export const DEFAULT_VISUALIZATION_SCENES: VisualizationScene[] = [
     instruction:
       "Close your eyes. Feel the weight of your body. You are here, now. Take three slow breaths.",
     duration_sec: 25,
-    color: "hsl(176 70% 48%)",
+    color: TOOLBOX_PHASE_COLORS.inhale,
   },
   {
     id: "place",
@@ -62,7 +70,7 @@ export const DEFAULT_VISUALIZATION_SCENES: VisualizationScene[] = [
     instruction:
       "Visualize a place where you feel completely safe. A light, a texture, a scent. Make it real.",
     duration_sec: 30,
-    color: "hsl(220 70% 60%)",
+    color: TOOLBOX_PHASE_COLORS.hold,
   },
   {
     id: "scene",
@@ -70,7 +78,7 @@ export const DEFAULT_VISUALIZATION_SCENES: VisualizationScene[] = [
     instruction:
       "See yourself in the upcoming situation. You are calm, grounded, precise. Every detail is clear. You’re in control.",
     duration_sec: 40,
-    color: "hsl(270 50% 60%)",
+    color: TOOLBOX_PHASE_COLORS.exhale,
   },
   {
     id: "success",
@@ -78,7 +86,7 @@ export const DEFAULT_VISUALIZATION_SCENES: VisualizationScene[] = [
     instruction:
       "Feel what you experience when it’s done. The sensation in your body. That certainty. Anchor it.",
     duration_sec: 25,
-    color: "hsl(35 80% 58%)",
+    color: TOOLBOX_PHASE_COLORS.inhale,
   },
   {
     id: "return",
@@ -86,7 +94,7 @@ export const DEFAULT_VISUALIZATION_SCENES: VisualizationScene[] = [
     instruction:
       "Come back gently. Move your fingers and toes. Open your eyes. Carry this state into the next hours.",
     duration_sec: 15,
-    color: "hsl(176 70% 48%)",
+    color: TOOLBOX_PHASE_COLORS.hold,
   },
 ];
 
@@ -101,44 +109,43 @@ export function getDefaultVisualizationScenes(t: VizT): VisualizationScene[] {
       label: t("toolbox.vizDefault.anchorLabel"),
       instruction: t("toolbox.vizDefault.anchorInstruction"),
       duration_sec: 25,
-      color: "hsl(176 70% 48%)",
+      color: sceneColorForIndex(0),
     },
     {
       id: "place",
       label: t("toolbox.vizDefault.placeLabel"),
       instruction: t("toolbox.vizDefault.placeInstruction"),
       duration_sec: 30,
-      color: "hsl(220 70% 60%)",
+      color: sceneColorForIndex(1),
     },
     {
       id: "scene",
       label: t("toolbox.vizDefault.sceneLabel"),
       instruction: t("toolbox.vizDefault.sceneInstruction"),
       duration_sec: 40,
-      color: "hsl(270 50% 60%)",
+      color: sceneColorForIndex(2),
     },
     {
       id: "success",
       label: t("toolbox.vizDefault.successLabel"),
       instruction: t("toolbox.vizDefault.successInstruction"),
       duration_sec: 25,
-      color: "hsl(35 80% 58%)",
+      color: sceneColorForIndex(0),
     },
     {
       id: "return",
       label: t("toolbox.vizDefault.returnLabel"),
       instruction: t("toolbox.vizDefault.returnInstruction"),
       duration_sec: 15,
-      color: "hsl(176 70% 48%)",
+      color: sceneColorForIndex(1),
     },
   ];
 }
 
 const VIZ_PALETTE = [
-  "hsl(176 70% 48%)",
-  "hsl(220 70% 60%)",
-  "hsl(270 50% 60%)",
-  "hsl(35 80% 58%)",
+  TOOLBOX_PHASE_COLORS.inhale,
+  TOOLBOX_PHASE_COLORS.hold,
+  TOOLBOX_PHASE_COLORS.exhale,
 ];
 
 function isSceneArray(raw: unknown): raw is VisualizationScene[] {
@@ -399,7 +406,7 @@ export default function VisualizationWidget({
   const orbInner = hslWithAlpha(sceneColor, 0.08);
 
   return (
-    <div className="flex flex-col items-center space-y-5 py-4 relative overflow-hidden">
+    <ToolboxWidgetRoot className="items-center space-y-5 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         {isRunningResolved &&
           particles.map((p) => (
@@ -428,12 +435,9 @@ export default function VisualizationWidget({
           ))}
       </div>
 
-      {!hideTitle && (
-        <div className="flex items-center gap-2 text-neural-label relative z-10">
-          <Sparkles size={14} style={{ color: sceneColor }} />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
+      {!hideTitle ? (
+        <ToolboxWidgetHeader title={title} icon={Sparkles} iconClassName="text-neural-accent" className="relative z-10" />
+      ) : null}
 
       <div className="relative w-44 h-44 flex items-center justify-center z-10">
         {[1, 0.6, 0.3].map((opacity, i) => (
@@ -560,95 +564,54 @@ export default function VisualizationWidget({
         </div>
       )}
 
-      <div className="flex gap-3 z-10 flex-wrap justify-center">
+      <div className="flex flex-wrap items-center justify-center gap-3 z-10">
         {budgetMode ? (
           <>
-            <button
-              type="button"
-              onClick={persistedTimer.toggleRunning}
+            <ToolboxWidgetTimerControls
+              isRunning={isRunningResolved}
+              onToggle={persistedTimer.toggleRunning}
+              onReset={reset}
               disabled={completedResolved}
-              className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors hover:opacity-90"
-              style={{
-                borderColor: borderSoft,
-                backgroundColor: fillSoft,
-                color: sceneColor,
-              }}
-            >
-              {isRunningResolved ? <Pause size={18} /> : <Play size={18} />}
-            </button>
-            {!completedResolved && (
-              <button
-                type="button"
-                onClick={advanceScene}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border text-sm font-medium transition-all active:scale-95"
-                style={{
-                  borderColor: borderSoft,
-                  backgroundColor: fillSoft,
-                  color: sceneColor,
-                }}
-              >
+              playLabel={t("toolbox.launch")}
+              pauseLabel={t("toolbox.pause")}
+              resetLabel="Reset"
+            />
+            {!completedResolved ? (
+              <ToolboxWidgetSecondaryButton type="button" onClick={advanceScene}>
                 {currentIdx >= scenes.length - 1 ? t("toolbox.micro.finish") : t("toolbox.vizManualNext")}
                 <ChevronRight size={14} />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={reset}
-              className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-            >
-              <RotateCcw size={18} />
-            </button>
+              </ToolboxWidgetSecondaryButton>
+            ) : null}
           </>
         ) : mode === "timed" ? (
-          <>
-            <button
-              type="button"
-              onClick={persistedTimer.toggleRunning}
-              disabled={completedResolved}
-              className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors hover:opacity-90"
-              style={{
-                borderColor: borderSoft,
-                backgroundColor: fillSoft,
-                color: sceneColor,
-              }}
-            >
-              {isRunningResolved ? <Pause size={18} /> : <Play size={18} />}
-            </button>
-            <button
-              type="button"
-              onClick={reset}
-              className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-            >
-              <RotateCcw size={18} />
-            </button>
-          </>
+          <ToolboxWidgetTimerControls
+            isRunning={isRunningResolved}
+            onToggle={persistedTimer.toggleRunning}
+            onReset={reset}
+            disabled={completedResolved}
+            playLabel={t("toolbox.launch")}
+            pauseLabel={t("toolbox.pause")}
+            resetLabel="Reset"
+          />
         ) : (
           <>
-            {!completedResolved && (
-              <button
-                type="button"
-                onClick={advanceScene}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border text-sm font-medium transition-all active:scale-95"
-                style={{
-                  borderColor: borderSoft,
-                  backgroundColor: fillSoft,
-                  color: sceneColor,
-                }}
-              >
+            {!completedResolved ? (
+              <ToolboxWidgetSecondaryButton type="button" onClick={advanceScene}>
                 {currentIdx === 0 ? t("toolbox.vizManualStart") : t("toolbox.vizManualNext")}
                 <ChevronRight size={14} />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={reset}
-              className="w-10 h-10 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <RotateCcw size={16} />
-            </button>
+              </ToolboxWidgetSecondaryButton>
+            ) : null}
+            <ToolboxWidgetTimerControls
+              isRunning={false}
+              onToggle={() => {}}
+              onReset={reset}
+              playLabel={t("toolbox.launch")}
+              pauseLabel={t("toolbox.pause")}
+              resetLabel="Reset"
+            />
           </>
         )}
       </div>
-    </div>
+    </ToolboxWidgetRoot>
   );
 }

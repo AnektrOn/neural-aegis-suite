@@ -12,8 +12,9 @@ export default function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
 
   return (
     <button
+      type="button"
       onClick={() => setDark(!dark)}
-      className="mx-3 p-3 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors duration-200 flex items-center gap-3"
+      className="mx-3 inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-3 rounded-lg p-3 text-muted-foreground transition-colors duration-200 hover:bg-popover hover:text-foreground cursor-pointer"
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
     >

@@ -194,7 +194,7 @@ export default function GuardianOnboardingPage() {
     phase === "step4" && state.decisionDone && showAfterAudio;
 
   const nebulaState =
-    voiceStarted && !voiceEnded ? ("mouvement" as const) : ("solid" as const);
+    voiceStarted && !voiceEnded ? ("mouvement" as const) : ("repos" as const);
 
   const dailyPlacement = isMobile ? "mobile" : "right";
   const decisionPlacement = isMobile ? "mobile" : "left";
@@ -240,7 +240,7 @@ export default function GuardianOnboardingPage() {
   if (!hydrated) {
     return (
       <div className="relative flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-white dark:bg-black">
-        <GuardianNebula state="solid" />
+        <GuardianNebula state="repos" />
         <div
           className="absolute inset-0 flex items-center justify-center bg-background/30"
           role="status"
@@ -255,7 +255,7 @@ export default function GuardianOnboardingPage() {
   if (phase === "done" || phase === "idle") {
     return (
       <div className="relative flex min-h-[100dvh] items-center justify-center bg-white dark:bg-black">
-        <GuardianNebula state="solid" />
+        <GuardianNebula state="repos" />
       </div>
     );
   }

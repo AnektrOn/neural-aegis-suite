@@ -2,11 +2,18 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Stars } from "lucide-react";
+import { Stars } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale } from "@/i18n/translations";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { ToolboxCompletionPayload, ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
+import {
+  ToolboxWidgetHeader,
+  ToolboxWidgetInstructions,
+  ToolboxWidgetProgress,
+  ToolboxWidgetRoot,
+  ToolboxWidgetTimerControls,
+} from "@/features/toolbox/ui";
 
 interface Props {
   config: {
@@ -117,15 +124,12 @@ export default function AffirmationsWidget({
   };
 
   return (
-    <div className="flex flex-col items-center space-y-6 py-4">
-      {!hideTitle && (
-        <div className="flex items-center gap-2 text-neural-label">
-          <Stars size={14} className="text-primary" />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
+    <ToolboxWidgetRoot className="items-center">
+      {!hideTitle ? (
+        <ToolboxWidgetHeader title={title} icon={Stars} iconClassName="text-primary" />
+      ) : null}
 
-      <p className="text-xs text-muted-foreground text-center max-w-sm">{t("toolbox.affirmHint")}</p>
+      <ToolboxWidgetInstructions>{t("toolbox.affirmHint")}</ToolboxWidgetInstructions>
 
       <div className="relative min-h-[8rem] w-full max-w-md flex items-center justify-center px-4">
         <AnimatePresence mode="wait">
@@ -142,9 +146,7 @@ export default function AffirmationsWidget({
         </AnimatePresence>
       </div>
 
-      <div className="w-full max-w-xs h-1 rounded-full bg-secondary overflow-hidden">
-        <div className="h-full rounded-full bg-primary/50 transition-all duration-1000" style={{ width: `${progress * 100}%` }} />
-      </div>
+      <ToolboxWidgetProgress className="max-w-xs" value={elapsed} max={totalSeconds} />
 
       <p className="text-neural-label text-xs text-center leading-relaxed">
         {completed ? (
@@ -159,23 +161,15 @@ export default function AffirmationsWidget({
         )}
       </p>
 
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={toggleRunning}
-          className="w-12 h-12 rounded-2xl border border-primary/30 bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
-          disabled={completed}
-        >
-          {isRunning ? <Pause size={18} /> : <Play size={18} />}
-        </button>
-        <button
-          type="button"
-          onClick={reset}
-          className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-        >
-          <RotateCcw size={18} />
-        </button>
-      </div>
-    </div>
+      <ToolboxWidgetTimerControls
+        isRunning={isRunning}
+        onToggle={toggleRunning}
+        onReset={reset}
+        disabled={completed}
+        playLabel={t("toolbox.launch")}
+        pauseLabel={t("toolbox.pause")}
+        resetLabel="Reset"
+      />
+    </ToolboxWidgetRoot>
   );
 }

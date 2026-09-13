@@ -3,13 +3,27 @@ import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { loadTimerSession } from "@/lib/toolbox-session-storage";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, Target, CheckCircle2 } from "lucide-react";
+import { Target, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import type { Locale } from "@/i18n/translations";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { playToolboxTimerCompleteSound } from "@/lib/toolbox-timer-sound";
-import { hslWithAlpha } from "@/components/widgets/VisualizationWidget";
+import { hslWithAlpha } from "@/features/toolbox/ui/toolboxPhaseColors";
+import {
+  TOOLBOX_PHASE_COLORS,
+  ToolboxWidgetHeader,
+  ToolboxWidgetLaunchButton,
+  ToolboxWidgetPrimaryButton,
+  ToolboxWidgetRoot,
+  ToolboxWidgetTextarea,
+  ToolboxWidgetTimerControls,
+} from "@/features/toolbox/ui";
+import {
+  useSaveToolboxWritingToJournal,
+  type ToolboxJournalMeta,
+} from "@/features/journal/useSaveToolboxWritingToJournal";
+import { formatLabeledJournalContent } from "@/features/journal/saveToolboxWritingToJournal";
 
 export interface IntentionConfig {
   question?: string;
@@ -29,11 +43,12 @@ interface Props {
   title: string;
   hideTitle?: boolean;
   sessionKey?: string;
+  journal?: ToolboxJournalMeta;
   onComplete?: (note?: string) => void;
   onAbandon?: () => void;
 }
 
-const COLOR = "hsl(270 50% 60%)";
+const COLOR = TOOLBOX_PHASE_COLORS.hold;
 
 const RINGS = [
   { r: 88, delay: 0, duration: 4 },
@@ -78,7 +93,7 @@ function normalizeIntentionConfig(
   };
 }
 
-export default function IntentionWidget({ config, title, hideTitle, sessionKey, onComplete, onAbandon }: Props) {
+export default function IntentionWidget({ config, title, hideTitle, sessionKey, journal, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
   const cfg = useMemo(() => normalizeIntentionConfig(config, t, locale as Locale), [config, t, locale]);
 
@@ -102,11 +117,25 @@ export default function IntentionWidget({ config, title, hideTitle, sessionKey, 
   const [note, setNote] = useState("");
   const completedRef = timer.completedRef;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { saveWriting, saving } = useSaveToolboxWritingToJournal(journal);
 
   const elapsed = timer.elapsedSec;
   const isRunning = timer.isRunning;
   const remaining = totalSeconds - elapsed;
   const progress = elapsed / totalSeconds;
+
+  const persistIntention = useCallback(async (noteText?: string) => {
+    const sections = [
+      { label: t("toolbox.intentionWidget.defaultQuestion"), body: cfg.question },
+    ];
+    if (noteText?.trim()) {
+      sections.push({ label: cfg.note_prompt, body: noteText.trim() });
+    }
+    return saveWriting(formatLabeledJournalContent(sections));
+  }, [cfg.note_prompt, cfg.question, saveWriting, t]);
+
+  const persistIntentionRef = useRef(persistIntention);
+  persistIntentionRef.current = persistIntention;
 
   useEffect(() => {
     onTimerCompleteRef.current = () => {
@@ -115,25 +144,16 @@ export default function IntentionWidget({ config, title, hideTitle, sessionKey, 
         setPhase("noting");
         setTimeout(() => textareaRef.current?.focus(), 300);
       } else {
-        setPhase("done");
-        completedRef.current = true;
-        onComplete?.();
+        void (async () => {
+          const ok = await persistIntentionRef.current();
+          if (!ok) return;
+          setPhase("done");
+          completedRef.current = true;
+          onComplete?.();
+        })();
       }
     };
   }, [cfg.allow_note, onComplete, completedRef]);
-
-  useWidgetAbandonGuard(timer.hasStartedRef, completedRef, onAbandon);
-
-  const startReflection = () => {
-    setPhase("reflecting");
-    timer.setRunning(true);
-  };
-
-  const handleComplete = () => {
-    completedRef.current = true;
-    setPhase("done");
-    onComplete?.(note.trim() || undefined);
-  };
 
   const reset = useCallback(() => {
     timer.reset();
@@ -146,14 +166,27 @@ export default function IntentionWidget({ config, title, hideTitle, sessionKey, 
 
   const pulseScale = isRunning ? 1 + Math.sin((elapsed / totalSeconds) * Math.PI * 4) * 0.04 : 1;
 
+  useWidgetAbandonGuard(timer.hasStartedRef, completedRef, onAbandon);
+
+  const startReflection = () => {
+    setPhase("reflecting");
+    timer.setRunning(true);
+  };
+
+  const handleComplete = async () => {
+    if (saving) return;
+    const ok = await persistIntention(note);
+    if (!ok) return;
+    completedRef.current = true;
+    setPhase("done");
+    onComplete?.(note.trim() || undefined);
+  };
+
   return (
-    <div className="flex flex-col items-center space-y-5 py-4">
-      {!hideTitle && (
-        <div className="flex items-center gap-2 text-neural-label">
-          <Target size={14} style={{ color: COLOR }} />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
+    <ToolboxWidgetRoot className="items-center space-y-5">
+      {!hideTitle ? (
+        <ToolboxWidgetHeader title={title} icon={Target} iconClassName="text-primary" />
+      ) : null}
 
       <AnimatePresence mode="wait">
         {phase !== "noting" ? (
@@ -258,13 +291,13 @@ export default function IntentionWidget({ config, title, hideTitle, sessionKey, 
             <p className="text-[9px] uppercase tracking-[0.2em] text-center" style={{ color: COLOR }}>
               {t("toolbox.intentionWidget.anchorNote")}
             </p>
-            <textarea
+            <ToolboxWidgetTextarea
               ref={textareaRef}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder={cfg.note_prompt}
               rows={3}
-              className="w-full rounded-xl border bg-secondary/20 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none resize-none transition-colors"
+              className="min-h-0 resize-none"
               style={{ borderColor: hslWithAlpha(COLOR, 0.22) }}
             />
             <p className="text-[9px] text-muted-foreground/40 text-center">{t("toolbox.intentionWidget.optionalHint")}</p>
@@ -312,79 +345,52 @@ export default function IntentionWidget({ config, title, hideTitle, sessionKey, 
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         {phase === "idle" && (
-          <button
-            type="button"
-            onClick={startReflection}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95"
-            style={{
-              background: hslWithAlpha(COLOR, 0.1),
-              border: `1px solid ${hslWithAlpha(COLOR, 0.28)}`,
-              color: COLOR,
-            }}
-          >
-            <Play size={14} />
+          <ToolboxWidgetLaunchButton type="button" onClick={startReflection} className="inline-flex items-center gap-2">
             {t("toolbox.intentionWidget.start")}
-          </button>
+          </ToolboxWidgetLaunchButton>
         )}
         {phase === "reflecting" && (
-          <>
-            <button
-              type="button"
-              onClick={() => timer.toggleRunning()}
-              className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors hover:opacity-90"
-              style={{
-                borderColor: hslWithAlpha(COLOR, 0.35),
-                backgroundColor: hslWithAlpha(COLOR, 0.1),
-                color: COLOR,
-              }}
-            >
-              {isRunning ? <Pause size={18} /> : <Play size={18} />}
-            </button>
-            <button
-              type="button"
-              onClick={reset}
-              className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <RotateCcw size={18} />
-            </button>
-          </>
+          <ToolboxWidgetTimerControls
+            isRunning={isRunning}
+            onToggle={() => timer.toggleRunning()}
+            onReset={reset}
+            playLabel={t("toolbox.launch")}
+            pauseLabel={t("toolbox.pause")}
+            resetLabel="Reset"
+          />
         )}
         {phase === "noting" && (
           <>
-            <button
-              type="button"
+            <ToolboxWidgetPrimaryButton
+              disabled={saving}
               onClick={handleComplete}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95"
-              style={{
-                background: hslWithAlpha(COLOR, 0.1),
-                border: `1px solid ${hslWithAlpha(COLOR, 0.28)}`,
-                color: COLOR,
-              }}
+              className="w-auto min-w-[12rem] px-6"
             >
-              <CheckCircle2 size={14} />
               {t("toolbox.widgetValidate")}
-            </button>
-            <button
-              type="button"
-              onClick={reset}
-              className="w-10 h-10 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <RotateCcw size={16} />
-            </button>
+            </ToolboxWidgetPrimaryButton>
+            <ToolboxWidgetTimerControls
+              isRunning={false}
+              onToggle={() => {}}
+              onReset={reset}
+              playLabel={t("toolbox.launch")}
+              pauseLabel={t("toolbox.pause")}
+              resetLabel="Reset"
+            />
           </>
         )}
         {phase === "done" && (
-          <button
-            type="button"
-            onClick={reset}
-            className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <RotateCcw size={18} />
-          </button>
+          <ToolboxWidgetTimerControls
+            isRunning={false}
+            onToggle={() => {}}
+            onReset={reset}
+            playLabel={t("toolbox.launch")}
+            pauseLabel={t("toolbox.pause")}
+            resetLabel="Reset"
+          />
         )}
       </div>
-    </div>
+    </ToolboxWidgetRoot>
   );
 }

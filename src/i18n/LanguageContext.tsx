@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { translations, type Locale, type TranslationKey } from "./translations";
 
 export type { Locale, TranslationKey } from "./translations";
@@ -30,6 +30,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       });
     }
     return str;
+  }, [locale]);
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
   }, [locale]);
 
   return (

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Z_INDEX } from "@/lib/zIndex";
 
 interface Notification {
   id: string;
@@ -207,7 +208,7 @@ export default function NotificationBell() {
             <motion.button
               type="button"
               aria-label="Fermer les notifications"
-              className="fixed inset-0 z-[90] bg-background/50"
+              className={`fixed inset-0 z-[${Z_INDEX.notificationBackdrop}] bg-background/50`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -218,7 +219,7 @@ export default function NotificationBell() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="notifications-mobile-title"
-              className="fixed inset-x-0 bottom-0 z-[100] flex max-h-[min(78dvh,38rem)] flex-col rounded-t-3xl border-t border-border bg-card pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl focus:outline-none"
+              className={`fixed inset-x-0 bottom-0 z-[${Z_INDEX.notificationPanel}] flex max-h-[min(78dvh,38rem)] flex-col rounded-t-3xl border-t border-border bg-card pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl focus:outline-none`}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -258,7 +259,7 @@ export default function NotificationBell() {
             transition={{ duration: 0.16 }}
             role="dialog"
             aria-label={t("notifications.title")}
-            className="absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70vh,32rem)] overflow-y-auto rounded-xl bg-card border border-border shadow-2xl z-[100]"
+            className={`absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70vh,32rem)] overflow-y-auto rounded-xl bg-card border border-border shadow-2xl z-[${Z_INDEX.notificationPanel}]`}
           >
             <NotificationList />
           </motion.div>

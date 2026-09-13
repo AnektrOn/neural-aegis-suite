@@ -189,20 +189,20 @@ export default function PulsePage() {
       <nav className="w-full px-4 sm:px-5 md:px-6 py-4 flex justify-between items-center z-50 relative">
         <button
           type="button"
-          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors rounded-full"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full"
           onClick={() => setActiveView("runes")}
           aria-label={t("pulse.runeTrackerTitle")}
         >
           <Hexagon size={20} strokeWidth={1.5} />
         </button>
         <div className="flex items-center gap-2">
-          <h1 className="font-barlow text-xs font-medium uppercase tracking-[0.2em] text-text-secondary">
+          <h1 className="font-barlow text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
             {t("pulse.title")}
           </h1>
           <button
             type="button"
             onClick={() => setShowOnboarding(true)}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-text-secondary transition-colors rounded-full"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors rounded-full"
             aria-label={t("pulse.showGuide")}
           >
             <HelpCircle size={16} strokeWidth={1.5} />
@@ -210,7 +210,7 @@ export default function PulsePage() {
         </div>
         <button
           type="button"
-          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors relative rounded-full"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors relative rounded-full"
           onClick={() => setActiveView("grimoire")}
           aria-label={t("pulse.grimoireTitle")}
         >
@@ -271,7 +271,7 @@ export default function PulsePage() {
                 <div className="w-16 h-16 sm:w-20 sm:h-20 mb-5 sm:mb-6 opacity-20">
                   <SacredGeometry type="MENTALISM" isGlowing={false} />
                 </div>
-                <h2 className="text-base sm:text-lg font-cormorant text-text-primary tracking-widest uppercase mb-3">
+                <h2 className="text-base sm:text-lg font-cormorant text-foreground tracking-widest uppercase mb-3">
                   {t("pulse.cycleComplete")}
                 </h2>
                 <p className="text-muted-foreground font-sans text-xs sm:text-sm mb-6">
@@ -331,7 +331,7 @@ export default function PulsePage() {
               type="button"
               onClick={() => forceSwipe("left")}
               disabled={isSwiping}
-              className="w-12 h-12 md:w-14 md:h-14 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-text-secondary hover:text-text-primary hover:border-muted-foreground transition-all disabled:opacity-30 active:scale-95"
+              className="w-12 h-12 md:w-14 md:h-14 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-all disabled:opacity-30 active:scale-95"
               aria-label={t("pulse.swipeIgnore")}
             >
               <X size={22} strokeWidth={1.5} />
@@ -339,7 +339,7 @@ export default function PulsePage() {
             <button
               type="button"
               onClick={() => setActiveView("grimoire")}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-text-secondary hover:text-accent-primary transition-colors rounded-full"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-accent-primary transition-colors rounded-full"
               aria-label={t("pulse.grimoireTitle")}
             >
               <div className="w-2 h-2 bg-accent-primary rounded-full shadow-[0_0_8px_hsla(var(--primary)/0.5)]" />
@@ -364,7 +364,7 @@ export default function PulsePage() {
           className="fixed top-20 sm:top-24 left-1/2 transform -translate-x-1/2 z-50 mx-4 max-w-[calc(100vw-2rem)]"
         >
           <div className="ethereal-glass border border-border-subtle px-4 sm:px-5 py-3 rounded-xl shadow-lg">
-            <span className="font-barlow text-[11px] font-medium uppercase tracking-[0.12em] text-text-primary">
+            <span className="font-barlow text-[11px] font-medium uppercase tracking-[0.12em] text-foreground">
               {toast}
             </span>
           </div>

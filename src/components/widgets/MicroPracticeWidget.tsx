@@ -2,12 +2,22 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, ChevronRight, CheckCircle2, Zap } from "lucide-react";
+import { ChevronRight, CheckCircle2, Zap } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 import type { MicroHeroPreset } from "@/lib/toolbox-slug-themes";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
+import {
+  TOOLBOX_PHASE_COLORS,
+  ToolboxWidgetHeader,
+  ToolboxWidgetLaunchButton,
+  ToolboxWidgetPrimaryButton,
+  ToolboxWidgetRoot,
+  ToolboxWidgetSecondaryButton,
+  ToolboxWidgetTimerControls,
+  resolveToolboxAccent,
+} from "@/features/toolbox/ui";
 
 export interface MicroPracticeConfig {
   instructions?: string;
@@ -28,7 +38,7 @@ interface Props {
   onAbandon?: ToolboxOnAbandon;
 }
 
-const DEFAULT_COLOR = "hsl(176 70% 48%)";
+const DEFAULT_COLOR = TOOLBOX_PHASE_COLORS.inhale;
 
 function MicroHeroVisual({
   hero,
@@ -159,7 +169,7 @@ export default function MicroPracticeWidget({
   onAbandon,
 }: Props) {
   const { t, locale } = useLanguage();
-  const accent = config.accent_color || DEFAULT_COLOR;
+  const accent = resolveToolboxAccent(config.accent_color, 0);
   const hero = config.hero ?? "pulse";
   const instructionsText = useMemo(
     () => pickWidgetCatalogCopy(locale as Locale, config.instructions_i18n as any, config.instructions),
@@ -249,13 +259,10 @@ export default function MicroPracticeWidget({
   const sessionDone = completed || completedRef.current;
 
   return (
-    <div className="flex flex-col items-center space-y-5 py-4">
-      {!hideTitle && (
-        <div className="flex items-center gap-2 text-neural-label">
-          <Zap size={14} style={{ color: accent }} />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
+    <ToolboxWidgetRoot className="items-center space-y-5">
+      {!hideTitle ? (
+        <ToolboxWidgetHeader title={title} icon={Zap} iconClassName="text-neural-accent" />
+      ) : null}
 
       <MicroHeroVisual hero={hero} accent={accent} running={started && !sessionDone} />
 
@@ -348,94 +355,61 @@ export default function MicroPracticeWidget({
         )}
       </AnimatePresence>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         {!started && !sessionDone ? (
-          <button
-            type="button"
-            onClick={start}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95"
-            style={{
-              background: `color-mix(in srgb, ${accent} 15%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${accent} 35%, transparent)`,
-              color: accent,
-            }}
-          >
-            <Play size={14} />
+          <ToolboxWidgetLaunchButton type="button" onClick={start} className="inline-flex items-center gap-2">
             {t("toolbox.micro.start")}
-          </button>
+          </ToolboxWidgetLaunchButton>
         ) : sessionDone ? (
-          <button
-            type="button"
-            onClick={reset}
-            className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <RotateCcw size={18} />
-          </button>
+          <ToolboxWidgetTimerControls
+            isRunning={false}
+            onToggle={() => {}}
+            onReset={reset}
+            playLabel={t("toolbox.launch")}
+            pauseLabel={t("toolbox.pause")}
+            resetLabel="Reset"
+          />
         ) : (
-          <div className="flex gap-3 flex-wrap justify-center">
-            {hasDuration && (
-              <button
-                type="button"
-                onClick={toggleRunning}
-                className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors"
-                style={{
-                  borderColor: `color-mix(in srgb, ${accent} 40%, transparent)`,
-                  backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
-                  color: accent,
-                }}
-              >
-                {running ? <Pause size={18} /> : <Play size={18} />}
-              </button>
-            )}
-            {hasSteps && (
-              <button
-                type="button"
-                onClick={nextStep}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95 border"
-                style={{
-                  borderColor: `color-mix(in srgb, ${accent} 40%, transparent)`,
-                  backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
-                  color: accent,
-                }}
-              >
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {hasDuration ? (
+              <ToolboxWidgetTimerControls
+                isRunning={running}
+                onToggle={toggleRunning}
+                onReset={reset}
+                playLabel={t("toolbox.launch")}
+                pauseLabel={t("toolbox.pause")}
+                resetLabel="Reset"
+              />
+            ) : null}
+            {hasSteps ? (
+              <ToolboxWidgetSecondaryButton type="button" onClick={nextStep}>
                 {stepIdx >= (localizedSteps?.length ?? 1) - 1 ? t("toolbox.micro.finish") : t("toolbox.micro.next")}
                 <ChevronRight size={14} />
-              </button>
-            )}
-            {!hasSteps && !hasDuration && (
-              <button
-                type="button"
-                onClick={markCompleted}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95 border"
-                style={{
-                  borderColor: `color-mix(in srgb, ${accent} 40%, transparent)`,
-                  backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
-                  color: accent,
-                }}
-              >
-                <CheckCircle2 size={14} />
+              </ToolboxWidgetSecondaryButton>
+            ) : null}
+            {!hasSteps && !hasDuration ? (
+              <ToolboxWidgetPrimaryButton onClick={markCompleted} className="w-auto min-w-[12rem] px-6">
                 {t("toolbox.micro.markDone")}
-              </button>
-            )}
-            {(hasSteps || hasDuration) && (
-              <button
-                type="button"
-                onClick={markCompleted}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] uppercase tracking-[0.18em] border border-border/30 text-muted-foreground hover:text-foreground transition-colors"
-              >
+              </ToolboxWidgetPrimaryButton>
+            ) : null}
+            {(hasSteps || hasDuration) ? (
+              <ToolboxWidgetSecondaryButton type="button" onClick={markCompleted}>
                 {t("toolbox.micro.finishEarly")}
-              </button>
+              </ToolboxWidgetSecondaryButton>
+            ) : null}
+            {hasDuration ? null : (
+              <ToolboxWidgetTimerControls
+                isRunning={false}
+                onToggle={() => {}}
+                onReset={reset}
+                playLabel={t("toolbox.launch")}
+                pauseLabel={t("toolbox.pause")}
+                resetLabel="Reset"
+              />
             )}
-            <button
-              type="button"
-              onClick={reset}
-              className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <RotateCcw size={18} />
-            </button>
           </div>
         )}
       </div>
-    </div>
+    </ToolboxWidgetRoot>
   );
 }

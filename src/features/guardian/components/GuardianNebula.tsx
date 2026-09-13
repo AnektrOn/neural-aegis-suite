@@ -43,7 +43,7 @@ interface GuardianNebulaProps {
 
 /** Product wrapper around Quantum Nebula for the Guardian guide. */
 export const GuardianNebula = forwardRef<QuantumNebulaHandle, GuardianNebulaProps>(function GuardianNebula({
-  state = "solid",
+  state = "repos",
   audioSrc = null,
   autoPlayAudio = false,
   audioLoop = false,

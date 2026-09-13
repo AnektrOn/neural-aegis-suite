@@ -2,67 +2,74 @@ import { useState, useRef } from "react";
 import { BookOpen } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import {
+  useSaveToolboxWritingToJournal,
+  type ToolboxJournalMeta,
+} from "@/features/journal/useSaveToolboxWritingToJournal";
+import {
+  ToolboxWidgetCard,
+  ToolboxWidgetField,
+  ToolboxWidgetHeader,
+  ToolboxWidgetPrimaryButton,
+  ToolboxWidgetRoot,
+  toolboxWidgetLabelClass,
+} from "@/features/toolbox/ui";
+import { ToolboxWidgetTextarea } from "@/features/toolbox/ui/ToolboxWidgetInput";
 
 interface Props {
   config: { prompt: string };
   title: string;
   hideTitle?: boolean;
+  journal?: ToolboxJournalMeta;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
 
-export default function JournalPromptWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+export default function JournalPromptWidget({ config, title, hideTitle, journal, onComplete, onAbandon }: Props) {
   const { t } = useLanguage();
   const [body, setBody] = useState("");
   const completedRef = useRef(false);
   const touchedRef = useRef(false);
+  const { saveWriting, saving } = useSaveToolboxWritingToJournal(journal);
 
   useWidgetAbandonGuard(touchedRef, completedRef, onAbandon);
 
-  const submit = () => {
-    if (!body.trim()) return;
+  const submit = async () => {
+    if (!body.trim() || saving) return;
+    const promptBlock = config.prompt?.trim()
+      ? `## ${t("toolbox.journalPromptLabel")}\n${config.prompt.trim()}\n\n## ${t("toolbox.journalYourReflection")}\n${body.trim()}`
+      : body.trim();
+    const ok = await saveWriting(promptBlock);
+    if (!ok) return;
     completedRef.current = true;
     onComplete?.();
   };
 
-  const textareaClass =
-    "w-full min-h-[140px] bg-secondary/30 border border-border/30 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors resize-y";
-
   return (
-    <div className="flex flex-col space-y-5 py-4 max-w-lg mx-auto w-full">
-      {!hideTitle && (
-        <div className="flex items-center gap-2 text-neural-label justify-center">
-          <BookOpen size={14} className="text-neural-accent" />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
+    <ToolboxWidgetRoot>
+      {!hideTitle ? (
+        <ToolboxWidgetHeader title={title} icon={BookOpen} iconClassName="text-neural-accent" />
+      ) : null}
 
-      <div className="rounded-xl border border-border/20 bg-secondary/15 p-4">
-        <p className="text-neural-label text-[10px] uppercase tracking-[0.2em] mb-2">{t("toolbox.journalPromptLabel")}</p>
+      <ToolboxWidgetCard className="p-4">
+        <p className={`${toolboxWidgetLabelClass} mb-2`}>{t("toolbox.journalPromptLabel")}</p>
         <p className="text-sm text-foreground leading-relaxed">{config.prompt}</p>
-      </div>
+      </ToolboxWidgetCard>
 
-      <div>
-        <label className="text-neural-label text-[10px] uppercase tracking-[0.2em] block mb-1.5">{t("toolbox.journalYourReflection")}</label>
-        <textarea
+      <ToolboxWidgetField label={t("toolbox.journalYourReflection")}>
+        <ToolboxWidgetTextarea
           value={body}
           onChange={(e) => {
             if (e.target.value.trim()) touchedRef.current = true;
             setBody(e.target.value);
           }}
           placeholder={t("toolbox.journalWriteHere")}
-          className={textareaClass}
         />
-      </div>
+      </ToolboxWidgetField>
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={!body.trim()}
-        className="btn-neural w-full disabled:opacity-40 disabled:pointer-events-none"
-      >
+      <ToolboxWidgetPrimaryButton onClick={submit} disabled={!body.trim() || saving}>
         {t("toolbox.widgetFinishJournal")}
-      </button>
-    </div>
+      </ToolboxWidgetPrimaryButton>
+    </ToolboxWidgetRoot>
   );
 }

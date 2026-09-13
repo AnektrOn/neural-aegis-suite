@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.stripe-portal]
 verify_jwt = false
+
+[functions.import-meditation-drive-links]
+verify_jwt = true
+
+[functions.stream-meditation-audio]
+verify_jwt = false

@@ -62,6 +62,9 @@ const HabitFactory = lazy(() => import("./pages/admin/HabitFactory"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const CompanyManagement = lazy(() => import("./pages/admin/CompanyManagement"));
 const VideoLibraryAdmin = lazy(() => import("./pages/admin/VideoLibraryAdmin"));
+const MeditationLibraryAdmin = lazy(() => import("./pages/admin/MeditationLibraryAdmin"));
+const MeditationLibraryPage = lazy(() => import("./features/meditation/pages/MeditationLibraryPage"));
+const MeditationSessionPage = lazy(() => import("./features/meditation/pages/MeditationSessionPage"));
 const AdminDecisions = lazy(() => import("./pages/admin/AdminDecisions"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const AdminEmailAlerts = lazy(() => import("./pages/admin/AdminEmailAlerts"));
@@ -92,6 +95,8 @@ const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
 const AegisCorePreview = lazy(() => import("./pages/dev/AegisCorePreview"));
 const QuantumNebulaDemo = lazy(() => import("./pages/dev/QuantumNebulaDemo"));
+const ToolboxNebulaDemo = lazy(() => import("./pages/dev/ToolboxNebulaDemo"));
+const PromotePage = lazy(() => import("./pages/dev/promote/PromotePage"));
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
 const AdminMarkdownPdf = lazy(() => import("./pages/admin/AdminMarkdownPdf"));
 const AdminMarkdownPdfRender = lazy(() => import("./pages/admin/AdminMarkdownPdfRender"));
@@ -229,6 +234,9 @@ const App = () => (
                     <Route path="/__loader" element={<BootLoadingScreen />} />
                     <Route path="/dev/aegis-core" element={<AegisCorePreview />} />
                     <Route path="/dev/quantum-nebula" element={<QuantumNebulaDemo />} />
+                    <Route path="/dev/toolbox-nebula" element={<ToolboxNebulaDemo />} />
+                    <Route path="/dev/promote" element={<PromotePage />} />
+                    <Route path="/dev/promote/:scene" element={<PromotePage />} />
                   </>
                 ) : null}
                 <Route path="/auth" element={<AuthPage />} />
@@ -308,6 +316,7 @@ const App = () => (
                                 element={<AdminLegacyRedirect from="/admin/user-places" />}
                               />
                               <Route path="/video-library" element={<VideoLibraryAdmin />} />
+                              <Route path="/meditation" element={<MeditationLibraryAdmin />} />
                               <Route path="/decisions" element={<AdminDecisions />} />
                               <Route path="/messages" element={<AdminMessages />} />
                               <Route path="/email-alerts" element={<AdminEmailAlerts />} />
@@ -363,6 +372,20 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/meditation/:trackId"
+                  element={
+                    <ProtectedRoute>
+                      <RequireQuizOnboarding>
+                        <RequireSubscription>
+                          <Suspense fallback={<PageLoader />}>
+                            <MeditationSessionPage />
+                          </Suspense>
+                        </RequireSubscription>
+                      </RequireQuizOnboarding>
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/" element={<HomeRoute />} />
 
                 <Route
@@ -383,6 +406,7 @@ const App = () => (
                             <Route path="/toolbox" element={<Toolbox />} />
                             <Route path="/pulse" element={<PulsePage />} />
                             <Route path="/bibliotheque" element={<Bibliotheque />} />
+                            <Route path="/meditation" element={<MeditationLibraryPage />} />
                             <Route path="/people" element={<PeopleBoard />} />
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/profile" element={<Profile />} />

@@ -11,6 +11,10 @@ export interface Houses72Status {
   completedHouses: number;
   /** Total number of houses with questions (currently 6). */
   totalHouses: number;
+  /** Distinct questions answered across populated houses. */
+  answeredQuestions: number;
+  /** Total questions in populated houses (6 per house). */
+  totalQuestions: number;
   /** True if the user has answered at least one question. */
   hasAnyProgress: boolean;
   /** True if every populated house is fully answered. */
@@ -19,13 +23,18 @@ export interface Houses72Status {
 }
 
 const POPULATED = getPopulatedHouses();
+const QUESTIONS_PER_HOUSE = 6;
 
 export function useHouses72Status(userId: string | undefined): Houses72Status {
   const [completionMap, setCompletionMap] = useState<Record<number, number>>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => Boolean(userId));
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setCompletionMap({});
+      setLoading(false);
+      return;
+    }
     let alive = true;
     setLoading(true);
     getHouses72CompletionMap(userId)
@@ -44,11 +53,24 @@ export function useHouses72Status(userId: string | undefined): Houses72Status {
   }, [userId]);
 
   const completedHouses = POPULATED.filter(
-    (h) => (completionMap[h] ?? 0) >= 6,
+    (h) => (completionMap[h] ?? 0) >= QUESTIONS_PER_HOUSE,
   ).length;
   const totalHouses = POPULATED.length;
-  const hasAnyProgress = Object.keys(completionMap).length > 0;
-  const isFullyComplete = completedHouses >= totalHouses;
+  const answeredQuestions = POPULATED.reduce(
+    (sum, h) => sum + Math.min(completionMap[h] ?? 0, QUESTIONS_PER_HOUSE),
+    0,
+  );
+  const totalQuestions = totalHouses * QUESTIONS_PER_HOUSE;
+  const hasAnyProgress = answeredQuestions > 0;
+  const isFullyComplete = totalHouses > 0 && completedHouses >= totalHouses;
 
-  return { completedHouses, totalHouses, hasAnyProgress, isFullyComplete, loading };
+  return {
+    completedHouses,
+    totalHouses,
+    answeredQuestions,
+    totalQuestions,
+    hasAnyProgress,
+    isFullyComplete,
+    loading,
+  };
 }

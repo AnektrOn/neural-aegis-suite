@@ -392,7 +392,7 @@ function validateAndBuild(
 
   if (!meta.principle || !isValidPrinciple(meta.principle as string)) {
     errors.push(
-      `${source}: principle invalide (${String(meta.principle)}) — attendu: Kybalion (MENTALISM, …) ou Myss (REBEL, CREATOR, …)`,
+      `${source}: principle invalide (${String(meta.principle)}) — attendu: Kybalion (MENTALISM, …), Myss (REBEL, …), Echols (SHIELDING, …) ou Tolle (PRESENCE, …)`,
     );
   }
 

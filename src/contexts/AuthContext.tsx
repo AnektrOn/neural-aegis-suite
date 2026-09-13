@@ -7,6 +7,7 @@ import { notifyAdminOnLogin } from "@/services/adminNotifications";
 import { isAnonymousUser, isGuestUser } from "@/lib/authVisitor";
 import { hasActiveToolboxSession } from "@/lib/toolbox-session-storage";
 import { withAuthTimeout } from "@/lib/authResilience";
+import { clearAllHouses72ResumeDismissed } from "@/lib/houses72ResumePromptStorage";
 
 const MOCK_AUTH = import.meta.env.VITE_MOCK_AUTH === "true";
 const MOCK_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -162,6 +163,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         endInitialLoading();
+
+        if (event === "SIGNED_OUT") {
+          clearAllHouses72ResumeDismissed();
+        }
 
         if (
           event === "SIGNED_IN" &&

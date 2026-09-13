@@ -2,17 +2,31 @@ import { useState, useEffect, useRef } from "react";
 import { Heart } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
+import {
+  useSaveToolboxWritingToJournal,
+  type ToolboxJournalMeta,
+} from "@/features/journal/useSaveToolboxWritingToJournal";
+import {
+  ToolboxWidgetField,
+  ToolboxWidgetHeader,
+  ToolboxWidgetInput,
+  ToolboxWidgetInstructions,
+  ToolboxWidgetPrimaryButton,
+  ToolboxWidgetRoot,
+} from "@/features/toolbox/ui";
 
 interface Props {
   config: { entries_count?: number };
   title: string;
   hideTitle?: boolean;
+  journal?: ToolboxJournalMeta;
   onComplete?: () => void;
   onAbandon?: () => void;
 }
 
-export default function GratitudeWidget({ config, title, hideTitle, onComplete, onAbandon }: Props) {
+export default function GratitudeWidget({ config, title, hideTitle, journal, onComplete, onAbandon }: Props) {
   const { t } = useLanguage();
+  const { saveWriting, saving } = useSaveToolboxWritingToJournal(journal);
   const n = Math.min(10, Math.max(1, config.entries_count ?? 3));
   const [values, setValues] = useState<string[]>(() => Array.from({ length: n }, () => ""));
   const completedRef = useRef(false);
@@ -37,51 +51,41 @@ export default function GratitudeWidget({ config, title, hideTitle, onComplete, 
 
   const allFilled = values.every((v) => v.trim().length > 0);
 
-  const submit = () => {
-    if (!allFilled) return;
+  const submit = async () => {
+    if (!allFilled || saving) return;
+    const content = values
+      .map((v, i) => `${i + 1}. ${v.trim()}`)
+      .join("\n");
+    const ok = await saveWriting(content, { extraTags: ["gratitude"] });
+    if (!ok) return;
     completedRef.current = true;
     onComplete?.();
   };
 
-  const inputClass =
-    "w-full bg-secondary/30 border border-border/30 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 transition-colors";
-
   return (
-    <div className="flex flex-col space-y-5 py-4 max-w-md mx-auto w-full">
-      {!hideTitle && (
-        <div className="flex items-center gap-2 text-neural-label justify-center">
-          <Heart size={14} className="text-destructive" />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
+    <ToolboxWidgetRoot>
+      {!hideTitle ? (
+        <ToolboxWidgetHeader title={title} icon={Heart} iconClassName="text-destructive" />
+      ) : null}
 
-      <p className="text-xs text-muted-foreground text-center">{t("toolbox.gratitudeIntro")}</p>
+      <ToolboxWidgetInstructions>{t("toolbox.gratitudeIntro")}</ToolboxWidgetInstructions>
 
       <div className="space-y-3">
         {values.map((v, i) => (
-          <div key={i}>
-            <label className="text-neural-label text-[10px] uppercase tracking-[0.2em] block mb-1.5">
-              {t("toolbox.gratitudeEntry", { n: i + 1 })}
-            </label>
-            <input
+          <ToolboxWidgetField key={i} label={t("toolbox.gratitudeEntry", { n: i + 1 })}>
+            <ToolboxWidgetInput
               type="text"
               value={v}
               onChange={(e) => setAt(i, e.target.value)}
               placeholder={t("toolbox.gratitudePlaceholder")}
-              className={inputClass}
             />
-          </div>
+          </ToolboxWidgetField>
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={!allFilled}
-        className="btn-neural w-full disabled:opacity-40 disabled:pointer-events-none"
-      >
+      <ToolboxWidgetPrimaryButton onClick={submit} disabled={!allFilled || saving}>
         {t("toolbox.widgetValidate")}
-      </button>
-    </div>
+      </ToolboxWidgetPrimaryButton>
+    </ToolboxWidgetRoot>
   );
 }

@@ -24,17 +24,33 @@ export function useMdPdfAssessment(markdown: string | undefined, locale: "fr" | 
       return;
     }
     let cancelled = false;
+    let failSafe = 0;
     setStatus("loading");
     const timer = window.setTimeout(() => {
-      void loadUserAssessmentForPdf(meta, locale).then((next) => {
+      failSafe = window.setTimeout(() => {
         if (cancelled) return;
-        setAssessment(next);
-        setStatus(next ? "found" : "missing");
-      });
+        // Don't leave the studio stuck on "loading" if Supabase hangs.
+        setStatus((prev) => (prev === "loading" ? "missing" : prev));
+      }, 8_000);
+      void loadUserAssessmentForPdf(meta, locale)
+        .then((next) => {
+          if (cancelled) return;
+          window.clearTimeout(failSafe);
+          setAssessment(next);
+          setStatus(next ? "found" : "missing");
+        })
+        .catch((err) => {
+          console.error("[md-pdf] assessment lookup failed", err);
+          if (cancelled) return;
+          window.clearTimeout(failSafe);
+          setAssessment(null);
+          setStatus("missing");
+        });
     }, 280);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+      window.clearTimeout(failSafe);
     };
   }, [markdown, locale]);
 

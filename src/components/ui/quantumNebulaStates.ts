@@ -1,7 +1,7 @@
-export type QuantumNebulaState = "solid" | "reflexion" | "mouvement";
+export type QuantumNebulaState = "repos" | "reflexion" | "mouvement";
 
 export const QUANTUM_NEBULA_STATES: QuantumNebulaState[] = [
-  "solid",
+  "repos",
   "reflexion",
   "mouvement",
 ];
@@ -10,12 +10,12 @@ export const QUANTUM_NEBULA_STATE_LABELS: Record<
   QuantumNebulaState,
   { fr: string; en: string; description: { fr: string; en: string } }
 > = {
-  solid: {
-    fr: "Solide",
-    en: "Solid",
+  repos: {
+    fr: "Repos",
+    en: "Rest",
     description: {
-      fr: "Nuage organique de particules — mouvement curl noise fluide",
-      en: "Organic particle cloud — fluid curl noise motion",
+      fr: "Nuage organique calme — respiration subtile, sans drive audio",
+      en: "Calm organic cloud — subtle breath, no audio drive",
     },
   },
   reflexion: {
@@ -30,8 +30,8 @@ export const QUANTUM_NEBULA_STATE_LABELS: Record<
     fr: "Mouvement",
     en: "Movement",
     description: {
-      fr: "Sans son : nuage initial (comme Solide). Avec audio : ondulation organique",
-      en: "No sound: initial cloud (like Solid). With audio: organic ripple",
+      fr: "Sans son : nuage initial (comme Repos). Avec audio : ondulation organique",
+      en: "No sound: initial cloud (like Rest). With audio: organic ripple",
     },
   },
 };
@@ -133,7 +133,7 @@ function ringDensityMultiplier(
 /**
  * One Golgi-like neuron at the origin: bright soma and fractal dendrites.
  * Sampled into per-particle targets for the reflexion state.
- * Targets are fitted inside `maxRadius` so they share the same container as solid/mouvement.
+ * Targets are fitted inside `maxRadius` so they share the same container as repos/mouvement.
  * Optional `ringDensity` thickens four concentric bands without removing radial branches.
  */
 export function buildNeuralMicrograph(
@@ -387,8 +387,19 @@ export function buildMetatronTargets(
     }
   }
 
+  return assignSamplesToParticles(samples, particleCount, rand);
+}
+
+export type QuantumNebulaFigure = "metatron" | "sriYantra" | "dna" | "svg" | "obj";
+
+function assignSamplesToParticles(
+  samples: number[],
+  particleCount: number,
+  rand: () => number,
+): Float32Array {
   const sampleCount = samples.length / 3;
   const targets = new Float32Array(particleCount * 3);
+  if (sampleCount < 1) return targets;
   for (let i = 0; i < particleCount; i++) {
     const si = Math.floor(rand() * sampleCount) * 3;
     const i3 = i * 3;
@@ -397,6 +408,714 @@ export function buildMetatronTargets(
     targets[i3 + 2] = samples[si + 2] ?? 0;
   }
   return targets;
+}
+
+function sampleSegment(
+  samples: number[],
+  ax: number,
+  ay: number,
+  az: number,
+  bx: number,
+  by: number,
+  bz: number,
+  steps: number,
+  rand: () => number,
+  jitter = 0,
+) {
+  for (let s = 0; s <= steps; s++) {
+    const t = s / steps;
+    samples.push(
+      ax + (bx - ax) * t + (rand() - 0.5) * jitter,
+      ay + (by - ay) * t + (rand() - 0.5) * jitter,
+      az + (bz - az) * t + (rand() - 0.5) * jitter,
+    );
+  }
+}
+
+function sampleCircle(
+  samples: number[],
+  cx: number,
+  cy: number,
+  radius: number,
+  steps: number,
+  rand: () => number,
+  zSpread = 0.04,
+) {
+  for (let i = 0; i < steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    samples.push(
+      cx + Math.cos(a) * radius,
+      cy + Math.sin(a) * radius,
+      (rand() - 0.5) * zSpread,
+    );
+  }
+}
+
+function fitSamplesToRadius(samples: number[], radius: number) {
+  if (samples.length < 3) return;
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  for (let i = 0; i < samples.length; i += 3) {
+    const x = samples[i] ?? 0;
+    const y = samples[i + 1] ?? 0;
+    const z = samples[i + 2] ?? 0;
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (z < minZ) minZ = z;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+    if (z > maxZ) maxZ = z;
+  }
+  const cx = (minX + maxX) * 0.5;
+  const cy = (minY + maxY) * 0.5;
+  const cz = (minZ + maxZ) * 0.5;
+  let maxR = 0.0001;
+  for (let i = 0; i < samples.length; i += 3) {
+    const dx = (samples[i] ?? 0) - cx;
+    const dy = (samples[i + 1] ?? 0) - cy;
+    const dz = (samples[i + 2] ?? 0) - cz;
+    const r = Math.hypot(dx, dy, dz);
+    if (r > maxR) maxR = r;
+  }
+  const scale = radius / maxR;
+  for (let i = 0; i < samples.length; i += 3) {
+    samples[i] = ((samples[i] ?? 0) - cx) * scale;
+    samples[i + 1] = ((samples[i + 1] ?? 0) - cy) * scale;
+    samples[i + 2] = ((samples[i + 2] ?? 0) - cz) * scale;
+  }
+}
+
+function sampleTriangle(
+  samples: number[],
+  size: number,
+  cy: number,
+  pointingUp: boolean,
+  rand: () => number,
+) {
+  const h = size * Math.sqrt(3);
+  const topY = pointingUp ? cy + h * (2 / 3) : cy - h * (2 / 3);
+  const baseY = pointingUp ? cy - h * (1 / 3) : cy + h * (1 / 3);
+  const a = { x: 0, y: topY };
+  const b = { x: -size, y: baseY };
+  const c = { x: size, y: baseY };
+  const steps = Math.max(36, Math.round(size * 54));
+  sampleSegment(samples, a.x, a.y, 0, b.x, b.y, 0, steps, rand, 0.006);
+  sampleSegment(samples, b.x, b.y, 0, c.x, c.y, 0, steps, rand, 0.006);
+  sampleSegment(samples, c.x, c.y, 0, a.x, a.y, 0, steps, rand, 0.006);
+}
+
+function samplePetal(
+  samples: number[],
+  angle: number,
+  innerR: number,
+  outerR: number,
+  width: number,
+  rand: () => number,
+) {
+  const tipX = Math.cos(angle) * outerR;
+  const tipY = Math.sin(angle) * outerR;
+  const left = {
+    x: Math.cos(angle - width) * innerR,
+    y: Math.sin(angle - width) * innerR,
+  };
+  const right = {
+    x: Math.cos(angle + width) * innerR,
+    y: Math.sin(angle + width) * innerR,
+  };
+  const ctrlL = {
+    x: Math.cos(angle - width * 0.45) * (innerR + (outerR - innerR) * 0.72),
+    y: Math.sin(angle - width * 0.45) * (innerR + (outerR - innerR) * 0.72),
+  };
+  const ctrlR = {
+    x: Math.cos(angle + width * 0.45) * (innerR + (outerR - innerR) * 0.72),
+    y: Math.sin(angle + width * 0.45) * (innerR + (outerR - innerR) * 0.72),
+  };
+  const steps = 22;
+  for (let s = 0; s <= steps; s++) {
+    const t = s / steps;
+    const mt = 1 - t;
+    samples.push(
+      mt * mt * left.x + 2 * mt * t * ctrlL.x + t * t * tipX,
+      mt * mt * left.y + 2 * mt * t * ctrlL.y + t * t * tipY,
+      (rand() - 0.5) * 0.035,
+    );
+    samples.push(
+      mt * mt * right.x + 2 * mt * t * ctrlR.x + t * t * tipX,
+      mt * mt * right.y + 2 * mt * t * ctrlR.y + t * t * tipY,
+      (rand() - 0.5) * 0.035,
+    );
+  }
+}
+
+/**
+ * Sri Yantra sample cloud: 9 interlocking triangles, bindu, lotuses, circles, square gates.
+ */
+export function buildSriYantraTargets(
+  particleCount: number,
+  radius = 2.1,
+  seed = 47,
+): Float32Array {
+  const rand = mulberry32(seed);
+  const samples: number[] = [];
+  const R = radius * 0.52;
+
+  sampleCircle(samples, 0, 0, R * 0.045, 48, rand, 0.02);
+
+  const down = [
+    { s: 1, y: -0.03 },
+    { s: 0.82, y: -0.07 },
+    { s: 0.62, y: -0.09 },
+    { s: 0.42, y: -0.1 },
+    { s: 0.22, y: -0.07 },
+  ];
+  const up = [
+    { s: 0.96, y: 0.04 },
+    { s: 0.74, y: 0.08 },
+    { s: 0.52, y: 0.1 },
+    { s: 0.3, y: 0.08 },
+  ];
+  for (const t of down) sampleTriangle(samples, R * t.s, R * t.y, false, rand);
+  for (const t of up) sampleTriangle(samples, R * t.s, R * t.y, true, rand);
+
+  const lotusInner = R * 1.08;
+  const lotusMid = R * 1.28;
+  const lotusOuter = R * 1.52;
+  for (let i = 0; i < 8; i++) {
+    samplePetal(samples, (i / 8) * Math.PI * 2, lotusInner, lotusMid, 0.28, rand);
+  }
+  for (let i = 0; i < 16; i++) {
+    samplePetal(
+      samples,
+      (i / 16) * Math.PI * 2 + Math.PI / 16,
+      lotusMid * 0.98,
+      lotusOuter,
+      0.16,
+      rand,
+    );
+  }
+
+  sampleCircle(samples, 0, 0, lotusOuter * 1.04, 140, rand, 0.03);
+  sampleCircle(samples, 0, 0, lotusOuter * 1.12, 150, rand, 0.03);
+  sampleCircle(samples, 0, 0, lotusOuter * 1.2, 160, rand, 0.03);
+
+  const s = lotusOuter * 1.34;
+  const corners = [
+    { x: -s, y: -s },
+    { x: s, y: -s },
+    { x: s, y: s },
+    { x: -s, y: s },
+  ];
+  for (let i = 0; i < 4; i++) {
+    const a = corners[i];
+    const b = corners[(i + 1) % 4];
+    if (!a || !b) continue;
+    sampleSegment(samples, a.x, a.y, 0, b.x, b.y, 0, 48, rand, 0.005);
+  }
+  const gate = s * 0.18;
+  const depth = s * 0.16;
+  const stems: Array<[number, number, number, number, number, number, number, number]> = [
+    [-gate, s, gate, s, 0, s, 0, s + depth],
+    [-gate, -s, gate, -s, 0, -s, 0, -s - depth],
+    [s, -gate, s, gate, s, 0, s + depth, 0],
+    [-s, -gate, -s, gate, -s, 0, -s - depth, 0],
+  ];
+  for (const [ax, ay, bx, by, sx, sy, tx, ty] of stems) {
+    sampleSegment(samples, ax, ay, 0, bx, by, 0, 18, rand, 0.004);
+    sampleSegment(samples, sx, sy, 0, tx, ty, 0, 16, rand, 0.004);
+    const nx = tx - sx;
+    const ny = ty - sy;
+    const len = Math.hypot(nx, ny) || 1;
+    const px = (-ny / len) * gate;
+    const py = (nx / len) * gate;
+    sampleSegment(samples, tx - px, ty - py, 0, tx + px, ty + py, 0, 18, rand, 0.004);
+  }
+
+  return assignSamplesToParticles(samples, particleCount, rand);
+}
+
+/**
+ * Double-helix DNA sample cloud with base-pair rungs.
+ */
+export function buildDnaTargets(
+  particleCount: number,
+  radius = 2.1,
+  seed = 53,
+): Float32Array {
+  const rand = mulberry32(seed);
+  const samples: number[] = [];
+  const height = radius * 1.82;
+  const helixR = radius * 0.3;
+  const turns = 5;
+  const backboneSteps = 640;
+  const pairEvery = 10;
+  const tilt = 0.22;
+  const cosT = Math.cos(tilt);
+  const sinT = Math.sin(tilt);
+
+  const push = (x: number, y: number, z: number) => {
+    samples.push(x, y * cosT - z * sinT, y * sinT + z * cosT);
+  };
+
+  for (let i = 0; i <= backboneSteps; i++) {
+    const t = i / backboneSteps;
+    const ang = t * turns * Math.PI * 2;
+    const y = (t - 0.5) * height;
+    const x1 = Math.cos(ang) * helixR;
+    const z1 = Math.sin(ang) * helixR;
+    const x2 = Math.cos(ang + Math.PI) * helixR;
+    const z2 = Math.sin(ang + Math.PI) * helixR;
+    push(x1, y, z1);
+    push(x2, y, z2);
+    push(x1 * 1.05, y, z1 * 1.05);
+    push(x2 * 1.05, y, z2 * 1.05);
+
+    if (i % pairEvery === 0) {
+      const rungSteps = 16;
+      for (let s = 0; s <= rungSteps; s++) {
+        const u = s / rungSteps;
+        push(x1 + (x2 - x1) * u, y, z1 + (z2 - z1) * u);
+      }
+    }
+  }
+
+  return assignSamplesToParticles(samples, particleCount, rand);
+}
+
+function parseObjIndex(token: string, vertCount: number): number {
+  const n = Number.parseInt(token.split("/")[0] ?? "", 10);
+  if (!Number.isFinite(n) || n === 0) return -1;
+  return n > 0 ? n - 1 : vertCount + n;
+}
+
+/**
+ * Sample a Wavefront OBJ into particle targets (vertices + edges, fitted to radius).
+ */
+export function buildObjTargets(
+  objText: string,
+  particleCount: number,
+  radius = 2.1,
+  seed = 19,
+): Float32Array {
+  const rand = mulberry32(seed);
+  const verts: Array<[number, number, number]> = [];
+  const samples: number[] = [];
+  const lines = objText.split(/\r?\n/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("v ")) continue;
+    const parts = trimmed.split(/\s+/);
+    const x = Number(parts[1]);
+    const y = Number(parts[2]);
+    const z = Number(parts[3]);
+    if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+      verts.push([x, y, z]);
+    }
+  }
+
+  const edgeSteps = verts.length > 8000 ? 3 : verts.length > 2000 ? 6 : 12;
+  const seenEdges = new Set<string>();
+  const addEdge = (ia: number, ib: number) => {
+    if (ia < 0 || ib < 0 || ia === ib) return;
+    const key = ia < ib ? `${ia}-${ib}` : `${ib}-${ia}`;
+    if (seenEdges.has(key)) return;
+    seenEdges.add(key);
+    const a = verts[ia];
+    const b = verts[ib];
+    if (!a || !b) return;
+    sampleSegment(samples, a[0], a[1], a[2], b[0], b[1], b[2], edgeSteps, rand, 0);
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("f ")) {
+      const idxs = trimmed
+        .split(/\s+/)
+        .slice(1)
+        .map((token) => parseObjIndex(token, verts.length))
+        .filter((i) => i >= 0);
+      for (let i = 0; i < idxs.length; i++) {
+        const a = idxs[i];
+        const b = idxs[(i + 1) % idxs.length];
+        if (a === undefined || b === undefined) continue;
+        addEdge(a, b);
+      }
+    } else if (trimmed.startsWith("l ")) {
+      const idxs = trimmed
+        .split(/\s+/)
+        .slice(1)
+        .map((token) => parseObjIndex(token, verts.length))
+        .filter((i) => i >= 0);
+      for (let i = 0; i < idxs.length - 1; i++) {
+        const a = idxs[i];
+        const b = idxs[i + 1];
+        if (a === undefined || b === undefined) continue;
+        addEdge(a, b);
+      }
+    }
+  }
+
+  if (samples.length < 9) {
+    for (const [x, y, z] of verts) samples.push(x, y, z);
+  }
+
+  fitSamplesToRadius(samples, radius * 0.96);
+  return assignSamplesToParticles(samples, particleCount, rand);
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function svgLocalName(el: Element): string {
+  return el.tagName.toLowerCase().replace(/^svg:/, "");
+}
+
+function isSvgTemplateNode(el: Element): boolean {
+  return Boolean(
+    el.closest("defs, clipPath, mask, pattern, marker, symbol, linearGradient, radialGradient"),
+  );
+}
+
+function cleanSvgMarkup(svgText: string): string | null {
+  const cleaned = svgText
+    .replace(/^\uFEFF/, "")
+    .replace(/^<\?xml[^>]*>\s*/i, "")
+    .replace(/<!DOCTYPE[^>]*>\s*/i, "")
+    .trim();
+  if (!cleaned) return null;
+  return /<svg[\s>]/i.test(cleaned)
+    ? cleaned
+    : `<svg xmlns="${SVG_NS}" viewBox="0 0 100 100">${cleaned}</svg>`;
+}
+
+function parseSvgHref(raw: string | null): string | null {
+  if (!raw) return null;
+  let href = raw.trim();
+  if (/^url\(/i.test(href)) {
+    href = href.replace(/^url\(/i, "").replace(/\)\s*$/, "").trim().replace(/^['"]|['"]$/g, "");
+  }
+  const hash = href.lastIndexOf("#");
+  if (hash < 0) return null;
+  const id = href.slice(hash + 1).trim();
+  return id || null;
+}
+
+function parseViewBox(value: string | null): { x: number; y: number; w: number; h: number } | null {
+  if (!value) return null;
+  const parts = value.trim().split(/[\s,]+/).map(Number);
+  if (parts.length < 4 || parts.some((n) => !Number.isFinite(n))) return null;
+  const w = parts[2] ?? 0;
+  const h = parts[3] ?? 0;
+  if (w === 0 || h === 0) return null;
+  return { x: parts[0] ?? 0, y: parts[1] ?? 0, w, h };
+}
+
+function localToRootMatrix(svg: SVGSVGElement, el: Element): DOMMatrix | null {
+  const gfx = el as SVGGraphicsElement;
+  const elCtm =
+    typeof gfx.getScreenCTM === "function" ? gfx.getScreenCTM() : null;
+  const rootCtm = svg.getScreenCTM?.() ?? null;
+  if (elCtm && rootCtm) {
+    try {
+      return rootCtm.inverse().multiply(elCtm);
+    } catch {
+      return elCtm;
+    }
+  }
+  return typeof gfx.getCTM === "function" ? gfx.getCTM() : null;
+}
+
+function pushSvgPoint(
+  svg: SVGSVGElement,
+  ctm: DOMMatrix | null,
+  x: number,
+  y: number,
+  samples: number[],
+  rand: () => number,
+) {
+  let px = x;
+  let py = y;
+  if (ctm) {
+    const point = svg.createSVGPoint();
+    point.x = x;
+    point.y = y;
+    const mapped = point.matrixTransform(ctm);
+    px = mapped.x;
+    py = mapped.y;
+  }
+  samples.push(px, -py, (rand() - 0.5) * 0.045);
+}
+
+function sampleSvgGeometryElement(
+  svg: SVGSVGElement,
+  el: Element,
+  samples: number[],
+  rand: () => number,
+) {
+  const geom = el as SVGGeometryElement;
+  const ctm = localToRootMatrix(svg, el);
+  try {
+    if (typeof geom.getTotalLength === "function") {
+      const length = geom.getTotalLength();
+      if (Number.isFinite(length) && length > 0) {
+        const steps = Math.max(24, Math.min(720, Math.round(length / 1.6)));
+        for (let i = 0; i <= steps; i++) {
+          const point = geom.getPointAtLength((i / steps) * length);
+          pushSvgPoint(svg, ctm, point.x, point.y, samples, rand);
+        }
+        return;
+      }
+    }
+  } catch {
+    /* Some SVG nodes expose the API but reject zero-size geometry. */
+  }
+  try {
+    const box = (el as SVGGraphicsElement).getBBox();
+    if (!box.width && !box.height) return;
+    const corners: Array<[number, number]> = [
+      [box.x, box.y],
+      [box.x + box.width, box.y],
+      [box.x + box.width, box.y + box.height],
+      [box.x, box.y + box.height],
+    ];
+    for (let c = 0; c < 4; c++) {
+      const a = corners[c];
+      const b = corners[(c + 1) % 4];
+      if (!a || !b) continue;
+      for (let s = 0; s <= 12; s++) {
+        const t = s / 12;
+        pushSvgPoint(
+          svg,
+          ctm,
+          a[0] + (b[0] - a[0]) * t,
+          a[1] + (b[1] - a[1]) * t,
+          samples,
+          rand,
+        );
+      }
+    }
+  } catch {
+    /* getBBox also throws for unrendered / empty nodes. */
+  }
+}
+
+function flattenSvgUses(svg: SVGSVGElement) {
+  for (let pass = 0; pass < 8; pass++) {
+    const uses = [...svg.querySelectorAll("use")];
+    if (uses.length === 0) break;
+    for (const use of uses) {
+      const id = parseSvgHref(
+        use.getAttribute("href") ||
+          use.getAttributeNS("http://www.w3.org/1999/xlink", "href") ||
+          use.getAttribute("xlink:href"),
+      );
+      const ref = id ? svg.getElementById(id) : null;
+      if (!ref) {
+        use.remove();
+        continue;
+      }
+      const group = document.createElementNS(SVG_NS, "g");
+      const x = Number(use.getAttribute("x") || 0) || 0;
+      const y = Number(use.getAttribute("y") || 0) || 0;
+      const width = Number(use.getAttribute("width") || "");
+      const height = Number(use.getAttribute("height") || "");
+      const ownTransform = use.getAttribute("transform") || "";
+      const vb = parseViewBox(ref.getAttribute("viewBox"));
+      let extra = `translate(${x} ${y})`;
+      if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0 && vb) {
+        extra += ` scale(${width / vb.w} ${height / vb.h}) translate(${-vb.x} ${-vb.y})`;
+      }
+      group.setAttribute("transform", `${ownTransform} ${extra}`.trim());
+      for (const attr of ["fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity"]) {
+        const value = use.getAttribute(attr);
+        if (value && !group.hasAttribute(attr)) group.setAttribute(attr, value);
+      }
+      const refName = svgLocalName(ref);
+      if (refName === "symbol" || refName === "svg" || refName === "g") {
+        for (const child of [...ref.childNodes]) {
+          group.appendChild(child.cloneNode(true));
+        }
+      } else {
+        group.appendChild(ref.cloneNode(true));
+      }
+      use.replaceWith(group);
+    }
+  }
+}
+
+function mountSvgForSampling(svgText: string): { host: HTMLDivElement; svg: SVGSVGElement } | null {
+  const markup = cleanSvgMarkup(svgText);
+  if (!markup) return null;
+
+  const host = document.createElement("div");
+  host.setAttribute("aria-hidden", "true");
+  host.style.cssText =
+    "position:fixed;left:0;top:0;width:512px;height:512px;visibility:hidden;pointer-events:none;z-index:-1;";
+  document.body.appendChild(host);
+
+  try {
+    host.innerHTML = markup;
+  } catch {
+    host.remove();
+    return null;
+  }
+
+  let svg = host.querySelector("svg");
+  if (!svg) {
+    const parsed = new DOMParser().parseFromString(markup, "image/svg+xml");
+    const parsedSvg = parsed.documentElement;
+    if (
+      parsedSvg &&
+      svgLocalName(parsedSvg) === "svg" &&
+      !parsed.querySelector("parsererror")
+    ) {
+      svg = document.importNode(parsedSvg, true) as SVGSVGElement;
+      host.replaceChildren(svg);
+    }
+  }
+  if (!svg) {
+    host.remove();
+    return null;
+  }
+
+  if (!svg.getAttribute("xmlns")) svg.setAttribute("xmlns", SVG_NS);
+  svg.setAttribute("width", "512");
+  svg.setAttribute("height", "512");
+  flattenSvgUses(svg);
+  try {
+    void svg.getBBox();
+  } catch {
+    /* Layout probe only. */
+  }
+  return { host, svg };
+}
+
+function collectSvgSamples(svg: SVGSVGElement, rand: () => number): number[] {
+  const samples: number[] = [];
+  const nodes = svg.querySelectorAll("path, line, polyline, polygon, circle, ellipse, rect");
+  for (const node of nodes) {
+    if (isSvgTemplateNode(node)) continue;
+    sampleSvgGeometryElement(svg, node, samples, rand);
+  }
+  if (samples.length < 9) {
+    for (const node of nodes) {
+      sampleSvgGeometryElement(svg, node, samples, rand);
+    }
+  }
+  return samples;
+}
+
+/**
+ * Sample an SVG (paths, circles, lines, polygons, use/defs) into particle targets.
+ * Uses the browser SVG engine so cubic/arc commands stay accurate.
+ */
+export function buildSvgTargets(
+  svgText: string,
+  particleCount: number,
+  radius = 2.1,
+  seed = 23,
+): Float32Array | null {
+  if (typeof document === "undefined") return null;
+  const rand = mulberry32(seed);
+  const mounted = mountSvgForSampling(svgText);
+  if (!mounted) return null;
+
+  let samples: number[] = [];
+  try {
+    samples = collectSvgSamples(mounted.svg, rand);
+  } finally {
+    mounted.host.remove();
+  }
+
+  if (samples.length < 9) return null;
+  fitSamplesToRadius(samples, radius * 0.96);
+  return assignSamplesToParticles(samples, particleCount, rand);
+}
+
+/** Fallback when path sampling fails (text, embedded images, messy XML). */
+export async function buildSvgTargetsFromRaster(
+  svgText: string,
+  particleCount: number,
+  radius = 2.1,
+  seed = 23,
+): Promise<Float32Array | null> {
+  if (typeof document === "undefined") return null;
+  const markup = cleanSvgMarkup(svgText);
+  if (!markup) return null;
+
+  const blob = new Blob([markup], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+    await img.decode();
+    const size = 640;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx || img.width < 1 || img.height < 1) return null;
+    const scale = Math.min(size / img.width, size / img.height);
+    const drawW = Math.max(1, img.width * scale);
+    const drawH = Math.max(1, img.height * scale);
+    const ox = (size - drawW) * 0.5;
+    const oy = (size - drawH) * 0.5;
+    ctx.clearRect(0, 0, size, size);
+    ctx.drawImage(img, ox, oy, drawW, drawH);
+    const pixels = ctx.getImageData(0, 0, size, size).data;
+    const corner = (x: number, y: number) => {
+      const i = (y * size + x) * 4;
+      return {
+        r: pixels[i] ?? 0,
+        g: pixels[i + 1] ?? 0,
+        b: pixels[i + 2] ?? 0,
+        a: pixels[i + 3] ?? 0,
+      };
+    };
+    const bg = corner(0, 0);
+    const samples: number[] = [];
+    const rand = mulberry32(seed);
+    const step = 2;
+    for (let y = 0; y < size; y += step) {
+      for (let x = 0; x < size; x += step) {
+        const i = (y * size + x) * 4;
+        const r = pixels[i] ?? 0;
+        const g = pixels[i + 1] ?? 0;
+        const b = pixels[i + 2] ?? 0;
+        const a = pixels[i + 3] ?? 0;
+        if (a < 28) continue;
+        const dr = r - bg.r;
+        const dg = g - bg.g;
+        const db = b - bg.b;
+        const da = a - bg.a;
+        if (Math.hypot(dr, dg, db, da) < 28) continue;
+        samples.push(x, -y, (rand() - 0.5) * 0.04);
+      }
+    }
+    if (samples.length < 9) return null;
+    fitSamplesToRadius(samples, radius * 0.96);
+    return assignSamplesToParticles(samples, particleCount, rand);
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+export async function buildSvgTargetsAsync(
+  svgText: string,
+  particleCount: number,
+  radius = 2.1,
+  seed = 23,
+): Promise<Float32Array | null> {
+  return (
+    buildSvgTargets(svgText, particleCount, radius, seed) ??
+    (await buildSvgTargetsFromRaster(svgText, particleCount, radius, seed))
+  );
 }
 
 /** Battement très subtil */

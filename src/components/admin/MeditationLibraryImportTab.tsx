@@ -1,0 +1,282 @@
+import { useEffect, useMemo, useState } from "react";
+import { CloudUpload, Link as LinkIcon, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { LibraryScope } from "@/lib/library-scope";
+import { LIBRARY_SCOPES } from "@/lib/library-scope";
+import VideoLibraryUserPicker, { type VideoLibraryProfileOption } from "@/components/admin/VideoLibraryUserPicker";
+
+type ImportResult = {
+  input: string;
+  fileId: string | null;
+  title: string | null;
+  status: "created" | "duplicate" | "failed";
+  createdAssignments: number;
+  skippedDuplicates: number;
+  error: string | null;
+};
+
+type ImportSummary = {
+  receivedLinks: number;
+  uniqueLinks: number;
+  processedTracks: number;
+  targetUsers: number;
+  createdAssignments: number;
+  skippedDuplicates: number;
+  failed: number;
+};
+
+type ImportResponse = {
+  summary: ImportSummary;
+  results: ImportResult[];
+};
+
+interface MeditationLibraryImportTabProps {
+  profiles: VideoLibraryProfileOption[];
+  onImported: () => void;
+}
+
+export default function MeditationLibraryImportTab({ profiles, onImported }: MeditationLibraryImportTabProps) {
+  const { t } = useLanguage();
+  const { toast } = useToast();
+  const [rawLinks, setRawLinks] = useState("");
+  const [libraryScope, setLibraryScope] = useState<LibraryScope>("global_fr");
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [report, setReport] = useState<ImportResponse | null>(null);
+
+  useEffect(() => {
+    if (libraryScope === "perso") {
+      setSelectedUserIds((prev) => (prev.length <= 1 ? prev : [prev[0]!]));
+    }
+  }, [libraryScope]);
+
+  const parsedLinks = useMemo(
+    () =>
+      rawLinks
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    [rawLinks],
+  );
+
+  const uniqueCount = useMemo(() => new Set(parsedLinks).size, [parsedLinks]);
+
+  const handleImport = async () => {
+    if (parsedLinks.length === 0) {
+      toast({
+        title: t("toast.error"),
+        description: t("admin.driveImport.errNoLinks"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedUserIds.length === 0) {
+      toast({
+        title: t("toast.error"),
+        description: t("admin.videoLibrary.errPickUsers"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (libraryScope === "perso" && selectedUserIds.length !== 1) {
+      toast({
+        title: t("toast.error"),
+        description: t("admin.videoLibrary.errPersoOne"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImporting(true);
+    setReport(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("import-meditation-drive-links", {
+        body: { links: parsedLinks, library_scope: libraryScope, user_ids: selectedUserIds },
+      });
+
+      if (error || data?.error) {
+        toast({
+          title: t("toast.error"),
+          description: typeof data?.error === "string" ? data.error : error?.message || t("admin.driveImport.errUnknown"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const typedData = data as ImportResponse;
+      setReport(typedData);
+
+      toast({
+        title: t("admin.driveImport.successTitle"),
+        description: t("admin.driveImport.successDesc", {
+          count: String(typedData.summary.createdAssignments),
+        }),
+      });
+
+      onImported();
+    } catch (err) {
+      toast({
+        title: t("toast.error"),
+        description: err instanceof Error ? err.message : t("admin.driveImport.errUnknown"),
+        variant: "destructive",
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div className="ethereal-glass p-6 space-y-4">
+      <div className="flex items-center gap-3">
+        <CloudUpload size={16} className="text-primary" />
+        <p className="text-sm font-medium text-foreground">{t("admin.meditation.importTitle")}</p>
+      </div>
+
+      <p className="text-neural-label">{t("admin.meditation.importSubtitle")}</p>
+
+      <div>
+        <label className="text-neural-label block mb-1.5">{t("admin.driveImport.libraryScopeLabel")}</label>
+        <div className="flex flex-wrap gap-2">
+          {LIBRARY_SCOPES.map((scope) => (
+            <button
+              key={scope}
+              type="button"
+              onClick={() => setLibraryScope(scope)}
+              className={`text-[9px] uppercase tracking-[0.15em] px-3 py-2 rounded-lg border transition-all ${
+                libraryScope === scope
+                  ? "border-primary/40 bg-primary/5 text-primary"
+                  : "border-border/30 text-muted-foreground hover:border-primary/30"
+              }`}
+            >
+              {scope === "global_fr"
+                ? t("admin.driveImport.scopeGlobalFr")
+                : scope === "global_en"
+                  ? t("admin.driveImport.scopeGlobalEn")
+                  : t("admin.driveImport.scopePerso")}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-neural-label block mb-1.5">{t("admin.videoLibrary.usersLabel")}</label>
+        <p className="text-xs text-muted-foreground mb-2">
+          {libraryScope === "perso" ? t("admin.videoLibrary.usersHintPerso") : t("admin.videoLibrary.usersHintGlobal")}
+        </p>
+        <VideoLibraryUserPicker
+          profiles={profiles}
+          mode={libraryScope === "perso" ? "single" : "multiple"}
+          value={selectedUserIds}
+          onChange={setSelectedUserIds}
+        />
+      </div>
+
+      <textarea
+        value={rawLinks}
+        onChange={(event) => setRawLinks(event.target.value)}
+        rows={8}
+        placeholder={t("admin.driveImport.placeholder")}
+        className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 transition-colors"
+      />
+
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border/20">
+          <LinkIcon size={12} />
+          {t("admin.driveImport.totalLines", { count: String(parsedLinks.length) })}
+        </span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border/20">
+          <CheckCircle2 size={12} />
+          {t("admin.driveImport.uniqueLinks", { count: String(uniqueCount) })}
+        </span>
+      </div>
+
+      <button
+        onClick={handleImport}
+        disabled={importing || parsedLinks.length === 0 || selectedUserIds.length === 0}
+        className="btn-neural disabled:opacity-50"
+      >
+        {importing ? (
+          <>
+            <Loader2 size={14} className="animate-spin" />
+            {t("admin.driveImport.importing")}
+          </>
+        ) : (
+          <>
+            <CloudUpload size={14} />
+            {t("admin.meditation.importCta")}
+          </>
+        )}
+      </button>
+
+      {report && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-lg border border-border/20 bg-secondary/10 p-3">
+              <p className="text-neural-label">{t("admin.driveImport.metricCreated")}</p>
+              <p className="text-sm text-foreground font-medium">{report.summary.createdAssignments}</p>
+            </div>
+            <div className="rounded-lg border border-border/20 bg-secondary/10 p-3">
+              <p className="text-neural-label">{t("admin.driveImport.metricDuplicates")}</p>
+              <p className="text-sm text-foreground font-medium">{report.summary.skippedDuplicates}</p>
+            </div>
+            <div className="rounded-lg border border-border/20 bg-secondary/10 p-3">
+              <p className="text-neural-label">{t("admin.driveImport.metricFailed")}</p>
+              <p className="text-sm text-foreground font-medium">{report.summary.failed}</p>
+            </div>
+            <div className="rounded-lg border border-border/20 bg-secondary/10 p-3">
+              <p className="text-neural-label">{t("admin.driveImport.metricUsers")}</p>
+              <p className="text-sm text-foreground font-medium">{report.summary.targetUsers}</p>
+            </div>
+          </div>
+
+          <div className="max-h-64 overflow-auto rounded-lg border border-border/20">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border/20 text-left">
+                  <th className="px-3 py-2 text-neural-label">{t("admin.driveImport.colLink")}</th>
+                  <th className="px-3 py-2 text-neural-label">{t("admin.driveImport.colStatus")}</th>
+                  <th className="px-3 py-2 text-neural-label">{t("admin.driveImport.colTitle")}</th>
+                  <th className="px-3 py-2 text-neural-label">{t("admin.driveImport.colDetails")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.results.map((result, index) => (
+                  <tr key={`${result.input}-${index}`} className="border-b border-border/10 align-top">
+                    <td className="px-3 py-2 text-foreground max-w-[220px] truncate" title={result.input}>
+                      {result.input}
+                    </td>
+                    <td className="px-3 py-2">
+                      {result.status === "failed" ? (
+                        <span className="inline-flex items-center gap-1 text-destructive">
+                          <AlertTriangle size={12} />
+                          {t("admin.driveImport.statusFailed")}
+                        </span>
+                      ) : result.status === "duplicate" ? (
+                        <span className="text-muted-foreground">{t("admin.driveImport.statusDuplicate")}</span>
+                      ) : (
+                        <span className="text-primary">{t("admin.driveImport.statusCreated")}</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-foreground">{result.title || "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {result.error ||
+                        t("admin.driveImport.detailsCounts", {
+                          created: String(result.createdAssignments),
+                          skipped: String(result.skippedDuplicates),
+                        })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

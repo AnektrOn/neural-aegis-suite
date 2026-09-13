@@ -227,6 +227,65 @@ auteur: "aegis-myss-balance"
     expect(filename).toBe("diag-balance-2608-djanan33.pdf");
   });
 
+  it("builds Elena-style DIAG BALANCE with nested liens YAML and bilingual poles", () => {
+    const markdown = `---
+titre: "DIAG · BALANCE · elena"
+stade: "fondation"
+domaine: "user"
+glyphe: "⚖️"
+principe-dominant: "cartographie-clinique"
+tags: ["diagnostic", "balance", "elena"]
+densite-morphique: 1
+liens:
+  resonance: []
+  correspondance: []
+  fractal:
+    contient: []
+    contenu-dans: []
+  polarite: []
+  engendre: []
+  origine: "Aegis App"
+  vortex: []
+user: "elena"
+auteur: "L'Analyste du Champ"
+tier: "2"
+orientation: "BALANCE"
+created: "2026-09-03"
+updated: "2026-09-03"
+---
+
+# DIAGNOSTIC CLINIQUE HAUTE RÉSOLUTION (30Q) : L'ARCHITECTURE DE L'ÊTRE
+
+## 2. Pôle SHADOW : L'Intellectualisation / Intellectualization
+
+### 🇫🇷 Analyse de l'Ombre (FR)
+Texte ombre Elena.
+
+### 🇬🇧 Shadow Analysis (EN)
+Elena shadow text.
+`;
+    const meta = resolveMdPdfMeta(markdown, "fallback");
+    expect(meta.user).toBe("elena");
+    expect(meta.glyphe).toBe("⚖️");
+    expect(meta.orientation).toBe("BALANCE");
+    expect(meta.author).toBe("L'Analyste du Champ");
+    expect(meta.body).not.toContain("resonance:");
+    expect(meta.body).toContain("DIAGNOSTIC CLINIQUE");
+
+    const { html, filename } = buildMdPdfHtml({
+      sources: [{ filename: "DIAG-BALANCE-elena.md", markdown }],
+      theme: "nocturne",
+      showCover: true,
+      locale: "fr",
+      contentLang: "fr",
+    });
+    expect(html).toContain("elena");
+    expect(html).toContain("Analyse de l'Ombre");
+    expect(html).not.toContain("Elena shadow text");
+    expect(html).toContain("cover-glyph-wrap");
+    expect(filename).toBe("diag-balance-elena.pdf");
+  });
+
   it("paginates multiple documents", () => {
     const { html } = buildMdPdfHtml({
       sources: [

@@ -2,14 +2,22 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, RotateCcw, ShieldAlert, ChevronRight, Check } from "lucide-react";
+import { ShieldAlert, ChevronRight, Check } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import type { Locale } from "@/i18n/translations";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
-import { hslWithAlpha } from "@/components/widgets/VisualizationWidget";
+import { hslWithAlpha } from "@/features/toolbox/ui/toolboxPhaseColors";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
 import { playToolboxTimerCompleteSound } from "@/lib/toolbox-timer-sound";
+import {
+  TOOLBOX_STOP_STEP_COLORS,
+  ToolboxWidgetHeader,
+  ToolboxWidgetLaunchButton,
+  ToolboxWidgetRoot,
+  ToolboxWidgetSecondaryButton,
+  ToolboxWidgetTimerControls,
+} from "@/features/toolbox/ui";
 
 export interface StopStepLegacy {
   title: string;
@@ -45,7 +53,7 @@ interface Step {
   duration_sec: number;
 }
 
-const DEFAULT_COLORS = ["hsl(0 70% 55%)", "hsl(35 80% 58%)", "hsl(220 70% 60%)", "hsl(176 70% 48%)"];
+const DEFAULT_COLORS = [...TOOLBOX_STOP_STEP_COLORS];
 const LETTERS = ["S", "T", "O", "P"] as const;
 
 function buildDefaultSteps(duration: number, t: (key: TranslationKey, params?: Record<string, string | number>) => string): Step[] {
@@ -243,13 +251,10 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
   const sessionDone = completed || completedRef.current || (budgetMode && timer.completed);
 
   return (
-    <div className="flex flex-col items-center space-y-5 py-4">
-      {hideTitle === false && (
-        <div className="flex items-center gap-2 text-neural-label">
-          <ShieldAlert size={14} className="text-destructive" />
-          <span className="text-xs uppercase tracking-[0.3em]">{title}</span>
-        </div>
-      )}
+    <ToolboxWidgetRoot className="items-center space-y-5">
+      {hideTitle === false ? (
+        <ToolboxWidgetHeader title={title} icon={ShieldAlert} iconClassName="text-destructive" />
+      ) : null}
 
       <div className="flex items-center gap-3">
         {steps.map((step, i) => {
@@ -375,7 +380,7 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
             <motion.div
               className="h-full rounded-full"
               style={{
-                background: "linear-gradient(90deg, hsl(0 70% 55%), hsl(176 70% 48%))",
+                background: `linear-gradient(90deg, ${TOOLBOX_STOP_STEP_COLORS[0]}, ${TOOLBOX_STOP_STEP_COLORS[3]})`,
               }}
               animate={{ width: `${overallProgress * 100}%` }}
               transition={{ duration: 0.5 }}
@@ -384,97 +389,47 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         {!started && !sessionDone ? (
-          <button
-            type="button"
-            onClick={start}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95"
-            style={{
-              background: "hsl(0 70% 55% / 0.15)",
-              border: "1px solid hsl(0 70% 55% / 0.35)",
-              color: "hsl(0 70% 65%)",
-            }}
-          >
+          <ToolboxWidgetLaunchButton type="button" onClick={start} className="inline-flex items-center gap-2">
             <ShieldAlert size={14} />
             {t("toolbox.stopV2.startButton")}
-          </button>
+          </ToolboxWidgetLaunchButton>
         ) : sessionDone ? (
-          <button
-            type="button"
-            onClick={reset}
-            className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <RotateCcw size={18} />
-          </button>
+          <ToolboxWidgetTimerControls
+            isRunning={false}
+            onToggle={() => {}}
+            onReset={reset}
+            playLabel={t("toolbox.launch")}
+            pauseLabel={t("toolbox.pause")}
+            resetLabel="Reset"
+          />
         ) : (
           <>
-            {budgetMode ? (
-              <button
-                type="button"
-                onClick={() => timer.toggleRunning()}
-                className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors hover:opacity-90"
-                style={{
-                  borderColor: currentStep ? hslWithAlpha(currentStep.color, 0.4) : undefined,
-                  backgroundColor: currentStep ? hslWithAlpha(currentStep.color, 0.1) : undefined,
-                  color: currentStep?.color,
-                }}
-              >
-                {timer.isRunning ? <Pause size={18} /> : <Play size={18} />}
-              </button>
-            ) : mode === "timed" ? (
-              <button
-                type="button"
-                onClick={() => setIsRunning(!isRunning)}
-                className="w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors hover:opacity-90"
-                style={{
-                  borderColor: currentStep ? hslWithAlpha(currentStep.color, 0.4) : undefined,
-                  backgroundColor: currentStep ? hslWithAlpha(currentStep.color, 0.1) : undefined,
-                  color: currentStep?.color,
-                }}
-              >
-                {isRunning ? <Pause size={18} /> : <Play size={18} />}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={advance}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95 border"
-                style={{
-                  borderColor: currentStep ? hslWithAlpha(currentStep.color, 0.4) : undefined,
-                  backgroundColor: currentStep ? hslWithAlpha(currentStep.color, 0.1) : undefined,
-                  color: currentStep?.color,
-                }}
-              >
-                {currentIdx === steps.length - 1 ? t("toolbox.stopV2.finishStep") : t("toolbox.stopV2.nextStep")}
-                <ChevronRight size={14} />
-              </button>
+            {(budgetMode || mode === "timed") && (
+              <ToolboxWidgetTimerControls
+                isRunning={budgetMode ? timer.isRunning : isRunning}
+                onToggle={() => (budgetMode ? timer.toggleRunning() : setIsRunning(!isRunning))}
+                onReset={reset}
+                playLabel={t("toolbox.launch")}
+                pauseLabel={t("toolbox.pause")}
+                resetLabel="Reset"
+              />
             )}
             {(budgetMode || mode === "manual") && (
-              <button
-                type="button"
-                onClick={advance}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95 border"
-                style={{
-                  borderColor: currentStep ? hslWithAlpha(currentStep.color, 0.4) : undefined,
-                  backgroundColor: currentStep ? hslWithAlpha(currentStep.color, 0.1) : undefined,
-                  color: currentStep?.color,
-                }}
-              >
+              <ToolboxWidgetSecondaryButton type="button" onClick={advance}>
                 {currentIdx === steps.length - 1 ? t("toolbox.stopV2.finishStep") : t("toolbox.stopV2.nextStep")}
                 <ChevronRight size={14} />
-              </button>
+              </ToolboxWidgetSecondaryButton>
             )}
-            <button
-              type="button"
-              onClick={reset}
-              className="w-12 h-12 rounded-2xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <RotateCcw size={18} />
-            </button>
+            {mode === "manual" && !budgetMode ? (
+              <ToolboxWidgetSecondaryButton type="button" onClick={reset}>
+                Reset
+              </ToolboxWidgetSecondaryButton>
+            ) : null}
           </>
         )}
       </div>
-    </div>
+    </ToolboxWidgetRoot>
   );
 }

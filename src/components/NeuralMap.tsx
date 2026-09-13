@@ -6,6 +6,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { Network, RotateCcw } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -29,16 +30,16 @@ export const PERIOD_DAYS: Record<Period, number> = {
   all: 99999,
 };
 
-export const PERIOD_LABELS: Record<Period, string> = {
-  "1d": "1 Jour",
-  "3d": "3 Jours",
-  "7d": "1 Semaine",
-  "14d": "2 Semaines",
-  "1m": "1 Mois",
-  "3m": "Trimestre",
-  "6m": "Semestre",
-  "1y": "Année",
-  all: "Lifetime",
+export const PERIOD_KEYS: Record<Period, TranslationKey> = {
+  "1d": "people.tf.1d",
+  "3d": "people.tf.3d",
+  "7d": "people.tf.7d",
+  "14d": "people.tf.14d",
+  "1m": "people.tf.1m",
+  "3m": "people.tf.3m",
+  "6m": "people.tf.6m",
+  "1y": "people.tf.1y",
+  all: "people.tf.all",
 };
 
 interface Person {
@@ -809,7 +810,7 @@ export default function NeuralMap({
     <div ref={wrapRef} className="relative w-full overflow-hidden rounded-2xl border border-white/[0.06] bg-black">
       {showFilters && onPeriodChange && !compact && (
         <div className="flex flex-wrap gap-1 border-b border-white/[0.06] px-1 py-1">
-          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+          {(Object.keys(PERIOD_KEYS) as Period[]).map((p) => (
             <button
               key={p}
               type="button"
@@ -818,7 +819,7 @@ export default function NeuralMap({
                 activePeriod === p ? "bg-white/[0.06] text-white/90" : "text-white/25 hover:text-white/50"
               }`}
             >
-              {PERIOD_LABELS[p]}
+              {t(PERIOD_KEYS[p])}
             </button>
           ))}
         </div>

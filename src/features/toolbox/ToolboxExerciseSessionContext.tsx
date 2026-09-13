@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { ExternalLink, CheckCircle2, XCircle, RotateCcw, X } from "lucide-react";
+import { CheckCircle2, XCircle, RotateCcw, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -17,12 +17,10 @@ import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 import {
   TOOLBOX_TYPE_META,
-  canRenderToolboxWidget,
-  isInteractiveToolboxType,
-  renderToolboxWidget,
   type ToolboxRenderableItem,
 } from "@/lib/toolbox-renderer-registry";
 import { formatToolboxDurationLabel } from "@/lib/toolbox-widget-duration";
+import { ToolboxNebulaExerciseView } from "@/features/toolbox/nebula/ToolboxNebulaExerciseView";
 import {
   Dialog,
   DialogContent,
@@ -155,9 +153,6 @@ function ToolboxExerciseModalLayer({
   const getLocalizedDescription = (row: ToolboxAssignmentRow) =>
     pickWidgetCatalogCopy(locale as Locale, row.description_i18n as any, row.description);
 
-  const getTypeLabel = (type: string) =>
-    TOOLBOX_TYPE_META[type] ? t(TOOLBOX_TYPE_META[type].labelKey as any) : type;
-
   const itemRef = useRef(item);
   itemRef.current = item;
   const statsRef = useRef(stats);
@@ -234,62 +229,27 @@ function ToolboxExerciseModalLayer({
     }
   }, [recordCompletion, onClose]);
 
-  const renderWidgetBody = (row: ToolboxAssignmentRow) => {
+  const getTypeLabel = (type: string) =>
+    TOOLBOX_TYPE_META[type] ? t(TOOLBOX_TYPE_META[type].labelKey as any) : type;
+
+  const renderExerciseBody = (row: ToolboxAssignmentRow) => {
     const renderable = toRenderableItem(row);
-    const isInteractiveType = isInteractiveToolboxType(renderable);
-    const hasWidget = isInteractiveType && canRenderToolboxWidget(renderable);
-    const isExternal = row.content_type === "external_link" && row.external_url;
     const title = getLocalizedTitle(row);
+    const sessionKey = `toolbox:${row.id}`;
 
-    const widget = hasWidget
-      ? renderToolboxWidget({
-          item: renderable,
-          locale,
-          title,
-          hideTitle: true,
-          onComplete: (payload) => void recordCompletion("completed", payload),
-          // Abandon only via explicit close — not on tab/app switch unmount.
-          onAbandon: () => {},
-        })
-      : null;
-
-    if (hasWidget && widget) {
-      return <div key={`${row.id}-${reloadKey}`}>{widget}</div>;
-    }
-    if (isExternal && row.external_url) {
-      return (
-        <div className="flex flex-col gap-4">
-          <a
-            href={row.external_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary transition-colors hover:bg-primary/15"
-          >
-            <ExternalLink size={16} />
-            {t("toolbox.openLink")}
-          </a>
-          <button
-            type="button"
-            onClick={() => void recordCompletion("completed")}
-            className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-[10px] uppercase tracking-[0.25em] text-primary transition-colors hover:bg-primary/15"
-          >
-            <CheckCircle2 size={14} />
-            {t("toolbox.markDone")}
-          </button>
-        </div>
-      );
-    }
-    if (!isInteractiveType && widget) {
-      return <div key={`${row.id}-${reloadKey}`}>{widget}</div>;
-    }
     return (
-      <p className="py-6 text-center text-sm text-muted-foreground">{t("toolbox.unavailableConfig")}</p>
+      <ToolboxNebulaExerciseView
+        key={`${row.id}-${reloadKey}`}
+        item={renderable}
+        locale={locale as Locale}
+        title={title}
+        variant="modal"
+        sessionKey={sessionKey}
+        onComplete={(payload) => void recordCompletion("completed", payload)}
+        onAbandon={() => {}}
+      />
     );
   };
-
-  const activeCfg = item
-    ? TOOLBOX_TYPE_META[item.content_type] || TOOLBOX_TYPE_META.course
-    : null;
 
   return (
     <>
@@ -299,61 +259,59 @@ function ToolboxExerciseModalLayer({
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
-          className="ethereal-glass w-[calc(100vw-1.25rem)] max-w-lg max-h-[min(90dvh,720px)] overflow-x-hidden overflow-y-auto border-border/30 p-4 sm:p-6"
+          className={cn(
+            "fixed inset-0 left-0 top-0 z-50 h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-0 bg-black p-0",
+          )}
         >
-          <button
-            type="button"
-            onClick={handleRequestClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label={t("general.close")}
-          >
-            <X className="h-4 w-4" />
-          </button>
-          {item && activeCfg ? (
-            <>
-              <DialogHeader className="min-w-0 pr-8">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-border/30 bg-background/60 mt-0.5">
-                    <activeCfg.icon size={17} strokeWidth={1.5} className={activeCfg.color} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <DialogDescription className="text-neural-label mb-0.5 truncate">
-                      {getTypeLabel(item.content_type)}
-                      {formatToolboxDurationLabel(item.duration, item.content_type, (item.widget_config ?? undefined) as Record<string, unknown> | undefined) ? (
-                        <span className="opacity-60">
-                          {" "}
-                          · {formatToolboxDurationLabel(item.duration, item.content_type, (item.widget_config ?? undefined) as Record<string, unknown> | undefined)}
-                        </span>
-                      ) : null}
-                    </DialogDescription>
-                    <DialogTitle className="text-left text-foreground leading-snug break-words">
-                      {getLocalizedTitle(item)}
-                    </DialogTitle>
-                    {getLocalizedDescription(item) ? (
-                      <p className="mt-1.5 text-left text-xs leading-relaxed text-muted-foreground line-clamp-3 break-words">
-                        {getLocalizedDescription(item)}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </DialogHeader>
-              <div className="flex min-w-0 flex-col gap-2 border-t border-border/20 pt-2 sm:flex-row sm:items-center sm:justify-between">
-                <ToolboxAssignmentStatsStrip stats={stats ?? undefined} className="min-w-0" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3 sm:p-4">
+            {item && activeCfg ? (
+              <div className="pointer-events-auto min-w-0 max-w-[min(100%,20rem)] rounded-2xl border border-border/30 bg-background/70 px-3 py-2 backdrop-blur-md sm:max-w-xs sm:px-4">
+                <p className="truncate text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {getTypeLabel(item.content_type)}
+                  {formatToolboxDurationLabel(item.duration, item.content_type, item.widget_config) ? (
+                    <span className="opacity-70">
+                      {" "}
+                      · {formatToolboxDurationLabel(item.duration, item.content_type, item.widget_config)}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="truncate text-sm font-medium text-foreground">{getLocalizedTitle(item)}</p>
+                <ToolboxAssignmentStatsStrip stats={stats ?? undefined} className="mt-1.5 min-w-0" />
+              </div>
+            ) : (
+              <div />
+            )}
+            <div className="pointer-events-auto flex shrink-0 items-center gap-2">
+              {item ? (
                 <button
                   type="button"
                   onClick={() => void handleReload()}
                   disabled={reloadBusy}
-                  className="flex min-h-[36px] shrink-0 items-center justify-center gap-1.5 self-end rounded-full border border-border/40 px-3 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-40 sm:self-center"
+                  className="flex min-h-[40px] items-center justify-center gap-1.5 rounded-full border border-border/40 bg-background/70 px-3 text-[9px] uppercase tracking-[0.14em] text-muted-foreground backdrop-blur-md transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-40"
                 >
                   <RotateCcw size={11} />
                   {t("toolbox.reload")}
                 </button>
-              </div>
-              <div className="min-w-0 overflow-x-auto py-1">{renderWidgetBody(item)}</div>
-            </>
-          ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">{t("toolbox.loading")}</p>
-          )}
+              ) : null}
+              <button
+                type="button"
+                onClick={handleRequestClose}
+                className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full border border-border/40 bg-background/70 text-muted-foreground backdrop-blur-md transition-colors hover:border-primary/30 hover:text-foreground"
+                aria-label={t("general.close")}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <div className="relative h-full min-h-0 w-full">
+            {item ? (
+              renderExerciseBody(item)
+            ) : (
+              <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                {t("toolbox.loading")}
+              </p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

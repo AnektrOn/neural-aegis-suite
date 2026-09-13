@@ -16,8 +16,9 @@ const KNOWN_CODES = new Set([
   "MYSTIC", "SAGE", "HEALER", "WARRIOR",
   "SOVEREIGN", "CREATOR", "EXPLORER", "REBEL",
   "LOVER", "CAREGIVER", "MAGICIAN", "JESTER",
-  "KYBALION", "MYSS_ARCHETYPE", "ECHOLS", "AEGIS",
+  "KYBALION", "MYSS_ARCHETYPE", "ECHOLS", "TOLLE", "AEGIS",
   "ENERGY", "GROUNDING", "SHIELDING", "DIRECTING", "CENTERING",
+  "PRESENCE", "PAIN_BODY", "WATCHER", "ACCEPTANCE", "STILLNESS",
 ]);
 
 function starPolygon(outerR: number, innerR: number, tips: number, cx = 50, cy = 50): string {
@@ -421,6 +422,18 @@ export function SacredGeometry({ type, isGlowing = true, glowIntensity, glyphSvg
         </g>
       )}
 
+      {type === "TOLLE" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <circle cx="50" cy="50" r="38" strokeOpacity="0.3" />
+          <circle cx="50" cy="50" r="28" strokeDasharray="2 5" strokeOpacity="0.45" />
+          <circle cx="50" cy="50" r="16" strokeOpacity="0.65" />
+          <circle cx="50" cy="50" r="6" />
+          <path d="M 50 12 Q 72 32 50 50 Q 28 68 50 88" strokeOpacity="0.5" strokeDasharray="2 3" />
+          {isGlowing && <circle cx="50" cy="50" r="3" fill={`url(#${orbGradId})`} stroke="none" />}
+          {isGlowing && <circle cx="50" cy="12" r="2" fill="#fff" stroke="none" />}
+        </g>
+      )}
+
       {type === "ENERGY" && (
         <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
           <path d="M 54 14 L 34 54 L 48 54 L 42 86 L 68 42 L 52 42 Z" />
@@ -462,6 +475,58 @@ export function SacredGeometry({ type, isGlowing = true, glowIntensity, glyphSvg
           <circle cx="50" cy="50" r="8" />
           <line x1="50" y1="14" x2="50" y2="86" strokeDasharray="1 3" strokeOpacity="0.35" />
           {isGlowing && <circle cx="50" cy="50" r="3" fill={`url(#${orbGradId})`} stroke="none" />}
+        </g>
+      )}
+
+      {type === "PRESENCE" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <circle cx="50" cy="50" r="34" strokeOpacity="0.35" />
+          <circle cx="50" cy="50" r="24" strokeDasharray="3 5" strokeOpacity="0.5" />
+          <circle cx="50" cy="50" r="14" />
+          <circle cx="50" cy="50" r="5" fill={isGlowing ? `url(#${orbGradId})` : "none"} stroke="none" />
+          {isGlowing && <circle cx="50" cy="16" r="2" fill="#fff" stroke="none" />}
+        </g>
+      )}
+
+      {type === "PAIN_BODY" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <circle cx="50" cy="50" r="36" strokeOpacity="0.3" />
+          <ellipse cx="50" cy="50" rx="22" ry="14" strokeOpacity="0.65" />
+          <ellipse cx="50" cy="50" rx="12" ry="8" strokeDasharray="2 3" />
+          <path d="M 28 62 Q 50 78 72 62" strokeOpacity="0.55" />
+          {isGlowing && <circle cx="50" cy="50" r="3" fill={`url(#${orbGradId})`} stroke="none" />}
+        </g>
+      )}
+
+      {type === "WATCHER" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <circle cx="50" cy="50" r="38" strokeOpacity="0.3" />
+          <ellipse cx="50" cy="50" rx="28" ry="16" />
+          <circle cx="50" cy="50" r="6" />
+          <circle cx="50" cy="50" r="2" fill={isGlowing ? "#fff" : "none"} stroke="none" />
+          <line x1="14" y1="50" x2="86" y2="50" strokeDasharray="2 4" strokeOpacity="0.35" />
+          {isGlowing && <circle cx="50" cy="34" r="2" fill={`url(#${orbGradId})`} stroke="none" />}
+        </g>
+      )}
+
+      {type === "ACCEPTANCE" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <circle cx="50" cy="50" r="36" strokeOpacity="0.3" />
+          <path d="M 24 44 Q 50 18 76 44" />
+          <path d="M 30 58 Q 50 82 70 58" strokeOpacity="0.65" />
+          <line x1="50" y1="28" x2="50" y2="72" strokeDasharray="1 3" strokeOpacity="0.4" />
+          {isGlowing && <circle cx="50" cy="50" r="3" fill={`url(#${orbGradId})`} stroke="none" />}
+        </g>
+      )}
+
+      {type === "STILLNESS" && (
+        <g stroke={`url(#${fillGradId})`} strokeWidth={baseStroke} fill="none">
+          <circle cx="50" cy="50" r="36" strokeOpacity="0.35" />
+          <line x1="18" y1="42" x2="82" y2="42" strokeOpacity="0.45" />
+          <line x1="18" y1="50" x2="82" y2="50" />
+          <line x1="18" y1="58" x2="82" y2="58" strokeOpacity="0.45" />
+          <circle cx="50" cy="50" r="4" />
+          {isGlowing && <circle cx="50" cy="50" r="2" fill={`url(#${orbGradId})`} stroke="none" />}
         </g>
       )}
 

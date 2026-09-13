@@ -13,7 +13,14 @@ const LEGACY_ACCENT: Record<string, string> = {
   KYBALION: "217 80% 58%",
   MYSS_ARCHETYPE: "275 70% 62%",
   ECHOLS: "174 65% 48%",
+  TOLLE: "42 85% 58%",
   AEGIS: "200 75% 55%",
+  // Tolle — presence
+  PRESENCE: "38 92% 58%",
+  PAIN_BODY: "350 60% 52%",
+  WATCHER: "265 70% 62%",
+  ACCEPTANCE: "168 55% 48%",
+  STILLNESS: "220 25% 58%",
   // Echols — clinical
   ENERGY: "186 80% 52%",
   GROUNDING: "30 25% 58%",
