@@ -110,7 +110,7 @@ serve(async (req) => {
     let body: string = payload?.body ?? "";
     let link: string | null = payload?.link ?? null;
     let audience: string = payload?.audience === "users" ? "users" : "all";
-    const userIds: string[] = Array.isArray(payload?.userIds) ? payload.userIds : [];
+    let userIds: string[] = Array.isArray(payload?.userIds) ? payload.userIds : [];
     let variants: { fr?: Variant; en?: Variant } | null = payload?.variants ?? null;
 
     if (mode === "manual") {
