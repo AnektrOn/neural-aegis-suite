@@ -302,7 +302,12 @@ export default function AdminEmailAlerts() {
 
         <button
           onClick={sendNow}
-          disabled={sending || !template || (audience === "users" && !targetUser)}
+          disabled={
+            sending ||
+            !template ||
+            (audience === "users" && !targetUser) ||
+            (audience === "selection" && selectedIds.length === 0)
+          }
           className="btn-neural disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Send size={14} /> {t("admin.emailAlerts.send")}
