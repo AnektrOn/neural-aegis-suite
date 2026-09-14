@@ -358,6 +358,35 @@ export default function AdminEmailAlerts() {
 
         {langButtons(autoLang, setAutoLang)}
 
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setAutoAudience("all")}
+            className={`px-3 py-1.5 rounded-xl text-xs border inline-flex items-center gap-1.5 transition-colors ${
+              autoAudience === "all"
+                ? "border-primary/40 text-primary bg-primary/10"
+                : "border-border/20 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Users size={12} /> {t("admin.emailAlerts.audienceAll")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAutoAudience("selection")}
+            className={`px-3 py-1.5 rounded-xl text-xs border inline-flex items-center gap-1.5 transition-colors ${
+              autoAudience === "selection"
+                ? "border-primary/40 text-primary bg-primary/10"
+                : "border-border/20 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ListChecks size={12} /> {t("admin.emailAlerts.audienceSelection")}
+          </button>
+        </div>
+
+        {autoAudience === "selection" && (
+          <UserPicker selected={autoUserIds} onChange={setAutoUserIds} />
+        )}
+
         <button
           onClick={saveAuto}
           disabled={savingAuto}
