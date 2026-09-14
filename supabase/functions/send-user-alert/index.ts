@@ -110,7 +110,7 @@ serve(async (req) => {
     let body: string = payload?.body ?? "";
     let link: string | null = payload?.link ?? null;
     let audience: string = payload?.audience === "users" ? "users" : "all";
-    const userIds: string[] = Array.isArray(payload?.userIds) ? payload.userIds : [];
+    let userIds: string[] = Array.isArray(payload?.userIds) ? payload.userIds : [];
     let variants: { fr?: Variant; en?: Variant } | null = payload?.variants ?? null;
 
     if (mode === "manual") {
@@ -161,7 +161,16 @@ serve(async (req) => {
       subject = settings.subject;
       body = settings.body;
       link = settings.link;
-      audience = "all";
+      // Restrict the daily auto alert to the configured recipient list when set.
+      const ids = Array.isArray(settings.user_ids)
+        ? (settings.user_ids as unknown[]).filter((v): v is string => typeof v === "string")
+        : [];
+      if (ids.length) {
+        audience = "users";
+        userIds = ids;
+      } else {
+        audience = "all";
+      }
       if (language === "auto") {
         variants = {
           fr: { subject: settings.subject, body: settings.body },
