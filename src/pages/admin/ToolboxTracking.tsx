@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3, ChevronDown, RotateCcw } from "lucide-react";
+import { BarChart3, ChevronDown, LayoutGrid, RotateCcw, Table2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -13,9 +13,11 @@ import {
   toolboxLabelClass,
 } from "@/components/admin/toolbox/ToolboxAdminUi";
 import ToolboxTrackingRowCard from "@/features/toolbox-admin/ToolboxTrackingRowCard";
+import ToolboxTrackingTable from "@/features/toolbox-admin/ToolboxTrackingTable";
 import { ToolboxBucketFilterBar, ToolboxListToolbar } from "@/features/toolbox-admin/ToolboxByUserViews";
 import { BUCKET_ORDER } from "@/features/toolbox-admin/toolboxTrackingBuckets";
 import { pickLocalizedText } from "@/lib/content-i18n";
+import { cn } from "@/lib/utils";
 import {
   loadToolboxAdminProfiles,
   loadToolboxTrackingRows,
@@ -43,6 +45,7 @@ export default function ToolboxTracking() {
   const [filterType, setFilterType] = useState("all");
   const [bucketFilter, setBucketFilter] = useState<ToolboxTrackingBucket | "all">("all");
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -199,11 +202,52 @@ export default function ToolboxTracking() {
           typeSelectId="toolbox-tracking-type"
         />
 
+        <div className="flex justify-end">
+          <div className="inline-flex rounded-xl border border-border/40 bg-bg-elevated/60 p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              aria-pressed={viewMode === "table"}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "table"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-text-primary",
+              )}
+            >
+              <Table2 className="size-4" strokeWidth={1.75} aria-hidden />
+              {t("admin.toolboxTracking.viewTable")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              aria-pressed={viewMode === "cards"}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "cards"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-text-primary",
+              )}
+            >
+              <LayoutGrid className="size-4" strokeWidth={1.75} aria-hidden />
+              {t("admin.toolboxTracking.viewCards")}
+            </button>
+          </div>
+        </div>
+
         {filtered.length === 0 ? (
           <ToolboxEmptyState
             icon={BarChart3}
             title={t("admin.toolboxTracking.emptyTitle")}
             hint={t("admin.toolboxTracking.emptyHint")}
+          />
+        ) : viewMode === "table" ? (
+          <ToolboxTrackingTable
+            rows={filtered}
+            locale={locale as Locale}
+            dateLocaleTag={dateLocaleTag}
+            resendingId={resendingId}
+            onResend={(row) => void handleResend(row)}
           />
         ) : (
           <ul className="space-y-4">
