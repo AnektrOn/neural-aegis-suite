@@ -192,14 +192,18 @@ export default function AdminMessages() {
         </div>
         <p className="text-[11px] text-muted-foreground">{t("admin.popup.hint")}</p>
 
-        <div className="flex gap-2">
-          {(["all", "one"] as const).map(a => (
+        <div className="flex flex-wrap gap-2">
+          {(["all", "one", "selection"] as const).map(a => (
             <button key={a} type="button" onClick={() => setPopupAudience(a)}
               className={`px-3 py-1.5 rounded-xl text-xs border transition-colors ${popupAudience === a ? "border-primary/40 text-primary bg-primary/10" : "border-border/20 text-muted-foreground hover:text-foreground"}`}>
-              {a === "all" ? t("admin.popup.audienceAll") : t("admin.popup.audienceOne")}
+              {a === "all" ? t("admin.popup.audienceAll") : a === "one" ? t("admin.popup.audienceOne") : t("admin.popup.audienceSelection")}
             </button>
           ))}
         </div>
+
+        {popupAudience === "selection" && (
+          <UserPicker selected={popupSelectedIds} onChange={setPopupSelectedIds} />
+        )}
 
         {popupAudience === "one" && (
           <select value={popupUser} onChange={e => setPopupUser(e.target.value)}
