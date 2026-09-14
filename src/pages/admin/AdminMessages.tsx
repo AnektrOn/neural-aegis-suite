@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import UserPicker from "@/features/admin-export/UserPicker";
 
 interface Profile {
   id: string;
@@ -39,8 +40,9 @@ export default function AdminMessages() {
   const [loading, setLoading] = useState(true);
 
   // Pop-up broadcast
-  const [popupAudience, setPopupAudience] = useState<"all" | "one">("all");
+  const [popupAudience, setPopupAudience] = useState<"all" | "one" | "selection">("all");
   const [popupUser, setPopupUser] = useState("");
+  const [popupSelectedIds, setPopupSelectedIds] = useState<string[]>([]);
   const [popupTitle, setPopupTitle] = useState("");
   const [popupBody, setPopupBody] = useState("");
   const [popupTitleEn, setPopupTitleEn] = useState("");
@@ -50,7 +52,14 @@ export default function AdminMessages() {
   const [popupSending, setPopupSending] = useState(false);
 
   const sendPopup = async () => {
-    const targets = popupAudience === "all" ? profiles.map((p) => p.id) : popupUser ? [popupUser] : [];
+    const targets =
+      popupAudience === "all"
+        ? profiles.map((p) => p.id)
+        : popupAudience === "selection"
+          ? popupSelectedIds
+          : popupUser
+            ? [popupUser]
+            : [];
     if (!popupTitle.trim() || !popupBody.trim() || targets.length === 0) return;
     setPopupSending(true);
     const langOf = (id: string) => {
