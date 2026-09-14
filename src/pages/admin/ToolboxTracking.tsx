@@ -45,6 +45,7 @@ export default function ToolboxTracking() {
   const [filterType, setFilterType] = useState("all");
   const [bucketFilter, setBucketFilter] = useState<ToolboxTrackingBucket | "all">("all");
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
 
   const load = useCallback(async () => {
     setLoading(true);
