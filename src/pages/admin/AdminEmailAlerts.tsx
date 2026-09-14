@@ -46,6 +46,8 @@ export default function AdminEmailAlerts() {
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [autoAlertId, setAutoAlertId] = useState(EMAIL_ALERT_TEMPLATES[0]?.id ?? "");
   const [autoLang, setAutoLang] = useState<SendLang>("fr");
+  const [autoAudience, setAutoAudience] = useState<"all" | "selection">("all");
+  const [autoUserIds, setAutoUserIds] = useState<string[]>([]);
   const [savingAuto, setSavingAuto] = useState(false);
   const [langSearch, setLangSearch] = useState("");
 
@@ -72,12 +74,15 @@ export default function AdminEmailAlerts() {
     setProfiles((profRes.data || []) as unknown as Profile[]);
     setLogs((logRes.data || []) as unknown as AlertLogRow[]);
     const s = settingsRes.data as unknown as
-      | { enabled: boolean; alert_id: string | null; language: string | null }
+      | { enabled: boolean; alert_id: string | null; language: string | null; user_ids?: string[] | null }
       | null;
     if (s) {
       setAutoEnabled(!!s.enabled);
       if (s.alert_id) setAutoAlertId(s.alert_id);
       setAutoLang(s.language === "en" ? "en" : s.language === "auto" ? "auto" : "fr");
+      const ids = Array.isArray(s.user_ids) ? s.user_ids : [];
+      setAutoUserIds(ids);
+      setAutoAudience(ids.length ? "selection" : "all");
     }
   };
 
