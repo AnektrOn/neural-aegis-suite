@@ -243,7 +243,7 @@ export default function AdminMessages() {
           className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30" />
 
         <button onClick={sendPopup}
-          disabled={popupSending || !popupTitle.trim() || !popupBody.trim() || (popupAudience === "one" && !popupUser)}
+          disabled={popupSending || !popupTitle.trim() || !popupBody.trim() || (popupAudience === "one" && !popupUser) || (popupAudience === "selection" && popupSelectedIds.length === 0)}
           className="btn-neural disabled:opacity-40 disabled:cursor-not-allowed">
           <Megaphone size={14} /> {t("admin.popup.send")}
         </button>
