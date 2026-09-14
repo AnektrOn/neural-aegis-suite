@@ -258,7 +258,22 @@ export default function AdminEmailAlerts() {
           >
             <UserIcon size={12} /> {t("admin.emailAlerts.audienceOne")}
           </button>
+          <button
+            type="button"
+            onClick={() => setAudience("selection")}
+            className={`px-3 py-1.5 rounded-xl text-xs border inline-flex items-center gap-1.5 transition-colors ${
+              audience === "selection"
+                ? "border-primary/40 text-primary bg-primary/10"
+                : "border-border/20 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ListChecks size={12} /> {t("admin.emailAlerts.audienceSelection")}
+          </button>
         </div>
+
+        {audience === "selection" && (
+          <UserPicker selected={selectedIds} onChange={setSelectedIds} />
+        )}
 
         {audience === "users" && (
           <select
