@@ -156,6 +156,7 @@ export default function AdminEmailAlerts() {
         subject_en: tpl.subject_en,
         body_en: tpl.body_en,
         link: tpl.link,
+        user_ids: autoAudience === "selection" ? autoUserIds : null,
         updated_at: new Date().toISOString(),
       } as never)
       .eq("id", true);
