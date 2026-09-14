@@ -104,7 +104,10 @@ export default function AdminEmailAlerts() {
   const sendNow = async () => {
     if (!template) return;
     if (audience === "users" && !targetUser) return;
+    if (audience === "selection" && selectedIds.length === 0) return;
     setSending(true);
+    const userIds =
+      audience === "users" ? [targetUser] : audience === "selection" ? selectedIds : [];
     const effective: AlertLang = lang === "auto" ? "fr" : lang;
     const rendered = renderAlert(template, effective);
     const { data, error } = await supabase.functions.invoke("send-user-alert", {
