@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Send, Clock, Users, User as UserIcon, Check, Languages } from "lucide-react";
+import { Mail, Send, Clock, Users, User as UserIcon, Check, Languages, ListChecks } from "lucide-react";
+import UserPicker from "@/features/admin-export/UserPicker";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -37,8 +38,9 @@ export default function AdminEmailAlerts() {
 
   const [alertId, setAlertId] = useState(EMAIL_ALERT_TEMPLATES[0]?.id ?? "");
   const [lang, setLang] = useState<SendLang>("fr");
-  const [audience, setAudience] = useState<"all" | "users">("all");
+  const [audience, setAudience] = useState<"all" | "users" | "selection">("all");
   const [targetUser, setTargetUser] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
 
   const [autoEnabled, setAutoEnabled] = useState(false);
