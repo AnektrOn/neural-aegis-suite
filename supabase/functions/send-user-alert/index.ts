@@ -161,7 +161,16 @@ serve(async (req) => {
       subject = settings.subject;
       body = settings.body;
       link = settings.link;
-      audience = "all";
+      // Restrict the daily auto alert to the configured recipient list when set.
+      const ids = Array.isArray(settings.user_ids)
+        ? (settings.user_ids as unknown[]).filter((v): v is string => typeof v === "string")
+        : [];
+      if (ids.length) {
+        audience = "users";
+        userIds = ids;
+      } else {
+        audience = "all";
+      }
       if (language === "auto") {
         variants = {
           fr: { subject: settings.subject, body: settings.body },
