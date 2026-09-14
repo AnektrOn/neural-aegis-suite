@@ -202,11 +202,52 @@ export default function ToolboxTracking() {
           typeSelectId="toolbox-tracking-type"
         />
 
+        <div className="flex justify-end">
+          <div className="inline-flex rounded-xl border border-border/40 bg-bg-elevated/60 p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              aria-pressed={viewMode === "table"}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "table"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-text-primary",
+              )}
+            >
+              <Table2 className="size-4" strokeWidth={1.75} aria-hidden />
+              {t("admin.toolboxTracking.viewTable")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              aria-pressed={viewMode === "cards"}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "cards"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-text-primary",
+              )}
+            >
+              <LayoutGrid className="size-4" strokeWidth={1.75} aria-hidden />
+              {t("admin.toolboxTracking.viewCards")}
+            </button>
+          </div>
+        </div>
+
         {filtered.length === 0 ? (
           <ToolboxEmptyState
             icon={BarChart3}
             title={t("admin.toolboxTracking.emptyTitle")}
             hint={t("admin.toolboxTracking.emptyHint")}
+          />
+        ) : viewMode === "table" ? (
+          <ToolboxTrackingTable
+            rows={filtered}
+            locale={locale as Locale}
+            dateLocaleTag={dateLocaleTag}
+            resendingId={resendingId}
+            onResend={(row) => void handleResend(row)}
           />
         ) : (
           <ul className="space-y-4">
