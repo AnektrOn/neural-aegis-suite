@@ -118,8 +118,8 @@ export default function AdminEmailAlerts() {
         subject: rendered.subject,
         body: template[effective === "fr" ? "body_fr" : "body_en"],
         link: template.link,
-        audience,
-        userIds: audience === "users" ? [targetUser] : [],
+        audience: userIds.length ? "users" : "all",
+        userIds,
         variants: {
           fr: { subject: template.subject_fr, body: template.body_fr },
           en: { subject: template.subject_en, body: template.body_en },
