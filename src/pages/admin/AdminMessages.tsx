@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
+import UserPicker from "@/features/admin-export/UserPicker";
 
 interface Profile {
   id: string;
@@ -39,8 +40,9 @@ export default function AdminMessages() {
   const [loading, setLoading] = useState(true);
 
   // Pop-up broadcast
-  const [popupAudience, setPopupAudience] = useState<"all" | "one">("all");
+  const [popupAudience, setPopupAudience] = useState<"all" | "one" | "selection">("all");
   const [popupUser, setPopupUser] = useState("");
+  const [popupSelectedIds, setPopupSelectedIds] = useState<string[]>([]);
   const [popupTitle, setPopupTitle] = useState("");
   const [popupBody, setPopupBody] = useState("");
   const [popupTitleEn, setPopupTitleEn] = useState("");
@@ -50,7 +52,14 @@ export default function AdminMessages() {
   const [popupSending, setPopupSending] = useState(false);
 
   const sendPopup = async () => {
-    const targets = popupAudience === "all" ? profiles.map((p) => p.id) : popupUser ? [popupUser] : [];
+    const targets =
+      popupAudience === "all"
+        ? profiles.map((p) => p.id)
+        : popupAudience === "selection"
+          ? popupSelectedIds
+          : popupUser
+            ? [popupUser]
+            : [];
     if (!popupTitle.trim() || !popupBody.trim() || targets.length === 0) return;
     setPopupSending(true);
     const langOf = (id: string) => {
@@ -183,14 +192,18 @@ export default function AdminMessages() {
         </div>
         <p className="text-[11px] text-muted-foreground">{t("admin.popup.hint")}</p>
 
-        <div className="flex gap-2">
-          {(["all", "one"] as const).map(a => (
+        <div className="flex flex-wrap gap-2">
+          {(["all", "one", "selection"] as const).map(a => (
             <button key={a} type="button" onClick={() => setPopupAudience(a)}
               className={`px-3 py-1.5 rounded-xl text-xs border transition-colors ${popupAudience === a ? "border-primary/40 text-primary bg-primary/10" : "border-border/20 text-muted-foreground hover:text-foreground"}`}>
-              {a === "all" ? t("admin.popup.audienceAll") : t("admin.popup.audienceOne")}
+              {a === "all" ? t("admin.popup.audienceAll") : a === "one" ? t("admin.popup.audienceOne") : t("admin.popup.audienceSelection")}
             </button>
           ))}
         </div>
+
+        {popupAudience === "selection" && (
+          <UserPicker selected={popupSelectedIds} onChange={setPopupSelectedIds} />
+        )}
 
         {popupAudience === "one" && (
           <select value={popupUser} onChange={e => setPopupUser(e.target.value)}
@@ -230,7 +243,7 @@ export default function AdminMessages() {
           className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30" />
 
         <button onClick={sendPopup}
-          disabled={popupSending || !popupTitle.trim() || !popupBody.trim() || (popupAudience === "one" && !popupUser)}
+          disabled={popupSending || !popupTitle.trim() || !popupBody.trim() || (popupAudience === "one" && !popupUser) || (popupAudience === "selection" && popupSelectedIds.length === 0)}
           className="btn-neural disabled:opacity-40 disabled:cursor-not-allowed">
           <Megaphone size={14} /> {t("admin.popup.send")}
         </button>

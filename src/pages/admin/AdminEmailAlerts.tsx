@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Send, Clock, Users, User as UserIcon, Check, Languages } from "lucide-react";
+import { Mail, Send, Clock, Users, User as UserIcon, Check, Languages, ListChecks } from "lucide-react";
+import UserPicker from "@/features/admin-export/UserPicker";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -37,8 +38,9 @@ export default function AdminEmailAlerts() {
 
   const [alertId, setAlertId] = useState(EMAIL_ALERT_TEMPLATES[0]?.id ?? "");
   const [lang, setLang] = useState<SendLang>("fr");
-  const [audience, setAudience] = useState<"all" | "users">("all");
+  const [audience, setAudience] = useState<"all" | "users" | "selection">("all");
   const [targetUser, setTargetUser] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
 
   const [autoEnabled, setAutoEnabled] = useState(false);
@@ -102,7 +104,10 @@ export default function AdminEmailAlerts() {
   const sendNow = async () => {
     if (!template) return;
     if (audience === "users" && !targetUser) return;
+    if (audience === "selection" && selectedIds.length === 0) return;
     setSending(true);
+    const userIds =
+      audience === "users" ? [targetUser] : audience === "selection" ? selectedIds : [];
     const effective: AlertLang = lang === "auto" ? "fr" : lang;
     const rendered = renderAlert(template, effective);
     const { data, error } = await supabase.functions.invoke("send-user-alert", {
@@ -113,8 +118,8 @@ export default function AdminEmailAlerts() {
         subject: rendered.subject,
         body: template[effective === "fr" ? "body_fr" : "body_en"],
         link: template.link,
-        audience,
-        userIds: audience === "users" ? [targetUser] : [],
+        audience: userIds.length ? "users" : "all",
+        userIds,
         variants: {
           fr: { subject: template.subject_fr, body: template.body_fr },
           en: { subject: template.subject_en, body: template.body_en },
@@ -253,7 +258,22 @@ export default function AdminEmailAlerts() {
           >
             <UserIcon size={12} /> {t("admin.emailAlerts.audienceOne")}
           </button>
+          <button
+            type="button"
+            onClick={() => setAudience("selection")}
+            className={`px-3 py-1.5 rounded-xl text-xs border inline-flex items-center gap-1.5 transition-colors ${
+              audience === "selection"
+                ? "border-primary/40 text-primary bg-primary/10"
+                : "border-border/20 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ListChecks size={12} /> {t("admin.emailAlerts.audienceSelection")}
+          </button>
         </div>
+
+        {audience === "selection" && (
+          <UserPicker selected={selectedIds} onChange={setSelectedIds} />
+        )}
 
         {audience === "users" && (
           <select
@@ -282,7 +302,12 @@ export default function AdminEmailAlerts() {
 
         <button
           onClick={sendNow}
-          disabled={sending || !template || (audience === "users" && !targetUser)}
+          disabled={
+            sending ||
+            !template ||
+            (audience === "users" && !targetUser) ||
+            (audience === "selection" && selectedIds.length === 0)
+          }
           className="btn-neural disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Send size={14} /> {t("admin.emailAlerts.send")}
