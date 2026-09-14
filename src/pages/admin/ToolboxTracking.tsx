@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3, ChevronDown, RotateCcw } from "lucide-react";
+import { BarChart3, ChevronDown, LayoutGrid, RotateCcw, Table2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -13,9 +13,11 @@ import {
   toolboxLabelClass,
 } from "@/components/admin/toolbox/ToolboxAdminUi";
 import ToolboxTrackingRowCard from "@/features/toolbox-admin/ToolboxTrackingRowCard";
+import ToolboxTrackingTable from "@/features/toolbox-admin/ToolboxTrackingTable";
 import { ToolboxBucketFilterBar, ToolboxListToolbar } from "@/features/toolbox-admin/ToolboxByUserViews";
 import { BUCKET_ORDER } from "@/features/toolbox-admin/toolboxTrackingBuckets";
 import { pickLocalizedText } from "@/lib/content-i18n";
+import { cn } from "@/lib/utils";
 import {
   loadToolboxAdminProfiles,
   loadToolboxTrackingRows,
