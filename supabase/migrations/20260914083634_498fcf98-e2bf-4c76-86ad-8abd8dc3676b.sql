@@ -1,0 +1,1 @@
+ALTER TABLE public.email_alert_settings ADD COLUMN IF NOT EXISTS user_ids uuid[] NULL;

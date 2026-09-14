@@ -46,6 +46,8 @@ export default function AdminEmailAlerts() {
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [autoAlertId, setAutoAlertId] = useState(EMAIL_ALERT_TEMPLATES[0]?.id ?? "");
   const [autoLang, setAutoLang] = useState<SendLang>("fr");
+  const [autoAudience, setAutoAudience] = useState<"all" | "selection">("all");
+  const [autoUserIds, setAutoUserIds] = useState<string[]>([]);
   const [savingAuto, setSavingAuto] = useState(false);
   const [langSearch, setLangSearch] = useState("");
 
@@ -72,12 +74,15 @@ export default function AdminEmailAlerts() {
     setProfiles((profRes.data || []) as unknown as Profile[]);
     setLogs((logRes.data || []) as unknown as AlertLogRow[]);
     const s = settingsRes.data as unknown as
-      | { enabled: boolean; alert_id: string | null; language: string | null }
+      | { enabled: boolean; alert_id: string | null; language: string | null; user_ids?: string[] | null }
       | null;
     if (s) {
       setAutoEnabled(!!s.enabled);
       if (s.alert_id) setAutoAlertId(s.alert_id);
       setAutoLang(s.language === "en" ? "en" : s.language === "auto" ? "auto" : "fr");
+      const ids = Array.isArray(s.user_ids) ? s.user_ids : [];
+      setAutoUserIds(ids);
+      setAutoAudience(ids.length ? "selection" : "all");
     }
   };
 
@@ -151,6 +156,7 @@ export default function AdminEmailAlerts() {
         subject_en: tpl.subject_en,
         body_en: tpl.body_en,
         link: tpl.link,
+        user_ids: autoAudience === "selection" ? autoUserIds : null,
         updated_at: new Date().toISOString(),
       } as never)
       .eq("id", true);
@@ -351,6 +357,35 @@ export default function AdminEmailAlerts() {
         </select>
 
         {langButtons(autoLang, setAutoLang)}
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setAutoAudience("all")}
+            className={`px-3 py-1.5 rounded-xl text-xs border inline-flex items-center gap-1.5 transition-colors ${
+              autoAudience === "all"
+                ? "border-primary/40 text-primary bg-primary/10"
+                : "border-border/20 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Users size={12} /> {t("admin.emailAlerts.audienceAll")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAutoAudience("selection")}
+            className={`px-3 py-1.5 rounded-xl text-xs border inline-flex items-center gap-1.5 transition-colors ${
+              autoAudience === "selection"
+                ? "border-primary/40 text-primary bg-primary/10"
+                : "border-border/20 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ListChecks size={12} /> {t("admin.emailAlerts.audienceSelection")}
+          </button>
+        </div>
+
+        {autoAudience === "selection" && (
+          <UserPicker selected={autoUserIds} onChange={setAutoUserIds} />
+        )}
 
         <button
           onClick={saveAuto}

@@ -1525,6 +1525,7 @@ export type Database = {
           subject: string | null
           subject_en: string | null
           updated_at: string
+          user_ids: string[] | null
         }
         Insert: {
           alert_id?: string | null
@@ -1539,6 +1540,7 @@ export type Database = {
           subject?: string | null
           subject_en?: string | null
           updated_at?: string
+          user_ids?: string[] | null
         }
         Update: {
           alert_id?: string | null
@@ -1553,6 +1555,7 @@ export type Database = {
           subject?: string | null
           subject_en?: string | null
           updated_at?: string
+          user_ids?: string[] | null
         }
         Relationships: []
       }
