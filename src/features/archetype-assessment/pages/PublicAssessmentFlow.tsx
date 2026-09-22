@@ -218,9 +218,29 @@ export default function PublicAssessmentFlow() {
               <li>• {t("quiz.public.bullet2")}</li>
               <li>• {t("quiz.public.bullet3")}</li>
             </ul>
-            <Button size="lg" className="w-full" onClick={handleStart}>
-              {t("quiz.public.start")} <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
+            {canResume ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                  <p className="text-sm font-medium mb-1">{t("assessment.resumeTitle")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("assessment.resumeDesc", {
+                      answered: String(answeredCount),
+                      total: String(session.totalQuestions),
+                    })}
+                  </p>
+                </div>
+                <Button size="lg" className="w-full" onClick={() => void handleStart(false)}>
+                  {t("assessment.resumeCta")} <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={() => void handleStart(true)}>
+                  {t("assessment.restartCta")}
+                </Button>
+              </div>
+            ) : (
+              <Button size="lg" className="w-full" onClick={() => void handleStart(false)}>
+                {t("quiz.public.start")} <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            )}
           </Card>
         )}
 
