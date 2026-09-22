@@ -20,8 +20,12 @@ import {
   ensureAssessmentSession,
   persistAssessmentSessionId,
   readPersistedAssessmentSessionId,
+  findInProgressSessionId,
+  loadSessionResponseValues,
+  saveResponseDraft,
   submitSession,
 } from "../services/assessmentService";
+import type { ResponseValue } from "../domain/types";
 import { useAssessmentSession } from "../hooks/useAssessmentSession";
 import type { LoadedTemplate } from "../services/assessmentService";
 import { AssessmentQuestionRenderer } from "../components/AssessmentQuestionRenderer";
