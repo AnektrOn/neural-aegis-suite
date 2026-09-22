@@ -151,7 +151,8 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       toast({ title: "Mot de passe mis à jour", description: "Vous pouvez maintenant vous connecter." });
-      navigate("/dashboard", { replace: true });
+      await supabase.auth.signOut();
+      navigate("/auth", { replace: true });
     } catch (err) {
       toast({
         title: "Erreur",
