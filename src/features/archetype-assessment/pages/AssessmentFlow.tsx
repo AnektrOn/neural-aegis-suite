@@ -24,6 +24,9 @@ import {
   ensureAssessmentSession,
   persistAssessmentSessionId,
   readPersistedAssessmentSessionId,
+  findInProgressSessionId,
+  loadSessionResponseValues,
+  saveResponseDraft,
   submitSession,
 } from "../services/assessmentService";
 import { computeRawScores } from "../domain/scoringEngine";
