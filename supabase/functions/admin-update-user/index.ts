@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
 
       const redirectTo = typeof body.redirect_to === "string" && body.redirect_to.startsWith("http")
         ? body.redirect_to
-        : "https://aegis.humancatalystbeacon.com/reset-password";
+        : "https://aegis.humancatalystbeacon.com/create-password";
 
       const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
         type: "recovery",
