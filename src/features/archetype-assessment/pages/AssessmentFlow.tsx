@@ -79,8 +79,41 @@ export default function AssessmentFlow() {
   }, [user, sessionId]);
 
   const session = useAssessmentSession({ questions: loaded?.questions ?? [] });
+  const { hydrateResponses, resetResponses, setResponse } = session;
 
-  const handleStart = async () => {
+  // Reprise : récupère la session inachevée (n'importe quel appareil) + ses réponses.
+  useEffect(() => {
+    if (!user || !loaded || resumeChecked) return;
+    let alive = true;
+    (async () => {
+      try {
+        const sid =
+          (await findInProgressSessionId(user.id, loaded.template.id)) ??
+          readPersistedAssessmentSessionId(user.id);
+        if (!alive || !sid) return;
+        const saved = await loadSessionResponseValues(sid);
+        if (!alive) return;
+        setSessionId(sid);
+        persistAssessmentSessionId(user.id, sid);
+        if (saved.length > 0) hydrateResponses(saved);
+      } finally {
+        if (alive) setResumeChecked(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user, loaded, resumeChecked, hydrateResponses]);
+
+  const answeredCount = session.responsesArray.length;
+  const canResume = answeredCount > 0 && answeredCount < session.totalQuestions;
+
+  const handleAnswer = (value: ResponseValue) => {
+    setResponse(value);
+    if (user && sessionId) void saveResponseDraft(user.id, sessionId, value);
+  };
+
+  const handleStart = async (fresh = false) => {
     if (!user || !loaded) {
       toast({
         title: t("assessment.error"),
@@ -90,10 +123,21 @@ export default function AssessmentFlow() {
       return;
     }
     try {
-      const sid = await ensureAssessmentSession(user.id, loaded.template.id, sessionId);
+      const sid = await ensureAssessmentSession(
+        user.id,
+        loaded.template.id,
+        fresh ? null : sessionId,
+      );
       setSessionId(sid);
       persistAssessmentSessionId(user.id, sid);
+      if (fresh) resetResponses();
       session.goToQuestions();
+      if (!fresh) {
+        const firstUnanswered = loaded.questions.findIndex(
+          (q) => !session.responses[q.id],
+        );
+        if (firstUnanswered > 0) session.goToQuestion(firstUnanswered);
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: t("assessment.error"), description: msg, variant: "destructive" });
