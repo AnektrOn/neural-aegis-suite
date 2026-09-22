@@ -267,7 +267,7 @@ export default function PublicAssessmentFlow() {
               <AssessmentQuestionRenderer
                 question={session.currentQuestion}
                 value={session.responses[session.currentQuestion.id]}
-                onChange={session.setResponse}
+                onChange={handleAnswer}
                 isFR={isFR}
               />
             </Card>
