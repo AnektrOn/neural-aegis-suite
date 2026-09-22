@@ -50,6 +50,7 @@ export default function PublicAssessmentFlow() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resumeChecked, setResumeChecked] = useState(false);
 
   useEffect(() => {
     if (authLoading || bootScreenActive || !user) return;
