@@ -729,6 +729,57 @@ export async function ensureAssessmentSession(
   return sid;
 }
 
+/** Latest unfinished session for this user/template, if any. */
+export async function findInProgressSessionId(
+  userId: string,
+  templateId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("assessment_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("template_id", templateId)
+    .eq("status", "in_progress")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return null;
+  return data?.id ?? null;
+}
+
+/** All answers already stored for a session (used to resume a quiz). */
+export async function loadSessionResponseValues(
+  sessionId: string,
+): Promise<ResponseValue[]> {
+  const { data, error } = await supabase
+    .from("assessment_responses")
+    .select("*")
+    .eq("session_id", sessionId);
+  if (error) return [];
+  return mapDbResponsesToValues((data ?? []) as AssessmentResponseRow[]);
+}
+
+/** Persist a single answer immediately so the quiz can be resumed later. */
+export async function saveResponseDraft(
+  userId: string,
+  sessionId: string,
+  response: ResponseValue,
+): Promise<void> {
+  const { error } = await supabase.from("assessment_responses").upsert(
+    {
+      session_id: sessionId,
+      question_id: response.questionId,
+      user_id: userId,
+      selected_option_ids: response.selectedOptionIds ?? [],
+      numeric_value: response.numericValue ?? null,
+      text_value: response.textValue ?? null,
+      raw_payload: toJson(response),
+    },
+    { onConflict: "session_id,question_id" },
+  );
+  if (error) console.warn("saveResponseDraft failed", error);
+}
+
 function buildQuestionSeedPayload(questions: QuestionSeed[]) {
   return questions.map((q) => {
     const meta = { ...(q.meta ?? {}) } as Record<string, unknown>;
