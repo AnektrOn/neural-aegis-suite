@@ -854,6 +854,11 @@ export const translations = {
   "users.addUser": { fr: "Ajouter un utilisateur", en: "Add user" },
   "users.createNew": { fr: "Créer un nouvel utilisateur", en: "Create new user" },
   "users.createUser": { fr: "Créer l'utilisateur", en: "Create user" },
+  "users.generatePassword": { fr: "Générer", en: "Generate" },
+  "users.passwordHint": {
+    fr: "8 caractères minimum. Les mots de passe trop simples ou déjà exposés dans une fuite sont refusés.",
+    en: "8 characters minimum. Weak or previously leaked passwords are rejected.",
+  },
   "users.userCreated": { fr: "Utilisateur créé", en: "User created" },
   "users.displayName": { fr: "Nom affiché", en: "Display name" },
   "users.country": { fr: "Pays", en: "Country" },
