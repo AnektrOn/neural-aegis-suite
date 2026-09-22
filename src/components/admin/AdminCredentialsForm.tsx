@@ -55,7 +55,7 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
         redirect_to: `${window.location.origin}/reset-password`,
       });
       toast({
-        title: "E-mail de réinitialisation envoyé",
+        title: "E-mail de création de mot de passe envoyé",
         description: `Lien envoyé à ${data?.sent_to ?? displayName ?? "l'utilisateur"}.`,
       });
       if (data?.sent_to) setCurrentEmail(data.sent_to);
@@ -152,7 +152,7 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
           className="px-4 py-2 rounded-xl border border-border/30 text-muted-foreground text-xs uppercase tracking-[0.2em] hover:text-foreground hover:border-neural-accent/30 transition-colors disabled:opacity-40 inline-flex items-center gap-2"
         >
           {sendingReset ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-          Envoyer un lien de réinitialisation
+          Envoyer un lien de création de mot de passe
         </button>
       </div>
     </div>
