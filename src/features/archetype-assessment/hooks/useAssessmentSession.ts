@@ -26,6 +26,17 @@ export function useAssessmentSession({ questions }: UseAssessmentSessionInput) {
     setResponses((prev) => ({ ...prev, [value.questionId]: value }));
   }, []);
 
+  /** Restore previously saved answers (resume a quiz). */
+  const hydrateResponses = useCallback((values: ResponseValue[]) => {
+    setResponses((prev) => {
+      const next = { ...prev };
+      for (const v of values) next[v.questionId] = v;
+      return next;
+    });
+  }, []);
+
+  const resetResponses = useCallback(() => setResponses({}), []);
+
   const goToWelcome = useCallback(() => setStep("welcome"), []);
   const goToQuestions = useCallback(() => {
     startedAtRef.current = Date.now();
