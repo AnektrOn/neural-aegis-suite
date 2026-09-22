@@ -10,10 +10,15 @@ import aegisLogo from "@/assets/aegis-logo.png";
 const inputCls =
   "w-full bg-bg-base border border-border-active rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all duration-200";
 
-export default function ResetPassword() {
+interface ResetPasswordProps {
+  setupOnly?: boolean;
+}
+
+export default function ResetPassword({ setupOnly = false }: ResetPasswordProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [recoveryReady, setRecoveryReady] = useState(false);
+  const [checkingLink, setCheckingLink] = useState(true);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,6 +47,7 @@ export default function ResetPassword() {
             : errorDesc,
         );
         window.history.replaceState({}, "", window.location.pathname);
+        setCheckingLink(false);
         return;
       }
 
@@ -57,6 +63,7 @@ export default function ResetPassword() {
         if (!cancelled) {
           if (error) setLinkError("Ce lien n'est plus valide. Demandez un nouveau lien ci-dessous.");
           else setRecoveryReady(true);
+          setCheckingLink(false);
         }
         return;
       }
@@ -69,6 +76,7 @@ export default function ResetPassword() {
         if (!cancelled) {
           if (error) setLinkError("Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau ci-dessous.");
           else setRecoveryReady(true);
+          setCheckingLink(false);
         }
         return;
       }
@@ -86,12 +94,17 @@ export default function ResetPassword() {
           } else {
             setRecoveryReady(true);
           }
+          setCheckingLink(false);
         }
         return;
       }
 
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!cancelled && sessionData.session) setRecoveryReady(true);
+      if (!cancelled) {
+        if (sessionData.session) setRecoveryReady(true);
+        else if (setupOnly) setLinkError("Ce lien de création de mot de passe est invalide ou a expiré.");
+        setCheckingLink(false);
+      }
     };
 
     void consume();
@@ -100,7 +113,7 @@ export default function ResetPassword() {
       cancelled = true;
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [setupOnly]);
 
   const requestLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +176,7 @@ export default function ResetPassword() {
 
         <NeuralCard className="p-6 space-y-5">
           <h1 className="font-display text-lg tracking-[0.15em] uppercase text-text-primary text-center">
-            {recoveryReady ? "Nouveau mot de passe" : "Mot de passe oublié"}
+            {setupOnly ? "Créer votre mot de passe" : recoveryReady ? "Nouveau mot de passe" : "Mot de passe oublié"}
           </h1>
 
           {linkError && (
@@ -172,7 +185,11 @@ export default function ResetPassword() {
             </p>
           )}
 
-          {recoveryReady ? (
+          {checkingLink ? (
+            <div className="flex items-center justify-center py-8 text-text-tertiary">
+              <Loader2 size={18} className="animate-spin" />
+            </div>
+          ) : recoveryReady ? (
             <form onSubmit={updatePassword} className="space-y-4">
               <div className="relative">
                 <KeyRound size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
@@ -201,6 +218,15 @@ export default function ResetPassword() {
                 Mettre à jour
               </button>
             </form>
+          ) : setupOnly ? (
+            <div className="space-y-4 text-center">
+              <p className="text-xs text-text-tertiary leading-relaxed">
+                Demandez à votre administrateur de vous envoyer un nouveau lien de création de mot de passe.
+              </p>
+              <Link to="/auth" className="inline-block text-xs text-accent-primary hover:underline">
+                Retour à la connexion
+              </Link>
+            </div>
           ) : (
             <form onSubmit={requestLink} className="space-y-4">
               <p className="text-xs text-text-tertiary text-center leading-relaxed">
