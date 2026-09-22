@@ -194,6 +194,16 @@ serve(async (req) => {
         subject = data?.title || "Nouvelle carte Pulse - Aegis";
         htmlBody = `<h2>Bonjour,</h2><p>Une nouvelle carte Pulse est disponible : <strong>${data?.message || data?.title || "Nouvelle carte"}</strong></p><p>Ouvrez l'app pour la découvrir.</p>`;
         break;
+      case "password_setup":
+        subject = "Créez votre mot de passe - Protocole Nomos";
+        htmlBody = `<h2>Bonjour ${data?.display_name || ""},</h2>
+<p>Votre accès est prêt. Cliquez sur le bouton ci-dessous pour <strong>choisir votre mot de passe</strong> : le lien ouvre directement le formulaire, aucune autre démarche n'est nécessaire.</p>
+<p style="margin:28px 0;"><a href="${data?.link}" style="background:#0f766e;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:8px;font-weight:600;display:inline-block;">Créer mon mot de passe</a></p>
+<p style="color:#666;font-size:13px;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br /><a href="${data?.link}">${data?.link}</a></p>
+<p style="color:#666;font-size:13px;">Ce lien est valable 1 heure et ne peut être utilisé qu'une seule fois.</p>
+<hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+<p style="color:#666;font-size:13px;"><em>Hello, your access is ready. Click the button above to choose your password — the link opens the form directly. It is valid for one hour and can be used once.</em></p>`;
+        break;
       default:
         subject = data?.title || "Notification Aegis";
         htmlBody = `<p>${data?.message || "Vous avez une nouvelle notification."}</p>`;
