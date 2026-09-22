@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KeyRound, Mail, Loader2, Eye, EyeOff, RefreshCw, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
 
 interface Props {
   userId: string;
@@ -29,7 +30,7 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
     const { data, error } = await supabase.functions.invoke("admin-update-user", {
       body: { user_id: userId, ...payload },
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(await readEdgeFunctionError(error));
     if (data?.error) throw new Error(data.error);
     return data;
   };
