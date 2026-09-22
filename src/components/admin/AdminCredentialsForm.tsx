@@ -52,7 +52,7 @@ export default function AdminCredentialsForm({ userId, displayName }: Props) {
     try {
       const data = await invoke({
         action: "reset_password",
-        redirect_to: `${window.location.origin}/reset-password`,
+        redirect_to: "https://aegis.humancatalystbeacon.com/create-password",
       });
       toast({
         title: "E-mail de création de mot de passe envoyé",
