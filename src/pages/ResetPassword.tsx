@@ -21,14 +21,84 @@ export default function ResetPassword() {
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    const hash = window.location.hash || "";
-    if (hash.includes("type=recovery") || hash.includes("access_token")) {
-      setRecoveryReady(true);
-    }
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setRecoveryReady(true);
+    let cancelled = false;
+
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        setRecoveryReady(true);
+      }
     });
-    return () => data.subscription.unsubscribe();
+
+    const consume = async () => {
+      const hash = new URLSearchParams((window.location.hash || "").replace(/^#/, ""));
+      const query = new URLSearchParams(window.location.search);
+
+      const errorDesc = hash.get("error_description") || query.get("error_description");
+      if (errorDesc) {
+        setLinkError(
+          /expired|invalid/i.test(errorDesc)
+            ? "Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau ci-dessous."
+            : errorDesc,
+        );
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+
+      // Implicit flow: tokens in the URL hash
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        window.history.replaceState({}, "", window.location.pathname);
+        if (!cancelled) {
+          if (error) setLinkError("Ce lien n'est plus valide. Demandez un nouveau lien ci-dessous.");
+          else setRecoveryReady(true);
+        }
+        return;
+      }
+
+      // Hashed-token flow (works even if the link is opened in another browser)
+      const tokenHash = query.get("token_hash") || query.get("token");
+      if (tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
+        window.history.replaceState({}, "", window.location.pathname);
+        if (!cancelled) {
+          if (error) setLinkError("Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau ci-dessous.");
+          else setRecoveryReady(true);
+        }
+        return;
+      }
+
+      // PKCE flow: ?code=...
+      const code = query.get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        window.history.replaceState({}, "", window.location.pathname);
+        if (!cancelled) {
+          if (error) {
+            setLinkError(
+              "Ce lien doit être ouvert dans le même navigateur que la demande, ou il a expiré. Demandez un nouveau lien ci-dessous.",
+            );
+          } else {
+            setRecoveryReady(true);
+          }
+        }
+        return;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!cancelled && sessionData.session) setRecoveryReady(true);
+    };
+
+    void consume();
+
+    return () => {
+      cancelled = true;
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   const requestLink = async (e: React.FormEvent) => {
