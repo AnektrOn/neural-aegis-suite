@@ -164,6 +164,8 @@ const BOOT_GATE_MAX_MS = 6000;
 function isBootGateSkippedPath(pathname: string): boolean {
   return (
     pathname === "/auth" ||
+    pathname === "/create-password" ||
+    pathname === "/reset-password" ||
     pathname === "/pricing" ||
     pathname === "/install-android" ||
     pathname.startsWith("/legal") ||
