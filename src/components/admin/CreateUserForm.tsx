@@ -46,9 +46,10 @@ export default function CreateUserForm({ companies, onUserCreated }: CreateUserF
       });
 
       if (res.error || res.data?.error) {
+        const description = res.data?.error || (await readEdgeFunctionError(res.error));
         toast({
           title: t("toast.error"),
-          description: res.data?.error || res.error?.message || "Unknown error",
+          description,
           variant: "destructive",
         });
       } else {
