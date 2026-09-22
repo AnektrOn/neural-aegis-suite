@@ -1147,6 +1147,13 @@ export const translations = {
     en: "{answered} / {total} questions completed — answer every question to submit.",
   },
   "assessment.backToQuestions": { fr: "Revenir aux questions", en: "Back to questions" },
+  "assessment.resumeTitle": { fr: "Reprendre où vous vous êtes arrêté", en: "Resume where you left off" },
+  "assessment.resumeDesc": {
+    fr: "{answered} / {total} questions déjà enregistrées. Vous pouvez continuer depuis n'importe quel appareil.",
+    en: "{answered} / {total} questions already saved. You can continue from any device.",
+  },
+  "assessment.resumeCta": { fr: "Reprendre le questionnaire", en: "Resume the questionnaire" },
+  "assessment.restartCta": { fr: "Recommencer depuis le début", en: "Start over" },
   "assessment.submit": { fr: "Soumettre", en: "Submit" },
   "assessment.viewReport": { fr: "Voir mon rapport", en: "View my report" },
   "assessment.answerPlaceholder": { fr: "Votre réponse…", en: "Your answer…" },
