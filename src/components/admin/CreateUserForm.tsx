@@ -103,18 +103,28 @@ export default function CreateUserForm({ companies, onUserCreated }: CreateUserF
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-neural-label flex items-center gap-1.5">
-                  <Lock size={12} /> {t("auth.password")} *
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-neural-label flex items-center gap-1.5">
+                    <Lock size={12} /> {t("auth.password")} *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, password: generateStrongPassword() })}
+                    className="flex items-center gap-1 text-[11px] text-primary/80 hover:text-primary transition-colors"
+                  >
+                    <RefreshCw size={11} /> {t("users.generatePassword")}
+                  </button>
+                </div>
                 <input
-                  type="password"
+                  type="text"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   className="w-full bg-secondary/20 border border-border/20 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/30 transition-colors"
                   placeholder="••••••••"
                 />
+                <p className="text-[11px] text-muted-foreground/60">{t("users.passwordHint")}</p>
               </div>
 
               <div className="space-y-1.5">
