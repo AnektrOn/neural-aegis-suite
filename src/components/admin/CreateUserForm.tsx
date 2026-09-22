@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserPlus, X, Mail, Lock, User, Building2, Globe } from "lucide-react";
+import { UserPlus, X, Mail, Lock, User, Building2, Globe, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
+
+function generateStrongPassword() {
+  const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
+  const arr = new Uint32Array(18);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, (n) => chars[n % chars.length]).join("");
+}
 
 interface Company {
   id: string;
