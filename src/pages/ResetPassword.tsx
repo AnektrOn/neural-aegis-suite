@@ -166,6 +166,12 @@ export default function ResetPassword() {
             {recoveryReady ? "Nouveau mot de passe" : "Mot de passe oublié"}
           </h1>
 
+          {linkError && (
+            <p className="text-xs text-red-400/90 text-center leading-relaxed border border-red-400/20 rounded-lg px-3 py-2">
+              {linkError}
+            </p>
+          )}
+
           {recoveryReady ? (
             <form onSubmit={updatePassword} className="space-y-4">
               <div className="relative">
