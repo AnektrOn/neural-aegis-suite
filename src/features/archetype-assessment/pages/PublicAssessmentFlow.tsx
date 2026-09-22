@@ -72,18 +72,60 @@ export default function PublicAssessmentFlow() {
   }, [user, sessionId]);
 
   const session = useAssessmentSession({ questions: loaded?.questions ?? [] });
+  const { hydrateResponses, resetResponses, setResponse } = session;
+
+  // Reprise : récupère la session inachevée (n'importe quel appareil) + ses réponses.
+  useEffect(() => {
+    if (!user || !loaded || resumeChecked) return;
+    let alive = true;
+    (async () => {
+      try {
+        const sid =
+          (await findInProgressSessionId(user.id, loaded.template.id)) ??
+          readPersistedAssessmentSessionId(user.id);
+        if (!alive || !sid) return;
+        const saved = await loadSessionResponseValues(sid);
+        if (!alive) return;
+        setSessionId(sid);
+        persistAssessmentSessionId(user.id, sid);
+        if (saved.length > 0) hydrateResponses(saved);
+      } finally {
+        if (alive) setResumeChecked(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user, loaded, resumeChecked, hydrateResponses]);
 
   if (!authLoading && !bootScreenActive && !user) {
     return <Navigate to="/auth?guest=1&redirect=%2Fquiz" replace />;
   }
 
-  const handleStart = async () => {
+  const answeredCount = session.responsesArray.length;
+  const canResume = answeredCount > 0 && answeredCount < session.totalQuestions;
+
+  const handleAnswer = (value: ResponseValue) => {
+    setResponse(value);
+    if (user && sessionId) void saveResponseDraft(user.id, sessionId, value);
+  };
+
+  const handleStart = async (fresh = false) => {
     if (!user || !loaded) return;
     try {
-      const sid = await ensureAssessmentSession(user.id, loaded.template.id, sessionId);
+      const sid = await ensureAssessmentSession(
+        user.id,
+        loaded.template.id,
+        fresh ? null : sessionId,
+      );
       setSessionId(sid);
       persistAssessmentSessionId(user.id, sid);
+      if (fresh) resetResponses();
       session.goToQuestions();
+      if (!fresh) {
+        const firstUnanswered = loaded.questions.findIndex((q) => !session.responses[q.id]);
+        if (firstUnanswered > 0) session.goToQuestion(firstUnanswered);
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: t("toast.error"), description: msg, variant: "destructive" });
