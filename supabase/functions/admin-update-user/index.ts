@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
     if (!userId) return json({ error: "user_id is required" }, 400);
 
-    // Send a password-reset email to the target user.
+    // Send a branded "create your password" email with a direct set-password link.
     if (action === "reset_password") {
       const { data: target, error: getErr } = await adminClient.auth.admin.getUserById(userId);
       if (getErr) return json({ error: getErr.message }, 400);
@@ -73,9 +73,29 @@ Deno.serve(async (req) => {
         ? body.redirect_to
         : "https://aegis.humancatalystbeacon.com/reset-password";
 
-      const publicClient = createClient(supabaseUrl, anonKey);
-      const { error: resetErr } = await publicClient.auth.resetPasswordForEmail(targetEmail, { redirectTo });
-      if (resetErr) return json({ error: resetErr.message }, 400);
+      const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
+        type: "recovery",
+        email: targetEmail,
+        options: { redirectTo },
+      });
+      if (linkErr) return json({ error: linkErr.message }, 400);
+
+      const hashedToken = linkData?.properties?.hashed_token;
+      if (!hashedToken) return json({ error: "Could not generate the password link" }, 400);
+
+      const setPasswordUrl = `${redirectTo}${redirectTo.includes("?") ? "&" : "?"}token_hash=${encodeURIComponent(hashedToken)}&type=recovery`;
+
+      const displayName =
+        (target.user?.user_metadata?.display_name as string | undefined) || targetEmail;
+
+      const { error: mailErr } = await adminClient.functions.invoke("send-email-notification", {
+        body: {
+          type: "password_setup",
+          user_id: userId,
+          data: { link: setPasswordUrl, display_name: displayName },
+        },
+      });
+      if (mailErr) return json({ error: mailErr.message }, 400);
 
       return json({ ok: true, sent_to: targetEmail, redirect_to: redirectTo });
     }
