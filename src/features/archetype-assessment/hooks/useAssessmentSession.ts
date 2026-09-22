@@ -104,6 +104,8 @@ export function useAssessmentSession({ questions }: UseAssessmentSessionInput) {
     responses,
     responsesArray,
     setResponse,
+    hydrateResponses,
+    resetResponses,
     next,
     previous,
     goToWelcome,
