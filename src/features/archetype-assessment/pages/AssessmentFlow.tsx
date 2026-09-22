@@ -24,6 +24,9 @@ import {
   ensureAssessmentSession,
   persistAssessmentSessionId,
   readPersistedAssessmentSessionId,
+  findInProgressSessionId,
+  loadSessionResponseValues,
+  saveResponseDraft,
   submitSession,
 } from "../services/assessmentService";
 import { computeRawScores } from "../domain/scoringEngine";
@@ -53,6 +56,7 @@ export default function AssessmentFlow() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resumeChecked, setResumeChecked] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -76,8 +80,41 @@ export default function AssessmentFlow() {
   }, [user, sessionId]);
 
   const session = useAssessmentSession({ questions: loaded?.questions ?? [] });
+  const { hydrateResponses, resetResponses, setResponse } = session;
 
-  const handleStart = async () => {
+  // Reprise : récupère la session inachevée (n'importe quel appareil) + ses réponses.
+  useEffect(() => {
+    if (!user || !loaded || resumeChecked) return;
+    let alive = true;
+    (async () => {
+      try {
+        const sid =
+          (await findInProgressSessionId(user.id, loaded.template.id)) ??
+          readPersistedAssessmentSessionId(user.id);
+        if (!alive || !sid) return;
+        const saved = await loadSessionResponseValues(sid);
+        if (!alive) return;
+        setSessionId(sid);
+        persistAssessmentSessionId(user.id, sid);
+        if (saved.length > 0) hydrateResponses(saved);
+      } finally {
+        if (alive) setResumeChecked(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user, loaded, resumeChecked, hydrateResponses]);
+
+  const answeredCount = session.responsesArray.length;
+  const canResume = answeredCount > 0 && answeredCount < session.totalQuestions;
+
+  const handleAnswer = (value: ResponseValue) => {
+    setResponse(value);
+    if (user && sessionId) void saveResponseDraft(user.id, sessionId, value);
+  };
+
+  const handleStart = async (fresh = false) => {
     if (!user || !loaded) {
       toast({
         title: t("assessment.error"),
@@ -87,10 +124,21 @@ export default function AssessmentFlow() {
       return;
     }
     try {
-      const sid = await ensureAssessmentSession(user.id, loaded.template.id, sessionId);
+      const sid = await ensureAssessmentSession(
+        user.id,
+        loaded.template.id,
+        fresh ? null : sessionId,
+      );
       setSessionId(sid);
       persistAssessmentSessionId(user.id, sid);
+      if (fresh) resetResponses();
       session.goToQuestions();
+      if (!fresh) {
+        const firstUnanswered = loaded.questions.findIndex(
+          (q) => !session.responses[q.id],
+        );
+        if (firstUnanswered > 0) session.goToQuestion(firstUnanswered);
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: t("assessment.error"), description: msg, variant: "destructive" });
@@ -203,9 +251,33 @@ export default function AssessmentFlow() {
                 {t("assessment.bulletResults")}
               </li>
             </ul>
-            <Button size="lg" className="w-full" onClick={handleStart}>
-              {t("welcome.cta.start")} <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
+            {canResume ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                  <p className="text-sm font-medium mb-1">{t("assessment.resumeTitle")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("assessment.resumeDesc", {
+                      answered: String(answeredCount),
+                      total: String(session.totalQuestions),
+                    })}
+                  </p>
+                </div>
+                <Button size="lg" className="w-full" onClick={() => void handleStart(false)}>
+                  {t("assessment.resumeCta")} <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => void handleStart(true)}
+                >
+                  {t("assessment.restartCta")}
+                </Button>
+              </div>
+            ) : (
+              <Button size="lg" className="w-full" onClick={() => void handleStart(false)}>
+                {t("welcome.cta.start")} <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            )}
           </Card>
         )}
 
@@ -232,7 +304,7 @@ export default function AssessmentFlow() {
               <QuestionRenderer
                 question={session.currentQuestion}
                 value={session.responses[session.currentQuestion.id]}
-                onChange={session.setResponse}
+                onChange={handleAnswer}
                 isFR={isFR}
                 t={t}
               />
