@@ -304,7 +304,7 @@ export default function AssessmentFlow() {
               <QuestionRenderer
                 question={session.currentQuestion}
                 value={session.responses[session.currentQuestion.id]}
-                onChange={session.setResponse}
+                onChange={handleAnswer}
                 isFR={isFR}
                 t={t}
               />
