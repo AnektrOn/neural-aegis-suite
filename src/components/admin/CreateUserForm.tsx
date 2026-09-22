@@ -4,6 +4,7 @@ import { UserPlus, X, Mail, Lock, User, Building2, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { readEdgeFunctionError } from "@/lib/edgeFunctionError";
 
 interface Company {
   id: string;
