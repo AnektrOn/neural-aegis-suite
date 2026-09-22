@@ -241,6 +241,7 @@ const App = () => (
                 ) : null}
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/create-password" element={<ResetPassword setupOnly />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/legal/privacy" element={<PrivacyPolicy />} />
                 <Route path="/legal/terms" element={<TermsOfService />} />
