@@ -21,7 +21,6 @@ import {
   ToolboxWidgetTextarea,
   ToolboxWidgetTimerControls,
   ToolboxWidgetStepCard,
-  ToolboxWidgetInstructions,
   toolboxWidgetLabelClass,
 } from "@/features/toolbox/ui";
 

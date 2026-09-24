@@ -499,7 +499,7 @@ export function BodyScanSkinnedFigure({
         for (const mesh of skinned) {
           const prev = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
           for (const mat of prev) {
-            mat?.map?.dispose();
+            (mat as { map?: { dispose: () => void } } | undefined)?.map?.dispose();
             mat?.dispose();
           }
 
