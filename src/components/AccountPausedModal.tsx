@@ -7,7 +7,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 /** Blocking modal shown when an admin has paused the signed-in account. */
 export default function AccountPausedModal() {
   const { user, signOut } = useAuth();
-  const { language } = useLanguage() as { language: string };
+  const { locale } = useLanguage();
   const [paused, setPaused] = useState<{ reason: string | null } | null>(null);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function AccountPausedModal() {
   }, [user]);
 
   if (!paused) return null;
-  const en = language === "en";
+  const en = locale === "en";
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/90 backdrop-blur-md p-6">
