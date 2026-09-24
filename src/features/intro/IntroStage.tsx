@@ -58,8 +58,8 @@ function ReactivePostFX({ hold }: { hold: MutableRefObject<HoldState> }) {
 
   return (
     <EffectComposer multisampling={0}>
-      <Bloom ref={bloom} intensity={0.35} luminanceThreshold={0.72} luminanceSmoothing={0.2} mipmapBlur />
-      <ChromaticAberration ref={aberration} offset={offset} radialModulation modulationOffset={0.35} />
+      <Bloom ref={bloom as never} intensity={0.35} luminanceThreshold={0.72} luminanceSmoothing={0.2} mipmapBlur />
+      <ChromaticAberration ref={aberration as never} offset={offset} radialModulation modulationOffset={0.35} />
       <Noise blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.12} />
       <Vignette offset={0.3} darkness={0.65} />
     </EffectComposer>

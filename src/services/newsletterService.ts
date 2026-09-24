@@ -146,7 +146,7 @@ export async function subscribeNewsletter(params: {
 
 export async function confirmNewsletter(token: string): Promise<{ ok: boolean }> {
   try {
-    const { data, error } = await supabase.rpc("confirm_newsletter", { p_token: token });
+    const { data, error } = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => ReturnType<typeof supabase.rpc>)("confirm_newsletter", { p_token: token });
     if (error) {
       console.error("confirm_newsletter:", error.message);
       return { ok: false };

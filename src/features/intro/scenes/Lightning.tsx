@@ -70,8 +70,8 @@ export function Lightning({ hold, flash, count = 2 }: Props) {
         const x = s.holding
           ? (s.pointer.x - 0.5) * 2 * halfW + (Math.random() - 0.5) * halfW * 0.6
           : (Math.random() - 0.5) * 1.6 * halfW;
-        bolt.strike.rayParameters.sourceOffset.set(x + (Math.random() - 0.5) * 1.5, halfH * 1.2, -2);
-        bolt.strike.rayParameters.destOffset.set(x, -halfH * (0.2 + Math.random() * 0.8), -2);
+        (bolt.strike as unknown as { rayParameters: { sourceOffset: { set: (...a: number[]) => void }; destOffset: { set: (...a: number[]) => void } } }).rayParameters.sourceOffset.set(x + (Math.random() - 0.5) * 1.5, halfH * 1.2, -2);
+        (bolt.strike as unknown as { rayParameters: { sourceOffset: { set: (...a: number[]) => void }; destOffset: { set: (...a: number[]) => void } } }).rayParameters.destOffset.set(x, -halfH * (0.2 + Math.random() * 0.8), -2);
         bolt.endsAt = t + STRIKE_MS;
         bolt.nextAt = t + (1.4 + Math.random() * 3.2) * (1 + calm * 3);
       }
