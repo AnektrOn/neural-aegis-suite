@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, CreditCard, Loader2, Trash2 } from "lucide-react";
+import { AlertTriangle, CreditCard, Loader2, PauseCircle, PlayCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,8 +43,35 @@ export default function AdminDangerZone({ userId, displayName, isSelf, onDeleted
     }
   };
 
+  const [paused, setPaused] = useState<boolean | null>(null);
+  const [pauseReason, setPauseReason] = useState("");
+
+  const loadPause = async () => {
+    try {
+      const data = await call("admin-update-user", { action: "pause_status" });
+      setPaused(!!data?.paused);
+    } catch {
+      setPaused(false);
+    }
+  };
+
+  const togglePause = async () => {
+    setBusy("pause");
+    try {
+      await call("admin-update-user", paused ? { action: "unpause" } : { action: "pause", reason: pauseReason.trim() || null });
+      toast({ title: paused ? "Compte réactivé" : "Compte mis en pause", description: displayName || userId });
+      setPauseReason("");
+      await loadPause();
+    } catch (e) {
+      toast({ title: "Erreur", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   useEffect(() => {
     loadSubs();
+    loadPause();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -131,6 +158,37 @@ export default function AdminDangerZone({ userId, displayName, isSelf, onDeleted
           </div>
         )}
       </div>
+
+      {!isSelf && (
+        <div className="pt-3 border-t border-border/20 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {paused === null
+              ? "Chargement du statut…"
+              : paused
+                ? "Compte en pause : l'utilisateur voit un message bloquant."
+                : "Mettre le compte en pause bloque l'accès avec un message, sans supprimer les données."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {!paused && (
+              <input
+                value={pauseReason}
+                onChange={(e) => setPauseReason(e.target.value)}
+                placeholder="Motif (optionnel, visible par l'utilisateur)"
+                className="flex-1 min-w-[220px] bg-secondary/20 border border-border/20 rounded-xl px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+              />
+            )}
+            <button
+              type="button"
+              onClick={togglePause}
+              disabled={!!busy || paused === null}
+              className="px-4 py-2 rounded-xl border border-border/30 text-foreground text-xs uppercase tracking-[0.2em] hover:bg-secondary/30 transition-colors disabled:opacity-40 inline-flex items-center gap-2"
+            >
+              {busy === "pause" ? <Loader2 size={12} className="animate-spin" /> : paused ? <PlayCircle size={12} /> : <PauseCircle size={12} />}
+              {paused ? "Réactiver le compte" : "Mettre en pause"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="pt-3 border-t border-border/20 space-y-2">
         <p className="text-xs text-muted-foreground">
