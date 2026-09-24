@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
-export const toolboxWidgetRootClass = "flex flex-col space-y-6 py-4 max-w-lg mx-auto w-full";
+export const toolboxWidgetRootClass =
+  "flex flex-col space-y-6 py-4 w-full max-w-[min(100%,24rem)] sm:max-w-xl mx-auto";
 
 export const toolboxWidgetHeaderClass = "flex items-center gap-2 text-neural-label";
 

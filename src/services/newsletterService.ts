@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Locale } from "@/i18n/translations";
 
-export type NewsletterStatus = "active" | "unsubscribed" | null;
+export type NewsletterStatus = "pending" | "active" | "unsubscribed" | null;
 
 export interface NewsletterSubscription {
   email: string;
@@ -23,7 +23,13 @@ export interface NewsletterEdition {
   createdAt: string;
 }
 
-type RpcResult = { ok: boolean; error?: string; status?: string; email?: string };
+type RpcResult = {
+  ok: boolean;
+  error?: string;
+  status?: string;
+  email?: string;
+  confirm_token?: string | null;
+};
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -85,7 +91,7 @@ export async function subscribeNewsletter(params: {
   email: string;
   locale: Locale;
   source?: string;
-}): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
+}): Promise<{ ok: true; email: string; pending?: boolean } | { ok: false; error: string }> {
   const email = normalizeEmail(params.email);
   try {
     const { data, error } = await supabase.rpc("subscribe_newsletter", {
@@ -108,10 +114,27 @@ export async function subscribeNewsletter(params: {
       };
     }
 
+    // Double opt-in: send confirmation when pending; welcome only when already active
+    if (result.status === "pending" && result.confirm_token) {
+      try {
+        await supabase.functions.invoke("send-newsletter-email", {
+          body: {
+            action: "confirm",
+            email,
+            locale: params.locale,
+            confirm_token: result.confirm_token,
+          },
+        });
+      } catch (err) {
+        console.error("confirm email:", err);
+      }
+      return { ok: true, email: (result.email as string) ?? email, pending: true };
+    }
+
     void sendWelcomeEmailDirect(email, params.locale);
     void dispatchNewsletterQueue(5);
 
-    return { ok: true, email: (result.email as string) ?? email };
+    return { ok: true, email: (result.email as string) ?? email, pending: false };
   } catch (err) {
     console.error("subscribeNewsletter:", err);
     return {
@@ -121,13 +144,29 @@ export async function subscribeNewsletter(params: {
   }
 }
 
+export async function confirmNewsletter(token: string): Promise<{ ok: boolean }> {
+  try {
+    const { data, error } = await supabase.rpc("confirm_newsletter", { p_token: token });
+    if (error) {
+      console.error("confirm_newsletter:", error.message);
+      return { ok: false };
+    }
+    return { ok: Boolean((data as { ok?: boolean } | null)?.ok) };
+  } catch (err) {
+    console.error("confirmNewsletter:", err);
+    return { ok: false };
+  }
+}
+
 export async function unsubscribeNewsletter(
   email: string,
+  token?: string,
 ): Promise<{ ok: boolean }> {
   const normalized = normalizeEmail(email);
   try {
     const { data, error } = await supabase.rpc("unsubscribe_newsletter", {
       p_email: normalized,
+      p_token: token ?? null,
     });
 
     if (error) {

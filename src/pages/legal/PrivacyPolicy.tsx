@@ -44,6 +44,15 @@ export default function PrivacyPolicy() {
           <h2>3. Partage des données</h2>
           <ul>
             <li>
+              <strong>Contexte entreprise (B2B) :</strong> si votre compte est rattaché à une
+              organisation cliente, un <em>company admin</em> désigné par cette organisation peut
+              consulter des indicateurs d'usage liés à votre compte (humeurs agrégées, habitudes,
+              progression Pulse/Toolbox, rapports publiés). L'accès au texte de votre journal et de
+              vos décisions n'est possible qu'avec votre consentement explicite (paramètres). Le
+              superadmin AEGIS (Protocole Nomos) reste le seul à pouvoir créer/assigner du contenu
+              Pulse, rapports et toolbox.
+            </li>
+            <li>
               <strong>Prestataire de paiement :</strong> Stripe Payments Europe, Ltd., pour le
               traitement des paiements, la gestion des abonnements et la facturation.
             </li>
@@ -85,10 +94,12 @@ export default function PrivacyPolicy() {
 
           <h2>8. Cookies et stockage local</h2>
           <p>
-            Nous utilisons uniquement des cookies et un stockage local essentiels (session
-            d'authentification, préférences de langue et de thème). Aucun cookie publicitaire n'est
-            déposé. Vous pouvez effacer ces données depuis les réglages de votre navigateur ; la
-            déconnexion sera alors automatique.
+            Nous utilisons des cookies et un stockage local essentiels (session
+            d'authentification, préférences de langue et de thème). Avec votre consentement
+            (bandeau), nous mesurons aussi l'usage in-app (sessions, temps de saisie) pour
+            améliorer le coaching — aucun cookie publicitaire. Vous pouvez refuser via le bandeau
+            ou effacer ces données depuis les réglages de votre navigateur ; la déconnexion sera
+            alors automatique.
           </p>
         </>
       ) : (
@@ -119,6 +130,13 @@ export default function PrivacyPolicy() {
 
           <h2>3. Data sharing</h2>
           <ul>
+            <li>
+              <strong>Company (B2B) context:</strong> if your account is linked to a client
+              organisation, a designated <em>company admin</em> may view usage indicators for your
+              account (mood metrics, habits, Pulse/Toolbox progress, published reports). Access to
+              journal and decision text requires your explicit consent (Settings). Only the AEGIS
+              superadmin (Protocole Nomos) can create/assign Pulse cards, reports and toolbox items.
+            </li>
             <li>
               <strong>Payment provider:</strong> Stripe Payments Europe, Ltd., for payment
               processing, subscription management and invoicing.
@@ -158,9 +176,10 @@ export default function PrivacyPolicy() {
 
           <h2>8. Cookies and local storage</h2>
           <p>
-            We only use essential cookies and local storage (authentication session, language and
-            theme preferences). No advertising cookies are set. You can clear this data in your
-            browser settings, which will sign you out.
+            We use essential cookies and local storage (authentication session, language and
+            theme preferences). With your consent (banner), we also measure in-app usage (sessions,
+            input hesitation) to improve coaching — no advertising cookies. You can decline via the
+            banner or clear this data in your browser settings, which will sign you out.
           </p>
         </>
       )}

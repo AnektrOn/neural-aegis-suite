@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTrackingConsent } from "@/hooks/useTrackingConsent";
 
 const HEARTBEAT_INTERVAL = 30_000; // 30 seconds
 
@@ -9,9 +10,10 @@ export function useSessionTracking() {
   const { user } = useAuth();
   const location = useLocation();
   const sessionId = useRef<string | null>(null);
+  const consent = useTrackingConsent();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || consent !== "accepted") return;
 
     const startSession = async () => {
       const { data } = await supabase
@@ -43,9 +45,7 @@ export function useSessionTracking() {
       sessionId.current = null;
     };
 
-    // Desktop
     window.addEventListener("beforeunload", endSession);
-    // Mobile Safari: visibilitychange is reliable
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") endSession();
     };
@@ -57,14 +57,13 @@ export function useSessionTracking() {
       document.removeEventListener("visibilitychange", handleVisibility);
       endSession();
     };
-  }, [user]);
+  }, [user, consent, location.pathname]);
 
-  // Update page on route change
   useEffect(() => {
-    if (!sessionId.current || !user) return;
+    if (!sessionId.current || !user || consent !== "accepted") return;
     supabase
       .from("user_sessions" as any)
       .update({ page: location.pathname } as any)
       .eq("id", sessionId.current);
-  }, [location.pathname, user]);
+  }, [location.pathname, user, consent]);
 }

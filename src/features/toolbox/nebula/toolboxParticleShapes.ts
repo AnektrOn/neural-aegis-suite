@@ -312,14 +312,16 @@ export function buildStreamTargets(particleCount: number, radius: number): Float
   return assignSamples(samples, particleCount, rand);
 }
 
-/** Grounding field — visualisation ancrage. */
+/** Grounding — disque horizontal simple (ancrage, pas de relief ondulé). */
 export function buildGroundTargets(particleCount: number, radius: number): Float32Array {
   const rand = mulberry32(67);
   const samples: number[] = [];
-  for (let i = 0; i < 9000; i++) {
+  const planeY = -radius * 0.38;
+  const discR = radius * 0.78;
+  for (let i = 0; i < 2800; i++) {
     const a = rand() * Math.PI * 2;
-    const r = Math.sqrt(rand()) * radius * 0.95;
-    const y = -radius * 0.35 + (rand() - 0.5) * 0.08 * radius + Math.sin(r * 4) * 0.03 * radius;
+    const r = Math.sqrt(rand()) * discR;
+    const y = planeY + (rand() - 0.5) * 0.015 * radius;
     samples.push(Math.cos(a) * r, y, Math.sin(a) * r);
   }
   return assignSamples(samples, particleCount, rand);

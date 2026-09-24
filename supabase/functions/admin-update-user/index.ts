@@ -29,17 +29,73 @@ Deno.serve(async (req) => {
     if (!caller) return json({ error: "Unauthorized" }, 401);
 
     const adminClient = createClient(supabaseUrl, serviceKey);
-    const { data: roleData } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!roleData) return json({ error: "Admin access required" }, 403);
-
     const body = await req.json().catch(() => ({}));
     const action = body.action ?? "update";
     let userId: string | undefined = body.user_id;
+
+    const { resolveCallerRoles } = await import("../_shared/b2b-roles.ts");
+    const roles = await resolveCallerRoles(adminClient, caller.id);
+    const isAdmin = roles.isPlatformOperator;
+    const isSuperAdmin = roles.isSuperAdmin;
+
+    // Self-delete: any authenticated user may delete their own account (no admin role).
+    if (action === "self_delete") {
+      userId = caller.id;
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      const { data: subs } = await adminClient
+        .from("subscriptions")
+        .select("id, paddle_subscription_id, status")
+        .eq("user_id", userId);
+
+      const cancelResults: Array<{ id: string; mode: string; error?: string }> = [];
+      for (const sub of subs ?? []) {
+        const status = sub.status as string | null;
+        if (!status || !["active", "trialing", "past_due"].includes(status)) continue;
+        const stripeId = sub.paddle_subscription_id as string | null;
+        if (stripeKey && stripeId?.startsWith("sub_")) {
+          try {
+            const Stripe = (await import("npm:stripe@17")).default;
+            const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+            await stripe.subscriptions.cancel(stripeId);
+            await adminClient
+              .from("subscriptions")
+              .update({ status: "canceled", updated_at: new Date().toISOString() })
+              .eq("id", sub.id);
+            cancelResults.push({ id: sub.id, mode: "stripe_cancel" });
+          } catch (e) {
+            cancelResults.push({
+              id: sub.id,
+              mode: "stripe_error",
+              error: e instanceof Error ? e.message : String(e),
+            });
+          }
+        } else {
+          await adminClient
+            .from("subscriptions")
+            .update({ status: "canceled", updated_at: new Date().toISOString() })
+            .eq("id", sub.id);
+          cancelResults.push({ id: sub.id, mode: "db_only" });
+        }
+      }
+
+      await adminClient.from("admin_audit_log").insert({
+        actor_id: caller.id,
+        action: "self_delete_user",
+        target_user_id: userId,
+        meta: { cancelResults },
+      });
+
+      const { error } = await adminClient.auth.admin.deleteUser(userId);
+      if (error) return json({ error: error.message, cancelResults }, 400);
+      return json({ ok: true, deleted: userId, cancelResults });
+    }
+
+    if (!isAdmin) return json({ error: "Admin access required" }, 403);
+
+    // Destructive / credential actions: superadmin only
+    if ((action === "delete" || action === "reset_password" || action === "update") && !isSuperAdmin) {
+      return json({ error: "Superadmin access required" }, 403);
+    }
 
     // Resolve by email when no user_id is supplied
     if (
@@ -102,9 +158,55 @@ Deno.serve(async (req) => {
 
     if (action === "delete") {
       if (userId === caller.id) return json({ error: "Cannot delete yourself" }, 400);
+
+      // Cancel active Stripe subscriptions before deleting the auth user
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      const { data: subs } = await adminClient
+        .from("subscriptions")
+        .select("id, paddle_subscription_id, status")
+        .eq("user_id", userId);
+
+      const cancelResults: Array<{ id: string; mode: string; error?: string }> = [];
+      for (const sub of subs ?? []) {
+        const status = sub.status as string | null;
+        if (!status || !["active", "trialing", "past_due"].includes(status)) continue;
+        const stripeId = sub.paddle_subscription_id as string | null;
+        if (stripeKey && stripeId?.startsWith("sub_")) {
+          try {
+            const Stripe = (await import("npm:stripe@17")).default;
+            const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+            await stripe.subscriptions.cancel(stripeId);
+            await adminClient
+              .from("subscriptions")
+              .update({ status: "canceled", updated_at: new Date().toISOString() })
+              .eq("id", sub.id);
+            cancelResults.push({ id: sub.id, mode: "stripe_cancel" });
+          } catch (e) {
+            cancelResults.push({
+              id: sub.id,
+              mode: "stripe_error",
+              error: e instanceof Error ? e.message : String(e),
+            });
+          }
+        } else {
+          await adminClient
+            .from("subscriptions")
+            .update({ status: "canceled", updated_at: new Date().toISOString() })
+            .eq("id", sub.id);
+          cancelResults.push({ id: sub.id, mode: "db_only" });
+        }
+      }
+
+      await adminClient.from("admin_audit_log").insert({
+        actor_id: caller.id,
+        action: "delete_user",
+        target_user_id: userId,
+        meta: { cancelResults },
+      });
+
       const { error } = await adminClient.auth.admin.deleteUser(userId);
-      if (error) return json({ error: error.message }, 400);
-      return json({ ok: true, deleted: userId });
+      if (error) return json({ error: error.message, cancelResults }, 400);
+      return json({ ok: true, deleted: userId, cancelResults });
     }
 
     if (action === "get") {

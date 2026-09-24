@@ -16,6 +16,11 @@ const actionableStopLove = readFileSync(
   "utf8",
 );
 
+const cognitiveFrameworkLifeJacket = readFileSync(
+  resolve(process.cwd(), "src/features/toolbox-admin/fixtures/cognitive-framework-life-jacket.md"),
+  "utf8",
+);
+
 describe("toolboxMarkdownParser batch", () => {
   it("splits batch template into 10 items", () => {
     const chunks = splitToolboxMarkdownFile(batchTemplate, "batch-01.md");
@@ -101,6 +106,32 @@ Visualize a golden bubble around you.
     expect(result.items[0].description_i18n.fr).toContain("Perte de soi");
     expect(result.items[0].archetype_targets).toEqual(["sovereign"]);
     expect(result.items[0].distribution.mode).toBe("individual");
+  });
+
+  it("parses cognitive framework MD (content_type framework, inline YAML arrays, timed steps)", () => {
+    const result = parseToolboxMarkdownBatch([
+      { name: "TOOL_01_Drop_The_Life_Jacket.md", content: cognitiveFrameworkLifeJacket },
+    ]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(1);
+    expect(result.importIssues).toEqual([]);
+
+    const item = result.items[0];
+    expect(item.content_type).toBe("micro_practice");
+    expect(item.external_key).toBe("toolbox_cognitive_drop_life_jacket");
+    expect(item.shadow_targets).toContain("saboteur");
+    expect(item.shadow_targets).toContain("defensive_shielding");
+    expect(item.archetype_targets).toEqual([]);
+
+    const steps = item.widget_config.steps as Array<{
+      text_i18n: { fr: string; en: string };
+    }>;
+    expect(steps).toHaveLength(3);
+    expect(steps[0].text_i18n.fr).toContain("Calibration");
+    expect(steps[0].text_i18n.fr).toContain("arrêt de 5 secondes");
+    expect(item.widget_config.duration_sec).toBe(120);
+    expect(item.widget_config.mode).toBeUndefined();
+    expect(item.widget_config.step_duration_sec).toBeUndefined();
   });
 
   it("parses actionable_tool STOP format with distinct FR/EN title and embedded S/T/O/P steps", () => {

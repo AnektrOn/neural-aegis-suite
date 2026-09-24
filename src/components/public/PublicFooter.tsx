@@ -7,10 +7,12 @@ export default function PublicFooter() {
 
   const links = [
     { to: "/pricing", label: isFR ? "Tarifs" : "Pricing" },
+    { to: "/legal/mentions", label: isFR ? "Mentions légales" : "Legal notice" },
     { to: "/legal/terms", label: isFR ? "Conditions générales" : "Terms & Conditions" },
     { to: "/legal/refund", label: isFR ? "Politique de remboursement" : "Refund Policy" },
     { to: "/legal/privacy", label: isFR ? "Confidentialité" : "Privacy Notice" },
     { to: "/auth", label: isFR ? "Connexion" : "Sign in" },
+    { to: "/intro", label: isFR ? "Revoir l'intro" : "Replay intro" },
   ];
 
   return (

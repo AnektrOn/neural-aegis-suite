@@ -17,11 +17,15 @@ import VisitorRoute from "@/components/VisitorRoute";
 import RequireQuizOnboarding from "@/components/RequireQuizOnboarding";
 import AdminRoute from "@/components/AdminRoute";
 import AdminLegacyRedirect from "@/components/admin/AdminLegacyRedirect";
+import CompanyAdminPathGuard from "@/components/admin/CompanyAdminPathGuard";
+import { hasSeenIntro } from "@/features/intro/introSeen";
 import AppLayout from "./components/AppLayout";
 import AdminLayout from "./components/AdminLayout";
 import VisitorLayout from "./layouts/VisitorLayout";
 import { useAndroidVersionReporter } from "@/hooks/useAndroidVersionReporter";
 import { useReferralCapture } from "@/hooks/useReferralCapture";
+import { useBackendHealth } from "@/hooks/useBackendHealth";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -93,9 +97,13 @@ const AdminTaoPortraitHub = lazy(() => import("./pages/admin/AdminTaoPortraitHub
 const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
+const DevLabPage = lazy(() => import("./pages/dev/DevLabPage"));
 const AegisCorePreview = lazy(() => import("./pages/dev/AegisCorePreview"));
 const QuantumNebulaDemo = lazy(() => import("./pages/dev/QuantumNebulaDemo"));
 const ToolboxNebulaDemo = lazy(() => import("./pages/dev/ToolboxNebulaDemo"));
+const DienChanMap = lazy(() => import("./pages/dev/DienChanMap"));
+const BodyScanPreview = lazy(() => import("./pages/dev/BodyScanPreview"));
+const StorytellingPage = lazy(() => import("./pages/dev/StorytellingPage"));
 const PromotePage = lazy(() => import("./pages/dev/promote/PromotePage"));
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
 const AdminMarkdownPdf = lazy(() => import("./pages/admin/AdminMarkdownPdf"));
@@ -103,20 +111,29 @@ const AdminMarkdownPdfRender = lazy(() => import("./pages/admin/AdminMarkdownPdf
 const InstallAndroid = lazy(() => import("./pages/InstallAndroid"));
 const Ambassador = lazy(() => import("./pages/Ambassador"));
 const AffiliateManagement = lazy(() => import("./pages/admin/AffiliateManagement"));
+const AcceptCompanyInvitePage = lazy(() => import("./pages/AcceptCompanyInvitePage"));
 const Landing = lazy(() => import("./pages/Landing"));
+const IntroPage = lazy(() => import("./features/intro/IntroPage"));
 const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
 const RefundPolicy = lazy(() => import("./pages/legal/RefundPolicy"));
+const LegalNotice = lazy(() => import("./pages/legal/LegalNotice"));
+const AccountDeletedPage = lazy(() => import("./pages/AccountDeletedPage"));
+const CookieConsentBanner = lazy(() => import("./components/CookieConsentBanner"));
 
 /** Root route: public marketing page for visitors, Welcome hub for signed-in users. */
 function HomeRoute() {
   const { user, session, loading } = useAuth();
   const resolvedUser = user ?? session?.user ?? null;
+  const location = useLocation();
 
   if (!loading && !resolvedUser) {
     // Native APK/iOS: skip marketing homepage, open sign-in immediately.
     if (Capacitor.isNativePlatform()) {
       return <Navigate to="/auth" replace />;
+    }
+    if (!hasSeenIntro() && new URLSearchParams(location.search).get("intro") !== "0") {
+      return <Navigate to="/intro" replace />;
     }
     return (
       <Suspense fallback={<PageLoader />}>
@@ -173,6 +190,7 @@ function isBootGateSkippedPath(pathname: string): boolean {
     pathname === "/terms" ||
     pathname === "/refund" ||
     pathname.startsWith("/newsletter") ||
+    pathname === "/dev" ||
     pathname.startsWith("/dev/")
   );
 }
@@ -183,6 +201,10 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
   const skipBoot = isBootGateSkippedPath(pathname);
   const { bootScreenActive } = useAuth();
   const [appReady, setAppReady] = useState(skipBoot);
+  const [forceShow, setForceShow] = useState(false);
+  const { status: backendStatus } = useBackendHealth({ enabled: !skipBoot });
+  const { locale } = useLanguage();
+  const isFR = locale === "fr";
   useAndroidVersionReporter();
   useReferralCapture();
 
@@ -200,10 +222,12 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(timeout);
   }, [skipBoot]);
 
-  // Failsafe: si l'auth bootstrap reste bloqué (ex: NetworkError sur refresh_token),
-  // on libère l'UI au bout de 6s pour éviter l'écran de boot infini.
+  // Failsafe: si l'auth bootstrap reste bloqué, libérer l'UI après 6s.
   useEffect(() => {
-    const t = setTimeout(() => setAppReady(true), 6000);
+    const t = setTimeout(() => {
+      setAppReady(true);
+      setForceShow(true);
+    }, 6000);
     return () => clearTimeout(t);
   }, []);
 
@@ -215,7 +239,43 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  if (forceShow && backendStatus === "degraded") {
+    return (
+      <div className="relative z-[100] flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="font-display text-xl text-foreground">
+          {isFR ? "Service temporairement indisponible" : "Service temporarily unavailable"}
+        </p>
+        <p className="max-w-md text-sm text-muted-foreground">
+          {isFR
+            ? "Nous n'arrivons pas à joindre le serveur d'authentification. Réessayez dans quelques instants."
+            : "We cannot reach the authentication server. Please try again in a moment."}
+        </p>
+        <button
+          type="button"
+          className="min-h-[44px] rounded-xl border border-border px-5 text-xs uppercase tracking-widest"
+          onClick={() => window.location.reload()}
+        >
+          {isFR ? "Réessayer" : "Retry"}
+        </button>
+        <button
+          type="button"
+          className="text-xs text-muted-foreground underline"
+          onClick={() => setForceShow(false)}
+        >
+          {isFR ? "Continuer quand même" : "Continue anyway"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {children}
+      <Suspense fallback={null}>
+        <CookieConsentBanner />
+      </Suspense>
+    </>
+  );
 }
 
 
@@ -234,20 +294,36 @@ const App = () => (
                 {import.meta.env.DEV ? (
                   <>
                     <Route path="/__loader" element={<BootLoadingScreen />} />
+                    <Route path="/dev" element={<DevLabPage />} />
                     <Route path="/dev/aegis-core" element={<AegisCorePreview />} />
                     <Route path="/dev/quantum-nebula" element={<QuantumNebulaDemo />} />
                     <Route path="/dev/toolbox-nebula" element={<ToolboxNebulaDemo />} />
+                    <Route path="/dev/dien-chan" element={<DienChanMap />} />
+                    {/* Mixamo Xbot additive-skinning playground */}
+                    <Route path="/dev/body-scan" element={<BodyScanPreview />} />
+                    <Route path="/dev/storytelling" element={<StorytellingPage />} />
                     <Route path="/dev/promote" element={<PromotePage />} />
                     <Route path="/dev/promote/:scene" element={<PromotePage />} />
                   </>
                 ) : null}
+                <Route path="/intro" element={<IntroPage />} />
                 <Route path="/auth" element={<AuthPage />} />
+                <Route
+                  path="/invite/:token"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <AcceptCompanyInvitePage />
+                    </Suspense>
+                  }
+                />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/create-password" element={<ResetPassword setupOnly />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/legal/privacy" element={<PrivacyPolicy />} />
                 <Route path="/legal/terms" element={<TermsOfService />} />
                 <Route path="/legal/refund" element={<RefundPolicy />} />
+                <Route path="/legal/mentions" element={<LegalNotice />} />
+                <Route path="/account-deleted" element={<AccountDeletedPage />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/refund" element={<RefundPolicy />} />
@@ -283,6 +359,7 @@ const App = () => (
                     <ProtectedRoute>
                       <AdminRoute>
                         <AdminLayout>
+                          <CompanyAdminPathGuard>
                           <Suspense fallback={<PageLoader />}>
                             <Routes>
                               <Route path="/" element={<AdminOverview />} />
@@ -347,6 +424,7 @@ const App = () => (
                               <Route path="/affiliates" element={<AffiliateManagement />} />
                             </Routes>
                           </Suspense>
+                          </CompanyAdminPathGuard>
                         </AdminLayout>
                       </AdminRoute>
                     </ProtectedRoute>

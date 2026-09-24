@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { NeuralCard } from "@/components/ui/neural-card";
 import aegisLogo from "@/assets/aegis-logo.png";
+import { signupPasswordIssues } from "@/lib/passwordPolicy";
 
 const inputCls =
   "w-full bg-bg-base border border-border-active rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all duration-200";
@@ -142,8 +143,13 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
 
   const updatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) {
-      toast({ title: "Erreur", description: "8 caractères minimum.", variant: "destructive" });
+    const issues = signupPasswordIssues(password);
+    if (issues.length) {
+      toast({
+        title: "Erreur",
+        description: "Mot de passe : 8 caractères minimum, au moins une lettre et un chiffre.",
+        variant: "destructive",
+      });
       return;
     }
     setLoading(true);

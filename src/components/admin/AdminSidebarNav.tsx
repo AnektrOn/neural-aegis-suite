@@ -6,10 +6,12 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import {
   ADMIN_NAV_SECTIONS,
   filterAdminNavSections,
+  filterNavForRole,
   isAdminPathActive,
   type AdminNavItem,
   type AdminNavSection,
 } from "@/lib/adminNavConfig";
+import { usePlatformRoles } from "@/hooks/use-admin";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -138,12 +140,18 @@ export default function AdminSidebarNav({
 }) {
   const { t } = useLanguage();
   const location = useLocation();
+  const { isSuperAdmin, isCompanyAdmin } = usePlatformRoles();
   const [searchQuery, setSearchQuery] = useState("");
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>(loadOpenSections);
 
+  const roleSections = useMemo(
+    () => filterNavForRole(ADMIN_NAV_SECTIONS, { isSuperAdmin, isCompanyAdmin }),
+    [isSuperAdmin, isCompanyAdmin],
+  );
+
   const filteredSections = useMemo(
-    () => filterAdminNavSections(ADMIN_NAV_SECTIONS, searchQuery, t),
-    [searchQuery, t],
+    () => filterAdminNavSections(roleSections, searchQuery, t),
+    [roleSections, searchQuery, t],
   );
 
   const searching = searchQuery.trim().length > 0;

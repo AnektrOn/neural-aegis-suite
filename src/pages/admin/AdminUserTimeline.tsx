@@ -215,6 +215,13 @@ export default function AdminUserTimeline({ userId }: { userId?: string }) {
   }, [userId, initialLocationUserId]);
 
   useEffect(() => {
+    if (!selectedUserId) return;
+    void import("@/services/b2bTenancyService").then(({ logAdminDataAccess }) =>
+      logAdminDataAccess("view_user_timeline", selectedUserId, { rangeDays }),
+    );
+  }, [selectedUserId, rangeDays]);
+
+  useEffect(() => {
     if (!selectedUserId) {
       setEvents([]);
       setLastSeen(null);

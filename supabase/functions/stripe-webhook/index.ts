@@ -24,7 +24,10 @@ async function notifyUser(userId: string, title: string, message: string, link: 
 }
 
 async function notifyAdmins(title: string, message: string, link: string) {
-  const { data: admins } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+  const { data: admins } = await supabase
+    .from('user_roles')
+    .select('user_id')
+    .in('role', ['superadmin', 'admin']);
   if (!admins?.length) return;
   await supabase.from('notifications').insert(
     admins.map((a: { user_id: string }) => ({
@@ -82,10 +85,14 @@ function months(from: Date, n: number) {
   return d.toISOString();
 }
 
-async function upsertSubscription(row: Record<string, unknown>) {
+async function upsertSubscription(row: Record<string, unknown>, livemode = true) {
   const { error } = await supabase
     .from('subscriptions')
-    .upsert({ ...row, environment: 'live', updated_at: new Date().toISOString() }, {
+    .upsert({
+      ...row,
+      environment: livemode ? 'live' : 'sandbox',
+      updated_at: new Date().toISOString(),
+    }, {
       onConflict: 'paddle_subscription_id',
     });
   if (error) console.error('subscription upsert:', error.message);
@@ -95,6 +102,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const md = session.metadata ?? {};
   const userId = (md.userId as string) || (session.client_reference_id ?? '');
   const priceId = md.priceId as string;
+  const companyId = md.companyId as string | undefined;
+  const seatQuantity = Number(md.seatQuantity ?? '');
+  if (companyId && Number.isFinite(seatQuantity) && seatQuantity > 0) {
+    const customerId = (session.customer as string) ?? null;
+    await supabase
+      .from('companies')
+      .update({
+        seat_limit: Math.floor(seatQuantity),
+        ...(customerId ? { stripe_customer_id: customerId } : {}),
+      })
+      .eq('id', companyId);
+  }
   if (!userId || !isPlanKey(priceId)) return;
   const plan = PLANS[priceId];
   const customerId = (session.customer as string) ?? '';
@@ -110,7 +129,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       status: 'active',
       current_period_start: start.toISOString(),
       current_period_end: months(start, 12),
-    });
+    }, session.livemode !== false);
     await recordAffiliateCommission(
       userId,
       `stripe:${session.id}`,
@@ -141,7 +160,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       : null,
     cancel_at_period_end: sub.cancel_at_period_end,
     installments_total: plan.installments ?? null,
-  });
+  }, session.livemode !== false);
   if (sub.status === 'active' || sub.status === 'trialing') {
     await onPurchaseActivated(userId, plan.productId, priceId);
   }
@@ -259,7 +278,6 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     (sub.product_id as string) ?? null,
   );
 
-  // Notification admin : encaissement (renouvellement ou échéance)
   {
     const { data: userData } = await supabase.auth.admin.getUserById(sub.user_id as string);
     const email = userData?.user?.email ?? (sub.user_id as string);
@@ -277,13 +295,41 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const total = sub.installments_total as number | null;
   if (!total) return;
 
+  // Atomic increment to resist webhook replays racing before event ledger insert
+  const { data: incremented, error: incErr } = await supabase.rpc('increment_installments_paid' as never, {
+    p_subscription_id: subId,
+  } as never);
 
-  const paid = ((sub.installments_paid as number) ?? 0) + 1;
-  const patch: Record<string, unknown> = { installments_paid: paid, updated_at: new Date().toISOString() };
+  // Fallback if RPC not yet deployed: guarded update
+  let paid = ((sub.installments_paid as number) ?? 0) + 1;
+  if (!incErr && incremented && typeof incremented === 'object' && 'installments_paid' in (incremented as object)) {
+    paid = (incremented as { installments_paid: number }).installments_paid;
+  } else {
+    const { data: fresh } = await supabase
+      .from('subscriptions')
+      .select('installments_paid')
+      .eq('paddle_subscription_id', subId)
+      .maybeSingle();
+    const current = (fresh?.installments_paid as number) ?? 0;
+    // Only bump if still at expected previous value (best-effort without RPC)
+    if (current === ((sub.installments_paid as number) ?? 0)) {
+      paid = current + 1;
+      await supabase
+        .from('subscriptions')
+        .update({ installments_paid: paid, updated_at: new Date().toISOString() })
+        .eq('paddle_subscription_id', subId)
+        .eq('installments_paid', current);
+    } else {
+      paid = current;
+    }
+  }
 
   if (paid >= total) {
     const start = sub.current_period_start ? new Date(sub.current_period_start as string) : new Date();
-    patch.current_period_end = months(start, 12);
+    const patch: Record<string, unknown> = {
+      current_period_end: months(start, 12),
+      updated_at: new Date().toISOString(),
+    };
     try {
       await stripe.subscriptions.update(subId, { cancel_at_period_end: true });
     } catch (e) {
@@ -294,6 +340,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
         '/admin/users',
       );
     }
+    await supabase.from('subscriptions').update(patch).eq('paddle_subscription_id', subId);
     if (sub.user_id) {
       await notifyUser(
         sub.user_id as string,
@@ -303,8 +350,84 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
       );
     }
   }
+}
 
-  await supabase.from('subscriptions').update(patch).eq('paddle_subscription_id', subId);
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  const subId = (invoice as unknown as { subscription?: string }).subscription;
+  if (!subId) return;
+  const { data: existing } = await supabase
+    .from('subscriptions')
+    .select('user_id, status')
+    .eq('paddle_subscription_id', subId)
+    .maybeSingle();
+  if (!existing?.user_id) return;
+
+  await supabase
+    .from('subscriptions')
+    .update({ status: 'past_due', updated_at: new Date().toISOString() })
+    .eq('paddle_subscription_id', subId);
+
+  await notifyUser(
+    existing.user_id as string,
+    'Paiement échoué — accès suspendu',
+    "Votre dernier paiement n'a pas abouti. Mettez à jour votre moyen de paiement dans les tarifs.",
+    '/pricing',
+  );
+  await notifyAdmins(
+    '⚠️ Paiement échoué (invoice.payment_failed)',
+    `Abonnement ${subId} — invoice ${invoice.id}.`,
+    '/admin/users',
+  );
+
+  // Best-effort email via send-email-notification
+  try {
+    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'subscription_update',
+        user_id: existing.user_id,
+        data: {
+          title: 'Paiement échoué — accès suspendu',
+          message:
+            "Votre dernier paiement Stripe n'a pas abouti. Mettez à jour votre carte sur la page Tarifs pour rétablir l'accès.",
+          skip_in_app: true,
+        },
+      }),
+    });
+  } catch (e) {
+    console.error('payment_failed email:', e);
+  }
+}
+
+async function handleChargeRefunded(charge: Stripe.Charge) {
+  const invoiceId =
+    typeof charge.invoice === 'string'
+      ? charge.invoice
+      : (charge.invoice as { id?: string } | null)?.id;
+  const txRef = invoiceId
+    ? `stripe:${invoiceId}`
+    : charge.payment_intent
+      ? `stripe:${charge.payment_intent}`
+      : null;
+  if (!txRef) return;
+
+  // Reverse affiliate commission when promised by Ambassador policy
+  const { error } = await supabase
+    .from('affiliate_commissions')
+    .update({ status: 'reversed', note: `Refunded charge ${charge.id}` })
+    .eq('transaction_ref', txRef)
+    .neq('status', 'reversed');
+  if (error) console.error('clawback commission:', error.message);
+
+  await notifyAdmins(
+    '↩️ Remboursement Stripe',
+    `Charge ${charge.id} remboursée (${((charge.amount_refunded ?? 0) / 100).toFixed(2)}). Commission annulée si présente.`,
+    '/admin/users',
+  );
 }
 
 Deno.serve(async (req) => {
@@ -324,6 +447,22 @@ Deno.serve(async (req) => {
     return new Response('Invalid signature', { status: 400 });
   }
 
+  // Idempotency: skip already-processed Stripe event ids
+  const { error: ledgerErr } = await supabase.from('stripe_webhook_events').insert({
+    event_id: event.id,
+    event_type: event.type,
+    livemode: event.livemode,
+  });
+  if (ledgerErr) {
+    if (ledgerErr.code === '23505') {
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    console.error('stripe_webhook_events insert:', ledgerErr.message);
+  }
+
   try {
     switch (event.type) {
       case 'checkout.session.completed':
@@ -338,11 +477,19 @@ Deno.serve(async (req) => {
       case 'invoice.paid':
         await handleInvoicePaid(event.data.object as Stripe.Invoice);
         break;
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+      case 'charge.refunded':
+        await handleChargeRefunded(event.data.object as Stripe.Charge);
+        break;
       default:
         console.log('Unhandled event:', event.type);
     }
   } catch (e) {
     console.error('webhook handler error:', e);
+    // Allow Stripe to retry: remove ledger row so next attempt reprocesses
+    await supabase.from('stripe_webhook_events').delete().eq('event_id', event.id);
     return new Response('Handler error', { status: 500 });
   }
 

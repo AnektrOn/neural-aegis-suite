@@ -28,6 +28,7 @@ import {
   listPublishedNewsletterEditions,
   subscribeNewsletter,
   unsubscribeNewsletter,
+  confirmNewsletter,
   type NewsletterEdition,
 } from "@/services/newsletterService";
 
@@ -48,7 +49,7 @@ export default function Newsletter() {
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
-  const [existingStatus, setExistingStatus] = useState<"active" | "unsubscribed" | null>(
+  const [existingStatus, setExistingStatus] = useState<"pending" | "active" | "unsubscribed" | null>(
     null,
   );
   const [editions, setEditions] = useState<NewsletterEdition[]>([]);
@@ -59,12 +60,51 @@ export default function Newsletter() {
 
   useEffect(() => {
     const unsub = searchParams.get("unsubscribe")?.trim();
-    if (unsub) {
+    const unsubToken = searchParams.get("unsubscribe_token")?.trim();
+    const confirmTok = searchParams.get("confirm")?.trim();
+
+    if (confirmTok) {
+      void (async () => {
+        const { ok } = await confirmNewsletter(confirmTok);
+        searchParams.delete("confirm");
+        setSearchParams(searchParams, { replace: true });
+        if (ok) {
+          setSubscribed(true);
+          setExistingStatus("active");
+          toast({
+            title: t("newsletter.successTitle"),
+            description: t("newsletter.successDescEmail"),
+          });
+        } else {
+          toast({
+            title: t("toast.error"),
+            description: t("newsletter.unsubscribeFailed"),
+            variant: "destructive",
+          });
+        }
+      })();
+    }
+
+    if (unsubToken) {
+      void (async () => {
+        const { ok } = await unsubscribeNewsletter("", unsubToken);
+        searchParams.delete("unsubscribe_token");
+        setSearchParams(searchParams, { replace: true });
+        if (ok) {
+          setSubscribed(false);
+          setExistingStatus("unsubscribed");
+          toast({
+            title: t("newsletter.unsubscribedTitle"),
+            description: t("newsletter.unsubscribedDesc"),
+          });
+        }
+      })();
+    } else if (unsub) {
       setEmail(unsub);
       searchParams.delete("unsubscribe");
       setSearchParams(searchParams, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, t, toast]);
 
   useEffect(() => {
     let alive = true;
@@ -117,6 +157,17 @@ export default function Newsletter() {
             ? t("newsletter.invalidEmail")
             : result.error;
         toast({ title: t("toast.error"), description: msg, variant: "destructive" });
+        return;
+      }
+
+      if (result.pending) {
+        setExistingStatus("pending");
+        toast({
+          title: t("newsletter.successTitle"),
+          description: locale === "fr"
+            ? "Vérifiez votre boîte mail pour confirmer l'inscription."
+            : "Check your inbox to confirm your subscription.",
+        });
         return;
       }
 

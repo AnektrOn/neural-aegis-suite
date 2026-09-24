@@ -23,7 +23,10 @@ function editionUrl(slug: string): string {
   return `${appBaseUrl()}/newsletter/${encodeURIComponent(slug)}`;
 }
 
-function unsubscribeUrl(email: string): string {
+function unsubscribeUrl(email: string, token?: string | null): string {
+  if (token) {
+    return `${newsletterHubUrl()}?unsubscribe_token=${encodeURIComponent(token)}`;
+  }
   return `${newsletterHubUrl()}?unsubscribe=${encodeURIComponent(email)}`;
 }
 
@@ -176,6 +179,32 @@ function welcomeEmail(locale: Locale, email: string) {
   return { subject, html };
 }
 
+function confirmEmail(locale: Locale, email: string, token: string) {
+  const isEn = locale === "en";
+  const title = isEn ? "Confirm your subscription" : "Confirmez votre inscription";
+  const brief = isEn
+    ? "Click the button below to confirm you want to receive the Neural Aegis newsletter."
+    : "Cliquez sur le bouton ci-dessous pour confirmer votre inscription à la newsletter Neural Aegis.";
+  const confirmHref = `${newsletterHubUrl()}?confirm=${encodeURIComponent(token)}`;
+  const html = emailShell({
+    locale,
+    title,
+    bodyHtml: `<p style="margin:0;color:#9ca3af;font-size:14px;line-height:1.6;">${escapeHtml(brief)}</p>`,
+    ctaLabel: isEn ? "Confirm subscription" : "Confirmer l'inscription",
+    ctaHref: confirmHref,
+    footerNote: isEn
+      ? "If you did not request this, ignore this email."
+      : "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.",
+    unsubscribeHref: unsubscribeUrl(email, token),
+  });
+  return {
+    subject: isEn
+      ? "Neural Aegis — Confirm newsletter"
+      : "Neural Aegis — Confirmez la newsletter",
+    html,
+  };
+}
+
 function editionEmail(
   locale: Locale,
   email: string,
@@ -289,11 +318,20 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const body = await req.json();
-    const { action, limit, email, locale, edition_id } = body;
+    const { action, limit, email, locale, edition_id, confirm_token } = body;
 
     if (action === "process_queue") {
       const result = await processQueue(supabase, Math.min(Math.max(Number(limit) || 10, 1), 50));
       return new Response(JSON.stringify({ success: true, ...result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "confirm" && email && confirm_token) {
+      const loc = (locale === "en" ? "en" : "fr") as Locale;
+      const mail = confirmEmail(loc, String(email), String(confirm_token));
+      await sendWithSmtp({ to: String(email), subject: mail.subject, html: mail.html });
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
