@@ -1119,6 +1119,21 @@ export async function createSession(
   templateId: string,
   clientMeta?: Record<string, unknown>,
 ): Promise<string> {
+  // Public / guest quiz abuse guard: 20 sessions per user per hour
+  try {
+    const { data: rl } = await supabase.rpc("check_public_rate_limit" as any, {
+      p_bucket: `quiz:${userId}`,
+      p_limit: 20,
+      p_window_seconds: 3600,
+    });
+    if (rl && typeof rl === "object" && (rl as { allowed?: boolean }).allowed === false) {
+      throw new Error("RATE_LIMITED");
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message === "RATE_LIMITED") throw e;
+    // RPC may not be deployed yet — continue
+  }
+
   const { data, error } = await supabase
     .from("assessment_sessions")
     .insert({

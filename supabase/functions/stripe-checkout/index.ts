@@ -30,9 +30,23 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: 'Unauthorized' }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const { priceId, origin } = body as { priceId?: string; origin?: string };
+    const { priceId, origin, companyId, seatQuantity } = body as {
+      priceId?: string;
+      origin?: string;
+      companyId?: string;
+      seatQuantity?: number;
+    };
     if (!isPlanKey(priceId)) return json({ error: 'Invalid priceId' }, 400);
     const plan = PLANS[priceId];
+
+    const seats =
+      typeof seatQuantity === 'number' && Number.isFinite(seatQuantity) && seatQuantity > 0
+        ? Math.floor(seatQuantity)
+        : 1;
+    const companyMeta =
+      typeof companyId === 'string' && companyId.length > 0
+        ? { companyId, seatQuantity: String(seats) }
+        : {};
 
     // Seules les origines officielles sont acceptées : l'iframe de preview
     // renverrait l'utilisateur sur un domaine jetable après paiement.
@@ -62,21 +76,37 @@ Deno.serve(async (req) => {
       customer_email: customerId ? undefined : (user.email ?? undefined),
       client_reference_id: user.id,
       allow_promotion_codes: true,
+      billing_address_collection: 'required',
+      tax_id_collection: { enabled: true },
+      automatic_tax: { enabled: true },
+      ...(customerId
+        ? { customer_update: { address: 'auto', name: 'auto' } }
+        : {}),
       line_items: [
         {
-          quantity: 1,
+          quantity: seats,
           price_data: {
             currency: plan.currency,
             unit_amount: plan.amount,
+            tax_behavior: 'exclusive',
             product_data: { name: plan.label },
             ...(plan.interval ? { recurring: { interval: plan.interval } } : {}),
           },
         },
       ],
-      metadata: { userId: user.id, priceId, productId: plan.productId },
+      metadata: { userId: user.id, priceId, productId: plan.productId, ...companyMeta },
       ...(plan.interval
-        ? { subscription_data: { metadata: { userId: user.id, priceId, productId: plan.productId } } }
-        : { payment_intent_data: { metadata: { userId: user.id, priceId, productId: plan.productId } } }),
+        ? {
+            subscription_data: {
+              metadata: { userId: user.id, priceId, productId: plan.productId, ...companyMeta },
+            },
+          }
+        : {
+            payment_intent_data: {
+              metadata: { userId: user.id, priceId, productId: plan.productId, ...companyMeta },
+            },
+          }),
+      invoice_creation: plan.interval ? undefined : { enabled: true },
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing`,
     });

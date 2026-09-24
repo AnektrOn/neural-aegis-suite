@@ -1251,20 +1251,35 @@ export type Database = {
         Row: {
           country: string | null
           created_at: string
+          default_locale: string | null
+          default_timezone: string | null
           id: string
           name: string
+          seat_limit: number | null
+          settings: Json
+          stripe_customer_id: string | null
         }
         Insert: {
           country?: string | null
           created_at?: string
+          default_locale?: string | null
+          default_timezone?: string | null
           id?: string
           name: string
+          seat_limit?: number | null
+          settings?: Json
+          stripe_customer_id?: string | null
         }
         Update: {
           country?: string | null
           created_at?: string
+          default_locale?: string | null
+          default_timezone?: string | null
           id?: string
           name?: string
+          seat_limit?: number | null
+          settings?: Json
+          stripe_customer_id?: string | null
         }
         Relationships: []
       }
@@ -3894,7 +3909,7 @@ export type Database = {
     }
     Enums: {
       aegis_swipe_action: "assimilated" | "ignored"
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "superadmin" | "company_admin"
       assessment_question_type:
         | "single_choice"
         | "multiple_choice"
@@ -4035,7 +4050,7 @@ export const Constants = {
   public: {
     Enums: {
       aegis_swipe_action: ["assimilated", "ignored"],
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "superadmin", "company_admin"],
       assessment_question_type: [
         "single_choice",
         "multiple_choice",

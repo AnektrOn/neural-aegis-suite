@@ -20,6 +20,8 @@ import {
   ToolboxWidgetSecondaryButton,
   ToolboxWidgetTextarea,
   ToolboxWidgetTimerControls,
+  ToolboxWidgetStepCard,
+  ToolboxWidgetInstructions,
   toolboxWidgetLabelClass,
 } from "@/features/toolbox/ui";
 
@@ -218,9 +220,9 @@ export default function ComposedRendererV1({
         ) : null}
 
         {!started && !sessionDone ? (
-          <div className="text-center space-y-3 max-w-[300px]">
+          <div className="w-full space-y-3 text-center">
             {instructions ? (
-              <p className="text-sm text-muted-foreground leading-relaxed">{instructions}</p>
+              <ToolboxWidgetInstructions>{instructions}</ToolboxWidgetInstructions>
             ) : null}
             <p className="text-xs text-muted-foreground">{t("toolbox.micro.totalBudget", { time: fmtTime(durationSec) })}</p>
             {hasSteps && (
@@ -234,17 +236,14 @@ export default function ComposedRendererV1({
             <p className="text-xs text-muted-foreground">{t("toolbox.micro.elapsed", { time: fmtTime(timer.elapsedSec) })}</p>
           </div>
         ) : (
-          <div className="w-full max-w-[300px] space-y-4">
+          <div className="w-full space-y-4">
             {currentStep ? (
-              <ToolboxWidgetCard className="space-y-2 p-4">
-                <div className="flex items-center justify-between">
-                  <span className={toolboxWidgetLabelClass}>
-                    {t("toolbox.micro.stepCounter", { current: stepIdx + 1, total: steps.length })}
-                  </span>
-                  <span className="text-[10px] font-mono text-primary">{fmtTime(remaining)}</span>
-                </div>
-                <p className="text-sm text-foreground/85 leading-relaxed">{currentStep}</p>
-              </ToolboxWidgetCard>
+              <ToolboxWidgetStepCard
+                stepText={currentStep}
+                stepIndex={stepIdx}
+                stepTotal={steps.length}
+                metaRight={fmtTime(remaining)}
+              />
             ) : instructions ? (
               <ToolboxWidgetInstructions className="text-sm text-foreground/80">{instructions}</ToolboxWidgetInstructions>
             ) : null}
@@ -301,9 +300,7 @@ export default function ComposedRendererV1({
   const renderBlock = (block: BlockType) => {
     switch (block) {
       case "markdown":
-        return instructions ? (
-          <p className="text-sm text-muted-foreground leading-relaxed">{instructions}</p>
-        ) : null;
+        return instructions ? <ToolboxWidgetInstructions>{instructions}</ToolboxWidgetInstructions> : null;
       case "step_list":
       case "checklist":
         if (steps.length === 0) return null;

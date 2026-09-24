@@ -1,8 +1,14 @@
-import { useAdmin } from "@/hooks/use-admin";
+import { usePlatformRoles } from "@/hooks/use-admin";
 import { Navigate } from "react-router-dom";
 
-export default function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAdmin, loading } = useAdmin();
+type AdminRouteProps = {
+  children: React.ReactNode;
+  /** When true, only superadmin may enter (content writes, danger zone, etc.). */
+  requireSuperAdmin?: boolean;
+};
+
+export default function AdminRoute({ children, requireSuperAdmin = false }: AdminRouteProps) {
+  const { isSuperAdmin, isPlatformOperator, loading } = usePlatformRoles();
 
   if (loading) {
     return (
@@ -12,7 +18,14 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
     );
   }
 
-  if (!isAdmin) {
+  if (requireSuperAdmin) {
+    if (!isSuperAdmin) {
+      return <Navigate to={isPlatformOperator ? "/admin" : "/"} replace />;
+    }
+    return <>{children}</>;
+  }
+
+  if (!isPlatformOperator) {
     return <Navigate to="/" replace />;
   }
 

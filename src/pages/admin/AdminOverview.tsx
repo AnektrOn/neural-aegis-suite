@@ -1,11 +1,23 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Zap } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { ADMIN_OVERVIEW_SECTIONS, firstRouteInSection } from "@/lib/adminNavConfig";
+import { usePlatformRoles } from "@/hooks/use-admin";
+import {
+  ADMIN_OVERVIEW_SECTIONS,
+  filterNavForRole,
+  firstRouteInSection,
+} from "@/lib/adminNavConfig";
 import { cn } from "@/lib/utils";
 
 export default function AdminOverview() {
   const { t } = useLanguage();
+  const { isSuperAdmin, isCompanyAdmin } = usePlatformRoles();
+
+  const sections = useMemo(
+    () => filterNavForRole(ADMIN_OVERVIEW_SECTIONS, { isSuperAdmin, isCompanyAdmin }),
+    [isSuperAdmin, isCompanyAdmin],
+  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
@@ -20,10 +32,13 @@ export default function AdminOverview() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground">{t("admin.overview.subtitle")}</p>
+        {isCompanyAdmin && !isSuperAdmin ? (
+          <p className="text-xs text-muted-foreground/80">{t("admin.overview.companyAdminHint")}</p>
+        ) : null}
       </header>
 
       <div className="grid grid-cols-1 gap-3 sm:gap-4">
-        {ADMIN_OVERVIEW_SECTIONS.map((section) => {
+        {sections.map((section) => {
           const Icon = section.icon;
           const to = firstRouteInSection(section);
           return (

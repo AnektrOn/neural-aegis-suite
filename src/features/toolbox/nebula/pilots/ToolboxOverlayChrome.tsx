@@ -14,7 +14,7 @@ export function ToolboxOverlayChrome({ children, className }: ToolboxOverlayChro
       <div
         data-slot="toolbox-overlay-chrome"
         className={cn(
-          "pointer-events-auto max-h-[min(38%,20rem)] w-[min(100%,24rem)] overflow-y-auto [-webkit-overflow-scrolling:touch]",
+          "pointer-events-auto max-h-[min(58dvh,32rem)] w-full max-w-[min(100%,36rem)] overflow-y-auto [-webkit-overflow-scrolling:touch]",
           toolboxWidgetCardClass,
           "border-border/35 bg-background/75 p-3 shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-4",
           "[&_[data-slot=toolbox-widget]]:max-w-none [&_[data-slot=toolbox-widget]]:py-2 [&_[data-slot=toolbox-widget]]:space-y-4",

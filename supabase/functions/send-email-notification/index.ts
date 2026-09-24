@@ -186,6 +186,10 @@ serve(async (req) => {
         subject = "Alerte admin - Nouvelle entrée utilisateur";
         htmlBody = `<h2>Nouvelle entrée utilisateur</h2><p><strong>${data?.user_name || "Utilisateur inconnu"}</strong> (${data?.user_email || "email indisponible"}) a créé une nouvelle entrée.</p><p>Titre: <strong>${data?.entry_title || "Sans titre"}</strong></p><p>Aperçu:</p><blockquote style="border-left:3px solid #2dd4bf;padding-left:12px;margin:16px 0;color:#555;">${data?.entry_preview || "Aucun contenu"}</blockquote><p>Horodatage: ${data?.created_at || new Date().toISOString()}</p>`;
         break;
+      case "welcome_admin_created":
+        subject = data?.title || "Bienvenue sur Aegis";
+        htmlBody = `<h2>Bienvenue</h2><p>${data?.message || "Votre compte Aegis a été créé."}</p><p><a href="https://aegis.humancatalystbeacon.com/auth">Se connecter</a></p>`;
+        break;
       case "subscription_update":
         subject = data?.title || "Votre abonnement AEGIS";
         htmlBody = `<p>${data?.message || ""}</p>`;

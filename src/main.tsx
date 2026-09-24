@@ -6,9 +6,11 @@ import { initNativeApp } from "@/lib/capacitor";
 import { applyTheme, getStoredThemeIsDark } from "@/lib/theme";
 import { CHUNK_RELOAD_KEY } from "@/lib/lazyWithRetry";
 import { installWidgetLifecycleGuards } from "@/lib/widget-lifecycle";
+import { initErrorMonitoring } from "@/lib/errorMonitoring";
 
 applyTheme(getStoredThemeIsDark());
 installWidgetLifecycleGuards();
+void initErrorMonitoring();
 
 // After deploy, cached index.js may reference removed chunk hashes — reload once.
 window.addEventListener("vite:preloadError", (event) => {

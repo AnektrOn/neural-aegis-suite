@@ -1,12 +1,15 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { usePlatformRoles } from "@/hooks/use-admin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
+  COMPANY_ADMIN_ALLOWED_TABS,
   getHubItemByPath,
   resolveHubTab,
   type AdminHubTabId,
+  type AdminNavHubItem,
 } from "@/lib/adminNavConfig";
 
 type AdminHubShellProps = {
@@ -14,12 +17,31 @@ type AdminHubShellProps = {
   panels: Partial<Record<AdminHubTabId, React.ReactNode>>;
 };
 
+function hubForRole(
+  hub: AdminNavHubItem,
+  isSuperAdmin: boolean,
+  isCompanyAdmin: boolean,
+): AdminNavHubItem {
+  if (isSuperAdmin || !isCompanyAdmin) return hub;
+  const allowed = COMPANY_ADMIN_ALLOWED_TABS[hub.to];
+  if (!allowed) return { ...hub, tabs: [] };
+  const tabs = hub.tabs.filter((t) => allowed.has(t.id));
+  const defaultTab = allowed.has(hub.defaultTab) ? hub.defaultTab : (tabs[0]?.id ?? hub.defaultTab);
+  return { ...hub, tabs, defaultTab };
+}
+
 export default function AdminHubShell({ pathname, panels }: AdminHubShellProps) {
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isSuperAdmin, isCompanyAdmin } = usePlatformRoles();
 
-  const hub = useMemo(() => getHubItemByPath(pathname), [pathname]);
-  if (!hub) return null;
+  const hub = useMemo(() => {
+    const raw = getHubItemByPath(pathname);
+    if (!raw) return null;
+    return hubForRole(raw, isSuperAdmin, isCompanyAdmin);
+  }, [pathname, isSuperAdmin, isCompanyAdmin]);
+
+  if (!hub || hub.tabs.length === 0) return null;
 
   const tabParam = searchParams.get("tab");
   const activeTab = resolveHubTab(hub, tabParam);

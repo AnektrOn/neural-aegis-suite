@@ -21,16 +21,23 @@ export default function TermsOfService() {
           <p>
             L'application Aegis (« le Service ») est éditée et fournie par{" "}
             <strong>Protocole Nomos</strong> (« nous »). En utilisant le Service, vous concluez un
-            contrat avec Protocole Nomos.
+            contrat avec Protocole Nomos. Les informations d'identification légale (SIRET, TVA,
+            siège) figurent sur la page{" "}
+            <a href="/legal/mentions">Mentions légales</a>. Les factures sont émises via Stripe et
+            disponibles depuis le portail de facturation (lien « Gérer mon abonnement »).
           </p>
 
           <h2>2. Acceptation</h2>
           <p>
             En créant un compte ou en continuant à utiliser le Service, vous acceptez les présentes
-            conditions. Vous déclarez être majeur et, si vous agissez pour une organisation, avoir
-            le pouvoir de l'engager. Vous vous engagez à fournir des informations exactes et à
-            préserver la confidentialité de vos identifiants ; vous êtes responsable de toute
-            activité effectuée depuis votre compte.
+            conditions. Vous déclarez être majeur et, si vous agissez pour une organisation (offre
+            B2B), avoir le pouvoir de l'engager. Dans ce cadre, les company admins désignés peuvent
+            accéder aux données de suivi des employés selon la politique de confidentialité et le
+            consentement éventuel de chaque employé ; seuls les opérateurs Protocole Nomos
+            (superadmin) peuvent créer ou assigner des Pulse cards, rapports et éléments toolbox.
+            Vous vous engagez à fournir des informations exactes et à préserver la confidentialité
+            de vos identifiants ; vous êtes responsable de toute activité effectuée depuis votre
+            compte.
           </p>
 
           <h2>3. Description du Service</h2>
@@ -136,9 +143,12 @@ export default function TermsOfService() {
           <h2>2. Acceptance</h2>
           <p>
             By creating an account or continuing to use the Service you agree to these terms. You
-            confirm you are of legal age and, if acting for an organisation, that you have authority
-            to bind it. You must provide accurate information, keep your credentials confidential
-            and remain responsible for activity under your account.
+            confirm you are of legal age and, if acting for an organisation (B2B), that you have
+            authority to bind it. Company admins may access employee follow-up data under the
+            privacy notice and any employee consent; only Protocole Nomos operators (superadmin) may
+            create or assign Pulse cards, reports and toolbox items. You must provide accurate
+            information, keep your credentials confidential and remain responsible for activity under
+            your account.
           </p>
 
           <h2>3. The Service</h2>

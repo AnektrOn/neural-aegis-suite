@@ -145,35 +145,35 @@ export function driveForStopStep(
   };
 }
 
+/** Visualisation « Grounding » / retour — disque calme, peu de bruit. */
+function driveForGroundingField(progress: number, isRunning: boolean): ToolboxV3Drive {
+  const breath = isRunning ? 0.96 + Math.sin(progress * Math.PI) * 0.03 : 0.94;
+  return {
+    shape: "ground",
+    cloudScale: breath,
+    coherence: 0.97,
+    noiseForce: 0.04,
+    noiseSpeed: 0.12,
+    freeze: 0.45,
+    mouseRepulsion: 0.06,
+    bloomStrength: 0.28,
+    tiltX: 58,
+  };
+}
+
 export function driveForVisualizationScene(
   sceneId: string,
-  _progress: number,
+  progress: number,
   isRunning: boolean,
   _elapsedSec: number,
 ): ToolboxV3Drive {
   if (!isRunning) {
-    return {
-      shape: "lotus",
-      cloudScale: 1,
-      coherence: 0.88,
-      noiseForce: 0.18,
-      noiseSpeed: 0.35,
-      bloomStrength: 0.46,
-    };
+    return driveForGroundingField(0, false);
   }
 
   switch (sceneId) {
     case "anchor":
-      return {
-        shape: "lotus",
-        cloudScale: 1,
-        coherence: 0.92,
-        noiseForce: 0.12,
-        noiseSpeed: 0.28,
-        freeze: 0.15,
-        mouseRepulsion: 0.25,
-        bloomStrength: 0.4,
-      };
+      return driveForGroundingField(progress, true);
     case "place":
       return {
         shape: "dome",
@@ -202,16 +202,9 @@ export function driveForVisualizationScene(
         bloomStrength: 0.72,
       };
     case "return":
-      return {
-        shape: "lotus",
-        cloudScale: 1,
-        coherence: 0.9,
-        noiseForce: 0.16,
-        centerPull: 0.08,
-        bloomStrength: 0.44,
-      };
+      return driveForGroundingField(progress, true);
     default:
-      return { shape: "lotus", cloudScale: 1, coherence: 0.82, noiseForce: 0.25 };
+      return driveForGroundingField(progress, true);
   }
 }
 
@@ -255,6 +248,11 @@ export function driveForParticleEngine(
   elapsedSec: number,
   isRunning = true,
 ): ToolboxV3Drive {
+  if (/ground|ancrage/i.test(slug)) {
+    const t = isRunning ? 0.5 + 0.5 * Math.sin(elapsedSec * 0.35) : 0;
+    return driveForGroundingField(t, isRunning);
+  }
+
   const engine = engineIdForSlug(slug) ?? slug;
   const pulse = 0.5 + 0.5 * Math.sin(elapsedSec * 2.1);
   switch (engine) {

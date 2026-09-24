@@ -14,7 +14,7 @@ import {
   type ValidationIssue,
   normalizeToolboxUserDeliveryStatus,
 } from "@/services/programBuilderService";
-import { parseArchetypeTargets } from "@/pages/admin/pulse/pulsePrinciples";
+import { normalizeArchetypeTarget, parseArchetypeTargets } from "@/pages/admin/pulse/pulsePrinciples";
 import { parseAssignmentDurationSec } from "@/lib/toolbox-widget-duration";
 
 const REQUIRED_LOCALES = ["fr", "en"] as const;
@@ -60,6 +60,24 @@ function unquote(s: string): string | boolean | number {
   if (s === "false") return false;
   if (/^\d+$/.test(s)) return parseInt(s, 10);
   return s;
+}
+
+/** YAML inline lists: `archetype_targets: [saboteur, sovereign]` */
+function parseYamlInlineArray(val: string): string[] | null {
+  const trimmed = val.trim();
+  if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return null;
+  const inner = trimmed.slice(1, -1).trim();
+  if (!inner) return [];
+  return inner
+    .split(",")
+    .map((part) => String(unquote(part.trim())))
+    .filter(Boolean);
+}
+
+function parseYamlScalar(val: string): unknown {
+  const inline = parseYamlInlineArray(val);
+  if (inline) return inline;
+  return unquote(val);
 }
 
 function parseYamlArray(lines: string[], startIdx: number, baseIndent: number) {
@@ -154,7 +172,7 @@ function parseYamlBlock(
       result[key] = "";
       i++;
     } else {
-      result[key] = unquote(val);
+      result[key] = parseYamlScalar(val);
       i++;
     }
   }
@@ -303,8 +321,19 @@ function parseBulletList(text: string): string[] {
     .filter(Boolean);
 }
 
+const COGNITIVE_STEP_LINE_RE =
+  /^\[(?:Étape|Step)\s*\d+\]\s*[—–-]\s*\*\*([^*]+)\*\*\s*:?\s*(.*)$/i;
+
 function parseStopSteps(text: string): { title: string; hint: string }[] {
   return parseBulletList(text).map((line) => {
+    const cognitive = line.match(COGNITIVE_STEP_LINE_RE);
+    if (cognitive) {
+      return { title: cognitive[1].trim(), hint: cognitive[2].trim() };
+    }
+    const boldTitle = line.match(/^\*\*([^*]+)\*\*\s*:?\s*(.*)$/);
+    if (boldTitle) {
+      return { title: boldTitle[1].trim(), hint: boldTitle[2].trim() };
+    }
     const m = line.match(/^(.+?)\s*[—–-]\s*(.+)$/);
     if (m) return { title: m[1].trim(), hint: m[2].trim() };
     return { title: line, hint: "" };
@@ -352,7 +381,13 @@ const CONTENT_TYPE_ALIASES: Record<string, string> = {
   actionable_tool: "micro_practice",
   regulation_tool: "stop_protocol",
   boundary_practice: "boundary_practice",
+  /** Cognitive timed protocols (Obsidian toolbox cognitive folder). */
+  framework: "micro_practice",
+  cognitive_framework: "micro_practice",
 };
+
+/** Shadow / invalid archetype slugs often placed in archetype_targets by mistake. */
+const SHADOW_ARCHETYPE_REASSIGN = new Set(["saboteur", "victim", "child", "prostitute"]);
 
 function parseScenes(text: string): { title: string; sec: number }[] {
   const scenes: { title: string; sec: number }[] = [];
@@ -455,6 +490,13 @@ function resolveToolboxContentType(
   return "micro_practice";
 }
 
+function microPracticeStepText(title: string, hint: string): string {
+  const t = title.trim();
+  const h = hint.trim();
+  if (t && h) return `${t} — ${h}`;
+  return t || h;
+}
+
 function buildWidgetConfig(
   contentType: string,
   config: Record<string, unknown>,
@@ -495,6 +537,11 @@ function buildWidgetConfig(
     }
   }
 
+  if (contentType === "micro_practice") {
+    delete out.mode;
+    delete out.step_duration_sec;
+  }
+
   if (instrFr || instrEn) {
     out.instructions = instrFr || instrEn;
     out.instructions_i18n = { fr: instrFr || instrEn, en: instrEn || instrFr };
@@ -507,11 +554,19 @@ function buildWidgetConfig(
       const titleEn = stepsEn[i]?.title || stepsFr[i]?.title || "";
       const hintFr = stepsFr[i]?.hint || stepsEn[i]?.hint || "";
       const hintEn = stepsEn[i]?.hint || stepsFr[i]?.hint || "";
+      const textFr =
+        contentType === "micro_practice"
+          ? microPracticeStepText(titleFr, hintFr)
+          : titleFr || titleEn;
+      const textEn =
+        contentType === "micro_practice"
+          ? microPracticeStepText(titleEn, hintEn)
+          : titleEn || titleFr;
       return {
-        text: titleFr || titleEn,
+        text: textFr || textEn,
         title: titleFr || titleEn,
         hint: hintFr || hintEn,
-        text_i18n: { fr: titleFr || titleEn, en: titleEn || titleFr },
+        text_i18n: { fr: textFr || textEn, en: textEn || textFr },
         title_i18n: { fr: titleFr || titleEn, en: titleEn || titleFr },
         hint_i18n: { fr: hintFr || hintEn, en: hintEn || hintFr },
       };
@@ -618,6 +673,17 @@ function seedDurationMin(cfg: Record<string, unknown>, raw: unknown) {
   if (sec > 0) cfg.duration_min = Math.max(1, Math.round(sec / 60));
 }
 
+function finalizeMicroPracticeWidgetConfig(cfg: Record<string, unknown>, durationLabel: unknown) {
+  if (typeof cfg.duration_sec === "number" && cfg.duration_sec > 0) return;
+  if (typeof cfg.duration_min === "number" && cfg.duration_min > 0) {
+    cfg.duration_sec = cfg.duration_min * 60;
+    return;
+  }
+  const label = normalizeDurationMeta(durationLabel);
+  const sec = parseAssignmentDurationSec(label);
+  if (sec > 0) cfg.duration_sec = sec;
+}
+
 export function parseToolboxMarkdownDocument(
   raw: string,
   source: string,
@@ -686,6 +752,9 @@ export function parseToolboxMarkdownDocument(
   const widget_config = buildWidgetConfig(contentType, config, sections);
   if (externalUrl) widget_config.external_url = externalUrl;
   seedDurationMin(widget_config, meta.duration);
+  if (contentType === "micro_practice") {
+    finalizeMicroPracticeWidgetConfig(widget_config, meta.duration);
+  }
 
   const distribution = parseDistribution(meta);
   if (distribution.mode === "individual" && distribution.user_id && !UUID_RE.test(distribution.user_id)) {
@@ -700,7 +769,16 @@ export function parseToolboxMarkdownDocument(
   const { slugs: archetypeTargets, invalid: invalidArchetypes } = parseArchetypeTargets(
     meta.archetype_targets,
   );
+  const shadowFromMeta = Array.isArray(meta.shadow_targets)
+    ? (meta.shadow_targets as string[]).map((s) => String(s).trim().toLowerCase()).filter(Boolean)
+    : [];
+  const shadowTargets = [...shadowFromMeta];
   for (const a of invalidArchetypes) {
+    const normalized = normalizeArchetypeTarget(a);
+    if (SHADOW_ARCHETYPE_REASSIGN.has(normalized)) {
+      if (!shadowTargets.includes(normalized)) shadowTargets.push(normalized);
+      continue;
+    }
     errors.push(`${source}: archetype invalide '${a}'.`);
   }
 
@@ -716,9 +794,7 @@ export function parseToolboxMarkdownDocument(
       duration: normalizeDurationMeta(meta.duration),
       is_active: meta.is_active !== false,
       archetype_targets: archetypeTargets,
-      shadow_targets: Array.isArray(meta.shadow_targets)
-        ? (meta.shadow_targets as string[]).map((s) => String(s).trim().toLowerCase())
-        : [],
+      shadow_targets: shadowTargets,
       widget_config,
       distribution,
     },
@@ -756,6 +832,21 @@ export function parsedItemsToCatalogPayload(
     version: "toolbox-catalog-v1",
     toolbox_items,
   };
+}
+
+/** Frontmatter + body sections for headless CMS runtime (toolbox-markdown). */
+export function extractToolboxMarkdownDocument(raw: string): {
+  meta: Record<string, unknown>;
+  body: string;
+  sections: Record<string, string>;
+} {
+  const { meta, body } = parseFrontmatter(raw);
+  const sections = parseBodySections(body);
+  return { meta: meta ?? {}, body, sections };
+}
+
+export function parseToolboxMarkdownBulletList(text: string): string[] {
+  return parseBulletList(text);
 }
 
 export function parseToolboxMarkdownBatch(

@@ -84,6 +84,72 @@ export type AdminNavSection = {
   items: AdminNavItem[];
 };
 
+/** Paths company_admin may open (read / follow employees). Everything else = superadmin. */
+export const COMPANY_ADMIN_ALLOWED_PATHS = new Set<string>([
+  "/admin",
+  "/admin/",
+  "/admin/users",
+  "/admin/alerts",
+  "/admin/export",
+  "/admin/insights",
+  "/admin/analytics",
+  "/admin/executive",
+  "/admin/messages",
+  "/admin/scoreboard",
+  "/admin/toolbox",
+  "/admin/pulse",
+  "/admin/deep-dive",
+  "/admin/calls",
+]);
+
+/** Hub tabs company_admin may use (tracking / stats / read-only report views). */
+export const COMPANY_ADMIN_ALLOWED_TABS: Record<string, Set<AdminHubTabId>> = {
+  "/admin/toolbox": new Set(["tracking", "userView"]),
+  "/admin/pulse": new Set(["stats"]),
+  "/admin/insights": new Set(["analytics", "executive"]),
+  "/admin/deep-dive": new Set(["scores", "reportV2"]),
+  "/admin/places": new Set(),
+};
+
+export function isCompanyAdminPathAllowed(pathname: string): boolean {
+  if (COMPANY_ADMIN_ALLOWED_PATHS.has(pathname)) return true;
+  for (const path of COMPANY_ADMIN_ALLOWED_PATHS) {
+    if (path !== "/admin" && path !== "/admin/" && pathname.startsWith(`${path}/`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function filterNavForRole(
+  sections: AdminNavSection[],
+  opts: { isSuperAdmin: boolean; isCompanyAdmin: boolean },
+): AdminNavSection[] {
+  if (opts.isSuperAdmin || !opts.isCompanyAdmin) return sections;
+
+  return sections
+    .map((section) => {
+      const items = section.items
+        .map((item) => {
+          if (!isCompanyAdminPathAllowed(item.to)) return null;
+          if (item.kind === "hub") {
+            const allowed = COMPANY_ADMIN_ALLOWED_TABS[item.to];
+            if (!allowed || allowed.size === 0) return null;
+            const tabs = item.tabs.filter((t) => allowed.has(t.id));
+            if (!tabs.length) return null;
+            const defaultTab = allowed.has(item.defaultTab)
+              ? item.defaultTab
+              : tabs[0].id;
+            return { ...item, tabs, defaultTab };
+          }
+          return item;
+        })
+        .filter((x): x is AdminNavItem => x !== null);
+      return items.length ? { ...section, items } : null;
+    })
+    .filter((s): s is AdminNavSection => s !== null);
+}
+
 export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
   {
     id: "overview",

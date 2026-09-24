@@ -16,6 +16,8 @@ import {
   ToolboxWidgetRoot,
   ToolboxWidgetSecondaryButton,
   ToolboxWidgetTimerControls,
+  ToolboxWidgetStepCard,
+  ToolboxWidgetInstructions,
   resolveToolboxAccent,
 } from "@/features/toolbox/ui";
 
@@ -273,10 +275,12 @@ export default function MicroPracticeWidget({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="text-center space-y-3 max-w-[300px]"
+            className="w-full space-y-3 text-center"
           >
             {instructionsText ? (
-              <p className="text-sm text-foreground/80 leading-relaxed">{instructionsText}</p>
+              <ToolboxWidgetInstructions className="text-foreground/80">
+                {instructionsText}
+              </ToolboxWidgetInstructions>
             ) : null}
             {hasDuration && (
               <p className="text-xs text-muted-foreground">
@@ -309,30 +313,18 @@ export default function MicroPracticeWidget({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3 }}
-            className="w-full max-w-[300px] space-y-4"
+            className="w-full space-y-4"
           >
             {currentStepText ? (
-              <div
-                className="rounded-2xl p-4 space-y-2"
-                style={{
-                  background: `color-mix(in srgb, ${accent} 8%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${accent} 25%, transparent)`,
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] uppercase tracking-[0.2em]" style={{ color: accent }}>
-                    {t("toolbox.micro.stepCounter", { current: stepIdx + 1, total: localizedSteps!.length })}
-                  </span>
-                  {hasDuration && (
-                    <span className="text-[10px] font-mono" style={{ color: accent }}>
-                      {fmtTime(remaining)}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-foreground/85 leading-relaxed">{currentStepText}</p>
-              </div>
+              <ToolboxWidgetStepCard
+                stepText={currentStepText}
+                stepIndex={stepIdx}
+                stepTotal={localizedSteps!.length}
+                accentColor={accent}
+                metaRight={hasDuration ? fmtTime(remaining) : undefined}
+              />
             ) : instructionsText ? (
-              <p className="text-sm text-center text-foreground/80 leading-relaxed px-2">{instructionsText}</p>
+              <ToolboxWidgetInstructions className="text-foreground/80">{instructionsText}</ToolboxWidgetInstructions>
             ) : null}
 
             {hasDuration && (

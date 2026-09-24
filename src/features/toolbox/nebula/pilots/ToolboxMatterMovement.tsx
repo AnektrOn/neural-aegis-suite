@@ -12,10 +12,11 @@ import {
   ToolboxNebulaOverlayControls,
   ToolboxNebulaOverlayHeader,
   ToolboxNebulaOverlayPrimaryButton,
-  ToolboxNebulaScenePills,
+  ToolboxNebulaStepBadges,
   ToolboxWidgetTimerControls,
   toolboxNebulaOverlayRootClass,
   resolveToolboxAccent,
+  parseToolboxStepBullet,
 } from "@/features/toolbox/ui";
 import { driveForMatterMovement } from "../toolboxMatterDrives";
 import { useLiveElapsedSec } from "../useLiveExerciseElapsed";
@@ -158,11 +159,22 @@ export function ToolboxMatterMovement({
     }
   };
 
+  const stepParsed =
+    hasSteps && started && currentStepText ? parseToolboxStepBullet(currentStepText) : null;
+
   const headline = sessionDone
     ? undefined
     : hasSteps && started
-      ? currentStepText ?? instructionsText
-      : instructionsText;
+      ? stepParsed?.title || undefined
+      : undefined;
+
+  const instruction = sessionDone
+    ? undefined
+    : hasSteps && started
+      ? stepParsed?.body || currentStepText || undefined
+      : !started
+        ? instructionsText || undefined
+        : instructionsText || undefined;
 
   const meta = sessionDone
     ? undefined
@@ -182,19 +194,20 @@ export function ToolboxMatterMovement({
         <ToolboxNebulaOverlayHeader
           title={title}
           headline={headline}
-          instruction={sessionDone || !started ? undefined : instructionsText}
+          instruction={instruction}
           meta={meta}
           completed={sessionDone}
           completedLabel={t("toolbox.micro.done")}
         />
 
         {hasSteps && started ? (
-          <ToolboxNebulaScenePills
-            scenes={localizedSteps!.map((label, index) => ({
+          <ToolboxNebulaStepBadges
+            steps={localizedSteps!.map((_, index) => ({
               id: String(index),
-              label,
+              label: String(index + 1),
             }))}
             activeIndex={stepIdx}
+            completedIndexes={new Set(Array.from({ length: stepIdx }, (_, i) => i))}
           />
         ) : null}
 

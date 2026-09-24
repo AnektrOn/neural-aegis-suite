@@ -14,6 +14,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import EmployerDataConsentCard from "@/components/EmployerDataConsentCard";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -40,7 +41,7 @@ import {
 export default function Settings() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [exporting, setExporting] = useState(false);
   const [radialIds, setRadialIds] = useState<MobileRadialMenuId[]>(DEFAULT_MOBILE_RADIAL_MENU_IDS);
   const [savingRadial, setSavingRadial] = useState(false);
@@ -103,15 +104,33 @@ export default function Settings() {
   const exportData = async () => {
     if (!user) return;
     setExporting(true);
-    const [moodRes, decRes, habRes, journalRes, contactsRes] = await Promise.all([
+    const [
+      moodRes,
+      decRes,
+      habRes,
+      journalRes,
+      contactsRes,
+      profileRes,
+      sessionsRes,
+      hesitationsRes,
+      subsRes,
+    ] = await Promise.all([
       supabase.from("mood_entries" as any).select("*").eq("user_id", user.id).order("logged_at", { ascending: false }),
       supabase.from("decisions" as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("habit_completions" as any).select("*").eq("user_id", user.id).order("completed_date", { ascending: false }),
       supabase.from("journal_entries").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("people_contacts" as any).select("*").eq("user_id", user.id),
+      supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+      supabase.from("user_sessions" as any).select("*").eq("user_id", user.id).limit(500),
+      supabase.from("input_hesitations" as any).select("*").eq("user_id", user.id).limit(500),
+      supabase.from("subscriptions").select("*").eq("user_id", user.id),
     ]);
 
     const sections: string[] = [];
+    sections.push("=== PROFIL ===");
+    sections.push(JSON.stringify(profileRes.data ?? {}, null, 0));
+    sections.push(`email,${user.email ?? ""}`);
+
     const moods = (moodRes.data as any[]) || [];
     if (moods.length > 0) {
       sections.push("=== HUMEUR ===");
@@ -142,7 +161,7 @@ export default function Settings() {
       sections.push("Date,Titre,Contenu,Tags,Humeur");
       journals.forEach((j) => {
         sections.push(
-          `${j.created_at},"${j.title || ""}","${j.content.replace(/"/g, '""')}","${(j.tags || []).join(";")}",${j.mood_score ?? ""}`,
+          `${j.created_at},"${j.title || ""}","${(j.content || "").replace(/"/g, '""')}","${(j.tags || []).join(";")}",${j.mood_score ?? ""}`,
         );
       });
     }
@@ -154,6 +173,18 @@ export default function Settings() {
         sections.push(`"${c.name}","${c.role || ""}",${c.quality},"${c.insight || ""}"`);
       });
     }
+    if (subsRes.data) {
+      sections.push("\n=== ABONNEMENTS ===");
+      sections.push(JSON.stringify(subsRes.data));
+    }
+    if (sessionsRes.data) {
+      sections.push("\n=== SESSIONS (meta) ===");
+      sections.push(`count,${(sessionsRes.data as any[]).length}`);
+    }
+    if (hesitationsRes.data) {
+      sections.push("\n=== HESITATIONS (meta) ===");
+      sections.push(`count,${(hesitationsRes.data as any[]).length}`);
+    }
 
     const blob = new Blob([sections.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -164,6 +195,32 @@ export default function Settings() {
     URL.revokeObjectURL(url);
     setExporting(false);
     toast({ title: t("profile.exportDone"), description: t("profile.exportDoneDesc") });
+  };
+
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+
+  const deleteMyAccount = async () => {
+    if (!user || deleteConfirm !== "DELETE") return;
+    setDeletingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-update-user", {
+        body: { action: "self_delete" },
+      });
+      if (error || data?.error) {
+        throw new Error(error?.message || data?.error || "delete_failed");
+      }
+      await supabase.auth.signOut();
+      navigate("/account-deleted");
+    } catch (e) {
+      toast({
+        title: t("toast.error"),
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   const toggleRadialId = (id: MobileRadialMenuId) => {
@@ -227,6 +284,8 @@ export default function Settings() {
           </div>
         </div>
       </motion.div>
+
+      <EmployerDataConsentCard />
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -358,6 +417,42 @@ export default function Settings() {
         <button onClick={() => void exportData()} disabled={exporting} className="btn-neural w-full">
           <Download size={14} />
           {exporting ? t("profile.exporting") : t("profile.exportButton")}
+        </button>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="ethereal-glass p-8 border border-destructive/20"
+      >
+        <p className="text-neural-label text-destructive/80 mb-2">
+          {locale === "fr" ? "Supprimer mon compte" : "Delete my account"}
+        </p>
+        <p className="text-sm text-muted-foreground mb-4">
+          {locale === "fr"
+            ? "Suppression définitive (RGPD). Tapez DELETE pour confirmer. Les abonnements Stripe actifs sont annulés."
+            : "Permanent deletion (GDPR). Type DELETE to confirm. Active Stripe subscriptions are cancelled."}
+        </p>
+        <input
+          value={deleteConfirm}
+          onChange={(e) => setDeleteConfirm(e.target.value)}
+          placeholder="DELETE"
+          className="mb-3 w-full min-h-[44px] rounded-lg border border-border bg-bg-base px-3 text-sm"
+        />
+        <button
+          type="button"
+          disabled={deletingAccount || deleteConfirm !== "DELETE"}
+          onClick={() => void deleteMyAccount()}
+          className="btn-neural w-full border border-destructive/40 text-destructive disabled:opacity-40"
+        >
+          {deletingAccount
+            ? locale === "fr"
+              ? "Suppression…"
+              : "Deleting…"
+            : locale === "fr"
+              ? "Supprimer définitivement"
+              : "Delete permanently"}
         </button>
       </motion.div>
 

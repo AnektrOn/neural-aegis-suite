@@ -14,7 +14,11 @@ export const toolboxNebulaHeadlineClass =
   "mt-0.5 font-cinzel text-lg text-foreground";
 
 export const toolboxNebulaInstructionClass =
-  "mx-auto mt-0.5 max-w-md line-clamp-3 text-xs leading-relaxed text-muted-foreground";
+  "mx-auto mt-0.5 w-full max-w-none text-left text-sm leading-relaxed text-muted-foreground";
+
+/** Scrollable body copy inside nebula overlay tray. */
+export const toolboxNebulaProseScrollClass =
+  "max-h-[min(38dvh,14rem)] sm:max-h-[min(32dvh,18rem)] overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch]";
 
 export const toolboxNebulaMetaClass =
   "mt-0.5 text-[11px] tabular-nums text-muted-foreground/75";

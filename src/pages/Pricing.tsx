@@ -295,8 +295,13 @@ export default function Pricing() {
             <p className="font-display text-3xl">
               {billing === "monthly" ? "39 €" : "299 €"}
               <span className="text-sm text-muted-foreground font-sans">
-                {billing === "monthly" ? (isFR ? " / mois" : " / month") : isFR ? " / an" : " / year"}
+                {billing === "monthly" ? (isFR ? " HT / mois" : " excl. tax / month") : isFR ? " HT / an" : " excl. tax / year"}
               </span>
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {isFR
+                ? "Prix hors taxes. La TVA applicable est calculée au checkout selon votre pays (Stripe Tax)."
+                : "Prices exclude tax. Applicable VAT is calculated at checkout based on your country (Stripe Tax)."}
             </p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               {copy.matrix.features.map((f) => (
@@ -333,9 +338,17 @@ export default function Pricing() {
               {tier === "ultra" && <Badge variant="secondary">{copy.current}</Badge>}
             </div>
             <div className="space-y-1">
-              <p className="font-display text-3xl">8 000 €</p>
+              <p className="font-display text-3xl">
+                8 000 €
+                <span className="text-sm text-muted-foreground font-sans">{isFR ? " HT" : " excl. tax"}</span>
+              </p>
               <p className="text-xs text-muted-foreground">
-                {copy.upfrontLabel} · {copy.installmentLabel} : 1 500 €
+                {copy.upfrontLabel} · {copy.installmentLabel} : 1 500 € {isFR ? "HT" : "excl. tax"}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {isFR
+                  ? "Montants hors taxes. TVA calculée au checkout (Stripe Tax)."
+                  : "Amounts exclude tax. VAT calculated at checkout (Stripe Tax)."}
               </p>
             </div>
             <ul className="space-y-2 text-sm text-muted-foreground">

@@ -36,15 +36,10 @@ Deno.serve(async (req) => {
     }
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: roleData } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Admin access required" }), {
+    const { resolveCallerRoles } = await import("../_shared/b2b-roles.ts");
+    const roles = await resolveCallerRoles(adminClient, caller.id);
+    if (!roles.isSuperAdmin) {
+      return new Response(JSON.stringify({ error: "Superadmin access required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -57,6 +52,30 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (password.length < 8 || !/[A-Za-zÀ-ÿ]/.test(password) || !/[0-9]/.test(password)) {
+      return new Response(
+        JSON.stringify({
+          error: "Password must be at least 8 characters and include a letter and a digit",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (company_id) {
+      const { data: hasSeat } = await adminClient.rpc("company_has_seat_available", {
+        _company_id: company_id,
+      });
+      if (hasSeat === false) {
+        return new Response(JSON.stringify({ error: "No seats available for this company" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Create user via admin API
@@ -83,6 +102,31 @@ Deno.serve(async (req) => {
           ...(country ? { country } : {}),
         })
         .eq("id", newUser.user.id);
+    }
+
+    // Welcome email (transactional) — password was set by admin
+    if (newUser?.user?.email) {
+      try {
+        const name = display_name || newUser.user.email;
+        await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${supabaseServiceKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "welcome_admin_created",
+            user_id: newUser.user.id,
+            data: {
+              title: "Bienvenue sur Aegis",
+              message: `Bonjour ${name}, votre compte Aegis a été créé. Connectez-vous sur https://aegis.humancatalystbeacon.com/auth avec l'e-mail ${newUser.user.email} et le mot de passe communiqué par votre coach.`,
+              skip_in_app: false,
+            },
+          }),
+        });
+      } catch (e) {
+        console.error("welcome email failed:", e);
+      }
     }
 
     return new Response(JSON.stringify({ user: { id: newUser.user.id, email: newUser.user.email } }), {
