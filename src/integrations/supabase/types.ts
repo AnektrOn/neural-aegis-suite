@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_pauses: {
+        Row: {
+          paused_at: string
+          paused_by: string | null
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          paused_at?: string
+          paused_by?: string | null
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          paused_at?: string
+          paused_by?: string | null
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_alerts: {
         Row: {
           alert_type: string
