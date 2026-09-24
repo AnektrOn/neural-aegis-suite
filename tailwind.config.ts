@@ -3,6 +3,8 @@ import type { Config } from "tailwindcss";
 export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  // Z_INDEX tokens (src/lib/zIndex.ts) are used via template literals, which Tailwind can't detect.
+  safelist: ["z-[10]", "z-[50]", "z-[51]", "z-[60]", "z-[90]", "z-[94]", "z-[95]", "z-[100]", "z-[200]", "z-[250]"],
   prefix: "",
   theme: {
     container: {
