@@ -40,6 +40,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import FreePreviewToggle from "@/components/FreePreviewToggle";
 import NotificationBell from "@/components/NotificationBell";
 import PopupAnnouncement from "@/components/PopupAnnouncement";
+import AccountPausedModal from "@/components/AccountPausedModal";
 import { Houses72ResumeModal } from "@/features/houses72/components/Houses72ResumeModal";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
@@ -345,6 +346,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <ToolboxExerciseSessionProvider userId={user?.id}>
       <PopupAnnouncement />
+      <AccountPausedModal />
       <Houses72ResumeModal />
       <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
         <div
@@ -559,6 +561,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <ToolboxExerciseSessionProvider userId={user?.id}>
     <PopupAnnouncement />
+    <AccountPausedModal />
     <Houses72ResumeModal />
     <div className="flex min-h-screen w-full relative z-10 bg-bg-base">
       {!online && (
