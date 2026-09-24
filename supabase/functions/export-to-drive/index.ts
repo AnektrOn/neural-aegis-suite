@@ -224,10 +224,23 @@ Deno.serve(async (req) => {
     const fname = sanitize(filename).endsWith(".md") ? sanitize(filename) : `${sanitize(filename)}.md`;
     const dateFolder = extractDate(fname);
 
-    const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
-    const catId    = await findOrCreateFolder(admin, clientId, cat);
-    const dateId   = await findOrCreateFolder(admin, catId, dateFolder);
-    const fileId   = await uploadMarkdown(dateId, fname, content_md);
+    const resolveAndUpload = async () => {
+      const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
+      const catId    = await findOrCreateFolder(admin, clientId, cat);
+      const dateId   = await findOrCreateFolder(admin, catId, dateFolder);
+      return await uploadMarkdown(dateId, fname, content_md);
+    };
+    let fileId: string;
+    try {
+      fileId = await resolveAndUpload();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/\b404\b/.test(msg)) throw e;
+      // A cached folder was deleted/moved in Drive: purge the cache and retry once.
+      console.warn("export-to-drive: stale folder cache, purging and retrying:", msg);
+      await admin.from("drive_folder_cache").delete().neq("parent_id", "");
+      fileId = await resolveAndUpload();
+    }
 
     return new Response(JSON.stringify({ success: true, fileId, path: `${clientName}/${cat}/${dateFolder}/${fname}` }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
