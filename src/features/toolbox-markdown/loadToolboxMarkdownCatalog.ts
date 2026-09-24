@@ -23,6 +23,6 @@ export function loadToolboxItemsFromRawModules(
   return items.sort((a, b) => a.external_key.localeCompare(b.external_key));
 }
 
-/** Exemple : `const modules = import.meta.glob('/content/toolbox/**/*.md', { eager: true, query: '?raw', import: 'default' });` */
+// Exemple : const modules = import.meta.glob('/content/toolbox/**/*.md', { eager: true, query: '?raw', import: 'default' });
 export const TOOLBOX_CONTENT_GLOB_HINT =
   "import.meta.glob('/content/toolbox/**/*.md', { eager: true, query: '?raw', import: 'default' })";
