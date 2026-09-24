@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
+import DevGate from "@/components/DevGate";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -294,16 +295,16 @@ const App = () => (
                 {import.meta.env.DEV ? (
                   <>
                     <Route path="/__loader" element={<BootLoadingScreen />} />
-                    <Route path="/dev" element={<DevLabPage />} />
-                    <Route path="/dev/aegis-core" element={<AegisCorePreview />} />
-                    <Route path="/dev/quantum-nebula" element={<QuantumNebulaDemo />} />
-                    <Route path="/dev/toolbox-nebula" element={<ToolboxNebulaDemo />} />
-                    <Route path="/dev/dien-chan" element={<DienChanMap />} />
+                    <Route path="/dev" element={<DevGate><DevLabPage /></DevGate>} />
+                    <Route path="/dev/aegis-core" element={<DevGate><AegisCorePreview /></DevGate>} />
+                    <Route path="/dev/quantum-nebula" element={<DevGate><QuantumNebulaDemo /></DevGate>} />
+                    <Route path="/dev/toolbox-nebula" element={<DevGate><ToolboxNebulaDemo /></DevGate>} />
+                    <Route path="/dev/dien-chan" element={<DevGate><DienChanMap /></DevGate>} />
                     {/* Mixamo Xbot additive-skinning playground */}
-                    <Route path="/dev/body-scan" element={<BodyScanPreview />} />
-                    <Route path="/dev/storytelling" element={<StorytellingPage />} />
-                    <Route path="/dev/promote" element={<PromotePage />} />
-                    <Route path="/dev/promote/:scene" element={<PromotePage />} />
+                    <Route path="/dev/body-scan" element={<DevGate><BodyScanPreview /></DevGate>} />
+                    <Route path="/dev/storytelling" element={<DevGate><StorytellingPage /></DevGate>} />
+                    <Route path="/dev/promote" element={<DevGate><PromotePage /></DevGate>} />
+                    <Route path="/dev/promote/:scene" element={<DevGate><PromotePage /></DevGate>} />
                   </>
                 ) : null}
                 <Route path="/intro" element={<IntroPage />} />
