@@ -156,6 +156,28 @@ Deno.serve(async (req) => {
       return json({ ok: true, sent_to: targetEmail, redirect_to: redirectTo });
     }
 
+    if (action === "pause" || action === "unpause" || action === "pause_status") {
+      if (action === "pause_status") {
+        const { data } = await adminClient.from("account_pauses").select("*").eq("user_id", userId).maybeSingle();
+        return json({ paused: !!data, pause: data });
+      }
+      if (userId === caller.id) return json({ error: "Cannot pause yourself" }, 400);
+      if (action === "pause") {
+        const reason = typeof body.reason === "string" ? body.reason.slice(0, 500) : null;
+        const { error } = await adminClient.from("account_pauses").upsert({
+          user_id: userId, reason, paused_by: caller.id, paused_at: new Date().toISOString(),
+        });
+        if (error) return json({ error: error.message }, 400);
+      } else {
+        const { error } = await adminClient.from("account_pauses").delete().eq("user_id", userId);
+        if (error) return json({ error: error.message }, 400);
+      }
+      await adminClient.from("admin_audit_log").insert({
+        actor_id: caller.id, action: `${action}_user`, target_user_id: userId, meta: {},
+      });
+      return json({ ok: true, paused: action === "pause" });
+    }
+
     if (action === "delete") {
       if (userId === caller.id) return json({ error: "Cannot delete yourself" }, 400);
 
