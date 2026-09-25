@@ -57,7 +57,10 @@ export function useSessionTracking() {
       document.removeEventListener("visibilitychange", handleVisibility);
       endSession();
     };
-  }, [user, consent, location.pathname]);
+    // NOTE: location.pathname intentionally excluded — the session must persist
+    // across route changes; the effect below updates the `page` column instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, consent]);
 
   useEffect(() => {
     if (!sessionId.current || !user || consent !== "accepted") return;
