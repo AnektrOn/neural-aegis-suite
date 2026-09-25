@@ -258,9 +258,15 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
       onImported();
       setParseResult(null);
     } catch (e: unknown) {
+      console.error("[ToolboxMarkdownImport] import failed", e);
+      const o = (e && typeof e === "object" ? e : {}) as Record<string, unknown>;
+      const msg =
+        e instanceof Error
+          ? e.message
+          : [o.message, o.details, o.hint].filter(Boolean).join(" — ") || JSON.stringify(e);
       toast({
         title: t("toast.error"),
-        description: e instanceof Error ? e.message : String(e),
+        description: msg,
         variant: "destructive",
       });
     } finally {
