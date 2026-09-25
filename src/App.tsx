@@ -240,37 +240,37 @@ function AuthBootGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (forceShow && backendStatus === "degraded") {
-    return (
-      <div className="relative z-[100] flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="font-display text-xl text-foreground">
-          {isFR ? "Service temporairement indisponible" : "Service temporarily unavailable"}
-        </p>
-        <p className="max-w-md text-sm text-muted-foreground">
-          {isFR
-            ? "Nous n'arrivons pas à joindre le serveur d'authentification. Réessayez dans quelques instants."
-            : "We cannot reach the authentication server. Please try again in a moment."}
-        </p>
-        <button
-          type="button"
-          className="min-h-[44px] rounded-xl border border-border px-5 text-xs uppercase tracking-widest"
-          onClick={() => window.location.reload()}
-        >
-          {isFR ? "Réessayer" : "Retry"}
-        </button>
-        <button
-          type="button"
-          className="text-xs text-muted-foreground underline"
-          onClick={() => setForceShow(false)}
-        >
-          {isFR ? "Continuer quand même" : "Continue anyway"}
-        </button>
-      </div>
-    );
-  }
+  // Degraded backend: show a dismissible banner over the app instead of
+  // unmounting the routed tree (which would lose unsaved user input).
+  const showDegradedBanner = forceShow && backendStatus === "degraded";
 
   return (
     <>
+      {showDegradedBanner && (
+        <div className="fixed inset-x-0 top-0 z-[200] flex flex-col items-center gap-2 border-b border-destructive/40 bg-destructive/10 px-4 py-3 text-center backdrop-blur-xl sm:flex-row sm:justify-center sm:gap-4">
+          <p className="text-sm text-foreground">
+            {isFR
+              ? "Connexion au serveur instable — vos données locales sont conservées."
+              : "Unstable server connection — your local data is preserved."}
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="min-h-[44px] rounded-xl border border-border px-4 text-xs uppercase tracking-widest"
+              onClick={() => window.location.reload()}
+            >
+              {isFR ? "Réessayer" : "Retry"}
+            </button>
+            <button
+              type="button"
+              className="text-xs text-muted-foreground underline"
+              onClick={() => setForceShow(false)}
+            >
+              {isFR ? "Continuer quand même" : "Continue anyway"}
+            </button>
+          </div>
+        </div>
+      )}
       {children}
       <Suspense fallback={null}>
         <CookieConsentBanner />
