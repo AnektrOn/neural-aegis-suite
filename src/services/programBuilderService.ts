@@ -370,9 +370,10 @@ export async function createToolboxTemplate(input: ToolboxTemplateInput, actorId
     is_active: input.is_active ?? true,
     created_by: actorId,
   };
+  // Ré-import d'un même external_key : on met à jour l'outil existant au lieu d'échouer.
   const { data, error } = await supabase
     .from("toolbox_templates" as any)
-    .insert(payload as any)
+    .upsert(payload as any, { onConflict: "external_key" })
     .select("*")
     .single();
   if (error) throw error;
