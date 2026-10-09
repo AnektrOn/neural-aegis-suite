@@ -474,6 +474,345 @@ export const HOUSES72_EN_OVERLAY: Record<string, { prompt_en: string; options: s
       "I can no longer play the role — I want to remove my mask.",
     ],
   },
+  // House 8: Shadow, Sex & Death
+  "8-1": {
+    prompt_en: "Your deep relationship to physical intimacy and sexuality is...",
+    options: [
+      "It's a mystical experience, a merging with the divine.",
+      "It's a performance in which I must prove my power.",
+      "It's a bargaining chip to gain affection or power.",
+      "I struggle to let go of mental control; the body frightens me.",
+      "It's a joyful, playful exploration without taboos.",
+      "It's my healing power, for both myself and my partner.",
+    ],
+  },
+  "8-2": {
+    prompt_en: "Faced with an abrupt ending — a relationship, job, or project — you...",
+    options: [
+      "I refuse to accept the ending and cling desperately to the past.",
+      "I transmute the pain into art or an ambitious project.",
+      "I switch off my emotions and analyze the situation coldly.",
+      "I celebrate the death of the old to welcome the new with enthusiasm.",
+      "I collapse into addictions or destructive behaviors.",
+      "I look for the karmic lesson behind the event.",
+    ],
+  },
+  "8-3": {
+    prompt_en: "When someone confides a burdening secret or a betrayal in you, you...",
+    options: [
+      "I carry it as a burden; it poisons me from within.",
+      "I use it as leverage for power, consciously or not.",
+      "I forget it almost instantly; I don't burden myself with other people's shadows.",
+      "I try to purify this dark energy through conversation and care.",
+      "I analyze the person's psyche to understand why they did it.",
+      "I keep absolute silence, like an impenetrable military vault.",
+    ],
+  },
+  "8-4": {
+    prompt_en: "In the darker areas of human experience, what fascinates you most is...",
+    options: [
+      "Understanding the architecture of madness and mental manipulation.",
+      "Adrenaline and crossing the line into the absolutely forbidden.",
+      "The human capacity to survive and heal from the worst horrors.",
+      "Dark humor and the tragic absurdity of our condition.",
+      "Nothing about it fascinates me; I avoid these terrifying subjects.",
+      "The mechanics of absolute power and the destruction of empires.",
+    ],
+  },
+  "8-5": {
+    prompt_en: "Your relationship to mortality and life's limits is...",
+    options: [
+      "I fight the idea; I want to leave an eternal mark through my empire or my art.",
+      "I'm terrified of nothingness; the anxiety is paralyzing.",
+      "I accept it peacefully; death is only a doorway to unity.",
+      "I live at full speed so I never have to think about it; I burn through life.",
+      "I laugh about it; the Grim Reaper always wins in the end, so we might as well dance!",
+      "I try to postpone death by controlling my biology to the extreme.",
+    ],
+  },
+  "8-6": {
+    prompt_en: "Faced with an inheritance, an estate, or financial matters related to death...",
+    options: [
+      "I refuse any inheritance or debt so I owe nothing to anyone.",
+      "I calculate how to maximize the money to secure my future.",
+      "I get tangled up in paperwork and feel hunted by the system.",
+      "I hide my money or flirt with the boundaries of legality.",
+      "I don't mind the tax; it's my contribution to helping the community.",
+      "I sell out my values to secure a share of the inheritance.",
+    ],
+  },
+
+  // House 9: Vision & Quest
+  "9-1": {
+    prompt_en: "What drives you to seek wisdom, spirituality, or philosophy is...",
+    options: [
+      "Acquiring new tools to increase my influence on the world.",
+      "Finding the absolute 'Truth' that will finally explain the meaning of the Universe.",
+      "Escaping the banality of my daily life through spiritual bypassing.",
+      "Finding a way to heal myself and care for my loved ones.",
+      "Picking out what amuses me and rejecting overly burdensome dogmas.",
+      "Deconstructing their lies to prove that all religions are equivalent.",
+    ],
+  },
+  "9-2": {
+    prompt_en: "Faced with someone whose beliefs seem absurd or dangerous to you, you...",
+    options: [
+      "I see them as an enemy to defeat and launch a verbal crusade.",
+      "I'm fascinated and ask questions to expand my own map of the world.",
+      "I agree with them to their face to avoid any conflict.",
+      "I use mockery to show them the absurdity of their dogmas.",
+      "I feel compassion for their blindness.",
+      "I draw inspiration from their vision to create a new metaphorical work.",
+    ],
+  },
+  "9-3": {
+    prompt_en: "Your ideal way to travel or leave your comfort zone is...",
+    options: [
+      "With no plan, just a backpack, open to every encounter.",
+      "Silent spiritual retreats or solitary pilgrimages.",
+      "Everything must be planned, luxurious, and entirely under my control.",
+      "I go for the art, museums, and beauty of the architecture.",
+      "I prefer traveling in my head, through books or screens.",
+      "I literally flee my problems by going as far away as possible.",
+    ],
+  },
+  "9-4": {
+    prompt_en: "During an existential crisis or a crisis of faith, your deep reaction is...",
+    options: [
+      "I collapse and wait for a 'Guru' to give me the answer.",
+      "I study the psychology of the crisis to rationalize the suffering.",
+      "I experience it as a purifying fire that prepares my rebirth.",
+      "I numb myself with pleasure, sex, or compulsive creation.",
+      "I reject all my former beliefs and destroy my old life.",
+      "I keep marching forward; discipline will save me from chaos.",
+    ],
+  },
+  "9-5": {
+    prompt_en: "When you receive a revelation or a profound truth, you...",
+    options: [
+      "I immediately want to teach it to others, sometimes by force.",
+      "I silently integrate it into my private daily practice.",
+      "I turn it into an absolute dogma and judge those who haven't 'understood'.",
+      "I'm amused by it, because every truth is just another concept.",
+      "I use it to create beauty, write, or compose.",
+      "I immediately monetize it by creating a course or a product.",
+    ],
+  },
+  "9-6": {
+    prompt_en: "Your relationship to mentors, masters, or spiritual authority figures is...",
+    options: [
+      "I see them as perfect, infallible, and ideal substitute parents.",
+      "They have nothing to teach me; I always want to overthrow the father or mentor figure.",
+      "I believe I can capture their secret power and surpass them.",
+      "I believe they'll love me unconditionally if I'm their best student.",
+      "I have no mentor; my only guide is my library.",
+      "I believe they hold the magic key that will spare me the hard work.",
+    ],
+  },
+
+  // House 10: Career & Destiny
+  "10-1": {
+    prompt_en: "Your deep ambition regarding career and social status is...",
+    options: [
+      "Having an invincible empire and dictating the rules of the game.",
+      "Being recognized as an undisputed intellectual authority.",
+      "Being able to heal or help millions of people.",
+      "Being completely free to use my time as I wish, with no boss.",
+      "Creating a timeless work of absolute beauty.",
+      "Having amassed enough money to buy myself lifelong peace of mind.",
+    ],
+  },
+  "10-2": {
+    prompt_en: "Faced with a toxic authority figure at work, you...",
+    options: [
+      "I confront them directly and go to war against them.",
+      "I submit in silence for fear of losing my financial security.",
+      "I manipulate them behind the scenes so they destroy themselves.",
+      "I play the village idiot so people leave me alone.",
+      "I try to understand their wounds and heal them.",
+      "I resign instantly; my freedom is priceless.",
+    ],
+  },
+  "10-3": {
+    prompt_en: "The deep reason you sometimes sabotage your own success is...",
+    options: [
+      "Because I feel I don't belong or deserve it — impostor syndrome.",
+      "Because boredom drains me and I want to destroy the routine.",
+      "Because I refuse to conform to immoral or aesthetically displeasing codes.",
+      "Because I've taken the entire team's mental load onto my shoulders.",
+      "Because I secretly believe material success takes me further from God.",
+      "I never sabotage myself. I'm a steamroller.",
+    ],
+  },
+  "10-4": {
+    prompt_en: "When you're placed in a leadership role or given responsibility, you...",
+    options: [
+      "I'm a fair leader, firm but protective.",
+      "I become tyrannical and demanding to an absurd degree.",
+      "I avoid responsibilities and want to be everyone's friend.",
+      "I act like a mysterious guru, dispensing knowledge drop by drop.",
+      "I encourage everyone to find their own freedom and decentralize everything.",
+      "I smother them by trying too hard to nurture or save them.",
+    ],
+  },
+  "10-5": {
+    prompt_en: "The legacy you want to leave behind is...",
+    options: [
+      "An artistic work or invention that revolutionizes perception.",
+      "A universal system of thought that enlightens future generations.",
+      "A structured and protected foundation, empire, or family.",
+      "Nothing at all. I want to disappear without leaving a physical trace.",
+      "The memory of someone who healed and loved wholeheartedly.",
+      "Having broken a chain of oppression or a major social taboo.",
+    ],
+  },
+  "10-6": {
+    prompt_en: "When your success receives public recognition — applause, a promotion, visibility...",
+    options: [
+      "I thrive on it and naturally take my place as King or Queen.",
+      "I'm terrified and look for the exit.",
+      "I put on a show; I love provoking crowds and making them laugh.",
+      "I use this collective hypnosis to convey a profound message.",
+      "I feel guilty and remind everyone that this success belongs to the team first.",
+      "I'm afraid they'll discover I have no real talent.",
+    ],
+  },
+
+  // House 11: Collective & Networks
+  "11-1": {
+    prompt_en: "When you join a new group or community, you...",
+    options: [
+      "I immediately take the lead or organize the logistics.",
+      "I observe silently from the sidelines before saying a word.",
+      "I spot the outcast or the most vulnerable person and go talk to them.",
+      "I make a loud joke to break the ice and attract attention.",
+      "I don't try to fit in; I make my difference clear from the start.",
+      "I make myself indispensable by helping everyone.",
+    ],
+  },
+  "11-2": {
+    prompt_en: "When the group makes a decision that goes against your values, you...",
+    options: [
+      "I stand up, oppose it vehemently, and leave the tribe.",
+      "I stay silent to avoid making waves and keep my place.",
+      "I use philosophical arguments to try to bring them back to reason.",
+      "I manipulate the group's leaders privately to reverse the decision.",
+      "I cry and take the group's rejection as a personal attack.",
+      "I find it funny and use sarcasm to expose their stupidity.",
+    ],
+  },
+  "11-3": {
+    prompt_en: "Within a collective, the role you play most naturally is...",
+    options: [
+      "The unwavering pillar people turn to in a major crisis.",
+      "The attentive listener and go-to therapist who heals broken hearts.",
+      "The disruptor who keeps the group from becoming complacent and conventional.",
+      "The free spirit who's only there half the time, but whom everyone loves.",
+      "The aesthete who creates the atmosphere, dinners, and beauty of our gatherings.",
+      "The person who always needs rescuing or financial help.",
+    ],
+  },
+  "11-4": {
+    prompt_en: "Your deep view of humanity and collective life is...",
+    options: [
+      "Humanity is a wonderful divine tragedy; we must love it as it is.",
+      "It's chaos that only iron discipline or technology can save.",
+      "We're lost, everything is corrupt, and I'm deeply cynical.",
+      "The future belongs to outsiders, creators, and alchemists.",
+      "I don't care about the collective; only my small survival circle matters to me.",
+      "I believe in planetary healing through the awakening of consciousness.",
+    ],
+  },
+  "11-5": {
+    prompt_en: "When you're caught in a crowd or an intense collective emotion, you...",
+    options: [
+      "I'm energized and join the pack's howling, swept along by the energy.",
+      "I become paranoid and silently look for an emergency exit.",
+      "I remain cold as marble and analyze crowd psychology.",
+      "I try to calm the crowd or protect the most vulnerable.",
+      "I use this raw energy to seize power or create chaos.",
+      "I dance in the middle of the storm, fascinated by the absurdity of the drama.",
+    ],
+  },
+  "11-6": {
+    prompt_en: "The main reason you leave a community or network is...",
+    options: [
+      "Dogmatism, uniform thinking, and the obligation to conform.",
+      "Utter superficiality and the absence of a long-term vision.",
+      "A lack of loyalty, or manipulation and betrayal behind my back.",
+      "The absence of aesthetics, beauty, and creative passion.",
+      "The obligation to commit or pay a hefty membership fee.",
+      "A savior complex, where everyone wants to heal everyone else.",
+    ],
+  },
+
+  // House 12: The Unconscious & The Sacred
+  "12-1": {
+    prompt_en: "Your relationship to solitude and withdrawing from the world is...",
+    options: [
+      "It's where I recharge; I'm a hermit at heart.",
+      "It's my greatest terror; emptiness literally drives me mad.",
+      "I use it as an alchemical cave in which to conceive my masterpieces.",
+      "I escape solitude by working or imposing crazy routines on myself.",
+      "I feel exiled from the world and feed my sense of victimhood.",
+      "I seek it when I need to heal my secret wounds.",
+    ],
+  },
+  "12-2": {
+    prompt_en: "Faced with a destructive pattern that keeps recurring in your life, you...",
+    options: [
+      "I say 'Again!' and collapse, convinced I'm cursed.",
+      "I analyze it meticulously to dismantle it intellectually.",
+      "I embrace it and ritualize its destruction with a strong intention.",
+      "I punish myself severely or work twice as hard to forget it.",
+      "I make a cynical joke about how I'll never change.",
+      "I desperately look for someone else to fix it for me.",
+    ],
+  },
+  "12-3": {
+    prompt_en: "Your relationship to intuition, dreams, and the invisible is...",
+    options: [
+      "I'm a natural channel; I receive intuitive insights and let them guide me.",
+      "I use specific techniques or rituals to force magic to happen.",
+      "I always doubt. I try to rationalize my intuitive insights or ignore them.",
+      "I only look for signs that promise me luck or wealth.",
+      "I escape my unconscious through substances, technology, or noise.",
+      "My intuition only kicks in to detect dangers or lies.",
+    ],
+  },
+  "12-4": {
+    prompt_en: "What imprisons you most spiritually — your 'gilded cage' — is...",
+    options: [
+      "Perfectionism and the inability to delegate within my empire.",
+      "Sacrificing myself for others and completely forgetting my own needs.",
+      "The illusion of my intellectual superiority and isolation inside my head.",
+      "Paralyzing procrastination and a chronic fear of success.",
+      "Cynicism that cuts me off from all genuine joy and wonder.",
+      "Constant compromise, where I sell my soul to feel safe.",
+    ],
+  },
+  "12-5": {
+    prompt_en: "When everything collapses around you — crisis, chaos, loss — you...",
+    options: [
+      "I want to burn it all down; the entire system must be destroyed.",
+      "I pray, let go, and trust the Higher Plan.",
+      "I panic and wonder why these things always happen to me.",
+      "I paint, write, or transform this absurdity into a work of art.",
+      "I try to manipulate reality to create my own protective bubble.",
+      "I shrug; the world is a farce, and I keep playing.",
+    ],
+  },
+  "12-6": {
+    prompt_en: "The moment when you feel most connected to the divine or the sacred is...",
+    options: [
+      "When I express my raw truth, regardless of whom it shocks.",
+      "When I create beauty or love unconditionally.",
+      "When I finally understand the hidden mechanics of a great universal law.",
+      "When I ease the suffering of a living being — a person, animal, or plant.",
+      "When I dance with chaos and merge with the present moment.",
+      "When I'm in absolute silence, merged with the All.",
+    ],
+  },
 };
 
 export default HOUSES72_EN_OVERLAY;
