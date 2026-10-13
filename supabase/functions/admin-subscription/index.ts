@@ -49,6 +49,23 @@ Deno.serve(async (req) => {
 
     if (action === 'list') return json({ subscriptions: subs ?? [] });
 
+    if (action === 'set_status') {
+      const allowed = ['active', 'trialing', 'past_due', 'canceled', 'unpaid', 'incomplete'];
+      const newStatus: string | undefined = body.status;
+      if (!newStatus || !allowed.includes(newStatus)) {
+        return json({ error: 'Statut invalide', allowed }, 400);
+      }
+      const latest = (subs ?? [])[0];
+      if (!latest) return json({ error: 'Aucun abonnement pour cet utilisateur' }, 404);
+      const updates: Record<string, unknown> = {
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+      };
+      if (newStatus === 'active') updates.cancel_at_period_end = false;
+      await admin.from('subscriptions').update(updates).eq('id', latest.id);
+      return json({ ok: true, status: newStatus });
+    }
+
     if (action !== 'cancel' && action !== 'cancel_now') {
       return json({ error: 'Unknown action' }, 400);
     }
