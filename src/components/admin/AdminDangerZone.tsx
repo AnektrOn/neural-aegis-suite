@@ -157,6 +157,26 @@ export default function AdminDangerZone({ userId, displayName, isSelf, onDeleted
           )}
         </div>
 
+        {latest && (
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-xs text-muted-foreground">Statut :</label>
+            <select
+              value={latest.status ?? ""}
+              onChange={(e) => e.target.value && setStatus(e.target.value)}
+              disabled={!!busy}
+              className="bg-secondary/20 border border-border/20 rounded-xl px-3 py-1.5 text-sm text-foreground focus:outline-none disabled:opacity-40"
+            >
+              {!STATUS_OPTIONS.some((o) => o.value === latest.status) && latest.status && (
+                <option value={latest.status}>{latest.status}</option>
+              )}
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            {busy === "status" && <Loader2 size={12} className="animate-spin" />}
+          </div>
+        )}
+
         {active && (
           <div className="flex flex-wrap gap-2">
             <button
