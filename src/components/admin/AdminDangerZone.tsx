@@ -110,6 +110,28 @@ export default function AdminDangerZone({ userId, displayName, isSelf, onDeleted
   const active = (subs ?? []).find(
     (s) => s.status === "active" || s.status === "trialing" || s.status === "past_due",
   );
+  const latest = (subs ?? [])[0] ?? null;
+
+  const STATUS_OPTIONS = [
+    { value: "active", label: "Actif" },
+    { value: "trialing", label: "Essai" },
+    { value: "past_due", label: "Paiement en retard" },
+    { value: "canceled", label: "Résilié" },
+    { value: "unpaid", label: "Impayé" },
+  ];
+
+  const setStatus = async (status: string) => {
+    setBusy("status");
+    try {
+      await call("admin-subscription", { action: "set_status", status });
+      toast({ title: "Statut mis à jour", description: status });
+      await loadSubs();
+    } catch (e) {
+      toast({ title: "Erreur", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="space-y-4 rounded-2xl border border-destructive/20 bg-destructive/[0.03] p-4">
