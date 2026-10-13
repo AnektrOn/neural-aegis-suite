@@ -110,6 +110,28 @@ export default function AdminDangerZone({ userId, displayName, isSelf, onDeleted
   const active = (subs ?? []).find(
     (s) => s.status === "active" || s.status === "trialing" || s.status === "past_due",
   );
+  const latest = (subs ?? [])[0] ?? null;
+
+  const STATUS_OPTIONS = [
+    { value: "active", label: "Actif" },
+    { value: "trialing", label: "Essai" },
+    { value: "past_due", label: "Paiement en retard" },
+    { value: "canceled", label: "Résilié" },
+    { value: "unpaid", label: "Impayé" },
+  ];
+
+  const setStatus = async (status: string) => {
+    setBusy("status");
+    try {
+      await call("admin-subscription", { action: "set_status", status });
+      toast({ title: "Statut mis à jour", description: status });
+      await loadSubs();
+    } catch (e) {
+      toast({ title: "Erreur", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="space-y-4 rounded-2xl border border-destructive/20 bg-destructive/[0.03] p-4">
@@ -134,6 +156,26 @@ export default function AdminDangerZone({ userId, displayName, isSelf, onDeleted
             <span className="text-muted-foreground">Aucun abonnement actif</span>
           )}
         </div>
+
+        {latest && (
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-xs text-muted-foreground">Statut :</label>
+            <select
+              value={latest.status ?? ""}
+              onChange={(e) => e.target.value && setStatus(e.target.value)}
+              disabled={!!busy}
+              className="bg-secondary/20 border border-border/20 rounded-xl px-3 py-1.5 text-sm text-foreground focus:outline-none disabled:opacity-40"
+            >
+              {!STATUS_OPTIONS.some((o) => o.value === latest.status) && latest.status && (
+                <option value={latest.status}>{latest.status}</option>
+              )}
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            {busy === "status" && <Loader2 size={12} className="animate-spin" />}
+          </div>
+        )}
 
         {active && (
           <div className="flex flex-wrap gap-2">
