@@ -8,6 +8,13 @@
       "when": 1790237160443,
       "tag": "0000_account_pauses",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791862548394,
+      "tag": "0001_admin_set_plan_override",
+      "breakpoints": true
     }
   ]
 }

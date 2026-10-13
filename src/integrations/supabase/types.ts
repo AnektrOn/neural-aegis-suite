@@ -80,6 +80,33 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          meta: Json
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_import_runs: {
         Row: {
           created_at: string
@@ -3674,6 +3701,10 @@ export type Database = {
       }
       admin_set_commission_status: {
         Args: { p_ids: string[]; p_status: string }
+        Returns: Json
+      }
+      admin_set_plan_override: {
+        Args: { p_plan?: string; p_user_id: string }
         Returns: Json
       }
       bump_toolbox_assignment_stat: {
