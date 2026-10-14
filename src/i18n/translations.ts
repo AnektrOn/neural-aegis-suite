@@ -1963,6 +1963,7 @@ export const translations = {
   "common.save": { fr: "Enregistrer", en: "Save" },
   "common.saveError": { fr: "Erreur d'enregistrement", en: "Save error" },
   "admin.nav.emailAlerts": { fr: "Alertes email", en: "Email alerts" },
+  "admin.nav.elevenlabsKnowledge": { fr: "ElevenLabs Knowledge", en: "ElevenLabs Knowledge" },
   "admin.emailAlerts.title": { fr: "Alertes email", en: "Email alerts" },
   "admin.emailAlerts.subtitle": {
     fr: "Envoyez des alertes email aux utilisateurs à partir du catalogue Markdown, en français ou en anglais.",
