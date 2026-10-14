@@ -1526,6 +1526,72 @@ export type Database = {
         }
         Relationships: []
       }
+      elevenlabs_documents: {
+        Row: {
+          content_hash: string | null
+          created_at: string
+          drive_file_id: string | null
+          elevenlabs_document_id: string | null
+          error_message: string | null
+          file_name: string
+          id: string
+          source_type: string
+          status: string
+          target_agent_id: string
+          updated_at: string
+          uploaded_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content_hash?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          elevenlabs_document_id?: string | null
+          error_message?: string | null
+          file_name: string
+          id?: string
+          source_type?: string
+          status?: string
+          target_agent_id: string
+          updated_at?: string
+          uploaded_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content_hash?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          elevenlabs_document_id?: string | null
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          source_type?: string
+          status?: string
+          target_agent_id?: string
+          updated_at?: string
+          uploaded_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      elevenlabs_settings: {
+        Row: {
+          id: boolean
+          main_agent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          main_agent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          main_agent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_alert_log: {
         Row: {
           alert_id: string | null
@@ -2351,12 +2417,16 @@ export type Database = {
           country: string | null
           created_at: string
           display_name: string | null
+          drive_folder_id: string | null
+          elevenlabs_agent_id: string | null
+          elevenlabs_sync_enabled: boolean
           first_name: string | null
           id: string
           instagram: string | null
           is_disabled: boolean
           last_badge_check: string | null
           last_name: string | null
+          last_synced_at: string | null
           linkedin: string | null
           mobile_radial_menu: Json | null
           plan_override: string | null
@@ -2372,12 +2442,16 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          drive_folder_id?: string | null
+          elevenlabs_agent_id?: string | null
+          elevenlabs_sync_enabled?: boolean
           first_name?: string | null
           id: string
           instagram?: string | null
           is_disabled?: boolean
           last_badge_check?: string | null
           last_name?: string | null
+          last_synced_at?: string | null
           linkedin?: string | null
           mobile_radial_menu?: Json | null
           plan_override?: string | null
@@ -2393,12 +2467,16 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          drive_folder_id?: string | null
+          elevenlabs_agent_id?: string | null
+          elevenlabs_sync_enabled?: boolean
           first_name?: string | null
           id?: string
           instagram?: string | null
           is_disabled?: boolean
           last_badge_check?: string | null
           last_name?: string | null
+          last_synced_at?: string | null
           linkedin?: string | null
           mobile_radial_menu?: Json | null
           plan_override?: string | null
@@ -2761,6 +2839,45 @@ export type Database = {
           status?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      sync_jobs: {
+        Row: {
+          files_failed: number
+          files_processed: number
+          files_succeeded: number
+          finished_at: string | null
+          id: string
+          mode: string
+          started_at: string
+          status: string
+          summary: string | null
+          user_id: string | null
+        }
+        Insert: {
+          files_failed?: number
+          files_processed?: number
+          files_succeeded?: number
+          finished_at?: string | null
+          id?: string
+          mode: string
+          started_at?: string
+          status?: string
+          summary?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          files_failed?: number
+          files_processed?: number
+          files_succeeded?: number
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          started_at?: string
+          status?: string
+          summary?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
