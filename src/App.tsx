@@ -73,6 +73,7 @@ const MeditationSessionPage = lazy(() => import("./features/meditation/pages/Med
 const AdminDecisions = lazy(() => import("./pages/admin/AdminDecisions"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const AdminEmailAlerts = lazy(() => import("./pages/admin/AdminEmailAlerts"));
+const AdminElevenLabsKnowledge = lazy(() => import("./pages/admin/AdminElevenLabsKnowledge"));
 const ScoreboardConfig = lazy(() => import("./pages/admin/ScoreboardConfig"));
 const AdminNotificationRegistry = lazy(() => import("./pages/admin/AdminNotificationRegistry"));
 const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
@@ -401,6 +402,7 @@ const App = () => (
                               <Route path="/decisions" element={<AdminDecisions />} />
                               <Route path="/messages" element={<AdminMessages />} />
                               <Route path="/email-alerts" element={<AdminEmailAlerts />} />
+                              <Route path="/elevenlabs-knowledge" element={<AdminElevenLabsKnowledge />} />
                               <Route path="/scoreboard" element={<ScoreboardConfig />} />
                               <Route path="/notification-registry" element={<AdminNotificationRegistry />} />
                               <Route path="/assessments" element={<AdminAssessments />} />
