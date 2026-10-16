@@ -167,6 +167,10 @@ export const INTRO_UI = {
   chapter: { fr: "Chapitre", en: "Chapter" },
   nextChapter: { fr: "Chapitre suivant", en: "Next chapter" },
   toEnd: { fr: "Continuer", en: "Continue" },
+  soundtrack: { fr: "Bande son", en: "Soundtrack" },
+  voiceOver: { fr: "Voix off (EN)", en: "Voice-over" },
+  on: { fr: "activée", en: "on" },
+  off: { fr: "désactivée", en: "off" },
 } satisfies Record<string, LocaleText>;
 
 export function pick(text: LocaleText, isFR: boolean): string {

@@ -107,6 +107,10 @@ const DienChanMap = lazy(() => import("./pages/dev/DienChanMap"));
 const BodyScanPreview = lazy(() => import("./pages/dev/BodyScanPreview"));
 const StorytellingPage = lazy(() => import("./pages/dev/StorytellingPage"));
 const PromotePage = lazy(() => import("./pages/dev/promote/PromotePage"));
+const IntroV2Page = lazy(() => import("./pages/dev/intro-v2/IntroV2Page"));
+const LiquidSculptureDevPage = lazy(() => import("./pages/dev/intro-v2/LiquidSculptureDevPage"));
+const GpgpuCurlDofDevPage = lazy(() => import("./pages/dev/intro-v2/GpgpuCurlDofDevPage"));
+const PrismLandingPage = lazy(() => import("./pages/dev/prism-landing/PrismLandingPage"));
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
 const AdminMarkdownPdf = lazy(() => import("./pages/admin/AdminMarkdownPdf"));
 const AdminMarkdownPdfRender = lazy(() => import("./pages/admin/AdminMarkdownPdfRender"));
@@ -306,6 +310,10 @@ const App = () => (
                     <Route path="/dev/storytelling" element={<DevGate><StorytellingPage /></DevGate>} />
                     <Route path="/dev/promote" element={<DevGate><PromotePage /></DevGate>} />
                     <Route path="/dev/promote/:scene" element={<DevGate><PromotePage /></DevGate>} />
+                    <Route path="/dev/intro-v2" element={<DevGate><IntroV2Page /></DevGate>} />
+                    <Route path="/dev/intro-v2/sculpture" element={<DevGate><LiquidSculptureDevPage /></DevGate>} />
+                    <Route path="/dev/intro-v2/flow" element={<DevGate><GpgpuCurlDofDevPage /></DevGate>} />
+                    <Route path="/dev/prism-landing" element={<DevGate><PrismLandingPage /></DevGate>} />
                   </>
                 ) : null}
                 <Route path="/intro" element={<IntroPage />} />

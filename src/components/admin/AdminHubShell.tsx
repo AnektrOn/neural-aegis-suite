@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { usePlatformRoles } from "@/hooks/use-admin";
@@ -17,15 +17,26 @@ type AdminHubShellProps = {
   panels: Partial<Record<AdminHubTabId, React.ReactNode>>;
 };
 
+const SUPERADMIN_ONLY_TOOLBOX_TABS = new Set<AdminHubTabId>(["import", "review"]);
+
 function hubForRole(
   hub: AdminNavHubItem,
   isSuperAdmin: boolean,
   isCompanyAdmin: boolean,
 ): AdminNavHubItem {
-  if (isSuperAdmin || !isCompanyAdmin) return hub;
+  let tabs = hub.tabs;
+  if (hub.to === "/admin/toolbox" && !isSuperAdmin) {
+    tabs = tabs.filter((t) => !SUPERADMIN_ONLY_TOOLBOX_TABS.has(t.id));
+  }
+  if (isSuperAdmin || !isCompanyAdmin) {
+    const defaultTab = tabs.some((t) => t.id === hub.defaultTab)
+      ? hub.defaultTab
+      : (tabs[0]?.id ?? hub.defaultTab);
+    return tabs.length === hub.tabs.length ? hub : { ...hub, tabs, defaultTab };
+  }
   const allowed = COMPANY_ADMIN_ALLOWED_TABS[hub.to];
   if (!allowed) return { ...hub, tabs: [] };
-  const tabs = hub.tabs.filter((t) => allowed.has(t.id));
+  tabs = tabs.filter((t) => allowed.has(t.id));
   const defaultTab = allowed.has(hub.defaultTab) ? hub.defaultTab : (tabs[0]?.id ?? hub.defaultTab);
   return { ...hub, tabs, defaultTab };
 }
@@ -33,13 +44,21 @@ function hubForRole(
 export default function AdminHubShell({ pathname, panels }: AdminHubShellProps) {
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isSuperAdmin, isCompanyAdmin } = usePlatformRoles();
+  const { isSuperAdmin, isCompanyAdmin, loading: rolesLoading } = usePlatformRoles();
 
   const hub = useMemo(() => {
     const raw = getHubItemByPath(pathname);
     if (!raw) return null;
     return hubForRole(raw, isSuperAdmin, isCompanyAdmin);
   }, [pathname, isSuperAdmin, isCompanyAdmin]);
+
+  if (rolesLoading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent-warning/30 border-t-accent-warning" />
+      </div>
+    );
+  }
 
   if (!hub || hub.tabs.length === 0) return null;
 
@@ -49,6 +68,12 @@ export default function AdminHubShell({ pathname, panels }: AdminHubShellProps) 
   const onTabChange = (value: string) => {
     setSearchParams({ tab: value }, { replace: true });
   };
+
+  useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setSearchParams({ tab: activeTab }, { replace: true });
+    }
+  }, [tabParam, activeTab, setSearchParams]);
 
   return (
     <div className="space-y-6">

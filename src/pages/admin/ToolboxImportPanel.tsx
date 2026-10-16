@@ -1,12 +1,46 @@
 import { useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText, ShieldAlert } from "lucide-react";
 import ToolboxMarkdownImportTab from "@/features/toolbox-admin/ToolboxMarkdownImportTab";
-import { ToolboxPanel } from "@/components/admin/toolbox/ToolboxAdminUi";
+import { ToolboxEmptyState, ToolboxPanel } from "@/components/admin/toolbox/ToolboxAdminUi";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { usePlatformRoles } from "@/hooks/use-admin";
 
 export default function ToolboxImportPanel() {
   const { t } = useLanguage();
+  const { isSuperAdmin, isCompanyAdmin, loading } = usePlatformRoles();
   const [importKey, setImportKey] = useState(0);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[30vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent-warning/30 border-t-accent-warning" />
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="mx-auto w-full max-w-7xl space-y-8 pb-16">
+        <header className="space-y-3 border-b border-border/40 pb-6">
+          <p className="text-xs font-medium uppercase tracking-widest text-text-secondary">
+            {t("admin.hub.tab.toolboxImportMd")}
+          </p>
+          <h2 className="text-2xl font-semibold text-text-primary md:text-3xl">
+            {t("admin.toolboxImport.title")}
+          </h2>
+        </header>
+        <ToolboxPanel title={t("admin.toolboxImport.title")} description={t("admin.toolboxImport.description")}>
+          <ToolboxEmptyState
+            icon={ShieldAlert}
+            title={t("admin.toolboxMd.importSuperadminOnlyTitle")}
+            description={t("admin.toolboxMd.importSuperadminOnlyDesc", {
+              role: isCompanyAdmin ? "company_admin" : "user",
+            })}
+          />
+        </ToolboxPanel>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-8 pb-16">

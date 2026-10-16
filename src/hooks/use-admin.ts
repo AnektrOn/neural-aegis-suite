@@ -104,12 +104,12 @@ export function usePlatformRoles() {
     }
     const mem = memCache.get(user.id);
     if (mem && Date.now() - mem.ts <= TTL_MS) {
-      return { ...mem, loading: false };
+      return { ...mem, loading: true };
     }
     const persisted = readPersisted(user.id);
     if (persisted) {
       memCache.set(user.id, persisted);
-      return { ...persisted, loading: false };
+      return { ...persisted, loading: true };
     }
     return {
       isSuperAdmin: false,

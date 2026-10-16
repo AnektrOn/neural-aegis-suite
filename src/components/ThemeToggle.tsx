@@ -3,7 +3,13 @@ import { Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
 import { applyTheme, getStoredThemeIsDark } from "@/lib/theme";
 
-export default function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
+export default function ThemeToggle({
+  collapsed,
+  compact,
+}: {
+  collapsed?: boolean;
+  compact?: boolean;
+}) {
   const [dark, setDark] = useState(getStoredThemeIsDark);
 
   useEffect(() => {
@@ -14,7 +20,11 @@ export default function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
     <button
       type="button"
       onClick={() => setDark(!dark)}
-      className="mx-3 inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-3 rounded-lg p-3 text-muted-foreground transition-colors duration-200 hover:bg-popover hover:text-foreground cursor-pointer"
+      className={
+        compact
+          ? "inline-flex items-center justify-center rounded-lg border-0 bg-transparent p-2 text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+          : "mx-3 inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-3 rounded-lg p-3 text-muted-foreground transition-colors duration-200 hover:bg-popover hover:text-foreground cursor-pointer"
+      }
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
     >
