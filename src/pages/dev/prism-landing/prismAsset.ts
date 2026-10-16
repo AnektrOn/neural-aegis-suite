@@ -13,7 +13,7 @@ const shieldGlbFromEnv = import.meta.env.VITE_PRISM_SHIELD_GLB_URL as
 /** `aegis` = shield GLB + pmndrs glass material; `pmndrs` = original demo asset. */
 export type PrismRenderMode = "pmndrs" | "aegis";
 
-export const PRISM_RENDER_MODE: PrismRenderMode = "aegis";
+export const PRISM_RENDER_MODE = "aegis" as PrismRenderMode;
 
 export const PRISM_GLB_URL =
   PRISM_RENDER_MODE === "pmndrs"

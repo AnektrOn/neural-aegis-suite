@@ -194,7 +194,7 @@ const link = (gl) => {
     gl.deleteProgram(program);
     return null;
   }
-  const uniforms = {};
+  const uniforms: Record<string, WebGLUniformLocation | null> = {};
   const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
   for (let i = 0; i < count; i++) {
     const info = gl.getActiveUniform(program, i);

@@ -59,7 +59,7 @@ export default function PrismLandingPage() {
     if (scrollOverlayRef.current) {
       scrollOverlayRef.current.scrollTop = 0;
     }
-    document.querySelector(".prism-landing-root")?.style.setProperty("--f", "0");
+    document.querySelector<HTMLElement>(".prism-landing-root")?.style.setProperty("--f", "0");
     setMode(PRISM_LANDING_MODE_LANDING);
   }, []);
 
