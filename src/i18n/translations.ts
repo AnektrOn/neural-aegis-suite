@@ -46,6 +46,40 @@ export const translations = {
   "nav.deepDiveScores": { fr: "Scores Deep Dive", en: "Deep Dive scores" },
   "nav.deepDive": { fr: "Deep Dive", en: "Deep Dive" },
   "nav.pulse": { fr: "Pulse", en: "Pulse" },
+  "nav.hub": { fr: "Pratiques", en: "Practices" },
+
+  "hub.kicker": { fr: "Votre espace", en: "Your space" },
+  "hub.title": { fr: "Pratiques", en: "Practices" },
+  "hub.subtitle": {
+    fr: "Retrouvez vos outils quotidiens et choisissez celui qui apparaît dans votre menu.",
+    en: "Find your daily tools and pick the one shown in your menu.",
+  },
+  "hub.available": { fr: "Disponibles", en: "Available" },
+  "hub.comingSoon": { fr: "Bientôt disponible", en: "Coming soon" },
+  "hub.pin": { fr: "Épingler au menu", en: "Pin to menu" },
+  "hub.pinned": { fr: "Épinglé au menu", en: "Pinned to menu" },
+  "hub.unpin": { fr: "Retirer du menu", en: "Remove from menu" },
+  "hub.feature.habits.desc": {
+    fr: "Vos habitudes quotidiennes et votre focus du jour.",
+    en: "Your daily habits and today's focus.",
+  },
+  "hub.feature.toolbox.desc": {
+    fr: "Exercices guidés : respiration, ancrage, introspection.",
+    en: "Guided exercises: breathwork, grounding, introspection.",
+  },
+  "hub.feature.pulse.desc": {
+    fr: "Vos cartes Pulse quotidiennes pour rester aligné.",
+    en: "Your daily Pulse cards to stay aligned.",
+  },
+  "hub.feature.meditation.desc": {
+    fr: "Méditations guidées et sessions audio immersives.",
+    en: "Guided meditations and immersive audio sessions.",
+  },
+  "hub.feature.dienchan": { fr: "Dien Chan", en: "Dien Chan" },
+  "hub.feature.dienchan.desc": {
+    fr: "Réflexologie faciale : protocoles et cartes de points.",
+    en: "Facial reflexology: protocols and point maps.",
+  },
 
   "pulse.title": { fr: "Pulse", en: "Pulse" },
   "pulse.swipeAssimilate": { fr: "ASSIMILER", en: "ASSIMILATE" },

@@ -40,6 +40,7 @@ const MoodTracker = lazy(() => import("./pages/MoodTracker"));
 const DecisionLog = lazy(() => import("./pages/DecisionLog"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const Toolbox = lazy(() => import("./pages/Toolbox"));
+const PracticesHub = lazy(() => import("./pages/PracticesHub"));
 const Bibliotheque = lazy(() => import("./pages/Bibliotheque"));
 const PeopleBoard = lazy(() => import("./pages/PeopleBoard"));
 const Analytics = lazy(() => import("./pages/Analytics"));
@@ -504,6 +505,7 @@ const App = () => (
                             <Route path="/habits" element={<HabitTracker />} />
                             <Route path="/journal" element={<Journal />} />
                             <Route path="/toolbox" element={<Toolbox />} />
+                            <Route path="/pratiques" element={<PracticesHub />} />
                             <Route path="/pulse" element={<PulsePage />} />
                             <Route path="/bibliotheque" element={<Bibliotheque />} />
                             <Route path="/meditation" element={<MeditationLibraryPage />} />
