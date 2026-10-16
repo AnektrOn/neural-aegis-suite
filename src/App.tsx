@@ -505,6 +505,7 @@ const App = () => (
                             <Route path="/habits" element={<HabitTracker />} />
                             <Route path="/journal" element={<Journal />} />
                             <Route path="/toolbox" element={<Toolbox />} />
+                            <Route path="/pratiques" element={<PracticesHub />} />
                             <Route path="/pulse" element={<PulsePage />} />
                             <Route path="/bibliotheque" element={<Bibliotheque />} />
                             <Route path="/meditation" element={<MeditationLibraryPage />} />
