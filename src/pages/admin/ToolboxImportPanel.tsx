@@ -33,7 +33,7 @@ export default function ToolboxImportPanel() {
           <ToolboxEmptyState
             icon={ShieldAlert}
             title={t("admin.toolboxMd.importSuperadminOnlyTitle")}
-            description={t("admin.toolboxMd.importSuperadminOnlyDesc", {
+            hint={t("admin.toolboxMd.importSuperadminOnlyDesc", {
               role: isCompanyAdmin ? "company_admin" : "user",
             })}
           />

@@ -35,11 +35,11 @@ const PrismLandingScrollOverlay = forwardRef<
         const el = e.currentTarget;
         const max = el.scrollHeight - el.clientHeight;
         const progress = max > 0 ? el.scrollTop / max : 0;
-        scroll.current = progress;
+        (scroll as { current: number }).current = progress;
         const steps = PRISM_LANDING_SECTIONS.length - 1;
         const f = progress * steps;
         el.style.setProperty("--f", String(f));
-        document.querySelector(".prism-landing-root")?.style.setProperty("--f", String(f));
+        document.querySelector<HTMLElement>(".prism-landing-root")?.style.setProperty("--f", String(f));
         onSectionChange?.(sectionFromScroll(progress));
       }}
     >
