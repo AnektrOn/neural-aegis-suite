@@ -20,6 +20,7 @@ import {
   Handshake,
   MessageSquare,
   Flower2,
+  Compass,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
