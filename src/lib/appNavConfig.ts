@@ -64,6 +64,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     id: "resources",
     labelKey: "layout.navGroup.resources",
     items: [
+      { to: "/pratiques", icon: Compass, labelKey: "nav.hub" },
       { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" },
       { to: "/meditation", icon: Flower2, labelKey: "nav.meditation" },
       { to: "/bibliotheque", icon: Library, labelKey: "nav.bibliotheque" },
