@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { INTRO_CHAPTERS, INTRO_END, INTRO_ENTRY, INTRO_UI, pick, type IntroChapter } from "./intro.copy";
 import type { IntroState } from "./useIntroMachine";
 import type { HoldState } from "./useHoldProgress";
+import type { IntroAudioPrefs } from "./useIntroAudio";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const RING_RADIUS = 26;
@@ -15,6 +16,9 @@ type Props = {
   isFR: boolean;
   isTouch: boolean;
   narrateLineMs: number;
+  audioPrefs: IntroAudioPrefs;
+  onToggleMusic: () => void;
+  onToggleVoice: () => void;
   onEnter: () => void;
   onNext: () => void;
   onSkipChapter: () => void;
@@ -68,6 +72,46 @@ function HoldIndicator({ hold }: { hold: MutableRefObject<HoldState> }) {
       </svg>
       <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80" />
     </div>
+  );
+}
+
+function AudioToggle({
+  label,
+  on,
+  isFR,
+  onToggle,
+  large = false,
+}: {
+  label: string;
+  on: boolean;
+  isFR: boolean;
+  onToggle: () => void;
+  large?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={onToggle}
+      className={`pointer-events-auto flex items-center gap-2 font-display uppercase transition-colors hover:text-white ${
+        large ? "text-[11px] tracking-[0.26em] text-white/75" : "text-[10px] tracking-[0.22em] text-white/55"
+      }`}
+    >
+      <span
+        className={`relative inline-block h-3.5 w-6 rounded-full border transition-colors duration-300 ${
+          on ? "border-[hsl(38_72%_64%)] bg-[hsl(38_72%_64%)]/30" : "border-white/35"
+        }`}
+      >
+        <span
+          className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full transition-all duration-300 ${
+            on ? "left-[13px] bg-[hsl(38_72%_64%)]" : "left-[2px] bg-white/50"
+          }`}
+        />
+      </span>
+      {label}
+      <span className="sr-only">{pick(on ? INTRO_UI.on : INTRO_UI.off, isFR)}</span>
+    </button>
   );
 }
 
@@ -154,6 +198,9 @@ export default function IntroOverlay({
   isFR,
   isTouch,
   narrateLineMs,
+  audioPrefs,
+  onToggleMusic,
+  onToggleVoice,
   onEnter,
   onNext,
   onSkipChapter,
@@ -168,15 +215,23 @@ export default function IntroOverlay({
     <div className="pointer-events-none absolute inset-0 z-20 select-none text-white">
       <header className="pointer-events-auto absolute inset-x-0 top-0 flex items-center justify-between px-5 py-5 sm:px-8">
         <span className="font-display text-[10px] uppercase tracking-[0.34em] text-white/55">Aegis</span>
-        {state.phase !== "end" ? (
-          <button
-            type="button"
-            onClick={onSkipIntro}
-            className="font-display text-[10px] uppercase tracking-[0.26em] text-white/55 transition-colors hover:text-white"
-          >
-            {pick(INTRO_UI.skipIntro, isFR)}
-          </button>
-        ) : null}
+        <div className="flex items-center gap-5 sm:gap-7">
+          {state.phase !== "entry" ? (
+            <>
+              <AudioToggle label={pick(INTRO_UI.soundtrack, isFR)} on={audioPrefs.music} isFR={isFR} onToggle={onToggleMusic} />
+              <AudioToggle label={pick(INTRO_UI.voiceOver, isFR)} on={audioPrefs.voice} isFR={isFR} onToggle={onToggleVoice} />
+            </>
+          ) : null}
+          {state.phase !== "end" ? (
+            <button
+              type="button"
+              onClick={onSkipIntro}
+              className="font-display text-[10px] uppercase tracking-[0.26em] text-white/55 transition-colors hover:text-white"
+            >
+              {pick(INTRO_UI.skipIntro, isFR)}
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {inChapter ? (
@@ -245,13 +300,22 @@ export default function IntroOverlay({
             >
               {pick(INTRO_ENTRY.tagline, isFR)}
             </motion.p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 1.5 }}
+              className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:gap-8"
+            >
+              <AudioToggle large label={pick(INTRO_UI.soundtrack, isFR)} on={audioPrefs.music} isFR={isFR} onToggle={onToggleMusic} />
+              <AudioToggle large label={pick(INTRO_UI.voiceOver, isFR)} on={audioPrefs.voice} isFR={isFR} onToggle={onToggleVoice} />
+            </motion.div>
             <motion.button
               type="button"
               onClick={onEnter}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1, delay: 1.7 }}
-              className="pointer-events-auto group mt-12 rounded-full border border-white/30 px-9 py-4 font-display text-[11px] uppercase tracking-[0.3em] text-white transition-colors duration-500 hover:border-[hsl(38_72%_64%)] hover:bg-[hsl(38_72%_64%)] hover:text-[hsl(222_26%_6%)]"
+              className="pointer-events-auto group mt-10 rounded-full border border-white/30 px-9 py-4 font-display text-[11px] uppercase tracking-[0.3em] text-white transition-colors duration-500 hover:border-[hsl(38_72%_64%)] hover:bg-[hsl(38_72%_64%)] hover:text-[hsl(222_26%_6%)]"
             >
               {pick(INTRO_ENTRY.cta, isFR)}
             </motion.button>

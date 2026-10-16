@@ -260,13 +260,16 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
     } catch (e: unknown) {
       console.error("[ToolboxMarkdownImport] import failed", e);
       const o = (e && typeof e === "object" ? e : {}) as Record<string, unknown>;
-      const msg =
+      const raw =
         e instanceof Error
           ? e.message
           : [o.message, o.details, o.hint].filter(Boolean).join(" — ") || JSON.stringify(e);
+      const isRls =
+        /row-level security|permission denied|42501|not authorized/i.test(raw) ||
+        String(o.code ?? "") === "42501";
       toast({
         title: t("toast.error"),
-        description: msg,
+        description: isRls ? t("admin.toolboxMd.importRlsDenied") : raw,
         variant: "destructive",
       });
     } finally {

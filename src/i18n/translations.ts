@@ -633,6 +633,22 @@ export const translations = {
     fr: "Corrigez les blocages d'import ci-dessus avant de confirmer.",
     en: "Fix the import blockers above before confirming.",
   },
+  "admin.toolboxMd.importSuperadminOnlyTitle": {
+    fr: "Import réservé aux superadmins",
+    en: "Import restricted to superadmins",
+  },
+  "admin.toolboxMd.importSuperadminOnlyDesc": {
+    fr:
+      "Depuis la mise à jour B2B, seuls les comptes superadmin (ou admin legacy) peuvent créer des gabarits toolbox. Votre rôle actuel : {role}. Demandez un rôle superadmin dans user_roles, ou reconnectez-vous après attribution.",
+    en:
+      "Since the B2B update, only superadmin accounts (or legacy admin) can create toolbox templates. Your current role: {role}. Request superadmin in user_roles, or sign in again after it is granted.",
+  },
+  "admin.toolboxMd.importRlsDenied": {
+    fr:
+      "Création refusée par Supabase (RLS). Vérifiez que votre compte a le rôle superadmin ou admin dans user_roles, puis rechargez la page.",
+    en:
+      "Create denied by Supabase (RLS). Ensure your account has superadmin or admin in user_roles, then reload the page.",
+  },
   "admin.toolboxMd.noValidItems": { fr: "Aucun item valide à importer.", en: "No valid items to import." },
   "admin.toolboxMd.importSuccess": { fr: "Import terminé", en: "Import complete" },
   "admin.toolboxMd.importSuccessDesc": {

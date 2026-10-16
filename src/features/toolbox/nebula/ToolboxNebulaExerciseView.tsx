@@ -60,30 +60,6 @@ export function ToolboxNebulaExerciseView({
     onAbandon,
   };
 
-  // #region agent log
-  fetch("http://127.0.0.1:7734/ingest/5c724db7-3dd7-4e14-aa0c-d7fe395f7450", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c757ff" },
-    body: JSON.stringify({
-      sessionId: "c757ff",
-      runId: "journal-panel-pre",
-      hypothesisId: "H1-H5",
-      location: "ToolboxNebulaExerciseView.tsx:route",
-      message: "exercise view route",
-      data: {
-        slug,
-        variant,
-        embedded,
-        isParticle: isParticleVisualSlug(slug),
-        isMatter: isMatterVisualSlug(slug),
-        isAudio: isAudioVisualSlug(slug),
-        canRenderWidget: canRenderToolboxWidget(item),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   if (isParticleVisualSlug(slug)) {
     return <ToolboxParticlePilot {...pilotProps} />;
   }
