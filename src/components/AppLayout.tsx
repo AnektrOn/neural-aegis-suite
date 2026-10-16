@@ -73,14 +73,22 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   const { tier, loading: subLoading } = useSubscription();
   const { t } = useLanguage();
   const enabledItems = useSidebarItems();
-  const navSections = useMemo(
-    () =>
-      APP_NAV_SECTIONS.map((section) => ({
-        ...section,
-        items: section.items.filter((i) => enabledItems.includes(i.to)),
-      })).filter((section) => section.items.length > 0),
-    [enabledItems],
-  );
+  const { feature: pinnedHubFeature } = useHubMenuFeature();
+  const navSections = useMemo(() => {
+    const pinnedTo = pinnedHubFeature ? `/${pinnedHubFeature}` : null;
+    return APP_NAV_SECTIONS.map((section) => {
+      let items = section.items.filter(
+        (i) => enabledItems.includes(i.to) && !HUB_FEATURE_ROUTES.includes(i.to),
+      );
+      if (pinnedTo) {
+        const pinnedItem = section.items.find((i) => i.to === pinnedTo);
+        if (pinnedItem && enabledItems.includes(pinnedTo)) {
+          items = [pinnedItem, ...items];
+        }
+      }
+      return { ...section, items };
+    }).filter((section) => section.items.length > 0);
+  }, [enabledItems, pinnedHubFeature]);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     daily: true,
