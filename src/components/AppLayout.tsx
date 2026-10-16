@@ -19,6 +19,10 @@ import DesktopTopBar from "@/components/DesktopTopBar";
 import QuickLogModal from "@/components/QuickLogModal";
 import { APP_NAV_SECTIONS } from "@/lib/appNavConfig";
 import { useSidebarItems } from "@/hooks/useSidebarItems";
+import { useHubMenuFeature } from "@/hooks/useHubMenuFeature";
+
+/** Routes regroupées dans le hub Pratiques (retirées du menu, sauf celle épinglée). */
+const HUB_FEATURE_ROUTES = ["/habits", "/toolbox", "/pulse", "/meditation"];
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { MobileDockCircleMenu } from "@/components/MobileDockCircleMenu";
 import { supabase } from "@/integrations/supabase/client";
