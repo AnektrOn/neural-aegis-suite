@@ -43,8 +43,8 @@ export const Box = forwardRef<THREE.Group, Omit<ThreeElements["group"], "ref">>(
       <group scale={0.5} ref={ref} {...props}>
         <mesh
           visible={false}
-          onRayOver={() => hover(true)}
-          onRayOut={() => hover(false)}
+          onPointerOver={() => hover(true)}
+          onPointerOut={() => hover(false)}
           geometry={boxGeometry}
         />
         <mesh ref={inner} geometry={roundedBoxGeometry}>

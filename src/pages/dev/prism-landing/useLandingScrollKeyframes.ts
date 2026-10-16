@@ -46,7 +46,7 @@ export function useLandingScrollKeyframes(anchorLayout: LandingStageLayout) {
 
   const onLandingScrollProgress = useCallback((progress: number, f: number) => {
     setScroll01(progress);
-    document.querySelector(".prism-landing-root")?.style.setProperty("--f", String(f));
+    document.querySelector<HTMLElement>(".prism-landing-root")?.style.setProperty("--f", String(f));
   }, []);
 
   return {

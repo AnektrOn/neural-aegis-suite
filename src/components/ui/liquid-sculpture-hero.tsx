@@ -1831,7 +1831,7 @@ export default function SculptureHero(props: SculptureHeroProps) {
   optsRef.current = engineOpts
   const getHoldOrderRef = React.useRef(getHoldOrder)
   getHoldOrderRef.current = getHoldOrder
-  optsRef.current.getHoldOrder = () => getHoldOrderRef.current?.() ?? 0
+  ;(optsRef.current as unknown as EngineOptions).getHoldOrder = () => getHoldOrderRef.current?.() ?? 0
   const layoutModeRef = React.useRef(layoutMode)
   layoutModeRef.current = layoutMode
 
