@@ -107,10 +107,18 @@ const DienChanMap = lazy(() => import("./pages/dev/DienChanMap"));
 const BodyScanPreview = lazy(() => import("./pages/dev/BodyScanPreview"));
 const StorytellingPage = lazy(() => import("./pages/dev/StorytellingPage"));
 const PromotePage = lazy(() => import("./pages/dev/promote/PromotePage"));
-const IntroV2Page = lazy(() => import("./pages/dev/intro-v2/IntroV2Page"));
-const LiquidSculptureDevPage = lazy(() => import("./pages/dev/intro-v2/LiquidSculptureDevPage"));
-const GpgpuCurlDofDevPage = lazy(() => import("./pages/dev/intro-v2/GpgpuCurlDofDevPage"));
-const PrismLandingPage = lazy(() => import("./pages/dev/prism-landing/PrismLandingPage"));
+const IntroV2Page = import.meta.env.DEV
+  ? lazy(() => import("./pages/dev/intro-v2/IntroV2Page"))
+  : () => null;
+const LiquidSculptureDevPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/dev/intro-v2/LiquidSculptureDevPage"))
+  : () => null;
+const GpgpuCurlDofDevPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/dev/intro-v2/GpgpuCurlDofDevPage"))
+  : () => null;
+const PrismLandingPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/dev/prism-landing/PrismLandingPage"))
+  : () => null;
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
 const AdminMarkdownPdf = lazy(() => import("./pages/admin/AdminMarkdownPdf"));
 const AdminMarkdownPdfRender = lazy(() => import("./pages/admin/AdminMarkdownPdfRender"));
