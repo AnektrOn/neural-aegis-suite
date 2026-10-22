@@ -249,6 +249,17 @@ Deno.serve(async (req) => {
         return json({ agent_id: agent.agent_id });
       }
 
+      case "set_user_agent": {
+        if (!userId) return json({ error: "user_id requis" }, 400);
+        const agentId = String(body?.agent_id ?? "").trim();
+        if (!agentId) return json({ error: "ID d'agent requis" }, 400);
+        const { data: p } = await admin.from("profiles").select("id").eq("id", userId).maybeSingle();
+        if (!p) return json({ error: "Utilisateur introuvable" }, 404);
+        await elJson(`/convai/agents/${agentId}`); // échoue si l'agent n'existe pas dans ElevenLabs
+        await admin.from("profiles").update({ elevenlabs_agent_id: agentId }).eq("id", userId);
+        return json({ ok: true, agent_id: agentId });
+      }
+
       case "upload": {
         const target = body?.target === "main" ? "main" : "user";
         const docs: { name: string; text: string }[] = Array.isArray(body?.documents) ? body.documents : [];
