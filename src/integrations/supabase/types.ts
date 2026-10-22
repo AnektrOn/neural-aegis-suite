@@ -2421,6 +2421,7 @@ export type Database = {
           elevenlabs_agent_id: string | null
           elevenlabs_sync_enabled: boolean
           first_name: string | null
+          hub_menu_feature: string | null
           id: string
           instagram: string | null
           is_disabled: boolean
@@ -2446,6 +2447,7 @@ export type Database = {
           elevenlabs_agent_id?: string | null
           elevenlabs_sync_enabled?: boolean
           first_name?: string | null
+          hub_menu_feature?: string | null
           id: string
           instagram?: string | null
           is_disabled?: boolean
@@ -2471,6 +2473,7 @@ export type Database = {
           elevenlabs_agent_id?: string | null
           elevenlabs_sync_enabled?: boolean
           first_name?: string | null
+          hub_menu_feature?: string | null
           id?: string
           instagram?: string | null
           is_disabled?: boolean
