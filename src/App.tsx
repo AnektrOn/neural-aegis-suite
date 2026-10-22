@@ -118,7 +118,16 @@ const GpgpuCurlDofDevPage = import.meta.env.DEV
   ? lazy(() => import("./pages/dev/intro-v2/GpgpuCurlDofDevPage"))
   : () => null;
 const PrismLandingPage = import.meta.env.DEV
-  ? lazy(() => import("./pages/dev/prism-landing/PrismLandingPage"))
+  ? lazy(() => import("./pages/dev/prism-landing/pages/PrismLandingPage"))
+  : () => null;
+const PrismLandingPageOpt = import.meta.env.DEV
+  ? lazy(() => import("./pages/dev/prism-landing/pages/PrismLandingPageOpt"))
+  : () => null;
+const ShatteredCubeDevPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/dev/prism-landing/pages/ShatteredCubeDevPage"))
+  : () => null;
+const PrismLayoutPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/dev/prism-landing/pages/PrismLayoutPage"))
   : () => null;
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
 const AdminMarkdownPdf = lazy(() => import("./pages/admin/AdminMarkdownPdf"));
@@ -323,6 +332,9 @@ const App = () => (
                     <Route path="/dev/intro-v2/sculpture" element={<DevGate><LiquidSculptureDevPage /></DevGate>} />
                     <Route path="/dev/intro-v2/flow" element={<DevGate><GpgpuCurlDofDevPage /></DevGate>} />
                     <Route path="/dev/prism-landing" element={<DevGate><PrismLandingPage /></DevGate>} />
+                    <Route path="/dev/prism-landing-opt" element={<DevGate><PrismLandingPageOpt /></DevGate>} />
+                    <Route path="/dev/prism-layout" element={<DevGate><PrismLayoutPage /></DevGate>} />
+                    <Route path="/dev/shattered-cube" element={<DevGate><ShatteredCubeDevPage /></DevGate>} />
                   </>
                 ) : null}
                 <Route path="/intro" element={<IntroPage />} />

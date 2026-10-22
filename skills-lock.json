@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "skills": {
+    "award-winning-website": {
+      "source": "Eng0AI/eng0-template-skills",
+      "sourceType": "github",
+      "skillPath": "award-winning-website/SKILL.md",
+      "computedHash": "d8e1101c4fb4215f7452378452939c331da1a9aeaa094b9b44ec75f5b4db8210"
+    },
+    "r3f-animation": {
+      "source": "EnzeD/r3f-skills",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-animation/SKILL.md",
+      "computedHash": "4529c1d560cef8db5b64381247960ed36524680100a208726129a68da9b3a6d6"
+    },
+    "r3f-best-practices": {
+      "source": "sebastianlujan/zlend",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/r3f-best-practices/SKILL.md",
+      "computedHash": "ea47aa5b367ed7fdd04f103264fde537fc4326d4f0e78595c4901accb090acdc"
+    },
+    "r3f-loaders": {
+      "source": "EnzeD/r3f-skills",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-loaders/SKILL.md",
+      "computedHash": "6d555177a4afc7b8aa8ce7254af3337e2a07fae96758ee55baaf8441afc7ddcd"
+    },
+    "r3f-materials": {
+      "source": "EnzeD/r3f-skills",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-materials/SKILL.md",
+      "computedHash": "a7f293f7bc09729ca2427bbfa03868a0ecd7aa077147f8ce50396bade9292c37"
+    },
+    "r3f-physics": {
+      "source": "EnzeD/r3f-skills",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-physics/SKILL.md",
+      "computedHash": "d89b76279feba2ab8abf185a1572e0ad2ac0bdcc739dbe17f2f033ef9326bc41"
+    },
+    "r3f-shaders": {
+      "source": "EnzeD/r3f-skills",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-shaders/SKILL.md",
+      "computedHash": "58004fddf7475598c1cbabc2c892bc4392cf3779bebfbbbe4104cd3b84ccf7be"
+    },
+    "r3f-textures": {
+      "source": "EnzeD/r3f-skills",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-textures/SKILL.md",
+      "computedHash": "80a84fc624aa211f01e922877425af9509addd69b5357075fb0858d249feb49b"
+    },
+    "threejs-dynamic-surface-effects": {
+      "source": "linegel/threejs-complete-set-of-skill",
+      "sourceType": "github",
+      "skillPath": "skills/threejs-dynamic-surface-effects/SKILL.md",
+      "computedHash": "3fc65c5e186bdf58f8e3a8a226394c6ab5237faed5891065c948ea60fa6b34c7"
+    },
+    "threejs-graphics-optimizer": {
+      "source": "ovachiever/droid-tings",
+      "sourceType": "github",
+      "skillPath": "skills/threejs-graphics-optimizer/SKILL.md",
+      "computedHash": "504a90d0644b0d7f383b17fd8117722d5c68a7dc4efca4205093f556518d06e6"
+    },
+    "threejs-impl-post-processing": {
+      "source": "Impertio-Studio/Three.js-Claude-Skill-Package",
+      "sourceType": "github",
+      "skillPath": "skills/source/threejs-impl/threejs-impl-post-processing/SKILL.md",
+      "computedHash": "7a97504b7da2dda386987f1e22d1f7b2205783d4f90185434cf38481c2d9d27e"
+    },
+    "threejs-interaction": {
+      "source": "hanzoai/video",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/threejs-interaction/SKILL.md",
+      "computedHash": "988d235b7ebd85276a584c6f81ce7c801280ebc45b401017b334136dc8a7ec82"
+    }
+  }
+}

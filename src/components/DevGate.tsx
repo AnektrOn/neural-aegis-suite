@@ -5,6 +5,11 @@ import { usePlatformRoles } from "@/hooks/use-admin";
 export default function DevGate({ children }: { children: ReactNode }) {
   const { isPlatformOperator, loading } = usePlatformRoles();
 
+  // /dev/* routes are only registered when import.meta.env.DEV (see App.tsx).
+  if (import.meta.env.DEV) {
+    return <>{children}</>;
+  }
+
   if (loading) {
     return (
       <div className="relative z-10 flex min-h-screen items-center justify-center">

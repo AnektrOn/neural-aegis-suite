@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<materialx version="1.38" colorspace="lin_rec709" doc="Downloaded from https://physicallybased.info on 2026-10-19">
+  <standard_surface name="SR_Water" type="surfaceshader">
+    <input name="base_color" type="color3" value="0.969, 0.996, 0.997" />
+    <input name="specular_roughness" type="float" value="0" />
+    <input name="specular_IOR" type="float" value="1.3325" />
+    <input name="metalness" type="float" value="0" />
+    <input name="transmission" type="float" value="1" />
+    <input name="transmission_color" type="color3" value="0.969, 0.996, 0.997" />
+    <input name="transmission_depth" type="float" value="100" />
+    <input name="transmission_dispersion" type="float" value="55.78" />
+  </standard_surface>
+  <surfacematerial name="Water" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_Water" />
+  </surfacematerial>
+</materialx>

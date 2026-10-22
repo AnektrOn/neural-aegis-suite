@@ -1,0 +1,418 @@
+.prism-landing-root {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100vw;
+  height: 100dvh;
+  background: #030305;
+  color: #e8e8e8;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.cosmic-dock-landing {
+  z-index: 25;
+}
+
+.cosmic-dock-hint {
+  font-size: 11px;
+  color: rgb(253 230 138 / 0.65);
+  padding: 4px 8px;
+  max-width: 140px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.prism-landing-errors {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: 0;
+  margin: 0;
+  padding: 8px 12px;
+  max-height: 120px;
+  overflow: auto;
+  font-size: 11px;
+  color: #ffb4b4;
+  background: rgb(0 0 0 / 0.55);
+  pointer-events: none;
+  white-space: pre-wrap;
+}
+
+.prism-landing-errors:empty {
+  display: none;
+}
+
+.prism-landing-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+}
+
+.prism-landing-canvas canvas,
+.monolith-r3f-canvas {
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100dvh !important;
+}
+
+.monolith-webgl-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: rgb(255 255 255 / 0.65);
+  background: #2a2a2a;
+}
+
+.cosmic-dock {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 16px;
+  border-radius: 16px;
+  border: 1px solid rgb(245 158 11 / 0.2);
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(12px);
+  color: rgb(254 243 199 / 0.8);
+  font-size: 12px;
+}
+
+.cosmic-dock button,
+.cosmic-dock label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.05);
+  color: rgb(254 243 199 / 0.9);
+  cursor: pointer;
+}
+
+.cosmic-dock-primary {
+  background: rgb(245 158 11 / 0.2);
+  border-color: rgb(251 191 36 / 0.3);
+  color: rgb(253 230 138);
+}
+
+.cosmic-dock input[type="range"] {
+  width: 80px;
+  accent-color: rgb(251 191 36);
+}
+
+.cosmic-dock span {
+  color: rgb(253 230 138 / 0.6);
+}
+
+.prism-landing-opt-badge {
+  position: absolute;
+  z-index: 26;
+  top: 52px;
+  left: 12px;
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: rgb(253 230 138 / 0.9);
+  background: rgb(0 0 0 / 0.45);
+  border-radius: 6px;
+  pointer-events: auto;
+}
+
+.prism-landing-opt-badge a {
+  color: rgb(147 197 253);
+  text-decoration: underline;
+}
+
+.prism-landing-perf-debug {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgb(226 232 240 / 0.85);
+}
+
+.prism-landing-back {
+  position: absolute;
+  z-index: 20;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+}
+
+.monolith-panel {
+  position: absolute;
+  z-index: 25;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  width: min(380px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(12 12 14 / 0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
+  overflow: hidden;
+}
+
+.monolith-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.monolith-panel-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.monolith-panel-actions button,
+.monolith-panel-btn {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(255 255 255 / 0.06);
+  color: inherit;
+  cursor: pointer;
+}
+
+.monolith-panel-btn.primary {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgb(255 154 46 / 0.22);
+  border-color: rgb(255 154 46 / 0.45);
+}
+
+.monolith-panel-body {
+  overflow: auto;
+  padding: 10px 12px 14px;
+  font-size: 12px;
+}
+
+.monolith-panel-section {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
+}
+
+.monolith-panel-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  opacity: 0.72;
+}
+
+.monolith-panel-section h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(255 255 255 / 0.65);
+}
+
+.monolith-panel-fieldset {
+  margin-bottom: 8px;
+}
+
+.monolith-panel-fieldset-title {
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: rgb(255 255 255 / 0.55);
+}
+
+.monolith-panel-field {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.monolith-panel-field span {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.monolith-panel-field em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: rgb(255 200 120 / 0.9);
+}
+
+.monolith-panel-field input[type="range"] {
+  width: 100%;
+}
+
+.prism-landing-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.prism-landing-filter-chip {
+  padding: 7px 8px;
+  border-radius: 7px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.05);
+  color: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.prism-landing-filter-chip:hover {
+  background: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.22);
+}
+
+.prism-landing-filter-chip.is-active {
+  background: rgb(125 180 255 / 0.18);
+  border-color: rgb(125 180 255 / 0.55);
+  color: rgb(210 230 255);
+}
+
+.monolith-panel-field select,
+.monolith-panel-field input[type="text"] {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(0 0 0 / 0.35);
+  color: inherit;
+}
+
+.monolith-color input[type="color"] {
+  width: 100%;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.monolith-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.monolith-stamp-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.monolith-stamp-slot {
+  min-width: 36px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(255 255 255 / 0.04);
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.monolith-stamp-slot.active {
+  border-color: rgb(255 154 46 / 0.65);
+  background: rgb(255 154 46 / 0.18);
+}
+
+.monolith-stamp-meta {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: rgb(255 255 255 / 0.5);
+}
+
+.monolith-panel-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.monolith-panel-export textarea {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.35);
+  color: rgb(255 255 255 / 0.75);
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  resize: vertical;
+}
+
+.monolith-asset-hint {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgb(255 255 255 / 0.55);
+}
+
+.monolith-asset-hint.warn {
+  color: #ffb86a;
+}
+
+.monolith-missing-glb-banner {
+  position: absolute;
+  z-index: 22;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(420px, calc(100vw - 48px));
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid rgb(255 154 46 / 0.45);
+  background: rgb(0 0 0 / 0.75);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  pointer-events: none;
+}
+
+.monolith-missing-glb-banner code {
+  font-size: 11px;
+  color: #ffcc88;
+}
+
+.monolith-shot-preview {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 6px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+}
