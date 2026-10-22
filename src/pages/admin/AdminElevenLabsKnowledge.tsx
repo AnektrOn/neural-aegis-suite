@@ -171,6 +171,7 @@ export default function AdminElevenLabsKnowledge() {
   const [busy, setBusy] = useState<string | null>(null);
   const [driveFolder, setDriveFolder] = useState("");
   const [driveEnabled, setDriveEnabled] = useState(false);
+  const [userAgentId, setUserAgentId] = useState("");
   const [bulkResult, setBulkResult] = useState<{ user: string; ok: number; failed: number; skipped: number; error?: string }[] | null>(null);
 
   const load = useCallback(async () => {
@@ -191,7 +192,8 @@ export default function AdminElevenLabsKnowledge() {
   useEffect(() => {
     setDriveFolder(selected?.drive_folder_id ?? "");
     setDriveEnabled(!!selected?.elevenlabs_sync_enabled);
-  }, [selected?.id, selected?.drive_folder_id, selected?.elevenlabs_sync_enabled]);
+    setUserAgentId(selected?.elevenlabs_agent_id ?? "");
+  }, [selected?.id, selected?.drive_folder_id, selected?.elevenlabs_sync_enabled, selected?.elevenlabs_agent_id]);
 
   const docsByUser = useMemo(() => {
     const m = new Map<string, DocRow[]>();
@@ -294,6 +296,16 @@ export default function AdminElevenLabsKnowledge() {
                   <dt className="text-muted-foreground">Dernier envoi</dt><dd className="text-foreground">{fmt(userDocs[0]?.uploaded_at ?? null)}</dd>
                   <dt className="text-muted-foreground">Statut du dernier envoi</dt><dd className="text-foreground">{userDocs[0] ? STATUS_LABEL[userDocs[0].status] : "—"}</dd>
                 </dl>
+                <div className="flex flex-wrap gap-2">
+                  <input value={userAgentId} onChange={(e) => setUserAgentId(e.target.value)} placeholder="Ou collez ici l'ID d'un agent existant" className={`${input} flex-1 min-w-[240px]`} />
+                  <button type="button" className={btn} disabled={busy === "link"} onClick={() => run("link", async () => {
+                    await call({ action: "set_user_agent", user_id: selected.id, agent_id: userAgentId });
+                    toast.success("Agent lié à cet utilisateur");
+                    await load();
+                  })}>
+                    {busy === "link" && <Loader2 size={12} className="animate-spin" />} Lier cet agent
+                  </button>
+                </div>
                 {!selected.elevenlabs_agent_id && (
                   <button type="button" className={btn} disabled={busy === "agent"} onClick={() => run("agent", async () => { await call({ action: "create_agent", user_id: selected.id }); toast.success("Agent créé"); await load(); })}>
                     {busy === "agent" ? <Loader2 size={12} className="animate-spin" /> : <Bot size={12} />} Créer l'agent ElevenLabs
