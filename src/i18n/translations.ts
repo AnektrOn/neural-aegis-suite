@@ -4977,6 +4977,7 @@ excerpt_fr: email brief
     fr: "Aller au dashboard",
     en: "Go to dashboard",
   },
+
 } as const;
 
 export type TranslationKey = keyof typeof translations;

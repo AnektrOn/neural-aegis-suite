@@ -1,0 +1,63 @@
+# Prism landing (dev)
+
+Organisation du module `/dev/prism-landing`, `/dev/prism-landing-opt` et `/dev/prism-layout`.
+
+| Dossier | Rôle |
+|---------|------|
+| `pages/` | Routes React (landing, landing perf, layout editor, cube dev) |
+| `ui/` | Canvas WebGL + panneaux réglages |
+| `camera/` | Path travelling, keyframes, presets, rig |
+| `cinematic/` | Contrats shot list, drone moves / post |
+| `layout/` | Positions scène, bounds, terrain, constantes |
+| `scene/` | Construction Three.js (monolithe cosmique, assets) |
+| `monolith/` | Pipeline rendu WebGPU / debug |
+| `character/` | Personnage landing + FBX |
+| `locomotion/` | Marche 3e personne, surface |
+| `components/` | Sous-composants R3F / monolithe |
+| `assets/` | Textures ciblées + fonts — voir **`assets/ASSETS.md`** (inventaire / nettoyage / Fab) |
+| `docs/` | Bibles cinéma + prompt topologie IA |
+| `styles/` | CSS des pages |
+
+## Routes landing (golden vs opt)
+
+| Route | Entrée | Profil perf |
+|-------|--------|-------------|
+| `/dev/prism-landing` | `PrismLandingPage` → `PrismLandingCanvas` → `createCosmicMonolithLandingScene` | **default** (comportement historique) |
+| `/dev/prism-landing-opt` | `PrismLandingPageOpt` → `PrismLandingCanvasOpt` → `createCosmicMonolithLandingSceneOpt` | **optimized** (DPR adaptatif, throttle rendu idle ~30 FPS, pause onglet caché) |
+
+Le contrat partagé est dans `scene/prismLandingPerformance.ts`. Le wrapper golden `createCosmicMonolithLandingScene.ts` reste inchangé (pas de flag perf).
+
+## Checklist A/B manuelle (post-merge)
+
+**Golden** (`/dev/prism-landing`)
+
+- Play / pause du travelling, scrub `u` et étapes keyframes
+- Mode POV : entrée / sortie, pause path
+- Panneau réglages : sliders, filtres, fermeture
+- Resize fenêtre / panneau
+- Perte de contexte WebGL (si reproduisible) → message fallback
+
+**Opt** (`/dev/prism-landing-opt`)
+
+- Même checklist visuelle et fonctionnelle
+- Panneau réglages : section **Performance** (profil, DPR, pause onglet, throttle idle)
+- Onglet navigateur caché → boucle WebGL en pause (0 frame GPU)
+- Travelling en pause, POV off, orbite souris → throttle idle actif (moins de frames, reprise pleine vitesse au play / POV)
+
+### Atmosphère (debug)
+
+Query params sur `/dev/prism-landing` :
+
+- `?monolithDebug=hdr` — sans bloom / godrays / grade (silhouette brute)
+- `?monolithDebug=nobloom` | `nogodrays` | `nopost`
+- `?atmoMist=0` | `atmoHaze=0` | `atmoMotes=0` | `atmoPortalSprites=0` | `atmoGodrays=0` | `atmoBloom=0` | `atmoGrade=0`
+
+Preset **Villeneuve** par défaut dans Réglages (multiplicateurs sur l’interpolation atmosphère 0→2).
+
+### Sol « rive humide » (landing travelling)
+
+`scene/landingShoreGround.ts` : procédural par défaut ; **3 PNG Fab** dans `assets/textures/shore/` → PBR auto (`BaseColor` + `Roughness` + `Normal`). Guide complet : [`assets/ASSETS.md`](assets/ASSETS.md).
+
+**Éditeurs annexes**
+
+- `/dev/prism-layout` et `/dev/shattered-cube` : pause onglet caché via `attachVisibilityPauseRaf`

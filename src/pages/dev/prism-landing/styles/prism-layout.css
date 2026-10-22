@@ -1,0 +1,174 @@
+.prism-layout-root {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #0c0f14;
+  color: #e2e8f0;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.prism-layout-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.prism-layout-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.prism-layout-inset {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 280px;
+  height: 158px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  background: #000;
+}
+
+.prism-layout-inset canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.prism-layout-toolbar {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.prism-layout-follow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #cbd5e1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.prism-layout-hud {
+  position: absolute;
+  left: 12px;
+  top: 58px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: none;
+  max-width: min(360px, calc(100% - 24px));
+}
+
+.prism-layout-sidebar {
+  width: 340px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-left: 1px solid rgba(148, 163, 184, 0.2);
+  background: #111827;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.prism-layout-sidebar h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin: 0 0 8px;
+}
+
+.prism-layout-coord-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.prism-layout-coord-row span:first-child {
+  color: #cbd5e1;
+}
+
+.prism-layout-coord-row code {
+  font-size: 11px;
+  color: #fbbf24;
+}
+
+.prism-layout-keyframe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.prism-layout-keyframe {
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid transparent;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.prism-layout-keyframe.is-selected {
+  border-color: #38bdf8;
+}
+
+.prism-layout-keyframe-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.prism-layout-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.prism-layout-controls label {
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.prism-layout-controls input[type="range"] {
+  width: 100%;
+}
+
+.prism-layout-back {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+}
