@@ -321,6 +321,7 @@ export type Atmosphere = {
   setLevel: (level: number) => void;
   animateTo: (level: number, seconds?: number) => void;
   jump: (level: number) => void;
+  isTransitioning: () => boolean;
   update: (
     dt: number,
     t: number,
@@ -505,6 +506,9 @@ export function createAtmosphere(ctx: AtmosphereContext): Atmosphere {
       targetScrollLevel = null;
       state.level = Math.min(2, Math.max(0, level));
       apply(0);
+    },
+    isTransitioning() {
+      return tween !== null || targetScrollLevel !== null;
     },
     update(dt, t, layers) {
       if (layers) layerFlags = layers;

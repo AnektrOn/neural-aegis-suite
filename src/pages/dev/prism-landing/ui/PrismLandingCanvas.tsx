@@ -42,6 +42,15 @@ export default function PrismLandingCanvas() {
   const [renderTuning, setRenderTuning] = useState<LandingRenderTuning>(() => ({
     ...LANDING_RENDER_TUNING_DEFAULTS,
   }));
+  const [performanceDebug, setPerformanceDebug] = useState<
+    | {
+        profile: string;
+        pixelRatio: number;
+        pausedByVisibility: boolean;
+        idleThrottleActive: boolean;
+      }
+    | undefined
+  >(undefined);
 
   const applyAtmosphere = (level: number) => {
     const next = Math.min(2, Math.max(0, level));
@@ -112,18 +121,8 @@ export default function PrismLandingCanvas() {
       }
     })();
 
-    const playTick = window.setInterval(() => {
-      const h = handleRef.current;
-      if (!h) return;
-      const u = h.getPathU();
-      const playing = h.isPathPlaying();
-      setPathU((prev) => (prev !== u ? u : prev));
-      setPathPlaying((prev) => (prev !== playing ? playing : prev));
-    }, PATH_UI_SYNC_MS);
-
     return () => {
       disposed = true;
-      window.clearInterval(playTick);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       observer?.disconnect();
       window.removeEventListener("resize", fit);
@@ -131,6 +130,28 @@ export default function PrismLandingCanvas() {
       handle?.dispose();
     };
   }, []);
+
+  useEffect(() => {
+    if (!ready || !pathPlaying) return;
+    const id = window.setInterval(() => {
+      const h = handleRef.current;
+      if (!h) return;
+      const u = h.getPathU();
+      const playing = h.isPathPlaying();
+      setPathU((prev) => (prev !== u ? u : prev));
+      setPathPlaying((prev) => (prev !== playing ? playing : prev));
+    }, PATH_UI_SYNC_MS);
+    return () => window.clearInterval(id);
+  }, [ready, pathPlaying]);
+
+  useEffect(() => {
+    if (!ready || !settingsOpen) return;
+    const id = window.setInterval(() => {
+      const telemetry = handleRef.current?.getPerformanceTelemetry?.();
+      if (telemetry) setPerformanceDebug(telemetry);
+    }, 400);
+    return () => window.clearInterval(id);
+  }, [ready, settingsOpen]);
 
   const controlsDisabled = !ready || error !== null;
 
@@ -285,6 +306,7 @@ export default function PrismLandingCanvas() {
             handleRef.current?.setLandingRenderTuning(next);
           }}
           onClose={() => setSettingsOpen(false)}
+          performanceDebug={performanceDebug}
         />
       ) : null}
     </>
