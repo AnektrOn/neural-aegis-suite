@@ -15,6 +15,8 @@ export type LandingShoreTextures = {
   albedo: THREE.Texture;
   normal: THREE.Texture;
   roughness: THREE.Texture;
+  /** Height / displacement (PBR Fab) — parallax uniquement, pas de déplacement vertex. */
+  height?: THREE.Texture | null;
   /** `pbr` si fichiers dans `textures/shore/`, sinon procédural. */
   source: "pbr" | "procedural";
   /** Normal DirectX (Fab *-normal-dx*) → invert Y pour Three.js. */
@@ -75,17 +77,20 @@ export async function resolveLandingShoreTextures(): Promise<LandingShoreTexture
       return 1;
     },
   );
+  const heightEntry = findShoreFile((n) => /height|displacement|_disp/.test(n));
 
   if (albedoEntry && roughnessEntry && normalEntry) {
     const loader = new THREE.TextureLoader();
-    const [albedo, roughness, normal] = await Promise.all([
+    const [albedo, roughness, normal, height] = await Promise.all([
       loader.loadAsync(albedoEntry.url),
       loader.loadAsync(roughnessEntry.url),
       loader.loadAsync(normalEntry.url),
+      heightEntry ? loader.loadAsync(heightEntry.url) : Promise.resolve(null),
     ]);
     configureShoreMap(albedo, true);
     configureShoreMap(roughness, false);
     configureShoreMap(normal, false);
+    if (height) configureShoreMap(height, false);
     const dxNormal =
       normalEntry.stem.includes("normal-dx") || normalEntry.stem.includes("-dx");
     const normalScale = new THREE.Vector2(1, dxNormal ? -1 : 1);
@@ -93,12 +98,14 @@ export async function resolveLandingShoreTextures(): Promise<LandingShoreTexture
       albedo,
       normal,
       roughness,
+      height,
       source: "pbr",
       normalScale,
       dispose() {
         albedo.dispose();
         normal.dispose();
         roughness.dispose();
+        height?.dispose();
       },
     };
   }

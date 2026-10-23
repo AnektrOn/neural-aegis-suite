@@ -1,6 +1,7 @@
 import type { CosmicMonolithHandle } from "./createCosmicMonolithScene";
 import { createCosmicMonolithScene } from "./createCosmicMonolithScene";
 import { resolveLandingShoreTextures } from "./landingShoreGround";
+import { resolveLandingLutTexture } from "./landingLutLoader";
 import type { LandingRenderTuningHandle } from "./landingRenderTuning";
 import type { LandingTravellingHandle } from "../camera/landingTravellingRig";
 
@@ -16,13 +17,17 @@ export async function createCosmicMonolithLandingScene(
   canvas: HTMLCanvasElement,
   onCinematicChange?: (on: boolean) => void,
 ): Promise<CosmicMonolithLandingHandle> {
-  const shoreGround = await resolveLandingShoreTextures();
+  const [shoreGround, lut] = await Promise.all([
+    resolveLandingShoreTextures(),
+    resolveLandingLutTexture(),
+  ]);
   let handle: CosmicMonolithLandingHandle | null = null;
   try {
     handle = createCosmicMonolithScene(canvas, onCinematicChange, {
       landingTravelling: true,
       performanceProfile: "optimized",
       shoreGround,
+      landingLut: lut.texture,
     }) as CosmicMonolithLandingHandle;
     return handle;
   } catch (err) {

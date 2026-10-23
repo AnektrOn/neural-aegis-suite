@@ -27,6 +27,11 @@ import {
 import { LANDING_FOG_SCATTERING_SHADER } from "./landingFogScatteringPass";
 import { createLandingPlayaEnvelope } from "./landingSceneEnvelope";
 import { createLandingAdaptiveDpr } from "./landingAdaptiveDpr";
+import { applyLandingGroundRealism } from "./landingGroundRealism";
+import { createLandingHdriEnvironment } from "./landingHdriEnvironment";
+import { attachLandingPostRealism, type LandingPostRealismBundle } from "./landingPostRealism";
+import { createLandingPuddleReflection, type LandingPuddleReflection } from "./landingPuddleReflection";
+import { applyLandingPuddleReflectionMap } from "./landingPuddleMaterial";
 
 const LANDING_BLOOM_RES_SCALE = 0.5;
 import {
@@ -279,9 +284,11 @@ const MIST_FRAG = `
   varying vec3 vWorldPos;
   void main() {
     // Dérive quasi imperceptible, brume lourde et stagnante (Arrival)
-    vec2 p = vWorldPos.xz * 0.02 + uSeed + vec2(uTime * 0.0018, -uTime * 0.0011);
+    vec3 p3 = vWorldPos * 0.014 + vec3(uSeed.x, uSeed.y * 0.7, uSeed.x * 1.3)
+      + vec3(uTime * 0.045, uTime * 0.028, -uTime * 0.019);
+    vec2 p = p3.xz + p3.y * 0.35;
     vec3 n1 = texture2D(uNoise, p).rgb;
-    vec3 n2 = texture2D(uNoise, p * 2.7 + n1.rg * 0.25 + vec2(-uTime * 0.0025, 0.0)).rgb;
+    vec3 n2 = texture2D(uNoise, p * 2.7 + n1.rg * 0.25 + p3.xy * 0.08).rgb;
     float n = n1.r * 0.6 + n2.g * 0.4;
     // Seuil abaissé : la brume couvre davantage, avec un voile continu
     float cover = smoothstep(0.30, 0.70, n);
@@ -323,6 +330,10 @@ const GRADE_SHADER = {
     uShadowTintMul: { value: new THREE.Vector3(0.96, 0.985, 1.03) },
     uHighTintMul: { value: new THREE.Vector3(1.06, 0.99, 0.9) },
     uResolution: { value: new THREE.Vector2(1, 1) },
+    uLUT: { value: null as THREE.Data3DTexture | null },
+    uLUTSize: { value: 17 },
+    uLUTStrength: { value: 0 },
+    uToneAgx: { value: 0 },
   },
   vertexShader: `
     varying vec2 vUv;
@@ -352,6 +363,10 @@ const GRADE_SHADER = {
     uniform vec3 uShadowTintMul;
     uniform vec3 uHighTintMul;
     uniform vec2 uResolution;
+    uniform sampler3D uLUT;
+    uniform float uLUTSize;
+    uniform float uLUTStrength;
+    uniform float uToneAgx;
     varying vec2 vUv;
 
     float hash12(vec2 p) {
@@ -364,6 +379,30 @@ const GRADE_SHADER = {
       vec3 a = v * (v + 0.0245786) - 0.000090537;
       vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
       return a / b;
+    }
+
+    vec3 agxDefaultContrastApprox(vec3 x) {
+      vec3 x2 = x * x;
+      vec3 x4 = x2 * x2;
+      return 15.5 * x4 * x2 - 40.14 * x4 * x + 31.96 * x4 - 6.868 * x2 * x + 0.4298 * x2 + 0.1191 * x - 0.00232;
+    }
+
+    vec3 agxTone(vec3 color) {
+      color *= uExposure / 0.6;
+      const mat3 agxInset = mat3(
+        vec3(0.856627, 0.137275, 0.006098),
+        vec3(0.095095, 0.812362, 0.092543),
+        vec3(0.048373, 0.162410, 0.789217)
+      );
+      const mat3 agxOutset = mat3(
+        vec3(1.1270, -0.1413, -0.1413),
+        vec3(-0.1413, 1.1270, -0.1413),
+        vec3(-0.1413, -0.1413, 1.1270)
+      );
+      color = agxInset * color;
+      color = agxDefaultContrastApprox(color);
+      color = agxOutset * color;
+      return clamp(color, 0.0, 1.0);
     }
 
     vec3 acesFilmic(vec3 color) {
@@ -399,14 +438,15 @@ const GRADE_SHADER = {
     void main() {
       vec2 c = vUv - 0.5;
       float r2 = dot(c, c);
-      vec2 off = c * r2 * uCA;
+      float edgeMask = smoothstep(0.18, 0.72, r2);
+      vec2 off = c * r2 * uCA * edgeMask;
       vec3 col = vec3(
         texture2D(tDiffuse, vUv + off).r,
         texture2D(tDiffuse, vUv).g,
         texture2D(tDiffuse, vUv - off).b
       );
 
-      col = acesFilmic(col);
+      col = uToneAgx > 0.5 ? agxTone(col) : acesFilmic(col);
       col = linearToSRGB(col);
 
       // Balance des blancs (température / teinte)
@@ -456,10 +496,17 @@ const GRADE_SHADER = {
       float fade = clamp(uFade, 0.0, 0.25);
       col = col * (1.0 - fade * 1.2) + vec3(fade);
 
-      // Vignette
+      if (uLUTStrength > 0.001) {
+        float lutScale = (uLUTSize - 1.0) / uLUTSize;
+        vec3 lutCoord = clamp(col, 0.0, 1.0) * lutScale + 0.5 / uLUTSize;
+        col = mix(col, texture(uLUT, lutCoord).rgb, clamp(uLUTStrength, 0.0, 1.0));
+      }
+
+      // Vignette (bords uniquement)
       float aspect = uResolution.x / max(uResolution.y, 1.0);
-      float vig = smoothstep(0.30, 1.15, length(c * vec2(aspect * 0.55 + 0.45, 1.0)) * 1.4);
-      col *= 1.0 - uVignette * vig;
+      float vigLen = length(c * vec2(aspect * 0.55 + 0.45, 1.0));
+      float vig = smoothstep(0.52, 1.12, vigLen);
+      col *= 1.0 - uVignette * vig * vig;
 
       // Grain (échelle + plus fort dans les ombres)
       l = luma(col);
@@ -970,6 +1017,8 @@ export type CreateCosmicMonolithSceneOptions = {
   wastelandRocks?: THREE.Group;
   /** Marbre 2 calques (`textures/marble/base` + veines). */
   marbleTwoLayer?: MarbleTwoLayerTextures | null;
+  /** LUT 3D (wrapper landing). */
+  landingLut?: THREE.Data3DTexture;
 };
 
 export function createCosmicMonolithScene(
@@ -987,6 +1036,10 @@ export function createCosmicMonolithScene(
 
   const scene = new THREE.Scene();
   const landingTravelling = Boolean(options?.landingTravelling);
+  const landingRenderTuning = landingTravelling ? createLandingRenderTuningState() : null;
+  let postRealism: LandingPostRealismBundle | null = null;
+  let hdriEnvironment: Awaited<ReturnType<typeof createLandingHdriEnvironment>> | null = null;
+  let puddleReflection: LandingPuddleReflection | null = null;
   const performanceProfile = options?.performanceProfile ?? "default";
   const perfConfig = resolvePerformanceConfig(performanceProfile);
   const landingGradientBg = landingTravelling ? createLandingGradientBackground() : null;
@@ -1116,6 +1169,18 @@ export function createCosmicMonolithScene(
   terrainMesh.receiveShadow = true;
   terrainMesh.castShadow = false;
   scene.add(terrainMesh);
+
+  if (landingTravelling && landingRenderTuning && shoreGround) {
+    applyLandingGroundRealism(
+      terrainMat as THREE.MeshStandardMaterial,
+      shoreGround.height ?? null,
+      () => ({
+        antiTiling: landingRenderTuning.groundAntiTiling,
+        parallax: landingRenderTuning.groundParallax,
+        roughnessNoise: landingRenderTuning.groundRoughnessNoise,
+      }),
+    );
+  }
 
   /** Rochers GLB désactivés (perf + placement) — réactiver via `wastelandRocks` plus tard. */
   const foregroundRocks =
@@ -1708,9 +1773,16 @@ export function createCosmicMonolithScene(
   if (USE_POSTFX) {
     try {
       renderer.toneMapping = THREE.NoToneMapping;
-      const target = new THREE.WebGLRenderTarget(width * pixelRatio, height * pixelRatio, {
+      const rtW = Math.max(1, Math.floor(width * pixelRatio));
+      const rtH = Math.max(1, Math.floor(height * pixelRatio));
+      const depthTexture = landingTravelling
+        ? new THREE.DepthTexture(rtW, rtH)
+        : undefined;
+      const target = new THREE.WebGLRenderTarget(rtW, rtH, {
         type: THREE.HalfFloatType,
         samples: landingTravelling ? 0 : 4,
+        depthBuffer: true,
+        depthTexture,
       });
       composer = new EffectComposer(renderer, target);
       composer.setPixelRatio(pixelRatio);
@@ -1749,6 +1821,41 @@ export function createCosmicMonolithScene(
           godrayPass,
         );
       }
+      if (landingTravelling && landingRenderTuning && bloomPass) {
+        const bloomIndex = composer.passes.indexOf(bloomPass);
+        postRealism = attachLandingPostRealism(
+          composer,
+          scene,
+          camera,
+          width,
+          height,
+          pixelRatio,
+          Math.max(1, bloomIndex),
+        );
+        if (gradePass && options?.landingLut) {
+          gradePass.uniforms.uLUT.value = options.landingLut;
+          gradePass.uniforms.uLUTSize.value = options.landingLut.image.width;
+        }
+        puddleReflection = createLandingPuddleReflection(
+          renderer,
+          scene,
+          camera,
+          terrainMesh.position,
+        );
+        applyLandingPuddleReflectionMap(
+          terrainMat as THREE.MeshStandardMaterial,
+          () => puddleReflection?.texture ?? null,
+          () => landingRenderTuning.puddleReflection,
+        );
+        void createLandingHdriEnvironment(renderer, scene, envTex).then((env) => {
+          if (sceneDisposed) {
+            env.dispose();
+            return;
+          }
+          hdriEnvironment = env;
+          syncLandingRealism();
+        });
+      }
     } catch (err) {
       console.warn("Post-processing unavailable, falling back to direct render:", err);
       composer?.dispose();
@@ -1777,7 +1884,6 @@ export function createCosmicMonolithScene(
   let visibilityPause: ReturnType<typeof attachVisibilityPause> | null = null;
   const clock = new THREE.Clock();
 
-  const landingRenderTuning = options?.landingTravelling ? createLandingRenderTuningState() : null;
   const atmoLayerFlags = readLandingAtmoLayerFlags();
   /** Godrays écran + émetteur cube = traînées ; off sur landing sauf `?atmoGodrays=1`. */
   if (
@@ -1842,6 +1948,7 @@ export function createCosmicMonolithScene(
       Math.max(4, Math.floor(drawW * LANDING_BLOOM_RES_SCALE)),
       Math.max(4, Math.floor(drawH * LANDING_BLOOM_RES_SCALE)),
     );
+    postRealism?.resize(viewWidth, viewHeight, pixelRatio);
   };
 
   let adaptiveDpr: ReturnType<typeof createLandingAdaptiveDpr> | null = null;
@@ -1861,8 +1968,26 @@ export function createCosmicMonolithScene(
     }
   }
 
+  const syncLandingRealism = () => {
+    if (!landingRenderTuning) return;
+    const t = landingRenderTuning;
+    hdriEnvironment?.setEnabled(t.hdriEnvironment);
+    hdriEnvironment?.setIntensity(t.hdriIntensity);
+    const dprLow = renderer.getPixelRatio() < 1.5;
+    postRealism?.setGtaoEnabled(t.highQualityAo && !dprLow);
+    postRealism?.setPortalVolumeStrength(
+      t.portalVolumetric ? t.portalVolumetricStrength : 0,
+    );
+    puddleReflection?.setEnabled(t.puddleReflection);
+    const pathPlaying = landingRig?.handle.isPathPlaying() ?? false;
+    const dofOk = t.depthOfField && !pathPlaying && cameraTransition === null;
+    postRealism?.setBokehEnabled(dofOk);
+    postRealism?.setBokehStrength(t.depthOfFieldStrength);
+  };
+
   const applyLandingTuning = () => {
     if (!landingRenderTuning) return;
+    syncLandingRealism();
     renderer.getDrawingBufferSize(scatterBufferSize);
     syncLandingPostFromAtmosphere(
       landingRenderTuning,
@@ -1927,6 +2052,14 @@ export function createCosmicMonolithScene(
     groundBounceLight.intensity = 16.0 * glow * pulse * flicker;
 
     for (const mat of mistMaterials) mat.uniforms.uTime.value = t;
+    puddleReflection?.tick(dt);
+    if (postRealism?.portalVolumePass?.enabled) {
+      const volU = postRealism.portalVolumePass.material.uniforms;
+      volU.uTime.value = t;
+      volU.uPortal.value.set(GAP_CENTER_X, portalFootY + PORTAL_HEIGHT * 0.42, PORTAL_WORLD_Z);
+      volU.uCameraNear.value = camera.near;
+      volU.uCameraFar.value = camera.far;
+    }
     // Eau presque figée
     if (water) (water.material as THREE.ShaderMaterial).uniforms.time.value += dt * 0.12;
     marbleMonolith.update(t);
@@ -1942,6 +2075,18 @@ export function createCosmicMonolithScene(
 
     const rigOwnsCamera = landingRig?.update(dt) ?? false;
     adaptiveDpr?.tick(dt);
+    if (
+      landingRenderTuning?.highQualityAo &&
+      renderer.getPixelRatio() < 1.5 &&
+      postRealism?.gtaoPass?.enabled
+    ) {
+      postRealism.setGtaoEnabled(false);
+    }
+    if (landingRenderTuning?.depthOfField) {
+      const dofOk =
+        cameraTransition === null && !landingRig?.handle.isPathPlaying();
+      postRealism?.setBokehEnabled(dofOk);
+    }
     if (!rigOwnsCamera && cameraTransition) {
       cameraTransition.elapsed += dt;
       const u = Math.min(1, cameraTransition.elapsed / cameraTransition.duration);
@@ -2106,6 +2251,9 @@ export function createCosmicMonolithScene(
       visibilityPause = null;
       renderer.setAnimationLoop(null);
       canvas.removeEventListener("pointerdown", onPointerDown);
+      postRealism?.dispose();
+      hdriEnvironment?.dispose();
+      puddleReflection?.dispose();
       adaptiveDpr?.dispose();
       landingRig?.dispose();
       aegisText?.dispose();
@@ -2175,6 +2323,15 @@ export function createCosmicMonolithScene(
             if (partial.autoPixelRatio === true) {
               adaptiveDpr?.setManualRatio(null);
             }
+            if (
+              partial.groundAntiTiling !== undefined ||
+              partial.groundParallax !== undefined ||
+              partial.groundRoughnessNoise !== undefined ||
+              partial.puddleReflection !== undefined
+            ) {
+              (terrainMat as THREE.MeshStandardMaterial).needsUpdate = true;
+            }
+            syncLandingRealism();
           },
         }
       : {}),

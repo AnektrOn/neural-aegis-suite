@@ -36,7 +36,9 @@ Tu n’as pas besoin d’un « pack environnement complet ». Tu complètes **co
 
 | Élément | Où |
 |---------|-----|
-| Sol wasteland PBR | `textures/shore/windswept-wasteland-ue/` (`_albedo`, `_roughness`, `_normal-dx`) |
+| Sol wasteland PBR | `textures/shore/windswept-wasteland-ue/` (`_albedo`, `_roughness`, `_normal-dx`, `_height`) |
+| HDRI crépusculaire (IBL option) | `hdri/moonless_golf_1k.hdr` — [Poly Haven CC0](https://polyhaven.com/a/moonless_golf) |
+| LUT ciné (option grade) | `lut/F-6800-STD.cube` si présent ; sinon LUT procédurale (`landingLutLoader.ts`) |
 | Eau / reflets (legacy) | `waternormals.jpeg` + plan eau — à **retirer ou réduire** quand on passera 100 % sec |
 | Cube / marbre / portail | Code (`shatteredCubeAssets`, `marbleMonolithAssets`, monolithes) |
 | Fonts | `fonts/Cinzel_SemiBold.json` |
