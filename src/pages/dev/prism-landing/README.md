@@ -47,6 +47,13 @@ Query params sur `/dev/prism-landing` :
 - `?monolithDebug=hdr` — sans bloom / godrays / grade (silhouette brute)
 - `?monolithDebug=nobloom` | `nogodrays` | `nopost`
 - `?atmoMist=0` | `atmoHaze=0` | `atmoMotes=0` | `atmoPortalSprites=0` | `atmoGodrays=0` | `atmoBloom=0` | `atmoGrade=0`
+- `?composer=three` — pipeline post **three/addons** (godrays radiaux écran) ; défaut = **postprocessing** + godrays volumétriques (`three-good-godrays`)
+
+### Post landing (pmndrs)
+
+- Ordre : `RenderPass` → `GodraysPass` (ombre directionnelle dédiée) → réalisme optionnel (SSAO ex-GTAO, volume portail, DoF) → fog + bloom → grade (encodage sRGB unique).
+- `GodraysPass` : `gammaCorrection: false` (le grade encode la sortie).
+- Parité `?composer=three` : bloom Unreal vs `BloomEffect` (intensity × ~2,85), godrays radiaux vs volumétriques, GTAO three vs SSAO pmndrs.
 
 Preset **Villeneuve** par défaut dans Réglages (multiplicateurs sur l’interpolation atmosphère 0→2).
 

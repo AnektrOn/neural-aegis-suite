@@ -32,6 +32,16 @@ import { createLandingHdriEnvironment } from "./landingHdriEnvironment";
 import { attachLandingPostRealism, type LandingPostRealismBundle } from "./landingPostRealism";
 import { createLandingPuddleReflection, type LandingPuddleReflection } from "./landingPuddleReflection";
 import { applyLandingPuddleReflectionMap } from "./landingPuddleMaterial";
+import {
+  landingComposerRenderTargetType,
+  landingSupportsLut3d,
+} from "./landingWebGLCaps";
+import { readLandingUsePmndrsComposer } from "./landingComposerMode";
+import {
+  createLandingPmndrsPipeline,
+  type LandingPmndrsPipeline,
+} from "./landingPmndrsComposer";
+import { setLandingPmndrsBloomFromBootstrap } from "./landingPmndrsPostBridge";
 
 const LANDING_BLOOM_RES_SCALE = 0.5;
 import {
@@ -519,6 +529,36 @@ const GRADE_SHADER = {
     }
   `,
 };
+
+const GRADE_LUT_UNIFORMS_GLSL = `    uniform sampler3D uLUT;
+    uniform float uLUTSize;
+`;
+
+const GRADE_LUT_APPLY_GLSL = `      if (uLUTStrength > 0.001) {
+        float lutScale = (uLUTSize - 1.0) / uLUTSize;
+        vec3 lutCoord = clamp(col, 0.0, 1.0) * lutScale + 0.5 / uLUTSize;
+        col = mix(col, texture(uLUT, lutCoord).rgb, clamp(uLUTStrength, 0.0, 1.0));
+      }
+
+`;
+
+/** Sans `sampler3D` si WebGL1 / pas de textures 3D (évite erreur précision shader). */
+function resolveLandingGradeShader(enableLut3d: boolean) {
+  if (enableLut3d) return GRADE_SHADER;
+  const uniforms = THREE.UniformsUtils.clone(GRADE_SHADER.uniforms) as Record<
+    string,
+    { value: unknown }
+  >;
+  delete uniforms.uLUT;
+  delete uniforms.uLUTSize;
+  return {
+    uniforms,
+    vertexShader: GRADE_SHADER.vertexShader,
+    fragmentShader: GRADE_SHADER.fragmentShader
+      .replace(GRADE_LUT_UNIFORMS_GLSL, "")
+      .replace(GRADE_LUT_APPLY_GLSL, ""),
+  };
+}
 
 function hash2D(x: number, y: number) {
   const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
@@ -1401,29 +1441,33 @@ export function createCosmicMonolithScene(
   });
   const baseBloomSprite = new THREE.Sprite(baseBloomMat);
   baseBloomSprite.position.set(0, portalFootY + 1.6, portalForwardLocalZ);
-  baseBloomSprite.scale.set(9.2, 9.2, 1);
+  const portalBloomBase = landingTravelling ? 6.2 : 9.2;
+  baseBloomSprite.scale.set(portalBloomBase, portalBloomBase, 1);
   portalLightRig.add(baseBloomSprite);
 
   const portalMistSprites: THREE.Sprite[] = [];
-  for (let i = 0; i < 4; i++) {
-    const mistMat = new THREE.SpriteMaterial({
-      map: warmGlowTex,
-      color: 0xf08c3b,
-      transparent: true,
-      opacity: 0.09,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const sprite = new THREE.Sprite(mistMat);
-    const spreadX = (i - 1.5) * 4.2;
-    sprite.position.set(
-      spreadX,
-      portalFootY + 1.1,
-      1.2 + Math.abs(i - 1.5) * 0.7,
-    );
-    sprite.scale.set(18, 4.6, 1);
-    portalLightRig.add(sprite);
-    portalMistSprites.push(sprite);
+  // Sprites « boules » désactivés sur travelling : le godray écran porte la fente.
+  if (!landingTravelling) {
+    for (let i = 0; i < 4; i++) {
+      const mistMat = new THREE.SpriteMaterial({
+        map: warmGlowTex,
+        color: 0xf08c3b,
+        transparent: true,
+        opacity: 0.09,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const sprite = new THREE.Sprite(mistMat);
+      const spreadX = (i - 1.5) * 4.2;
+      sprite.position.set(
+        spreadX,
+        portalFootY + 1.1,
+        1.2 + Math.abs(i - 1.5) * 0.7,
+      );
+      sprite.scale.set(18, 4.6, 1);
+      portalLightRig.add(sprite);
+      portalMistSprites.push(sprite);
+    }
   }
 
   for (const hx of [-28, -19, 19, 28]) {
@@ -1460,11 +1504,12 @@ export function createCosmicMonolithScene(
   const mistD = options?.landingTravelling ? LANDING_MIST_EXTENT.depth : 110;
   const mistGeo = new THREE.PlaneGeometry(mistW, mistD);
   // Brume plus basse et plus épaisse : nappes serrées près du sol (Arrival)
+  // Landing : brume au-dessus du sol (pas des nappes blanches sur le mesh terrain).
   const mistHeights = options?.landingTravelling
-    ? [0.15, 0.5, 1.05, 2.2]
+    ? [0.85, 1.55, 2.75, 4.2]
     : [0.1, 0.32, 0.65, 1.1, 1.8, 2.9];
   const mistOpacities = options?.landingTravelling
-    ? [0.18, 0.13, 0.09, 0.055]
+    ? [0.07, 0.05, 0.034, 0.02]
     : [0.24, 0.19, 0.14, 0.1, 0.07, 0.045];
   const sceneWaterY = options?.landingTravelling ? LANDING_WATER_LEVEL : WATER_LEVEL;
   const mistMaterials: THREE.ShaderMaterial[] = [];
@@ -1520,37 +1565,6 @@ export function createCosmicMonolithScene(
     mistMeshes.push(layer);
   });
 
-  if (peripheryGeo && options?.landingTravelling) {
-    peripheryMistHeights.forEach((h, i) => {
-      const mat = new THREE.ShaderMaterial({
-        vertexShader: MIST_VERT,
-        fragmentShader: MIST_FRAG,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        uniforms: {
-          uNoise: { value: mistNoiseTex },
-          uTime: { value: 0 },
-          uGlow: { value: 0.35 },
-          uOpacity: { value: peripheryMistOpacities[i] ?? 0.12 },
-          uSeed: { value: new THREE.Vector2(40 + i * 5.1, 12 + i * 2.3) },
-          uPortal: { value: new THREE.Vector3(GAP_CENTER_X, 0, PORTAL_WORLD_Z + PORTAL_SLIT_Z) },
-          uMistCenter: { value: mistCenterXZ.clone() },
-          uMistHalfExtents: { value: peripheryHalf.clone() },
-          uPeripheryVeil: { value: 1 },
-          uCoolColor: { value: new THREE.Color(0.09, 0.1, 0.11) },
-          uWarmColor: { value: new THREE.Color(0.55, 0.48, 0.42) },
-        },
-      });
-      const layer = new THREE.Mesh(peripheryGeo, mat);
-      layer.rotation.x = -Math.PI / 2;
-      layer.position.set(terrainCenterX, sceneWaterY + h, terrainCenterZ);
-      layer.renderOrder = 12 + i;
-      scene.add(layer);
-      mistMaterials.push(mat);
-      mistMeshes.push(layer);
-    });
-  }
 
   let water: Water | null = null;
   const waterNormalsTex = createWaterNormals();
@@ -1597,35 +1611,38 @@ export function createCosmicMonolithScene(
   });
   scene.add(new THREE.Points(starGeo, starMat));
 
-  // Poussière en suspension : moins nombreuse, plus lente, plus discrète
-  const dustCount = 200;
-  const dustGeo = new THREE.BufferGeometry();
-  const dustPositions = new Float32Array(dustCount * 3);
-  const dustSpeeds = new Float32Array(dustCount);
-  const dustPhases = new Float32Array(dustCount);
-  for (let i = 0; i < dustCount; i++) {
-    dustPositions[i * 3] = GAP_LEFT - 0.8 + Math.random() * (GAP_WIDTH + 2.2);
-    dustPositions[i * 3 + 1] = portalFootY + Math.random() * PORTAL_HEIGHT;
-    dustPositions[i * 3 + 2] = -0.2 + Math.random() * 4.5;
-    dustSpeeds[i] = 0.06 + Math.random() * 0.16;
-    dustPhases[i] = i * 0.37;
-  }
-  dustGeo.setAttribute("position", new THREE.BufferAttribute(dustPositions, 3));
-  dustGeo.setAttribute("aSpeed", new THREE.BufferAttribute(dustSpeeds, 1));
-  dustGeo.setAttribute("aPhase", new THREE.BufferAttribute(dustPhases, 1));
-  const dustTex = createRadialGlowTexture(255, 214, 150);
-  const dustUniforms = {
-    uTime: { value: 0 },
-    uFootY: { value: portalFootY },
-    uTopY: { value: portalFootY + PORTAL_HEIGHT },
-    uMap: { value: dustTex },
-    uOpacity: { value: 0.45 },
-  };
-  const portalDust = new THREE.Points(
-    dustGeo,
-    new THREE.ShaderMaterial({
-      uniforms: dustUniforms,
-      vertexShader: `
+  let dustGeo: THREE.BufferGeometry | null = null;
+  let dustTex: THREE.Texture | null = null;
+  let portalDust: THREE.Points | null = null;
+  if (!landingTravelling) {
+    const dustCount = 200;
+    dustGeo = new THREE.BufferGeometry();
+    const dustPositions = new Float32Array(dustCount * 3);
+    const dustSpeeds = new Float32Array(dustCount);
+    const dustPhases = new Float32Array(dustCount);
+    for (let i = 0; i < dustCount; i++) {
+      dustPositions[i * 3] = GAP_LEFT - 0.8 + Math.random() * (GAP_WIDTH + 2.2);
+      dustPositions[i * 3 + 1] = portalFootY + Math.random() * PORTAL_HEIGHT;
+      dustPositions[i * 3 + 2] = -0.2 + Math.random() * 4.5;
+      dustSpeeds[i] = 0.06 + Math.random() * 0.16;
+      dustPhases[i] = i * 0.37;
+    }
+    dustGeo.setAttribute("position", new THREE.BufferAttribute(dustPositions, 3));
+    dustGeo.setAttribute("aSpeed", new THREE.BufferAttribute(dustSpeeds, 1));
+    dustGeo.setAttribute("aPhase", new THREE.BufferAttribute(dustPhases, 1));
+    dustTex = createRadialGlowTexture(255, 214, 150);
+    const dustUniforms = {
+      uTime: { value: 0 },
+      uFootY: { value: portalFootY },
+      uTopY: { value: portalFootY + PORTAL_HEIGHT },
+      uMap: { value: dustTex },
+      uOpacity: { value: 0.45 },
+    };
+    portalDust = new THREE.Points(
+      dustGeo,
+      new THREE.ShaderMaterial({
+        uniforms: dustUniforms,
+        vertexShader: `
         attribute float aSpeed;
         attribute float aPhase;
         uniform float uTime;
@@ -1640,11 +1657,12 @@ export function createCosmicMonolithScene(
             position.z + cos(uTime * 0.3 + aPhase * 1.7) * 0.035
           );
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          gl_PointSize = 18.0 * (280.0 / max(-mv.z, 1.0));
+          float size = 18.0 * (280.0 / max(-mv.z, 1.0));
+          gl_PointSize = clamp(size, 2.0, 96.0);
           gl_Position = projectionMatrix * mv;
         }
       `,
-      fragmentShader: `
+        fragmentShader: `
         uniform sampler2D uMap;
         uniform float uOpacity;
         void main() {
@@ -1653,12 +1671,13 @@ export function createCosmicMonolithScene(
           gl_FragColor = vec4(tex.rgb, tex.a * uOpacity);
         }
       `,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    }),
-  );
-  scene.add(portalDust);
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    scene.add(portalDust);
+  }
 
   const marbleMonolithHeight = 6.4;
   const marbleFootY = getTerrainHeight(
@@ -1766,20 +1785,67 @@ export function createCosmicMonolithScene(
   };
 
   let composer: EffectComposer | null = null;
+  let pmndrsPipeline: LandingPmndrsPipeline | null = null;
   let fogScatteringPass: ShaderPass | null = null;
   let godrayPass: ShaderPass | null = null;
   let bloomPass: UnrealBloomPass | null = null;
   let gradePass: ShaderPass | null = null;
+  const usePmndrsComposer =
+    landingTravelling && readLandingUsePmndrsComposer(landingTravelling);
   if (USE_POSTFX) {
     try {
       renderer.toneMapping = THREE.NoToneMapping;
+      if (usePmndrsComposer) {
+        pmndrsPipeline = createLandingPmndrsPipeline({
+          renderer,
+          scene,
+          camera,
+          width,
+          height,
+          pixelRatio,
+          portalFootY,
+          landingLut: options?.landingLut,
+          performanceProfile,
+        });
+        if (scene.fog instanceof THREE.FogExp2) {
+          scene.fog.density = LANDING_WASTELAND_POST.fogDensity;
+          setLandingPmndrsBloomFromBootstrap(
+            pmndrsPipeline.postFx.bloom,
+            LANDING_WASTELAND_POST.bloomStrength,
+            LANDING_WASTELAND_POST.bloomRadius,
+            LANDING_WASTELAND_POST.bloomThreshold,
+          );
+        }
+        if (landingRenderTuning && renderer.capabilities.isWebGL2) {
+          puddleReflection = createLandingPuddleReflection(
+            renderer,
+            scene,
+            camera,
+            terrainMesh.position,
+          );
+          applyLandingPuddleReflectionMap(
+            terrainMat as THREE.MeshStandardMaterial,
+            () => puddleReflection?.texture ?? null,
+            () => landingRenderTuning.puddleReflection,
+          );
+          void createLandingHdriEnvironment(renderer, scene, envTex).then((env) => {
+            if (sceneDisposed) {
+              env.dispose();
+              return;
+            }
+            hdriEnvironment = env;
+            syncLandingRealism();
+          });
+        }
+      } else {
       const rtW = Math.max(1, Math.floor(width * pixelRatio));
       const rtH = Math.max(1, Math.floor(height * pixelRatio));
       const depthTexture = landingTravelling
         ? new THREE.DepthTexture(rtW, rtH)
         : undefined;
+      const composerRtType = landingComposerRenderTargetType(renderer);
       const target = new THREE.WebGLRenderTarget(rtW, rtH, {
-        type: THREE.HalfFloatType,
+        type: composerRtType,
         samples: landingTravelling ? 0 : 4,
         depthBuffer: true,
         depthTexture,
@@ -1793,10 +1859,9 @@ export function createCosmicMonolithScene(
         fogScatteringPass.uniforms.uResolution.value.set(width * pixelRatio, height * pixelRatio);
         composer.addPass(fogScatteringPass);
       }
-      if (!landingTravelling) {
-        godrayPass = new ShaderPass(LANDING_GODRAY_SHADER);
-        composer.addPass(godrayPass);
-      }
+      // Godrays radiaux (fente portail) — essentiels sur la landing travelling.
+      godrayPass = new ShaderPass(LANDING_GODRAY_SHADER);
+      composer.addPass(godrayPass);
       // Bloom large et doux, façon halation argentique autour de la fente (force↑, rayon↑, seuil↓)
       const drawW = width * pixelRatio;
       const drawH = height * pixelRatio;
@@ -1810,9 +1875,15 @@ export function createCosmicMonolithScene(
         bloomInit?.bloomThreshold ?? 0.88,
       );
       composer.addPass(bloomPass);
-      gradePass = new ShaderPass(GRADE_SHADER);
+      const gradeLut3d =
+        landingSupportsLut3d(renderer) && Boolean(options?.landingLut);
+      gradePass = new ShaderPass(resolveLandingGradeShader(gradeLut3d));
       gradePass.uniforms.uResolution.value.set(drawW, drawH);
       composer.addPass(gradePass);
+      if (gradeLut3d && gradePass && options?.landingLut) {
+        gradePass.uniforms.uLUT.value = options.landingLut;
+        gradePass.uniforms.uLUTSize.value = options.landingLut.image.width;
+      }
       if (landingTravelling && scene.fog instanceof THREE.FogExp2) {
         applyLandingPostFxBootstrap(
           LANDING_WASTELAND_POST,
@@ -1821,7 +1892,12 @@ export function createCosmicMonolithScene(
           godrayPass,
         );
       }
-      if (landingTravelling && landingRenderTuning && bloomPass) {
+      if (
+        landingTravelling &&
+        landingRenderTuning &&
+        bloomPass &&
+        renderer.capabilities.isWebGL2
+      ) {
         const bloomIndex = composer.passes.indexOf(bloomPass);
         postRealism = attachLandingPostRealism(
           composer,
@@ -1832,10 +1908,6 @@ export function createCosmicMonolithScene(
           pixelRatio,
           Math.max(1, bloomIndex),
         );
-        if (gradePass && options?.landingLut) {
-          gradePass.uniforms.uLUT.value = options.landingLut;
-          gradePass.uniforms.uLUTSize.value = options.landingLut.image.width;
-        }
         puddleReflection = createLandingPuddleReflection(
           renderer,
           scene,
@@ -1856,8 +1928,11 @@ export function createCosmicMonolithScene(
           syncLandingRealism();
         });
       }
+      }
     } catch (err) {
       console.warn("Post-processing unavailable, falling back to direct render:", err);
+      pmndrsPipeline?.dispose();
+      pmndrsPipeline = null;
       composer?.dispose();
       composer = null;
       fogScatteringPass = null;
@@ -1885,15 +1960,6 @@ export function createCosmicMonolithScene(
   const clock = new THREE.Clock();
 
   const atmoLayerFlags = readLandingAtmoLayerFlags();
-  /** Godrays écran + émetteur cube = traînées ; off sur landing sauf `?atmoGodrays=1`. */
-  if (
-    landingTravelling &&
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("atmoGodrays") !== "1"
-  ) {
-    atmoLayerFlags.godrays = false;
-  }
-
   let landingRig: ReturnType<typeof attachLandingTravellingRig> | null = null;
   if (options?.landingTravelling && landingRenderTuning) {
     landingRig = attachLandingTravellingRig({
@@ -1942,6 +2008,11 @@ export function createCosmicMonolithScene(
   const syncPostBufferSizes = () => {
     const drawW = viewWidth * pixelRatio;
     const drawH = viewHeight * pixelRatio;
+    if (pmndrsPipeline) {
+      pmndrsPipeline.syncBufferSizes(viewWidth, viewHeight, pixelRatio);
+      pmndrsPipeline.setGodraysPerfProfile(performanceProfile, pixelRatio);
+      return;
+    }
     fogScatteringPass?.uniforms.uResolution.value.set(drawW, drawH);
     gradePass?.uniforms.uResolution.value.set(drawW, drawH);
     bloomPass?.setSize(
@@ -1955,7 +2026,7 @@ export function createCosmicMonolithScene(
   if (landingRenderTuning) {
     adaptiveDpr = createLandingAdaptiveDpr({
       renderer,
-      composer,
+      composer: pmndrsPipeline ?? composer,
       getMaxRatio: () => perfConfig.maxPixelRatio,
       onApplied: (pr) => {
         pixelRatio = pr;
@@ -1974,21 +2045,32 @@ export function createCosmicMonolithScene(
     hdriEnvironment?.setEnabled(t.hdriEnvironment);
     hdriEnvironment?.setIntensity(t.hdriIntensity);
     const dprLow = renderer.getPixelRatio() < 1.5;
-    postRealism?.setGtaoEnabled(t.highQualityAo && !dprLow);
-    postRealism?.setPortalVolumeStrength(
-      t.portalVolumetric ? t.portalVolumetricStrength : 0,
-    );
-    puddleReflection?.setEnabled(t.puddleReflection);
     const pathPlaying = landingRig?.handle.isPathPlaying() ?? false;
     const dofOk = t.depthOfField && !pathPlaying && cameraTransition === null;
-    postRealism?.setBokehEnabled(dofOk);
-    postRealism?.setBokehStrength(t.depthOfFieldStrength);
+    if (pmndrsPipeline?.realism) {
+      const r = pmndrsPipeline.realism;
+      r.setSsaoEnabled(t.highQualityAo && !dprLow);
+      r.setPortalVolumeStrength(
+        t.portalVolumetric ? t.portalVolumetricStrength : 0,
+      );
+      r.setDofEnabled(dofOk);
+      r.setDofStrength(t.depthOfFieldStrength);
+    } else {
+      postRealism?.setGtaoEnabled(t.highQualityAo && !dprLow);
+      postRealism?.setPortalVolumeStrength(
+        t.portalVolumetric ? t.portalVolumetricStrength : 0,
+      );
+      postRealism?.setBokehEnabled(dofOk);
+      postRealism?.setBokehStrength(t.depthOfFieldStrength);
+    }
+    puddleReflection?.setEnabled(t.puddleReflection);
   };
 
   const applyLandingTuning = () => {
     if (!landingRenderTuning) return;
     syncLandingRealism();
     renderer.getDrawingBufferSize(scatterBufferSize);
+    const pmndrsTargets = pmndrsPipeline?.getPostTargets();
     syncLandingPostFromAtmosphere(
       landingRenderTuning,
       atmosphere.postFx,
@@ -1996,9 +2078,9 @@ export function createCosmicMonolithScene(
         camera,
         renderer,
         fog: scene.fog instanceof THREE.FogExp2 ? scene.fog : null,
-        bloomPass,
-        gradePass,
-        fogScatteringPass,
+        bloomPass: pmndrsTargets?.bloomPass ?? bloomPass,
+        gradePass: pmndrsTargets?.gradePass ?? gradePass,
+        fogScatteringPass: pmndrsTargets?.fogScatteringPass ?? fogScatteringPass,
         fogScatteringAmount: LANDING_WASTELAND_POST.fogScattering,
         fogScatteringResolution: {
           width: scatterBufferSize.x,
@@ -2007,6 +2089,14 @@ export function createCosmicMonolithScene(
       },
       atmoLayerFlags,
     );
+    const gradeU =
+      pmndrsTargets?.gradePass?.uniforms ?? gradePass?.uniforms;
+    if (gradeU?.uLUTStrength) {
+      gradeU.uLUTStrength.value = landingRenderTuning.lutStrength;
+    }
+    if (gradeU?.uToneAgx) {
+      gradeU.uToneAgx.value = landingRenderTuning.toneMappingAgx ? 1 : 0;
+    }
   };
   if (landingRenderTuning) applyLandingTuning();
 
@@ -2044,11 +2134,9 @@ export function createCosmicMonolithScene(
     portalUniforms.uTime.value = t;
     portalUniforms.uIntensity.value = glow * flicker;
 
-    dustUniforms.uTime.value = t;
-
     // Respiration lente de la lumière (≈ 9 s par cycle)
     const pulse = 1 + Math.sin(t * 0.7) * 0.014;
-    baseBloomSprite.scale.set(9.2 * pulse, 9.2 * pulse, 1);
+    baseBloomSprite.scale.set(portalBloomBase * pulse, portalBloomBase * pulse, 1);
     groundBounceLight.intensity = 16.0 * glow * pulse * flicker;
 
     for (const mat of mistMaterials) mat.uniforms.uTime.value = t;
@@ -2059,6 +2147,14 @@ export function createCosmicMonolithScene(
       volU.uPortal.value.set(GAP_CENTER_X, portalFootY + PORTAL_HEIGHT * 0.42, PORTAL_WORLD_Z);
       volU.uCameraNear.value = camera.near;
       volU.uCameraFar.value = camera.far;
+    }
+    if (pmndrsPipeline?.realism) {
+      const portalVol = landingRenderTuning?.portalVolumetric
+        ? landingRenderTuning.portalVolumetricStrength
+        : 0;
+      if (portalVol > 0.001) {
+        pmndrsPipeline.realism.tickPortal(t, rayAnchor);
+      }
     }
     // Eau presque figée
     if (water) (water.material as THREE.ShaderMaterial).uniforms.time.value += dt * 0.12;
@@ -2075,17 +2171,21 @@ export function createCosmicMonolithScene(
 
     const rigOwnsCamera = landingRig?.update(dt) ?? false;
     adaptiveDpr?.tick(dt);
-    if (
-      landingRenderTuning?.highQualityAo &&
-      renderer.getPixelRatio() < 1.5 &&
-      postRealism?.gtaoPass?.enabled
-    ) {
-      postRealism.setGtaoEnabled(false);
+    if (landingRenderTuning?.highQualityAo && renderer.getPixelRatio() < 1.5) {
+      if (pmndrsPipeline?.realism) {
+        pmndrsPipeline.realism.setSsaoEnabled(false);
+      } else if (postRealism?.gtaoPass?.enabled) {
+        postRealism.setGtaoEnabled(false);
+      }
     }
     if (landingRenderTuning?.depthOfField) {
       const dofOk =
         cameraTransition === null && !landingRig?.handle.isPathPlaying();
-      postRealism?.setBokehEnabled(dofOk);
+      if (pmndrsPipeline?.realism) {
+        pmndrsPipeline.realism.setDofEnabled(dofOk);
+      } else {
+        postRealism?.setBokehEnabled(dofOk);
+      }
     }
     if (!rigOwnsCamera && cameraTransition) {
       cameraTransition.elapsed += dt;
@@ -2139,7 +2239,25 @@ export function createCosmicMonolithScene(
       idleThrottleActive = false;
     }
 
-    if (composer && bloomPass && gradePass) {
+    if (pmndrsPipeline) {
+      camera.updateMatrixWorld();
+      const rayMul =
+        (landingRenderTuning?.godrayStrength ?? 1) *
+        glow *
+        LANDING_WASTELAND_POST.godrayScreenMul;
+      const rayStrength = atmoLayerFlags.godrays
+        ? atmosphere.postFx.godrayStrength * rayMul
+        : 0;
+      pmndrsPipeline.updateGodraysFrame({
+        camera,
+        enabled: atmoLayerFlags.godrays,
+        strength: rayStrength,
+        glow,
+      });
+      const gu = pmndrsPipeline.postFx.grade.uniformsRecord;
+      if (gu.uTime) gu.uTime.value = t;
+      pmndrsPipeline.render(dt);
+    } else if (composer && bloomPass && gradePass) {
       camera.updateMatrixWorld();
       if (godrayPass) {
         rayCam.copy(rayAnchor).applyMatrix4(camera.matrixWorldInverse);
@@ -2153,7 +2271,6 @@ export function createCosmicMonolithScene(
             (landingTravelling ? LANDING_WASTELAND_POST.godrayScreenMul : 0.42);
           const portalRays =
             atmoLayerFlags.godrays &&
-            !landingTravelling &&
             rayScreen.x >= 0.04 &&
             rayScreen.x <= 0.96 &&
             rayScreen.y >= 0.04 &&
@@ -2193,6 +2310,7 @@ export function createCosmicMonolithScene(
       camera.aspect = nextWidth / Math.max(nextHeight, 1);
       camera.updateProjectionMatrix();
       renderer.setSize(nextWidth, nextHeight, false);
+      pmndrsPipeline?.setSize(nextWidth, nextHeight);
       composer?.setSize(nextWidth, nextHeight);
       syncPostBufferSizes();
     },
@@ -2265,6 +2383,8 @@ export function createCosmicMonolithScene(
       cubeStudio?.dispose();
       controls.dispose();
       fogScatteringPass = null;
+      pmndrsPipeline?.dispose();
+      pmndrsPipeline = null;
       composer?.dispose();
       if (landingGradientBg instanceof THREE.CanvasTexture) {
         landingGradientBg.dispose();
@@ -2282,9 +2402,9 @@ export function createCosmicMonolithScene(
       }
       monolithRoughnessTex.dispose();
       monolithNormalTex.dispose();
-      dustGeo.dispose();
-      dustTex.dispose();
-      (portalDust.material as THREE.ShaderMaterial).dispose();
+      dustGeo?.dispose();
+      dustTex?.dispose();
+      (portalDust?.material as THREE.ShaderMaterial | undefined)?.dispose();
       mistGeo.dispose();
       mistNoiseTex.dispose();
       waterNormalsTex.dispose();
