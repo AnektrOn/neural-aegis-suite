@@ -9,7 +9,7 @@ export type CosmicMonolithLandingHandle = CosmicMonolithHandle &
   LandingRenderTuningHandle;
 
 /**
- * Scène monolithe + rig travelling / POV pour la landing éditoriale.
+ * Scène monolithe + rig travelling pour la landing éditoriale.
  * N'altère pas le comportement de `createCosmicMonolithScene` utilisé ailleurs (Dev Lab).
  */
 export async function createCosmicMonolithLandingScene(
@@ -17,8 +17,15 @@ export async function createCosmicMonolithLandingScene(
   onCinematicChange?: (on: boolean) => void,
 ): Promise<CosmicMonolithLandingHandle> {
   const shoreGround = await resolveLandingShoreTextures();
-  return createCosmicMonolithScene(canvas, onCinematicChange, {
-    landingTravelling: true,
-    shoreGround,
-  }) as CosmicMonolithLandingHandle;
+  let handle: CosmicMonolithLandingHandle | null = null;
+  try {
+    handle = createCosmicMonolithScene(canvas, onCinematicChange, {
+      landingTravelling: true,
+      shoreGround,
+    }) as CosmicMonolithLandingHandle;
+    return handle;
+  } catch (err) {
+    handle?.dispose();
+    throw err;
+  }
 }

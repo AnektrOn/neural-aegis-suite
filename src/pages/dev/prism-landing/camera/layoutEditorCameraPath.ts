@@ -16,6 +16,8 @@ export function createLayoutEditorPathSampler(
   if (keyframes.length < 2) return null;
 
   const sorted = [...keyframes].sort((a, b) => a.u - b.u);
+  const pathSamplePos = new THREE.Vector3();
+  const pathSampleLook = new THREE.Vector3();
   const samples: PathSampleKeyframe[] = sorted.map((k) => ({
     u: k.u,
     position: new THREE.Vector3(k.position.x, k.position.y, k.position.z),
@@ -25,7 +27,10 @@ export function createLayoutEditorPathSampler(
   return {
     keyframes: sorted,
     sample(u: number) {
-      return samplePathAtKeyframeU(samples, u);
+      return samplePathAtKeyframeU(samples, u, {
+        position: pathSamplePos,
+        lookAt: pathSampleLook,
+      });
     },
   };
 }

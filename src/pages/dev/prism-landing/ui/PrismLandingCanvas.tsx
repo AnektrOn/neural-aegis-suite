@@ -1,6 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { LANDING_CAMERA_KEYFRAMES } from "../layout/sceneLayout";
-import { keyframeStepIndexForU } from "../camera/pathSamplerByKeyframeU";
+import {
+  keyframeStepIndexForU,
+  sortPathKeyframesByU,
+} from "../camera/pathSamplerByKeyframeU";
 import type { CosmicMonolithLandingHandle } from "../scene/createCosmicMonolithLandingScene";
 import {
   LANDING_RENDER_TUNING_DEFAULTS,
@@ -100,6 +103,9 @@ export default function PrismLandingCanvas() {
         fit();
         setReady(true);
       } catch (err) {
+        handle?.dispose();
+        handle = null;
+        handleRef.current = null;
         if (!disposed) {
           setError(friendlyError(err));
         }
@@ -108,9 +114,11 @@ export default function PrismLandingCanvas() {
 
     const playTick = window.setInterval(() => {
       const h = handleRef.current;
-      if (!h?.isPathPlaying()) return;
-      setPathU(h.getPathU());
-      setPathPlaying(true);
+      if (!h) return;
+      const u = h.getPathU();
+      const playing = h.isPathPlaying();
+      setPathU((prev) => (prev !== u ? u : prev));
+      setPathPlaying((prev) => (prev !== playing ? playing : prev));
     }, PATH_UI_SYNC_MS);
 
     return () => {
@@ -127,7 +135,7 @@ export default function PrismLandingCanvas() {
   const controlsDisabled = !ready || error !== null;
 
   const pathKeyframes = useMemo(
-    () => [...LANDING_CAMERA_KEYFRAMES].sort((a, b) => a.u - b.u),
+    () => sortPathKeyframesByU([...LANDING_CAMERA_KEYFRAMES]),
     [],
   );
   const pathStepIndex = keyframeStepIndexForU(pathKeyframes, pathU);

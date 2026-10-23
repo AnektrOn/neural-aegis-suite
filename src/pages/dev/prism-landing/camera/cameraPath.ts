@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import { LANDING_CAMERA_KEYFRAMES, type PathHeightMode } from "../layout/sceneLayout";
-import { samplePathAtKeyframeU, type PathSampleKeyframe } from "./pathSamplerByKeyframeU";
+import {
+  samplePathAtKeyframeU,
+  sortPathKeyframesByU,
+  type PathSampleKeyframe,
+} from "./pathSamplerByKeyframeU";
 
 export type { PathHeightMode };
 export type PathExhibit = "intro" | "cube" | "marble" | "pillars";
@@ -78,11 +82,16 @@ export function createCameraPathSampler(
     };
   });
 
-  const pathSamples: PathSampleKeyframe[] = keyframes.map((k) => ({
-    u: k.u,
-    position: k.position,
-    lookAt: k.lookAt,
-  }));
+  const pathSamples: PathSampleKeyframe[] = sortPathKeyframesByU(
+    keyframes.map((k) => ({
+      u: k.u,
+      position: k.position,
+      lookAt: k.lookAt,
+    })),
+  );
+
+  const pathSamplePos = new THREE.Vector3();
+  const pathSampleLook = new THREE.Vector3();
 
   const exhibitSpans = keyframes.map((k, i) => ({
     u0: k.u,
@@ -93,7 +102,10 @@ export function createCameraPathSampler(
   return {
     keyframes,
     sample(u: number) {
-      return samplePathAtKeyframeU(pathSamples, u);
+      return samplePathAtKeyframeU(pathSamples, u, {
+        position: pathSamplePos,
+        lookAt: pathSampleLook,
+      });
     },
     getExhibit(u: number) {
       const t = THREE.MathUtils.clamp(u, 0, 1);

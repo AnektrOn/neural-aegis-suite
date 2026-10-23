@@ -4,7 +4,6 @@
   z-index: 40;
   isolation: isolate;
   overflow: hidden;
-  width: 100vw;
   height: 100dvh;
   background: #030305;
   color: #e8e8e8;
@@ -139,7 +138,7 @@
   top: max(12px, env(safe-area-inset-top, 0px));
   right: max(12px, env(safe-area-inset-right, 0px));
   width: min(380px, calc(100vw - 24px));
-  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
   display: flex;
   flex-direction: column;
   border-radius: 10px;
