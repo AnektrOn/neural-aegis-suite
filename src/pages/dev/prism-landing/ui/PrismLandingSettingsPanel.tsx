@@ -273,6 +273,123 @@ export default function PrismLandingSettingsPanel({
         </section>
 
         <section className="monolith-panel-section">
+          <h3>Réalisme</h3>
+          <p className="monolith-panel-hint">
+            Effets coûteux — désactivés par défaut sauf sol (anti-tiling).
+          </p>
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>HDRI crépusculaire (IBL)</span>
+            <input
+              type="checkbox"
+              checked={tuning.hdriEnvironment}
+              onChange={(event) => patch({ hdriEnvironment: event.target.checked })}
+            />
+          </label>
+          {tuning.hdriEnvironment ? (
+            <Slider
+              label="Intensité HDRI"
+              min={0}
+              max={1.2}
+              step={0.05}
+              value={tuning.hdriIntensity}
+              onChange={(hdriIntensity) => patch({ hdriIntensity })}
+            />
+          ) : null}
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>Sol : anti-tiling</span>
+            <input
+              type="checkbox"
+              checked={tuning.groundAntiTiling}
+              onChange={(event) => patch({ groundAntiTiling: event.target.checked })}
+            />
+          </label>
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>Sol : parallax (height map)</span>
+            <input
+              type="checkbox"
+              checked={tuning.groundParallax}
+              onChange={(event) => patch({ groundParallax: event.target.checked })}
+            />
+          </label>
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>Sol : bruit roughness</span>
+            <input
+              type="checkbox"
+              checked={tuning.groundRoughnessNoise}
+              onChange={(event) => patch({ groundRoughnessNoise: event.target.checked })}
+            />
+          </label>
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>Volume fente portail</span>
+            <input
+              type="checkbox"
+              checked={tuning.portalVolumetric}
+              onChange={(event) => patch({ portalVolumetric: event.target.checked })}
+            />
+          </label>
+          {tuning.portalVolumetric ? (
+            <Slider
+              label="Force volumétrique"
+              min={0}
+              max={1}
+              step={0.05}
+              value={tuning.portalVolumetricStrength}
+              onChange={(portalVolumetricStrength) => patch({ portalVolumetricStrength })}
+            />
+          ) : null}
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>Reflets flaques (15 FPS)</span>
+            <input
+              type="checkbox"
+              checked={tuning.puddleReflection}
+              onChange={(event) => patch({ puddleReflection: event.target.checked })}
+            />
+          </label>
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>Occlusion ambiante (GTAO)</span>
+            <input
+              type="checkbox"
+              checked={tuning.highQualityAo}
+              onChange={(event) => patch({ highQualityAo: event.target.checked })}
+            />
+          </label>
+          <Slider
+            label="LUT ciné"
+            min={0}
+            max={1}
+            step={0.02}
+            value={tuning.lutStrength}
+            onChange={(lutStrength) => patch({ lutStrength })}
+          />
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>Tone mapping AgX</span>
+            <input
+              type="checkbox"
+              checked={tuning.toneMappingAgx}
+              onChange={(event) => patch({ toneMappingAgx: event.target.checked })}
+            />
+          </label>
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>Profondeur de champ (caméra arrêtée)</span>
+            <input
+              type="checkbox"
+              checked={tuning.depthOfField}
+              onChange={(event) => patch({ depthOfField: event.target.checked })}
+            />
+          </label>
+          {tuning.depthOfField ? (
+            <Slider
+              label="Force DoF"
+              min={0}
+              max={1}
+              step={0.05}
+              value={tuning.depthOfFieldStrength}
+              onChange={(depthOfFieldStrength) => patch({ depthOfFieldStrength })}
+            />
+          ) : null}
+        </section>
+
+        <section className="monolith-panel-section">
           <h3>Qualité</h3>
           <label className="monolith-panel-field monolith-panel-field--checkbox">
             <span>Qualité auto (DPR)</span>

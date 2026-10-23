@@ -43,6 +43,23 @@ export type LandingRenderTuning = {
   autoPixelRatio: boolean;
   /** Si `autoPixelRatio` est faux, DPR fixe (1–2). */
   manualPixelRatio: number;
+  /** IBL crépusculaire (HDRI Poly Haven) en complément du dôme. */
+  hdriEnvironment: boolean;
+  hdriIntensity: number;
+  groundAntiTiling: boolean;
+  groundParallax: boolean;
+  groundRoughnessNoise: boolean;
+  portalVolumetric: boolean;
+  portalVolumetricStrength: number;
+  puddleReflection: boolean;
+  /** GTAO demi-résolution (désactivé si DPR < 1.5). */
+  highQualityAo: boolean;
+  /** LUT ciné (`assets/lut/F-6800-STD.cube` ou fallback). */
+  lutStrength: number;
+  /** AgX plutôt qu'ACES dans le grade (comparaison hautes lumières). */
+  toneMappingAgx: boolean;
+  depthOfField: boolean;
+  depthOfFieldStrength: number;
 };
 
 export type LandingFilterId =
@@ -118,6 +135,19 @@ export const LANDING_RENDER_TUNING_DEFAULTS: LandingRenderTuning = {
   guideLineOpacity: 0.72,
   autoPixelRatio: true,
   manualPixelRatio: 1.5,
+  hdriEnvironment: false,
+  hdriIntensity: 0.35,
+  groundAntiTiling: true,
+  groundParallax: false,
+  groundRoughnessNoise: true,
+  portalVolumetric: false,
+  portalVolumetricStrength: 0.55,
+  puddleReflection: false,
+  highQualityAo: false,
+  lutStrength: 0.42,
+  toneMappingAgx: false,
+  depthOfField: false,
+  depthOfFieldStrength: 0.55,
 };
 
 export const LANDING_FILTER_PRESETS: LandingFilterPreset[] = [
@@ -421,4 +451,6 @@ export function syncLandingRenderTuning(
   set("uVibrance", tuning.vibrance);
   set("uFade", tuning.fade);
   set("uCA", tuning.chromaticAberration);
+  set("uLUTStrength", tuning.lutStrength);
+  set("uToneAgx", tuning.toneMappingAgx ? 1 : 0);
 }
