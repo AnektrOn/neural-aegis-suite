@@ -11,6 +11,9 @@ import PrismLandingSettingsPanel from "./PrismLandingSettingsPanel";
 const DEFAULT_GLOW = 1.15;
 const PATH_UI_SYNC_MS = 200;
 
+const nextFrame = () =>
+  new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
 function friendlyError(err: unknown) {
   const message = err instanceof Error ? err.message : String(err);
   if (/webgl/i.test(message)) {
@@ -23,16 +26,15 @@ export default function PrismLandingCanvasOpt() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<CosmicMonolithLandingHandle | null>(null);
   const glowRef = useRef(DEFAULT_GLOW);
-  const atmosphereRef = useRef(1);
+  const atmosphereRef = useRef(0);
   const pathInputId = useId();
   const glowInputId = useId();
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [glow, setGlow] = useState(DEFAULT_GLOW);
-  const [atmosphere, setAtmosphere] = useState(1);
+  const [atmosphere, setAtmosphere] = useState(0);
   const [pathU, setPathU] = useState(0);
   const [pathPlaying, setPathPlaying] = useState(false);
-  const [pov, setPov] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renderTuning, setRenderTuning] = useState<LandingRenderTuning>(() => ({
     ...LANDING_RENDER_TUNING_DEFAULTS,
@@ -57,8 +59,6 @@ export default function PrismLandingCanvasOpt() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    setReady(false);
-    setError(null);
     let disposed = false;
     let handle: CosmicMonolithLandingHandle | null = null;
 
@@ -92,6 +92,8 @@ export default function PrismLandingCanvasOpt() {
         const { createCosmicMonolithLandingSceneOpt } = await import(
           "../scene/createCosmicMonolithLandingSceneOpt"
         );
+        await nextFrame();
+        await nextFrame();
         if (disposed) return;
         handle = await createCosmicMonolithLandingSceneOpt(canvas);
         if (disposed) {
@@ -122,15 +124,12 @@ export default function PrismLandingCanvasOpt() {
 
     return () => {
       disposed = true;
-      setReady(false);
-      setPathPlaying(false);
       window.clearInterval(playTick);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       observer?.disconnect();
       window.removeEventListener("resize", fit);
       handleRef.current = null;
       handle?.dispose();
-      handle = null;
     };
   }, []);
 
@@ -166,7 +165,7 @@ export default function PrismLandingCanvasOpt() {
         ref={canvasRef}
         className="monolith-r3f-canvas"
         style={{ background: "#0b0f17" }}
-        aria-label="Scène AEGIS : travelling caméra cube, marbre et portail"
+        aria-label="Scène AEGIS (perf optimisée) : travelling caméra cube, marbre et portail"
       />
       {error ? (
         <p className="monolith-webgl-fallback" role="alert">
@@ -193,7 +192,7 @@ export default function PrismLandingCanvasOpt() {
             max={Math.max(0, pathKeyframes.length - 1)}
             step={1}
             value={pathStepIndex}
-            disabled={controlsDisabled || pov}
+            disabled={controlsDisabled}
             onChange={(event) => goToPathStep(Number(event.target.value))}
           />
         </label>
@@ -206,7 +205,7 @@ export default function PrismLandingCanvasOpt() {
             max={1}
             step={0.002}
             value={pathU}
-            disabled={controlsDisabled || pov}
+            disabled={controlsDisabled}
             onChange={(event) => {
               const value = Number(event.target.value);
               setPathU(value);
@@ -219,7 +218,7 @@ export default function PrismLandingCanvasOpt() {
         <button
           type="button"
           aria-pressed={pathPlaying}
-          disabled={controlsDisabled || pov}
+          disabled={controlsDisabled}
           onClick={() => {
             const h = handleRef.current;
             if (!h) return;
@@ -234,33 +233,9 @@ export default function PrismLandingCanvasOpt() {
         >
           {pathPlaying ? "Pause" : "Play"}
         </button>
-        <button
-          type="button"
-          aria-pressed={pov}
-          disabled={controlsDisabled}
-          onClick={() => {
-            const h = handleRef.current;
-            if (!h) return;
-            const next = !pov;
-            h.setPovMode(next);
-            setPov(next);
-            if (next) {
-              setPathPlaying(false);
-              h.pausePath();
-            }
-          }}
-        >
-          {pov ? "Quitter la scène" : "Entrer dans la scène"}
-        </button>
-        {pov ? (
-          <span className="cosmic-dock-hint" role="status">
-            Maintenir pour avancer
-          </span>
-        ) : (
-          <span className="cosmic-dock-hint" role="status">
-            Souris : orbiter / zoom
-          </span>
-        )}
+        <span className="cosmic-dock-hint" role="status">
+          Souris : orbiter / zoom
+        </span>
         <label htmlFor={glowInputId}>
           <span>Intensité</span>
           <input

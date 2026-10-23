@@ -285,63 +285,6 @@ export default function PrismLandingSettingsPanel({
           />
         </section>
 
-        <section className="monolith-panel-section">
-          <h3>3e personne (exploration)</h3>
-          <p className="monolith-panel-hint">Actifs en mode « Entrer dans la scène ».</p>
-          <Slider
-            label="Distance caméra"
-            min={2}
-            max={12}
-            step={0.1}
-            value={tuning.exploreCamDistance}
-            onChange={(exploreCamDistance) => patch({ exploreCamDistance })}
-          />
-          <Slider
-            label="Hauteur caméra"
-            min={0.8}
-            max={5}
-            step={0.1}
-            value={tuning.exploreCamHeight}
-            onChange={(exploreCamHeight) => patch({ exploreCamHeight })}
-          />
-          <Slider
-            label="Suivi caméra (lerp)"
-            min={1}
-            max={18}
-            step={0.5}
-            value={tuning.exploreCamLerp}
-            onChange={(exploreCamLerp) => patch({ exploreCamLerp })}
-          />
-          <Slider
-            label="Rotation corps"
-            min={2}
-            max={24}
-            step={0.5}
-            value={tuning.exploreBodyLerp}
-            onChange={(exploreBodyLerp) => patch({ exploreBodyLerp })}
-          />
-          <Slider
-            label="Vitesse max"
-            min={2}
-            max={12}
-            step={0.25}
-            value={tuning.exploreMaxSpeed}
-            onChange={(exploreMaxSpeed) => patch({ exploreMaxSpeed })}
-          />
-        </section>
-
-        <section className="monolith-panel-section">
-          <h3>Fil conducteur</h3>
-          <Slider
-            label="Opacité ligne"
-            min={0.15}
-            max={1}
-            step={0.01}
-            value={tuning.guideLineOpacity}
-            onChange={(guideLineOpacity) => patch({ guideLineOpacity })}
-          />
-        </section>
-
         {performanceDebug ? (
           <section className="monolith-panel-section" aria-label="Performance (debug)">
             <h3>Performance</h3>

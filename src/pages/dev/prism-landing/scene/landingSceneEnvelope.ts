@@ -1,8 +1,8 @@
 import * as THREE from "three";
 
 /** Marge monde (m) au-delà de la half-extent terrain avant fusion totale dans l'horizon. */
-export const LANDING_PLAYA_FADE_INNER = 0.34;
-export const LANDING_PLAYA_FADE_OUTER = 0.78;
+export const LANDING_PLAYA_FADE_INNER = 0.58;
+export const LANDING_PLAYA_FADE_OUTER = 0.98;
 
 export type LandingPlayaEnvelope = {
   centerX: number;
@@ -40,28 +40,3 @@ float landingPlayaFade(vec3 worldPos) {
   return 1.0 - smoothstep(${LANDING_PLAYA_FADE_INNER.toFixed(2)}, ${LANDING_PLAYA_FADE_OUTER.toFixed(2)}, m);
 }
 `;
-
-/** Aplatit et abaisse le mesh vers les bords pour éviter une « falaise » visible en drone. */
-export function applyLandingTerrainEdgeFalloff(
-  geometry: THREE.BufferGeometry,
-  centerX: number,
-  centerZ: number,
-  halfWidth: number,
-  halfDepth: number,
-) {
-  const pos = geometry.attributes.position;
-  if (!pos) return;
-  const inner = 0.48;
-  const outer = 0.96;
-  for (let i = 0; i < pos.count; i++) {
-    const lx = pos.getX(i);
-    const lz = pos.getZ(i);
-    const wx = lx + centerX;
-    const wz = lz + centerZ;
-    const e = Math.max(Math.abs(wx - centerX) / halfWidth, Math.abs(wz - centerZ) / halfDepth);
-    const t = THREE.MathUtils.smoothstep(inner, outer, e);
-    const y = pos.getY(i);
-    pos.setY(i, y * (1 - t * 0.92) - t * 0.35);
-  }
-  pos.needsUpdate = true;
-}

@@ -126,32 +126,6 @@
   color: rgb(253 230 138 / 0.6);
 }
 
-.prism-landing-opt-badge {
-  position: absolute;
-  z-index: 26;
-  top: 52px;
-  left: 12px;
-  margin: 0;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: rgb(253 230 138 / 0.9);
-  background: rgb(0 0 0 / 0.45);
-  border-radius: 6px;
-  pointer-events: auto;
-}
-
-.prism-landing-opt-badge a {
-  color: rgb(147 197 253);
-  text-decoration: underline;
-}
-
-.prism-landing-perf-debug {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: rgb(226 232 240 / 0.85);
-}
-
 .prism-landing-back {
   position: absolute;
   z-index: 20;
