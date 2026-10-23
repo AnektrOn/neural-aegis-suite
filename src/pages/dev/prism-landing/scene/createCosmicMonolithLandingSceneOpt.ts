@@ -11,9 +11,16 @@ export async function createCosmicMonolithLandingSceneOpt(
   onCinematicChange?: (on: boolean) => void,
 ): Promise<CosmicMonolithLandingHandle> {
   const shoreGround = await resolveLandingShoreTextures();
-  return createCosmicMonolithScene(canvas, onCinematicChange, {
-    landingTravelling: true,
-    performanceProfile: "optimized",
-    shoreGround,
-  }) as CosmicMonolithLandingHandle;
+  let handle: CosmicMonolithLandingHandle | null = null;
+  try {
+    handle = createCosmicMonolithScene(canvas, onCinematicChange, {
+      landingTravelling: true,
+      performanceProfile: "optimized",
+      shoreGround,
+    }) as CosmicMonolithLandingHandle;
+    return handle;
+  } catch (err) {
+    handle?.dispose();
+    throw err;
+  }
 }

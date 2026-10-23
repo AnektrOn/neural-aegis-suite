@@ -1675,8 +1675,10 @@ export function createCosmicMonolithScene(
       godrayPass = new ShaderPass(LANDING_GODRAY_SHADER);
       composer.addPass(godrayPass);
       // Bloom large et doux, façon halation argentique autour de la fente (force↑, rayon↑, seuil↓)
-      const bloomW = Math.max(4, Math.floor(width * LANDING_BLOOM_RES_SCALE));
-      const bloomH = Math.max(4, Math.floor(height * LANDING_BLOOM_RES_SCALE));
+      const drawW = width * pixelRatio;
+      const drawH = height * pixelRatio;
+      const bloomW = Math.max(4, Math.floor(drawW * LANDING_BLOOM_RES_SCALE));
+      const bloomH = Math.max(4, Math.floor(drawH * LANDING_BLOOM_RES_SCALE));
       const bloomInit = landingTravelling ? LANDING_WASTELAND_POST : null;
       bloomPass = new UnrealBloomPass(
         new THREE.Vector2(bloomW, bloomH),
@@ -1686,7 +1688,7 @@ export function createCosmicMonolithScene(
       );
       composer.addPass(bloomPass);
       gradePass = new ShaderPass(GRADE_SHADER);
-      gradePass.uniforms.uResolution.value.set(width, height);
+      gradePass.uniforms.uResolution.value.set(drawW, drawH);
       composer.addPass(gradePass);
       if (landingTravelling && scene.fog instanceof THREE.FogExp2) {
         applyLandingPostFxBootstrap(
@@ -1963,15 +1965,15 @@ export function createCosmicMonolithScene(
       camera.updateProjectionMatrix();
       renderer.setSize(nextWidth, nextHeight, false);
       composer?.setSize(nextWidth, nextHeight);
-      fogScatteringPass?.uniforms.uResolution.value.set(
-        nextWidth * pixelRatio,
-        nextHeight * pixelRatio,
-      );
+      // uResolution = pixels du drawing buffer (× DPR), comme le texel stride du fog scattering.
+      const drawW = nextWidth * pixelRatio;
+      const drawH = nextHeight * pixelRatio;
+      fogScatteringPass?.uniforms.uResolution.value.set(drawW, drawH);
+      gradePass?.uniforms.uResolution.value.set(drawW, drawH);
       bloomPass?.setSize(
-        Math.max(4, Math.floor(nextWidth * LANDING_BLOOM_RES_SCALE)),
-        Math.max(4, Math.floor(nextHeight * LANDING_BLOOM_RES_SCALE)),
+        Math.max(4, Math.floor(drawW * LANDING_BLOOM_RES_SCALE)),
+        Math.max(4, Math.floor(drawH * LANDING_BLOOM_RES_SCALE)),
       );
-      gradePass?.uniforms.uResolution.value.set(nextWidth, nextHeight);
     },
     resetCamera() {
       startCameraTransition(DEFAULT_CAM_POS, DEFAULT_TARGET);
@@ -2059,7 +2061,14 @@ export function createCosmicMonolithScene(
         water.geometry.dispose();
         (water.material as THREE.ShaderMaterial).dispose();
       }
+      for (const mat of mistMaterials) {
+        mat.dispose();
+      }
+      terrainMesh.geometry.dispose();
+      (terrainMesh.material as THREE.Material).dispose();
       renderer.dispose();
+      const loseCtx = renderer.getContext().getExtension("WEBGL_lose_context");
+      loseCtx?.loseContext();
       THREE.ColorManagement.enabled = colorManagementWas;
     },
     ...(landingRig?.handle ?? {}),
