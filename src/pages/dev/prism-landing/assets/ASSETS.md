@@ -17,7 +17,7 @@ De l’arrière vers la caméra — chaque couche peut être **code** ou **asset
 | 3. Débris au sol | Casser la plane, échelle, désolation | **Code** (petits cailloux procéduraux) → **Fab 3D** recommandé |
 | 4. Structures héros | Cube, marbre, portail | **Code** (géométrie + textures procédurales) |
 | 5. Lumière fente orange | Mystère, contraste | **Code** (émissif + bloom) |
-| 6. Silhouette humaine | Échelle (plus tard) | Pas encore sur la landing drone |
+| 6. Silhouette humaine | Échelle (plus tard) | Retiré (mode POV supprimé) |
 
 Tu n’as pas besoin d’un « pack environnement complet ». Tu complètes **couche par couche**.
 
@@ -128,10 +128,6 @@ Le portail peut rester en procédural longtemps si la lumière orange porte déj
 
 ---
 
-### Étape E — Personnage silhouette (plus tard)
-
-Mode exploration / marche : **3D** → humanoid **low poly** ou ton rig `character/` existant. **Pas** nécessaire pour le travelling caméra actuel.
-
 ---
 
 ## Ce qu’il ne faut **pas** chercher
@@ -143,11 +139,17 @@ Mode exploration / marche : **3D** → humanoid **low poly** ou ton rig `charact
 
 ---
 
-## Nettoyage disque (inchangé)
+## Nettoyage disque (oct. 2026)
 
-Voir liste bas de page : vieux GLB prism, montagne, zips, halo — **non utilisés** par `/dev/prism-landing`.
+**Supprimé du repo** (non référencé par le code ou mode retiré) :
 
-**À garder :** `waternormals.jpeg` (jusqu’à suppression eau), fonts, lensflare, `shore/windswept-*`, marble PNG si étape C.
+- Archives Megascans : `textures/Marble_Orange_Streaks_1k_8b_2VYvtej.zip`, `textures/Marble_Orange_Streaks_2k_16b_RESwd1n.zip`, `textures/marble/asphalt_crack_umegahkcw_2k_ue_mid.zip`, `textures/marble/Gun_Metal_2k_8b.zip`
+- Personnage / locomotion : dossier `assets/character/`, FBX/GLB humanoïdes (`gltf/*.fbx`, `cartoon_young_boy_glb.zip`, `human_body_base_cartoon*`)
+- Scènes hors sujet : `gltf/snowy-mountain-terrain.glb`, `gltf/prism_from_another_world.glb`, `gltf/halo_hunter_shield*.glb`, `prime-landing-v2/`
+- Lens flare (non branché) : `textures/lensflare/`
+- Font orpheline : `fonts/Inter_Bold.json`
+
+**À garder :** `waternormals.jpeg`, `fonts/Cinzel_SemiBold.json`, `shore/windswept-*` (glob PBR), `textures/marble/**/*.png` (glob marbre), `gltf/Rocks/*.glb` (glob rochers).
 
 ---
 

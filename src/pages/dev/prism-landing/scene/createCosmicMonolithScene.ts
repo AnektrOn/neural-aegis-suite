@@ -25,11 +25,7 @@ import {
   syncLandingPostFromAtmosphere,
 } from "./landingAtmospherePost";
 import { LANDING_FOG_SCATTERING_SHADER } from "./landingFogScatteringPass";
-import {
-  applyLandingTerrainEdgeFalloff,
-  createLandingPlayaEnvelope,
-} from "./landingSceneEnvelope";
-import { createLandingHorizonSoak, type LandingHorizonSoak } from "./landingHorizonSoak";
+import { createLandingPlayaEnvelope } from "./landingSceneEnvelope";
 
 const LANDING_BLOOM_RES_SCALE = 0.65;
 import {
@@ -37,8 +33,6 @@ import {
   LANDING_TERRAIN_CENTER_X,
   LANDING_TERRAIN_CENTER_Z,
   LANDING_TERRAIN_DEPTH,
-  LANDING_TERRAIN_MESH_DEPTH,
-  LANDING_TERRAIN_MESH_WIDTH,
   LANDING_TERRAIN_WIDTH,
   LANDING_WATER_LEVEL,
   LANDING_WATER_PLANE_SIZE,
@@ -60,11 +54,11 @@ import {
   type PrismPerformanceProfile,
 } from "./prismLandingPerformance";
 import {
-  applyLandingShoreTexturesToTerrain,
   createVilleneuveShoreMaterial,
   createVilleneuveShoreTextures,
   type LandingShoreTextures,
 } from "./landingShoreGround";
+import { disposeLandingWastelandRocks } from "./landingWastelandRocks";
 import { bakeLandingPuddleAttribute } from "./landingTerrainPuddles";
 import {
   applyLandingPostFxBootstrap,
@@ -868,10 +862,10 @@ function createRadialGlowTexture(r: number, g: number, b: number) {
   return tex;
 }
 
-function createPortalEnvironment(renderer: THREE.WebGLRenderer, lowCost = false) {
+function createPortalEnvironment(renderer: THREE.WebGLRenderer) {
   const envScene = new THREE.Scene();
   const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(50, lowCost ? 16 : 64, lowCost ? 8 : 32),
+    new THREE.SphereGeometry(50, 64, 32),
     new THREE.ShaderMaterial({
       side: THREE.BackSide,
       depthWrite: false,
@@ -945,8 +939,6 @@ function createMonolithPillar(
 
 export type CosmicMonolithHandle = {
   resize: (width: number, height: number) => void;
-  /** Landing : hot-swap sol shore après preload PBR (premier frame déjà rendu). */
-  upgradeLandingShoreTextures?: (textures: LandingShoreTextures) => void;
   dispose: () => void;
   resetCamera: () => void;
   focusMarbleMonolith: () => void;
@@ -996,13 +988,11 @@ export function createCosmicMonolithScene(
   const landingTravelling = Boolean(options?.landingTravelling);
   const performanceProfile = options?.performanceProfile ?? "default";
   const perfConfig = resolvePerformanceConfig(performanceProfile);
-  const landingGradientBg = landingTravelling ? null : createLandingGradientBackground();
+  const landingGradientBg = landingTravelling ? createLandingGradientBackground() : null;
   scene.background =
-    landingTravelling
-      ? new THREE.Color(HORIZON_COLOR)
-      : landingGradientBg instanceof THREE.CanvasTexture
-        ? landingGradientBg
-        : new THREE.Color(HORIZON_COLOR);
+    landingGradientBg instanceof THREE.CanvasTexture
+      ? landingGradientBg
+      : new THREE.Color(HORIZON_COLOR);
   // Brouillard plus dense : l'air est lourd, les lointains se dissolvent (Arrival / Dune)
   scene.fog = new THREE.FogExp2(
     HORIZON_COLOR,
@@ -1039,23 +1029,22 @@ export function createCosmicMonolithScene(
   controls.maxDistance = options?.landingTravelling ? 64 : 120;
   controls.update();
 
-  const terrainWidth = options?.landingTravelling ? LANDING_TERRAIN_MESH_WIDTH : 160;
-  const terrainDepth = options?.landingTravelling ? LANDING_TERRAIN_MESH_DEPTH : 140;
-  const terrainSegW = options?.landingTravelling ? 128 : 320;
-  const terrainSegD = options?.landingTravelling ? 128 : 280;
+  const terrainWidth = options?.landingTravelling ? LANDING_TERRAIN_WIDTH : 160;
+  const terrainDepth = options?.landingTravelling ? LANDING_TERRAIN_DEPTH : 140;
+  const terrainSegW = options?.landingTravelling ? 112 : 320;
+  const terrainSegD = options?.landingTravelling ? 112 : 280;
   const terrainCenterX = options?.landingTravelling ? LANDING_TERRAIN_CENTER_X : 0;
   const terrainCenterZ = options?.landingTravelling ? LANDING_TERRAIN_CENTER_Z : 0;
 
   const shoreGround = landingTravelling
     ? (options?.shoreGround ?? createVilleneuveShoreTextures())
     : null;
-  let landingShoreTextures: LandingShoreTextures | null = shoreGround;
   const { normalTex: terrainNormalTex, roughnessTex: terrainRoughnessTex } = landingTravelling
     ? { normalTex: shoreGround!.normal, roughnessTex: shoreGround!.roughness }
     : createTerrainTextures();
   const terrainAlbedoTex = landingTravelling ? shoreGround!.albedo : createTerrainAlbedo();
   const { roughnessTex: monolithRoughnessTex, normalTex: monolithNormalTex } = createMonolithTextures();
-  const envTarget = createPortalEnvironment(renderer, landingTravelling);
+  const envTarget = createPortalEnvironment(renderer);
   const envTex = envTarget.texture;
   scene.environment = envTex;
 
@@ -1085,27 +1074,7 @@ export function createCosmicMonolithScene(
     const wz = posAttr.getZ(i) + terrainCenterZ;
     posAttr.setY(i, getTerrainHeight(wx, wz));
   }
-  if (landingTravelling) {
-    applyLandingTerrainEdgeFalloff(
-      terrainGeo,
-      terrainCenterX,
-      terrainCenterZ,
-      terrainWidth * 0.5,
-      terrainDepth * 0.5,
-    );
-  }
   terrainGeo.computeVertexNormals();
-
-  let horizonSoak: LandingHorizonSoak | null = null;
-  if (landingTravelling) {
-    horizonSoak = createLandingHorizonSoak(terrainCenterX, terrainCenterZ, new THREE.Color(HORIZON_COLOR), {
-      size: 220,
-      innerRadius: 32,
-      outerRadius: 68,
-      y: -0.28,
-    });
-    scene.add(horizonSoak.mesh);
-  }
 
   if (landingTravelling) {
     bakeLandingPuddleAttribute(
@@ -1258,17 +1227,16 @@ export function createCosmicMonolithScene(
     ),
     getGroundHeight: getTerrainHeight,
     applyLightFalloff: applyR128LightFalloff,
-    enableTransform: !landingTravelling,
+    enableTransform: !options?.landingTravelling,
   })
-    .then((built: AegisText3D) => {
+    .then((built) => {
       if (sceneDisposed) {
         built.dispose();
         return;
       }
       aegisText = built;
-      built.setReveal(1);
     })
-    .catch((err: unknown) => {
+    .catch((err) => {
       console.error("AEGIS 3D text failed to load:", err);
     });
 
@@ -1283,7 +1251,7 @@ export function createCosmicMonolithScene(
   const moonDirLight = new THREE.DirectionalLight(0x8791a3, 0.52);
   moonDirLight.position.set(-18, 28, 22);
   moonDirLight.castShadow = true;
-  moonDirLight.shadow.mapSize.set(landingTravelling ? 1024 : 2048, landingTravelling ? 1024 : 2048);
+  moonDirLight.shadow.mapSize.set(2048, 2048);
   moonDirLight.shadow.camera.near = 2;
   moonDirLight.shadow.camera.far = 90;
   const dCam = 26;
@@ -1303,8 +1271,8 @@ export function createCosmicMonolithScene(
   /* SpotLight : faisceau net découpé par les piliers, légèrement plus chaud-ocre. */
   const portalSpotLight = new THREE.SpotLight(0xf79a3a, 65.0, 95, Math.PI * 0.28, 0.6, 1.4);
   portalSpotLight.position.set(0, portalFootY + 2.2, -0.35);
-  portalSpotLight.castShadow = PORTAL_SPOT_SHADOWS && !landingTravelling;
-  if (PORTAL_SPOT_SHADOWS && !landingTravelling) {
+  portalSpotLight.castShadow = PORTAL_SPOT_SHADOWS;
+  if (PORTAL_SPOT_SHADOWS) {
     portalSpotLight.shadow.mapSize.set(2048, 2048);
     portalSpotLight.shadow.bias = -0.00025;
     portalSpotLight.shadow.normalBias = 0.02;
@@ -1439,7 +1407,7 @@ export function createCosmicMonolithScene(
     options?.landingTravelling ? mistD * 0.52 : 55,
   );
   const peripheryMistHeights = options?.landingTravelling ? [0.25, 1.4, 4.2] : [];
-  const peripheryMistOpacities = options?.landingTravelling ? [0.34, 0.26, 0.18] : [];
+  const peripheryMistOpacities = options?.landingTravelling ? [0.22, 0.16, 0.1] : [];
   const peripheryGeo =
     options?.landingTravelling
       ? new THREE.PlaneGeometry(mistW * 1.22, mistD * 1.22)
@@ -1601,7 +1569,7 @@ export function createCosmicMonolithScene(
     envMap: envTex,
     twoLayer: marbleTwoLayerTextures,
   });
-  marbleMonolith.group.traverse((obj: THREE.Object3D) => {
+  marbleMonolith.group.traverse((obj) => {
     if ((obj as THREE.Mesh).isMesh) {
       obj.castShadow = true;
       obj.receiveShadow = true;
@@ -1638,7 +1606,7 @@ export function createCosmicMonolithScene(
     // Scène déjà éclairée / post-FX : pas de softboxes locales sur le groupe.
     studioLights: false,
   });
-  shatteredCube.group.traverse((obj: THREE.Object3D) => {
+  shatteredCube.group.traverse((obj) => {
     if ((obj as THREE.Mesh).isMesh) {
       obj.castShadow = true;
       obj.receiveShadow = true;
@@ -1688,14 +1656,7 @@ export function createCosmicMonolithScene(
   let godrayPass: ShaderPass | null = null;
   let bloomPass: UnrealBloomPass | null = null;
   let gradePass: ShaderPass | null = null;
-  /** Travelling landing : rendu direct (composer / fog scatter = écran noir sur plusieurs GPU). */
-  const landingUseComposer = USE_POSTFX && !landingTravelling;
-  if (landingTravelling) {
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.02;
-    renderer.setClearColor(HORIZON_COLOR, 1);
-  }
-  if (landingUseComposer) {
+  if (USE_POSTFX) {
     try {
       renderer.toneMapping = THREE.NoToneMapping;
       const target = new THREE.WebGLRenderTarget(width * pixelRatio, height * pixelRatio, {
@@ -1779,28 +1740,14 @@ export function createCosmicMonolithScene(
     landingRig = attachLandingTravellingRig({
       camera,
       controls,
-      canvas,
       scene,
-      terrainMesh,
-      waterLevel: LANDING_WATER_LEVEL,
       getTerrainHeight,
       applyLightFalloff: applyR128LightFalloff,
-      portalFootY,
-      cubeFootY,
-      marbleFootY,
-      marbleMonolithHeight,
-      gapLeft: GAP_LEFT,
-      gapRight: GAP_RIGHT,
-      portalWorldZ: PORTAL_WORLD_Z,
       isSceneDisposed: () => sceneDisposed,
-      onExitExplore: () => {},
-      clearCameraTransition: () => {
-        cameraTransition = null;
-      },
-      setCinematicMode: (on: boolean) => {
+      setCinematicMode: (on) => {
         cinematicMode = on;
       },
-      notifyCinematicChange: (on: boolean) => {
+      notifyCinematicChange: (on) => {
         onCinematicChange?.(on);
       },
       renderTuning: landingRenderTuning,
@@ -1827,7 +1774,7 @@ export function createCosmicMonolithScene(
     bloomPass,
     godrayPass,
   });
-  atmosphere.jump(landingTravelling ? 1 : ATMOSPHERE_START);
+  atmosphere.jump(ATMOSPHERE_START);
 
   const scatterBufferSize = new THREE.Vector2();
   const applyLandingTuning = () => {
@@ -1910,8 +1857,7 @@ export function createCosmicMonolithScene(
 
     if (landingRenderTuning) applyLandingTuning();
 
-    landingRig?.update(dt);
-    const rigOwnsCamera = landingRig?.ownsCamera() ?? false;
+    const rigOwnsCamera = landingRig?.update(dt) ?? false;
     if (!rigOwnsCamera && cameraTransition) {
       cameraTransition.elapsed += dt;
       const u = Math.min(1, cameraTransition.elapsed / cameraTransition.duration);
@@ -1945,7 +1891,6 @@ export function createCosmicMonolithScene(
     ) {
       const canIdleThrottle =
         !landingRig.handle.isPathPlaying() &&
-        !landingRig.handle.getPovMode() &&
         cameraTransition === null &&
         !cinematicMode;
       if (canIdleThrottle) {
@@ -2001,38 +1946,18 @@ export function createCosmicMonolithScene(
       gradePass.uniforms.uTime.value = t;
       composer.render(dt);
     } else {
-      if (landingTravelling) {
-        const expMul = landingRenderTuning?.exposure ?? 1;
-        renderer.toneMappingExposure = atmosphere.postFx.exposure * expMul;
-      }
       renderer.render(scene, camera);
     }
   };
   renderer.setAnimationLoop(loop);
 
   if (perfConfig.pauseWhenHidden) {
-    visibilityPause = attachVisibilityPause(renderer, () => loop, (on: boolean) => {
+    visibilityPause = attachVisibilityPause(renderer, () => loop, (on) => {
       running = on;
     });
   }
 
   return {
-    ...(landingRig?.handle ?? {}),
-    ...(landingTravelling
-      ? {
-          upgradeLandingShoreTextures(textures: LandingShoreTextures) {
-            if (sceneDisposed) {
-              textures.dispose();
-              return;
-            }
-            applyLandingShoreTexturesToTerrain(terrainMesh, textures);
-            if (landingShoreTextures && landingShoreTextures !== textures) {
-              landingShoreTextures.dispose();
-            }
-            landingShoreTextures = textures;
-          },
-        }
-      : {}),
     resize(nextWidth, nextHeight) {
       camera.aspect = nextWidth / Math.max(nextHeight, 1);
       camera.updateProjectionMatrix();
@@ -2057,7 +1982,7 @@ export function createCosmicMonolithScene(
     focusShatteredCube() {
       startCameraTransition(SHATTERED_CUBE_VIEW.camera, SHATTERED_CUBE_VIEW.target);
     },
-    setCinematic(on: boolean) {
+    setCinematic(on) {
       cinematicMode = on;
     },
     setGlow(value) {
@@ -2111,14 +2036,11 @@ export function createCosmicMonolithScene(
       controls.dispose();
       fogScatteringPass = null;
       composer?.dispose();
-      horizonSoak?.dispose();
       if (landingGradientBg instanceof THREE.CanvasTexture) {
         landingGradientBg.dispose();
       }
       envTarget.dispose();
-      if (landingShoreTextures) {
-        landingShoreTextures.dispose();
-      } else if (shoreGround) {
+      if (shoreGround) {
         shoreGround.dispose();
       } else {
         terrainNormalTex.dispose();
@@ -2126,12 +2048,7 @@ export function createCosmicMonolithScene(
         terrainAlbedoTex.dispose();
       }
       if (foregroundRocks) {
-        foregroundRocks.traverse((obj: THREE.Object3D) => {
-          if (!(obj instanceof THREE.Mesh)) return;
-          obj.geometry?.dispose();
-          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-          for (const m of mats) m?.dispose();
-        });
+        disposeLandingWastelandRocks(foregroundRocks);
       }
       monolithRoughnessTex.dispose();
       monolithNormalTex.dispose();
@@ -2145,6 +2062,7 @@ export function createCosmicMonolithScene(
       renderer.dispose();
       THREE.ColorManagement.enabled = colorManagementWas;
     },
+    ...(landingRig?.handle ?? {}),
     ...(landingRenderTuning
       ? {
           getLandingRenderTuning() {

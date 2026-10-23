@@ -10,9 +10,6 @@ Organisation du module `/dev/prism-landing`, `/dev/prism-landing-opt` et `/dev/p
 | `cinematic/` | Contrats shot list, drone moves / post |
 | `layout/` | Positions scène, bounds, terrain, constantes |
 | `scene/` | Construction Three.js (monolithe cosmique, assets) |
-| `monolith/` | Pipeline rendu WebGPU / debug |
-| `character/` | Personnage landing + FBX |
-| `locomotion/` | Marche 3e personne, surface |
 | `components/` | Sous-composants R3F / monolithe |
 | `assets/` | Textures ciblées + fonts — voir **`assets/ASSETS.md`** (inventaire / nettoyage / Fab) |
 | `docs/` | Bibles cinéma + prompt topologie IA |
@@ -32,7 +29,6 @@ Le contrat partagé est dans `scene/prismLandingPerformance.ts`. Le wrapper gold
 **Golden** (`/dev/prism-landing`)
 
 - Play / pause du travelling, scrub `u` et étapes keyframes
-- Mode POV : entrée / sortie, pause path
 - Panneau réglages : sliders, filtres, fermeture
 - Resize fenêtre / panneau
 - Perte de contexte WebGL (si reproduisible) → message fallback
@@ -42,7 +38,7 @@ Le contrat partagé est dans `scene/prismLandingPerformance.ts`. Le wrapper gold
 - Même checklist visuelle et fonctionnelle
 - Panneau réglages : section **Performance** (profil, DPR, pause onglet, throttle idle)
 - Onglet navigateur caché → boucle WebGL en pause (0 frame GPU)
-- Travelling en pause, POV off, orbite souris → throttle idle actif (moins de frames, reprise pleine vitesse au play / POV)
+- Travelling en pause, orbite souris → throttle idle actif (moins de frames, reprise pleine vitesse au play)
 
 ### Atmosphère (debug)
 

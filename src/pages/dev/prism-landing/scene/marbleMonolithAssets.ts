@@ -219,8 +219,8 @@ export function createMarbleMonolithGroup(options: MarbleMonolithOptions = {}): 
     ? createMarbleTwoLayerSideMaterial(two, {
         veinTint: glow,
         veinMask: two.veinMasks[0],
-        veinBlend: 0.36,
-        veinEmissive: 0.58,
+        veinBlend: 0.13,
+        veinEmissive: 0.18,
         envMap: options.envMap,
         envMapIntensity: 0.14,
       })
@@ -229,8 +229,8 @@ export function createMarbleMonolithGroup(options: MarbleMonolithOptions = {}): 
     ? createMarbleTwoLayerSideMaterial(two, {
         veinTint: glow,
         veinMask: two.veinMasks[1],
-        veinBlend: 0.36,
-        veinEmissive: 0.58,
+        veinBlend: 0.13,
+        veinEmissive: 0.18,
         envMap: options.envMap,
         envMapIntensity: 0.14,
       })
@@ -239,8 +239,8 @@ export function createMarbleMonolithGroup(options: MarbleMonolithOptions = {}): 
     ? createMarbleTwoLayerSideMaterial(two, {
         veinTint: glow,
         veinMask: two.veinMasks[2],
-        veinBlend: 0.36,
-        veinEmissive: 0.58,
+        veinBlend: 0.13,
+        veinEmissive: 0.18,
         envMap: options.envMap,
         envMapIntensity: 0.14,
       })
@@ -249,8 +249,8 @@ export function createMarbleMonolithGroup(options: MarbleMonolithOptions = {}): 
     ? createMarbleTwoLayerSideMaterial(two, {
         veinTint: glow,
         veinMask: two.veinMasks[3],
-        veinBlend: 0.36,
-        veinEmissive: 0.58,
+        veinBlend: 0.13,
+        veinEmissive: 0.18,
         envMap: options.envMap,
         envMapIntensity: 0.14,
       })
