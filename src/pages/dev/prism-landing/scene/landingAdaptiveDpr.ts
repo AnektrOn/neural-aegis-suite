@@ -1,12 +1,12 @@
-import type { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import type { WebGLRenderer } from "three";
+import type { LandingComposerResizeTarget } from "./landingComposerResize";
 
 /** Paliers DPR décroissants (le plafond réel vient du profil perf). */
 const DPR_TIERS = [2, 1.5, 1.25, 1] as const;
 
 export type LandingAdaptiveDprOptions = {
   renderer: WebGLRenderer;
-  composer: EffectComposer | null;
+  composer: LandingComposerResizeTarget | null;
   getMaxRatio: () => number;
   /** Rappelé après changement de DPR (resize post-FX, etc.). */
   onApplied: (pixelRatio: number) => void;

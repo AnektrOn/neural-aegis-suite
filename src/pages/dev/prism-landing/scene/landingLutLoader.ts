@@ -6,6 +6,24 @@ const lutCubeUrls = import.meta.glob<string>("../assets/lut/**/*.cube", {
   import: "default",
 });
 
+function finalizeLandingLut3dTexture(
+  rgb01: Float32Array,
+  size: number,
+): THREE.Data3DTexture {
+  const data = new Uint8Array(rgb01.length);
+  for (let i = 0; i < rgb01.length; i++) {
+    data[i] = Math.round(THREE.MathUtils.clamp(rgb01[i], 0, 1) * 255);
+  }
+  const tex = new THREE.Data3DTexture(data, size, size, size);
+  tex.format = THREE.RGBFormat;
+  tex.type = THREE.UnsignedByteType;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.unpackAlignment = 1;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 /** LUT 3D de secours (ciné froid/chaud) si `F-6800-STD.cube` absent du repo. */
 export function createLandingFallbackLutTexture(size = 17): THREE.Data3DTexture {
   const data = new Float32Array(size * size * size * 3);
@@ -25,14 +43,7 @@ export function createLandingFallbackLutTexture(size = 17): THREE.Data3DTexture 
       }
     }
   }
-  const tex = new THREE.Data3DTexture(data, size, size, size);
-  tex.format = THREE.RGBFormat;
-  tex.type = THREE.FloatType;
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  tex.unpackAlignment = 1;
-  tex.needsUpdate = true;
-  return tex;
+  return finalizeLandingLut3dTexture(data, size);
 }
 
 function parseCubeLut(text: string): THREE.Data3DTexture | null {
@@ -56,14 +67,7 @@ function parseCubeLut(text: string): THREE.Data3DTexture | null {
   }
   if (!size || values.length !== size * size * size * 3) return null;
   const data = new Float32Array(values);
-  const tex = new THREE.Data3DTexture(data, size, size, size);
-  tex.format = THREE.RGBFormat;
-  tex.type = THREE.FloatType;
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  tex.unpackAlignment = 1;
-  tex.needsUpdate = true;
-  return tex;
+  return finalizeLandingLut3dTexture(data, size);
 }
 
 /** Charge `assets/lut/F-6800-STD.cube` si présent, sinon LUT procédurale. */

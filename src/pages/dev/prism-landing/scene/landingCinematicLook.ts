@@ -23,21 +23,29 @@ export type LandingPostFxBootstrap = {
   godrayDecay: number;
   godrayDensity: number;
   godrayThreshold: number;
+  /** Poids de chaque échantillon du shader godray (uWeight). Optionnel : 0.14 par défaut. */
+  godrayWeight?: number;
   /** Multiplicateur écran (× atmosphere.postFx.godrayStrength × tuning). */
   godrayScreenMul: number;
 };
 
 /** Wasteland post-pluie : halation douce, rayons discrets, brouillard homogène. */
 export const LANDING_WASTELAND_POST: LandingPostFxBootstrap = {
-  fogDensity: 0.0208,
-  fogScattering: 2.1,
+  fogDensity: 0.0155,
+  fogScattering: 1.15,
   bloomStrength: 0.36,
   bloomRadius: 0.9,
   bloomThreshold: 0.91,
   godrayDecay: 0.931,
-  godrayDensity: 0.76,
-  godrayThreshold: 0.38,
-  godrayScreenMul: 0.28,
+  // Godrays landing : la fente n'est plus entourée de sprites « boules », le halo restant
+  // (baseBloomSprite) vaut ~0.2 en luminance linéaire. Un seuil à 0.38 l'excluait, seul le point
+  // émissif passait → rayons invisibles. Seuil abaissé, densité relevée pour que les rayons
+  // atteignent la source, poids/multiplicateur relevés car la chaîne de facteurs était ~0.005.
+  // Valeurs de départ à ajuster à l'œil (voir godrayScreenMul d'abord).
+  godrayDensity: 0.92,
+  godrayThreshold: 0.12,
+  godrayWeight: 1.0,
+  godrayScreenMul: 1.6,
 };
 
 const terrainAnchor = new THREE.Vector3();
@@ -89,7 +97,9 @@ export function applyLandingPostFxBootstrap(
     godrayPass.uniforms.uDecay.value = bootstrap.godrayDecay;
     godrayPass.uniforms.uDensity.value = bootstrap.godrayDensity;
     godrayPass.uniforms.uThreshold.value = bootstrap.godrayThreshold;
-    if (godrayPass.uniforms.uWeight) godrayPass.uniforms.uWeight.value = 0.14;
+    if (godrayPass.uniforms.uWeight) {
+      godrayPass.uniforms.uWeight.value = bootstrap.godrayWeight ?? 0.14;
+    }
   }
 }
 

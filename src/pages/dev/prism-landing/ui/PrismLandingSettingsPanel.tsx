@@ -346,7 +346,7 @@ export default function PrismLandingSettingsPanel({
             />
           </label>
           <label className="monolith-panel-field monolith-panel-field--checkbox">
-            <span>Occlusion ambiante (GTAO)</span>
+            <span>Occlusion ambiante (SSAO / GTAO si ?composer=three)</span>
             <input
               type="checkbox"
               checked={tuning.highQualityAo}
