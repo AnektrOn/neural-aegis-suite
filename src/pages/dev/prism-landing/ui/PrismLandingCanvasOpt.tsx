@@ -121,18 +121,8 @@ export default function PrismLandingCanvasOpt() {
       }
     })();
 
-    const playTick = window.setInterval(() => {
-      const h = handleRef.current;
-      if (!h) return;
-      const u = h.getPathU();
-      const playing = h.isPathPlaying();
-      setPathU((prev) => (prev !== u ? u : prev));
-      setPathPlaying((prev) => (prev !== playing ? playing : prev));
-    }, PATH_UI_SYNC_MS);
-
     return () => {
       disposed = true;
-      window.clearInterval(playTick);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       observer?.disconnect();
       window.removeEventListener("resize", fit);
@@ -140,6 +130,19 @@ export default function PrismLandingCanvasOpt() {
       handle?.dispose();
     };
   }, []);
+
+  useEffect(() => {
+    if (!ready || !pathPlaying) return;
+    const id = window.setInterval(() => {
+      const h = handleRef.current;
+      if (!h) return;
+      const u = h.getPathU();
+      const playing = h.isPathPlaying();
+      setPathU((prev) => (prev !== u ? u : prev));
+      setPathPlaying((prev) => (prev !== playing ? playing : prev));
+    }, PATH_UI_SYNC_MS);
+    return () => window.clearInterval(id);
+  }, [ready, pathPlaying]);
 
   useEffect(() => {
     if (!ready || !settingsOpen) return;

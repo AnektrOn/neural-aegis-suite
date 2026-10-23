@@ -273,6 +273,37 @@ export default function PrismLandingSettingsPanel({
         </section>
 
         <section className="monolith-panel-section">
+          <h3>Qualité</h3>
+          <label className="monolith-panel-field monolith-panel-field--checkbox">
+            <span>Qualité auto (DPR)</span>
+            <input
+              type="checkbox"
+              checked={tuning.autoPixelRatio}
+              onChange={(event) =>
+                patch({
+                  autoPixelRatio: event.target.checked,
+                })
+              }
+            />
+          </label>
+          {!tuning.autoPixelRatio ? (
+            <Slider
+              label="DPR manuel"
+              min={0.75}
+              max={2}
+              step={0.05}
+              value={tuning.manualPixelRatio}
+              onChange={(manualPixelRatio) => patch({ manualPixelRatio })}
+            />
+          ) : null}
+          {performanceDebug ? (
+            <p className="monolith-panel-hint">
+              DPR effectif : <strong>{performanceDebug.pixelRatio.toFixed(2)}</strong>
+            </p>
+          ) : null}
+        </section>
+
+        <section className="monolith-panel-section">
           <h3>Caméra globale</h3>
           <Slider
             label="FOV"

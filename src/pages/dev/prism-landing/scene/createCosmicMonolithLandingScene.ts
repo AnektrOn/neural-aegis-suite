@@ -21,6 +21,7 @@ export async function createCosmicMonolithLandingScene(
   try {
     handle = createCosmicMonolithScene(canvas, onCinematicChange, {
       landingTravelling: true,
+      performanceProfile: "optimized",
       shoreGround,
     }) as CosmicMonolithLandingHandle;
     return handle;

@@ -39,6 +39,10 @@ export type LandingRenderTuning = {
   exploreBodyLerp: number;
   exploreMaxSpeed: number;
   guideLineOpacity: number;
+  /** Ajuste le DPR selon le FPS (landing). */
+  autoPixelRatio: boolean;
+  /** Si `autoPixelRatio` est faux, DPR fixe (1–2). */
+  manualPixelRatio: number;
 };
 
 export type LandingFilterId =
@@ -112,6 +116,8 @@ export const LANDING_RENDER_TUNING_DEFAULTS: LandingRenderTuning = {
   exploreBodyLerp: 12,
   exploreMaxSpeed: 5.5,
   guideLineOpacity: 0.72,
+  autoPixelRatio: true,
+  manualPixelRatio: 1.5,
 };
 
 export const LANDING_FILTER_PRESETS: LandingFilterPreset[] = [

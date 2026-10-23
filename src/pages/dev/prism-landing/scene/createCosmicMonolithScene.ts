@@ -26,8 +26,9 @@ import {
 } from "./landingAtmospherePost";
 import { LANDING_FOG_SCATTERING_SHADER } from "./landingFogScatteringPass";
 import { createLandingPlayaEnvelope } from "./landingSceneEnvelope";
+import { createLandingAdaptiveDpr } from "./landingAdaptiveDpr";
 
-const LANDING_BLOOM_RES_SCALE = 0.65;
+const LANDING_BLOOM_RES_SCALE = 0.5;
 import {
   LANDING_MIST_EXTENT,
   LANDING_TERRAIN_CENTER_X,
@@ -1004,11 +1005,12 @@ export function createCosmicMonolithScene(
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    // MSAA inutile en landing travelling : le composer tourne avec samples: 0.
+    antialias: !landingTravelling,
     powerPreference: "high-performance",
     alpha: false,
   });
-  const pixelRatio =
+  let pixelRatio =
     performanceProfile === "optimized"
       ? perfConfig.maxPixelRatio
       : Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
@@ -1254,13 +1256,15 @@ export function createCosmicMonolithScene(
   moonDirLight.shadow.mapSize.set(2048, 2048);
   moonDirLight.shadow.camera.near = 2;
   moonDirLight.shadow.camera.far = 90;
-  const dCam = 26;
+  const dCam = landingTravelling ? 18 : 26;
   moonDirLight.shadow.camera.left = -dCam;
   moonDirLight.shadow.camera.right = dCam;
   moonDirLight.shadow.camera.top = dCam;
   moonDirLight.shadow.camera.bottom = -dCam;
   moonDirLight.shadow.bias = -0.0003;
   moonDirLight.shadow.normalBias = 0.025;
+  moonDirLight.shadow.autoUpdate = false;
+  moonDirLight.shadow.needsUpdate = true;
   scene.add(moonDirLight);
 
   const portalLightRig = new THREE.Group();
@@ -1279,6 +1283,8 @@ export function createCosmicMonolithScene(
     portalSpotLight.shadow.focus = 1.0;
     portalSpotLight.shadow.camera.near = 0.25;
     portalSpotLight.shadow.camera.far = 75;
+    portalSpotLight.shadow.autoUpdate = false;
+    portalSpotLight.shadow.needsUpdate = true;
   }
   portalSpotLight.target.position.set(0, portalFootY - 0.2, 12.0 - PORTAL_SLIT_Z);
   portalLightRig.add(portalSpotLight);
@@ -1531,24 +1537,60 @@ export function createCosmicMonolithScene(
   const dustGeo = new THREE.BufferGeometry();
   const dustPositions = new Float32Array(dustCount * 3);
   const dustSpeeds = new Float32Array(dustCount);
+  const dustPhases = new Float32Array(dustCount);
   for (let i = 0; i < dustCount; i++) {
     dustPositions[i * 3] = GAP_LEFT - 0.8 + Math.random() * (GAP_WIDTH + 2.2);
     dustPositions[i * 3 + 1] = portalFootY + Math.random() * PORTAL_HEIGHT;
     dustPositions[i * 3 + 2] = -0.2 + Math.random() * 4.5;
     dustSpeeds[i] = 0.06 + Math.random() * 0.16;
+    dustPhases[i] = i * 0.37;
   }
   dustGeo.setAttribute("position", new THREE.BufferAttribute(dustPositions, 3));
+  dustGeo.setAttribute("aSpeed", new THREE.BufferAttribute(dustSpeeds, 1));
+  dustGeo.setAttribute("aPhase", new THREE.BufferAttribute(dustPhases, 1));
   const dustTex = createRadialGlowTexture(255, 214, 150);
+  const dustUniforms = {
+    uTime: { value: 0 },
+    uFootY: { value: portalFootY },
+    uTopY: { value: portalFootY + PORTAL_HEIGHT },
+    uMap: { value: dustTex },
+    uOpacity: { value: 0.45 },
+  };
   const portalDust = new THREE.Points(
     dustGeo,
-    new THREE.PointsMaterial({
-      size: 0.14,
-      map: dustTex,
-      color: 0xf0c88a,
+    new THREE.ShaderMaterial({
+      uniforms: dustUniforms,
+      vertexShader: `
+        attribute float aSpeed;
+        attribute float aPhase;
+        uniform float uTime;
+        uniform float uFootY;
+        uniform float uTopY;
+        void main() {
+          float span = max(uTopY - uFootY, 0.01);
+          float y = uFootY + mod(position.y - uFootY + uTime * aSpeed, span);
+          vec3 p = vec3(
+            position.x + sin(uTime * 0.4 + aPhase) * 0.05,
+            y,
+            position.z + cos(uTime * 0.3 + aPhase * 1.7) * 0.035
+          );
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = 18.0 * (280.0 / max(-mv.z, 1.0));
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uMap;
+        uniform float uOpacity;
+        void main() {
+          vec4 tex = texture2D(uMap, gl_PointCoord);
+          if (tex.a < 0.02) discard;
+          gl_FragColor = vec4(tex.rgb, tex.a * uOpacity);
+        }
+      `,
       transparent: true,
-      opacity: 0.45,
-      blending: THREE.AdditiveBlending,
       depthWrite: false,
+      blending: THREE.AdditiveBlending,
     }),
   );
   scene.add(portalDust);
@@ -1589,6 +1631,10 @@ export function createCosmicMonolithScene(
   const cubeHalfSize = LAYOUT_CUBE_HALF_SIZE;
   const cubeFootY = getTerrainHeight(SHATTERED_CUBE_WORLD_XZ.x, SHATTERED_CUBE_WORLD_XZ.z);
   const cubeStudio = landingTravelling ? null : createStudioEnvMap(renderer);
+  const markShadowMapsDirty = () => {
+    moonDirLight.shadow.needsUpdate = true;
+    if (PORTAL_SPOT_SHADOWS) portalSpotLight.shadow.needsUpdate = true;
+  };
   const shatteredCube = createShatteredCubeGroup({
     size: cubeHalfSize,
     grid: 10,
@@ -1605,6 +1651,9 @@ export function createCosmicMonolithScene(
     envMapIntensity: landingTravelling ? 0.92 : 1.5,
     // Scène déjà éclairée / post-FX : pas de softboxes locales sur le groupe.
     studioLights: false,
+    onPhaseChange: (phase) => {
+      if (phase !== "hold") markShadowMapsDirty();
+    },
   });
   shatteredCube.group.traverse((obj) => {
     if ((obj as THREE.Mesh).isMesh) {
@@ -1672,8 +1721,10 @@ export function createCosmicMonolithScene(
         fogScatteringPass.uniforms.uResolution.value.set(width * pixelRatio, height * pixelRatio);
         composer.addPass(fogScatteringPass);
       }
-      godrayPass = new ShaderPass(LANDING_GODRAY_SHADER);
-      composer.addPass(godrayPass);
+      if (!landingTravelling) {
+        godrayPass = new ShaderPass(LANDING_GODRAY_SHADER);
+        composer.addPass(godrayPass);
+      }
       // Bloom large et doux, façon halation argentique autour de la fente (force↑, rayon↑, seuil↓)
       const drawW = width * pixelRatio;
       const drawH = height * pixelRatio;
@@ -1779,6 +1830,37 @@ export function createCosmicMonolithScene(
   atmosphere.jump(ATMOSPHERE_START);
 
   const scatterBufferSize = new THREE.Vector2();
+  let viewWidth = width;
+  let viewHeight = height;
+  let landingPostDirty = true;
+  const syncPostBufferSizes = () => {
+    const drawW = viewWidth * pixelRatio;
+    const drawH = viewHeight * pixelRatio;
+    fogScatteringPass?.uniforms.uResolution.value.set(drawW, drawH);
+    gradePass?.uniforms.uResolution.value.set(drawW, drawH);
+    bloomPass?.setSize(
+      Math.max(4, Math.floor(drawW * LANDING_BLOOM_RES_SCALE)),
+      Math.max(4, Math.floor(drawH * LANDING_BLOOM_RES_SCALE)),
+    );
+  };
+
+  let adaptiveDpr: ReturnType<typeof createLandingAdaptiveDpr> | null = null;
+  if (landingRenderTuning) {
+    adaptiveDpr = createLandingAdaptiveDpr({
+      renderer,
+      composer,
+      getMaxRatio: () => perfConfig.maxPixelRatio,
+      onApplied: (pr) => {
+        pixelRatio = pr;
+        syncPostBufferSizes();
+      },
+    });
+    adaptiveDpr.setAutoEnabled(landingRenderTuning.autoPixelRatio);
+    if (!landingRenderTuning.autoPixelRatio) {
+      adaptiveDpr.setManualRatio(landingRenderTuning.manualPixelRatio);
+    }
+  }
+
   const applyLandingTuning = () => {
     if (!landingRenderTuning) return;
     renderer.getDrawingBufferSize(scatterBufferSize);
@@ -1837,14 +1919,7 @@ export function createCosmicMonolithScene(
     portalUniforms.uTime.value = t;
     portalUniforms.uIntensity.value = glow * flicker;
 
-    const dPos = dustGeo.attributes.position.array as Float32Array;
-    for (let i = 0; i < dustCount; i++) {
-      dPos[i * 3 + 1] += dustSpeeds[i] * dt;
-      dPos[i * 3] += Math.sin(t * 0.4 + i) * 0.05 * dt;
-      dPos[i * 3 + 2] += Math.cos(t * 0.3 + i * 1.7) * 0.035 * dt;
-      if (dPos[i * 3 + 1] > portalFootY + PORTAL_HEIGHT) dPos[i * 3 + 1] = portalFootY + 0.1;
-    }
-    dustGeo.attributes.position.needsUpdate = true;
+    dustUniforms.uTime.value = t;
 
     // Respiration lente de la lumière (≈ 9 s par cycle)
     const pulse = 1 + Math.sin(t * 0.7) * 0.014;
@@ -1857,9 +1932,16 @@ export function createCosmicMonolithScene(
     marbleMonolith.update(t);
     shatteredCube.update(t);
 
-    if (landingRenderTuning) applyLandingTuning();
+    if (
+      landingRenderTuning &&
+      (landingPostDirty || atmosphere.isTransitioning())
+    ) {
+      applyLandingTuning();
+      landingPostDirty = false;
+    }
 
     const rigOwnsCamera = landingRig?.update(dt) ?? false;
+    adaptiveDpr?.tick(dt);
     if (!rigOwnsCamera && cameraTransition) {
       cameraTransition.elapsed += dt;
       const u = Math.min(1, cameraTransition.elapsed / cameraTransition.duration);
@@ -1912,7 +1994,7 @@ export function createCosmicMonolithScene(
       idleThrottleActive = false;
     }
 
-    if (composer && bloomPass && gradePass && godrayPass) {
+    if (composer && bloomPass && gradePass) {
       camera.updateMatrixWorld();
       if (godrayPass) {
         rayCam.copy(rayAnchor).applyMatrix4(camera.matrixWorldInverse);
@@ -1961,19 +2043,13 @@ export function createCosmicMonolithScene(
 
   return {
     resize(nextWidth, nextHeight) {
+      viewWidth = nextWidth;
+      viewHeight = nextHeight;
       camera.aspect = nextWidth / Math.max(nextHeight, 1);
       camera.updateProjectionMatrix();
       renderer.setSize(nextWidth, nextHeight, false);
       composer?.setSize(nextWidth, nextHeight);
-      // uResolution = pixels du drawing buffer (× DPR), comme le texel stride du fog scattering.
-      const drawW = nextWidth * pixelRatio;
-      const drawH = nextHeight * pixelRatio;
-      fogScatteringPass?.uniforms.uResolution.value.set(drawW, drawH);
-      gradePass?.uniforms.uResolution.value.set(drawW, drawH);
-      bloomPass?.setSize(
-        Math.max(4, Math.floor(drawW * LANDING_BLOOM_RES_SCALE)),
-        Math.max(4, Math.floor(drawH * LANDING_BLOOM_RES_SCALE)),
-      );
+      syncPostBufferSizes();
     },
     resetCamera() {
       startCameraTransition(DEFAULT_CAM_POS, DEFAULT_TARGET);
@@ -1999,12 +2075,15 @@ export function createCosmicMonolithScene(
     },
     setAtmosphere(level) {
       atmosphere.setLevel(level);
+      landingPostDirty = true;
     },
     animateAtmosphere(level, seconds) {
       atmosphere.animateTo(level, seconds);
+      landingPostDirty = true;
     },
     jumpAtmosphere(level) {
       atmosphere.jump(level);
+      landingPostDirty = true;
     },
     getAtmosphere() {
       return atmosphere.state.level;
@@ -2027,6 +2106,7 @@ export function createCosmicMonolithScene(
       visibilityPause = null;
       renderer.setAnimationLoop(null);
       canvas.removeEventListener("pointerdown", onPointerDown);
+      adaptiveDpr?.dispose();
       landingRig?.dispose();
       aegisText?.dispose();
       aegisText = null;
@@ -2054,6 +2134,9 @@ export function createCosmicMonolithScene(
       }
       monolithRoughnessTex.dispose();
       monolithNormalTex.dispose();
+      dustGeo.dispose();
+      dustTex.dispose();
+      (portalDust.material as THREE.ShaderMaterial).dispose();
       mistGeo.dispose();
       mistNoiseTex.dispose();
       waterNormalsTex.dispose();
@@ -2079,7 +2162,19 @@ export function createCosmicMonolithScene(
           },
           setLandingRenderTuning(partial: Partial<typeof landingRenderTuning>) {
             Object.assign(landingRenderTuning, partial);
-            applyLandingTuning();
+            landingPostDirty = true;
+            if (partial.autoPixelRatio !== undefined) {
+              adaptiveDpr?.setAutoEnabled(partial.autoPixelRatio);
+            }
+            if (
+              partial.manualPixelRatio !== undefined &&
+              !landingRenderTuning.autoPixelRatio
+            ) {
+              adaptiveDpr?.setManualRatio(partial.manualPixelRatio);
+            }
+            if (partial.autoPixelRatio === true) {
+              adaptiveDpr?.setManualRatio(null);
+            }
           },
         }
       : {}),
