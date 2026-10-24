@@ -159,14 +159,6 @@ vec3 acesFilmic(vec3 color) {
   return clamp(color, 0.0, 1.0);
 }
 
-vec3 linearToSRGB(vec3 x) {
-  return mix(
-    12.92 * x,
-    1.055 * pow(max(x, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055,
-    step(vec3(0.0031308), x)
-  );
-}
-
 float luma(vec3 c) {
   return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
@@ -183,7 +175,6 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   );
 
   col = uToneAgx > 0.5 ? agxTone(col) : acesFilmic(col);
-  col = linearToSRGB(col);
 
   col.r += uTemp * 0.14;
   col.b -= uTemp * 0.14;

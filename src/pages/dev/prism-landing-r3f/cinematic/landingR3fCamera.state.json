@@ -1,6 +1,6 @@
 {
   "definitionVersion": "0.4.0",
-  "revisionHistory": ["prism-landing-r3f-mvp-v1"],
+  "revisionHistory": ["r3f-hall-v1"],
   "sheetsById": {
     "Landing Camera": {
       "staticOverrides": {

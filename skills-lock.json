@@ -61,11 +61,23 @@
       "skillPath": "skills/threejs-graphics-optimizer/SKILL.md",
       "computedHash": "504a90d0644b0d7f383b17fd8117722d5c68a7dc4efca4205093f556518d06e6"
     },
+    "threejs-impl-drei": {
+      "source": "OpenAEC-Foundation/Three.js-Claude-Skill-Package",
+      "sourceType": "github",
+      "skillPath": "skills/source/threejs-impl/threejs-impl-drei/SKILL.md",
+      "computedHash": "ace67c6b5a5164e094e25197c9405d07c996b90021f2489102063c45ae398d96"
+    },
     "threejs-impl-post-processing": {
       "source": "Impertio-Studio/Three.js-Claude-Skill-Package",
       "sourceType": "github",
       "skillPath": "skills/source/threejs-impl/threejs-impl-post-processing/SKILL.md",
       "computedHash": "7a97504b7da2dda386987f1e22d1f7b2205783d4f90185434cf38481c2d9d27e"
+    },
+    "threejs-impl-react-three-fiber": {
+      "source": "Impertio-Studio/Three.js-Claude-Skill-Package",
+      "sourceType": "github",
+      "skillPath": "skills/source/threejs-impl/threejs-impl-react-three-fiber/SKILL.md",
+      "computedHash": "a699e29c3f9979ffe3a20935f94ac35be00515e15c4272f1d2039a2d2198cef3"
     },
     "threejs-interaction": {
       "source": "hanzoai/video",

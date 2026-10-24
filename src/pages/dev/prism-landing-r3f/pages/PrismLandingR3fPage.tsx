@@ -1,43 +1,47 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { R3fSceneConfigProvider } from "../config/r3fSceneConfigContext";
 import PrismLandingR3fCanvas from "../ui/PrismLandingR3fCanvas";
-import "@/pages/dev/prism-landing/styles/prism-landing.css";
+import { GodraysHallControls } from "../ui/GodraysHallControls";
+import "../styles/godrays-hall.css";
 
-/** MVP R3F : godrays + bloom + caméra Theatre (2 keyframes). */
-export default function PrismLandingR3fPage() {
+function GodraysHallPageInner() {
   return (
-    <div className="prism-landing-root">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="prism-landing-back gap-2"
-        asChild
-      >
+    <div className="godrays-hall-root">
+      <Button variant="ghost" size="sm" className="godrays-hall-back gap-2" asChild>
         <Link to="/dev">
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Dev Lab
         </Link>
       </Button>
 
-      <div
-        className="pointer-events-none absolute inset-x-0 top-14 z-20 flex flex-col items-center gap-2 px-4 text-center"
-        aria-live="polite"
-      >
-        <p className="text-sm font-medium tracking-wide text-amber-100/90">
-          Prism landing — React Three Fiber (MVP)
-        </p>
-        <p className="max-w-md text-xs text-white/65">
-          Travelling Theatre.js · godrays three-good-godrays · golden inchangée sur{" "}
-          <Link className="pointer-events-auto underline text-amber-200/90" to="/dev/prism-landing">
-            /dev/prism-landing
-          </Link>
-        </p>
-      </div>
+      <div className="godrays-hall-wrap">
+        <header className="godrays-hall-header">
+          <h1>Godrays Hall</h1>
+          <p>
+            Orbite : clic gauche · zoom molette · pan clic droit · fente / godrays dorés au centre · cube à droite
+            (lumière glaciaire) · clic cube = burst / reform
+          </p>
+        </header>
 
-      <div className="prism-landing-canvas">
-        <PrismLandingR3fCanvas />
+        <div className="godrays-hall-stage">
+          <div className="godrays-hall-canvas">
+            <PrismLandingR3fCanvas />
+          </div>
+        </div>
+
+        <GodraysHallControls />
       </div>
     </div>
+  );
+}
+
+/** R3F lab — wasteland, fente / tuile gouttière, godrays (three-good-godrays). */
+export default function PrismLandingR3fPage() {
+  return (
+    <R3fSceneConfigProvider>
+      <GodraysHallPageInner />
+    </R3fSceneConfigProvider>
   );
 }

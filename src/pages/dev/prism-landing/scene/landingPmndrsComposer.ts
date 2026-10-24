@@ -141,6 +141,7 @@ export function createLandingPmndrsPipeline(
   composer.addPass(postPass);
 
   const gradePass = new EffectPass(camera, gradeEffect);
+  // Tone map in shader (linear); pmndrs EffectPass applies a single sRGB encode to screen.
   gradePass.encodeOutput = true;
   composer.addPass(gradePass);
 
