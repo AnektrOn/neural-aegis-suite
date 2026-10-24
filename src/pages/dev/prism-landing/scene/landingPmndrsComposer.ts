@@ -10,15 +10,11 @@ import type { WebGLRenderer } from "three";
 import type { LandingComposerResizeTarget } from "./landingComposerResize";
 import { LANDING_WASTELAND_POST } from "./landingCinematicLook";
 import { createLandingGodraysLight, type LandingGodraysLightRig } from "./landingGodraysLight";
-import {
-  LandingFogScatterEffect,
-  LandingGradeEffect,
-} from "./landingPmndrsEffects";
+import { LandingGradeEffect } from "./landingPmndrsEffects";
 import {
   bindLandingPmndrsLut,
   createLandingPmndrsPostTargets,
   setLandingPmndrsBloomFromBootstrap,
-  setLandingPmndrsFogResolution,
   setLandingPmndrsGradeResolution,
   type LandingPmndrsPostFxHandles,
 } from "./landingPmndrsPostBridge";
@@ -48,6 +44,9 @@ export type LandingPmndrsPipeline = LandingComposerResizeTarget & {
     enabled: boolean;
     strength: number;
     glow: number;
+    portalStrengthFactor: number;
+    pathU: number;
+    pathPlaying: boolean;
   }) => void;
   setGodraysPerfProfile: (profile: PrismPerformanceProfile, pixelRatio: number) => void;
 };
@@ -88,6 +87,7 @@ export function createLandingPmndrsPipeline(
   composer.setSize(width, height);
 
   const renderPass = new RenderPass(scene, camera);
+  renderPass.renderToScreen = false;
   composer.addPass(renderPass);
 
   const slitCenter = new THREE.Vector3(
@@ -106,15 +106,16 @@ export function createLandingPmndrsPipeline(
 
   const godrayColor = new THREE.Color("#d19d7b");
   const godraysPass = new GodraysPass(godraysLight.light, camera, {
-    density: 1 / 160,
-    maxDensity: 0.45,
-    distanceAttenuation: 2,
+    density: 1 / 260,
+    maxDensity: 0.14,
+    distanceAttenuation: 2.4,
     color: godrayColor,
     raymarchSteps: performanceProfile === "optimized" ? 32 : 48,
     blur: true,
     gammaCorrection: false,
     resolutionScale: performanceProfile === "optimized" ? 0.35 : 0.5,
   });
+  godraysPass.enabled = false;
   composer.addPass(godraysPass);
 
   const realism = attachLandingPmndrsRealism(
@@ -123,7 +124,6 @@ export function createLandingPmndrsPipeline(
     composer.passes.length,
   );
 
-  const fogEffect = new LandingFogScatterEffect();
   const bloomEffect = new BloomEffect({
     mipmapBlur: true,
     luminanceThreshold: LANDING_WASTELAND_POST.bloomThreshold,
@@ -136,7 +136,7 @@ export function createLandingPmndrsPipeline(
     bindLandingPmndrsLut(gradeEffect, landingLut, landingLut.image.width);
   }
 
-  const postPass = new EffectPass(camera, fogEffect, bloomEffect);
+  const postPass = new EffectPass(camera, bloomEffect);
   postPass.encodeOutput = false;
   composer.addPass(postPass);
 
@@ -153,7 +153,6 @@ export function createLandingPmndrsPipeline(
 
   const postFx: LandingPmndrsPostFxHandles = {
     bloom: bloomEffect,
-    fog: fogEffect,
     grade: gradeEffect,
   };
 
@@ -167,13 +166,12 @@ export function createLandingPmndrsPipeline(
     pr = ratio;
     const drawW = w * ratio;
     const drawH = h * ratio;
-    setLandingPmndrsFogResolution(fogEffect, drawW, drawH);
     setLandingPmndrsGradeResolution(gradeEffect, drawW, drawH);
   };
   syncBufferSizes(width, height, pixelRatio);
 
-  const baseDensity = 1 / 160;
-  const baseMaxDensity = 0.45;
+  const baseDensity = 1 / 260;
+  const baseMaxDensity = 0.14;
 
   return {
     composer,
@@ -194,26 +192,36 @@ export function createLandingPmndrsPipeline(
       syncBufferSizes(viewW, viewH, ratio);
     },
     syncBufferSizes,
-    updateGodraysFrame({ camera: cam, enabled, strength, glow }) {
+    updateGodraysFrame({
+      camera: cam,
+      enabled,
+      strength,
+      portalStrengthFactor,
+      pathU,
+      pathPlaying,
+    }) {
       godraysLight.updateAim(cam);
-      godraysPass.enabled = enabled && strength > 0.0001;
-      if (!godraysPass.enabled) return;
-      const mul = Math.max(0, strength * glow);
+      const gate = THREE.MathUtils.clamp(portalStrengthFactor, 0, 1);
+      const mul = Math.max(0, strength) * gate;
+      const pathReady = pathPlaying ? pathU >= 0.2 : pathU >= 0.34;
+      const active = enabled && pathReady && gate > 0.58 && mul > 0.0001;
+      godraysPass.enabled = active;
+      if (!active) return;
+      const subtle = THREE.MathUtils.clamp(mul / 0.2, 0, 1);
       godraysPass.setParams({
-        density: baseDensity * (0.65 + mul * 2.2),
-        maxDensity: Math.min(0.72, baseMaxDensity * (0.85 + mul * 1.4)),
+        density: baseDensity * (0.28 + subtle * 0.62),
+        maxDensity: Math.min(0.075, baseMaxDensity * (0.15 + subtle * 0.45) * gate),
         color: godrayColor,
+        distanceAttenuation: 3.4,
+        gammaCorrection: false,
       });
     },
     setGodraysPerfProfile(profile, pixelRatio) {
       const low = profile === "optimized" || pixelRatio < 1.0;
       godraysPass.setParams({
         raymarchSteps: low ? 28 : 48,
-        resolutionScale: low ? 0.32 : 0.5,
+        resolutionScale: low ? 0.3 : 0.5,
       });
-      if (low && pixelRatio < 1.0) {
-        godraysPass.enabled = false;
-      }
     },
     dispose() {
       realism?.dispose();

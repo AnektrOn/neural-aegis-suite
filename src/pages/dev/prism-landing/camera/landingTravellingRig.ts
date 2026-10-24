@@ -66,12 +66,14 @@ export function attachLandingTravellingRig(ctx: LandingTravellingRigContext): La
     controls.target.copy(pathLookTarget);
   };
 
+  /** Réactive OrbitControls sans déplacer la caméra (évite la plongée forcée y=10 après chaque étape u). */
   const enterOrbitMode = () => {
     pathMode = false;
     pathPlaying = false;
     controls.enabled = true;
-    if (camera.position.y < 2) {
-      camera.position.y = 10;
+    const ground = getTerrainHeight(camera.position.x, camera.position.z);
+    if (camera.position.y < ground + 0.15) {
+      camera.position.y = ground + 1.72;
     }
     syncOrbitToPathLook();
   };
@@ -122,7 +124,8 @@ export function attachLandingTravellingRig(ctx: LandingTravellingRigContext): La
       console.error("Landing headlines 3D failed:", err);
     });
 
-  applyPathSample(0);
+  // u≈0.1 = encore drone (y~11) → sol = plaque grise ; pied de cube lisible dès l’ouverture.
+  applyPathSample(0.2);
   enterOrbitMode();
   setCinematicMode(false);
   notifyCinematicChange(false);

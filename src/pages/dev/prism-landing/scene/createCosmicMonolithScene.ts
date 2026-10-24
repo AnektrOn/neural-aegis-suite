@@ -82,6 +82,7 @@ import {
   LANDING_WASTELAND_POST,
 } from "./landingCinematicLook";
 import { LANDING_GODRAY_SHADER, syncLandingGodrayWarmth } from "./landingGodrayPass";
+import { landingPortalGodraysStrengthFactor } from "./landingPortalGodraysGate";
 import type { MarbleTwoLayerTextures } from "./marbleTwoLayerTextures";
 
 const USE_POSTFX = true;
@@ -903,9 +904,10 @@ function createLandingGradientBackground() {
   const ctx = c.getContext("2d");
   if (!ctx) return new THREE.Color(HORIZON_COLOR);
   const g = ctx.createLinearGradient(0, 0, 0, 256);
-  // Ciel brumeux gris-sable (Arrival / Dune) au lieu du violet-lavande
-  g.addColorStop(0, "#8d877c");
-  g.addColorStop(1, "#5f656c");
+  // Ciel bas Arrival / Dune : sombre et désaturé (évite le voile gris plein écran à l’ouverture)
+  g.addColorStop(0, "#0c0d10");
+  g.addColorStop(0.55, "#1a1816");
+  g.addColorStop(1, "#2e2a24");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 2, 256);
   const tex = new THREE.CanvasTexture(c);
@@ -1088,10 +1090,9 @@ export function createCosmicMonolithScene(
       ? landingGradientBg
       : new THREE.Color(HORIZON_COLOR);
   // Brouillard plus dense : l'air est lourd, les lointains se dissolvent (Arrival / Dune)
-  scene.fog = new THREE.FogExp2(
-    HORIZON_COLOR,
-    landingTravelling ? LANDING_WASTELAND_POST.fogDensity : 0.0185,
-  );
+  scene.fog = landingTravelling
+    ? null
+    : new THREE.FogExp2(HORIZON_COLOR, 0.0185);
 
   const camera = new THREE.PerspectiveCamera(DEFAULT_FOV, width / Math.max(height, 1), 0.1, 400);
   camera.position.copy(DEFAULT_CAM_POS);
@@ -1110,16 +1111,18 @@ export function createCosmicMonolithScene(
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(width, height, false);
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = landingTravelling
+    ? THREE.BasicShadowMap
+    : THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = landingTravelling ? 1.02 : 1.0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const controls = new OrbitControls(camera, canvas);
   controls.target.copy(DEFAULT_TARGET);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-  controls.maxPolarAngle = Math.PI / 2 - 0.015;
+  controls.maxPolarAngle = landingTravelling ? Math.PI * 0.44 : Math.PI / 2 - 0.015;
   controls.minDistance = 6;
   controls.maxDistance = options?.landingTravelling ? 64 : 120;
   controls.update();
@@ -1207,7 +1210,13 @@ export function createCosmicMonolithScene(
   const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
   terrainMesh.position.set(terrainCenterX, 0, terrainCenterZ);
   terrainMesh.receiveShadow = true;
-  terrainMesh.castShadow = false;
+  terrainMesh.castShadow = landingTravelling;
+  if (landingTravelling) {
+    const shoreMat = terrainMat as THREE.MeshStandardMaterial;
+    shoreMat.fog = false;
+    shoreMat.envMapIntensity = 0;
+    shoreMat.color.setRGB(1.14, 1.1, 1.04);
+  }
   scene.add(terrainMesh);
 
   if (landingTravelling && landingRenderTuning && shoreGround) {
@@ -1426,6 +1435,7 @@ export function createCosmicMonolithScene(
       },
       terrainCenterX,
       terrainCenterZ,
+      { groundReadable: true },
     );
   }
 
@@ -1502,15 +1512,15 @@ export function createCosmicMonolithScene(
   const mistNoiseTex = createPeriodicNoiseTexture();
   const mistW = options?.landingTravelling ? LANDING_MIST_EXTENT.width : 140;
   const mistD = options?.landingTravelling ? LANDING_MIST_EXTENT.depth : 110;
-  const mistGeo = new THREE.PlaneGeometry(mistW, mistD);
-  // Brume plus basse et plus épaisse : nappes serrées près du sol (Arrival)
-  // Landing : brume au-dessus du sol (pas des nappes blanches sur le mesh terrain).
+  // Landing travelling : pas de nappes de brume au sol (voile gris) — fog moteur + scatter post suffisent.
   const mistHeights = options?.landingTravelling
-    ? [0.85, 1.55, 2.75, 4.2]
+    ? []
     : [0.1, 0.32, 0.65, 1.1, 1.8, 2.9];
   const mistOpacities = options?.landingTravelling
-    ? [0.07, 0.05, 0.034, 0.02]
+    ? []
     : [0.24, 0.19, 0.14, 0.1, 0.07, 0.045];
+  const mistGeo =
+    mistHeights.length > 0 ? new THREE.PlaneGeometry(mistW, mistD) : null;
   const sceneWaterY = options?.landingTravelling ? LANDING_WATER_LEVEL : WATER_LEVEL;
   const mistMaterials: THREE.ShaderMaterial[] = [];
   const mistMeshes: THREE.Mesh[] = [];
@@ -1522,15 +1532,8 @@ export function createCosmicMonolithScene(
     options?.landingTravelling ? mistW * 0.52 : 70,
     options?.landingTravelling ? mistD * 0.52 : 55,
   );
-  const peripheryMistHeights = options?.landingTravelling ? [0.25, 1.4, 4.2] : [];
-  const peripheryMistOpacities = options?.landingTravelling ? [0.22, 0.16, 0.1] : [];
-  const peripheryGeo =
-    options?.landingTravelling
-      ? new THREE.PlaneGeometry(mistW * 1.22, mistD * 1.22)
-      : null;
-  const peripheryHalf = new THREE.Vector2(mistW * 0.58, mistD * 0.58);
-
   mistHeights.forEach((h, i) => {
+    if (!mistGeo) return;
     const mat = new THREE.ShaderMaterial({
       vertexShader: MIST_VERT,
       fragmentShader: MIST_FRAG,
@@ -1807,15 +1810,12 @@ export function createCosmicMonolithScene(
           landingLut: options?.landingLut,
           performanceProfile,
         });
-        if (scene.fog instanceof THREE.FogExp2) {
-          scene.fog.density = LANDING_WASTELAND_POST.fogDensity;
-          setLandingPmndrsBloomFromBootstrap(
-            pmndrsPipeline.postFx.bloom,
-            LANDING_WASTELAND_POST.bloomStrength,
-            LANDING_WASTELAND_POST.bloomRadius,
-            LANDING_WASTELAND_POST.bloomThreshold,
-          );
-        }
+        setLandingPmndrsBloomFromBootstrap(
+          pmndrsPipeline.postFx.bloom,
+          LANDING_WASTELAND_POST.bloomStrength,
+          LANDING_WASTELAND_POST.bloomRadius,
+          LANDING_WASTELAND_POST.bloomThreshold,
+        );
         if (landingRenderTuning && renderer.capabilities.isWebGL2) {
           puddleReflection = createLandingPuddleReflection(
             renderer,
@@ -1960,6 +1960,11 @@ export function createCosmicMonolithScene(
   const clock = new THREE.Clock();
 
   const atmoLayerFlags = readLandingAtmoLayerFlags();
+  if (landingTravelling) {
+    atmoLayerFlags.mist = false;
+    atmoLayerFlags.haze = false;
+    atmoLayerFlags.motes = false;
+  }
   let landingRig: ReturnType<typeof attachLandingTravellingRig> | null = null;
   if (options?.landingTravelling && landingRenderTuning) {
     landingRig = attachLandingTravellingRig({
@@ -1982,7 +1987,7 @@ export function createCosmicMonolithScene(
   const ATMOSPHERE_START = 0;
   const atmosphere = createAtmosphere({
     scene,
-    fog: scene.fog as THREE.FogExp2,
+    fog: scene.fog instanceof THREE.FogExp2 ? scene.fog : null,
     sky: (skyDome.material as THREE.ShaderMaterial).uniforms as {
       uHorizon: { value: THREE.Color };
       uZenith: { value: THREE.Color };
@@ -2137,7 +2142,9 @@ export function createCosmicMonolithScene(
     // Respiration lente de la lumière (≈ 9 s par cycle)
     const pulse = 1 + Math.sin(t * 0.7) * 0.014;
     baseBloomSprite.scale.set(portalBloomBase * pulse, portalBloomBase * pulse, 1);
-    groundBounceLight.intensity = 16.0 * glow * pulse * flicker;
+    groundBounceLight.intensity = landingTravelling
+      ? 2.8 * glow * pulse * flicker
+      : 16.0 * glow * pulse * flicker;
 
     for (const mat of mistMaterials) mat.uniforms.uTime.value = t;
     puddleReflection?.tick(dt);
@@ -2163,7 +2170,7 @@ export function createCosmicMonolithScene(
 
     if (
       landingRenderTuning &&
-      (landingPostDirty || atmosphere.isTransitioning())
+      (landingPostDirty || atmosphere.isTransitioning() || Boolean(pmndrsPipeline))
     ) {
       applyLandingTuning();
       landingPostDirty = false;
@@ -2245,6 +2252,7 @@ export function createCosmicMonolithScene(
         (landingRenderTuning?.godrayStrength ?? 1) *
         glow *
         LANDING_WASTELAND_POST.godrayScreenMul;
+      const portalGodraysFactor = landingPortalGodraysStrengthFactor(camera, rayAnchor);
       const rayStrength = atmoLayerFlags.godrays
         ? atmosphere.postFx.godrayStrength * rayMul
         : 0;
@@ -2253,6 +2261,9 @@ export function createCosmicMonolithScene(
         enabled: atmoLayerFlags.godrays,
         strength: rayStrength,
         glow,
+        portalStrengthFactor: portalGodraysFactor,
+        pathU: landingRig?.handle.getPathU() ?? 0,
+        pathPlaying: landingRig?.handle.isPathPlaying() ?? false,
       });
       const gu = pmndrsPipeline.postFx.grade.uniformsRecord;
       if (gu.uTime) gu.uTime.value = t;
@@ -2330,7 +2341,7 @@ export function createCosmicMonolithScene(
       glow = value;
       portalUniforms.uIntensity.value = value;
       portalSpotLight.intensity = 56.0 * value;
-      groundBounceLight.intensity = 16.0 * value;
+      groundBounceLight.intensity = landingTravelling ? 2.8 * value : 16.0 * value;
       baseBloomMat.opacity = Math.min(1, 0.68 * value);
       leftJambMat.emissiveIntensity = 1.5 * value;
       rightJambMat.emissiveIntensity = 1.5 * value;
@@ -2405,8 +2416,8 @@ export function createCosmicMonolithScene(
       dustGeo?.dispose();
       dustTex?.dispose();
       (portalDust?.material as THREE.ShaderMaterial | undefined)?.dispose();
-      mistGeo.dispose();
-      mistNoiseTex.dispose();
+      mistGeo?.dispose();
+      if (mistHeights.length > 0) mistNoiseTex.dispose();
       waterNormalsTex.dispose();
       if (water) {
         water.geometry.dispose();

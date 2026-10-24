@@ -1,8 +1,9 @@
 import * as THREE from "three";
 
 /** Marge monde (m) au-delà de la half-extent terrain avant fusion totale dans l'horizon. */
-export const LANDING_PLAYA_FADE_INNER = 0.58;
-export const LANDING_PLAYA_FADE_OUTER = 0.98;
+/** Fade horizon seulement sur la bordure extrême (évite plaque grise sur la playa visible). */
+export const LANDING_PLAYA_FADE_INNER = 0.82;
+export const LANDING_PLAYA_FADE_OUTER = 0.99;
 
 export type LandingPlayaEnvelope = {
   centerX: number;

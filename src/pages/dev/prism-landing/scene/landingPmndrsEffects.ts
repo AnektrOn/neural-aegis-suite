@@ -25,6 +25,10 @@ vec3 sampleBlur(vec2 uv, float radiusPx) {
 }
 
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
+  if (uStrength <= 0.0001 && uHorizonVeil <= 0.0001) {
+    outputColor = inputColor;
+    return;
+  }
   vec3 sharp = inputColor.rgb;
   vec3 outCol = sharp;
 
@@ -61,7 +65,7 @@ export class LandingFogScatterEffect extends Effect {
       ["uFogColor", new THREE.Uniform(new THREE.Color(0x17140f))],
       ["uScattering", new THREE.Uniform(2.0)],
       ["uStrength", new THREE.Uniform(0.0)],
-      ["uHorizonVeil", new THREE.Uniform(0.42)],
+      ["uHorizonVeil", new THREE.Uniform(0)],
     ]);
     super("LandingFogScatter", FOG_SCATTER_FRAG, {
       blendFunction: BlendFunction.NORMAL,

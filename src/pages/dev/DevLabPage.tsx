@@ -63,6 +63,17 @@ const FEATURES: DevFeature[] = [
     accent: "from-amber-500/20 to-orange-500/5",
   },
   {
+    path: "/dev/prism-landing-r3f",
+    title: "Landing R3F (MVP)",
+    titleEn: "R3F landing (MVP)",
+    blurb: "Route reconstruction : Theatre.js, godrays three-good-godrays, bloom — sans toucher la golden.",
+    blurbEn: "Reconstruction route: Theatre.js, three-good-godrays, bloom — golden reference untouched.",
+    status: "active",
+    tags: ["R3F", "theatre", "godrays"],
+    icon: Sparkles,
+    accent: "from-violet-500/20 to-fuchsia-500/5",
+  },
+  {
     path: "/dev/prism-landing-opt",
     title: "Landing monolithes (perf)",
     titleEn: "Monolith landing (perf)",

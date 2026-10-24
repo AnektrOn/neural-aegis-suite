@@ -84,7 +84,7 @@ export function syncLandingFogScatteringPass(
   height: number,
 ) {
   const res = uniforms.uResolution as { value: THREE.Vector2 };
-  if (res) res.value.set(width, height);
+  if (res && width > 0 && height > 0) res.value.set(width, height);
   const scatter = uniforms.uScattering as { value: number };
   if (scatter) scatter.value = scattering;
   const str = uniforms.uStrength as { value: number };

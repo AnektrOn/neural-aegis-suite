@@ -31,7 +31,7 @@ export type LandingPostFxBootstrap = {
 
 /** Wasteland post-pluie : halation douce, rayons discrets, brouillard homogène. */
 export const LANDING_WASTELAND_POST: LandingPostFxBootstrap = {
-  fogDensity: 0.0155,
+  fogDensity: 0.0032,
   fogScattering: 1.15,
   bloomStrength: 0.36,
   bloomRadius: 0.9,
@@ -54,23 +54,38 @@ const terrainAnchor = new THREE.Vector3();
  * Éclairage landing : ciel gris-ocre, lune voilée, portail comme seule source chaude forte.
  * Centre les ombres directionnelles sur le terrain compact.
  */
+export type LandingWastelandLightingOptions = {
+  /** Sol lisible (texture PBR) dès le chargement — moins de fill gris hémisphérique. */
+  groundReadable?: boolean;
+};
+
 export function applyLandingWastelandLighting(
   rig: LandingLightRig,
   terrainCenterX: number,
   terrainCenterZ: number,
+  options?: LandingWastelandLightingOptions,
 ) {
   terrainAnchor.set(terrainCenterX, 0, terrainCenterZ);
   rig.moon.target.position.copy(terrainAnchor);
-  rig.moon.intensity = 0.46;
-  rig.moon.color.setHex(0x7c8696);
-  rig.moon.position.set(-14, 26, 18);
-
-  rig.hemi.intensity = 0.33;
-  rig.hemi.color.setHex(0x32363d);
-  rig.hemi.groundColor.setHex(0x1c1611);
-
-  rig.ambient.intensity = 0.16;
-  rig.ambient.color.setHex(0x14161a);
+  if (options?.groundReadable) {
+    rig.moon.intensity = 1.65;
+    rig.moon.color.setHex(0xb0bcc8);
+    rig.moon.position.set(-18, 32, 22);
+    rig.hemi.intensity = 0.11;
+    rig.hemi.color.setHex(0x6a7078);
+    rig.hemi.groundColor.setHex(0x4a3e32);
+    rig.ambient.intensity = 0.07;
+    rig.ambient.color.setHex(0x1a1c20);
+  } else {
+    rig.moon.intensity = 0.58;
+    rig.moon.color.setHex(0x8a94a4);
+    rig.moon.position.set(-14, 26, 18);
+    rig.hemi.intensity = 0.42;
+    rig.hemi.color.setHex(0x3a4048);
+    rig.hemi.groundColor.setHex(0x241e18);
+    rig.ambient.intensity = 0.22;
+    rig.ambient.color.setHex(0x14161a);
+  }
 
   rig.portalSpot.intensity = 58;
   rig.portalSpot.color.setHex(0xf08f38);

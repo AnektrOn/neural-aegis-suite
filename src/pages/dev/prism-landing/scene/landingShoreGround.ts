@@ -371,17 +371,18 @@ metalnessFactor = mix(metalnessFactor, clamp(metalnessFactor + 0.14, 0.0, 0.24),
       "#include <color_fragment>",
       `#include <color_fragment>
 float shoreW2 = shoreWetness(vShoreWorldPos);
-vec3 dryTint = vec3(1.02, 0.98, 0.96);
-vec3 puddleTint = vec3(0.38, 0.42, 0.48);
+vec3 dryTint = vec3(1.08, 1.04, 0.98);
+vec3 puddleTint = vec3(0.52, 0.48, 0.44);
 float meniscus = shoreW2 * shoreW2;
-diffuseColor.rgb *= mix(dryTint, puddleTint, meniscus * 0.58);
-diffuseColor.rgb += vec3(0.04, 0.05, 0.06) * meniscus * (1.0 - shoreW2);
+diffuseColor.rgb *= mix(dryTint, puddleTint, meniscus * 0.38);
+diffuseColor.rgb += vec3(0.02, 0.022, 0.028) * meniscus * (1.0 - shoreW2);
+diffuseColor.rgb = (diffuseColor.rgb - 0.5) * 1.22 + 0.5;
 ${
   playa
     ? `
 float playaK = landingPlayaFade(vShoreWorldPos);
 diffuseColor.rgb = mix(uPlayaHorizon, diffuseColor.rgb, playaK);
-diffuseColor.rgb = mix(diffuseColor.rgb, uPlayaHorizon, (1.0 - playaK) * 0.35);`
+diffuseColor.rgb = mix(diffuseColor.rgb, uPlayaHorizon, (1.0 - playaK) * 0.04);`
     : ""
 }`,
     );
