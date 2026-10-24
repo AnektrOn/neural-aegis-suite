@@ -28,7 +28,7 @@ const DEFAULT_LAYERS: LandingAtmoLayerFlags = {
   godrays: true,
   bloom: true,
   grade: true,
-  fogScatter: true,
+  fogScatter: false,
   mist: true,
   portalSprites: true,
   haze: true,
@@ -87,26 +87,35 @@ export function syncLandingPostFromAtmosphere(
   }
 
   if (fog) {
-    fog.density = atmosphere.fogDensity * tuning.fogDensity;
+    const refFog = 0.011;
+    fog.density = Math.min(
+      0.0028,
+      LANDING_WASTELAND_POST.fogDensity *
+        (atmosphere.fogDensity / refFog) *
+        Math.min(1, tuning.fogDensity),
+    );
   }
 
   if (bloomPass) {
-    bloomPass.strength = layers.bloom
-      ? atmosphere.bloomStrength * tuning.bloomStrength
-      : 0;
+    const raw = layers.bloom ? atmosphere.bloomStrength * tuning.bloomStrength : 0;
+    bloomPass.strength = Math.min(0.055, raw);
   }
 
   if (fogScatteringPass) {
-    const scatter =
-      (fogScatteringAmount ?? LANDING_WASTELAND_POST.fogScattering) * tuning.fogDensity;
+    const scatter = layers.fogScatter
+      ? Math.min(
+          0.42,
+          (fogScatteringAmount ?? LANDING_WASTELAND_POST.fogScattering) * tuning.fogDensity,
+        )
+      : 0;
     const res = fogScatteringResolution ?? { width: 1, height: 1 };
     const veil = fogScatteringPass.uniforms.uHorizonVeil as { value: number } | undefined;
-    if (veil) veil.value = layers.fogScatter ? 0.44 : 0.52;
+    if (veil) veil.value = layers.fogScatter ? 0.1 : 0;
     syncLandingFogScatteringPass(
       fogScatteringPass.uniforms,
       fog ?? null,
       scatter,
-      layers.fogScatter ? 0.72 : 0,
+      layers.fogScatter ? 0.11 : 0,
       res.width,
       res.height,
     );

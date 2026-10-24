@@ -21,6 +21,7 @@ Organisation du module `/dev/prism-landing`, `/dev/prism-landing-opt` et `/dev/p
 |-------|--------|-------------|
 | `/dev/prism-landing` | `PrismLandingPage` → `PrismLandingCanvas` → `createCosmicMonolithLandingScene` | **default** (comportement historique) |
 | `/dev/prism-landing-opt` | `PrismLandingPageOpt` → `PrismLandingCanvasOpt` → `createCosmicMonolithLandingSceneOpt` | **optimized** (DPR adaptatif, throttle rendu idle ~30 FPS, pause onglet caché) |
+| `/dev/prism-landing-r3f` | *(à créer)* — voir `docs/R3F_RECONSTRUCTION_PROMPT.md` | R3F + Theatre + pile imposée (golden inchangée) |
 
 Le contrat partagé est dans `scene/prismLandingPerformance.ts`. Le wrapper golden `createCosmicMonolithLandingScene.ts` reste inchangé (pas de flag perf).
 

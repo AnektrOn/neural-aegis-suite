@@ -1,0 +1,98 @@
+{
+  "definitionVersion": "0.4.0",
+  "revisionHistory": ["prism-landing-r3f-mvp-v1"],
+  "sheetsById": {
+    "Landing Camera": {
+      "staticOverrides": {
+        "byObject": {
+          "Camera": {
+            "fov": 52,
+            "zoom": 1
+          }
+        }
+      },
+      "sequence": {
+        "type": "PositionalSequence",
+        "length": 8,
+        "subUnitsPerUnit": 30,
+        "tracksByObject": {
+          "Camera": {
+            "trackIdByPropPath": {
+              "[\"position\",\"x\"]": "camPosX",
+              "[\"position\",\"y\"]": "camPosY",
+              "[\"position\",\"z\"]": "camPosZ"
+            },
+            "trackData": {
+              "camPosX": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "Camera:[\"position\",\"x\"]",
+                "keyframes": [
+                  {
+                    "id": "camX0",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [0.42, 0, 0.58, 1],
+                    "type": "bezier",
+                    "value": 49.064
+                  },
+                  {
+                    "id": "camX1",
+                    "position": 8,
+                    "connectedRight": true,
+                    "handles": [0.42, 0, 0.58, 1],
+                    "type": "bezier",
+                    "value": 37.776
+                  }
+                ]
+              },
+              "camPosY": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "Camera:[\"position\",\"y\"]",
+                "keyframes": [
+                  {
+                    "id": "camY0",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [0.42, 0, 0.58, 1],
+                    "type": "bezier",
+                    "value": 10.9
+                  },
+                  {
+                    "id": "camY1",
+                    "position": 8,
+                    "connectedRight": true,
+                    "handles": [0.42, 0, 0.58, 1],
+                    "type": "bezier",
+                    "value": 3
+                  }
+                ]
+              },
+              "camPosZ": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "Camera:[\"position\",\"z\"]",
+                "keyframes": [
+                  {
+                    "id": "camZ0",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [0.42, 0, 0.58, 1],
+                    "type": "bezier",
+                    "value": 57.797
+                  },
+                  {
+                    "id": "camZ1",
+                    "position": 8,
+                    "connectedRight": true,
+                    "handles": [0.42, 0, 0.58, 1],
+                    "type": "bezier",
+                    "value": 44.09
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

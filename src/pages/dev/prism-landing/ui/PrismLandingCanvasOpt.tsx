@@ -36,7 +36,7 @@ export default function PrismLandingCanvasOpt() {
   const [ready, setReady] = useState(false);
   const [glow, setGlow] = useState(DEFAULT_GLOW);
   const [atmosphere, setAtmosphere] = useState(0);
-  const [pathU, setPathU] = useState(0);
+  const [pathU, setPathU] = useState(0.2);
   const [pathPlaying, setPathPlaying] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renderTuning, setRenderTuning] = useState<LandingRenderTuning>(() => ({
@@ -245,7 +245,7 @@ export default function PrismLandingCanvasOpt() {
           {pathPlaying ? "Pause" : "Play"}
         </button>
         <span className="cosmic-dock-hint" role="status">
-          Souris : orbiter / zoom
+          Play = travelling · Souris = explorer (vue plongeante limitée)
         </span>
         <label htmlFor={glowInputId}>
           <span>Intensité</span>

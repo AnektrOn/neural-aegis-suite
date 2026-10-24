@@ -61,9 +61,9 @@ function makeKeys(): [Keyframe, Keyframe, Keyframe] {
     {
       horizon: c(0x17140f),
       zenith: c(0x06070a),
-      fogDensity: 0.0205,
+      fogDensity: 0.0062,
       ambientColor: c(0x1a1816),
-      ambientIntensity: 0.33,
+      ambientIntensity: 0.24,
       mistMul: 0.88,
       mistCoolColor: c(0x141618),
       mistWarmColor: c(0x6a5848),
@@ -76,13 +76,13 @@ function makeKeys(): [Keyframe, Keyframe, Keyframe] {
       hazeSecondaryColor: c(0x4a443c),
       motes: 0.09,
       moteColor: c(0xa8b0b8),
-      exposure: 0.96,
-      bloomStrength: 0.24,
-      godrayStrength: 0.13,
+      exposure: 1.04,
+      bloomStrength: 0.09,
+      godrayStrength: 0.22,
       vignette: 0.4,
       grain: 0.032,
       chromaticAberration: 0.0018,
-      contrast: 1.03,
+      contrast: 1.14,
       shadowTint: c(0x5a5e64),
       midTint: c(0x8a8680),
       highTint: c(0xc8c4bc),
@@ -298,7 +298,7 @@ export type AtmospherePostFX = {
 
 export type AtmosphereContext = {
   scene: THREE.Scene;
-  fog: THREE.FogExp2;
+  fog: THREE.FogExp2 | null;
   sky: { uHorizon: { value: THREE.Color }; uZenith: { value: THREE.Color } };
   ambient: THREE.AmbientLight;
   mistMaterials: THREE.ShaderMaterial[];
@@ -435,8 +435,11 @@ export function createAtmosphere(ctx: AtmosphereContext): Atmosphere {
     if (ctx.scene.background instanceof THREE.Color) {
       ctx.scene.background.copy(cur.horizon);
     }
-    ctx.fog.color.copy(cur.horizon);
-    postFx.fogDensity = cur.fogDensity;
+    if (ctx.fog) {
+      ctx.fog.color.copy(cur.horizon);
+      // Densité réelle : `syncLandingPostFromAtmosphere` (plafond + tuning landing).
+    }
+    postFx.fogDensity = ctx.fog ? cur.fogDensity : 0;
     ctx.ambient.color.copy(cur.ambientColor);
     ctx.ambient.intensity = cur.ambientIntensity;
 
