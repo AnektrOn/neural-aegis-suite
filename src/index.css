@@ -115,15 +115,39 @@
     /* Warm premium accent (wellness gold — not fintech yellow) */
     --aegis-warm: 38 72% 58%;
     --aegis-warm-muted: 38 45% 22%;
+    /* Brand copper (CTA / score) — aligned with --primary in dark */
+    --aegis-copper: 24 48% 65%;
+    /*
+     * Dashboard & bio metrics — distinct hues on dark surfaces.
+     * (Do not collapse to --success alone: 150 53% 23% is too dark for washes.)
+     */
+    --metric-mind: 217 91% 60%;
+    --metric-body: 158 64% 52%;
+    --metric-energy: 38 92% 56%;
+    --metric-calm: 250 70% 68%;
+    --metric-neutral: 228 20% 55%;
+    --success-display: 158 64% 52%;
+    --success-display-muted: 150 32% 18%;
     /* V4 constellation stage — elevated surface + mystical accent (token-driven) */
     --v4-constellation-surface: 201 26% 16%;
     --v4-constellation-surface-end: 201 24% 12%;
     --v4-constellation-glow-shadow: 358 26% 30%;
+
+    /* Bio-Executive bento tiles — chromatic gradients */
+    --tile-green-start: 88 62% 78%;
+    --tile-green-end: 145 32% 28%;
+    --tile-amber-start: 45 90% 65%;
+    --tile-amber-end: 32 80% 52%;
+    --tile-coral-start: 12 85% 72%;
+    --tile-coral-end: 25 75% 58%;
+    --tile-blue-start: 220 65% 55%;
+    --tile-blue-end: 230 45% 35%;
+    --tile-warm-blur: 32 70% 58%;
   }
 
   html.light {
     color-scheme: light;
-    /* Clinical Apple — blanc pur · noir · gris système */
+    /* Clinical Apple — neutrals for chrome; chromatic tokens below for wellness / dashboards */
     --background: 0 0% 100%;
     --foreground: 0 0% 7%;
     --card: 240 5% 96%;
@@ -169,19 +193,29 @@
     --sidebar-border: 240 4% 83%;
     --sidebar-ring: 0 0% 0%;
 
-    --neural-glow: 0 0% 0%;
-    --neural-accent: 240 2% 54%;
-    --neural-warm: 0 0% 0%;
+    --neural-glow: 211 85% 48%;
+    --neural-accent: 262 48% 52%;
+    --neural-warm: 38 55% 48%;
     --void: 0 0% 100%;
 
-    --chart-1: 0 0% 7%;
-    --chart-2: 240 2% 54%;
-    --chart-3: 0 0% 20%;
-    --chart-4: 240 4% 72%;
-    --chart-5: 0 0% 40%;
+    /* Data viz — chromatic (not grayscale); pairs with clinical neutrals above */
+    --chart-1: 211 85% 48%;
+    --chart-2: 262 48% 52%;
+    --chart-3: 38 88% 46%;
+    --chart-4: 142 58% 38%;
+    --chart-5: 240 3% 46%;
 
-    --aegis-warm: 0 0% 0%;
-    --aegis-warm-muted: 240 5% 94%;
+    /* Wellness accents on white (--primary stays ink black for UI chrome) */
+    --aegis-warm: 38 55% 48%;
+    --aegis-warm-muted: 38 42% 92%;
+    --aegis-copper: 24 38% 42%;
+    --metric-mind: 211 85% 48%;
+    --metric-body: 142 58% 38%;
+    --metric-energy: 38 88% 46%;
+    --metric-calm: 262 48% 52%;
+    --metric-neutral: 240 3% 46%;
+    --success-display: 142 71% 45%;
+    --success-display-muted: 142 40% 94%;
     --aegis-s1: 240 5% 97%;
     --aegis-border: 240 4% 88%;
     --aegis-border-ice: 240 4% 78%;
@@ -190,6 +224,16 @@
     --v4-constellation-surface: 240 5% 94%;
     --v4-constellation-surface-end: 240 4% 90%;
     --v4-constellation-glow-shadow: 240 3% 75%;
+
+    --tile-green-start: 88 58% 72%;
+    --tile-green-end: 145 45% 38%;
+    --tile-amber-start: 45 85% 60%;
+    --tile-amber-end: 38 75% 48%;
+    --tile-coral-start: 12 78% 68%;
+    --tile-coral-end: 8 65% 55%;
+    --tile-blue-start: 211 75% 52%;
+    --tile-blue-end: 230 50% 38%;
+    --tile-warm-blur: 38 55% 52%;
   }
 
   .dark {
@@ -244,6 +288,10 @@
   font-family: "Cormorant Garamond", Georgia, serif;
   font-weight: 300;
   letter-spacing: -0.01em;
+}
+
+.font-quattrocento {
+  font-family: "Quattrocento", Georgia, serif;
 }
 
 /* Glass-card surface — warmth + depth without opacity flattening */

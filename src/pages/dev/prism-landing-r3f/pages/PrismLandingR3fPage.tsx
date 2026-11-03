@@ -21,7 +21,7 @@ function GodraysHallPageInner() {
           <h1>Godrays Hall</h1>
           <p>
             Orbite : clic gauche · zoom molette · pan clic droit · fente / godrays dorés au centre · cube à droite
-            (lumière glaciaire) · clic cube = burst / reform
+            (lumière glaciaire) · marbre ambre à gauche · clic cube = burst / reset
           </p>
         </header>
 

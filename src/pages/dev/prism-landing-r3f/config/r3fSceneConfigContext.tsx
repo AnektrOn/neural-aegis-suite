@@ -18,8 +18,19 @@ type R3fSceneConfigContextValue = {
 
 const R3fSceneConfigContext = createContext<R3fSceneConfigContextValue | null>(null);
 
-export function R3fSceneConfigProvider({ children }: { children: React.ReactNode }) {
-  const [config, setConfigState] = useState<R3fSceneConfig>(R3F_SCENE_CONFIG_DEFAULTS);
+function mergeSceneConfig(overrides?: Partial<R3fSceneConfig>): R3fSceneConfig {
+  return { ...R3F_SCENE_CONFIG_DEFAULTS, ...overrides };
+}
+
+export function R3fSceneConfigProvider({
+  children,
+  initialOverrides,
+}: {
+  children: React.ReactNode;
+  initialOverrides?: Partial<R3fSceneConfig>;
+}) {
+  const baselineRef = useRef(mergeSceneConfig(initialOverrides));
+  const [config, setConfigState] = useState<R3fSceneConfig>(baselineRef.current);
   const configRef = useRef(config);
   configRef.current = config;
 
@@ -32,7 +43,7 @@ export function R3fSceneConfigProvider({ children }: { children: React.ReactNode
   }, []);
 
   const resetConfig = useCallback(() => {
-    const next = { ...R3F_SCENE_CONFIG_DEFAULTS };
+    const next = { ...baselineRef.current };
     configRef.current = next;
     setConfigState(next);
   }, []);

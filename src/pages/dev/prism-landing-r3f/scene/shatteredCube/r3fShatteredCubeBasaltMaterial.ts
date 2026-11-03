@@ -21,11 +21,10 @@ export type R3fBasaltMaterialUniforms = {
   uCell: { value: number };
 };
 
-export function createR3fShatteredCubeBasaltMaterial(
-  uniforms: R3fBasaltMaterialUniforms,
-  envMap?: THREE.Texture | null,
-  envMapIntensity = 1.5,
-) {
+export function createR3fShatteredCubeBasaltMaterial(uniforms: R3fBasaltMaterialUniforms) {
+  // Pas de mat.envMap : le matériau utilise scene.environment, donc scene.environmentIntensity
+  // (slider "environmentIntensity"). Un envMap explicite ferait passer à material.envMapIntensity
+  // et refléterait le HDRI (lampes rouges/jaunes/vertes) ~10x trop fort.
   const mat = new THREE.MeshPhysicalMaterial({
     color: "#141821",
     metalness: 0.38,
@@ -34,9 +33,7 @@ export function createR3fShatteredCubeBasaltMaterial(
     specularIntensity: 1.0,
     clearcoat: 0.55,
     clearcoatRoughness: 0.24,
-    envMapIntensity,
   });
-  if (envMap) mat.envMap = envMap;
   mat.fog = true;
   mat.customProgramCacheKey = () => "r3f-monolith-basalt-v1";
 

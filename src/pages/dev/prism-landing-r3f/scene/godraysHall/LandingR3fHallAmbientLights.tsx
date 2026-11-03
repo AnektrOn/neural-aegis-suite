@@ -20,8 +20,8 @@ export function LandingR3fHallAmbientLights() {
 
   return (
     <>
-      <hemisphereLight ref={hemiRef} args={["#c5ccd8", "#1a1410", 0.4]} />
-      <ambientLight ref={ambRef} intensity={0.06} />
+      <hemisphereLight ref={hemiRef} args={["#d8e0ec", "#2a2218", 0.55]} />
+      <ambientLight ref={ambRef} intensity={0.12} />
     </>
   );
 }

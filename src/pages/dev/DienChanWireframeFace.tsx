@@ -34,6 +34,9 @@ const BASIS_PATH = "/basis/";
 const HIDE_MESH_NAMES = new Set(["mesh_0", "mesh_1", "mesh_3"]);
 const HEAD_MESH_NAME = "mesh_2";
 const FILL_SHELL_NAME = "head-black-fill";
+/** Practices hub vedette — visage plus petit dans la tuile. */
+const EMBED_CAMERA_Z = 2.28;
+const EMBED_MODEL_SCALE = 2.35;
 
 function isLightTheme(): boolean {
   if (typeof document === "undefined") return false;
@@ -74,6 +77,8 @@ interface DienChanWireframeFaceProps {
   pointsCoordinates?: Record<number, DienChanPointCoord[]>;
   onPointSelect?: (pointId: number) => void;
   reducedMotion?: boolean;
+  /** Tuile / embed — fond transparent, cadrage plus serré (practices hub lab). */
+  embed?: boolean;
 }
 
 /** Face Cap : coque noire opaque + fil de fer par-dessus (masque l’intérieur sans déformer le mesh). */
@@ -90,6 +95,7 @@ export const DienChanWireframeFace = forwardRef<
     pointsCoordinates = {},
     onPointSelect,
     reducedMotion = false,
+    embed = false,
   },
   ref,
 ) {
@@ -140,14 +146,14 @@ export const DienChanWireframeFace = forwardRef<
     let fillShell: THREE.Mesh | null = null;
     let pulseT = 0;
 
-    const light = isLightTheme();
+    const light = embed ? false : isLightTheme();
     const palette = readAegisWirePalette(light);
     let isDragging = false;
     let lastPointerX = 0;
     let lastPointerY = 0;
     let rotY = 0;
     let rotX = 0;
-    let cameraZ = CAMERA_Z_DEFAULT;
+    let cameraZ = embed ? EMBED_CAMERA_Z : CAMERA_Z_DEFAULT;
     let pointerDownX = 0;
     let pointerDownY = 0;
     const activePointers = new Map<number, { x: number; y: number }>();
@@ -172,11 +178,11 @@ export const DienChanWireframeFace = forwardRef<
       alpha: true,
       premultipliedAlpha: false,
     });
-    renderer.setClearColor(0x000000, 0);
+    renderer.setClearColor(0x000000, embed ? 1 : 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = light ? 1.0 : 1.1;
+    renderer.toneMappingExposure = embed ? 1.25 : light ? 1.0 : 1.1;
     const canvas = renderer.domElement;
     canvas.style.position = "absolute";
     canvas.style.inset = "0";
@@ -187,9 +193,10 @@ export const DienChanWireframeFace = forwardRef<
 
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
+    const bloomStrength = embed ? palette.bloomStrength * 0.5 : palette.bloomStrength;
     bloom = new UnrealBloomPass(
       new THREE.Vector2(mount.clientWidth, mount.clientHeight),
-      palette.bloomStrength,
+      bloomStrength,
       palette.bloomRadius,
       palette.bloomThreshold,
     );
@@ -232,7 +239,7 @@ export const DienChanWireframeFace = forwardRef<
     resetViewRef.current = () => {
       rotX = 0;
       rotY = 0;
-      cameraZ = CAMERA_Z_DEFAULT;
+      cameraZ = embed ? EMBED_CAMERA_Z : CAMERA_Z_DEFAULT;
       camera.position.z = cameraZ;
     };
 
@@ -242,7 +249,7 @@ export const DienChanWireframeFace = forwardRef<
     scene.add(key);
 
     const fillMat = new THREE.MeshBasicMaterial({
-      color: palette.fillHex,
+      color: embed ? 0x121110 : palette.fillHex,
       wireframe: false,
       transparent: false,
       depthWrite: true,
@@ -252,13 +259,13 @@ export const DienChanWireframeFace = forwardRef<
     });
 
     const wireMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+      color: embed ? 0xf4efe6 : 0xffffff,
       wireframe: true,
       transparent: true,
-      opacity: light ? 0.82 : 0.94,
+      opacity: embed ? 1 : light ? 0.82 : 0.94,
       depthWrite: false,
       depthTest: true,
-      vertexColors: true,
+      vertexColors: !embed,
       side: THREE.DoubleSide,
       toneMapped: false,
     });
@@ -352,7 +359,7 @@ export const DienChanWireframeFace = forwardRef<
           }
           obj.material = wireMat;
 
-          if (obj.name === HEAD_MESH_NAME || !headMesh) {
+          if (obj.name === HEAD_MESH_NAME || obj.parent?.name === "head" || !headMesh) {
             headMesh = obj;
           }
         });
@@ -378,9 +385,9 @@ export const DienChanWireframeFace = forwardRef<
         const box = new THREE.Box3().setFromObject(root);
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
-        const scale = 2.82 / Math.max(size.y, 0.001);
+        const scale = (embed ? EMBED_MODEL_SCALE : 2.82) / Math.max(size.y, 0.001);
         root.scale.setScalar(scale);
-        root.position.set(-center.x * scale, -center.y * scale + 0.14, -center.z * scale);
+        root.position.set(-center.x * scale, -center.y * scale + (embed ? 0.1 : 0.14), -center.z * scale);
         root.rotation.set(0, 0, 0);
 
         scene.add(root);
@@ -597,10 +604,12 @@ export const DienChanWireframeFace = forwardRef<
       composer?.dispose();
       renderer.dispose();
     };
-  }, []);
+  }, [embed]);
 
   return (
-    <div className={cn("absolute inset-0 h-full w-full bg-black", className)}>
+    <div
+      className={cn("absolute inset-0 h-full w-full bg-black", className)}
+    >
       <div
         ref={mountRef}
         className="absolute inset-0 h-full w-full cursor-grab active:cursor-grabbing"

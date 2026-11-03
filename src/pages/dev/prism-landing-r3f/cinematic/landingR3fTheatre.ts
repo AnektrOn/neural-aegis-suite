@@ -3,7 +3,9 @@ import cameraState from "./landingR3fCamera.state.json";
 
 export const LANDING_R3F_THEATRE_PROJECT_ID = "Prism Landing R3F MVP";
 export const LANDING_R3F_CAMERA_SHEET_ID = "Landing Camera";
-export const LANDING_R3F_CAMERA_SEQUENCE_LENGTH = 8;
+export const LANDING_R3F_CAMERA_SEQUENCE_LENGTH = 24;
+
+export { PRISM_LANDING_BEAT_DURATION_S } from "../landing/prismR3fLandingBeats";
 
 const theatreState = cameraState as __UNSTABLE_Project_OnDiskState;
 

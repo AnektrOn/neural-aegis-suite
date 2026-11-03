@@ -1,0 +1,715 @@
+/* Lab route — typography matches app (Barlow, see index.css + PracticesHubTile). */
+
+.practices-hub-lab {
+  /* Maquette tokens — fixed contrast (not tied to html.light rail bug) */
+  --lab-accent: hsl(var(--primary));
+  --lab-warm: hsl(var(--aegis-warm));
+  --lab-ink: hsl(var(--foreground));
+  --lab-muted: hsl(var(--muted-foreground));
+  --lab-light: hsl(var(--card));
+  --lab-light-elevated: hsl(var(--popover));
+  --lab-stage: hsl(var(--background));
+  --lab-hero-bg: hsl(var(--aegis-hero-bg));
+  --lab-surface: hsl(var(--aegis-s1));
+  --lab-border: hsl(var(--border));
+  --lab-ring: hsl(var(--ring));
+  --lab-score-bg: hsl(var(--card));
+  --lab-rail-bg: hsl(222 28% 5%);
+  --lab-rail-fg: hsl(32 38% 96%);
+  --lab-rail-muted: hsl(24 14% 72%);
+  --lab-tile-bg: hsl(38 16% 90%);
+  --lab-tile-ink: hsl(222 32% 11%);
+  --lab-tile-muted: hsl(222 12% 38%);
+  /** Vedette copy on nebula / dark media */
+  --lab-on-dark-fg: var(--lab-rail-fg);
+  --lab-on-dark-muted: var(--lab-rail-muted);
+  --font-ui: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --t0: 15px;
+  --t1: 0px;
+  --m0: 13px;
+  --m1: 0px;
+  --p0: 16px;
+  --p1: 0px;
+  --r0: 26px;
+  --r1: 0px;
+  --c0: 32px;
+  --c1: 0px;
+  --i0: 15px;
+  --i1: 0px;
+  --mb0: 7px;
+  --mb1: 0px;
+  --hb0: 18px;
+  --hb1: 0px;
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--lab-hero-bg);
+  color: var(--lab-ink);
+  font-family: var(--font-ui);
+}
+
+@media (min-width: 480px) {
+  .practices-hub-lab {
+    margin-top: 24px;
+    margin-bottom: 24px;
+    border-radius: 40px;
+    min-height: 0;
+  }
+}
+
+/* —— Light band —— */
+
+.practices-hub-lab__top {
+  position: relative;
+  background: linear-gradient(180deg, hsl(var(--card) / 0.92) 0%, var(--lab-light) 100%);
+  padding-top: 14px;
+}
+
+.practices-hub-lab__head {
+  position: relative;
+  z-index: 3;
+  margin: 0 14px;
+  height: 66px;
+  border-radius: 34px;
+  background: var(--lab-light-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.02);
+}
+
+.practices-hub-lab__head-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  font-size: 23px;
+  font-weight: 300;
+  letter-spacing: 0.005em;
+  color: var(--lab-ink);
+  pointer-events: none;
+}
+
+.practices-hub-lab__head-back {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lab-ink);
+  text-decoration: none;
+}
+
+.practices-hub-lab__head-back:focus-visible {
+  outline: 2px solid var(--lab-ring);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.practices-hub-lab__head-spacer {
+  width: 44px;
+  flex-shrink: 0;
+}
+
+/* Hero */
+
+.practices-hub-lab__hero {
+  position: relative;
+  height: 330px;
+  margin-top: -34px;
+}
+
+.practices-hub-lab__hero-armillary {
+  position: absolute;
+  z-index: 1;
+  left: -14px;
+  top: 30px;
+  width: 66%;
+  height: 300px;
+}
+
+.practices-hub-lab__hero-fade {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 48%,
+    hsl(var(--card) / 0.35) 62%,
+    hsl(var(--card) / 0.78) 76%,
+    hsl(var(--card)) 88%
+  );
+}
+
+.practices-hub-lab__hero-streak {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  top: 70px;
+  z-index: 2;
+  width: 42%;
+  height: 180px;
+  opacity: 0.22;
+  background: repeating-linear-gradient(
+    180deg,
+    hsl(var(--muted-foreground) / 0) 0,
+    hsl(var(--muted-foreground) / 0) 18px,
+    hsl(var(--muted-foreground) / 0.35) 19px,
+    hsl(var(--muted-foreground) / 0) 24px
+  );
+  mask-image: linear-gradient(90deg, #000 0%, transparent 85%);
+}
+
+/* Calendar */
+
+.practices-hub-lab__cal {
+  position: absolute;
+  right: 20px;
+  top: 106px;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 26px 28px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.practices-hub-lab__day {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+}
+
+.practices-hub-lab__day-num {
+  display: block;
+  font-size: 42px;
+  font-weight: 200;
+  line-height: 1;
+  color: var(--lab-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.practices-hub-lab__day-cap {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--lab-muted);
+  text-transform: lowercase;
+}
+
+.practices-hub-lab__day--on .practices-hub-lab__day-num,
+.practices-hub-lab__day--on .practices-hub-lab__day-cap {
+  color: var(--lab-ink);
+}
+
+.practices-hub-lab__day--on .practices-hub-lab__day-num {
+  font-weight: 300;
+}
+
+.practices-hub-lab__dots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.practices-hub-lab__dot {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: hsl(var(--muted-foreground) / 0.45);
+}
+
+.practices-hub-lab__dot--p {
+  background: hsl(var(--primary));
+}
+
+.practices-hub-lab__dot--k {
+  background: hsl(var(--foreground));
+}
+
+.practices-hub-lab__dot--g {
+  background: hsl(var(--aegis-warm));
+}
+
+.practices-hub-lab__dot--r {
+  background: hsl(var(--chart-2));
+}
+
+/* Score card + tab */
+
+.practices-hub-lab__cards-wrap {
+  position: relative;
+  z-index: 5;
+  margin-bottom: -46px;
+}
+
+.practices-hub-lab__cards {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0 0 0 14px;
+  scrollbar-width: none;
+}
+
+.practices-hub-lab__cards::-webkit-scrollbar {
+  display: none;
+}
+
+.practices-hub-lab__card {
+  flex: 0 0 calc(100% - 52px);
+  scroll-snap-align: start;
+  min-height: 200px;
+  border-radius: 30px;
+  background: var(--lab-light-elevated);
+  padding: 22px 20px;
+  border: none;
+  text-align: left;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.05);
+  cursor: pointer;
+  color: var(--lab-ink);
+}
+
+.practices-hub-lab__card:focus-visible {
+  outline: 2px solid var(--lab-ring);
+  outline-offset: 3px;
+}
+
+.practices-hub-lab__card-k {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 400;
+  color: hsl(222 14% 38%);
+}
+
+.practices-hub-lab__card-v {
+  margin: 2px 0 0;
+  font-size: 68px;
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--lab-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.practices-hub-lab__tab {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  width: 104px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: var(--lab-light-elevated);
+  border-radius: 0 0 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lab-ink);
+  cursor: pointer;
+}
+
+.practices-hub-lab__tab::before,
+.practices-hub-lab__tab::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.practices-hub-lab__tab::before {
+  left: -16px;
+  background: radial-gradient(circle at 0 100%, transparent 16px, var(--lab-score-bg) 16.5px);
+}
+
+.practices-hub-lab__tab::after {
+  right: -16px;
+  background: radial-gradient(circle at 100% 100%, transparent 16px, var(--lab-score-bg) 16.5px);
+}
+
+.practices-hub-lab__tab:focus-visible {
+  outline: 2px solid var(--lab-ring);
+  outline-offset: 2px;
+}
+
+/* —— Dark rail —— */
+
+.practices-hub-lab__dark {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  background: var(--lab-rail-bg);
+  color: var(--lab-rail-fg);
+  padding-top: 100px;
+  padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
+}
+
+.practices-hub-lab__dark--loading .practices-hub-lab__dark-title,
+.practices-hub-lab__dark--loading .practices-hub-lab__vp {
+  opacity: 0.55;
+}
+
+.practices-hub-lab__dark-title {
+  margin: 0 0 14px;
+  padding: 0 18px;
+  font-size: 24px;
+  font-weight: 200;
+  letter-spacing: 0.005em;
+  color: var(--lab-rail-fg);
+}
+
+.practices-hub-lab__vp {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-x;
+  cursor: grab;
+  user-select: none;
+  margin: 0 14px;
+}
+
+.practices-hub-lab__vp[data-mode="vedette"] {
+  --t0: 11px;
+  --t1: 11px;
+  --m0: 9px;
+  --m1: 8px;
+  --p0: 10px;
+  --p1: 10px;
+  --r0: 18px;
+  --r1: 10px;
+  --c0: 20px;
+  --c1: 20px;
+  --i0: 9px;
+  --i1: 8px;
+}
+
+.practices-hub-lab__vp--drag {
+  cursor: grabbing;
+}
+
+.practices-hub-lab__vp:focus-visible {
+  outline: 2px solid var(--lab-ring);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.practices-hub-lab__tile {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 140px;
+  height: 240px;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--p0) + var(--p1) * var(--f, 0));
+  border: none;
+  border-radius: calc(var(--r0) + var(--r1) * var(--f, 0));
+  background: var(--lab-tile-bg);
+  color: var(--lab-tile-ink);
+  box-shadow:
+    inset 0 0 0 1px hsl(222 20% 18% / 0.12),
+    0 8px 24px rgb(0 0 0 / 0.28);
+  will-change: transform, width, height;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-ui);
+}
+
+.practices-hub-lab__tile:focus-visible {
+  outline: 2px solid var(--lab-ring);
+  outline-offset: 3px;
+}
+
+.practices-hub-lab__tile-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+/* Nebula / 3D en haut — bande basse réservée au contenu vedette (habits, toolbox, pulse). */
+.practices-hub-lab__tile--vedette:not(.practices-hub-lab__tile--dien) .practices-hub-lab__tile-media {
+  inset: 0 0 44% 0;
+}
+
+.practices-hub-lab__tile--dien.practices-hub-lab__tile--vedette .practices-hub-lab__tile-media {
+  inset: 0;
+}
+
+.practices-hub-lab__tile--dien.practices-hub-lab__tile--vedette {
+  background: hsl(0 0% 4%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    0 8px 28px rgb(0 0 0 / 0.45);
+}
+
+.practices-hub-lab__tile--vedette:not(.practices-hub-lab__tile--dien) {
+  background: hsl(222 26% 6%);
+  color: var(--lab-rail-fg);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    0 8px 28px rgb(0 0 0 / 0.35);
+}
+
+.practices-hub-lab__tile--vedette .practices-hub-lab__t-title,
+.practices-hub-lab__tile--vedette .practices-hub-lab__t-met {
+  color: var(--lab-rail-fg);
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.75);
+}
+
+.practices-hub-lab__tile--vedette .practices-hub-lab__t-met {
+  color: var(--lab-rail-muted);
+  opacity: 1;
+}
+
+.practices-hub-lab__tile--vedette .practices-hub-lab__chev {
+  color: var(--lab-rail-fg);
+  background: rgb(255 255 255 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+}
+
+.practices-hub-lab__t-head {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.practices-hub-lab__t-title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: calc(var(--t0) + var(--t1) * var(--f, 0));
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--lab-tile-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.practices-hub-lab__t-met {
+  margin: 2px 0 0;
+  font-family: var(--font-ui);
+  font-size: calc(var(--m0) + var(--m1) * var(--f, 0));
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  color: var(--lab-tile-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.practices-hub-lab__chev {
+  flex: none;
+  width: calc(var(--c0) + var(--c1) * var(--f, 0));
+  height: calc(var(--c0) + var(--c1) * var(--f, 0));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lab-tile-ink);
+  background: rgb(0 0 0 / 0.07);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.1);
+}
+
+.practices-hub-lab__chev svg {
+  width: calc(var(--i0) + var(--i1) * var(--f, 0));
+  height: calc(var(--i0) + var(--i1) * var(--f, 0));
+}
+
+/* Vedette — contenu sur nebula (pas de panneau / scrim derrière le texte) */
+
+.practices-hub-lab__feat {
+  position: relative;
+  z-index: 4;
+  margin-top: auto;
+  flex-shrink: 0;
+  width: 100%;
+  padding-top: 8px;
+  padding-bottom: 2px;
+  text-align: left;
+}
+
+.practices-hub-lab__feat-muted,
+.practices-hub-lab__feat-kicker,
+.practices-hub-lab__feat-lead,
+.practices-hub-lab__feat-body,
+.practices-hub-lab__feat-more,
+.practices-hub-lab__habit-label {
+  text-shadow: 0 1px 14px rgb(0 0 0 / 0.85);
+}
+
+.practices-hub-lab__feat-muted {
+  margin: 0;
+  font-size: calc(11px + 2px * var(--f, 0));
+  font-weight: 300;
+  color: var(--lab-on-dark-fg);
+  opacity: 0.92;
+}
+
+.practices-hub-lab__feat-kicker {
+  margin: 0 0 6px;
+  font-size: calc(9px + 1px * var(--f, 0));
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lab-on-dark-muted);
+}
+
+.practices-hub-lab__feat-lead {
+  margin: 0 0 4px;
+  font-size: calc(12px + 3px * var(--f, 0));
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--lab-on-dark-fg);
+}
+
+.practices-hub-lab__feat-body {
+  margin: 0;
+  font-size: calc(10px + 2px * var(--f, 0));
+  font-weight: 300;
+  line-height: 1.35;
+  color: var(--lab-on-dark-fg);
+  opacity: 0.9;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.practices-hub-lab__habit-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: min(200px, 44vh);
+  overflow: hidden;
+}
+
+.practices-hub-lab__habit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+
+.practices-hub-lab__habit-check {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1.5px solid rgb(255 255 255 / 0.55);
+  background: rgb(0 0 0 / 0.25);
+  box-shadow: 0 1px 8px rgb(0 0 0 / 0.45);
+}
+
+.practices-hub-lab__habit-label {
+  min-width: 0;
+  font-size: calc(13px + 2px * var(--f, 0));
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--lab-rail-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.practices-hub-lab__feat-more {
+  margin: 6px 0 0;
+  font-size: calc(10px + 1px * var(--f, 0));
+  font-weight: 300;
+  color: var(--lab-on-dark-muted);
+}
+
+.practices-hub-lab__feat-pulse {
+  width: 100%;
+}
+
+.practices-hub-lab__pulse-card {
+  width: 100%;
+  max-height: min(52vh, 220px);
+}
+
+.practices-hub-lab__dien-host {
+  position: absolute;
+  inset: 0;
+  min-height: 120px;
+  background: hsl(0 0% 4%);
+}
+
+.practices-hub-lab__dien-3d-layer {
+  z-index: 1;
+}
+
+.practices-hub-lab__dien-3d-layer canvas {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 2;
+}
+
+.practices-hub-lab__tile--dien .practices-hub-lab__t-title,
+.practices-hub-lab__tile--dien .practices-hub-lab__t-met {
+  color: var(--lab-rail-fg);
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.85);
+}
+
+.practices-hub-lab__tile--dien .practices-hub-lab__chev {
+  color: var(--lab-rail-fg);
+  background: rgb(255 255 255 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+}
+
+.practices-hub-lab__dien-3d {
+  position: absolute;
+  inset: 0;
+}
+
+.practices-hub-lab__dien-3d-fallback {
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--aegis-s1));
+  opacity: 0.4;
+}
+
+.practices-hub-lab__tile:not(.practices-hub-lab__tile--vedette) .practices-hub-lab__feat {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .practices-hub-lab__tile {
+    will-change: auto;
+  }
+
+  .practices-hub-lab__cards {
+    scroll-behavior: auto;
+  }
+}

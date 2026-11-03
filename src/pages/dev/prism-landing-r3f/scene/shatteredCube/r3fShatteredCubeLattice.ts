@@ -69,7 +69,6 @@ export type R3fShatteredCubeLattice = {
 export type R3fShatteredCubeLatticeOptions = {
   grid?: number;
   seed?: number;
-  coreRatio?: number;
 };
 
 export function buildR3fShatteredCubeLattice(
@@ -77,11 +76,10 @@ export function buildR3fShatteredCubeLattice(
 ): R3fShatteredCubeLattice {
   const N = Math.max(6, Math.round(options.grid ?? 10));
   const seed = options.seed ?? 5;
-  const coreRatio = options.coreRatio ?? 0.62;
   const rand = mulberry32(seed + 31);
 
   const cell = 2 / N;
-  const L = Math.max(1, Math.round(((1 - coreRatio) * N) / 2));
+  const maxDist = Math.max(1, Math.floor(N / 2) - 1);
 
   const orientQuat = new THREE.Quaternion().setFromUnitVectors(
     new THREE.Vector3(-1, -1, -1).normalize(),
@@ -94,13 +92,13 @@ export function buildR3fShatteredCubeLattice(
     for (let iy = 0; iy < N; iy++) {
       for (let iz = 0; iz < N; iz++) {
         const dist = Math.min(ix, N - 1 - ix, iy, N - 1 - iy, iz, N - 1 - iz);
-        if (dist >= L) continue;
 
         const rx = -1 + (ix + 0.5) * cell;
         const ry = -1 + (iy + 0.5) * cell;
         const rz = -1 + (iz + 0.5) * cell;
         const rest = new THREE.Vector3(rx, ry, rz);
-        const radialDir = rest.clone().normalize();
+        const radialDir =
+          rest.lengthSq() > 1e-6 ? rest.clone().normalize() : new THREE.Vector3(0, 1, 0);
 
         const ax = Math.abs(rx);
         const ay = Math.abs(ry);
@@ -139,7 +137,8 @@ export function buildR3fShatteredCubeLattice(
           .addScaledVector(tangentB, (clusterNoise - 0.5) * 0.28)
           .normalize();
 
-        const layerFactor = dist === 0 ? 1.25 : dist === 1 ? 1.0 : 0.85;
+        const distNorm = dist / maxDist;
+        const layerFactor = 1.25 - distNorm * 0.55;
         const blastDistance =
           (1.35 + Math.pow(clusterNoise, 1.1) * 2.1 + fine * 1.35) * layerFactor;
 

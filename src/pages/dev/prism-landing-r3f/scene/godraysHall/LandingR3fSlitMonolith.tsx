@@ -2,6 +2,7 @@ import { memo, useLayoutEffect, useMemo, useRef } from "react";
 import { TransformControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
+import { useLandingSubjectVisible } from "../../config/PrismR3fLandingDirectorContext";
 import { useR3fSceneConfig } from "../../config/r3fSceneConfigContext";
 import type { R3fSlitGeometryConfig } from "../../config/r3fSceneConfig";
 import { useRegisterGutterLight } from "../../config/R3fGutterLightContext";
@@ -197,18 +198,22 @@ function GutterPointLight({
   emitLightIntensity,
   emitLightDistance,
   slitEmitterColor,
+  /** Si fourni : position monde (light.position = world, parent identité). */
+  worldPosition,
 }: {
   geometry: R3fSlitGeometryConfig;
   emitLightIntensity: number;
   emitLightDistance: number;
   slitEmitterColor: string;
+  worldPosition?: [number, number, number];
 }) {
   const registerGutterLight = useRegisterGutterLight();
   const lightRef = useRef<THREE.PointLight>(null);
-  const emitterPosition = useMemo(
-    () => getEmitterLocalPosition(geometry).clone(),
-    [geometry],
-  );
+  const emitterPosition = useMemo(() => {
+    const local = getEmitterLocalPosition(geometry).clone();
+    if (!worldPosition) return local;
+    return local.set(worldPosition[0], worldPosition[1], worldPosition[2]);
+  }, [geometry, worldPosition]);
 
   useLayoutEffect(() => {
     registerGutterLight(lightRef.current);
@@ -260,6 +265,7 @@ type Props = {
 export function LandingR3fSlitMonolith({ orbitRef }: Props) {
   const groupRef = useRef<THREE.Group>(null);
   const draggingRef = useRef(false);
+  const slitVisible = useLandingSubjectVisible("slit");
   const { config, setConfig, configRef } = useR3fSceneConfig();
 
   const geometry = useMemo(
@@ -310,7 +316,16 @@ export function LandingR3fSlitMonolith({ orbitRef }: Props) {
     enableR3fCubeGodrayOcclusion(g);
   });
 
-  const meshes = (
+  const emitterWorld = useMemo((): [number, number, number] => {
+    const local = getEmitterLocalPosition(geometry);
+    return [
+      config.monolithCenterX + local.x,
+      local.y,
+      config.monolithCenterZ + local.z,
+    ];
+  }, [geometry, config.monolithCenterX, config.monolithCenterZ]);
+
+  const tileAndSpill = (
     <>
       <GutterTileMeshes
         geometry={geometry}
@@ -323,13 +338,17 @@ export function LandingR3fSlitMonolith({ orbitRef }: Props) {
         emitLightIntensity={config.emitLightIntensity}
         slitEmitterColor={config.slitEmitterColor}
       />
-      <GutterPointLight
-        geometry={geometry}
-        emitLightIntensity={config.emitLightIntensity}
-        emitLightDistance={config.emitLightDistance}
-        slitEmitterColor={config.slitEmitterColor}
-      />
     </>
+  );
+
+  const gutterLight = (
+    <GutterPointLight
+      geometry={geometry}
+      emitLightIntensity={config.emitLightIntensity}
+      emitLightDistance={config.emitLightDistance}
+      slitEmitterColor={config.slitEmitterColor}
+      worldPosition={config.sceneEditMode ? undefined : emitterWorld}
+    />
   );
 
   const commitGroupPosition = () => {
@@ -354,16 +373,20 @@ export function LandingR3fSlitMonolith({ orbitRef }: Props) {
           if (!dragging) commitGroupPosition();
         }}
       >
-        <group ref={groupRef} name={R3F_SLIT_MONOLITH_GROUP_NAME}>
-          {meshes}
+        <group ref={groupRef} name={R3F_SLIT_MONOLITH_GROUP_NAME} visible={slitVisible}>
+          {tileAndSpill}
+          {gutterLight}
         </group>
       </TransformControls>
     );
   }
 
   return (
-    <group ref={groupRef} position={groupPosition} name={R3F_SLIT_MONOLITH_GROUP_NAME}>
-      {meshes}
+    <group name={R3F_SLIT_MONOLITH_GROUP_NAME}>
+      <group ref={groupRef} position={groupPosition} visible={slitVisible}>
+        {tileAndSpill}
+      </group>
+      {gutterLight}
     </group>
   );
 }

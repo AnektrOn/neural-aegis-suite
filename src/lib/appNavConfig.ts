@@ -1,89 +1,64 @@
 import type { LucideIcon } from "lucide-react";
-import {
-  LayoutDashboard,
-  Brain,
-  Target,
-  ListChecks,
-  Headphones,
-  Users,
-  BarChart3,
-  BookOpen,
-  UserCircle,
-  CalendarDays,
-  FileText,
-  Library,
-  Smartphone,
-  LineChart,
-  Settings2,
-  Mail,
-  Sparkles,
-  Handshake,
-  MessageSquare,
-  Flower2,
-  Compass,
-} from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
+import {
+  getAllMenuPanels,
+  getMenuPanel,
+  hubSidebarNavItems,
+  panelPathIsActive,
+  type AppHubId,
+  type MenuPanelId,
+} from "@/lib/userMenuCatalog";
 
 export type AppNavItem = {
   to: string;
   icon: LucideIcon;
   labelKey: TranslationKey;
+  panelId?: MenuPanelId;
 };
 
 export type AppNavSection = {
-  id: string;
+  id: AppHubId;
   labelKey: TranslationKey;
   items: AppNavItem[];
 };
 
-export const APP_NAV_SECTIONS: AppNavSection[] = [
-  {
-    id: "daily",
-    labelKey: "layout.navGroup.daily",
-    items: [
-      { to: "/dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
-      { to: "/mood", icon: Brain, labelKey: "nav.mood" },
-      { to: "/habits", icon: ListChecks, labelKey: "nav.habits" },
-      { to: "/journal", icon: BookOpen, labelKey: "nav.journal" },
-      { to: "/decisions", icon: Target, labelKey: "nav.decisions" },
-    ],
-  },
-  {
-    id: "analysis",
-    labelKey: "layout.navGroup.analysis",
-    items: [
-      { to: "/persona", icon: Sparkles, labelKey: "nav.profile" },
-      { to: "/analytics", icon: BarChart3, labelKey: "nav.analytics" },
-      { to: "/pulse", icon: Sparkles, labelKey: "nav.pulse" },
-      { to: "/deep-dive", icon: FileText, labelKey: "nav.deepDive" },
-      { to: "/deep-dive/scores", icon: LineChart, labelKey: "nav.deepDiveScores" },
-      { to: "/people", icon: Users, labelKey: "nav.people" },
-      { to: "/calendar", icon: CalendarDays, labelKey: "nav.calendar" },
-    ],
-  },
-  {
-    id: "resources",
-    labelKey: "layout.navGroup.resources",
-    items: [
-      { to: "/pratiques", icon: Compass, labelKey: "nav.hub" },
-      { to: "/toolbox", icon: Headphones, labelKey: "nav.toolbox" },
-      { to: "/meditation", icon: Flower2, labelKey: "nav.meditation" },
-      { to: "/bibliotheque", icon: Library, labelKey: "nav.bibliotheque" },
-      { to: "/messages", icon: MessageSquare, labelKey: "nav.messages" },
-      { to: "/newsletter", icon: Mail, labelKey: "nav.newsletter" },
-      { to: "/install-android", icon: Smartphone, labelKey: "nav.installApp" },
-      { to: "/settings", icon: Settings2, labelKey: "nav.settings" },
-      { to: "/ambassadeur", icon: Handshake, labelKey: "nav.ambassador" },
-      { to: "/profile", icon: UserCircle, labelKey: "nav.account" },
-    ],
-  },
-];
+const HUB_LABEL: Record<AppHubId, TranslationKey> = {
+  capture: "menu.hub.capture",
+  portrait: "menu.hub.portrait",
+  pratiques: "menu.hub.pratiques",
+  messages: "menu.hub.messages",
+};
 
-const EXTRA_ROUTES: { prefix: string; labelKey: TranslationKey; sectionKey?: TranslationKey }[] = [
-  { prefix: "/meditation", labelKey: "nav.meditation", sectionKey: "layout.navGroup.resources" },
-  { prefix: "/onboarding/assessment", labelKey: "nav.profile", sectionKey: "layout.navGroup.analysis" },
-  { prefix: "/onboarding/results", labelKey: "nav.profile", sectionKey: "layout.navGroup.analysis" },
-  { prefix: "/cartographie", labelKey: "cartography.defaultTitle", sectionKey: "layout.navGroup.analysis" },
+/** Desktop sidebar: exactly 4 hub index routes. */
+export const APP_NAV_SECTIONS: AppNavSection[] = (["capture", "portrait", "pratiques", "messages"] as AppHubId[]).map(
+  (hub) => {
+    const hubPanel = hubSidebarNavItems().find((p) => p.hub === hub && p.isHubIndex)!;
+    return {
+      id: hub,
+      labelKey: HUB_LABEL[hub],
+      items: [
+        {
+          to: hubPanel.to,
+          icon: hubPanel.icon,
+          labelKey: hubPanel.labelKey,
+          panelId: hubPanel.id,
+        },
+      ],
+    };
+  },
+);
+
+const EXTRA_ROUTES: { prefix: string; labelKey: TranslationKey; sectionKey?: TranslationKey; hub?: AppHubId }[] = [
+  { prefix: "/dashboard", labelKey: "nav.dashboard" },
+  { prefix: "/capture", labelKey: "menu.hub.capture", sectionKey: "menu.hub.capture", hub: "capture" },
+  { prefix: "/meditation", labelKey: "nav.meditation", hub: "pratiques" },
+  { prefix: "/pratiques/dien-chan", labelKey: "hub.feature.dienchan", sectionKey: "menu.hub.pratiques", hub: "pratiques" },
+  { prefix: "/onboarding/assessment", labelKey: "nav.profile", sectionKey: "menu.hub.portrait", hub: "portrait" },
+  { prefix: "/onboarding/results", labelKey: "nav.profile", sectionKey: "menu.hub.portrait", hub: "portrait" },
+  { prefix: "/cartographie", labelKey: "cartography.defaultTitle", sectionKey: "menu.hub.portrait", hub: "portrait" },
+  { prefix: "/deep-dive", labelKey: "nav.deepDive", hub: "portrait" },
+  { prefix: "/settings", labelKey: "nav.settings" },
+  { prefix: "/profile", labelKey: "nav.account" },
 ];
 
 export type AppPageMeta = {
@@ -99,18 +74,35 @@ export function getNavItemByPath(pathname: string): { item: AppNavItem; section:
   return null;
 }
 
+function metaForPanelPath(pathname: string): AppPageMeta | null {
+  for (const panel of getAllMenuPanels()) {
+    if (panel.navExcluded) continue;
+    if (panelPathIsActive(pathname, panel.to)) {
+      const sectionKey = panel.hub ? HUB_LABEL[panel.hub] : undefined;
+      return { titleKey: panel.labelKey, sectionKey };
+    }
+  }
+  return null;
+}
+
 export function getAppPageMeta(pathname: string): AppPageMeta {
   const exact = getNavItemByPath(pathname);
   if (exact) {
     return { titleKey: exact.item.labelKey, sectionKey: exact.section.labelKey };
   }
 
+  const fromPanel = metaForPanelPath(pathname);
+  if (fromPanel) return fromPanel;
+
   const extra = EXTRA_ROUTES.find((r) => pathname === r.prefix || pathname.startsWith(`${r.prefix}/`));
   if (extra) {
-    return { titleKey: extra.labelKey, sectionKey: extra.sectionKey };
+    return {
+      titleKey: extra.labelKey,
+      sectionKey: extra.sectionKey ?? (extra.hub ? HUB_LABEL[extra.hub] : undefined),
+    };
   }
 
-  return { titleKey: "nav.dashboard", sectionKey: "layout.navGroup.daily" };
+  return { titleKey: "nav.dashboard" };
 }
 
 export function filterAppNavSections(
@@ -132,3 +124,18 @@ export function filterAppNavSections(
     })
     .filter((s): s is AppNavSection => s !== null);
 }
+
+/** Command palette entries (panels only, respects visibility elsewhere). */
+export function commandPalettePanels(hidden: MenuPanelId[]): AppNavItem[] {
+  const hiddenSet = new Set(hidden);
+  return getAllMenuPanels()
+    .filter((p) => p.commandPaletteEligible && !p.navExcluded && !hiddenSet.has(p.id))
+    .map((p) => ({
+      to: p.to,
+      icon: p.icon,
+      labelKey: p.labelKey,
+      panelId: p.id,
+    }));
+}
+
+export { getMenuPanel, panelPathIsActive };

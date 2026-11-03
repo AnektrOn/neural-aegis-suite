@@ -1,15 +1,18 @@
-import { APP_NAV_SECTIONS } from "@/lib/appNavConfig";
+import { getAllMenuPanels } from "@/lib/userMenuCatalog";
 
-/** Sidebar item ids are the route paths declared in APP_NAV_SECTIONS. */
-export const SIDEBAR_ITEM_IDS: string[] = APP_NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.to));
+/** Legacy sidebar paths (migration from sidebar_items). */
+export const SIDEBAR_ITEM_IDS: string[] = getAllMenuPanels()
+  .filter((p) => !p.navExcluded && !p.accountUtility && !p.isHubIndex)
+  .map((p) => p.to);
 
-/** Routes the user can never hide (needed to reach settings / account). */
+/** Routes the user could hide in legacy sidebar (dashboard + settings locked). */
 export const SIDEBAR_LOCKED_IDS: string[] = ["/dashboard", "/settings"];
 
 export const DEFAULT_SIDEBAR_ITEMS: string[] = [...SIDEBAR_ITEM_IDS];
 
 const ALLOWED = new Set(SIDEBAR_ITEM_IDS);
 
+/** @deprecated Use userMenuPreferences hidden panels. */
 export function normalizeSidebarItems(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [...DEFAULT_SIDEBAR_ITEMS];
   const set = new Set(raw.filter((v): v is string => typeof v === "string" && ALLOWED.has(v)));
@@ -21,6 +24,7 @@ export function normalizeSidebarItems(raw: unknown): string[] {
 export const SIDEBAR_PREFS_EVENT = "aegis:sidebar-items-updated";
 export const SIDEBAR_PREFS_STORAGE_KEY = "aegis-sidebar-items";
 
+/** @deprecated */
 export function readCachedSidebarItems(): string[] {
   try {
     const raw = localStorage.getItem(SIDEBAR_PREFS_STORAGE_KEY);
@@ -31,6 +35,7 @@ export function readCachedSidebarItems(): string[] {
   return [...DEFAULT_SIDEBAR_ITEMS];
 }
 
+/** @deprecated */
 export function cacheSidebarItems(items: string[]) {
   try {
     localStorage.setItem(SIDEBAR_PREFS_STORAGE_KEY, JSON.stringify(items));

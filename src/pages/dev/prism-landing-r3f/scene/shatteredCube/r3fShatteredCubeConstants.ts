@@ -3,11 +3,10 @@ import type { R3fSlitGeometryConfig } from "../../config/r3fSceneConfig";
 import type { R3fShatteredCubeLattice } from "./r3fShatteredCubeLattice";
 import { r3fShatteredCubePivotYOnGround } from "./r3fShatteredCubeLattice";
 
-/** Timings démo monolithe (secondes). */
+/** Timings démo monolithe (secondes) — pas de phase reform. */
 export const R3F_SHATTERED_CUBE_TIMING = {
   hold: 4,
   burst: 34,
-  reform: 20,
   cubeWindow: 0.08,
 } as const;
 
@@ -35,34 +34,32 @@ export const R3F_SHATTERED_CUBE_FOOT_LIFT = 0.55;
 /** Émission noyau + PointLight au centre (godrays) ; intensité modulée par ray march (escape). */
 export const R3F_CUBE_CORE_EMISSION = {
   emissiveHold: 2.8,
-  emissiveBurstMul: 22,
+  emissiveBurstMul: 24,
   pointHold: 0.35,
-  pointBurstPeak: 120,
-  pointBurstPower: 1.42,
-  pointDistance: 40,
+  pointBurstPeak: 135,
+  pointBurstPower: 1.35,
+  pointDistance: 48,
+  shadowCameraNear: 0.2,
+  shadowCameraFar: 48,
   pointDecay: 1.4,
   haloOpacityMul: 1.35,
   haloScaleBase: 0.85,
   haloScaleReveal: 3.4,
-  godrayIntensityDivisor: 50,
+  godrayIntensityDivisor: 46,
 } as const;
 
-/** Ray march centre → interstice ; lumières d’appoint sur la fente (pas le godray principal). */
-export const R3F_CUBE_INTERSTICE_BEAMS = {
-  maxBeams: 3,
-  minReveal: 0.03,
-  minInstanceK: 0.08,
-  shellRestMin: 0.68,
-  intensityBase: 0,
-  intensityRevealMul: 28,
-  intensityClearancePow: (clearance: number) => Math.pow(clearance, 1.1),
-  slitLightIntensityMul: 0.45,
-  lightDistance: 18,
-  lightDecay: 2,
-  marchMaxDistance: 6,
+/** Ray march depuis le noyau : gain d’échappement avant montée point / godrays. */
+export const R3F_CUBE_CORE_ESCAPE = {
+  minReveal: 0.02,
+  minInstanceK: 0.06,
+  shellRestMin: 0.55,
+  marchMaxDistance: 2.2,
   marchStepSize: 0.05,
-  marchMaxSteps: 110,
-  minConsecutiveClearSteps: 4,
+  marchMaxSteps: 46,
+  minConsecutiveClearSteps: 3,
+  escapeRampLow: 0.04,
+  escapeRampHigh: 0.38,
+  minGodrayEscape: 0.08,
 } as const;
 
 /** Godrays volumétriques depuis le PointLight du noyau (`GodraysPass` dédié). */
@@ -83,9 +80,9 @@ export const R3F_CUBE_CORE_GODRAYS = {
  */
 export const R3F_SHATTERED_CUBE_HALL_OFFSET = {
   /** Côté droit du portail, hors des piliers. */
-  x: 20.5,
+  x: 40.5,
   /** Vers la caméra, sans recouvrir l’axe de la fente. */
-  zFromMonolith: 8,
+  zFromMonolith: 28,
 } as const;
 
 export function r3fShatteredCubePortalFrontPosition(

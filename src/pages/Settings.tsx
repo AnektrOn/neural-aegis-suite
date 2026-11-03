@@ -5,10 +5,8 @@ import {
   Mail,
   Download,
   FileText,
-  Smartphone,
   LayoutGrid,
   Save,
-  PanelLeft,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,86 +18,31 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import type { Json } from "@/integrations/supabase/types";
-import { APP_NAV_SECTIONS } from "@/lib/appNavConfig";
 import {
-  cacheSidebarItems,
-  DEFAULT_SIDEBAR_ITEMS,
-  normalizeSidebarItems,
-  readCachedSidebarItems,
-  SIDEBAR_LOCKED_IDS,
-  SIDEBAR_PREFS_EVENT,
-} from "@/lib/sidebarPreferences";
+  defaultUserMenuPrefs,
+  normalizeUserMenuPrefs,
+  type UserMenuPrefsV2,
+} from "@/lib/userMenuPreferences";
 import {
-  DEFAULT_MOBILE_RADIAL_MENU_IDS,
-  MOBILE_RADIAL_CATALOG_ORDER,
-  orderSelectedRadialIds,
-  RADIAL_CATALOG,
-  type MobileRadialMenuId,
-} from "@/lib/mobileRadialMenuCatalog";
+  getAllMenuPanels,
+  getMenuPanel,
+  MENU_PANELS_LOCKED,
+  type MenuPanelId,
+} from "@/lib/userMenuCatalog";
+import { useUserMenuPrefs } from "@/hooks/useUserMenuPrefs";
 
 export default function Settings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t, locale } = useLanguage();
   const [exporting, setExporting] = useState(false);
-  const [radialIds, setRadialIds] = useState<MobileRadialMenuId[]>(DEFAULT_MOBILE_RADIAL_MENU_IDS);
-  const [savingRadial, setSavingRadial] = useState(false);
-  const [sidebarItems, setSidebarItems] = useState<string[]>(() => readCachedSidebarItems());
-  const [savingSidebar, setSavingSidebar] = useState(false);
+  const { prefs, savePrefs } = useUserMenuPrefs();
+  const [menuDraft, setMenuDraft] = useState<UserMenuPrefsV2>(() => defaultUserMenuPrefs());
+  const [savingMenu, setSavingMenu] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    void (async () => {
-      let res = await supabase
-        .from("profiles")
-        .select("mobile_radial_menu")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (res.error?.message?.includes("mobile_radial_menu")) return;
-      const raw = (res.data as { mobile_radial_menu?: unknown } | null)?.mobile_radial_menu;
-      if (raw !== undefined) setRadialIds(orderSelectedRadialIds(raw));
-    })();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    void (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("sidebar_items")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (error) return;
-      const raw = (data as { sidebar_items?: unknown } | null)?.sidebar_items;
-      if (raw != null) setSidebarItems(normalizeSidebarItems(raw));
-    })();
-  }, [user]);
-
-  const toggleSidebarItem = (to: string) => {
-    if (SIDEBAR_LOCKED_IDS.includes(to)) return;
-    setSidebarItems((prev) =>
-      normalizeSidebarItems(prev.includes(to) ? prev.filter((x) => x !== to) : [...prev, to]),
-    );
-  };
-
-  const saveSidebarItems = async () => {
-    if (!user) return;
-    setSavingSidebar(true);
-    const next = normalizeSidebarItems(sidebarItems);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ sidebar_items: next as unknown as Json })
-      .eq("id", user.id);
-    setSavingSidebar(false);
-    if (error) {
-      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
-      return;
-    }
-    cacheSidebarItems(next);
-    window.dispatchEvent(new CustomEvent(SIDEBAR_PREFS_EVENT));
-    toast({ title: t("settings.sidebarSavedTitle"), description: t("settings.sidebarSavedDesc") });
-  };
+    setMenuDraft(prefs);
+  }, [prefs]);
 
   const exportData = async () => {
     if (!user) return;
@@ -223,36 +166,56 @@ export default function Settings() {
     }
   };
 
-  const toggleRadialId = (id: MobileRadialMenuId) => {
-    setRadialIds((prev) => {
-      const set = new Set(prev);
-      if (set.has(id)) {
-        if (set.size <= 1) return prev;
-        set.delete(id);
-      } else if (set.size < 14) {
-        set.add(id);
-      } else {
-        return prev;
-      }
-      return MOBILE_RADIAL_CATALOG_ORDER.filter((x) => set.has(x));
+  const setDockSlot = (index: number, id: MenuPanelId) => {
+    setMenuDraft((prev) => {
+      const dock = [...prev.dock];
+      dock[index] = id;
+      return normalizeUserMenuPrefs({ ...prev, dock });
     });
   };
 
-  const saveRadialMenu = async () => {
-    if (!user) return;
-    setSavingRadial(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ mobile_radial_menu: radialIds as unknown as Json })
-      .eq("id", user.id);
-    setSavingRadial(false);
-    if (error) {
-      toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: t("profile.radialSavedTitle"), description: t("profile.radialSavedDesc") });
-    window.dispatchEvent(new CustomEvent("aegis:radial-menu-updated"));
+  const toggleOverflow = (id: MenuPanelId) => {
+    const def = getMenuPanel(id);
+    if (!def.overflowEligible) return;
+    setMenuDraft((prev) => {
+      const set = new Set(prev.overflow);
+      if (set.has(id)) set.delete(id);
+      else set.add(id);
+      return normalizeUserMenuPrefs({ ...prev, overflow: [...set] });
+    });
   };
+
+  const toggleHidden = (id: MenuPanelId) => {
+    const def = getMenuPanel(id);
+    if (!def.hideable) return;
+    setMenuDraft((prev) => {
+      const set = new Set(prev.hidden);
+      if (set.has(id)) set.delete(id);
+      else set.add(id);
+      return normalizeUserMenuPrefs({ ...prev, hidden: [...set] });
+    });
+  };
+
+  const saveMenu = async () => {
+    if (!user) return;
+    setSavingMenu(true);
+    try {
+      await savePrefs(menuDraft);
+      toast({ title: t("settings.myMenuSavedTitle"), description: t("settings.myMenuSavedDesc") });
+    } catch (e) {
+      toast({
+        title: t("toast.error"),
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingMenu(false);
+    }
+  };
+
+  const dockEligiblePanels = getAllMenuPanels().filter((p) => p.dockEligible && !p.navExcluded);
+  const overflowEligiblePanels = getAllMenuPanels().filter((p) => p.overflowEligible && !p.navExcluded);
+  const hideablePanels = getAllMenuPanels().filter((p) => p.hideable && !p.navExcluded);
 
   return (
     <div className="mx-auto max-w-3xl space-y-10">
@@ -301,104 +264,95 @@ export default function Settings() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.06 }}
-        className="ethereal-glass p-8 space-y-5"
+        className="ethereal-glass space-y-6 p-8"
       >
         <div className="flex items-center gap-3">
           <LayoutGrid size={18} strokeWidth={1.5} className="text-primary" />
           <div>
-            <p className="text-neural-label">{t("profile.radialTitle")}</p>
-            <p className="text-sm text-muted-foreground mt-1">{t("profile.radialHint")}</p>
+            <p className="text-neural-label">{t("settings.myMenuTitle")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("settings.myMenuHint")}</p>
           </div>
         </div>
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {MOBILE_RADIAL_CATALOG_ORDER.map((id) => {
-            const def = RADIAL_CATALOG[id];
-            const checked = radialIds.includes(id);
-            const atMax = radialIds.length >= 14 && !checked;
-            const onlyOne = radialIds.length <= 1 && checked;
-            return (
-              <li key={id}>
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5 transition-colors hover:border-primary/25">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 shrink-0 rounded border-border accent-primary"
-                    checked={checked}
-                    disabled={onlyOne || atMax}
-                    onChange={() => toggleRadialId(id)}
-                  />
-                  <span className="text-sm text-foreground">{t(def.labelKey)}</span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => setRadialIds([...DEFAULT_MOBILE_RADIAL_MENU_IDS])}
-            className="btn-neural flex-1 border border-border/40 bg-transparent"
-          >
-            {t("profile.radialReset")}
-          </button>
-          <button type="button" onClick={saveRadialMenu} disabled={savingRadial} className="btn-neural flex-1">
-            <Save size={14} />
-            {savingRadial ? t("profile.radialSaving") : t("profile.radialSave")}
-          </button>
-        </div>
-      </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.07 }}
-        className="ethereal-glass hidden space-y-5 p-8 md:block"
-      >
-        <div className="flex items-center gap-3">
-          <PanelLeft size={18} strokeWidth={1.5} className="text-primary" />
-          <div>
-            <p className="text-neural-label">{t("settings.sidebarTitle")}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t("settings.sidebarHint")}</p>
+        <div className="space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t("settings.myMenuDock")}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {menuDraft.dock.map((slotId, index) => (
+              <label key={index} className="flex flex-col gap-1.5">
+                <span className="text-xs text-muted-foreground">
+                  {t("nav.dockSlot")} {index + 1}
+                </span>
+                <select
+                  className="rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5 text-sm"
+                  value={slotId}
+                  onChange={(e) => setDockSlot(index, e.target.value as MenuPanelId)}
+                >
+                  {dockEligiblePanels.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {t(p.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
           </div>
         </div>
-        <div className="space-y-5">
-          {APP_NAV_SECTIONS.map((section) => (
-            <div key={section.id} className="space-y-2">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t(section.labelKey)}</p>
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {section.items.map((item) => {
-                  const checked = sidebarItems.includes(item.to);
-                  const locked = SIDEBAR_LOCKED_IDS.includes(item.to);
-                  return (
-                    <li key={item.to}>
-                      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5 transition-colors hover:border-primary/25">
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 shrink-0 rounded border-border accent-primary"
-                          checked={checked}
-                          disabled={locked}
-                          onChange={() => toggleSidebarItem(item.to)}
-                        />
-                        <item.icon size={14} strokeWidth={1.5} className="shrink-0 text-muted-foreground" aria-hidden />
-                        <span className="text-sm text-foreground">{t(item.labelKey)}</span>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+
+        <div className="space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t("settings.myMenuOverflow")}</p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {overflowEligiblePanels.map((p) => {
+              const checked = menuDraft.overflow.includes(p.id);
+              return (
+                <li key={p.id}>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary"
+                      checked={checked}
+                      onChange={() => toggleOverflow(p.id)}
+                    />
+                    <span className="text-sm">{t(p.labelKey)}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
         </div>
+
+        <div className="space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t("settings.myMenuHidden")}</p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {hideablePanels.map((p) => {
+              const checked = menuDraft.hidden.includes(p.id);
+              return (
+                <li key={p.id}>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary"
+                      checked={checked}
+                      onChange={() => toggleHidden(p.id)}
+                    />
+                    <span className="text-sm">{t(p.labelKey)}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
         <div className="flex flex-col gap-2 sm:flex-row">
           <button
             type="button"
-            onClick={() => setSidebarItems([...DEFAULT_SIDEBAR_ITEMS])}
+            onClick={() => setMenuDraft(defaultUserMenuPrefs())}
             className="btn-neural flex-1 border border-border/40 bg-transparent"
           >
-            {t("settings.sidebarReset")}
+            {t("settings.myMenuReset")}
           </button>
-          <button type="button" onClick={() => void saveSidebarItems()} disabled={savingSidebar} className="btn-neural flex-1">
+          <button type="button" onClick={() => void saveMenu()} disabled={savingMenu} className="btn-neural flex-1">
             <Save size={14} />
-            {savingSidebar ? t("settings.sidebarSaving") : t("settings.sidebarSave")}
+            {savingMenu ? t("settings.myMenuSaving") : t("settings.myMenuSave")}
           </button>
         </div>
       </motion.div>

@@ -1,9 +1,12 @@
 import { Link } from "react-router-dom";
 import {
+  Activity,
   ArrowLeft,
   ArrowUpRight,
   Box,
   Film,
+  Droplets,
+  ListChecks,
   Map,
   Scan,
   Sparkles,
@@ -29,6 +32,50 @@ type DevFeature = {
 };
 
 const FEATURES: DevFeature[] = [
+  {
+    path: "/dashboard",
+    title: "Bio-Executive Dashboard",
+    titleEn: "Bio-Executive Dashboard",
+    blurb: "Prod — exocortex, données Supabase, tuiles desktop. Point d’entrée utilisateur.",
+    blurbEn: "Production — exocortex, live Supabase, desktop tiles. User entry point.",
+    status: "active",
+    tags: ["dashboard", "exocortex", "prod"],
+    icon: Activity,
+    accent: "from-emerald-500/20 to-amber-500/5",
+  },
+  {
+    path: "/dev/aegis-dashboard?fixtures=1",
+    title: "Hero Lab (fixtures)",
+    titleEn: "Hero Lab (fixtures)",
+    blurb: "Éditeur de layout héros + mock — ne remplace pas /dashboard.",
+    blurbEn: "Hero layout editor + mocks — not a substitute for /dashboard.",
+    status: "playground",
+    tags: ["hero-lab", "fixtures"],
+    icon: Activity,
+    accent: "from-stone-500/15 to-emerald-500/5",
+  },
+  {
+    path: "/dev/practices-hub",
+    title: "Hub Pratiques (lab)",
+    titleEn: "Practices hub (lab)",
+    blurb: "Refonte UI/UX du hub — millière, verre, carousel focus. /pratiques intact.",
+    blurbEn: "Hub UI/UX lab — millière, glass, focus carousel. /pratiques untouched.",
+    status: "playground",
+    tags: ["hub", "glass", "carousel"],
+    icon: ListChecks,
+    accent: "from-amber-500/20 to-stone-500/5",
+  },
+  {
+    path: "/dev/liquid-glass",
+    title: "Liquid Glass (Tahoe)",
+    titleEn: "Liquid Glass (Tahoe)",
+    blurb: "Apple Tahoe refraction — boutons et surfaces en verre liquide.",
+    blurbEn: "Apple Tahoe refraction — liquid glass buttons and surfaces.",
+    status: "playground",
+    tags: ["glass", "button"],
+    icon: Droplets,
+    accent: "from-sky-500/20 to-stone-500/5",
+  },
   {
     path: "/dev/dien-chan",
     title: "Diện Chẩn",

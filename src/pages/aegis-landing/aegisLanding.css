@@ -1,0 +1,137 @@
+.aegis-landing {
+  --aegis-page: #f3eeec;
+  --aegis-text: #121212;
+  --aegis-muted: #4a4a4f;
+  --aegis-text-secondary: #5c5c61;
+  --aegis-hairline: #e4e4e7;
+  --aegis-bronze: #d19d7b;
+  --aegis-bronze-hover: #c38155;
+  --aegis-bronze-ink: #8a5a3c;
+  --aegis-gold: #e1a847;
+  --aegis-alert: #e05252;
+  --aegis-dark: #0c1418;
+  --aegis-dark-card: #162127;
+  --aegis-dark-elevated: #1c2931;
+  --aegis-dark-text: #f8f1ec;
+  --aegis-dark-secondary: #c6beb9;
+  --aegis-dark-border: rgba(55, 83, 98, 0.6);
+
+  background-color: var(--aegis-page);
+  color: var(--aegis-text);
+  font-family: Barlow, ui-sans-serif, system-ui, sans-serif;
+}
+
+.aegis-landing :focus-visible {
+  outline: 2px solid var(--aegis-bronze-hover);
+  outline-offset: 3px;
+}
+
+.aegis-landing__skip {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  z-index: 80;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--aegis-text);
+  color: #fff;
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: translateY(-160%);
+}
+
+.aegis-landing__skip:focus {
+  transform: none;
+}
+
+.aegis-landing__container {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2.5rem);
+}
+
+.aegis-landing__section-label {
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--aegis-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.aegis-landing__section-label::before {
+  content: "";
+  flex: 0 0 2.5rem;
+  height: 1px;
+  background: var(--aegis-bronze);
+  opacity: 0.85;
+}
+
+.aegis-landing__hero-stage {
+  background:
+    radial-gradient(ellipse 78% 70% at 72% 38%, #ebe4dc 0%, #f3eeec 52%, #f3eeec 100%);
+}
+
+/* JPEG still is a full-page capture; veil hides baked nav/copy so HTML sits on cream. */
+.aegis-landing__hero-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      var(--aegis-page) 0%,
+      var(--aegis-page) 9%,
+      transparent 16%
+    ),
+    linear-gradient(
+      90deg,
+      var(--aegis-page) 0%,
+      var(--aegis-page) 32%,
+      color-mix(in srgb, var(--aegis-page) 40%, transparent) 42%,
+      transparent 50%
+    );
+}
+
+.aegis-landing__headline {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.aegis-landing__glass {
+  background: rgba(22, 33, 39, 0.72);
+  border: 1px solid var(--aegis-dark-border);
+  backdrop-filter: blur(12px);
+}
+
+.aegis-landing__btn-glow {
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.aegis-landing__btn-glow:hover {
+  box-shadow: 0 0 0 1px rgba(211, 157, 123, 0.35), 0 8px 28px rgba(18, 18, 18, 0.12);
+}
+
+.aegis-landing__reveal {
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aegis-landing__reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .aegis-landing__btn-glow {
+    transition: none;
+  }
+}

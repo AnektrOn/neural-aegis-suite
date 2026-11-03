@@ -48,11 +48,46 @@ export const translations = {
   "nav.pulse": { fr: "Pulse", en: "Pulse" },
   "nav.hub": { fr: "Pratiques", en: "Practices" },
 
+  "menu.hub.capture": { fr: "Capture", en: "Capture" },
+  "menu.hub.captureKicker": { fr: "Inputs", en: "Inputs" },
+  "menu.hub.captureSubtitle": {
+    fr: "Humeur, habitudes, journal, décisions et relations — vos signaux du quotidien.",
+    en: "Mood, habits, journal, decisions, and people — your daily signals.",
+  },
+  "menu.hub.capturePanels": { fr: "Panels", en: "Panels" },
+  "menu.hub.portrait": { fr: "Portrait", en: "Portrait" },
+  "menu.hub.pratiques": { fr: "Pratiques", en: "Practices" },
+  "menu.hub.messages": { fr: "Messages", en: "Messages" },
+
+  "settings.myMenuTitle": { fr: "Mon menu", en: "My menu" },
+  "settings.myMenuHint": {
+    fr: "Quatre raccourcis dans la barre du bas, le reste dans la bulle « Plus », et masquez ce que vous n'utilisez pas.",
+    en: "Four shortcuts in the bottom bar, the rest in the “More” bubble, and hide what you don't use.",
+  },
+  "settings.myMenuHintShort": {
+    fr: "Personnalisez dock et overflow dans Réglages → Mon menu.",
+    en: "Customize dock and overflow in Settings → My menu.",
+  },
+  "settings.myMenuDock": { fr: "Raccourcis dock (4)", en: "Dock shortcuts (4)" },
+  "settings.myMenuOverflow": { fr: "Bulle « Plus »", en: "“More” bubble" },
+  "settings.myMenuHidden": { fr: "Panels masqués", en: "Hidden panels" },
+  "settings.myMenuReset": { fr: "Réinitialiser", en: "Reset" },
+  "settings.myMenuSave": { fr: "Enregistrer le menu", en: "Save menu" },
+  "settings.myMenuSaving": { fr: "Enregistrement…", en: "Saving…" },
+  "settings.myMenuSavedTitle": { fr: "Menu mis à jour", en: "Menu updated" },
+  "settings.myMenuSavedDesc": { fr: "Vos raccourcis sont enregistrés.", en: "Your shortcuts have been saved." },
+  "nav.dockSlot": { fr: "Slot dock", en: "Dock slot" },
+
+  "hub.feature.bibliotheque.desc": {
+    fr: "Ressources et contenus pour approfondir vos pratiques.",
+    en: "Resources and content to deepen your practices.",
+  },
+
   "hub.kicker": { fr: "Votre espace", en: "Your space" },
   "hub.title": { fr: "Pratiques", en: "Practices" },
   "hub.subtitle": {
-    fr: "Retrouvez vos outils quotidiens et choisissez celui qui apparaît dans votre menu.",
-    en: "Find your daily tools and pick the one shown in your menu.",
+    fr: "Outils à pratiquer : protocoles, pulse, bibliothèque et massages faciaux Dien Chan.",
+    en: "Tools to practice: protocols, pulse, library, and Dien Chan facial massage.",
   },
   "hub.available": { fr: "Disponibles", en: "Available" },
   "hub.comingSoon": { fr: "Bientôt disponible", en: "Coming soon" },
@@ -80,6 +115,47 @@ export const translations = {
     fr: "Réflexologie faciale : protocoles et cartes de points.",
     en: "Facial reflexology: protocols and point maps.",
   },
+  "hub.practices.dailyScoreLabel": { fr: "Score du jour", en: "Today's score" },
+  "hub.practices.scoreTodayLine": {
+    fr: "{done}/{total} aujourd'hui",
+    en: "{done}/{total} today",
+  },
+  "hub.practices.scoreLegend": {
+    fr: "Habitudes complétées + Pulse si une carte reste ou a été swipée aujourd'hui.",
+    en: "Habits completed + Pulse if a card remains or was swiped today.",
+  },
+  "hub.practices.scoreEmpty": { fr: "Rien prévu aujourd'hui", en: "Nothing planned today" },
+  "hub.practices.habitsToday": {
+    fr: "{done}/{total} aujourd'hui",
+    en: "{done}/{total} today",
+  },
+  "hub.practices.habitsAllDone": {
+    fr: "Toutes les habitudes sont faites aujourd'hui",
+    en: "All habits done for today",
+  },
+  "hub.practices.habitsNoneAssigned": {
+    fr: "Aucune habitude assignée",
+    en: "No habits assigned",
+  },
+  "hub.practices.habitsMorePending": {
+    fr: "+{count} autre(s)",
+    en: "+{count} more",
+  },
+  "hub.practices.toolboxInProgress": {
+    fr: "{count} en cours",
+    en: "{count} in progress",
+  },
+  "hub.practices.toolboxNone": { fr: "0 en cours", en: "0 in progress" },
+  "hub.practices.pulseDeckEmpty": { fr: "Deck épuisé", en: "Deck exhausted" },
+  "hub.practices.libraryCount": {
+    fr: "{count} ressource(s) assignée(s)",
+    en: "{count} assigned resource(s)",
+  },
+  "hub.practices.programSection": { fr: "Programme", en: "Program" },
+  "hub.practices.railLabel": { fr: "Accès aux pratiques", en: "Practice shortcuts" },
+  "hub.practices.tileSelected": { fr: "Sélection : {name}", en: "Selected: {name}" },
+  "hub.practices.openHint": { fr: "Appuyer pour ouvrir", en: "Tap to open" },
+  "hub.practices.railHint": { fr: "Autres pratiques", en: "Other practices" },
 
   "pulse.title": { fr: "Pulse", en: "Pulse" },
   "pulse.swipeAssimilate": { fr: "ASSIMILER", en: "ASSIMILATE" },

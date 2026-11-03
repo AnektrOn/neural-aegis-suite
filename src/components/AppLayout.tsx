@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSessionTracking } from "@/hooks/use-session-tracking";
@@ -12,27 +12,13 @@ import {
   Settings2,
   Smartphone,
   Sparkles,
-
 } from "lucide-react";
 import AppCommandPalette from "@/components/AppCommandPalette";
 import DesktopTopBar from "@/components/DesktopTopBar";
 import QuickLogModal from "@/components/QuickLogModal";
-import { APP_NAV_SECTIONS } from "@/lib/appNavConfig";
-import { useSidebarItems } from "@/hooks/useSidebarItems";
-import { useHubMenuFeature } from "@/hooks/useHubMenuFeature";
-
-/** Routes regroupées dans le hub Pratiques (retirées du menu, sauf celle épinglée). */
-const HUB_FEATURE_ROUTES = ["/habits", "/toolbox", "/pulse", "/meditation"];
+import { APP_NAV_SECTIONS, panelPathIsActive } from "@/lib/appNavConfig";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
-import { MobileDockCircleMenu } from "@/components/MobileDockCircleMenu";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  DEFAULT_MOBILE_RADIAL_MENU_IDS,
-  orderSelectedRadialIds,
-  radialPathIsActive,
-  RADIAL_CATALOG,
-  type MobileRadialMenuId,
-} from "@/lib/mobileRadialMenuCatalog";
+import { MobileAppDockBar } from "@/components/MobileAppDockBar";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
@@ -55,6 +41,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { cn } from "@/lib/utils";
 import { usePushKeepAlive } from "@/hooks/usePushKeepAlive";
 import { Z_INDEX } from "@/lib/zIndex";
+import { MEMBER_SHELL_V2 } from "@/layouts/memberShellConfig";
+import { MemberAppShell } from "@/layouts/MemberAppShell";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,41 +60,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   const { isAdmin } = useAdmin();
   const { tier, loading: subLoading } = useSubscription();
   const { t } = useLanguage();
-  const enabledItems = useSidebarItems();
-  const { feature: pinnedHubFeature } = useHubMenuFeature();
-  const navSections = useMemo(() => {
-    const pinnedTo = pinnedHubFeature ? `/${pinnedHubFeature}` : null;
-    return APP_NAV_SECTIONS.map((section) => {
-      let items = section.items.filter(
-        (i) => enabledItems.includes(i.to) && !HUB_FEATURE_ROUTES.includes(i.to),
-      );
-      if (pinnedTo) {
-        const pinnedItem = section.items.find((i) => i.to === pinnedTo);
-        if (pinnedItem && enabledItems.includes(pinnedTo)) {
-          items = [pinnedItem, ...items];
-        }
-      }
-      return { ...section, items };
-    }).filter((section) => section.items.length > 0);
-  }, [enabledItems, pinnedHubFeature]);
-
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    daily: true,
-    analysis: false,
-    resources: false,
-  });
-
-  const toggleGroup = (id: string) => {
-    setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  // Auto-expand group containing active route
-  useEffect(() => {
-    const match = navSections.find((g) => g.items.some((i) => i.to === location.pathname));
-    if (match) {
-      setOpenGroups((prev) => ({ ...prev, [match.id]: true }));
-    }
-  }, [location.pathname, navSections]);
+  const navSections = APP_NAV_SECTIONS;
 
   return (
     <>
@@ -120,56 +74,38 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2 px-0">
-        {navSections.map((group) => {
-          const isOpen = collapsed || openGroups[group.id];
-          return (
-            <div key={group.id} className="mb-1">
-              {!collapsed && (
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(group.id)}
-                  aria-expanded={isOpen}
-                  className="w-full flex items-center gap-1 px-4 py-1.5 text-[9px] font-display tracking-[0.22em] uppercase text-muted-foreground/80/50 hover:text-muted-foreground/80 transition-colors"
-                >
-                  <span className="flex-1 text-left">{t(group.labelKey)}</span>
-                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>
-                    <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              )}
-              {isOpen && (
-                <div className="flex flex-col gap-0.5 pb-1">
-                  {group.items.map((item) => {
-                    const isActive = location.pathname === item.to;
-                    return (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        onClick={onNavigate}
-                        aria-current={isActive ? "page" : undefined}
-                        className={`relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg mx-2 transition-all duration-200 border border-transparent ${
-                          isActive ? "text-accent-primary" : "text-muted-foreground/80 hover:text-foreground hover:bg-bg-elevated"
-                        }`}
-                      >
-                        {isActive && (
-                          <motion.div
-                            layoutId="sidebar-active"
-                            className="absolute inset-0 rounded-lg bg-accent-primary/20 border border-accent-primary/30 pointer-events-none"
-                            transition={{ duration: 0.25 }}
-                          />
-                        )}
-                        <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} fill={isActive ? "currentColor" : "none"} className="relative z-10 shrink-0" aria-hidden />
-                        {!collapsed && (
-                          <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.labelKey)}</span>
-                        )}
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              )}
+        {navSections.map((group) => (
+          <div key={group.id} className="mb-1">
+            <div className="flex flex-col gap-0.5 pb-1">
+              {group.items.map((item) => {
+                const isActive = panelPathIsActive(location.pathname, item.to);
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onNavigate}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg mx-2 transition-all duration-200 border border-transparent ${
+                      isActive ? "text-accent-primary" : "text-muted-foreground/80 hover:text-foreground hover:bg-bg-elevated"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="sidebar-active"
+                        className="absolute inset-0 rounded-lg bg-accent-primary/20 border border-accent-primary/30 pointer-events-none"
+                        transition={{ duration: 0.25 }}
+                      />
+                    )}
+                    <item.icon size={16} strokeWidth={isActive ? 2 : 1.5} fill={isActive ? "currentColor" : "none"} className="relative z-10 shrink-0" aria-hidden />
+                    {!collapsed && (
+                      <span className="text-[11px] font-medium tracking-[0.1em] uppercase relative z-10">{t(item.labelKey)}</span>
+                    )}
+                  </NavLink>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </nav>
 
       {!subLoading && tier === "free" && (
@@ -190,26 +126,6 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
       )}
 
 
-
-      <NavLink
-        to="/install-android"
-        onClick={onNavigate}
-        aria-current={location.pathname === "/install-android" ? "page" : undefined}
-        className={({ isActive }) =>
-          `mx-2 mb-1 flex shrink-0 items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-all ${
-            isActive
-              ? "text-accent-primary bg-accent-primary/10 border-accent-primary/20"
-              : "text-muted-foreground/80 hover:text-accent-primary hover:bg-accent-primary/5"
-          }`
-        }
-      >
-        <Smartphone size={16} strokeWidth={1.5} className="shrink-0" />
-        {!collapsed && (
-          <span className="text-[11px] font-medium tracking-[0.1em] uppercase">
-            {t("nav.installApp")}
-          </span>
-        )}
-      </NavLink>
 
       {isAdmin && (
         <Link
@@ -248,10 +164,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileUtilityOpen, setMobileUtilityOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [dockRadialOpen, setDockRadialOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
-  const [radialMenuIds, setRadialMenuIds] = useState<MobileRadialMenuId[]>(DEFAULT_MOBILE_RADIAL_MENU_IDS);
   const touchStartY = useRef(0);
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -262,37 +176,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useHesitationTracking();
   const { online } = useNetwork();
 
-  const fetchRadialMenu = useCallback(async (uid: string) => {
-    const { data, error } = await supabase.from("profiles").select("mobile_radial_menu").eq("id", uid).maybeSingle();
-    if (error) {
-      console.error("mobile_radial_menu load", error);
-      return DEFAULT_MOBILE_RADIAL_MENU_IDS;
-    }
-    return orderSelectedRadialIds(data?.mobile_radial_menu);
+  const openCommandPalette = useCallback(() => {
+    setCommandOpen(true);
   }, []);
 
   useEffect(() => {
-    if (!user) {
-      setRadialMenuIds(DEFAULT_MOBILE_RADIAL_MENU_IDS);
-      return;
-    }
-    let alive = true;
-    void fetchRadialMenu(user.id).then((ids) => {
-      if (alive) setRadialMenuIds(ids);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [user, fetchRadialMenu]);
-
-  useEffect(() => {
-    if (!user) return;
-    const onUpdate = () => {
-      void fetchRadialMenu(user.id).then(setRadialMenuIds);
-    };
-    window.addEventListener("aegis:radial-menu-updated", onUpdate);
-    return () => window.removeEventListener("aegis:radial-menu-updated", onUpdate);
-  }, [user, fetchRadialMenu]);
+    const onOpenCommand = () => openCommandPalette();
+    window.addEventListener("aegis:open-command", onOpenCommand);
+    return () => window.removeEventListener("aegis:open-command", onOpenCommand);
+  }, [openCommandPalette]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -325,6 +217,63 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const logoutDialog = (
+    <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+      <AlertDialogContent className="z-[120] max-w-[min(100vw-1.5rem,24rem)]">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t("layout.logoutConfirmTitle")}</AlertDialogTitle>
+          <AlertDialogDescription>{t("layout.logoutConfirmBody")}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t("layout.logoutConfirmCancel")}</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              setLogoutDialogOpen(false);
+              void signOut();
+            }}
+          >
+            {t("layout.logoutConfirmAction")}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+  if (MEMBER_SHELL_V2) {
+    return (
+      <ToolboxExerciseSessionProvider userId={user?.id}>
+        <PopupAnnouncement />
+        <AccountPausedModal />
+        <Houses72ResumeModal />
+        {!online ? (
+          <div
+            className="fixed inset-x-0 top-0 z-[200] bg-warning py-1.5 text-center text-xs font-medium text-warning-foreground"
+            role="status"
+            style={{ paddingTop: "max(0.375rem, var(--safe-top))" }}
+          >
+            {t("layout.offlineMessage")}
+          </div>
+        ) : null}
+        <MemberAppShell
+          mobile={isMobile}
+          online={online}
+          commandOpen={commandOpen}
+          onCommandOpenChange={setCommandOpen}
+          quickLogOpen={quickLogOpen}
+          onQuickLogClose={() => setQuickLogOpen(false)}
+          onQuickLog={openQuickLog}
+          refreshing={refreshing}
+          onTouchStart={isMobile ? handleTouchStart : undefined}
+          onTouchEnd={isMobile ? handleTouchEnd : undefined}
+        >
+          {children}
+        </MemberAppShell>
+        {logoutDialog}
+      </ToolboxExerciseSessionProvider>
+    );
+  }
+
   if (isMobile) {
     const avatarInitial = user?.email ? user.email[0].toUpperCase() : "?";
     const dateLocale = locale === "fr" ? "fr-FR" : "en-US";
@@ -332,35 +281,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       .toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" })
       .toUpperCase();
 
-    const radialItemsBase = radialMenuIds.map((id) => {
-      const def = RADIAL_CATALOG[id];
-      return {
-        to: def.to,
-        Icon: def.icon,
-        label: t(def.labelKey),
-        isActive: radialPathIsActive(location.pathname, def.to),
-      };
-    });
-    const radialItems =
-      isAdmin
-        ? [
-            ...radialItemsBase,
-            {
-              to: "/admin",
-              Icon: Shield,
-              label: t("nav.admin"),
-              isActive: location.pathname.startsWith("/admin"),
-            },
-          ]
-        : radialItemsBase;
-    const dockRadialHasActive = radialItems.some((item) => item.isActive);
-
     return (
       <ToolboxExerciseSessionProvider userId={user?.id}>
       <PopupAnnouncement />
       <AccountPausedModal />
       <Houses72ResumeModal />
       <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
+        {!immersiveDashboard ? (
         <div
           className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-bg-surface/90 backdrop-blur-xl border-b border-border-subtle"
           style={{ paddingTop: "var(--safe-top)" }}
@@ -376,8 +303,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="relative flex h-[var(--mobile-header-toolbar)] shrink-0 items-center justify-between box-border px-4">
             <div className="flex shrink-0 items-center">
               <NavLink
-                to="/"
-                end
+                to="/dashboard"
                 aria-label={t("nav.dashboard")}
                 className={({ isActive }) =>
                   cn(
@@ -459,6 +385,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       <Settings2 size={18} strokeWidth={1.5} className="shrink-0" />
                       <span className="text-[12px] font-medium uppercase tracking-[0.08em]">{t("settings.title")}</span>
                     </Link>
+                    <Link
+                      to="/install-android"
+                      onClick={() => setMobileUtilityOpen(false)}
+                      className="flex items-center gap-3 rounded-xl border border-border/40 bg-secondary/10 px-3 py-3 text-muted-foreground transition-colors hover:bg-bg-elevated hover:text-foreground"
+                    >
+                      <Smartphone size={18} strokeWidth={1.5} className="shrink-0" />
+                      <span className="text-[12px] font-medium uppercase tracking-[0.08em]">{t("nav.installApp")}</span>
+                    </Link>
                     <div className="space-y-2 rounded-xl border border-border/30 bg-secondary/5 p-3">
                       <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80/80">
                         {t("settings.notifications")}
@@ -501,16 +435,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
+        ) : null}
 
         <main
           className={cn(
             "mobile-main-scroll flex-1 overflow-y-auto px-3 sm:px-5 md:px-6",
             !online && "mobile-main-scroll--offline",
+            immersiveDashboard && "px-0 sm:px-0 md:px-0",
           )}
           style={{
-            paddingTop: online
-              ? "var(--mobile-main-padding-top)"
-              : "var(--mobile-main-padding-top-offline)",
+            paddingTop: immersiveDashboard
+              ? "var(--safe-top)"
+              : online
+                ? "var(--mobile-main-padding-top)"
+                : "var(--mobile-main-padding-top-offline)",
             paddingBottom: "var(--mobile-dock-padding)",
           }}
           onTouchStart={handleTouchStart}
@@ -522,28 +460,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <PageWrapper key={location.pathname}>{children}</PageWrapper>
-          <AppFooter />
+          {!immersiveDashboard ? <AppFooter /> : null}
         </main>
 
         <FreePreviewToggle />
 
-        <div
-          role="navigation"
-          aria-label={t("nav.dockMoreAria")}
-          className={`pointer-events-none fixed inset-x-0 bottom-0 flex justify-center md:hidden ${
-            dockRadialOpen ? "z-[130]" : "z-40"
-          }`}
-        >
-          <div className="pointer-events-auto pb-[max(0.5rem,var(--safe-bottom))] pt-1">
-            <MobileDockCircleMenu
-              items={radialItems}
-              ariaLabel={t("nav.dockMoreAria")}
-              menuTitle={t("nav.dockMoreTitle")}
-              hasActiveShortcut={dockRadialHasActive}
-              onOpenChange={setDockRadialOpen}
-            />
-          </div>
-        </div>
+        <MobileAppDockBar />
+
+        <AppCommandPalette
+          open={commandOpen}
+          onOpenChange={setCommandOpen}
+          onQuickLog={openQuickLog}
+        />
+        <QuickLogModal open={quickLogOpen} onClose={() => setQuickLogOpen(false)} />
 
         <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
           <AlertDialogContent className="z-[120] max-w-[min(100vw-1.5rem,24rem)]">
@@ -584,6 +513,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {t("layout.offlineMessage")}
         </div>
       )}
+      {!immersiveDashboard ? (
       <aside
         className={`fixed left-0 z-30 flex h-full min-h-0 flex-col overflow-hidden border-r border-border-subtle bg-bg-surface transition-all duration-300 ease-in-out ${
           collapsed ? "w-[60px]" : "w-[220px]"
@@ -599,19 +529,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {collapsed ? <ChevronRight size={14} strokeWidth={1.5} /> : <ChevronLeft size={14} strokeWidth={1.5} />}
         </button>
       </aside>
+      ) : null}
 
       <main
-        className={`flex-1 min-h-screen p-6 md:p-10 transition-all duration-300 ease-in-out bg-aegis-gradient ${
-          collapsed ? "ml-[60px]" : "ml-[220px]"
+        className={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${
+          immersiveDashboard
+            ? "ml-0 p-0 bg-bg-base min-h-[100dvh]"
+            : `p-6 md:p-10 bg-aegis-gradient ${collapsed ? "ml-[60px]" : "ml-[220px]"}`
         } ${!online ? "mt-7" : ""}`}
       >
+        {!immersiveDashboard ? (
         <DesktopTopBar
           pathname={location.pathname}
           onOpenCommand={() => setCommandOpen(true)}
           onQuickLog={openQuickLog}
         />
+        ) : null}
         <PageWrapper key={location.pathname}>{children}</PageWrapper>
-        <AppFooter />
+        {!immersiveDashboard ? <AppFooter /> : null}
       </main>
 
       <FreePreviewToggle />
