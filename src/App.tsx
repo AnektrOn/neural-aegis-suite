@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BootLoadingScreen } from "@/components/BootLoadingScreen";
+import { LandingBootFallback } from "@/pages/aegis-landing/components/LandingBootFallback";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, MemoryRouter, Navigate, Routes, Route, useLocation } from "react-router-dom";
@@ -19,8 +20,8 @@ import RequireQuizOnboarding from "@/components/RequireQuizOnboarding";
 import AdminRoute from "@/components/AdminRoute";
 import AdminLegacyRedirect from "@/components/admin/AdminLegacyRedirect";
 import CompanyAdminPathGuard from "@/components/admin/CompanyAdminPathGuard";
-import { hasSeenIntro } from "@/features/intro/introSeen";
 import AppLayout from "./components/AppLayout";
+import { AppRouteErrorBoundary } from "./components/AppRouteErrorBoundary";
 import AdminLayout from "./components/AdminLayout";
 import VisitorLayout from "./layouts/VisitorLayout";
 import { useAndroidVersionReporter } from "@/hooks/useAndroidVersionReporter";
@@ -41,6 +42,7 @@ const DecisionLog = lazy(() => import("./pages/DecisionLog"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const Toolbox = lazy(() => import("./pages/Toolbox"));
 const PracticesHub = lazy(() => import("./pages/PracticesHub"));
+const CaptureHub = lazy(() => import("./pages/CaptureHub"));
 const Bibliotheque = lazy(() => import("./pages/Bibliotheque"));
 const PeopleBoard = lazy(() => import("./pages/PeopleBoard"));
 const Analytics = lazy(() => import("./pages/Analytics"));
@@ -101,11 +103,14 @@ const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
 const DevLabPage = lazy(() => import("./pages/dev/DevLabPage"));
+const PracticesHubLabPage = lazy(() => import("./pages/dev/practices-hub/PracticesHubLabPage"));
+const LiquidGlassDemoPage = lazy(() => import("./pages/dev/liquid-glass/LiquidGlassDemoPage"));
 const AegisCorePreview = lazy(() => import("./pages/dev/AegisCorePreview"));
 const QuantumNebulaDemo = lazy(() => import("./pages/dev/QuantumNebulaDemo"));
 const ToolboxNebulaDemo = lazy(() => import("./pages/dev/ToolboxNebulaDemo"));
 const DienChanMap = lazy(() => import("./pages/dev/DienChanMap"));
 const BodyScanPreview = lazy(() => import("./pages/dev/BodyScanPreview"));
+const AegisBioExecutiveDevPage = lazy(() => import("./pages/dev/aegis-dashboard/AegisBioExecutiveDevPage"));
 const StorytellingPage = lazy(() => import("./pages/dev/StorytellingPage"));
 const PromotePage = lazy(() => import("./pages/dev/promote/PromotePage"));
 const IntroV2Page = import.meta.env.DEV
@@ -132,6 +137,10 @@ const PrismLayoutPage = import.meta.env.DEV
 const PrismLandingR3fPage = import.meta.env.DEV
   ? lazy(() => import("./pages/dev/prism-landing-r3f/pages/PrismLandingR3fPage"))
   : () => null;
+const PrismR3fLandingPage = lazy(
+  () => import("./pages/dev/prism-landing-r3f/pages/PrismR3fLandingPage"),
+);
+const AegisLandingPage = lazy(() => import("./pages/aegis-landing/AegisLandingPage"));
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
 const AdminMarkdownPdf = lazy(() => import("./pages/admin/AdminMarkdownPdf"));
 const AdminMarkdownPdfRender = lazy(() => import("./pages/admin/AdminMarkdownPdfRender"));
@@ -139,7 +148,6 @@ const InstallAndroid = lazy(() => import("./pages/InstallAndroid"));
 const Ambassador = lazy(() => import("./pages/Ambassador"));
 const AffiliateManagement = lazy(() => import("./pages/admin/AffiliateManagement"));
 const AcceptCompanyInvitePage = lazy(() => import("./pages/AcceptCompanyInvitePage"));
-const Landing = lazy(() => import("./pages/Landing"));
 const IntroPage = lazy(() => import("./features/intro/IntroPage"));
 const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
@@ -148,23 +156,19 @@ const LegalNotice = lazy(() => import("./pages/legal/LegalNotice"));
 const AccountDeletedPage = lazy(() => import("./pages/AccountDeletedPage"));
 const CookieConsentBanner = lazy(() => import("./components/CookieConsentBanner"));
 
-/** Root route: public marketing page for visitors, Welcome hub for signed-in users. */
+/** Root route: public AEGIS landing for visitors, Welcome hub for signed-in users. */
 function HomeRoute() {
   const { user, session, loading } = useAuth();
   const resolvedUser = user ?? session?.user ?? null;
-  const location = useLocation();
 
   if (!loading && !resolvedUser) {
     // Native APK/iOS: skip marketing homepage, open sign-in immediately.
     if (Capacitor.isNativePlatform()) {
       return <Navigate to="/auth" replace />;
     }
-    if (!hasSeenIntro() && new URLSearchParams(location.search).get("intro") !== "0") {
-      return <Navigate to="/intro" replace />;
-    }
     return (
-      <Suspense fallback={<PageLoader />}>
-        <Landing />
+      <Suspense fallback={<LandingBootFallback />}>
+        <AegisLandingPage audience="individuel" />
       </Suspense>
     );
   }
@@ -218,7 +222,8 @@ function isBootGateSkippedPath(pathname: string): boolean {
     pathname === "/refund" ||
     pathname.startsWith("/newsletter") ||
     pathname === "/dev" ||
-    pathname.startsWith("/dev/")
+    pathname.startsWith("/dev/") ||
+    pathname === "/entreprise"
   );
 }
 
@@ -322,12 +327,15 @@ const App = () => (
                   <>
                     <Route path="/__loader" element={<BootLoadingScreen />} />
                     <Route path="/dev" element={<DevGate><DevLabPage /></DevGate>} />
+                    <Route path="/dev/practices-hub" element={<DevGate><PracticesHubLabPage /></DevGate>} />
+                    <Route path="/dev/liquid-glass" element={<DevGate><LiquidGlassDemoPage /></DevGate>} />
                     <Route path="/dev/aegis-core" element={<DevGate><AegisCorePreview /></DevGate>} />
                     <Route path="/dev/quantum-nebula" element={<DevGate><QuantumNebulaDemo /></DevGate>} />
                     <Route path="/dev/toolbox-nebula" element={<DevGate><ToolboxNebulaDemo /></DevGate>} />
-                    <Route path="/dev/dien-chan" element={<DevGate><DienChanMap /></DevGate>} />
+                    <Route path="/dev/dien-chan" element={<DevGate><DienChanMap variant="dev" /></DevGate>} />
                     {/* Mixamo Xbot additive-skinning playground */}
                     <Route path="/dev/body-scan" element={<DevGate><BodyScanPreview /></DevGate>} />
+                    <Route path="/dev/aegis-dashboard" element={<DevGate><AegisBioExecutiveDevPage /></DevGate>} />
                     <Route path="/dev/storytelling" element={<DevGate><StorytellingPage /></DevGate>} />
                     <Route path="/dev/promote" element={<DevGate><PromotePage /></DevGate>} />
                     <Route path="/dev/promote/:scene" element={<DevGate><PromotePage /></DevGate>} />
@@ -339,8 +347,19 @@ const App = () => (
                     <Route path="/dev/prism-landing-opt" element={<DevGate><PrismLandingPageOpt /></DevGate>} />
                     <Route path="/dev/prism-layout" element={<DevGate><PrismLayoutPage /></DevGate>} />
                     <Route path="/dev/shattered-cube" element={<DevGate><ShatteredCubeDevPage /></DevGate>} />
+                    <Route path="/dev/prism" element={<DevGate><PrismR3fLandingPage /></DevGate>} />
                   </>
                 ) : null}
+                <Route
+                  path="/entreprise"
+                  element={
+                    <Suspense fallback={<LandingBootFallback />}>
+                      <AegisLandingPage audience="entreprise" />
+                    </Suspense>
+                  }
+                />
+                <Route path="/prism/entreprise" element={<Navigate to="/entreprise" replace />} />
+                <Route path="/prism" element={<Navigate to="/" replace />} />
                 <Route path="/intro" element={<IntroPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route
@@ -512,8 +531,10 @@ const App = () => (
                       <RequireQuizOnboarding>
                       <RequireSubscription>
                       <AppLayout>
+                        <AppRouteErrorBoundary label="member-app">
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
+                            <Route path="/capture" element={<CaptureHub />} />
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/persona" element={<Persona />} />
                             <Route path="/mood" element={<MoodTracker />} />
@@ -522,6 +543,7 @@ const App = () => (
                             <Route path="/journal" element={<Journal />} />
                             <Route path="/toolbox" element={<Toolbox />} />
                             <Route path="/pratiques" element={<PracticesHub />} />
+                            <Route path="/pratiques/dien-chan" element={<DienChanMap variant="user" />} />
                             <Route path="/pulse" element={<PulsePage />} />
                             <Route path="/bibliotheque" element={<Bibliotheque />} />
                             <Route path="/meditation" element={<MeditationLibraryPage />} />
@@ -543,6 +565,7 @@ const App = () => (
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </Suspense>
+                        </AppRouteErrorBoundary>
                       </AppLayout>
                       </RequireSubscription>
                       </RequireQuizOnboarding>

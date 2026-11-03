@@ -17,6 +17,8 @@ type DienChanProtocolSelectProps = {
   value: string;
   onChange: (protocol: DienChanProtocol | null) => void;
   className?: string;
+  /** When false, hides full-map exploration (user route). */
+  allowExplore?: boolean;
 };
 
 export function DienChanProtocolSelect({
@@ -24,6 +26,7 @@ export function DienChanProtocolSelect({
   value,
   onChange,
   className,
+  allowExplore = true,
 }: DienChanProtocolSelectProps) {
   const byCategory = protocols.reduce<Record<string, DienChanProtocol[]>>((acc, p) => {
     if (!acc[p.category]) acc[p.category] = [];
@@ -58,11 +61,13 @@ export function DienChanProtocolSelect({
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="max-h-[min(24rem,70vh)]">
-        <SelectGroup>
-          <SelectItem value={DIEN_CHAN_EXPLORE_VALUE} className="py-2.5 font-medium">
-            Aucun protocole — carte complète
-          </SelectItem>
-        </SelectGroup>
+        {allowExplore ? (
+          <SelectGroup>
+            <SelectItem value={DIEN_CHAN_EXPLORE_VALUE} className="py-2.5 font-medium">
+              Aucun protocole — carte complète
+            </SelectItem>
+          </SelectGroup>
+        ) : null}
         {Object.entries(byCategory).map(([category, items]) => (
           <SelectGroup key={category}>
             <SelectLabel className="font-display text-[10px] uppercase tracking-[0.16em] text-muted-foreground">

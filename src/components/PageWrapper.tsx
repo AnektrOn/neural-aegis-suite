@@ -1,31 +1,28 @@
-import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-const pageVariants = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" as const } },
-  exit: { opacity: 0, y: -4, transition: { duration: 0.15 } },
-};
-
+/** Plain wrapper — avoid enter opacity:0 (blank screen if animation does not run). */
 export function PageWrapper({
   children,
   className,
+  memberShell = false,
 }: {
   children: React.ReactNode;
   className?: string;
+  /** Member shell v2: dock reserve; dashboard pages may opt out via own layout. */
+  memberShell?: boolean;
 }) {
   const isMobile = useIsMobile();
 
   return (
-    <motion.div
-      className={cn(isMobile && "pb-3", className)}
-      variants={pageVariants}
-      initial={false}
-      animate="animate"
-      exit="exit"
+    <div
+      className={cn(
+        memberShell && "min-h-[100dvh] w-full",
+        isMobile && !memberShell && "pb-3",
+        className,
+      )}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

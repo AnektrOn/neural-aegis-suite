@@ -22,6 +22,7 @@ export default {
         grotesk: ["Barlow", "ui-sans-serif", "system-ui", "sans-serif"],
         cormorant: ['"Cormorant Garamond"', "Georgia", "serif"],
         barlow: ["Barlow", "ui-sans-serif", "system-ui", "sans-serif"],
+        quattrocento: ['"Quattrocento"', "Georgia", "serif"],
       },
       colors: {
         bg: {
@@ -119,6 +120,22 @@ export default {
           3: "hsl(var(--chart-3))",
           4: "hsl(var(--chart-4))",
           5: "hsl(var(--chart-5))",
+        },
+        aegis: {
+          warm: "hsl(var(--aegis-warm))",
+          copper: "hsl(var(--aegis-copper))",
+          s1: "hsl(var(--aegis-s1))",
+        },
+        metric: {
+          mind: "hsl(var(--metric-mind))",
+          body: "hsl(var(--metric-body))",
+          energy: "hsl(var(--metric-energy))",
+          calm: "hsl(var(--metric-calm))",
+          neutral: "hsl(var(--metric-neutral))",
+        },
+        "success-display": {
+          DEFAULT: "hsl(var(--success-display))",
+          muted: "hsl(var(--success-display-muted))",
         },
       },
       boxShadow: {

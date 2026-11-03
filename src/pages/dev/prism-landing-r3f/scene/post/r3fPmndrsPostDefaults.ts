@@ -8,6 +8,8 @@ export const R3F_PMNDRS_POST_DEFAULTS = {
   n8aoIntensity: 1.6,
   n8aoRadius: 4.5,
   gradeEnabled: false,
+  /** Opacité du NoiseEffect (0 = off). Landing ~0.03. */
+  filmGrainIntensity: 0,
   environmentIntensity: 0.14,
 };
 

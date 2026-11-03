@@ -1,19 +1,19 @@
 {
   "definitionVersion": "0.4.0",
-  "revisionHistory": ["r3f-hall-v1"],
+  "revisionHistory": ["r3f-landing-beats-v2"],
   "sheetsById": {
     "Landing Camera": {
       "staticOverrides": {
         "byObject": {
           "Camera": {
-            "fov": 52,
+            "fov": 55,
             "zoom": 1
           }
         }
       },
       "sequence": {
         "type": "PositionalSequence",
-        "length": 8,
+        "length": 24,
         "subUnitsPerUnit": 30,
         "tracksByObject": {
           "Camera": {
@@ -27,66 +27,42 @@
                 "type": "BasicKeyframedTrack",
                 "__debugName": "Camera:[\"position\",\"x\"]",
                 "keyframes": [
-                  {
-                    "id": "camX0",
-                    "position": 0,
-                    "connectedRight": true,
-                    "handles": [0.42, 0, 0.58, 1],
-                    "type": "bezier",
-                    "value": 49.064
-                  },
-                  {
-                    "id": "camX1",
-                    "position": 8,
-                    "connectedRight": true,
-                    "handles": [0.42, 0, 0.58, 1],
-                    "type": "bezier",
-                    "value": 37.776
-                  }
+                  { "id": "bx0", "position": 0, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 34.2 },
+                  { "id": "bxA", "position": 2, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 20 },
+                  { "id": "bx1", "position": 4, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 5 },
+                  { "id": "bx2", "position": 8, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": -44.4 },
+                  { "id": "bxB", "position": 10, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": -14 },
+                  { "id": "bx3", "position": 12, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 6.2 },
+                  { "id": "bx4", "position": 16, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 4 },
+                  { "id": "bx5", "position": 20, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 5 }
                 ]
               },
               "camPosY": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "Camera:[\"position\",\"y\"]",
                 "keyframes": [
-                  {
-                    "id": "camY0",
-                    "position": 0,
-                    "connectedRight": true,
-                    "handles": [0.42, 0, 0.58, 1],
-                    "type": "bezier",
-                    "value": 10.9
-                  },
-                  {
-                    "id": "camY1",
-                    "position": 8,
-                    "connectedRight": true,
-                    "handles": [0.42, 0, 0.58, 1],
-                    "type": "bezier",
-                    "value": 3
-                  }
+                  { "id": "by0", "position": 0, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 2.45 },
+                  { "id": "byA", "position": 2, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 11 },
+                  { "id": "by1", "position": 4, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 18 },
+                  { "id": "by2", "position": 8, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 2.85 },
+                  { "id": "byB", "position": 10, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 7.5 },
+                  { "id": "by3", "position": 12, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 3.1 },
+                  { "id": "by4", "position": 16, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 4.8 },
+                  { "id": "by5", "position": 20, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 15.5 }
                 ]
               },
               "camPosZ": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "Camera:[\"position\",\"z\"]",
                 "keyframes": [
-                  {
-                    "id": "camZ0",
-                    "position": 0,
-                    "connectedRight": true,
-                    "handles": [0.42, 0, 0.58, 1],
-                    "type": "bezier",
-                    "value": 57.797
-                  },
-                  {
-                    "id": "camZ1",
-                    "position": 8,
-                    "connectedRight": true,
-                    "handles": [0.42, 0, 0.58, 1],
-                    "type": "bezier",
-                    "value": 44.09
-                  }
+                  { "id": "bz0", "position": 0, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 29.8 },
+                  { "id": "bzA", "position": 2, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 38 },
+                  { "id": "bz1", "position": 4, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 52 },
+                  { "id": "bz2", "position": 8, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 28.1 },
+                  { "id": "bzB", "position": 10, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 20 },
+                  { "id": "bz3", "position": 12, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 15.5 },
+                  { "id": "bz4", "position": 16, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 20 },
+                  { "id": "bz5", "position": 20, "connectedRight": true, "handles": [0.42, 0, 0.58, 1], "type": "bezier", "value": 40 }
                 ]
               }
             }

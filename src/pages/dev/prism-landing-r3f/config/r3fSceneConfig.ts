@@ -1,6 +1,11 @@
 import {
   R3F_GODRAYS_HALL_GODRAYS,
 } from "../scene/godraysHall/r3fGodraysHallConstants";
+import { R3F_HALL_SUN_DEFAULTS } from "../scene/atmosphere/r3fHallSunConstants";
+import {
+  R3F_MARBLE_GLOW_DEFAULTS,
+  R3F_MARBLE_MONOLITH_HALL_OFFSET,
+} from "../scene/marbleMonolith/r3fMarbleMonolithConstants";
 import { R3F_PMNDRS_POST_DEFAULTS } from "../scene/post/r3fPmndrsPostDefaults";
 
 export type R3fSceneConfig = {
@@ -35,7 +40,19 @@ export type R3fSceneConfig = {
   n8aoIntensity: number;
   n8aoRadius: number;
   gradeEnabled: boolean;
+  /** Grain ciné (postprocessing NoiseEffect), 0 = désactivé. */
+  filmGrainIntensity: number;
   environmentIntensity: number;
+  /** Offset monde marbre PRISM relatif à monolithCenterX/Z (fente). */
+  marbleHallOffsetX: number;
+  marbleHallOffsetZ: number;
+  marbleGlow: string;
+  marbleGlowIntensity: number;
+  marbleFloat: boolean;
+  /** Soleil de lab (directional hors godrays fente). 0 = désactivé. */
+  hallSunIntensity: number;
+  /** 0..1 — atténue godrays orange fente quand le cube révèle (godrayReveal). */
+  cubeGutterGodraysAttenuation: number;
 };
 
 /** Champs lus par la géométrie fente / tuile (mesh + math). */
@@ -83,5 +100,13 @@ export const R3F_SCENE_CONFIG_DEFAULTS: R3fSceneConfig = {
   n8aoIntensity: R3F_PMNDRS_POST_DEFAULTS.n8aoIntensity,
   n8aoRadius: R3F_PMNDRS_POST_DEFAULTS.n8aoRadius,
   gradeEnabled: R3F_PMNDRS_POST_DEFAULTS.gradeEnabled,
+  filmGrainIntensity: R3F_PMNDRS_POST_DEFAULTS.filmGrainIntensity,
   environmentIntensity: R3F_PMNDRS_POST_DEFAULTS.environmentIntensity,
+  marbleHallOffsetX: R3F_MARBLE_MONOLITH_HALL_OFFSET.x,
+  marbleHallOffsetZ: R3F_MARBLE_MONOLITH_HALL_OFFSET.zFromMonolith,
+  marbleGlow: R3F_MARBLE_GLOW_DEFAULTS.color,
+  marbleGlowIntensity: R3F_MARBLE_GLOW_DEFAULTS.pointIntensity,
+  marbleFloat: true,
+  hallSunIntensity: R3F_HALL_SUN_DEFAULTS.intensity,
+  cubeGutterGodraysAttenuation: 0,
 };

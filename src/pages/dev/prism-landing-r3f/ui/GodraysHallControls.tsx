@@ -124,6 +124,59 @@ export function GodraysHallControls() {
         onChange={(v) => setConfig({ emitLightDistance: v })}
       />
 
+      <p className="godrays-hall-section">Éclairage global</p>
+      <RangeControl
+        id="hall-sun"
+        label="Soleil (directional)"
+        min={0}
+        max={3}
+        step={0.05}
+        value={config.hallSunIntensity}
+        format={(v) => v.toFixed(2)}
+        onChange={(v) => setConfig({ hallSunIntensity: v })}
+      />
+
+      <p className="godrays-hall-section">Marbre PRISM</p>
+      <RangeControl
+        id="marble-off-x"
+        label="Marbre offset X"
+        min={-55}
+        max={55}
+        step={0.5}
+        value={config.marbleHallOffsetX}
+        format={(v) => v.toFixed(1)}
+        onChange={(v) => setConfig({ marbleHallOffsetX: v })}
+      />
+      <RangeControl
+        id="marble-off-z"
+        label="Marbre offset Z"
+        min={-20}
+        max={45}
+        step={0.5}
+        value={config.marbleHallOffsetZ}
+        format={(v) => v.toFixed(1)}
+        onChange={(v) => setConfig({ marbleHallOffsetZ: v })}
+      />
+      <RangeControl
+        id="marble-glow-int"
+        label="Marbre glow (point)"
+        min={0}
+        max={80}
+        step={2}
+        value={config.marbleGlowIntensity}
+        format={(v) => String(v)}
+        onChange={(v) => setConfig({ marbleGlowIntensity: v })}
+      />
+      <label className="godrays-hall-check" htmlFor="marble-float">
+        <input
+          id="marble-float"
+          type="checkbox"
+          checked={config.marbleFloat}
+          onChange={(e) => setConfig({ marbleFloat: e.target.checked })}
+        />
+        Marbre flottement
+      </label>
+
       <RangeControl
         id="density"
         label="Densité godrays"

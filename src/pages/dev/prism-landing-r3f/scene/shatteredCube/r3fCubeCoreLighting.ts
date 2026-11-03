@@ -1,13 +1,13 @@
 import * as THREE from "three";
 import {
   R3F_CUBE_CORE_EMISSION,
-  R3F_CUBE_INTERSTICE_BEAMS,
+  R3F_CUBE_CORE_ESCAPE,
   R3F_SHATTERED_CUBE_TIMING,
 } from "./r3fShatteredCubeConstants";
 import type { R3fShatteredCubeLattice } from "./r3fShatteredCubeLattice";
 import { clamp01, r3fShatteredCubeEaseInOutCubic } from "./r3fShatteredCubeLattice";
 
-export type ShatteredCubePhase = "hold" | "burst" | "reform";
+export type ShatteredCubePhase = "hold" | "burst";
 
 export type ShatteredCubePhaseState = {
   phase: ShatteredCubePhase;
@@ -25,22 +25,12 @@ export type CubeLightingHull = {
   halfExtent: number;
 };
 
-export type IntersticeBeamCandidate = {
-  /** Point d’émergence (interstice), pas le noyau. */
-  origin: THREE.Vector3;
-  direction: THREE.Vector3;
-  clearance: number;
-  weight: number;
-  intensity: number;
-};
-
 export type CubeCoreVisualLevels = {
   emissiveIntensity: number;
   corePointIntensity: number;
   haloOpacity: number;
   haloScale: number;
   godrayReveal: number;
-  /** 0–1 : part des directions où la lumière peut sortir du cube (ray march depuis le centre). */
   escapeGain: number;
 };
 
@@ -48,13 +38,25 @@ export type CubeCoreLightingFrame = {
   timeline: number;
   reveal: number;
   pulse: number;
+  phase: ShatteredCubePhase;
   levels: CubeCoreVisualLevels;
-  beams: IntersticeBeamCandidate[];
+};
+
+export type CoreRayMarchResult = {
+  clearance: number;
+  /** Distance depuis le centre jusqu’au cœur de la fissure (couloir libre dans la coque). */
+  exitDistance: number;
 };
 
 const CORE_ORIGIN = new THREE.Vector3(0, 0, 0);
 const _dir = new THREE.Vector3();
 const _sample = new THREE.Vector3();
+const _wakeOffset = new THREE.Vector3();
+
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = clamp01((x - edge0) / (edge1 - edge0 + 1e-6));
+  return t * t * (3 - 2 * t);
+}
 
 function shellFactor(rest: THREE.Vector3, minShell: number): number {
   const m = Math.max(Math.abs(rest.x), Math.abs(rest.y), Math.abs(rest.z));
@@ -75,26 +77,52 @@ function isInsideEmitter(p: THREE.Vector3, emitterHalf: number): boolean {
   return pointInsideHull(p, { center: CORE_ORIGIN, halfExtent: emitterHalf });
 }
 
-function isInsideAnyInstance(p: THREE.Vector3, hulls: CubeLightingHull[]): boolean {
+function isInsideAnyInstance(p: THREE.Vector3, hulls: readonly CubeLightingHull[]): boolean {
   for (let i = 0; i < hulls.length; i++) {
     if (pointInsideHull(p, hulls[i])) return true;
   }
   return false;
 }
 
-export type CoreRayMarchResult = {
-  clearance: number;
-  /** Distance depuis le centre jusqu’à l’interstice (début du couloir libre). */
-  exitDistance: number;
-};
+/**
+ * Index d'octant [0..7] selon les signes de (x, y, z).
+ */
+function octantIndex(v: THREE.Vector3): number {
+  return (v.x >= 0 ? 1 : 0) | (v.y >= 0 ? 2 : 0) | (v.z >= 0 ? 4 : 0);
+}
+
+export function buildOctantHulls(hulls: readonly CubeLightingHull[]): CubeLightingHull[][] {
+  const buckets: CubeLightingHull[][] = [[], [], [], [], [], [], [], []];
+  for (let i = 0; i < hulls.length; i++) {
+    const hull = hulls[i];
+    const c = hull.center;
+    const h = hull.halfExtent;
+    const xNeg = c.x - h <= 0;
+    const xPos = c.x + h >= 0;
+    const yNeg = c.y - h <= 0;
+    const yPos = c.y + h >= 0;
+    const zNeg = c.z - h <= 0;
+    const zPos = c.z + h >= 0;
+
+    for (let oct = 0; oct < 8; oct++) {
+      const ox = (oct & 1) !== 0 ? xPos : xNeg;
+      const oy = (oct & 2) !== 0 ? yPos : yNeg;
+      const oz = (oct & 4) !== 0 ? zPos : zNeg;
+      if (ox && oy && oz) {
+        buckets[oct].push(hull);
+      }
+    }
+  }
+  return buckets;
+}
 
 /**
- * Ray march depuis le **centre du cube** (0,0,0) : traverse le noyau émissif,
- * puis compte le couloir libre entre les fragments (pas de lumière si basalte bloque).
+ * Ray march depuis le centre (0,0,0) à travers le cube plein en défragmentation :
+ * mesure l'ouverture du couloir dans l'épaisseur de la coque et localise la fissure.
  */
 export function marchRayFromCore(
   direction: THREE.Vector3,
-  instanceHulls: CubeLightingHull[],
+  instanceHulls: readonly CubeLightingHull[],
   emitterHalf: number,
   options: {
     maxDistance: number;
@@ -104,31 +132,37 @@ export function marchRayFromCore(
   },
 ): CoreRayMarchResult {
   _dir.copy(direction).normalize();
-  let t = 0;
+  let t = Math.max(options.stepSize, emitterHalf);
   let consecutiveClear = 0;
   let maxConsecutiveClear = 0;
   let clearSteps = 0;
   let blockedSteps = 0;
-  let exitDistance = 0;
+  let bestCorridorMidT = 0;
+  let currentCorridorStartT = t;
 
   for (let step = 0; step < options.maxSteps && t <= options.maxDistance; step++) {
     _sample.copy(_dir).multiplyScalar(t);
-    const inEmitter = isInsideEmitter(_sample, emitterHalf);
 
-    if (inEmitter) {
+    if (isInsideEmitter(_sample, emitterHalf)) {
       t += options.stepSize;
+      currentCorridorStartT = t;
       continue;
     }
 
-    if (exitDistance <= 0) exitDistance = t;
-
     if (isInsideAnyInstance(_sample, instanceHulls)) {
-      blockedSteps++;
+      blockedSteps += t < 1.15 ? 1.35 : 1.0;
       consecutiveClear = 0;
+      currentCorridorStartT = t + options.stepSize;
     } else {
       clearSteps++;
       consecutiveClear++;
-      if (consecutiveClear > maxConsecutiveClear) maxConsecutiveClear = consecutiveClear;
+      if (consecutiveClear >= maxConsecutiveClear) {
+        maxConsecutiveClear = consecutiveClear;
+        const midT = 0.5 * (currentCorridorStartT + t);
+        if (midT >= 0.35 && midT <= 1.35) {
+          bestCorridorMidT = midT;
+        }
+      }
     }
     t += options.stepSize;
   }
@@ -137,18 +171,47 @@ export function marchRayFromCore(
     return { clearance: 0, exitDistance: 0 };
   }
   const total = clearSteps + blockedSteps;
-  if (total <= 0) return { clearance: 0, exitDistance: 0 };
-  return { clearance: clearSteps / total, exitDistance };
+  if (total <= 0) {
+    return { clearance: 0, exitDistance: 0 };
+  }
+
+  const clearance = clamp01(clearSteps / total);
+  const exitDistance =
+    bestCorridorMidT > 0 ? Math.min(Math.max(bestCorridorMidT, 0.52), 1.22) : 0.78;
+
+  return { clearance, exitDistance };
+}
+
+/**
+ * Calcule la direction d'interstice (fissure laissée par l'écartement du fragment `i`).
+ */
+function computeFissureDirection(
+  rest: THREE.Vector3,
+  poseCenter: THREE.Vector3,
+  blastVector: THREE.Vector3,
+  outDir: THREE.Vector3,
+): THREE.Vector3 {
+  _wakeOffset.subVectors(poseCenter, rest);
+  if (_wakeOffset.lengthSq() > 1e-5) {
+    // Viser le sillon ouvert entre la position de repos et le décalage tangentiel du bloc
+    outDir.copy(rest).addScaledVector(_wakeOffset, -0.22);
+    if (outDir.lengthSq() > 1e-5) {
+      return outDir.normalize();
+    }
+  }
+  outDir.copy(rest);
+  if (outDir.lengthSq() < 1e-6) outDir.copy(blastVector);
+  return outDir.normalize();
 }
 
 export function computeCoreEscapeGain(
   lattice: R3fShatteredCubeLattice,
   poses: ShatteredCubeInstancePose[],
-  instanceHulls: CubeLightingHull[],
+  octantHulls: readonly (readonly CubeLightingHull[])[],
   emitterHalf: number,
   reveal: number,
 ): number {
-  const cfg = R3F_CUBE_INTERSTICE_BEAMS;
+  const cfg = R3F_CUBE_CORE_ESCAPE;
   if (reveal < cfg.minReveal) return 0;
 
   const marchOpts = {
@@ -160,25 +223,25 @@ export function computeCoreEscapeGain(
 
   let sum = 0;
   let count = 0;
+  const stride = Math.max(1, Math.floor(lattice.count / 120));
 
-  for (let i = 0; i < lattice.count; i++) {
+  for (let i = 0; i < lattice.count; i += stride) {
     const it = lattice.items[i];
     const pose = poses[i];
     if (pose.k < cfg.minInstanceK) continue;
     if (shellFactor(it.rest, cfg.shellRestMin) <= 0) continue;
 
-    _dir.copy(pose.center);
-    if (_dir.lengthSq() < 1e-6) _dir.copy(it.blastVector);
-    _dir.normalize();
+    computeFissureDirection(it.rest, pose.center, it.blastVector, _dir);
+    const hulls = octantHulls[octantIndex(_dir)];
 
-    const { clearance } = marchRayFromCore(_dir, instanceHulls, emitterHalf, marchOpts);
+    const { clearance } = marchRayFromCore(_dir, hulls, emitterHalf, marchOpts);
     if (clearance <= 0) continue;
     sum += clearance * pose.k;
     count++;
   }
 
-  if (count === 0) return 0;
-  return clamp01(sum / count);
+  if (count === 0) return clamp01(reveal * 0.35);
+  return clamp01((sum / count) * (0.45 + 0.55 * reveal));
 }
 
 export function advanceShatteredCubePhase(
@@ -186,35 +249,22 @@ export function advanceShatteredCubePhase(
   time: number,
   autoPlay: boolean,
 ): number {
-  const { hold: HOLD_T, burst: BURST_T, reform: REFORM_T } = R3F_SHATTERED_CUBE_TIMING;
+  const { hold: HOLD_T, burst: BURST_T } = R3F_SHATTERED_CUBE_TIMING;
 
   if (state.t0 < 0) state.t0 = time;
   const e = time - state.t0;
-  let timeline: number;
 
   if (state.phase === "hold") {
-    timeline = 0;
     if (autoPlay && e > HOLD_T) {
       state.phase = "burst";
       state.t0 = time;
+      return 0;
     }
-  } else if (state.phase === "burst") {
-    timeline = clamp01(e / BURST_T);
-    if (autoPlay && e > BURST_T) {
-      state.phase = "reform";
-      state.t0 = time;
-    }
-  } else {
-    const x = clamp01(e / REFORM_T);
-    timeline = 1 - x;
-    if (x >= 1) {
-      state.phase = "hold";
-      state.t0 = time;
-      timeline = 0;
-    }
+    return 0;
   }
 
-  return timeline;
+  // Phase burst : progresse de 0 à 1 et reste ouvert à 1 (pas de phase reform).
+  return clamp01(e / BURST_T);
 }
 
 export function computeInstancePoses(
@@ -256,97 +306,53 @@ export function buildInstanceHulls(
   return hulls;
 }
 
-export function pickIntersticeBeams(
-  lattice: R3fShatteredCubeLattice,
-  poses: ShatteredCubeInstancePose[],
-  instanceHulls: CubeLightingHull[],
-  emitterHalf: number,
-  reveal: number,
-  pulse: number,
-  coreLightScale: number,
-): IntersticeBeamCandidate[] {
-  const cfg = R3F_CUBE_INTERSTICE_BEAMS;
-  if (reveal < cfg.minReveal) return [];
-
-  const marchOpts = {
-    maxDistance: cfg.marchMaxDistance,
-    stepSize: cfg.marchStepSize,
-    maxSteps: cfg.marchMaxSteps,
-    minConsecutiveClearSteps: cfg.minConsecutiveClearSteps,
-  };
-
-  const candidates: IntersticeBeamCandidate[] = [];
-
-  for (let i = 0; i < lattice.count; i++) {
-    const it = lattice.items[i];
-    const pose = poses[i];
-    const k = pose.k;
-    if (k < cfg.minInstanceK) continue;
-
-    const shell = shellFactor(it.rest, cfg.shellRestMin);
-    if (shell <= 0) continue;
-
-    _dir.copy(pose.center);
-    if (_dir.lengthSq() < 1e-6) _dir.copy(it.blastVector);
-    _dir.normalize();
-
-    const { clearance, exitDistance } = marchRayFromCore(
-      _dir,
-      instanceHulls,
-      emitterHalf,
-      marchOpts,
-    );
-    if (clearance <= 0 || exitDistance <= 0) continue;
-
-    const weight = k * clearance * shell * (0.35 + reveal * 0.65);
-    const intensity =
-      (cfg.intensityBase +
-        cfg.intensityRevealMul * reveal * clearance * k * pulse * coreLightScale) *
-      cfg.intensityClearancePow(clearance);
-
-    _sample.copy(_dir).multiplyScalar(exitDistance);
-
-    candidates.push({
-      origin: _sample.clone(),
-      direction: _dir.clone(),
-      clearance,
-      weight,
-      intensity,
-    });
-  }
-
-  candidates.sort((a, b) => b.weight - a.weight);
-  return candidates.slice(0, cfg.maxBeams);
-}
-
 export function computeCubeCoreVisualLevels(
+  phase: ShatteredCubePhase,
   reveal: number,
   pulse: number,
   coreLightScale: number,
   escapeGain: number,
 ): CubeCoreVisualLevels {
   const em = R3F_CUBE_CORE_EMISSION;
-  const beams = R3F_CUBE_INTERSTICE_BEAMS;
+  const esc = R3F_CUBE_CORE_ESCAPE;
+
+  if (phase === "hold") {
+    const emissiveIntensity = em.emissiveHold * pulse * coreLightScale;
+    return {
+      emissiveIntensity,
+      corePointIntensity: em.pointHold * pulse * coreLightScale,
+      haloOpacity: 0.22 * pulse * coreLightScale,
+      haloScale: em.haloScaleBase,
+      godrayReveal: 0,
+      escapeGain: 0,
+    };
+  }
 
   const emissiveIntensity =
     (em.emissiveHold + em.emissiveBurstMul * reveal) * pulse * coreLightScale;
 
+  const escapeRamp = Math.max(
+    smoothstep(esc.escapeRampLow, esc.escapeRampHigh, escapeGain),
+    smoothstep(0.04, 0.55, reveal) * 0.85,
+  );
   const burst =
     em.pointHold +
-    em.pointBurstPeak * Math.pow(reveal, em.pointBurstPower) * Math.max(escapeGain, reveal * 0.08);
+    em.pointBurstPeak * Math.pow(reveal, em.pointBurstPower) * escapeRamp;
 
   const corePointIntensity = burst * pulse * coreLightScale;
 
   const holdHalo = 0.22;
   const haloOpacity =
-    (holdHalo + Math.pow(reveal, 1.35) * em.haloOpacityMul) * pulse * coreLightScale;
+    (holdHalo + Math.pow(reveal, 1.35) * em.haloOpacityMul * escapeRamp) *
+    pulse *
+    coreLightScale;
 
-  const haloScale = em.haloScaleBase + em.haloScaleReveal * reveal;
+  const haloScale = em.haloScaleBase + em.haloScaleReveal * reveal * escapeRamp;
 
-  const godrayReveal = Math.min(
-    (corePointIntensity / em.godrayIntensityDivisor) * (0.25 + escapeGain * 0.85),
-    1,
-  );
+  const godrayReveal =
+    escapeRamp >= esc.minGodrayEscape && corePointIntensity > em.pointHold * 1.5
+      ? Math.min((corePointIntensity / em.godrayIntensityDivisor) * escapeRamp, 1)
+      : 0;
 
   return {
     emissiveIntensity,
@@ -361,6 +367,7 @@ export function computeCubeCoreVisualLevels(
 export function computeCubeCoreLightingFrame(
   lattice: R3fShatteredCubeLattice,
   poses: ShatteredCubeInstancePose[],
+  phase: ShatteredCubePhase,
   timeline: number,
   reveal: number,
   time: number,
@@ -368,49 +375,28 @@ export function computeCubeCoreLightingFrame(
 ): CubeCoreLightingFrame {
   const pulse = 0.97 + 0.03 * Math.sin(time * 1.6);
   const emitterHalf = (lattice.cell * 0.94) * 0.5;
+
+  if (phase === "hold") {
+    const levels = computeCubeCoreVisualLevels(phase, 0, pulse, coreLightScale, 0);
+    return { timeline, reveal, pulse, phase, levels };
+  }
+
   const instanceHulls = buildInstanceHulls(lattice, poses);
+  const octantHulls = buildOctantHulls(instanceHulls);
   const escapeGain = computeCoreEscapeGain(
     lattice,
     poses,
-    instanceHulls,
+    octantHulls,
     emitterHalf,
     reveal,
   );
-  const beams = pickIntersticeBeams(
-    lattice,
-    poses,
-    instanceHulls,
-    emitterHalf,
+  const levels = computeCubeCoreVisualLevels(
+    phase,
     reveal,
     pulse,
     coreLightScale,
+    escapeGain,
   );
-  const levels = computeCubeCoreVisualLevels(reveal, pulse, coreLightScale, escapeGain);
 
-  return { timeline, reveal, pulse, levels, beams };
-}
-
-/** Lumières d’appoint à l’interstice (le godray principal reste au centre). */
-export function applyIntersticeBeamsToLights(
-  beams: IntersticeBeamCandidate[],
-  lights: THREE.PointLight[],
-  glowColor: THREE.Color,
-): void {
-  const cfg = R3F_CUBE_INTERSTICE_BEAMS;
-
-  for (let i = 0; i < lights.length; i++) {
-    const light = lights[i];
-    const beam = beams[i];
-    if (!beam || beam.intensity <= 0.01) {
-      light.intensity = 0;
-      light.visible = false;
-      continue;
-    }
-    light.visible = true;
-    light.position.copy(beam.origin);
-    light.intensity = beam.intensity * cfg.slitLightIntensityMul;
-    light.distance = cfg.lightDistance;
-    light.decay = cfg.lightDecay;
-    light.color.copy(glowColor);
-  }
+  return { timeline, reveal, pulse, phase, levels };
 }

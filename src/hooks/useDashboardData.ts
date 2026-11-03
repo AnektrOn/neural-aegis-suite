@@ -87,9 +87,10 @@ export async function fetchMobileDashboard(userId: string, locale: string) {
     await Promise.all([
     supabase
       .from("mood_entries" as any)
-      .select("value, logged_at")
+      .select("value, sleep, stress, logged_at")
       .eq("user_id", userId)
-      .gte("logged_at", fourteenDaysAgo.toISOString()),
+      .gte("logged_at", fourteenDaysAgo.toISOString())
+      .order("logged_at", { ascending: false }),
     supabase.from("decisions" as any).select("id, name, priority, status, created_at").eq("user_id", userId).eq("status", "pending").order("priority", { ascending: false }).limit(3),
     supabase.from("assigned_habits" as any).select("id, habit_template_id, toolbox_assignment_id").eq("user_id", userId).eq("is_active", true).limit(5),
     supabase.from("habit_completions" as any).select("assigned_habit_id, completed_date").eq("user_id", userId).gte("completed_date", weekStartDate),
@@ -108,6 +109,30 @@ export async function fetchMobileDashboard(userId: string, locale: string) {
   ]);
   const moods = (moodRes.data as any[] || []);
   const moodsThisWeek = moods.filter((m: any) => new Date(m.logged_at) >= sevenDaysAgo);
+  const latestMood = moods[0] as { sleep?: number | null; stress?: number | null } | undefined;
+  const sleepSamples = moodsThisWeek
+    .map((m: any) => m.sleep)
+    .filter((s: unknown): s is number => typeof s === "number" && !Number.isNaN(s));
+  const stressSamples = moodsThisWeek
+    .map((m: any) => m.stress)
+    .filter((s: unknown): s is number => typeof s === "number" && !Number.isNaN(s));
+  const avgSleep7d =
+    sleepSamples.length > 0 ? sleepSamples.reduce((a, b) => a + b, 0) / sleepSamples.length : null;
+  const avgStress7d =
+    stressSamples.length > 0 ? stressSamples.reduce((a, b) => a + b, 0) / stressSamples.length : null;
+  const pendingDecisions = (decisionsRes.data as any[]) || [];
+  let oldestDecisionDays = 0;
+  let maxDecisionPriority = 0;
+  for (const d of pendingDecisions) {
+    if (typeof d.priority === "number") maxDecisionPriority = Math.max(maxDecisionPriority, d.priority);
+    if (d.created_at) {
+      const days = Math.max(
+        0,
+        Math.floor((Date.now() - new Date(d.created_at).getTime()) / 86400000),
+      );
+      oldestDecisionDays = Math.max(oldestDecisionDays, days);
+    }
+  }
   const avg =
     moodsThisWeek.length > 0
       ? (moodsThisWeek.reduce((s: number, m: any) => s + m.value, 0) / moodsThisWeek.length).toFixed(1)
@@ -143,10 +168,18 @@ export async function fetchMobileDashboard(userId: string, locale: string) {
   }
   return {
     moodAvg: avg,
-    openDecisions: String((decisionsRes.data || []).length),
+    openDecisions: String(pendingDecisions.length),
     habitsDone: String(completedToday.length),
     contacts: "—",
-    decisions: (decisionsRes.data as any[]) || [],
+    decisions: pendingDecisions,
+    moodVitals: {
+      latestSleep: typeof latestMood?.sleep === "number" ? latestMood.sleep : null,
+      avgSleep7d,
+      latestStress: typeof latestMood?.stress === "number" ? latestMood.stress : null,
+      avgStress7d,
+    },
+    oldestDecisionDays,
+    maxDecisionPriority,
     digest: {
       moodTrend,
       moodDelta,

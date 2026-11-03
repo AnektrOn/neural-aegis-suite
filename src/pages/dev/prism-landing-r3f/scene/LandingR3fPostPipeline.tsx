@@ -5,26 +5,34 @@ import {
   BrightnessContrastEffect,
   EffectComposer,
   EffectPass,
+  NoiseEffect,
   RenderPass,
   SSAOEffect,
   VignetteEffect,
 } from "postprocessing";
 import { GodraysPass } from "three-good-godrays";
 import * as THREE from "three";
-import { useCubeCoreGodrayLights } from "../config/R3fCubeCoreLightContext";
+import {
+  useCubeCoreGodrayLights,
+  useGetCubeCoreLightingRuntime,
+} from "../config/R3fCubeCoreLightContext";
 import { useGutterPointLight } from "../config/R3fGutterLightContext";
+import { useMarbleGodrayLight } from "../config/R3fMarbleGodrayLightContext";
 import { useR3fSceneConfig } from "../config/r3fSceneConfigContext";
 import { R3F_GODRAYS_HALL_GODRAYS } from "./godraysHall/r3fGodraysHallConstants";
 import { applyR3fBloomParams } from "./post/r3fPmndrsBloom";
 import { R3F_PMNDRS_POST_DEFAULTS } from "./post/r3fPmndrsPostDefaults";
 import { r3fComposerRenderTargetType } from "./post/r3fWebGLCaps";
 import {
-  R3F_CUBE_CORE_EMISSION,
-  R3F_CUBE_CORE_GODRAYS,
-} from "./shatteredCube/r3fShatteredCubeConstants";
+  R3F_MARBLE_GLOW_DEFAULTS,
+  R3F_MARBLE_GODRAYS,
+} from "./marbleMonolith/r3fMarbleMonolithConstants";
+import { R3F_CUBE_CORE_GODRAYS } from "./shatteredCube/r3fShatteredCubeConstants";
+import type { R3fHallSceneMode } from "./LandingR3fSceneContent";
 
 const godrayColorScratch = new THREE.Color();
 const cubeGodrayColorScratch = new THREE.Color();
+const marbleGodrayColorScratch = new THREE.Color();
 const emitColorScratch = new THREE.Color();
 const drawSizeScratch = new THREE.Vector2();
 
@@ -38,24 +46,47 @@ function getComposerDrawSize(gl: THREE.WebGLRenderer) {
 
 type PipelineBundle = {
   composer: EffectComposer;
+  renderPass: RenderPass;
   godraysPass: GodraysPass;
   cubeGodraysPasses: GodraysPass[];
+  marbleGodraysPass: GodraysPass | null;
   bloomPass: EffectPass;
   gradePass: EffectPass;
   ssaoEffect: SSAOEffect;
   bloomEffect: BloomEffect;
   vignetteEffect: VignetteEffect;
   contrastEffect: BrightnessContrastEffect;
+  noiseEffect: NoiseEffect;
 };
 
+function syncPassCamera(pass: { mainCamera: THREE.Camera }, camera: THREE.Camera) {
+  pass.mainCamera = camera;
+}
+
+function isWorldVisible(object: THREE.Object3D): boolean {
+  let node: THREE.Object3D | null = object;
+  while (node) {
+    if (!node.visible) return false;
+    node = node.parent;
+  }
+  return true;
+}
+
 /**
- * Passes : RenderPass → GodraysPass (fente) → GodraysPass (noyau cube) → SSAO+Bloom → grade → écran.
+ * Passes : RenderPass → GodraysPass (fente) → cube → marbre → SSAO+Bloom → grade → écran.
  */
-export function LandingR3fPostPipeline() {
+type LandingR3fPostPipelineProps = {
+  sceneMode?: R3fHallSceneMode;
+};
+
+export function LandingR3fPostPipeline({ sceneMode = "lab" }: LandingR3fPostPipelineProps) {
   const { gl, scene, camera, size } = useThree();
+  const isLanding = sceneMode === "landing";
   const { configRef } = useR3fSceneConfig();
   const gutterLight = useGutterPointLight();
   const cubeGodrayLights = useCubeCoreGodrayLights();
+  const marbleGodrayLight = useMarbleGodrayLight();
+  const getCubeLightingRuntime = useGetCubeCoreLightingRuntime();
   const pipelineRef = useRef<PipelineBundle | null>(null);
 
   useEffect(() => {
@@ -93,9 +124,9 @@ export function LandingR3fPostPipeline() {
     composer.addPass(godraysPass);
 
     const cubeGodraysPasses: GodraysPass[] = [];
-    for (const slitLight of cubeGodrayLights) {
+    for (const coreLight of cubeGodrayLights) {
       cubeGodrayColorScratch.set(R3F_CUBE_CORE_GODRAYS.color);
-      const cubeGodraysPass = new GodraysPass(slitLight, perspective, {
+      const cubeGodraysPass = new GodraysPass(coreLight, perspective, {
         density: R3F_CUBE_CORE_GODRAYS.density,
         maxDensity: R3F_CUBE_CORE_GODRAYS.maxDensity,
         edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
@@ -110,6 +141,25 @@ export function LandingR3fPostPipeline() {
       cubeGodraysPass.renderToScreen = false;
       composer.addPass(cubeGodraysPass);
       cubeGodraysPasses.push(cubeGodraysPass);
+    }
+
+    let marbleGodraysPass: GodraysPass | null = null;
+    if (marbleGodrayLight) {
+      marbleGodrayColorScratch.set(R3F_MARBLE_GLOW_DEFAULTS.color);
+      marbleGodraysPass = new GodraysPass(marbleGodrayLight, perspective, {
+        density: R3F_MARBLE_GODRAYS.density,
+        maxDensity: R3F_MARBLE_GODRAYS.maxDensity,
+        edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
+        edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
+        distanceAttenuation: R3F_MARBLE_GODRAYS.distanceAttenuation,
+        color: marbleGodrayColorScratch,
+        raymarchSteps: R3F_MARBLE_GODRAYS.raymarchSteps,
+        blur: true,
+        gammaCorrection: R3F_MARBLE_GODRAYS.gammaCorrection,
+        resolutionScale: R3F_MARBLE_GODRAYS.resolutionScale,
+      });
+      marbleGodraysPass.renderToScreen = false;
+      composer.addPass(marbleGodraysPass);
     }
 
     const ssaoEffect = new SSAOEffect(perspective, undefined, {
@@ -135,37 +185,53 @@ export function LandingR3fPostPipeline() {
     composer.addPass(bloomPass);
 
     const vignetteEffect = new VignetteEffect({
-      darkness: 0.42,
-      offset: 0.35,
+      darkness: isLanding ? 0.36 : 0.42,
+      offset: 0.38,
     });
     const contrastEffect = new BrightnessContrastEffect({
-      brightness: 0,
-      contrast: 0.06,
+      brightness: isLanding ? 0.01 : 0,
+      contrast: isLanding ? 0.05 : 0.06,
     });
-    const gradePass = new EffectPass(perspective, vignetteEffect, contrastEffect);
+    const noiseEffect = new NoiseEffect({ premultiply: true });
+    noiseEffect.blendMode.opacity.value = 0;
+    const gradePass = new EffectPass(perspective, vignetteEffect, contrastEffect, noiseEffect);
     gradePass.encodeOutput = true;
     gradePass.renderToScreen = true;
     composer.addPass(gradePass);
 
     pipelineRef.current = {
       composer,
+      renderPass,
       godraysPass,
       cubeGodraysPasses,
+      marbleGodraysPass,
       bloomPass,
       gradePass,
       ssaoEffect,
       bloomEffect,
       vignetteEffect,
       contrastEffect,
+      noiseEffect,
     };
 
     return () => {
       godraysPass.dispose();
       for (const pass of cubeGodraysPasses) pass.dispose();
+      marbleGodraysPass?.dispose();
       composer.dispose();
       pipelineRef.current = null;
     };
-  }, [gl, scene, camera, configRef, gutterLight, cubeGodrayLights, size.width, size.height]);
+  }, [
+    gl,
+    scene,
+    camera,
+    configRef,
+    gutterLight,
+    cubeGodrayLights,
+    marbleGodrayLight,
+    size.width,
+    size.height,
+  ]);
 
   useEffect(() => {
     const pipeline = pipelineRef.current;
@@ -181,7 +247,22 @@ export function LandingR3fPostPipeline() {
     const light = gutterLight;
     if (!pipeline || !light) return;
 
+    if (isLanding) {
+      syncPassCamera(pipeline.renderPass, perspective);
+      syncPassCamera(pipeline.bloomPass, perspective);
+      syncPassCamera(pipeline.gradePass, perspective);
+      syncPassCamera(pipeline.godraysPass, perspective);
+      for (const cubePass of pipeline.cubeGodraysPasses) {
+        syncPassCamera(cubePass, perspective);
+      }
+      if (pipeline.marbleGodraysPass) {
+        syncPassCamera(pipeline.marbleGodraysPass, perspective);
+      }
+    }
+
     const cfg = configRef.current;
+    light.visible = true;
+    light.updateMatrixWorld();
     emitColorScratch.set(cfg.slitEmitterColor);
     light.intensity = cfg.emitLightIntensity;
     light.distance = cfg.emitLightDistance;
@@ -194,11 +275,16 @@ export function LandingR3fPostPipeline() {
       : 0;
     pipeline.ssaoEffect.radius = Math.max(0.04, cfg.n8aoRadius * 0.028);
 
-    pipeline.godraysPass.enabled = cfg.godraysEnabled;
+    const cubeRt = getCubeLightingRuntime();
+
+    pipeline.godraysPass.enabled = cfg.godraysEnabled && cfg.emitLightIntensity > 8;
     godrayColorScratch.set(cfg.godraysColor);
+    const gutterAtten = Math.max(0, Math.min(1, cfg.cubeGutterGodraysAttenuation));
+    const gutterScale =
+      gutterAtten > 0 ? 1 - gutterAtten * cubeRt.godrayReveal : 1;
     pipeline.godraysPass.setParams({
-      density: cfg.godraysDensity,
-      maxDensity: cfg.godraysMaxDensity,
+      density: cfg.godraysDensity * gutterScale,
+      maxDensity: cfg.godraysMaxDensity * gutterScale,
       edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
       edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
       distanceAttenuation: cfg.godraysDistanceAttenuation,
@@ -209,22 +295,26 @@ export function LandingR3fPostPipeline() {
       gammaCorrection: cfg.godraysGammaCorrection,
     });
 
+    let lastEnabledCubePass: GodraysPass | null = null;
     pipeline.cubeGodraysPasses.forEach((cubePass, index) => {
       const coreLight = cubeGodrayLights[index];
       if (!coreLight) {
         cubePass.enabled = false;
         return;
       }
-      const coreReveal = Math.min(
-        coreLight.intensity / R3F_CUBE_CORE_EMISSION.godrayIntensityDivisor,
-        1,
-      );
+      coreLight.updateMatrixWorld();
+      const coreReveal = cubeRt.godrayReveal;
       cubePass.enabled =
-        cfg.godraysEnabled && coreReveal > R3F_CUBE_CORE_GODRAYS.minRevealForPass;
-      cubeGodrayColorScratch.set(R3F_CUBE_CORE_GODRAYS.color);
+        cfg.godraysEnabled &&
+        cubeRt.phase !== "hold" &&
+        coreReveal > R3F_CUBE_CORE_GODRAYS.minRevealForPass;
+      if (cubePass.enabled) {
+        lastEnabledCubePass = cubePass;
+      }
+      cubeGodrayColorScratch.set(R3F_CUBE_CORE_GODRAYS.color).lerp(coreLight.color, 0.45);
       cubePass.setParams({
-        density: R3F_CUBE_CORE_GODRAYS.density * (0.45 + coreReveal * 0.95),
-        maxDensity: R3F_CUBE_CORE_GODRAYS.maxDensity * (0.25 + coreReveal * 0.85),
+        density: R3F_CUBE_CORE_GODRAYS.density * (0.35 + coreReveal * 0.95),
+        maxDensity: R3F_CUBE_CORE_GODRAYS.maxDensity * (0.2 + coreReveal * 0.9),
         edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
         edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
         distanceAttenuation: R3F_CUBE_CORE_GODRAYS.distanceAttenuation,
@@ -236,6 +326,37 @@ export function LandingR3fPostPipeline() {
       });
     });
 
+    const marblePass = pipeline.marbleGodraysPass;
+    if (marblePass && marbleGodrayLight) {
+      marbleGodrayLight.updateMatrixWorld();
+      marbleGodrayLight.distance = R3F_MARBLE_GODRAYS.shadowCameraFar;
+      marbleGodrayLight.shadow.camera.near = R3F_MARBLE_GODRAYS.shadowCameraNear;
+      marbleGodrayLight.shadow.camera.far = R3F_MARBLE_GODRAYS.shadowCameraFar;
+      marbleGodrayLight.shadow.camera.updateProjectionMatrix();
+      const marbleOn =
+        cfg.godraysEnabled &&
+        marbleGodrayLight.intensity > 1 &&
+        isWorldVisible(marbleGodrayLight);
+      marblePass.enabled = marbleOn;
+      if (marbleOn) {
+        marbleGodrayColorScratch.set(cfg.marbleGlow);
+        marblePass.setParams({
+          density: R3F_MARBLE_GODRAYS.density,
+          maxDensity: R3F_MARBLE_GODRAYS.maxDensity,
+          edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
+          edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
+          distanceAttenuation: R3F_MARBLE_GODRAYS.distanceAttenuation,
+          raymarchSteps: R3F_MARBLE_GODRAYS.raymarchSteps,
+          resolutionScale: R3F_MARBLE_GODRAYS.resolutionScale,
+          color: marbleGodrayColorScratch,
+          blur: true,
+          gammaCorrection: R3F_MARBLE_GODRAYS.gammaCorrection,
+        });
+      }
+    } else if (marblePass) {
+      marblePass.enabled = false;
+    }
+
     pipeline.bloomEffect.enabled = cfg.bloomEnabled;
     applyR3fBloomParams(
       pipeline.bloomEffect,
@@ -244,17 +365,32 @@ export function LandingR3fPostPipeline() {
       cfg.bloomThreshold,
     );
 
-    pipeline.gradePass.enabled = cfg.gradeEnabled;
+    pipeline.gradePass.enabled = cfg.gradeEnabled || cfg.filmGrainIntensity > 0;
     pipeline.vignetteEffect.blendMode.opacity.value = cfg.gradeEnabled ? 1 : 0;
     pipeline.contrastEffect.blendMode.opacity.value = cfg.gradeEnabled ? 1 : 0;
+    pipeline.noiseEffect.blendMode.opacity.value = Math.min(
+      0.12,
+      Math.max(0, cfg.filmGrainIntensity),
+    );
 
-    const gradeToScreen = cfg.gradeEnabled;
+    const gradeToScreen = cfg.gradeEnabled || cfg.filmGrainIntensity > 0;
+
+    const bloomToScreen = !gradeToScreen && cfg.bloomEnabled;
+    const godraysFallbackToScreen = !gradeToScreen && !bloomToScreen;
     pipeline.gradePass.renderToScreen = gradeToScreen;
-    pipeline.bloomPass.renderToScreen = !gradeToScreen && cfg.bloomEnabled;
-    pipeline.godraysPass.renderToScreen = !gradeToScreen && !cfg.bloomEnabled;
+    pipeline.bloomPass.renderToScreen = bloomToScreen;
     for (const cubePass of pipeline.cubeGodraysPasses) {
-      cubePass.renderToScreen = false;
+      cubePass.renderToScreen = godraysFallbackToScreen && cubePass === lastEnabledCubePass;
     }
+    const marbleToScreen =
+      godraysFallbackToScreen &&
+      lastEnabledCubePass === null &&
+      pipeline.marbleGodraysPass?.enabled === true;
+    if (pipeline.marbleGodraysPass) {
+      pipeline.marbleGodraysPass.renderToScreen = marbleToScreen;
+    }
+    pipeline.godraysPass.renderToScreen =
+      godraysFallbackToScreen && lastEnabledCubePass === null && !marbleToScreen;
 
     pipeline.composer.render(delta);
   }, 1);
