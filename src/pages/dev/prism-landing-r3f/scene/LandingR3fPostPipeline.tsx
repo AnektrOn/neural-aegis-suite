@@ -19,7 +19,6 @@ import {
 import { useGutterPointLight } from "../config/R3fGutterLightContext";
 import { useMarbleGodrayLight } from "../config/R3fMarbleGodrayLightContext";
 import { useR3fSceneConfig } from "../config/r3fSceneConfigContext";
-import { R3F_GODRAYS_HALL_GODRAYS } from "./godraysHall/r3fGodraysHallConstants";
 import { applyR3fBloomParams } from "./post/r3fPmndrsBloom";
 import { R3F_PMNDRS_POST_DEFAULTS } from "./post/r3fPmndrsPostDefaults";
 import { r3fComposerRenderTargetType } from "./post/r3fWebGLCaps";
@@ -111,8 +110,6 @@ export function LandingR3fPostPipeline({ sceneMode = "lab" }: LandingR3fPostPipe
     const godraysPass = new GodraysPass(gutterLight, perspective, {
       density: cfg.godraysDensity,
       maxDensity: cfg.godraysMaxDensity,
-      edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
-      edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
       distanceAttenuation: cfg.godraysDistanceAttenuation,
       color: godrayColorScratch,
       raymarchSteps: cfg.godraysRaymarchSteps,
@@ -129,8 +126,6 @@ export function LandingR3fPostPipeline({ sceneMode = "lab" }: LandingR3fPostPipe
       const cubeGodraysPass = new GodraysPass(coreLight, perspective, {
         density: R3F_CUBE_CORE_GODRAYS.density,
         maxDensity: R3F_CUBE_CORE_GODRAYS.maxDensity,
-        edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
-        edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
         distanceAttenuation: R3F_CUBE_CORE_GODRAYS.distanceAttenuation,
         color: cubeGodrayColorScratch,
         raymarchSteps: R3F_CUBE_CORE_GODRAYS.raymarchSteps,
@@ -149,8 +144,6 @@ export function LandingR3fPostPipeline({ sceneMode = "lab" }: LandingR3fPostPipe
       marbleGodraysPass = new GodraysPass(marbleGodrayLight, perspective, {
         density: R3F_MARBLE_GODRAYS.density,
         maxDensity: R3F_MARBLE_GODRAYS.maxDensity,
-        edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
-        edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
         distanceAttenuation: R3F_MARBLE_GODRAYS.distanceAttenuation,
         color: marbleGodrayColorScratch,
         raymarchSteps: R3F_MARBLE_GODRAYS.raymarchSteps,
@@ -285,8 +278,6 @@ export function LandingR3fPostPipeline({ sceneMode = "lab" }: LandingR3fPostPipe
     pipeline.godraysPass.setParams({
       density: cfg.godraysDensity * gutterScale,
       maxDensity: cfg.godraysMaxDensity * gutterScale,
-      edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
-      edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
       distanceAttenuation: cfg.godraysDistanceAttenuation,
       raymarchSteps: cfg.godraysRaymarchSteps,
       resolutionScale: cfg.godraysResolutionScale,
@@ -315,8 +306,6 @@ export function LandingR3fPostPipeline({ sceneMode = "lab" }: LandingR3fPostPipe
       cubePass.setParams({
         density: R3F_CUBE_CORE_GODRAYS.density * (0.35 + coreReveal * 0.95),
         maxDensity: R3F_CUBE_CORE_GODRAYS.maxDensity * (0.2 + coreReveal * 0.9),
-        edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
-        edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
         distanceAttenuation: R3F_CUBE_CORE_GODRAYS.distanceAttenuation,
         raymarchSteps: R3F_CUBE_CORE_GODRAYS.raymarchSteps,
         resolutionScale: R3F_CUBE_CORE_GODRAYS.resolutionScale,
@@ -343,8 +332,6 @@ export function LandingR3fPostPipeline({ sceneMode = "lab" }: LandingR3fPostPipe
         marblePass.setParams({
           density: R3F_MARBLE_GODRAYS.density,
           maxDensity: R3F_MARBLE_GODRAYS.maxDensity,
-          edgeStrength: R3F_GODRAYS_HALL_GODRAYS.edgeStrength,
-          edgeRadius: R3F_GODRAYS_HALL_GODRAYS.edgeRadius,
           distanceAttenuation: R3F_MARBLE_GODRAYS.distanceAttenuation,
           raymarchSteps: R3F_MARBLE_GODRAYS.raymarchSteps,
           resolutionScale: R3F_MARBLE_GODRAYS.resolutionScale,
@@ -357,7 +344,7 @@ export function LandingR3fPostPipeline({ sceneMode = "lab" }: LandingR3fPostPipe
       marblePass.enabled = false;
     }
 
-    pipeline.bloomEffect.enabled = cfg.bloomEnabled;
+    pipeline.bloomEffect.blendMode.opacity.value = cfg.bloomEnabled ? 1 : 0;
     applyR3fBloomParams(
       pipeline.bloomEffect,
       cfg.bloomStrength,

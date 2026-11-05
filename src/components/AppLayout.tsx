@@ -169,6 +169,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const touchStartY = useRef(0);
   const location = useLocation();
   const isMobile = useIsMobile();
+  const immersiveDashboard = location.pathname === "/dashboard";
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const { t, locale } = useLanguage();

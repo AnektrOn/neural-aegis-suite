@@ -15,7 +15,7 @@ export type MobileAppDockBarProps = {
   /** When true, show on md+ (dev lab preview). Default: mobile-only (`md:hidden`). */
   previewOnDesktop?: boolean;
   /** `fixed` for AppLayout; `absolute` for nested phone chrome. */
-  position?: "fixed" | "absolute";
+  position?: "fixed" | "absolute" | "relative";
   className?: string;
   radialOpen?: boolean;
   onRadialOpenChange?: (open: boolean) => void;
@@ -83,7 +83,7 @@ export function MobileAppDockBar({
       aria-label={t("nav.dockMoreAria")}
       className={cn(
         "pointer-events-none inset-x-0 bottom-0 flex justify-center border-0",
-        position === "fixed" ? "fixed" : "absolute",
+        position === "fixed" ? "fixed" : position === "relative" ? "relative" : "absolute",
         previewOnDesktop ? "flex" : "md:hidden",
         radialOpen ? "z-[130]" : "z-[60]",
         className,
