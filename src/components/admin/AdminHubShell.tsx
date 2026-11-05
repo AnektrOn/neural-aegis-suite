@@ -52,6 +52,15 @@ export default function AdminHubShell({ pathname, panels }: AdminHubShellProps) 
     return hubForRole(raw, isSuperAdmin, isCompanyAdmin);
   }, [pathname, isSuperAdmin, isCompanyAdmin]);
 
+  const tabParam = searchParams.get("tab");
+  const activeTab = hub && hub.tabs.length > 0 ? resolveHubTab(hub, tabParam) : null;
+
+  useEffect(() => {
+    if (!rolesLoading && activeTab && tabParam && tabParam !== activeTab) {
+      setSearchParams({ tab: activeTab }, { replace: true });
+    }
+  }, [rolesLoading, tabParam, activeTab, setSearchParams]);
+
   if (rolesLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
@@ -60,20 +69,11 @@ export default function AdminHubShell({ pathname, panels }: AdminHubShellProps) 
     );
   }
 
-  if (!hub || hub.tabs.length === 0) return null;
-
-  const tabParam = searchParams.get("tab");
-  const activeTab = resolveHubTab(hub, tabParam);
+  if (!hub || !activeTab || hub.tabs.length === 0) return null;
 
   const onTabChange = (value: string) => {
     setSearchParams({ tab: value }, { replace: true });
   };
-
-  useEffect(() => {
-    if (tabParam && tabParam !== activeTab) {
-      setSearchParams({ tab: activeTab }, { replace: true });
-    }
-  }, [tabParam, activeTab, setSearchParams]);
 
   return (
     <div className="space-y-6">
