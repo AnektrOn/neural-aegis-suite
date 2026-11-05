@@ -105,7 +105,7 @@ export function BioExecutiveHeroLab({
   const applyImportedJson = useCallback(
     (text: string) => {
       const result = importHeroLabConfigFromJson(config, text, activeConfigKey);
-      if (!result.ok) {
+      if (result.ok === false) {
         setImportFeedback({ kind: "err", text: result.error });
         window.setTimeout(() => setImportFeedback(null), 4000);
         return false;

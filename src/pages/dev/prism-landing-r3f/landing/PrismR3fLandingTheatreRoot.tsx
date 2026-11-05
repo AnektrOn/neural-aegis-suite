@@ -1,9 +1,11 @@
-import { SheetProvider, editable as e } from "@theatre/r3f";
+import { SheetProvider, editable } from "@theatre/r3f";
+import { PerspectiveCamera } from "@react-three/drei";
 import type { ReactNode } from "react";
 import { landingR3fCameraSheet } from "../cinematic/landingR3fTheatre";
 import { getPrismLandingBeat } from "./prismR3fLandingBeats";
 
 const beat0 = getPrismLandingBeat(0);
+const EditablePerspectiveCamera = editable(PerspectiveCamera, "perspectiveCamera");
 
 type Props = {
   children?: ReactNode;
@@ -13,7 +15,7 @@ type Props = {
 export function PrismR3fLandingTheatreRoot({ children }: Props) {
   return (
     <SheetProvider sheet={landingR3fCameraSheet}>
-      <e.perspectiveCamera
+      <EditablePerspectiveCamera
         theatreKey="Camera"
         makeDefault
         fov={55}

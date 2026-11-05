@@ -64,6 +64,7 @@ const DEV_FIXTURE = {
     moodSeries: [6.5, 7, 6.8, 7.2, 7.4, 7.1, 7.2],
   },
   aegisScore: {
+    id: "dev-score",
     user_id: "dev",
     score_date: new Date().toISOString().split("T")[0],
     overall_score: 90.4,
@@ -72,6 +73,9 @@ const DEV_FIXTURE = {
     habit_score: 60,
     journal_score: 55,
     log_regularity: 78,
+    relation_score: 70,
+    archetype_coherence: 80,
+    computed_at: new Date().toISOString(),
   } satisfies AegisHealthScore,
 };
 

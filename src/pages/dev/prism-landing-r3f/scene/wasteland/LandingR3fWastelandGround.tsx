@@ -1,5 +1,4 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
-import type * as THREE from "three";
 import { enableR3fCubeGodrayOcclusion } from "../shatteredCube/r3fCubeGodrayOcclusion";
 import { useTexture } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";

@@ -367,10 +367,14 @@ export function LandingR3fSlitMonolith({ orbitRef }: Props) {
       <TransformControls
         mode="translate"
         showY={false}
-        onDraggingChanged={(dragging) => {
-          draggingRef.current = dragging;
-          if (orbitRef.current) orbitRef.current.enabled = !dragging;
-          if (!dragging) commitGroupPosition();
+        onMouseDown={() => {
+          draggingRef.current = true;
+          if (orbitRef.current) orbitRef.current.enabled = false;
+        }}
+        onMouseUp={() => {
+          draggingRef.current = false;
+          if (orbitRef.current) orbitRef.current.enabled = true;
+          commitGroupPosition();
         }}
       >
         <group ref={groupRef} name={R3F_SLIT_MONOLITH_GROUP_NAME} visible={slitVisible}>

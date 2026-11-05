@@ -66,9 +66,7 @@ export function PrismR3fLandingTheatreRig() {
         iterationCount: 1,
         range: [fromTime, toTime],
       });
-      if (playback && typeof (playback as Promise<void>).then === "function") {
-        void (playback as Promise<void>).then(finish).catch(finish);
-      }
+      void playback.then(finish).catch(finish);
     } catch {
       finish();
     }
