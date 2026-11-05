@@ -1299,22 +1299,113 @@ export type Database = {
         Row: {
           country: string | null
           created_at: string
+          default_locale: string | null
+          default_timezone: string | null
           id: string
           name: string
+          seat_limit: number | null
+          settings: Json
+          stripe_customer_id: string | null
         }
         Insert: {
           country?: string | null
           created_at?: string
+          default_locale?: string | null
+          default_timezone?: string | null
           id?: string
           name: string
+          seat_limit?: number | null
+          settings?: Json
+          stripe_customer_id?: string | null
         }
         Update: {
           country?: string | null
           created_at?: string
+          default_locale?: string | null
+          default_timezone?: string | null
           id?: string
           name?: string
+          seat_limit?: number | null
+          settings?: Json
+          stripe_customer_id?: string | null
         }
         Relationships: []
+      }
+      company_invites: {
+        Row: {
+          accepted_at: string | null
+          company_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          company_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_memberships: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_memberships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_type_definitions: {
         Row: {
@@ -1672,6 +1763,44 @@ export type Database = {
           user_ids?: string[] | null
         }
         Relationships: []
+      }
+      employer_data_consent: {
+        Row: {
+          accepted_at: string | null
+          company_id: string | null
+          consent_version: string
+          created_at: string
+          id: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          company_id?: string | null
+          consent_version?: string
+          created_at?: string
+          id?: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          company_id?: string | null
+          consent_version?: string
+          created_at?: string
+          id?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_data_consent_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guardian_onboarding: {
         Row: {
@@ -3795,6 +3924,7 @@ export type Database = {
     }
     Functions: {
       _user_top_archetypes: { Args: { p_user_id: string }; Returns: string[] }
+      accept_company_invite: { Args: { p_token: string }; Returns: Json }
       add_habit_template_to_tracker: {
         Args: { p_template_id: string }
         Returns: Json
@@ -3827,11 +3957,25 @@ export type Database = {
         Args: { p_plan?: string; p_user_id: string }
         Returns: Json
       }
+      b2b_assert_tenancy_helpers: { Args: never; Returns: Json }
       bump_toolbox_assignment_stat: {
         Args: { p_assignment_id: string; p_status: string; p_user_id: string }
         Returns: undefined
       }
+      can_read_journal_as_manager: {
+        Args: { _subject: string; _viewer: string }
+        Returns: boolean
+      }
+      can_view_employee: {
+        Args: { _subject: string; _viewer: string }
+        Returns: boolean
+      }
       claim_referral: { Args: { p_code: string }; Returns: Json }
+      company_has_seat_available: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
+      company_seat_count: { Args: { _company_id: string }; Returns: number }
       complete_aegis_card: { Args: { p_card_id: string }; Returns: Json }
       confirm_waiting_toolbox_assignment: {
         Args: { p_assignment_id: string }
@@ -3915,6 +4059,10 @@ export type Database = {
         }
         Returns: Json
       }
+      grant_company_admin: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: Json
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
@@ -3926,8 +4074,30 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_company_admin: { Args: { _uid?: string }; Returns: boolean }
+      is_company_admin_of: {
+        Args: { _company_id: string; _uid: string }
+        Returns: boolean
+      }
+      is_platform_operator: { Args: { _uid?: string }; Returns: boolean }
+      is_superadmin: { Args: { _uid?: string }; Returns: boolean }
+      leave_company: { Args: { p_user_id?: string }; Returns: Json }
+      log_admin_data_access: {
+        Args: { p_action: string; p_meta?: Json; p_target_user_id: string }
+        Returns: undefined
+      }
       notify_all_admins: {
         Args: {
+          p_link?: string
+          p_message: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
+      }
+      notify_company_admins: {
+        Args: {
+          p_company_id: string
           p_link?: string
           p_message: string
           p_title: string
@@ -3953,6 +4123,25 @@ export type Database = {
       }
       notify_newsletter_welcome_in_app: {
         Args: { p_locale?: string; p_user_id: string }
+        Returns: undefined
+      }
+      notify_operators_for_user: {
+        Args: {
+          p_link?: string
+          p_message: string
+          p_subject_user_id: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
+      }
+      notify_superadmins: {
+        Args: {
+          p_link?: string
+          p_message: string
+          p_title: string
+          p_type: string
+        }
         Returns: undefined
       }
       publish_app_release: {
@@ -4037,6 +4226,14 @@ export type Database = {
         Args: { p_field: Json; p_locale: string }
         Returns: Json
       }
+      revoke_company_admin: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: Json
+      }
+      same_company: {
+        Args: { _subject: string; _viewer: string }
+        Returns: boolean
+      }
       seed_assessment_catalog_if_empty: {
         Args: { p_questions: Json; p_template_slug: string }
         Returns: boolean
@@ -4066,7 +4263,7 @@ export type Database = {
     }
     Enums: {
       aegis_swipe_action: "assimilated" | "ignored"
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "superadmin" | "company_admin"
       assessment_question_type:
         | "single_choice"
         | "multiple_choice"
@@ -4207,7 +4404,7 @@ export const Constants = {
   public: {
     Enums: {
       aegis_swipe_action: ["assimilated", "ignored"],
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "superadmin", "company_admin"],
       assessment_question_type: [
         "single_choice",
         "multiple_choice",
