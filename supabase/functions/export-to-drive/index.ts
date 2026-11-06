@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
       const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: auth } } });
       const { data: { user } } = await userClient.auth.getUser();
       if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-      const { data: role } = await admin.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+      const { data: role } = await admin.from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin", "superadmin"]).limit(1).maybeSingle();
       if (!role) return new Response(JSON.stringify({ error: "Admin required" }), { status: 403, headers: corsHeaders });
     }
 
@@ -208,6 +208,61 @@ Deno.serve(async (req) => {
       EdgeRuntime.waitUntil(dedupeFolder(admin, ROOT_FOLDER_ID, stats)
         .then(() => console.log(`dedupe done: kept=${stats.kept} trashed=${stats.trashed}`))
         .catch((e) => console.error("dedupe failed:", e)));
+      return new Response(JSON.stringify({ success: true, started: true }),
+        { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (body?.action === "export_all") {
+      // Full export: one markdown file per user with all their data tables.
+      // Runs in background; respond immediately to avoid client timeout.
+      const EXPORT_TABLES: Array<{ table: string; label: string; userCol: string }> = [
+        { table: "profiles", label: "Profil", userCol: "id" },
+        { table: "subscriptions", label: "Abonnement", userCol: "user_id" },
+        { table: "mood_entries", label: "Humeur / Sommeil / Stress", userCol: "user_id" },
+        { table: "decisions", label: "Décisions", userCol: "user_id" },
+        { table: "habit_completions", label: "Habitudes (complétions)", userCol: "user_id" },
+        { table: "journal_entries", label: "Journal", userCol: "user_id" },
+        { table: "toolbox_completions", label: "Toolbox (complétions)", userCol: "user_id" },
+        { table: "people_contacts", label: "Contacts / Relations", userCol: "user_id" },
+        { table: "user_places", label: "Lieux", userCol: "user_id" },
+        { table: "user_sessions", label: "Sessions utilisateur", userCol: "user_id" },
+        { table: "notifications", label: "Notifications", userCol: "user_id" },
+        { table: "audit_calls", label: "Audit calls", userCol: "user_id" },
+        { table: "assessment_sessions", label: "Assessments (sessions)", userCol: "user_id" },
+        { table: "assessment_responses", label: "Assessments (réponses)", userCol: "user_id" },
+        { table: "archetype_profile_snapshots", label: "Snapshots Deep Dive", userCol: "user_id" },
+      ];
+      const today = new Date().toISOString().slice(0, 10);
+      const runAll = async () => {
+        const { data: profiles, error: pErr } = await admin.from("profiles").select("id, display_name");
+        if (pErr) throw pErr;
+        let ok = 0, failed = 0;
+        for (const p of profiles ?? []) {
+          try {
+            const clientName = sanitize(p.display_name || p.id);
+            let md = `# Export complet — ${clientName}\n\nExporté le ${new Date().toISOString()}\n\nUser ID: ${p.id}\n`;
+            for (const t of EXPORT_TABLES) {
+              const { data, error } = await admin.from(t.table).select("*").eq(t.userCol, p.id);
+              md += `\n## ${t.label} (${data?.length ?? 0})\n\n`;
+              if (error) md += `_Erreur: ${error.message}_\n`;
+              else if (data && data.length > 0) md += "```json\n" + JSON.stringify(data, null, 2) + "\n```\n";
+              else md += "_Aucune donnée_\n";
+            }
+            const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
+            const catId = await findOrCreateFolder(admin, clientId, "BDD");
+            const dateId = await findOrCreateFolder(admin, catId, today);
+            await uploadMarkdown(dateId, `${today}-export-complet.md`, md);
+            ok++;
+            console.log(`export_all: ${clientName} done`);
+          } catch (e) {
+            failed++;
+            console.error(`export_all: failed for ${p.id}:`, e instanceof Error ? e.message : e);
+          }
+        }
+        console.log(`export_all finished: ok=${ok} failed=${failed}`);
+      };
+      // @ts-ignore EdgeRuntime is available in Supabase edge runtime
+      EdgeRuntime.waitUntil(runAll().catch((e) => console.error("export_all crashed:", e)));
       return new Response(JSON.stringify({ success: true, started: true }),
         { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
