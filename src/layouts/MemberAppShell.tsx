@@ -16,6 +16,7 @@ type MemberAppShellProps = {
   quickLogOpen: boolean;
   onQuickLogClose: () => void;
   onQuickLog: () => void;
+  onLogout: () => void;
   /** Mobile pull-to-refresh chrome */
   refreshing?: boolean;
   onTouchStart?: (e: TouchEvent) => void;
@@ -35,6 +36,7 @@ export function MemberAppShell({
   quickLogOpen,
   onQuickLogClose,
   onQuickLog,
+  onLogout,
   refreshing = false,
   onTouchStart,
   onTouchEnd,
@@ -74,7 +76,7 @@ export function MemberAppShell({
       </main>
 
       <FreePreviewToggle />
-      <MobileAppDockBar previewOnDesktop={!mobile} />
+      <MobileAppDockBar previewOnDesktop={!mobile} onLogout={onLogout} />
 
       <AppCommandPalette open={commandOpen} onOpenChange={onCommandOpenChange} onQuickLog={onQuickLog} />
       <QuickLogModal open={quickLogOpen} onClose={onQuickLogClose} />
