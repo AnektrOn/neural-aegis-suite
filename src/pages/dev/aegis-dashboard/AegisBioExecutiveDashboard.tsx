@@ -72,9 +72,9 @@ const DEV_FIXTURE = {
     decision_score: 85,
     habit_score: 60,
     journal_score: 55,
+    relation_score: 80,
+    archetype_coherence: 85,
     log_regularity: 78,
-    relation_score: 70,
-    archetype_coherence: 80,
     computed_at: new Date().toISOString(),
   } satisfies AegisHealthScore,
 };
@@ -122,9 +122,9 @@ export default function AegisBioExecutiveDashboard() {
         quickLogTitle="Logger maintenant"
         quickLogSubtitle="Humeur · stress · sommeil"
         aiTransparencyBody="Synthèse calculée localement à partir de vos habitudes et de votre rythme de décision. Aucune donnée biométrique n'est envoyée sur le cloud."
-        embedInFrame
         desktopLayout
         heroLab
+        immersiveAppShell
       />
       <QuickLogModal open={showQuickLog} onClose={() => setShowQuickLog(false)} />
     </>

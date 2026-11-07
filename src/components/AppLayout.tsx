@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { NavLink, useLocation, Link } from "react-router-dom";
+import { NavLink, useLocation, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSessionTracking } from "@/hooks/use-session-tracking";
 import { useHesitationTracking } from "@/hooks/use-hesitation-tracking";
@@ -168,6 +168,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const touchStartY = useRef(0);
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const immersiveDashboard = location.pathname === "/dashboard";
   const { user, signOut } = useAuth();
@@ -176,6 +177,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useSessionTracking();
   useHesitationTracking();
   const { online } = useNetwork();
+  /** Legacy chrome only (unreachable while MEMBER_SHELL_V2 is true). */
+  const immersiveDashboard = false;
 
   const openCommandPalette = useCallback(() => {
     setCommandOpen(true);
@@ -231,7 +234,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={() => {
               setLogoutDialogOpen(false);
-              void signOut();
+              void signOut().then(() => {
+                navigate("/auth", { replace: true });
+              });
             }}
           >
             {t("layout.logoutConfirmAction")}

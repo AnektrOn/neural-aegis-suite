@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { PageWrapper } from "@/components/PageWrapper";
 import { MobileAppDockBar } from "@/components/MobileAppDockBar";
+import { MemberTopDockBar } from "@/components/MemberTopDockBar";
 import AppCommandPalette from "@/components/AppCommandPalette";
 import QuickLogModal from "@/components/QuickLogModal";
 import FreePreviewToggle from "@/components/FreePreviewToggle";
@@ -75,6 +76,7 @@ export function MemberAppShell({
         </PageWrapper>
       </main>
 
+      <MemberTopDockBar onLogout={onLogout} online={online} />
       <FreePreviewToggle />
       <MobileAppDockBar previewOnDesktop={!mobile} onLogout={onLogout} />
 

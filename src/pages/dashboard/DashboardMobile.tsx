@@ -253,53 +253,57 @@ export function DashboardMobile(props: DashboardMobileProps) {
         bioExecutiveLab
       )}
 
-      {toolboxTodo > 0 ? (
-        <motion.div {...fadeUp(0.04)}>
-          <NavLink
-            to="/toolbox"
-            state={toolboxFocusId ? { openToolboxId: toolboxFocusId } : undefined}
-            className="dashboard-panel-interactive flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3.5 no-underline"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <Wrench size={18} className="shrink-0 text-primary" strokeWidth={1.5} aria-hidden />
-              <div className="min-w-0 text-left">
-                <p className="font-barlow text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/85">
-                  {t("dashboard.mobileToolboxTodo")}
-                </p>
-                <p className="font-barlow text-sm text-foreground">
-                  {toolboxTodo} {t("toolbox.viewTodo").toLowerCase()}
-                </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-3 sm:px-4">
+        {toolboxTodo > 0 ? (
+          <motion.div {...fadeUp(0.04)} className="h-full">
+            <NavLink
+              to="/toolbox"
+              state={toolboxFocusId ? { openToolboxId: toolboxFocusId } : undefined}
+              className="dashboard-panel-interactive flex h-full min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4 no-underline"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+                  <Wrench size={18} className="text-primary" strokeWidth={1.5} aria-hidden />
+                </div>
+                <div className="min-w-0 text-left">
+                  <p className="font-barlow text-[10.5px] font-medium uppercase tracking-[0.16em] text-muted-foreground/85">
+                    {t("dashboard.mobileToolboxTodo")}
+                  </p>
+                  <p className="font-barlow text-sm font-semibold text-foreground">
+                    {toolboxTodo} {t("toolbox.viewTodo").toLowerCase()}
+                  </p>
+                </div>
               </div>
-            </div>
-            <span className="shrink-0 font-barlow text-[11px] uppercase tracking-wider text-primary">
-              {t("dashboard.mobileToolboxCta")}
-            </span>
-          </NavLink>
-        </motion.div>
-      ) : null}
-
-      {!loading && lastJournalEntry && (
-        <motion.div {...fadeUp(0.05)}>
-          <NavLink
-            to="/journal"
-            className="dashboard-panel-interactive block rounded-2xl p-4 no-underline sm:p-5"
-          >
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="font-barlow text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/85">
-                {t("dashboard.mobileLastEntry")}
-              </p>
-              <span className="font-barlow text-[10px] tabular-nums text-muted-foreground/50">
-                {timeAgoLabel(lastJournalEntry.created_at)}
+              <span className="shrink-0 font-barlow text-[11px] uppercase tracking-wider text-primary font-medium">
+                {t("dashboard.mobileToolboxCta")} ›
               </span>
-            </div>
-            <p className="line-clamp-3 font-cormorant text-[15px] font-light italic leading-relaxed text-muted-foreground">
-              &ldquo;{lastJournalEntry.content}&rdquo;
-            </p>
-          </NavLink>
-        </motion.div>
-      )}
+            </NavLink>
+          </motion.div>
+        ) : null}
 
-      <motion.div {...fadeUp(0.06)}>
+        {!loading && lastJournalEntry && (
+          <motion.div {...fadeUp(0.05)} className="h-full">
+            <NavLink
+              to="/journal"
+              className="dashboard-panel-interactive flex flex-col justify-between h-full rounded-2xl p-4 no-underline border border-border/20 bg-background/40"
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="font-barlow text-[10.5px] font-medium uppercase tracking-[0.16em] text-muted-foreground/85">
+                  {t("dashboard.mobileLastEntry")}
+                </p>
+                <span className="font-mono text-[10px] tabular-nums text-muted-foreground/60">
+                  {timeAgoLabel(lastJournalEntry.created_at)}
+                </span>
+              </div>
+              <p className="line-clamp-2 font-cormorant text-[14px] font-light italic leading-snug text-muted-foreground">
+                &ldquo;{lastJournalEntry.content}&rdquo;
+              </p>
+            </NavLink>
+          </motion.div>
+        )}
+      </div>
+
+      <motion.div {...fadeUp(0.06)} className="px-3 sm:px-4 space-y-3">
         <AssessmentCTA />
         <PremiumSection>
           <PulseFeatureButton className="w-full" />

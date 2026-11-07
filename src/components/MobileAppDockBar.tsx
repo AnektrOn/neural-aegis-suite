@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 export type MobileAppDockBarProps = {
   /** When true, show on md+ (dev lab preview). Default: mobile-only (`md:hidden`). */
   previewOnDesktop?: boolean;
-  /** `fixed` for AppLayout; `absolute` for nested phone chrome. */
+  /** `fixed` for AppLayout; `absolute` for nested phone chrome; `relative` for stacked lab frames. */
   position?: "fixed" | "absolute" | "relative";
   className?: string;
   radialOpen?: boolean;
@@ -46,6 +46,7 @@ export function MobileAppDockBar({
     const dockItems = dockIds.map((id) => {
       const def = getMenuPanel(id);
       return {
+        id: def.id,
         to: def.to,
         Icon: def.icon,
         label: t(def.labelKey),
@@ -53,21 +54,28 @@ export function MobileAppDockBar({
       };
     });
 
-    const overflowIds = visibleOverflowPanels(prefs);
-    const overflowItems: MobileDockCircleItem[] = overflowIds.map((id) => {
+    const dockPaths = new Set(dockItems.map((item) => item.to));
+    const overflowPaths = new Set<string>();
+    const overflowItems: MobileDockCircleItem[] = [];
+    for (const id of visibleOverflowPanels(prefs)) {
       const def = getMenuPanel(id);
-      return {
+      // Avoid duplicate destinations (e.g. portrait_hub + persona → /persona).
+      if (dockPaths.has(def.to) || overflowPaths.has(def.to)) continue;
+      overflowPaths.add(def.to);
+      overflowItems.push({
+        id: def.id,
         to: def.to,
         Icon: def.icon,
         label: t(def.labelKey),
         isActive: panelPathIsActive(location.pathname, def.to),
-      };
-    });
+      });
+    }
 
     const radialItems: MobileDockCircleItem[] = isAdmin
       ? [
           ...overflowItems,
           {
+            id: "admin",
             to: "/admin",
             Icon: Shield,
             label: t("nav.admin"),
@@ -96,7 +104,7 @@ export function MobileAppDockBar({
       <div className="pointer-events-auto flex max-w-[min(100vw-1rem,420px)] items-end justify-center gap-1 rounded-2xl border-0 bg-[hsl(var(--background)/0.72)] px-2 pb-[max(0.5rem,var(--safe-bottom))] pt-1 shadow-[0_-8px_24px_hsl(0_0%_0%/0.18)] backdrop-blur-[12px]">
         {dockItems.map((item) => (
           <NavLink
-            key={item.to}
+            key={item.id}
             to={item.to}
             aria-label={item.label}
             className={cn(

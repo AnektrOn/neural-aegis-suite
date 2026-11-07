@@ -1531,6 +1531,34 @@ html.light .aegis-bio-exec-lab {
   z-index: 20;
 }
 
+@media (max-width: 1023px) {
+  .aegis-bio-exec-lab__hotspot--mobile-hidden {
+    display: none !important;
+  }
+
+  .aegis-bio-exec-lab__side-rail--mobile-hidden {
+    display: none !important;
+  }
+
+  .aegis-bio-exec-lab__side-rail {
+    --bio-rail-btn-size: 32px;
+    padding: 0.25rem !important;
+    gap: 0.25rem !important;
+    border-radius: 0.75rem !important;
+    z-index: 25;
+  }
+
+  .aegis-bio-exec-lab__rail-btn {
+    min-height: 32px !important;
+    min-width: 32px !important;
+  }
+
+  .aegis-bio-exec-lab__hero-metric {
+    max-width: 44% !important;
+    z-index: 22 !important;
+  }
+}
+
 .aegis-bio-exec-lab__rail-btn {
   position: relative;
   display: flex;
@@ -1645,49 +1673,102 @@ html.light .aegis-bio-exec-lab {
   outline-offset: 2px;
 }
 
-/* Prod /dashboard full viewport — hero column + figure fill visible height (dock reserve via --mobile-dock-padding). */
+/*
+ * Prod /dashboard immersive — match lab golden geometry:
+ * figure fills the hero column; footer chrome overlays (does not steal stage height).
+ * Dock padding is already on MemberAppShell main — do not double-reserve here.
+ */
 @media (min-width: 1024px) {
+  .aegis-bio-exec-lab--immersive-viewport {
+    width: 100vw;
+    max-width: 100vw;
+    min-height: 100dvh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
   .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__frame {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    max-width: none;
+    /* Full viewport — dock floats over the hero, no letterbox bands */
     min-height: 100dvh;
     height: 100dvh;
+  }
+
+  /* Kill opaque header bandeau (CSS `.header { background: var(--bio-frame) }` wins over Tailwind) */
+  .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__header {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 
   .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__main-grid {
     flex: 1 1 auto;
     min-height: 0;
     height: 100%;
+    width: 100%;
     align-items: stretch;
   }
 
   .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__desktop-hero {
+    position: relative;
     min-height: 0;
     height: 100%;
-    padding-bottom: calc(var(--bio-hero-pad-y) + var(--mobile-dock-padding));
+    /* Edge-to-edge — no pad bands */
+    padding: 0 !important;
+  }
+
+  .aegis-bio-exec-lab--neka.aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__desktop-hero {
+    padding: 0 !important;
   }
 
   .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__hero-canvas {
-    flex: 1 1 auto;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
+    min-height: 0;
   }
 
   .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__hero-stage {
     flex: 1 1 auto;
     min-height: 0;
+    height: 100%;
     margin-block: 0;
   }
 
   .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__hero-figure {
     position: absolute;
     inset: 0;
+    width: 100%;
     min-height: 100%;
+  }
+
+  .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__hero-footer-chrome {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    margin-bottom: 0;
+    padding-left: var(--bio-hero-pad-x);
+    padding-right: var(--bio-hero-pad-x);
+    padding-bottom: 0.25rem;
+    pointer-events: none;
+  }
+
+  .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__hero-footer-chrome > * {
+    pointer-events: auto;
   }
 
   .aegis-bio-exec-lab--immersive-viewport .aegis-bio-exec-lab__content-column {
     max-height: 100dvh;
     overflow-y: auto;
+    padding-bottom: var(--mobile-dock-padding);
   }
 }

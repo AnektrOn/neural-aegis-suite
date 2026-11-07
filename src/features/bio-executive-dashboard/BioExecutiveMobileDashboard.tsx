@@ -84,7 +84,7 @@ export function BioExecutiveMobileDashboard({
   exocortexUi = null,
   immersiveAppShell = false,
 }: BioExecutiveMobileDashboardProps) {
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
   const heroLocale = locale === "fr" ? "fr" : "en";
   const heroLabEnabled = heroLab || silhouetteLab;
   const [calmMode, setCalmMode] = useState(() => {
@@ -326,44 +326,60 @@ export function BioExecutiveMobileDashboard({
           embedInFrame ? "max-w-[1440px] mx-auto rounded-[28px] sm:rounded-[36px] aegis-bio-exec-lab__embed-shadow" : "rounded-none border-0 shadow-none",
           heroPreviewSplitChrome && "aegis-bio-exec-lab__frame--preview-split max-w-none mx-0",
           desktopLayout && !embedInFrame && !immersiveAppShell && "lg:max-w-[1480px] lg:mx-auto lg:my-4 lg:rounded-[32px] lg:border lg:border-[color:var(--bio-frame-border)] lg:shadow-[0_28px_90px_hsl(var(--foreground)/0.07)]",
-          immersiveAppShell && !embedInFrame && "min-h-[100dvh] lg:rounded-none lg:border-0 lg:shadow-none lg:max-w-none lg:mx-0 lg:my-0",
+          immersiveAppShell && !embedInFrame && "h-[100dvh] min-h-[100dvh] w-full max-w-none rounded-none border-0 shadow-none lg:mx-0 lg:my-0",
         )}
       >
         {!immersiveAppShell || heroLabEnabled ? (
-        <header className="aegis-bio-exec-lab__header flex flex-wrap items-center justify-between gap-2 px-3.5 sm:px-8 py-2.5 sm:py-3.5 border-b backdrop-blur-xl sticky top-0 z-30 bg-[color-mix(in_srgb,var(--bio-frame)_82%,transparent)]">
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border border-[color:var(--bio-frame-border)] bg-[color:var(--bio-chip)]">
-              <Sparkles size={14} className="aegis-bio-exec-lab__accent-text" />
+        <header
+          className={cn(
+            "aegis-bio-exec-lab__header flex flex-wrap items-center justify-between gap-2 px-3.5 sm:px-8 py-2.5 sm:py-3.5 z-40",
+            /* Immersive / lab desktop: overlay — never steals hero column height */
+            immersiveAppShell
+              ? "absolute inset-x-0 top-0 border-0 bg-transparent pointer-events-none [&_button]:pointer-events-auto [&_a]:pointer-events-auto [&_[data-hero-builder-slot]]:pointer-events-auto"
+              : "border-b backdrop-blur-xl sticky top-0 bg-[color-mix(in_srgb,var(--bio-frame)_82%,transparent)]",
+          )}
+        >
+          {!immersiveAppShell ? (
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border border-[color:var(--bio-frame-border)] bg-[color:var(--bio-chip)]">
+                <Sparkles size={14} className="aegis-bio-exec-lab__accent-text" />
+              </div>
+              <div className="flex items-baseline gap-2.5">
+                <span className="font-semibold tracking-tight text-sm sm:text-base">Aegis</span>
+                <span className="aegis-bio-exec-lab__header-kicker aegis-bio-exec-lab__type-label-caps hidden md:inline opacity-70">
+                  Bio-Executive · {headerDate}
+                </span>
+              </div>
             </div>
-            <div className="flex items-baseline gap-2.5">
-              <span className="font-semibold tracking-tight text-sm sm:text-base">Aegis</span>
-              <span className="aegis-bio-exec-lab__header-kicker aegis-bio-exec-lab__type-label-caps hidden md:inline opacity-70">
-                Bio-Executive · {headerDate}
-              </span>
-            </div>
-          </div>
+          ) : (
+            <div className="shrink-0" aria-hidden />
+          )}
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
-            <button
-              type="button"
-              onClick={onQuickLogOpen}
-              className="aegis-bio-exec-lab__cta-primary hidden lg:inline-flex min-h-[40px] items-center rounded-xl px-4 text-xs font-medium"
-            >
-              {quickLogTitle}
-            </button>
-            <button
-              type="button"
-              onClick={toggleCalm}
-              title="Mode Calme : Réduit la saturation et les animations"
-              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs border transition-all ${
-                calmMode
-                  ? "aegis-bio-exec-lab__calm-active"
-                  : "border-[color:var(--bio-frame-border)] bg-[color:var(--bio-chip)] text-[color:var(--bio-ink)] hover:opacity-90"
-              }`}
-            >
-              <Brain size={14} />
-              <span className="hidden md:inline">{calmMode ? "Focus Calme" : "Standard"}</span>
-            </button>
+            {!immersiveAppShell ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onQuickLogOpen}
+                  className="aegis-bio-exec-lab__cta-primary hidden lg:inline-flex min-h-[40px] items-center rounded-xl px-4 text-xs font-medium"
+                >
+                  {quickLogTitle}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleCalm}
+                  title="Mode Calme : Réduit la saturation et les animations"
+                  className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs border transition-all ${
+                    calmMode
+                      ? "aegis-bio-exec-lab__calm-active"
+                      : "border-[color:var(--bio-frame-border)] bg-[color:var(--bio-chip)] text-[color:var(--bio-ink)] hover:opacity-90"
+                  }`}
+                >
+                  <Brain size={14} />
+                  <span className="hidden md:inline">{calmMode ? "Focus Calme" : "Standard"}</span>
+                </button>
+              </>
+            ) : null}
             <span data-hero-builder-slot className="contents" />
           </div>
         </header>
@@ -391,7 +407,10 @@ export function BioExecutiveMobileDashboard({
           >
             <div
               ref={heroCanvasRef}
-              className="aegis-bio-exec-lab__hero-canvas relative flex flex-col flex-1 min-h-0 overflow-visible"
+              className={cn(
+                "aegis-bio-exec-lab__hero-canvas relative flex flex-col flex-1 min-h-0 overflow-visible",
+                immersiveAppShell && desktopLayout && "lg:absolute lg:inset-0",
+              )}
             >
               <BioExecutiveHeroTitles
                 slice={heroSlice}
@@ -432,8 +451,8 @@ export function BioExecutiveMobileDashboard({
                 className={cn(
                   "aegis-bio-exec-lab__hero-stage relative flex flex-1 min-h-0 items-center justify-center overflow-visible",
                   immersiveAppShell && desktopLayout
-                    ? "my-0 min-h-0 h-full"
-                    : "my-1 sm:my-6 min-h-[230px] sm:min-h-[380px]",
+                    ? "my-0 min-h-[min(62dvh,640px)] h-full lg:min-h-0"
+                    : "my-1 sm:my-6 min-h-[290px] sm:min-h-[380px]",
                   heroPreviewStackedChrome && "aegis-bio-exec-lab__hero-stage--preview-compact",
                   heroPreviewSplitChrome && "aegis-bio-exec-lab__hero-stage--preview-split min-h-0 sm:min-h-0",
                 )}
@@ -456,25 +475,16 @@ export function BioExecutiveMobileDashboard({
               </div>
             </div>
 
-            <div className="aegis-bio-exec-lab__hero-footer-chrome relative z-20 space-y-2 sm:space-y-3 pt-2.5 sm:pt-3 lg:border-t-0 border-t border-[color:var(--bio-frame-border)] lg:mb-2">
-              <div className="aegis-bio-exec-lab__tap-row flex items-center justify-between gap-2 text-[11px] sm:text-xs">
-                <p className="opacity-75 leading-snug pr-2 line-clamp-2 sm:line-clamp-none lg:hidden">{heroDetailDesc}</p>
-                {!zeroUiConfirmed ? (
-                  <button
-                    type="button"
-                    onClick={() => setZeroUiConfirmed(true)}
-                    className="aegis-bio-exec-lab__tap-fab aegis-bio-exec-lab__cta-primary ml-auto shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl aegis-bio-exec-lab__type-label font-medium flex items-center gap-1 shadow-sm"
-                  >
-                    <Check size={12} />
-                    <span>1-Tap</span>
-                  </button>
-                ) : (
-                  <span className="aegis-bio-exec-lab__tap-fab ml-auto shrink-0 aegis-bio-exec-lab__type-label aegis-bio-exec-lab__accent-text font-medium flex items-center gap-1">
-                    <Check size={12} /> Sync
-                  </span>
-                )}
-              </div>
-
+            {/* Lab desktop: no bottom chrome band — hero must be full viewport for silhouette tuning */}
+            {!(heroLabEnabled && desktopLayout && immersiveAppShell) ? (
+            <div
+              className={cn(
+                "aegis-bio-exec-lab__hero-footer-chrome z-20 space-y-2.5 pt-2 sm:pt-3 lg:border-t-0 border-t border-[color:var(--bio-frame-border)] lg:mb-2",
+                immersiveAppShell && desktopLayout
+                  ? "relative lg:absolute lg:inset-x-0 lg:bottom-0 lg:mb-0 lg:border-t-0"
+                  : "relative",
+              )}
+            >
               {desktopLayout && exocortexUi ? (
                 <BioExecutiveHeroQuickActions
                   locale={heroLocale}
@@ -482,40 +492,54 @@ export function BioExecutiveMobileDashboard({
                   showMemoryQuerySoon={exocortexUi.showMemoryQuerySoon}
                 />
               ) : (
-              <div
-                className="p-1.5 sm:p-2.5 rounded-2xl border flex items-center justify-between gap-1.5 sm:gap-2 border-[color:var(--bio-frame-border)] bg-[color:var(--bio-chip)] shadow-sm"
-              >
-                <span className="aegis-bio-exec-lab__type-label font-medium px-1.5 shrink-0">Jour</span>
+                <div className="flex flex-col gap-2">
+                  {/* Clean Mobile Bio-Node Switcher */}
+                  <div className="flex items-center justify-between p-1 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md shadow-sm">
+                    {(
+                      [
+                        ["brain", "Cognition", Brain],
+                        ["heart", "Cohérence", Heart],
+                        ["solar", "Énergie", Zap],
+                      ] as const
+                    ).map(([id, label, Icon]) => {
+                      const active = selectedBioNode === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setSelectedBioNode(id)}
+                          className={cn(
+                            "flex-1 py-1.5 px-2 rounded-lg text-xs font-cinzel uppercase tracking-[0.12em] font-medium transition-all text-center flex items-center justify-center gap-1.5 min-h-[38px]",
+                            active
+                              ? "bg-[#c9a24b]/20 text-[#c9a24b] border border-[#c9a24b]/40 shadow-sm font-semibold"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          <Icon size={14} className={active ? "text-[#c9a24b]" : "text-muted-foreground"} />
+                          <span>{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                <div className="flex-1 flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar">
-                  {viewModel.timeSlots.map((slot) => (
+                  {/* Cadence Status & Quick Action */}
+                  <div className="flex items-center justify-between gap-3 px-1">
+                    <p className="font-sans text-[11px] text-muted-foreground leading-relaxed flex-1 line-clamp-2">
+                      {heroDetailDesc}
+                    </p>
                     <button
-                      key={slot.time}
                       type="button"
-                      onClick={() => setSelectedTimeSlot(slot.time)}
-                      className={`flex-1 min-w-[38px] sm:min-w-[44px] py-1 sm:py-1.5 px-1 rounded-lg text-center transition-all ${
-                        selectedTimeSlot === slot.time
-                          ? "aegis-bio-exec-lab__timeline-active font-semibold shadow-sm"
-                          : slot.active
-                            ? "aegis-bio-exec-lab__timeline-slot"
-                            : "opacity-35 hover:opacity-70"
-                      }`}
+                      onClick={onQuickLogOpen}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg border border-[#c9a24b]/30 bg-[#c9a24b]/10 text-[#c9a24b] font-cinzel text-[10px] uppercase tracking-wider font-semibold hover:bg-[#c9a24b]/20 transition-all flex items-center gap-1 min-h-[32px]"
                     >
-                      <div className="aegis-bio-exec-lab__type-label-caps tracking-tighter">{slot.time}</div>
+                      <Sparkles size={11} />
+                      <span>{t("dashboard.mobileLogNow") || "Quick-Log"}</span>
                     </button>
-                  ))}
+                  </div>
                 </div>
-
-                <NavLink
-                  to="/habits"
-                  className="min-h-[44px] min-w-[44px] rounded-lg bg-[color:var(--bio-chip)] flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
-                  title="Habitudes"
-                >
-                  <ArrowUpRight size={12} />
-                </NavLink>
-              </div>
               )}
             </div>
+            ) : null}
           </div>
 
           {!desktopLayout ? (
