@@ -3504,6 +3504,27 @@ export type Database = {
           },
         ]
       }
+      user_agents: {
+        Row: {
+          created_at: string
+          elevenlabs_agent_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          elevenlabs_agent_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          elevenlabs_agent_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_app_versions: {
         Row: {
           created_at: string
@@ -3969,6 +3990,10 @@ export type Database = {
       can_view_employee: {
         Args: { _subject: string; _viewer: string }
         Returns: boolean
+      }
+      check_service_rate_limit: {
+        Args: { p_bucket: string; p_limit?: number; p_window_seconds?: number }
+        Returns: Json
       }
       claim_referral: { Args: { p_code: string }; Returns: Json }
       company_has_seat_available: {
