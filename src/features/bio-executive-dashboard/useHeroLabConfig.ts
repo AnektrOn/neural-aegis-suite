@@ -12,6 +12,11 @@ import {
   type HeroLabViewportDisplay,
 } from "./bioExecutiveHeroLabConfig";
 
+/**
+ * Prod (`enabled=false`) → committed golden only (`DEFAULT_HERO_LAB_CONFIG` + mobile presets).
+ * Lab (`enabled=true`) → localStorage v3 sandbox + Hero Builder writes.
+ * See `docs/BIO_EXECUTIVE_HERO_GOLDEN.md`.
+ */
 export function useHeroLabConfig(enabled: boolean) {
   const [config, setConfig] = useState<HeroLabConfig>(() =>
     enabled ? loadHeroLabConfig() : structuredClone(DEFAULT_HERO_LAB_CONFIG),
@@ -23,8 +28,7 @@ export function useHeroLabConfig(enabled: boolean) {
   );
 
   useEffect(() => {
-    if (!enabled) return;
-    setConfig(loadHeroLabConfig());
+    setConfig(enabled ? loadHeroLabConfig() : structuredClone(DEFAULT_HERO_LAB_CONFIG));
   }, [enabled]);
 
   useEffect(() => {
