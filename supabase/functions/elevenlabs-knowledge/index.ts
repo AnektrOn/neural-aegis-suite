@@ -1,6 +1,23 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { getGoogleAccessToken } from "../_shared/google-drive.ts";
+import { collectDriveMarkdown } from "./drive-sync.ts";
+
+const DRIVE = "https://connector-gateway.lovable.dev/google_drive/drive/v3";
+function driveHeaders(): HeadersInit {
+  const key = Deno.env.get("LOVABLE_API_KEY");
+  const connection = Deno.env.get("GOOGLE_DRIVE_API_KEY");
+  if (!key || !connection) throw new Error("La connexion Google Drive n'est pas disponible.");
+  return { Authorization: `Bearer ${key}`, "X-Connection-Api-Key": connection };
+}
+async function driveFetch(path: string) {
+  const res = await fetch(`${DRIVE}${path}`, { headers: driveHeaders() });
+  if (!res.ok) {
+    const details = await res.text();
+    console.error(`Drive ${res.status}: ${details}`);
+    throw new Error(`Drive ${res.status}: ${details}`);
+  }
+  return res;
+}
 
 const EL = "https://api.elevenlabs.io/v1";
 const json = (body: unknown, status = 200) =>
@@ -46,15 +63,27 @@ async function sha256(text: string) {
 
 type KbItem = { type: string; name: string; id: string; usage_mode?: string };
 
-async function setAgentKb(agentId: string, mutate: (items: KbItem[]) => KbItem[]) {
+async function setAgentKb(agentId: string, mutate: (items: KbItem[]) => KbItem[], useRag = false) {
   const agent = await elJson(`/convai/agents/${agentId}`);
   const current: KbItem[] = agent?.conversation_config?.agent?.prompt?.knowledge_base ?? [];
   const next = mutate(current);
-  await elJson(`/convai/agents/${agentId}`, {
+  const update: RequestInit = {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ conversation_config: { agent: { prompt: { knowledge_base: next } } } }),
-  });
+    body: JSON.stringify({ conversation_config: { agent: { prompt: {
+      knowledge_base: next,
+      ...(useRag ? { rag: { ...agent?.conversation_config?.agent?.prompt?.rag, enabled: true } } : {}),
+    } } } }),
+  };
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await elJson(`/convai/agents/${agentId}`, update);
+      return;
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes("rag_index_not_ready") || attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
+    }
+  }
 }
 
 // deno-lint-ignore no-explicit-any
@@ -111,7 +140,7 @@ async function uploadMarkdown(
     await setAgentKb(opts.agentId, (items) => [
       ...items.filter((i) => i.id !== oldId && i.id !== newId),
       { type: "text", name: opts.name, id: newId, usage_mode: "auto" },
-    ]);
+    ], opts.source === "drive_file");
 
     if (oldId && oldId !== newId) {
       await elFetch(`/convai/knowledge-base/${oldId}?force=true`, { method: "DELETE" }).catch(() => null);
@@ -139,25 +168,20 @@ async function uploadMarkdown(
 }
 
 async function listDriveMd(folderId: string) {
-  const token = await getGoogleAccessToken();
-  const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
-  const files: { id: string; name: string; mimeType: string }[] = [];
-  let pageToken = "";
-  do {
-    const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=nextPageToken,files(id,name,mimeType)&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true${pageToken ? `&pageToken=${pageToken}` : ""}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) throw new Error(`Drive ${res.status}: ${await res.text()}`);
-    const j = await res.json();
-    files.push(...(j.files ?? []));
-    pageToken = j.nextPageToken ?? "";
-  } while (pageToken);
-  return {
-    token,
-    files: files.filter((f) => f.name.toLowerCase().endsWith(".md") || f.mimeType === "text/markdown"),
-  };
+  const metadata = await (await driveFetch(`/files/${encodeURIComponent(folderId)}?fields=id,mimeType&supportsAllDrives=true`)).json();
+  if (metadata.mimeType !== "application/vnd.google-apps.folder") throw new Error("Cet ID Drive ne correspond pas à un dossier.");
+  return collectDriveMarkdown(folderId, async (id, pageToken) => {
+    const params = new URLSearchParams({
+      q: `'${id.replace(/'/g, "\\'")}' in parents and trashed = false`,
+      fields: "nextPageToken,files(id,name,mimeType)", pageSize: "200",
+      supportsAllDrives: "true", includeItemsFromAllDrives: "true",
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+    return (await driveFetch(`/files?${params}`)).json();
+  });
 }
 
-async function syncUser(admin: Admin, userId: string) {
+async function syncUser(admin: Admin, userId: string, offset = 0, batchSize?: number) {
   const { data: p } = await admin
     .from("profiles")
     .select("id, elevenlabs_agent_id, drive_folder_id")
@@ -165,14 +189,11 @@ async function syncUser(admin: Admin, userId: string) {
     .maybeSingle();
   if (!p?.elevenlabs_agent_id) throw new Error("Cet utilisateur n'a pas d'agent ElevenLabs");
   if (!p?.drive_folder_id) throw new Error("Aucun dossier Drive configuré");
-  const { token, files } = await listDriveMd(p.drive_folder_id);
+  const files = await listDriveMd(p.drive_folder_id);
   const results: { file: string; status: string; error?: string }[] = [];
-  for (const f of files) {
+  for (const f of files.slice(offset, batchSize ? offset + batchSize : undefined)) {
     try {
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media&supportsAllDrives=true`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(`Drive ${res.status}: ${await res.text()}`);
+      const res = await driveFetch(`/files/${encodeURIComponent(f.id)}?alt=media&supportsAllDrives=true`);
       const text = await res.text();
       const r = await uploadMarkdown(admin, {
         agentId: p.elevenlabs_agent_id,
@@ -187,8 +208,10 @@ async function syncUser(admin: Admin, userId: string) {
       results.push({ file: f.name, status: "failed", error: e instanceof Error ? e.message : String(e) });
     }
   }
-  await admin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", userId);
-  return results;
+  const nextOffset = offset + results.length;
+  const done = nextOffset >= files.length;
+  if (done) await admin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", userId);
+  return { results, total: files.length, next_offset: nextOffset, done };
 }
 
 async function startJob(admin: Admin, mode: string, userId: string | null) {
@@ -214,12 +237,15 @@ async function finishJob(admin: Admin, id: string, results: { status: string; fi
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const url = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !serviceKey) throw new Error("Configuration serveur indisponible");
+    const admin = createClient(url, serviceKey);
     const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
     const { data: u } = await admin.auth.getUser(token);
     if (!u?.user) return json({ error: "Unauthorized" }, 401);
-    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
-    if (!isAdmin) return json({ error: "Forbidden" }, 403);
+    const { data: roles, error: rolesError } = await admin.from("user_roles").select("role").eq("user_id", u.user.id).in("role", ["admin", "superadmin"]);
+    if (u.user.is_anonymous || rolesError || !roles?.length) return json({ error: "Forbidden" }, 403);
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
@@ -328,11 +354,13 @@ Deno.serve(async (req) => {
 
       case "sync_user": {
         if (!userId) return json({ error: "user_id requis" }, 400);
+        const offset = Number(body?.offset ?? 0);
+        if (!Number.isSafeInteger(offset) || offset < 0) return json({ error: "Position de synchronisation invalide" }, 400);
         const jobId = await startJob(admin, "drive_user_sync", userId);
         try {
-          const results = await syncUser(admin, userId);
-          await finishJob(admin, jobId, results);
-          return json({ results });
+          const batch = await syncUser(admin, userId, offset, 5);
+          await finishJob(admin, jobId, batch.results, `${batch.next_offset}/${batch.total}`);
+          return json(batch);
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           await finishJob(admin, jobId, [{ status: "failed", error: msg }], msg);
@@ -352,7 +380,7 @@ Deno.serve(async (req) => {
         const perUser: { user: string; ok: number; failed: number; skipped: number; error?: string }[] = [];
         for (const usr of users ?? []) {
           try {
-            const r = await syncUser(admin, usr.id);
+            const { results: r } = await syncUser(admin, usr.id);
             all.push(...r);
             perUser.push({
               user: usr.display_name || usr.id,

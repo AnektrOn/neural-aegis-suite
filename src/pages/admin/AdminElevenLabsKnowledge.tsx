@@ -3,6 +3,7 @@ import { Bot, FileText, FolderSync, Loader2, RefreshCw, Search, Trash2, Upload }
 import { toast } from "sonner";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 interface UserRow {
   id: string;
@@ -172,6 +173,7 @@ export default function AdminElevenLabsKnowledge() {
   const [driveFolder, setDriveFolder] = useState("");
   const [driveEnabled, setDriveEnabled] = useState(false);
   const [userAgentId, setUserAgentId] = useState("");
+  const [syncResults, setSyncResults] = useState<{ file: string; status: string; error?: string }[] | null>(null);
   const [bulkResult, setBulkResult] = useState<{ user: string; ok: number; failed: number; skipped: number; error?: string }[] | null>(null);
 
   const load = useCallback(async () => {
@@ -190,6 +192,7 @@ export default function AdminElevenLabsKnowledge() {
 
   const selected = users.find((u) => u.id === selectedId) ?? null;
   useEffect(() => {
+    setSyncResults(null);
     setDriveFolder(selected?.drive_folder_id ?? "");
     setDriveEnabled(!!selected?.elevenlabs_sync_enabled);
     setUserAgentId(selected?.elevenlabs_agent_id ?? "");
@@ -332,20 +335,40 @@ export default function AdminElevenLabsKnowledge() {
                 <label className="flex items-center gap-2 text-sm text-foreground">
                   <input type="checkbox" checked={driveEnabled} onChange={(e) => setDriveEnabled(e.target.checked)} /> Synchronisation Drive activée
                 </label>
-                <p className="text-xs text-muted-foreground">Le dossier doit être partagé avec le compte de service Google de l'app. Dernière synchro : {fmt(selected.last_synced_at)}</p>
+                <p className="text-xs text-muted-foreground">Compte Google Drive connecté à l'app. Dernière synchro : {fmt(selected.last_synced_at)}</p>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className={btn} disabled={busy === "drive"} onClick={() => run("drive", async () => { await call({ action: "set_drive", user_id: selected.id, drive_folder_id: driveFolder, enabled: driveEnabled }); toast.success("Réglages Drive enregistrés"); await load(); })}>
                     Enregistrer
                   </button>
-                  <button type="button" className={btn} disabled={busy === "sync" || !selected.drive_folder_id || !selected.elevenlabs_agent_id} onClick={() => run("sync", async () => {
-                    const res = await call({ action: "sync_user", user_id: selected.id });
-                    const r = (res?.results ?? []) as { status: string }[];
-                    toast.success(`${r.filter((x) => x.status === "success").length} envoyé(s), ${r.filter((x) => x.status === "skipped").length} inchangé(s), ${r.filter((x) => x.status === "failed").length} échec(s)`);
+                  <Button type="button" variant="outline" className={btn} disabled={busy === "sync" || !selected.drive_folder_id || !selected.elevenlabs_agent_id} onClick={() => run("sync", async () => {
+                    setSyncResults(null);
+                    const r: { file: string; status: string; error?: string }[] = [];
+                    let offset = 0;
+                    let done = false;
+                    while (!done) {
+                      const res = await call({ action: "sync_user", user_id: selected.id, offset });
+                      r.push(...(res?.results ?? []));
+                      setSyncResults([...r]);
+                      done = res?.done !== false;
+                      const next = Number(res?.next_offset);
+                      if (!done && (!Number.isSafeInteger(next) || next <= offset)) throw new Error("La synchronisation n'avance plus.");
+                      offset = next;
+                      await load();
+                    }
+                    const message = `${r.filter((x) => x.status === "success").length} envoyé(s), ${r.filter((x) => x.status === "skipped").length} inchangé(s), ${r.filter((x) => x.status === "failed").length} échec(s)`;
+                    if (r.some((x) => x.status === "failed")) toast.error(message);
+                    else toast.success(message);
                     await load();
                   })}>
                     {busy === "sync" ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Synchroniser ce dossier
-                  </button>
+                  </Button>
                 </div>
+                {syncResults && <ul className="max-h-64 overflow-y-auto space-y-2 text-sm" aria-label="Résultats de synchronisation">
+                  {syncResults.map((r, index) => <li key={index} className="break-words text-foreground">
+                    {r.file} — {STATUS_LABEL[r.status] ?? r.status}
+                    {r.error && <p className="text-destructive text-xs break-all">{r.error}</p>}
+                  </li>)}
+                </ul>}
               </div>
             </>
           )}
