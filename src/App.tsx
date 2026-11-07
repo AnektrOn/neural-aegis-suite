@@ -104,7 +104,6 @@ const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
 const DevLabPage = lazy(() => import("./pages/dev/DevLabPage"));
-const JungGlossaryPage = lazy(() => import("./pages/dev/jung-glossary/JungGlossaryPage"));
 const PracticesHubLabPage = lazy(() => import("./pages/dev/practices-hub/PracticesHubLabPage"));
 const LiquidGlassDemoPage = lazy(() => import("./pages/dev/liquid-glass/LiquidGlassDemoPage"));
 const AegisCorePreview = lazy(() => import("./pages/dev/AegisCorePreview"));
@@ -326,7 +325,6 @@ const App = () => (
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/dev" element={<AppRouteErrorBoundary label="dev-lab"><DevGate><DevLabPage /></DevGate></AppRouteErrorBoundary>} />
-                <Route path="/dev/jung-glossary" element={<AppRouteErrorBoundary label="jung-glossary"><DevGate><JungGlossaryPage /></DevGate></AppRouteErrorBoundary>} />
                 {import.meta.env.DEV ? (
                   <>
                     <Route path="/__loader" element={<BootLoadingScreen />} />
