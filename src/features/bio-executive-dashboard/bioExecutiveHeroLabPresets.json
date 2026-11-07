@@ -632,9 +632,9 @@
   },
   "mobilePortrait": {
     "silhouette": {
-      "widthPct": 70.5,
+      "widthPct": 30.5,
       "leftPct": 36,
-      "bottomPct": -10.5
+      "bottomPct": 0.5
     },
     "overlay": {
       "enabled": false,
