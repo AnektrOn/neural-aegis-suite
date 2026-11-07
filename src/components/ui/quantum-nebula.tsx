@@ -1350,7 +1350,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
             spectrumBuffer = buffer;
           } else {
             buffer = new Uint8Array(analyser!.frequencyBinCount);
-            analyser!.getByteFrequencyData(buffer);
+            analyser!.getByteFrequencyData(buffer as Uint8Array<ArrayBuffer>);
             spectrumBuffer = buffer;
             const waveform = new Uint8Array(analyser!.frequencyBinCount);
             analyser!.getByteTimeDomainData(waveform);
