@@ -634,7 +634,7 @@
     "silhouette": {
       "widthPct": 70.5,
       "leftPct": 36,
-      "bottomPct": 0.5
+      "bottomPct": -10.5
     },
     "overlay": {
       "enabled": false,
