@@ -52,6 +52,7 @@ export default function Welcome() {
   }, [user]);
 
   const goDashboard = () => navigate("/dashboard", { replace: true });
+  const goVoiceAgent = () => navigate("/welcome/voice-agent");
 
   const completeProductTour = () => {
     if (!userId) return;
@@ -97,6 +98,7 @@ export default function Welcome() {
         firstName={firstName}
         t={t}
         onDashboard={goDashboard}
+        onVoiceAgent={goVoiceAgent}
       />
       <WelcomePostTourModals />
     </>

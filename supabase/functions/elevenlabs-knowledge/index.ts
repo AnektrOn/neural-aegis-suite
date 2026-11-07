@@ -1,6 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { collectDriveMarkdown } from "./drive-sync.ts";
+import {
+  createVoiceConversationToken,
+  mapVoiceSessionError,
+} from "../_shared/voice-session.ts";
 
 const DRIVE = "https://connector-gateway.lovable.dev/google_drive/drive/v3";
 function driveHeaders(): HeadersInit {
@@ -244,12 +248,28 @@ Deno.serve(async (req) => {
     const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
     const { data: u } = await admin.auth.getUser(token);
     if (!u?.user) return json({ error: "Unauthorized" }, 401);
-    const { data: roles, error: rolesError } = await admin.from("user_roles").select("role").eq("user_id", u.user.id).in("role", ["admin", "superadmin"]);
-    if (u.user.is_anonymous || rolesError || !roles?.length) return json({ error: "Forbidden" }, 403);
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
     const userId: string | null = typeof body?.user_id === "string" ? body.user_id : null;
+
+    if (action === "voice_conversation_token") {
+      try {
+        const payload = await createVoiceConversationToken(admin, u.user.id);
+        return json(payload);
+      } catch (e) {
+        console.error("elevenlabs-knowledge voice_conversation_token", e);
+        const mapped = mapVoiceSessionError(e);
+        return json({ error: mapped.message }, mapped.status);
+      }
+    }
+
+    const { data: roles, error: rolesError } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", u.user.id)
+      .in("role", ["admin", "superadmin"]);
+    if (u.user.is_anonymous || rolesError || !roles?.length) return json({ error: "Forbidden" }, 403);
 
     switch (action) {
       case "create_agent": {

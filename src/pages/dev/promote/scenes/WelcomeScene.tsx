@@ -7,6 +7,11 @@ export function WelcomeScene() {
   const { t } = useLanguage();
   const { next } = usePromotePlayer();
   return (
-    <WelcomeHudScreen firstName={PROMOTE_USER.firstName} t={t} onDashboard={next} />
+    <WelcomeHudScreen
+      firstName={PROMOTE_USER.firstName}
+      t={t}
+      onDashboard={next}
+      onVoiceAgent={() => {}}
+    />
   );
 }
