@@ -2,6 +2,7 @@
 
 - Saved V2 member menu preferences are authoritative; apply exclusions only from the frozen legacy sidebar route list during migration, so restored and newly introduced pages remain available.
 - Member logout uses the shared dock to open AppLayout's existing confirmation, independent of hideable menu preferences, so it remains reachable at every breakpoint.
+- Members download published APKs through release signed URLs; direct app-releases storage access is reserved for non-guest platform admins to avoid exposing unrelated files.
 
 - ElevenLabs knowledge calls go only through the `elevenlabs-knowledge` edge function (admin-checked); per-user agent IDs live on `profiles`, the main agent ID in `elevenlabs_settings` — keeps the API key server-side and each user's documents attached only to their own agent.
 
