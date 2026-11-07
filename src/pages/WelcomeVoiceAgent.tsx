@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceAgent } from "@/components/voice/VoiceAgent";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 function pickFirstName(displayName: string | null, user: NonNullable<ReturnType<typeof useAuth>["user"]>) {
   if (displayName?.trim() && !displayName.includes("@")) {
@@ -26,9 +36,11 @@ function pickFirstName(displayName: string | null, user: NonNullable<ReturnType<
 export default function WelcomeVoiceAgent() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [agentId, setAgentId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [accessChecked, setAccessChecked] = useState(false);
 
   const firstName = useMemo(
     () => (user ? pickFirstName(displayName, user) : ""),
@@ -73,11 +85,13 @@ export default function WelcomeVoiceAgent() {
               profile?.elevenlabs_agent_id ??
               null,
           );
+          setAccessChecked(true);
         }
       } catch (err) {
         console.error("WelcomeVoiceAgent", err);
         if (!cancelled) {
           setLoadError(err instanceof Error ? err.message : t("voiceAgent.errorGeneric"));
+          setAccessChecked(true);
         }
       }
     })();
@@ -88,6 +102,24 @@ export default function WelcomeVoiceAgent() {
   }, [t, user?.id]);
 
   if (!user) return null;
+
+  if (accessChecked && !agentId) {
+    return (
+      <Dialog open onOpenChange={() => navigate("/welcome")}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("voiceAgent.noAccessTitle")}</DialogTitle>
+            <DialogDescription>{t("voiceAgent.noAccessBody")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => navigate("/welcome")}>
+              {t("voiceAgent.noAccessCta")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const debugFooter = (
     <p className="font-mono text-[9px] leading-relaxed tracking-wide text-muted-foreground/65">

@@ -1522,6 +1522,15 @@ export const translations = {
   "voiceAgent.statusConnected": { fr: "Connecté", en: "Connected" },
   "voiceAgent.statusSpeaking": { fr: "L'agent parle", en: "Agent speaking" },
   "voiceAgent.statusListening": { fr: "L'agent écoute", en: "Agent listening" },
+  "voiceAgent.noAccessTitle": {
+    fr: "Accès pas encore activé",
+    en: "Access not activated yet",
+  },
+  "voiceAgent.noAccessBody": {
+    fr: "Vous n'avez pas encore accès à votre agent vocal. Contactez votre coach pour qu'il l'active pour vous.",
+    en: "You don't have access to your voice agent yet. Ask your coach to activate it for you.",
+  },
+  "voiceAgent.noAccessCta": { fr: "Retour à l'accueil", en: "Back to home" },
   "voiceAgent.errorGeneric": {
     fr: "Impossible de démarrer la conversation.",
     en: "Could not start the conversation.",
