@@ -140,6 +140,7 @@ export function BioExecutiveHeroFigure({
         onPointerDown={onPointerDown(id)}
         className={cn(
           "aegis-bio-exec-lab__hotspot touch-none",
+          !heroLab && "aegis-bio-exec-lab__hotspot--mobile-hidden hidden lg:block",
           labRing(labTarget === id, heroLab),
           heroLab && "cursor-grab active:cursor-grabbing",
           active && "aegis-bio-exec-lab__hotspot--active",
@@ -215,7 +216,7 @@ export function BioExecutiveHeroFigure({
       ) : null}
 
       {connector ? (
-        <svg className="aegis-bio-exec-lab__hotspot-connector" aria-hidden>
+        <svg className={cn("aegis-bio-exec-lab__hotspot-connector", !heroLab && "hidden lg:block")} aria-hidden>
           <line x1={connector.x1} y1={connector.y1} x2={connector.x2} y2={connector.y2} />
         </svg>
       ) : null}
@@ -233,6 +234,7 @@ export function BioExecutiveHeroFigure({
         className={cn(
           "aegis-bio-exec-lab__side-rail flex flex-col gap-1 p-1 rounded-xl border border-[color:var(--bio-frame-border)] bg-[color:var(--bio-frame)]/80 backdrop-blur-md shadow-sm",
           boxClass("sideRail"),
+          !heroLab && "aegis-bio-exec-lab__side-rail--mobile-hidden hidden lg:flex",
         )}
       >
         {(
@@ -269,7 +271,7 @@ export function BioExecutiveHeroFigure({
         onClick={() => onLabTargetSelect("sleepStats")}
         onPointerDown={onPointerDown("sleepStats")}
         {...boxProps("sleepStats")}
-        className={cn("aegis-bio-exec-lab__sleep-stats aegis-bio-exec-lab__hero-metric cursor-pointer group z-20 text-left", boxClass("sleepStats"))}
+        className={cn("aegis-bio-exec-lab__sleep-stats aegis-bio-exec-lab__hero-metric cursor-pointer group z-20 text-left max-w-[45%]", boxClass("sleepStats"))}
       >
         <div className="flex items-baseline gap-1">
           {el.sleepStats.typography.fontSizePx >= 8 ? (
@@ -289,7 +291,7 @@ export function BioExecutiveHeroFigure({
         onClick={() => onLabTargetSelect("metricCallout")}
         onPointerDown={onPointerDown("metricCallout")}
         {...boxProps("metricCallout")}
-        className={cn("relative z-20 aegis-bio-exec-lab__hero-metric flex flex-col items-end", boxClass("metricCallout"))}
+        className={cn("relative z-20 aegis-bio-exec-lab__hero-metric flex flex-col items-end max-w-[45%]", boxClass("metricCallout"))}
       >
         <button
           ref={metricRef}

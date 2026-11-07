@@ -62,6 +62,7 @@ export function BioExecutiveHeroTitles({
         {...sessionShell}
         onPointerDown={onPointerDown("sessionLabel")}
         onClick={() => onLabTargetSelect("sessionLabel")}
+        className={cn(sessionShell.className, !heroLab && "max-w-[calc(100%-48px)] pr-2")}
       >
         <span className="block" {...heroTypographyProps(slice.elements.sessionLabel.typography)}>
           {sessionText}
@@ -72,7 +73,7 @@ export function BioExecutiveHeroTitles({
         {...nodeShell}
         onPointerDown={onPointerDown("nodeTitle")}
         onClick={() => onLabTargetSelect("nodeTitle")}
-        className={cn(nodeShell.className, "aegis-bio-exec-lab__node-title")}
+        className={cn(nodeShell.className, "aegis-bio-exec-lab__node-title", !heroLab && "max-w-[calc(100%-48px)] pr-2")}
       >
         <h2 className="aegis-bio-exec-lab__type-title m-0 p-0" {...heroTypographyProps(slice.elements.nodeTitle.typography)}>
           {heroTitle}
