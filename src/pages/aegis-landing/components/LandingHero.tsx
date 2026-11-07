@@ -24,7 +24,7 @@ function HeroStill({ dimmed }: { dimmed: boolean }) {
       aria-hidden
       fetchPriority="high"
       decoding="async"
-      className={`pointer-events-none absolute inset-0 h-full w-full object-cover object-right transition-opacity duration-500 ${
+      className={`pointer-events-none absolute inset-0 h-full w-full object-cover object-[right_68%] transition-opacity duration-500 md:object-right ${
         dimmed ? "opacity-0" : "opacity-100"
       }`}
       width={800}
@@ -44,7 +44,7 @@ export function LandingHero() {
 
   return (
     <div className="aegis-landing__container pb-8 md:pb-12">
-      <div className="aegis-landing__hero-stage relative min-h-[min(82vh,760px)] overflow-hidden rounded-[32px]">
+      <div className="aegis-landing__hero-stage relative min-h-[min(58vh,520px)] overflow-hidden rounded-[32px] md:min-h-[min(82vh,760px)]">
         <HeroStill dimmed={liveCanvas && webglReady} />
         {showStill ? <div className="aegis-landing__hero-veil" aria-hidden /> : null}
         {liveCanvas ? (
@@ -60,17 +60,17 @@ export function LandingHero() {
           </Suspense>
         ) : null}
         <p className="sr-only">{copy.hero.chip}</p>
-        <div className="pointer-events-none relative z-10 flex min-h-[min(82vh,760px)] flex-col justify-between p-6 pb-10 md:p-10 md:pb-12">
+        <div className="pointer-events-none relative z-10 flex min-h-[min(58vh,520px)] flex-col justify-between p-5 pb-6 md:min-h-[min(82vh,760px)] md:p-10 md:pb-12">
           <div
-            className={`pointer-events-auto pt-4 md:pt-8 ${
+            className={`pointer-events-auto pt-2 md:pt-8 ${
               audience === "entreprise" ? "max-w-lg md:max-w-[30rem]" : "max-w-xl md:max-w-[34rem]"
             }`}
           >
-            <LandingPill className="mb-6">{copy.hero.chip}</LandingPill>
-            <h1 className="aegis-landing__headline whitespace-pre-line text-[clamp(2.1rem,4.6vw,3.5rem)] text-[color:var(--aegis-text)]">
+            <LandingPill className="mb-4 md:mb-6">{copy.hero.chip}</LandingPill>
+            <h1 className="aegis-landing__headline whitespace-pre-line text-[clamp(1.75rem,8vw,3.5rem)] text-[color:var(--aegis-text)]">
               {copy.hero.title}
             </h1>
-            <p className="mt-5 max-w-md text-base leading-relaxed text-[color:var(--aegis-muted)] md:text-[17px] md:leading-[1.6]">
+            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[color:var(--aegis-muted)] md:mt-5 md:text-[17px] md:leading-[1.6]">
               {copy.hero.subtitle}
             </p>
             <div className="mt-8 hidden flex-col items-start gap-3 sm:flex">
@@ -82,7 +82,7 @@ export function LandingHero() {
               </p>
             </div>
           </div>
-          <div className="flex items-end justify-between">
+          <div className="hidden items-end justify-between md:flex">
             <a
               href="#probleme"
               className="pointer-events-auto flex min-h-[44px] min-w-[44px] items-center justify-center text-[color:var(--aegis-text-secondary)]"
