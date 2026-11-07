@@ -633,7 +633,7 @@
   "mobilePortrait": {
     "silhouette": {
       "widthPct": 40.5,
-      "leftPct": 26,
+      "leftPct": 16,
       "bottomPct": 0.5
     },
     "overlay": {
