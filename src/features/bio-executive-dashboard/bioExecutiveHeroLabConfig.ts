@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
-import heroLabMobilePresets from "./bioExecutiveHeroLabMobilePresets.json";
+import heroLabPresets from "./bioExecutiveHeroLabPresets.json";
 
+/** Browser sandbox for Hero Lab only — prod uses DEFAULT_HERO_LAB_CONFIG (see docs/BIO_EXECUTIVE_HERO_GOLDEN.md). */
 export const HERO_LAB_STORAGE_KEY = "aegis_bio_hero_lab_config_v3";
 export const HERO_LAB_EDITOR_OPEN_KEY = "aegis_bio_hero_lab_editor_open_v1";
 export const HERO_LAB_VIEWPORT_DISPLAY_KEY = "aegis_bio_hero_lab_viewport_display_v1";
@@ -290,10 +291,10 @@ const DESKTOP_OVERLAY: Partial<HeroSilhouetteOverlay> = {
   blurMinPx: 0,
   blurMaxPx: 5,
   opacityMinPct: 0,
-  opacityMaxPct: 59,
-  gradualDirection: "top",
+  opacityMaxPct: 41,
+  gradualDirection: "bottom",
   gradualLayers: 16,
-  tint: "none",
+  tint: "dark",
   radiusRem: 0,
 };
 
@@ -413,56 +414,21 @@ function normalizeSlice(raw: Partial<HeroBreakpointSlice> | undefined, fallback:
 }
 
 function buildDefaultHeroLabConfig(): HeroLabConfig {
-  const mobilePortraitSeed = slice(
-    { widthPct: 75.5, leftPct: 29.5, bottomPct: -8 },
-    {
-      enabled: true,
-      columnFullWidth: true,
-      leftPct: 18,
-      topPct: 23.5,
-      widthPct: 64,
-      heightPct: 100,
-      blurMaxPx: 5,
-      opacityMaxPct: 80,
-      gradualLayers: 24,
-      radiusRem: 0.75,
-    },
-  );
-  const mobileLandscapeSeed = slice(
-    { widthPct: 74.5, leftPct: 33, bottomPct: -24 },
-    {
-      enabled: true,
-      columnFullWidth: true,
-      leftPct: 18,
-      topPct: 2.5,
-      widthPct: 64,
-      heightPct: 98.5,
-      blurMaxPx: 2,
-      opacityMaxPct: 29,
-      gradualLayers: 24,
-      tint: "none",
-      radiusRem: 1.875,
-    },
-  );
-
+  /** Structural fallbacks if a preset key is missing — overridden by bioExecutiveHeroLabPresets.json */
   const base: HeroLabConfig = {
-    desktop: slice({ widthPct: 60.5, leftPct: 24, bottomPct: -5.5 }, DESKTOP_OVERLAY),
+    desktop: slice({ widthPct: 50.5, leftPct: 24.5, bottomPct: -2 }, DESKTOP_OVERLAY),
     tabletLandscape: slice({ widthPct: 66.5, leftPct: 25, bottomPct: 7.5 }, MOBILE_TABLET_OVERLAY),
-    tabletPortrait: slice({ widthPct: 56, leftPct: 23, bottomPct: 3.25 }, MOBILE_TABLET_OVERLAY),
-    mobilePortrait: mobilePortraitSeed,
-    mobileLandscape: mobileLandscapeSeed,
+    tabletPortrait: slice({ widthPct: 56, leftPct: 50, bottomPct: 2 }, MOBILE_TABLET_OVERLAY),
+    mobilePortrait: slice({ widthPct: 58, leftPct: 50, bottomPct: 1 }, MOBILE_TABLET_OVERLAY),
+    mobileLandscape: slice({ widthPct: 56.5, leftPct: 25.5, bottomPct: -2.5 }, MOBILE_TABLET_OVERLAY),
   };
 
-  const presets = heroLabMobilePresets as {
-    mobilePortrait?: Partial<HeroBreakpointSlice>;
-    mobileLandscape?: Partial<HeroBreakpointSlice>;
-  };
-
-  return {
-    ...base,
-    mobilePortrait: normalizeSlice(presets.mobilePortrait, base.mobilePortrait),
-    mobileLandscape: normalizeSlice(presets.mobileLandscape, base.mobileLandscape),
-  };
+  const presets = heroLabPresets as Partial<Record<HeroBreakpointKey, Partial<HeroBreakpointSlice>>>;
+  const out = {} as HeroLabConfig;
+  for (const key of HERO_BREAKPOINT_ORDER) {
+    out[key] = normalizeSlice(presets[key], base[key]);
+  }
+  return out;
 }
 
 export const DEFAULT_HERO_LAB_CONFIG: HeroLabConfig = buildDefaultHeroLabConfig();

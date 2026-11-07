@@ -1,0 +1,1054 @@
+{
+  "desktop": {
+    "silhouette": {
+      "widthPct": 50.5,
+      "leftPct": 24.5,
+      "bottomPct": -2
+    },
+    "overlay": {
+      "enabled": true,
+      "columnFullWidth": true,
+      "leftPct": 0,
+      "topPct": 10.5,
+      "widthPct": 100,
+      "heightPct": 100,
+      "blurMode": "gradual",
+      "blurMinPx": 0,
+      "blurMaxPx": 5,
+      "opacityMinPct": 0,
+      "opacityMaxPct": 41,
+      "gradualDirection": "bottom",
+      "gradualLayers": 16,
+      "tint": "dark",
+      "radiusRem": 0
+    },
+    "elements": {
+      "sessionLabel": {
+        "leftPct": 40.5,
+        "topPct": 6,
+        "anchor": "topLeft",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "cinzel",
+          "fontSizePx": 11,
+          "fontWeight": 500,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0.2,
+          "opacityPct": 50,
+          "uppercase": true,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "nodeTitle": {
+        "leftPct": 66.5,
+        "topPct": 12.099622878692646,
+        "anchor": "topLeft",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "quattrocento",
+          "fontSizePx": 44,
+          "fontWeight": 600,
+          "lineHeight": 1.2,
+          "letterSpacingEm": 0.09,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 100
+        }
+      },
+      "pageTitle": {
+        "leftPct": 81,
+        "topPct": 11,
+        "anchor": "topLeft",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "cinzel",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.1,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 92
+        }
+      },
+      "nodeBrain": {
+        "leftPct": 52,
+        "topPct": 19,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 44
+      },
+      "nodeHeart": {
+        "leftPct": 69.5,
+        "topPct": 44.5,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 44
+      },
+      "nodeSolar": {
+        "leftPct": 34,
+        "topPct": 79,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 44
+      },
+      "sideRail": {
+        "leftPct": 91,
+        "topPct": 50.5,
+        "anchor": "centerLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "railSizePx": 44
+      },
+      "sleepStats": {
+        "leftPct": 47,
+        "bottomPct": 37.5,
+        "anchor": "bottomLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 35,
+          "fontWeight": 300,
+          "lineHeight": 1.6,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 100
+        }
+      },
+      "cognitionMood": {
+        "rightPct": 2.5,
+        "topPct": 89.5,
+        "anchor": "topRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 11,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "metricCallout": {
+        "rightPct": 4,
+        "bottomPct": 23.5,
+        "anchor": "bottomRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 30,
+          "fontWeight": 300,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      }
+    }
+  },
+  "tabletLandscape": {
+    "silhouette": {
+      "widthPct": 66.5,
+      "leftPct": 25,
+      "bottomPct": 7.5
+    },
+    "overlay": {
+      "enabled": false,
+      "columnFullWidth": false,
+      "leftPct": 18,
+      "topPct": 8,
+      "widthPct": 64,
+      "heightPct": 78,
+      "blurMode": "uniform",
+      "blurMinPx": 0,
+      "blurMaxPx": 14,
+      "opacityMinPct": 0,
+      "opacityMaxPct": 38,
+      "gradualDirection": "bottom",
+      "gradualLayers": 10,
+      "tint": "frame",
+      "radiusRem": 1.25
+    },
+    "elements": {
+      "sessionLabel": {
+        "leftPct": 0,
+        "topPct": 0,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 11,
+          "fontWeight": 500,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0.2,
+          "opacityPct": 50,
+          "uppercase": true,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "nodeTitle": {
+        "leftPct": 0,
+        "topPct": 5.5,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 28,
+          "fontWeight": 600,
+          "lineHeight": 1.15,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 92
+        }
+      },
+      "pageTitle": {
+        "leftPct": 0,
+        "topPct": 11,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "cormorant",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.1,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 92
+        }
+      },
+      "nodeBrain": {
+        "leftPct": 58,
+        "topPct": 18,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 44
+      },
+      "nodeHeart": {
+        "leftPct": 62,
+        "topPct": 52,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 44
+      },
+      "nodeSolar": {
+        "leftPct": 54,
+        "topPct": 68,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 44
+      },
+      "sideRail": {
+        "leftPct": 0,
+        "topPct": 33,
+        "anchor": "centerLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "railSizePx": 44
+      },
+      "sleepStats": {
+        "leftPct": 0,
+        "bottomPct": 5,
+        "anchor": "bottomLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "cognitionMood": {
+        "rightPct": 0,
+        "topPct": 5,
+        "anchor": "topRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 11,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "metricCallout": {
+        "rightPct": 0,
+        "bottomPct": 18,
+        "anchor": "bottomRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      }
+    }
+  },
+  "tabletPortrait": {
+    "silhouette": {
+      "widthPct": 56,
+      "leftPct": 23,
+      "bottomPct": 3.25
+    },
+    "overlay": {
+      "enabled": false,
+      "columnFullWidth": false,
+      "leftPct": 18,
+      "topPct": 8,
+      "widthPct": 64,
+      "heightPct": 78,
+      "blurMode": "uniform",
+      "blurMinPx": 0,
+      "blurMaxPx": 14,
+      "opacityMinPct": 0,
+      "opacityMaxPct": 38,
+      "gradualDirection": "bottom",
+      "gradualLayers": 10,
+      "tint": "frame",
+      "radiusRem": 1.25
+    },
+    "elements": {
+      "sessionLabel": {
+        "leftPct": 0,
+        "topPct": 0,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 11,
+          "fontWeight": 500,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0.2,
+          "opacityPct": 50,
+          "uppercase": true,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "nodeTitle": {
+        "leftPct": 53.949903660886314,
+        "topPct": 8.263087487397831,
+        "anchor": "topLeft",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 28,
+          "fontWeight": 600,
+          "lineHeight": 1.15,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 100
+        }
+      },
+      "pageTitle": {
+        "leftPct": 0,
+        "topPct": 11,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "cormorant",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.1,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 92
+        }
+      },
+      "nodeBrain": {
+        "leftPct": 53.3757225433526,
+        "topPct": 21.654406031719713,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 44
+      },
+      "nodeHeart": {
+        "leftPct": 62,
+        "topPct": 52,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 44
+      },
+      "nodeSolar": {
+        "leftPct": 42.63198458574181,
+        "topPct": 71.38701046842314,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 44
+      },
+      "sideRail": {
+        "leftPct": 88.72832369942196,
+        "rightPct": 4,
+        "topPct": 44.76540478504883,
+        "anchor": "centerLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "railSizePx": 44
+      },
+      "sleepStats": {
+        "leftPct": 0,
+        "bottomPct": 5,
+        "anchor": "bottomLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "cognitionMood": {
+        "rightPct": 0,
+        "topPct": 5,
+        "anchor": "topRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 11,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "metricCallout": {
+        "rightPct": 7.032755298651253,
+        "bottomPct": 17.10868145567812,
+        "anchor": "bottomRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 30,
+          "fontWeight": 300,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      }
+    }
+  },
+  "mobilePortrait": {
+    "silhouette": {
+      "widthPct": 70.5,
+      "leftPct": 36,
+      "bottomPct": 0.5
+    },
+    "overlay": {
+      "enabled": false,
+      "columnFullWidth": false,
+      "leftPct": 18,
+      "topPct": 8,
+      "widthPct": 64,
+      "heightPct": 78,
+      "blurMode": "uniform",
+      "blurMinPx": 0,
+      "blurMaxPx": 14,
+      "opacityMinPct": 0,
+      "opacityMaxPct": 38,
+      "gradualDirection": "bottom",
+      "gradualLayers": 10,
+      "tint": "frame",
+      "radiusRem": 1.25
+    },
+    "elements": {
+      "sessionLabel": {
+        "leftPct": 26.34961439588689,
+        "topPct": 4.563605338942341,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 11,
+          "fontWeight": 500,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0.2,
+          "opacityPct": 50,
+          "uppercase": true,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "nodeTitle": {
+        "leftPct": 44.47300771208226,
+        "topPct": 12.752872770819078,
+        "anchor": "topLeft",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 28,
+          "fontWeight": 600,
+          "lineHeight": 1.15,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 100
+        }
+      },
+      "pageTitle": {
+        "leftPct": 0,
+        "topPct": 11,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "cormorant",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.1,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 92
+        }
+      },
+      "nodeBrain": {
+        "leftPct": 69.82519280205656,
+        "topPct": 30.549914682091437,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": true,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 24
+      },
+      "nodeHeart": {
+        "leftPct": 75.23907455012854,
+        "topPct": 50.61461980782107,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 24
+      },
+      "nodeSolar": {
+        "leftPct": 43.0745501285347,
+        "topPct": 90.57354783726836,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 24
+      },
+      "sideRail": {
+        "leftPct": 89.20308483290488,
+        "rightPct": 3.5,
+        "topPct": 47.994703256524836,
+        "anchor": "centerLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "railSizePx": 28
+      },
+      "sleepStats": {
+        "leftPct": 0,
+        "bottomPct": 5,
+        "anchor": "bottomLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "cognitionMood": {
+        "rightPct": 0,
+        "topPct": 5,
+        "anchor": "topRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 11,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "metricCallout": {
+        "rightPct": 4.113110539845758,
+        "bottomPct": 13.028929898652093,
+        "anchor": "bottomRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 30,
+          "fontWeight": 300,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      }
+    }
+  },
+  "mobileLandscape": {
+    "silhouette": {
+      "widthPct": 56.5,
+      "leftPct": 25.5,
+      "bottomPct": -2.5
+    },
+    "overlay": {
+      "enabled": false,
+      "columnFullWidth": false,
+      "leftPct": 18,
+      "topPct": 8,
+      "widthPct": 64,
+      "heightPct": 78,
+      "blurMode": "uniform",
+      "blurMinPx": 0,
+      "blurMaxPx": 14,
+      "opacityMinPct": 0,
+      "opacityMaxPct": 38,
+      "gradualDirection": "bottom",
+      "gradualLayers": 10,
+      "tint": "frame",
+      "radiusRem": 1.25
+    },
+    "elements": {
+      "sessionLabel": {
+        "leftPct": 23.098857975434974,
+        "topPct": 2.564102564102564,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 11,
+          "fontWeight": 500,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0.2,
+          "opacityPct": 50,
+          "uppercase": true,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "nodeTitle": {
+        "leftPct": 4.705322920921939,
+        "topPct": 84.47435897435898,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 28,
+          "fontWeight": 600,
+          "lineHeight": 1.15,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 92
+        }
+      },
+      "pageTitle": {
+        "leftPct": 0,
+        "topPct": 11,
+        "anchor": "topLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "cormorant",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.1,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 92
+        }
+      },
+      "nodeBrain": {
+        "leftPct": 58,
+        "topPct": 18,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 24
+      },
+      "nodeHeart": {
+        "leftPct": 62,
+        "topPct": 52,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 24
+      },
+      "nodeSolar": {
+        "leftPct": 54,
+        "topPct": 68,
+        "anchor": "center",
+        "textAlign": "center",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "hotspotSizePx": 24
+      },
+      "sideRail": {
+        "leftPct": 86.54942463635203,
+        "topPct": 47.230769230769226,
+        "anchor": "centerLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "inherit",
+          "fontSizePx": 8,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        },
+        "railSizePx": 28
+      },
+      "sleepStats": {
+        "leftPct": 0,
+        "bottomPct": 5,
+        "anchor": "bottomLeft",
+        "textAlign": "left",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "cognitionMood": {
+        "rightPct": 0,
+        "topPct": 5,
+        "anchor": "topRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 11,
+          "fontWeight": 400,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      },
+      "metricCallout": {
+        "rightPct": 3.564638576456015,
+        "bottomPct": 14.538461538461538,
+        "anchor": "bottomRight",
+        "textAlign": "right",
+        "typography": {
+          "fontPreset": "barlow",
+          "fontSizePx": 8,
+          "fontWeight": 300,
+          "lineHeight": 1.25,
+          "letterSpacingEm": 0,
+          "opacityPct": 100,
+          "uppercase": false,
+          "italic": false,
+          "hidden": false,
+          "maxWidthPct": 0
+        }
+      }
+    }
+  }
+}
