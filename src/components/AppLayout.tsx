@@ -264,6 +264,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           quickLogOpen={quickLogOpen}
           onQuickLogClose={() => setQuickLogOpen(false)}
           onQuickLog={openQuickLog}
+          onLogout={() => setLogoutDialogOpen(true)}
           refreshing={refreshing}
           onTouchStart={isMobile ? handleTouchStart : undefined}
           onTouchEnd={isMobile ? handleTouchEnd : undefined}

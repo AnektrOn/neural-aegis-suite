@@ -4,29 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Json } from "@/integrations/supabase/types";
 import {
   cacheUserMenuPrefs,
-  mergeLegacySidebarHidden,
-  migrateLegacyRadialArray,
   normalizeUserMenuPrefs,
+  parseStoredMenuPrefs,
   readCachedUserMenuPrefs,
   USER_MENU_PREFS_EVENT,
   type UserMenuPrefsV2,
 } from "@/lib/userMenuPreferences";
-
-function parseStoredMenuPrefs(
-  mobileRadial: unknown,
-  sidebarItems: unknown,
-): UserMenuPrefsV2 {
-  if (mobileRadial && typeof mobileRadial === "object" && !Array.isArray(mobileRadial)) {
-    const prefs = normalizeUserMenuPrefs(mobileRadial);
-    return mergeLegacySidebarHidden(prefs, sidebarItems);
-  }
-  if (Array.isArray(mobileRadial)) {
-    const prefs = migrateLegacyRadialArray(mobileRadial);
-    return mergeLegacySidebarHidden(prefs, sidebarItems);
-  }
-  const base = readCachedUserMenuPrefs();
-  return mergeLegacySidebarHidden(base, sidebarItems);
-}
 
 export function useUserMenuPrefs() {
   const { user } = useAuth();
@@ -59,14 +42,17 @@ export function useUserMenuPrefs() {
   const savePrefs = useCallback(
     async (next: UserMenuPrefsV2) => {
       const normalized = normalizeUserMenuPrefs(next);
+      if (!user) throw new Error("Not signed in");
+      const { error } = await supabase
+        .from("profiles")
+        .update({ mobile_radial_menu: normalized as unknown as Json })
+        .eq("id", user.id)
+        .select("id")
+        .single();
+      if (error) throw error;
       cacheUserMenuPrefs(normalized);
       setPrefs(normalized);
       window.dispatchEvent(new Event(USER_MENU_PREFS_EVENT));
-      if (!user) return normalized;
-      await supabase
-        .from("profiles")
-        .update({ mobile_radial_menu: normalized as unknown as Json })
-        .eq("id", user.id);
       return normalized;
     },
     [user],

@@ -3,10 +3,27 @@ import {
   defaultUserMenuPrefs,
   migrateLegacyRadialArray,
   normalizeUserMenuPrefs,
+  parseStoredMenuPrefs,
 } from "@/lib/userMenuPreferences";
 import { getMenuPanel } from "@/lib/userMenuCatalog";
 
 describe("userMenuPreferences", () => {
+  it("keeps a restored journal visible after a V2 save/reload despite old exclusions", () => {
+    const restored = { ...defaultUserMenuPrefs(), hidden: [] };
+    const reloaded = parseStoredMenuPrefs(JSON.parse(JSON.stringify(restored)), ["/dashboard"]);
+    expect(reloaded.hidden).not.toContain("journal");
+  });
+
+  it("preserves explicitly hidden V2 panels", () => {
+    expect(parseStoredMenuPrefs({ ...defaultUserMenuPrefs(), hidden: ["journal"] }, ["/journal"]).hidden)
+      .toEqual(["journal"]);
+  });
+
+  it("migrates old journal exclusions without hiding newly introduced Dien Chan", () => {
+    const migrated = parseStoredMenuPrefs(["home"], ["/dashboard"]);
+    expect(migrated.hidden).toContain("journal");
+    expect(migrated.hidden).not.toContain("dien_chan");
+  });
   it("defaults dock to daily panels with home on /dashboard", () => {
     const prefs = defaultUserMenuPrefs();
     expect(prefs.dock).toHaveLength(4);

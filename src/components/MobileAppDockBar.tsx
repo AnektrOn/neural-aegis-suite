@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { LogOut, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MobileDockCircleMenu } from "@/components/MobileDockCircleMenu";
 import type { MobileDockCircleItem } from "@/components/MobileDockCircleMenu";
 import { useAdmin } from "@/hooks/use-admin";
@@ -19,6 +21,7 @@ export type MobileAppDockBarProps = {
   className?: string;
   radialOpen?: boolean;
   onRadialOpenChange?: (open: boolean) => void;
+  onLogout?: () => void;
 };
 
 export function MobileAppDockBar({
@@ -27,6 +30,7 @@ export function MobileAppDockBar({
   className,
   radialOpen: radialOpenProp,
   onRadialOpenChange,
+  onLogout,
 }: MobileAppDockBarProps) {
   const [radialOpenInternal, setRadialOpenInternal] = useState(false);
   const radialOpen = radialOpenProp ?? radialOpenInternal;
@@ -113,6 +117,22 @@ export function MobileAppDockBar({
           hasActiveShortcut={overflowHasActive}
           onOpenChange={setRadialOpen}
         />
+        {onLogout && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label={t("nav.logout")}
+                onClick={onLogout}
+              >
+                <LogOut size={20} strokeWidth={1.5} aria-hidden />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("nav.logout")}</TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </div>
   );

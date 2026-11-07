@@ -7,7 +7,6 @@ import {
   MENU_PANELS_LOCKED,
   type MenuPanelId,
 } from "@/lib/userMenuCatalog";
-import { SIDEBAR_ITEM_IDS } from "@/lib/sidebarPreferences";
 
 export type UserMenuPrefsV2 = {
   v: 2;
@@ -136,6 +135,26 @@ export function migrateLegacyRadialArray(saved: unknown[]): UserMenuPrefsV2 {
   };
 }
 
+/** Only routes offered by the old sidebar can represent legacy exclusions. */
+const LEGACY_SIDEBAR_PATHS = [
+  "/dashboard", "/mood", "/habits", "/journal", "/decisions", "/persona",
+  "/analytics", "/pulse", "/deep-dive", "/deep-dive/scores", "/people",
+  "/calendar", "/pratiques", "/toolbox", "/meditation", "/bibliotheque",
+  "/messages", "/newsletter", "/install-android", "/settings", "/ambassadeur", "/profile",
+];
+
+/** V2 is authoritative; legacy exclusions are applied only during migration. */
+export function parseStoredMenuPrefs(mobileRadial: unknown, sidebarItems: unknown): UserMenuPrefsV2 {
+  if (mobileRadial && typeof mobileRadial === "object" && !Array.isArray(mobileRadial) &&
+      "v" in mobileRadial && mobileRadial.v === 2) {
+    return normalizeUserMenuPrefs(mobileRadial);
+  }
+  const base = Array.isArray(mobileRadial)
+    ? migrateLegacyRadialArray(mobileRadial)
+    : readCachedUserMenuPrefs();
+  return mergeLegacySidebarHidden(base, sidebarItems);
+}
+
 /** Merge legacy `sidebar_items` (route paths) into hidden panels. */
 export function mergeLegacySidebarHidden(
   prefs: UserMenuPrefsV2,
@@ -146,7 +165,7 @@ export function mergeLegacySidebarHidden(
     sidebarItems.filter((v): v is string => typeof v === "string"),
   );
   const hiddenFromSidebar: MenuPanelId[] = [];
-  for (const path of SIDEBAR_ITEM_IDS) {
+  for (const path of LEGACY_SIDEBAR_PATHS) {
     if (enabledPaths.has(path)) continue;
     const panel = pathToPanelId(path);
     if (panel && getMenuPanel(panel).hideable) hiddenFromSidebar.push(panel);
