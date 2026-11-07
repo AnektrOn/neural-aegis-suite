@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useAegisMotion } from "@/hooks/useAegisMotion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Mic } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { WelcomeQuantumNebula } from "./WelcomeQuantumNebula";
 
@@ -8,12 +8,14 @@ interface WelcomeHudScreenProps {
   firstName: string;
   t: (key: string, vars?: Record<string, string>) => string;
   onDashboard: () => void;
+  onVoiceAgent: () => void;
 }
 
 export function WelcomeHudScreen({
   firstName,
   t,
   onDashboard,
+  onVoiceAgent,
 }: WelcomeHudScreenProps) {
   const { fadeUp } = useAegisMotion();
 
@@ -54,19 +56,29 @@ export function WelcomeHudScreen({
         </motion.main>
 
         <footer className="flex w-full max-w-md flex-col items-center pb-[max(1.75rem,env(safe-area-inset-bottom))]">
-          <button
-            type="button"
-            onClick={onDashboard}
-            className="group inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-border/30 bg-background/20 px-5 py-2.5 font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground backdrop-blur-sm transition-colors duration-200 hover:border-border/50 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            {t("welcome.choice.dashboardCta")}
-            <ArrowRight
-              size={12}
-              strokeWidth={1.75}
-              className="opacity-60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:opacity-90"
-              aria-hidden
-            />
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={onDashboard}
+              className="group inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-border/30 bg-background/20 px-5 py-2.5 font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground backdrop-blur-sm transition-colors duration-200 hover:border-border/50 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              {t("welcome.choice.dashboardCta")}
+              <ArrowRight
+                size={12}
+                strokeWidth={1.75}
+                className="opacity-60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:opacity-90"
+                aria-hidden
+              />
+            </button>
+            <button
+              type="button"
+              onClick={onVoiceAgent}
+              className="group inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-5 py-2.5 font-display text-[10px] uppercase tracking-[0.22em] text-primary backdrop-blur-sm transition-colors duration-200 hover:border-primary/40 hover:bg-primary/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <Mic size={12} strokeWidth={1.75} className="opacity-80" aria-hidden />
+              {t("welcome.choice.voiceAgentCta")}
+            </button>
+          </div>
         </footer>
       </div>
     </div>

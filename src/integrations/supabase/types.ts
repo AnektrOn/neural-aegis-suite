@@ -3013,6 +3013,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_agents: {
+        Row: {
+          user_id: string
+          elevenlabs_agent_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          elevenlabs_agent_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          elevenlabs_agent_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       toolbox_assignment_stats: {
         Row: {
           abandoned_count: number

@@ -137,6 +137,11 @@ export interface QuantumNebulaProps {
   svgText?: string | null;
   /** Toolbox / exercise pilots — updated every frame via ref (no re-render). */
   driveRef?: MutableRefObject<QuantumNebulaDrive>;
+  /**
+   * External spectrum (e.g. ElevenLabs agent output). When `active` and `frequency` are set,
+   * `mouvement` uses this buffer instead of the internal Web Audio analyser (audioSrc unchanged).
+   */
+  externalAudioRef?: MutableRefObject<QuantumNebulaExternalAudio>;
   /** Named particle geometries for `drive.shapeId` morphing. */
   shapeLibrary?: Record<string, QuantumNebulaShapeBuilder>;
   /**
@@ -193,6 +198,14 @@ export interface QuantumNebulaDrive {
 }
 
 const EMPTY_DRIVE: QuantumNebulaDrive = {};
+
+/** Fed from outside the nebula (voice agents, etc.) — read every animation frame. */
+export type QuantumNebulaExternalAudio = {
+  active: boolean;
+  frequency: Uint8Array | null;
+};
+
+const EXTERNAL_SPECTRUM_BINS = 256;
 
 export interface QuantumNebulaAudioTuning {
   pulsePattern: QuantumNebulaPulsePattern;
@@ -401,6 +414,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
   svgUrl = null,
   svgText = null,
   driveRef,
+  externalAudioRef,
   shapeLibrary,
   transparent = false,
   children,
@@ -438,6 +452,8 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
   const enableAudioAnalyserRef = useRef(enableAudioAnalyser);
   const driveRefStable = useRef(driveRef);
   driveRefStable.current = driveRef;
+  const externalAudioRefStable = useRef(externalAudioRef);
+  externalAudioRefStable.current = externalAudioRef;
   const shapeLibraryRef = useRef(shapeLibrary);
   shapeLibraryRef.current = shapeLibrary;
   const shapeTargetsRef = useRef<Record<string, Float32Array>>({});
@@ -1115,6 +1131,28 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       treble: [92, 180],
     } as const;
 
+    const externalSpectrumScratch = new Uint8Array(EXTERNAL_SPECTRUM_BINS);
+
+    const resampleTo256 = (src: Uint8Array): Uint8Array => {
+      if (src.length === EXTERNAL_SPECTRUM_BINS) {
+        externalSpectrumScratch.set(src);
+        return externalSpectrumScratch;
+      }
+      const n = src.length;
+      if (n <= 1) {
+        externalSpectrumScratch.fill(src[0] ?? 0);
+        return externalSpectrumScratch;
+      }
+      for (let i = 0; i < EXTERNAL_SPECTRUM_BINS; i++) {
+        const pos = (i / EXTERNAL_SPECTRUM_BINS) * (n - 1);
+        const i0 = Math.floor(pos);
+        const i1 = Math.min(n - 1, i0 + 1);
+        const f = pos - i0;
+        externalSpectrumScratch[i] = Math.round(src[i0]! * (1 - f) + src[i1]! * f);
+      }
+      return externalSpectrumScratch;
+    };
+
     const drawAudioSpectrum = (
       frequencyBuffer: Uint8Array | null,
       waveformBuffer: Uint8Array | null,
@@ -1285,6 +1323,14 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
         !audioElement?.ended &&
         audioPlayingRef.current;
 
+      const externalAudio = externalAudioRefStable.current?.current;
+      const hasExternalAnalyser = Boolean(
+        externalAudio?.active && externalAudio.frequency && externalAudio.frequency.length > 0,
+      );
+      const isExternalAudioPlaying = hasExternalAnalyser;
+      const readsExternalSpectrum = hasExternalAnalyser && isExternalAudioPlaying;
+      const readsInternalSpectrum = hasAnalyser && isAudioPlaying;
+
       if (state === "mouvement") {
         ambientPulse =
           Math.pow(
@@ -1297,13 +1343,19 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
             12,
           ) * tuning.ambientBoomStrength;
 
-        if (hasAnalyser && isAudioPlaying) {
-          const buffer = new Uint8Array(analyser!.frequencyBinCount);
-          analyser!.getByteFrequencyData(buffer);
-          spectrumBuffer = buffer;
-          const waveform = new Uint8Array(analyser!.frequencyBinCount);
-          analyser!.getByteTimeDomainData(waveform);
-          waveformBuffer = waveform;
+        if (readsExternalSpectrum || readsInternalSpectrum) {
+          let buffer: Uint8Array;
+          if (readsExternalSpectrum && externalAudio?.frequency) {
+            buffer = resampleTo256(externalAudio.frequency);
+            spectrumBuffer = buffer;
+          } else {
+            buffer = new Uint8Array(analyser!.frequencyBinCount);
+            analyser!.getByteFrequencyData(buffer);
+            spectrumBuffer = buffer;
+            const waveform = new Uint8Array(analyser!.frequencyBinCount);
+            analyser!.getByteTimeDomainData(waveform);
+            waveformBuffer = waveform;
+          }
           const kick = averageFrequencyBand(buffer, audioBands.kick);
           const bass = averageFrequencyBand(buffer, audioBands.bass);
           const mid = averageFrequencyBand(buffer, audioBands.mid);
@@ -1409,7 +1461,7 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           mid: midEnergy || midLevel,
           treble: trebleEnergy || highLevel,
         },
-        isAudioPlaying,
+        isAudioPlaying || isExternalAudioPlaying,
       );
 
       const targetReflexion = effectiveState === "reflexion" ? 1 : 0;

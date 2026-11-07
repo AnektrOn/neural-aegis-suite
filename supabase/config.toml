@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.stream-meditation-audio]
 verify_jwt = false
+
+[functions.agent-session]
+verify_jwt = true

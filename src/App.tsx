@@ -33,6 +33,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 
 const Welcome = lazy(() => import("./pages/Welcome"));
+const WelcomeVoiceAgent = lazy(() => import("./pages/WelcomeVoiceAgent"));
 const GuardianOnboardingPage = lazy(
   () => import("@/features/guardian/pages/GuardianOnboardingPage"),
 );
@@ -103,6 +104,7 @@ const AdminInsightsHub = lazy(() => import("./pages/admin/AdminInsightsHub"));
 const AdminPulseHub = lazy(() => import("./pages/admin/AdminPulseHub"));
 const AdminGuestPreview = lazy(() => import("./pages/admin/AdminGuestPreview"));
 const DevLabPage = lazy(() => import("./pages/dev/DevLabPage"));
+const JungGlossaryPage = lazy(() => import("./pages/dev/jung-glossary/JungGlossaryPage"));
 const PracticesHubLabPage = lazy(() => import("./pages/dev/practices-hub/PracticesHubLabPage"));
 const LiquidGlassDemoPage = lazy(() => import("./pages/dev/liquid-glass/LiquidGlassDemoPage"));
 const AegisCorePreview = lazy(() => import("./pages/dev/AegisCorePreview"));
@@ -323,10 +325,11 @@ const App = () => (
             <AuthBootGate>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                <Route path="/dev" element={<AppRouteErrorBoundary label="dev-lab"><DevGate><DevLabPage /></DevGate></AppRouteErrorBoundary>} />
+                <Route path="/dev/jung-glossary" element={<AppRouteErrorBoundary label="jung-glossary"><DevGate><JungGlossaryPage /></DevGate></AppRouteErrorBoundary>} />
                 {import.meta.env.DEV ? (
                   <>
                     <Route path="/__loader" element={<BootLoadingScreen />} />
-                    <Route path="/dev" element={<DevGate><DevLabPage /></DevGate>} />
                     <Route path="/dev/practices-hub" element={<DevGate><PracticesHubLabPage /></DevGate>} />
                     <Route path="/dev/liquid-glass" element={<DevGate><LiquidGlassDemoPage /></DevGate>} />
                     <Route path="/dev/aegis-core" element={<DevGate><AegisCorePreview /></DevGate>} />
@@ -503,6 +506,18 @@ const App = () => (
                       <RequireQuizOnboarding>
                         <Suspense fallback={<PageLoader />}>
                           <Welcome />
+                        </Suspense>
+                      </RequireQuizOnboarding>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/welcome/voice-agent"
+                  element={
+                    <ProtectedRoute>
+                      <RequireQuizOnboarding>
+                        <Suspense fallback={<PageLoader />}>
+                          <WelcomeVoiceAgent />
                         </Suspense>
                       </RequireQuizOnboarding>
                     </ProtectedRoute>
