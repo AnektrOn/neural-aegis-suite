@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { collectDriveTree, ensureDriveFolder } from "./drive-sync.ts";
+import { collectDriveTree, ensureDriveFolder, withDriveRootFolder } from "./drive-sync.ts";
 import {
   createVoiceConversationToken,
   mapVoiceSessionError,
@@ -92,6 +92,18 @@ async function setAgentKb(agentId: string, mutate: (items: KbItem[]) => KbItem[]
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
+
+async function attachDriveRoot(agentId: string, rootId: string, rootName: string) {
+  const agent = await elJson(`/convai/agents/${agentId}`);
+  const items: KbItem[] = agent?.conversation_config?.agent?.prompt?.knowledge_base ?? [];
+  if (items.some((item) => item.id === rootId && item.type === "folder")) return;
+  await setAgentKb(agentId, (current) => withDriveRootFolder(current, rootId, rootName), true);
+  const updated = await elJson(`/convai/agents/${agentId}`);
+  const attached: KbItem[] = updated?.conversation_config?.agent?.prompt?.knowledge_base ?? [];
+  if (!attached.some((item) => item.id === rootId && item.type === "folder")) {
+    throw new Error("ElevenLabs : le dossier racine n'est pas rattaché à la base de connaissances de l'agent.");
+  }
+}
 
 async function uploadMarkdown(
   admin: Admin,
@@ -216,6 +228,10 @@ async function syncUser(admin: Admin, userId: string, offset = 0, batchSize?: nu
   const folderIds = new Map<string, string>((mappings ?? []).filter((m: { elevenlabs_folder_id: string | null }) => m.elevenlabs_folder_id)
     .map((m: { drive_folder_id: string; elevenlabs_folder_id: string }) => [m.drive_folder_id, m.elevenlabs_folder_id]));
   const lookup = async (id: string) => folderIds.get(id) ?? null;
+  const existingRootId = folderIds.get(p.drive_folder_id);
+  const root = tree.folders[0];
+  // Also repair resumed batches: workspace folders alone are invisible in the agent's list.
+  if (existingRootId && root) await attachDriveRoot(p.elevenlabs_agent_id, existingRootId, root.name);
   // Folder units precede document units, keeping preparation within the same short batches.
   const units = [...tree.folders.map((folder) => ({ folder })), ...tree.files.map((file) => ({ file }))];
   const batch = units.slice(offset, batchSize ? offset + batchSize : undefined);
@@ -252,6 +268,7 @@ async function syncUser(admin: Admin, userId: string, offset = 0, batchSize?: nu
         if (error) throw error;
       });
       folderIds.set(folder.id, id);
+      if (folder.parentId === null) await attachDriveRoot(p.elevenlabs_agent_id, id, folder.name);
       results.push({ file: `${folder.relativePath || folder.name}/`, status: existed ? "skipped" : "success" });
       continue;
     }

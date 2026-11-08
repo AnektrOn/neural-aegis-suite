@@ -8,6 +8,7 @@
 - ElevenLabs Drive sync uses the linked Google Drive gateway connection and traverses only descendants of the selected profile's folder; empty Markdown syncs fail explicitly to avoid false successes.
 - Personal Drive sync runs in short client-driven batches and enables agent RAG when attaching Drive documents, avoiding HTTP timeouts and full-prompt capacity limits; indexing-not-ready failures retry briefly.
 - Drive folder mappings are scoped by user, agent and Drive root; sync folder units before document units and move unchanged documents into their mapped folders to preserve hierarchy without sharing knowledge across users.
+- Attach the scoped Drive root as a `folder` locator in the personal agent knowledge base, including resumed batches, and read back new attachments; workspace folder creation alone does not attach them to an agent.
 
 ## Prism landing (`src/pages/dev/prism-landing/`)
 
