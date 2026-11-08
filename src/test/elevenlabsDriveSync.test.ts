@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { collectDriveMarkdown, collectDriveTree, ensureDriveFolder, type DrivePage } from "../../supabase/functions/elevenlabs-knowledge/drive-sync";
+import { collectDriveMarkdown, collectDriveTree, ensureDriveFolder, withDriveRootFolder, type DrivePage } from "../../supabase/functions/elevenlabs-knowledge/drive-sync";
 
 describe("ElevenLabs personal Drive traversal", () => {
+  it("attaches the mapped personal root as a real folder without duplicating it or losing existing documents", () => {
+    const current = [{ type: "text", name: "rapport.md", id: "personal-report" }];
+    const attached = withDriveRootFolder(current, "personal-root", "note");
+    expect(attached).toEqual([
+      current[0], { type: "folder", name: "note", id: "personal-root", usage_mode: "auto" },
+    ]);
+    expect(withDriveRootFolder(attached, "personal-root", "note")).toEqual(attached);
+  });
+  it("attaches each user's own root even when folder names are identical", () => {
+    expect(withDriveRootFolder([], "alice-root", "note").map((item) => item.id)).toEqual(["alice-root"]);
+    expect(withDriveRootFolder([], "bob-root", "note").map((item) => item.id)).toEqual(["bob-root"]);
+  });
   it("preserves the common folder nomenclature, empty folders and distinct paths for identical filenames", async () => {
     const pages: Record<string, DrivePage> = {
       root: { files: [

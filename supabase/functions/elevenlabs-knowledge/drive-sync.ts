@@ -3,6 +3,16 @@ export type DrivePage = { files?: DriveEntry[]; nextPageToken?: string };
 export type DriveFolder = DriveEntry & { parentId: string | null; relativePath: string };
 export type DriveMarkdown = DriveEntry & { parentId: string; relativePath: string };
 
+export type AgentKnowledgeItem = { type: string; name: string; id: string; usage_mode?: string };
+
+/** Attach only this user's mapped root; descendants stay organized inside it. */
+export function withDriveRootFolder(items: AgentKnowledgeItem[], rootId: string, rootName: string): AgentKnowledgeItem[] {
+  return [
+    ...items.filter((item) => item.id !== rootId),
+    { type: "folder", id: rootId, name: rootName, usage_mode: "auto" },
+  ];
+}
+
 export async function collectDriveTree(
   rootId: string,
   rootName: string,
