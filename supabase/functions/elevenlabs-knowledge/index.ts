@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { collectDriveMarkdown } from "./drive-sync.ts";
+import { collectDriveTree, ensureDriveFolder } from "./drive-sync.ts";
 import {
   createVoiceConversationToken,
   mapVoiceSessionError,
@@ -102,6 +102,8 @@ async function uploadMarkdown(
     text: string;
     source: "manual_md" | "drive_file";
     driveFileId?: string | null;
+    parentFolderId?: string;
+    relativePath?: string;
   },
 ): Promise<{ status: "success" | "skipped" | "failed"; error?: string; documentId?: string }> {
   const hash = await sha256(opts.text);
@@ -110,7 +112,18 @@ async function uploadMarkdown(
   const { data: existingRows } = await q.order("created_at", { ascending: false }).limit(1);
   const existing = existingRows?.[0];
 
-  if (existing && existing.status === "success" && existing.content_hash === hash) {
+  if (existing && existing.status === "success" && existing.content_hash === hash && existing.file_name === opts.name) {
+    if (opts.parentFolderId && existing.elevenlabs_parent_folder_id !== opts.parentFolderId && existing.elevenlabs_document_id) {
+      await elJson(`/convai/knowledge-base/${existing.elevenlabs_document_id}/move`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ move_to: opts.parentFolderId }),
+      });
+      const { error } = await admin.from("elevenlabs_documents").update({
+        elevenlabs_parent_folder_id: opts.parentFolderId, drive_relative_path: opts.relativePath,
+      }).eq("id", existing.id);
+      if (error) throw error;
+      return { status: "success", documentId: existing.elevenlabs_document_id };
+    }
     return { status: "skipped", documentId: existing.elevenlabs_document_id };
   }
 
@@ -136,7 +149,7 @@ async function uploadMarkdown(
     const doc = await elJson(`/convai/knowledge-base/text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: opts.text, name: opts.name }),
+      body: JSON.stringify({ text: opts.text, name: opts.name, ...(opts.parentFolderId ? { parent_folder_id: opts.parentFolderId } : {}) }),
     });
     const newId: string = doc.id;
     const oldId: string | null = existing?.elevenlabs_document_id ?? null;
@@ -156,6 +169,8 @@ async function uploadMarkdown(
         status: "success",
         elevenlabs_document_id: newId,
         content_hash: hash,
+        elevenlabs_parent_folder_id: opts.parentFolderId ?? null,
+        drive_relative_path: opts.relativePath ?? null,
         uploaded_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -172,9 +187,9 @@ async function uploadMarkdown(
 }
 
 async function listDriveMd(folderId: string) {
-  const metadata = await (await driveFetch(`/files/${encodeURIComponent(folderId)}?fields=id,mimeType&supportsAllDrives=true`)).json();
+  const metadata = await (await driveFetch(`/files/${encodeURIComponent(folderId)}?fields=id,name,mimeType&supportsAllDrives=true`)).json();
   if (metadata.mimeType !== "application/vnd.google-apps.folder") throw new Error("Cet ID Drive ne correspond pas à un dossier.");
-  return collectDriveMarkdown(folderId, async (id, pageToken) => {
+  return collectDriveTree(folderId, metadata.name, async (id, pageToken) => {
     const params = new URLSearchParams({
       q: `'${id.replace(/'/g, "\\'")}' in parents and trashed = false`,
       fields: "nextPageToken,files(id,name,mimeType)", pageSize: "200",
@@ -193,10 +208,57 @@ async function syncUser(admin: Admin, userId: string, offset = 0, batchSize?: nu
     .maybeSingle();
   if (!p?.elevenlabs_agent_id) throw new Error("Cet utilisateur n'a pas d'agent ElevenLabs");
   if (!p?.drive_folder_id) throw new Error("Aucun dossier Drive configuré");
-  const files = await listDriveMd(p.drive_folder_id);
+  const tree = await listDriveMd(p.drive_folder_id);
+  const { data: mappings, error: mappingError } = await admin.from("elevenlabs_drive_folders")
+    .select("drive_folder_id,elevenlabs_folder_id")
+    .eq("user_id", userId).eq("target_agent_id", p.elevenlabs_agent_id).eq("drive_root_id", p.drive_folder_id);
+  if (mappingError) throw mappingError;
+  const folderIds = new Map<string, string>((mappings ?? []).filter((m: { elevenlabs_folder_id: string | null }) => m.elevenlabs_folder_id)
+    .map((m: { drive_folder_id: string; elevenlabs_folder_id: string }) => [m.drive_folder_id, m.elevenlabs_folder_id]));
+  const lookup = async (id: string) => folderIds.get(id) ?? null;
+  // Folder units precede document units, keeping preparation within the same short batches.
+  const units = [...tree.folders.map((folder) => ({ folder })), ...tree.files.map((file) => ({ file }))];
+  const batch = units.slice(offset, batchSize ? offset + batchSize : undefined);
   const results: { file: string; status: string; error?: string }[] = [];
-  for (const f of files.slice(offset, batchSize ? offset + batchSize : undefined)) {
+  for (const unit of batch) {
+    if ("folder" in unit) {
+      const folder = unit.folder;
+      const existed = folderIds.has(folder.id);
+      // Reserve first: concurrent syncs cannot create duplicate provider folders.
+      const { error: reserveError } = await admin.from("elevenlabs_drive_folders").upsert({
+        user_id: userId, target_agent_id: p.elevenlabs_agent_id, drive_root_id: p.drive_folder_id,
+        drive_folder_id: folder.id, parent_drive_folder_id: folder.parentId,
+        folder_name: folder.name, relative_path: folder.relativePath,
+      }, { onConflict: "user_id,target_agent_id,drive_root_id,drive_folder_id", ignoreDuplicates: true });
+      if (reserveError) throw reserveError;
+      const claimTime = new Date().toISOString();
+      const claimToken = crypto.randomUUID();
+      const { data: claim, error: claimError } = await admin.from("elevenlabs_drive_folders")
+        .update({ sync_claim_token: claimToken, sync_claim_expires_at: new Date(Date.now() + 120000).toISOString() }).eq("user_id", userId).eq("target_agent_id", p.elevenlabs_agent_id)
+        .eq("drive_root_id", p.drive_folder_id).eq("drive_folder_id", folder.id)
+        .is("elevenlabs_folder_id", null).or(`sync_claim_expires_at.is.null,sync_claim_expires_at.lt.${claimTime}`).select("id");
+      if (claimError) throw claimError;
+      if (!existed && !claim?.length) throw new Error("Dossier en cours de synchronisation ; relancez la synchronisation.");
+      const id = await ensureDriveFolder(folder, lookup, async (name, parent) => {
+        const doc = await elJson("/convai/knowledge-base/folder", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, ...(parent ? { parent_folder_id: parent } : {}) }),
+        });
+        if (typeof doc.id !== "string" || !doc.id) throw new Error("ElevenLabs : ID de dossier absent");
+        return doc.id;
+      }, async (created, id) => {
+        const { error } = await admin.from("elevenlabs_drive_folders").update({ elevenlabs_folder_id: id, sync_claim_token: null, sync_claim_expires_at: null, updated_at: new Date().toISOString() })
+          .eq("user_id", userId).eq("target_agent_id", p.elevenlabs_agent_id).eq("drive_root_id", p.drive_folder_id).eq("drive_folder_id", created.id).eq("sync_claim_token", claimToken);
+        if (error) throw error;
+      });
+      folderIds.set(folder.id, id);
+      results.push({ file: `${folder.relativePath || folder.name}/`, status: existed ? "skipped" : "success" });
+      continue;
+    }
+    const f = unit.file;
     try {
+      const parentFolderId = folderIds.get(f.parentId);
+      if (!parentFolderId) throw new Error(`Dossier parent non synchronisé : ${f.relativePath}`);
       const res = await driveFetch(`/files/${encodeURIComponent(f.id)}?alt=media&supportsAllDrives=true`);
       const text = await res.text();
       const r = await uploadMarkdown(admin, {
@@ -206,16 +268,18 @@ async function syncUser(admin: Admin, userId: string, offset = 0, batchSize?: nu
         text,
         source: "drive_file",
         driveFileId: f.id,
+        parentFolderId,
+        relativePath: f.relativePath,
       });
-      results.push({ file: f.name, status: r.status, error: r.error });
+      results.push({ file: f.relativePath, status: r.status, error: r.error });
     } catch (e) {
-      results.push({ file: f.name, status: "failed", error: e instanceof Error ? e.message : String(e) });
+      results.push({ file: f.relativePath, status: "failed", error: e instanceof Error ? e.message : String(e) });
     }
   }
-  const nextOffset = offset + results.length;
-  const done = nextOffset >= files.length;
+  const nextOffset = offset + batch.length;
+  const done = nextOffset >= units.length;
   if (done) await admin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", userId);
-  return { results, total: files.length, next_offset: nextOffset, done };
+  return { results, total: units.length, documents_total: tree.files.length, folders_total: tree.folders.length, next_offset: nextOffset, done };
 }
 
 async function startJob(admin: Admin, mode: string, userId: string | null) {
@@ -252,6 +316,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
     const userId: string | null = typeof body?.user_id === "string" ? body.user_id : null;
+    if (userId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return json({ error: "Identifiant utilisateur invalide" }, 400);
 
     if (action === "voice_conversation_token") {
       try {

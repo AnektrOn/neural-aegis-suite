@@ -29,6 +29,20 @@
       "when": 1794026603582,
       "tag": "0003_restrict_direct_app_release_storage_access",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794114243980,
+      "tag": "0004_elevenlabs_drive_folder_mapping",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794114336458,
+      "tag": "0005_elevenlabs_folder_sync_lease",
+      "breakpoints": true
     }
   ]
 }

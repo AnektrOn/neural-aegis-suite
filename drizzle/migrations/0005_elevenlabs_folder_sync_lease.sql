@@ -1,0 +1,1 @@
+ALTER TABLE public.elevenlabs_drive_folders ADD COLUMN sync_claim_token uuid, ADD COLUMN sync_claim_expires_at timestamptz;

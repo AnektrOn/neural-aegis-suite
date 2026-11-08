@@ -1622,7 +1622,9 @@ export type Database = {
           content_hash: string | null
           created_at: string
           drive_file_id: string | null
+          drive_relative_path: string | null
           elevenlabs_document_id: string | null
+          elevenlabs_parent_folder_id: string | null
           error_message: string | null
           file_name: string
           id: string
@@ -1637,7 +1639,9 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           drive_file_id?: string | null
+          drive_relative_path?: string | null
           elevenlabs_document_id?: string | null
+          elevenlabs_parent_folder_id?: string | null
           error_message?: string | null
           file_name: string
           id?: string
@@ -1652,7 +1656,9 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           drive_file_id?: string | null
+          drive_relative_path?: string | null
           elevenlabs_document_id?: string | null
+          elevenlabs_parent_folder_id?: string | null
           error_message?: string | null
           file_name?: string
           id?: string
@@ -1664,6 +1670,59 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      elevenlabs_drive_folders: {
+        Row: {
+          drive_folder_id: string
+          drive_root_id: string
+          elevenlabs_folder_id: string | null
+          folder_name: string
+          id: string
+          parent_drive_folder_id: string | null
+          relative_path: string
+          sync_claim_expires_at: string | null
+          sync_claim_token: string | null
+          target_agent_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          drive_folder_id: string
+          drive_root_id: string
+          elevenlabs_folder_id?: string | null
+          folder_name: string
+          id?: string
+          parent_drive_folder_id?: string | null
+          relative_path: string
+          sync_claim_expires_at?: string | null
+          sync_claim_token?: string | null
+          target_agent_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          drive_folder_id?: string
+          drive_root_id?: string
+          elevenlabs_folder_id?: string | null
+          folder_name?: string
+          id?: string
+          parent_drive_folder_id?: string | null
+          relative_path?: string
+          sync_claim_expires_at?: string | null
+          sync_claim_token?: string | null
+          target_agent_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "elevenlabs_drive_folders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       elevenlabs_settings: {
         Row: {
