@@ -11,6 +11,7 @@
 - [x] Repair pre-existing preview compile errors; eight menu regressions and three live release checks pass, installation page renders, build OK.
 
 ## ElevenLabs Drive sync
+- [x] Preserve real per-user ElevenLabs folders and reclassify unchanged documents; seven tests pass, function deployed, ten folders and one unchanged document verified in ElevenLabs, repeated batch reuses folders.
 - [x] Include Markdown from nested folders using the linked Drive connection and report empty syncs as errors.
 - [x] Four regression tests pass; real admin sync reaches the personal agent in batches with RAG (349 files discovered, first 55 processed).
-- [ ] Verify all 349 files: full-run verification exceeds this session's available time; rerun the admin sync to finish (unchanged files skipped).
+- [ ] Complete the existing 349-document import via the admin sync; not launched in this task, which verifies only small batches as approved.
