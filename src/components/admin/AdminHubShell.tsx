@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { usePlatformRoles } from "@/hooks/use-admin";
@@ -53,13 +53,24 @@ export default function AdminHubShell({ pathname, panels }: AdminHubShellProps) 
   }, [pathname, isSuperAdmin, isCompanyAdmin]);
 
   const tabParam = searchParams.get("tab");
-  const activeTab = hub && hub.tabs.length > 0 ? resolveHubTab(hub, tabParam) : null;
+  const activeTab = useMemo(() => {
+    if (!hub || hub.tabs.length === 0) return "";
+    return resolveHubTab(hub, tabParam);
+  }, [hub, tabParam]);
+
+  const onTabChange = useCallback(
+    (value: string) => {
+      setSearchParams({ tab: value }, { replace: true });
+    },
+    [setSearchParams],
+  );
 
   useEffect(() => {
-    if (!rolesLoading && activeTab && tabParam && tabParam !== activeTab) {
+    if (rolesLoading || !hub || hub.tabs.length === 0) return;
+    if (tabParam && activeTab && tabParam !== activeTab) {
       setSearchParams({ tab: activeTab }, { replace: true });
     }
-  }, [rolesLoading, tabParam, activeTab, setSearchParams]);
+  }, [rolesLoading, hub, tabParam, activeTab, setSearchParams]);
 
   if (rolesLoading) {
     return (
@@ -69,11 +80,7 @@ export default function AdminHubShell({ pathname, panels }: AdminHubShellProps) 
     );
   }
 
-  if (!hub || !activeTab || hub.tabs.length === 0) return null;
-
-  const onTabChange = (value: string) => {
-    setSearchParams({ tab: value }, { replace: true });
-  };
+  if (!hub || hub.tabs.length === 0) return null;
 
   return (
     <div className="space-y-6">

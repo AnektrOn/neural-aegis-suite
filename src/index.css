@@ -29,19 +29,18 @@
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
 
-    /* Fixed mobile headers — px avoids rem drift when :root font-size is 13px */
-    --mobile-header-toolbar: 56px;
+  /* MemberTopDockBar (fixed top-right): height + horizontal clearance for titles */
+    --member-top-dock-height: 2.75rem;
+    --member-top-dock-clearance: 8.5rem;
     --mobile-offline-banner-height: 36px;
-    /* Breathing room between fixed header and scrollable page content */
-    --mobile-content-offset: 24px;
     /* Scroll area clearance above fixed circle dock */
     --mobile-dock-padding: calc(5rem + var(--safe-bottom));
+    /* Clearance below MemberTopDockBar (top = max(0.75rem, safe-top)) */
     --mobile-main-padding-top: calc(
-      var(--safe-top) + var(--mobile-header-toolbar) + var(--mobile-content-offset)
+      max(0.75rem, var(--safe-top)) + var(--member-top-dock-height) + 0.75rem
     );
     --mobile-main-padding-top-offline: calc(
-      var(--safe-top) + var(--mobile-offline-banner-height) + var(--mobile-header-toolbar) +
-        var(--mobile-content-offset)
+      var(--mobile-main-padding-top) + var(--mobile-offline-banner-height)
     );
 
     --background: 200 35% 7%;
@@ -143,6 +142,21 @@
     --tile-blue-start: 220 65% 55%;
     --tile-blue-end: 230 45% 35%;
     --tile-warm-blur: 32 70% 58%;
+
+    /* DA Member Shell v2 — Palette Obsidienne, Basalte, Or Solaire, Ivoire (Dark) */
+    --aegis-abyss: #070707;
+    --aegis-bg: #0b0b0a;
+    --aegis-surface: #161614;
+    --aegis-surface-elevated: #1e1e1c;
+    --aegis-cardline: rgba(233, 228, 216, 0.08);
+    --aegis-cardline-hover: rgba(201, 162, 75, 0.35);
+    --aegis-gold: #c9a24b;
+    --aegis-gold-light: #d2ae5e;
+    --aegis-gold-deep: #a67f2e;
+    --aegis-copper: #ba6f3c;
+    --aegis-ink: #e9e4d8;
+    --aegis-ink-muted: #9a968b;
+    --aegis-ink-subtle: #6e6a61;
   }
 
   html.light {
@@ -234,6 +248,21 @@
     --tile-blue-start: 211 75% 52%;
     --tile-blue-end: 230 50% 38%;
     --tile-warm-blur: 38 55% 52%;
+
+    /* DA Member Shell v2 — Light Mode (Craie, Albâtre, Or Solaire profond, Obsidienne) */
+    --aegis-abyss: #ede9e0;
+    --aegis-bg: #f5f2eb;
+    --aegis-surface: #ffffff;
+    --aegis-surface-elevated: #faf8f5;
+    --aegis-cardline: rgba(22, 22, 20, 0.08);
+    --aegis-cardline-hover: rgba(158, 120, 40, 0.40);
+    --aegis-gold: #9e7828;
+    --aegis-gold-light: #b88d32;
+    --aegis-gold-deep: #82611e;
+    --aegis-copper: #9c5323;
+    --aegis-ink: #141412;
+    --aegis-ink-muted: #615d54;
+    --aegis-ink-subtle: #8c877c;
   }
 
   .dark {
@@ -294,24 +323,75 @@
   font-family: "Quattrocento", Georgia, serif;
 }
 
-/* Glass-card surface — warmth + depth without opacity flattening */
-.glass-card {
-  background: hsl(var(--card) / 0.82);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid hsl(var(--aegis-warm) / 0.18);
+/* Signature Mat Blurry Glass Bento Tile & Glass Card — Basalte/Obsidienne & Or (Dark) / Craie & Albâtre (Light) */
+.glass-card,
+.aegis-dock-tile,
+.aegis-bento-tile {
+  background: hsl(var(--background) / 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(233, 228, 216, 0.1);
   box-shadow:
-    0 4px 32px hsl(var(--aegis-warm) / 0.06),
-    inset 0 1px 0 hsl(var(--foreground) / 0.04);
-  border-radius: 1rem;
+    0 8px 24px hsl(0 0% 0% / 0.18),
+    inset 0 1px 0 rgba(233, 228, 216, 0.05);
+  border-radius: 1.25rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-html.light .glass-card {
-  background: hsl(var(--card) / 0.95);
-  border-color: hsl(var(--border));
+.glass-card:hover,
+.aegis-dock-tile:hover,
+.aegis-bento-tile:hover {
+  border-color: rgba(201, 162, 75, 0.35);
   box-shadow:
-    0 1px 3px hsl(0 0% 0% / 0.04),
-    inset 0 1px 0 hsl(0 0% 100% / 0.8);
+    0 12px 32px hsl(0 0% 0% / 0.24),
+    0 0 16px rgba(201, 162, 75, 0.08),
+    inset 0 1px 0 rgba(233, 228, 216, 0.08);
+}
+
+html.light .glass-card,
+html.light .aegis-dock-tile,
+html.light .aegis-bento-tile {
+  background: hsl(var(--background) / 0.78);
+  border-color: rgba(20, 20, 18, 0.08);
+  box-shadow:
+    0 8px 24px hsl(0 0% 0% / 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.aegis-bento-tile-interactive:hover {
+  border-color: var(--aegis-cardline-hover);
+  transform: translateY(-1px);
+}
+
+.btn-solaire {
+  font-family: "Cinzel", serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--aegis-gold) 0%, var(--aegis-gold-deep) 100%);
+  color: #0b0b0a;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  box-shadow: 0 2px 16px rgba(201, 162, 75, 0.28);
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+html.light .btn-solaire {
+  color: #ffffff;
+  box-shadow: 0 2px 12px rgba(158, 120, 40, 0.22);
+}
+
+.btn-solaire:hover {
+  filter: brightness(1.08);
+}
+
+.btn-solaire:active {
+  transform: scale(0.98);
 }
 
 html.light .bg-aegis-gradient {
@@ -461,12 +541,14 @@ html.light .welcome-hud-hero-glow {
   );
 }
 
-.card-glow-blue {
-  box-shadow: 0 0 0 1px rgba(79, 142, 247, 0.2), 0 0 20px rgba(79, 142, 247, 0.08);
+.card-glow-blue,
+.card-glow-solar {
+  box-shadow: 0 0 0 1px var(--aegis-cardline-hover), 0 0 20px rgba(201, 162, 75, 0.12);
 }
 
-.card-glow-purple {
-  box-shadow: 0 0 0 1px rgba(124, 109, 250, 0.2), 0 0 20px rgba(124, 109, 250, 0.08);
+.card-glow-purple,
+.card-glow-amber {
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.22), 0 0 20px rgba(217, 119, 6, 0.1);
 }
 
 @layer utilities {
@@ -503,11 +585,11 @@ html.light .welcome-hud-hero-glow {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2e45;
+  background: var(--aegis-cardline, rgba(255, 255, 255, 0.08));
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4f8ef7;
+  background: var(--aegis-gold, #c9a24b);
 }
 
 html.light ::-webkit-scrollbar-thumb {
@@ -519,50 +601,45 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
 @layer components {
   .ethereal-glass {
-    @apply backdrop-blur-3xl border transition-all duration-300;
-    background-color: hsla(var(--card) / 0.95);
-    border-color: hsla(var(--border) / 0.8);
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    @apply backdrop-blur-[14px] border transition-all duration-300;
+    background-color: hsl(var(--background) / 0.72);
+    border-color: rgba(233, 228, 216, 0.1);
+    border-radius: 1.25rem;
+    box-shadow: 0 8px 24px hsl(0 0% 0% / 0.18), inset 0 1px 0 rgba(233, 228, 216, 0.05);
   }
 
   .dark .ethereal-glass,
   html.dark .ethereal-glass {
-    background-color: #0f1117;
-    border-color: #1e2030;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    background-color: hsl(var(--background) / 0.72);
+    border-color: rgba(233, 228, 216, 0.1);
+    box-shadow: 0 8px 24px hsl(0 0% 0% / 0.18), inset 0 1px 0 rgba(233, 228, 216, 0.05);
   }
 
-  .ethereal-glass:hover {
-    border-color: hsla(var(--primary) / 0.25);
-  }
-
+  .ethereal-glass:hover,
   .dark .ethereal-glass:hover,
   html.dark .ethereal-glass:hover {
-    border-color: rgba(79, 142, 247, 0.25);
+    border-color: rgba(201, 162, 75, 0.35);
+    box-shadow: 0 12px 32px hsl(0 0% 0% / 0.24), 0 0 16px rgba(201, 162, 75, 0.08);
   }
 
   .card-interactive {
     @apply cursor-pointer transition-all duration-200;
-    background-color: hsla(var(--card) / 0.95);
-    border-color: hsla(var(--border) / 0.8);
+    background-color: var(--aegis-surface);
+    border-color: var(--aegis-cardline);
     border-radius: 0.75rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   .dark .card-interactive,
   html.dark .card-interactive {
-    background-color: #0f1117;
-    border-color: #1e2030;
+    background-color: var(--aegis-surface);
+    border-color: var(--aegis-cardline);
   }
 
-  .card-interactive:hover {
-    border-color: hsla(var(--primary) / 0.25);
-  }
-
+  .card-interactive:hover,
   .dark .card-interactive:hover,
   html.dark .card-interactive:hover {
-    border-color: rgba(79, 142, 247, 0.2);
+    border-color: var(--aegis-cardline-hover);
   }
 
   .card-interactive:active {
@@ -572,8 +649,8 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
   .card-static {
     @apply backdrop-blur-3xl border transition-all duration-300;
-    background-color: hsla(var(--card) / 0.95);
-    border-color: hsla(var(--border) / 0.8);
+    background-color: var(--aegis-surface);
+    border-color: var(--aegis-cardline);
     border-radius: 0.75rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     cursor: default;
@@ -581,8 +658,8 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
   .dark .card-static,
   html.dark .card-static {
-    background-color: #0f1117;
-    border-color: #1e2030;
+    background-color: var(--aegis-surface);
+    border-color: var(--aegis-cardline);
   }
 
   /* Premium wellness dashboard — card hierarchy (ref: luxury dark UI, adapted) */
@@ -919,8 +996,8 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
   .ghost-sidebar {
     @apply backdrop-blur-xl border-r transition-all duration-300;
-    background-color: rgba(15, 17, 23, 0.92);
-    border-color: #1e2030;
+    background-color: var(--aegis-surface);
+    border-color: var(--aegis-cardline);
   }
 
   html.light .ghost-sidebar {
@@ -934,7 +1011,7 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
   .dark .glow-node,
   html.dark .glow-node {
-    box-shadow: 0 0 20px rgba(79, 142, 247, 0.2), 0 0 40px rgba(79, 142, 247, 0.08);
+    box-shadow: 0 0 20px rgba(201, 162, 75, 0.2), 0 0 40px rgba(201, 162, 75, 0.08);
   }
 
   /* Newsletter — lecture éditoriale */
@@ -1011,7 +1088,7 @@ html.light ::-webkit-scrollbar-thumb:hover {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2a2e45 transparent;
+  scrollbar-color: var(--aegis-cardline, rgba(255, 255, 255, 0.08)) transparent;
 }
 
 html.light * {
@@ -1039,10 +1116,10 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .slider-mood::-webkit-slider-thumb {
-  border-color: #7c6dfa;
+  border-color: var(--aegis-gold, #c9a24b);
 }
 .slider-mood::-moz-range-thumb {
-  border-color: #7c6dfa;
+  border-color: var(--aegis-gold, #c9a24b);
 }
 .slider-stress::-webkit-slider-thumb {
   border-color: hsl(var(--destructive));
@@ -1051,10 +1128,10 @@ input[type="range"]::-moz-range-thumb {
   border-color: hsl(var(--destructive));
 }
 .slider-sleep::-webkit-slider-thumb {
-  border-color: #4f8ef7;
+  border-color: var(--aegis-gold, #c9a24b);
 }
 .slider-sleep::-moz-range-thumb {
-  border-color: #4f8ef7;
+  border-color: var(--aegis-gold, #c9a24b);
 }
 
 @media (max-width: 767px) {
@@ -1070,6 +1147,31 @@ input[type="range"]::-moz-range-thumb {
 
   .toast-viewport-mobile {
     top: var(--mobile-main-padding-top);
+  }
+}
+
+/* Reserve space for fixed MemberTopDockBar (theme / lang / logout) on tablet + mobile */
+@media (max-width: 1023px) {
+  .member-top-dock-clearance {
+    padding-inline-end: var(--member-top-dock-clearance);
+  }
+
+  .member-top-dock-margin-end {
+    margin-inline-end: var(--member-top-dock-clearance);
+  }
+}
+
+/* Member shell v2: horizontal-overflow guard for scaffolded pages only */
+.aegis-member-shell [data-member-page] {
+  overflow-x: clip;
+}
+
+/* Viewport pages (dashboard-style 100dvh split): the page fills the screen edge-to-edge and
+   panes reserve the dock space themselves, so the shell must not add its own dock padding. */
+@media (min-width: 1024px) {
+  .aegis-member-shell main:has([data-viewport-page]) {
+    padding-bottom: 0 !important;
+    overflow: hidden;
   }
 }
 

@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAegisMotion } from "@/hooks/useAegisMotion";
-import { BookOpen, Plus, Search, Tag, Trash2, Edit3, Save, X, Loader2 } from "lucide-react";
+import { BookOpen, Plus, Search, Tag, Trash2, Edit3, Save, X, Loader2, Sparkles, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { notifyAdminOnJournalEntry } from "@/services/adminNotifications";
+import { MemberPageHeader } from "@/components/ui/MemberPageHeader";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
+import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
+import { cn } from "@/lib/utils";
 
 interface JournalEntry {
   id: string;
@@ -38,9 +42,9 @@ export default function Journal() {
   const [search, setSearch] = useState("");
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ title: "", content: "", tags: [] as string[], mood_score: null as number | null });
   const [saving, setSaving] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"write" | "memory">("write");
 
   useEffect(() => {
     if (user) loadEntries();
@@ -129,12 +133,10 @@ export default function Journal() {
   const startEdit = (entry: JournalEntry) => {
     setEditing(entry.id);
     setForm({ title: entry.title || "", content: entry.content, tags: entry.tags || [], mood_score: entry.mood_score });
-    setShowNew(true);
   };
 
   const resetForm = () => {
     setEditing(null);
-    setShowNew(false);
     setForm({ title: "", content: "", tags: [], mood_score: null });
   };
 
@@ -152,128 +154,295 @@ export default function Journal() {
     return matchSearch && matchTag;
   });
 
-  return (
-    <div className="space-y-8 max-w-4xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">{t("journal.introspection")}</p>
-          <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">{t("journal.title")}</h1>
-        </div>
-        <button onClick={() => { resetForm(); setShowNew(true); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-[1.02] transition-all duration-200 shadow-[0_0_16px_hsl(var(--primary)/0.25)] text-sm font-medium shrink-0 self-start sm:self-auto">
-          <Plus size={16} /> {t("journal.newEntry")}
+  const leftPane = (
+    <div className="flex flex-col gap-5 h-full justify-between">
+      <div>
+        <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.26em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
+          {t("journal.introspection")} · EXOCORTEX
+        </p>
+        <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
+          {t("journal.title")}
+        </h1>
+        <p className="font-sans text-sm text-muted-foreground mt-2 leading-relaxed">
+          Consignez vos prises de conscience, leçons d'arbitrage et réflexions profondes.
+        </p>
+      </div>
+
+      {/* Mobile Segmented Switcher (<lg) */}
+      <div className="flex lg:hidden items-center p-1 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md shadow-sm">
+        <button
+          type="button"
+          onClick={() => setMobileTab("write")}
+          className={cn(
+            "flex-1 py-2 px-2 rounded-lg text-xs font-cinzel uppercase tracking-[0.14em] font-medium transition-all text-center",
+            mobileTab === "write"
+              ? "bg-[#c9a24b]/20 text-[#c9a24b] border border-[#c9a24b]/40 shadow-sm font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          ✍️ Rédiger
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab("memory")}
+          className={cn(
+            "flex-1 py-2 px-2 rounded-lg text-xs font-cinzel uppercase tracking-[0.14em] font-medium transition-all text-center",
+            mobileTab === "memory"
+              ? "bg-[#c9a24b]/20 text-[#c9a24b] border border-[#c9a24b]/40 shadow-sm font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          📜 Mémoire ({entries.length})
         </button>
       </div>
 
+      {/* Editor Box & Telemetry */}
+      <div className={cn("space-y-4 flex-1 flex flex-col justify-between", mobileTab !== "write" && "hidden lg:flex", "pb-6 lg:pb-0")}>
+        <div className="aegis-dock-tile rounded-2xl p-5 space-y-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <div className="flex justify-between items-center">
+            <span className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.16em] text-[#c9a24b]">
+              {editing ? t("journal.editEntry") : t("journal.newEntryTitle")}
+            </span>
+            {editing && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <X size={13} /> Annuler
+              </button>
+            )}
+          </div>
+
+          <input
+            value={form.title}
+            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            placeholder={t("journal.titleOptional")}
+            className="w-full px-3.5 py-2.5 rounded-xl bg-black/25 dark:bg-black/35 border border-white/10 text-sm focus:outline-none focus:border-[#c9a24b]/50 placeholder:text-muted-foreground/50 transition-colors"
+          />
+
+          <textarea
+            value={form.content}
+            onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+            placeholder={t("journal.writeThoughts")}
+            rows={4}
+            className="w-full px-3.5 py-2.5 rounded-xl bg-black/25 dark:bg-black/35 border border-white/10 text-sm focus:outline-none focus:border-[#c9a24b]/50 placeholder:text-muted-foreground/50 resize-none transition-colors"
+          />
+
+          <div>
+            <p className="font-cinzel text-[9.5px] uppercase tracking-wider text-muted-foreground mb-1.5">
+              {t("journal.associatedMood")}
+            </p>
+            <div className="flex gap-2" role="group" aria-label={t("journal.associatedMood")}>
+              {MOOD_EMOJIS.map((emoji, i) => {
+                const score = i + 1;
+                const selected = form.mood_score === score;
+                const label = t(MOOD_LABEL_KEYS[i]);
+                return (
+                  <button
+                    key={score}
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={selected}
+                    onClick={() => setForm((f) => ({ ...f, mood_score: selected ? null : score }))}
+                    className={cn(
+                      "h-10 w-10 text-lg rounded-xl transition-all cursor-pointer flex items-center justify-center border",
+                      selected
+                        ? "border-[#c9a24b]/60 bg-[#c9a24b]/20 shadow-[0_0_12px_rgba(201,162,75,0.2)]"
+                        : "border-white/5 bg-black/20 opacity-60 hover:opacity-100",
+                    )}
+                  >
+                    <span aria-hidden>{emoji}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="font-cinzel text-[9.5px] uppercase tracking-wider text-muted-foreground mb-1.5">
+              {t("journal.tags")}
+            </p>
+            <div className="flex gap-1.5 flex-wrap">
+              {suggestedTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-xs font-mono transition-colors border",
+                    form.tags.includes(tag)
+                      ? "border-[#c9a24b]/40 bg-[#c9a24b]/15 text-[#c9a24b]"
+                      : "border-white/5 bg-black/20 text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void saveEntry()}
+            disabled={!form.content.trim() || saving}
+            className="btn-solaire w-full flex min-h-[44px] items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-cinzel text-xs uppercase tracking-[0.16em] disabled:opacity-50 cursor-pointer shadow-md"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Save size={14} aria-hidden />}
+            <span>{editing ? "Mettre à jour" : "Sceller dans l'Exocortex"}</span>
+          </button>
+        </div>
+
+        {/* Telemetry Pod */}
+        <div className="aegis-dock-tile rounded-2xl p-4 flex items-center justify-between text-center">
+          <div>
+            <p className="font-mono text-xl font-semibold text-foreground">{entries.length}</p>
+            <p className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">Réflexions</p>
+          </div>
+          <div>
+            <p className="font-mono text-xl font-semibold text-[#c9a24b]">{allTags.length}</p>
+            <p className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">Concepts</p>
+          </div>
+          <div>
+            <p className="font-mono text-xs font-semibold text-muted-foreground">
+              {entries[0] ? new Date(entries[0].created_at).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", { day: "numeric", month: "short" }) : "—"}
+            </p>
+            <p className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">Dernière entrée</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const rightPane = (
+    <div className={cn("space-y-4", mobileTab !== "memory" && "hidden lg:block")}>
       {/* Search & filter */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-wrap gap-2.5 items-center justify-between border-b border-border/25 pb-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("journal.search")} aria-label={t("journal.search")} className="w-full pl-9 pr-3 py-2.5 rounded-full bg-card/60 border border-border/40 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 placeholder:text-muted-foreground/40" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("journal.search")}
+            aria-label={t("journal.search")}
+            className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/25 dark:bg-black/35 border border-white/10 text-sm focus:outline-none focus:border-[#c9a24b]/40 placeholder:text-muted-foreground/40 font-sans"
+          />
         </div>
+        <span className="font-mono text-xs text-muted-foreground">
+          {filtered.length} {filtered.length > 1 ? "entrées" : "entrée"}
+        </span>
+      </div>
+
+      {allTags.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
-          {allTags.map(tag => (
-            <button key={tag} onClick={() => setFilterTag(filterTag === tag ? null : tag)} className={`px-3 py-1 rounded-full font-display text-[10px] tracking-widest uppercase transition-all duration-200 ${filterTag === tag ? "bg-primary/20 text-primary border border-primary/30" : "bg-card/40 border border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/20"}`}>
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => setFilterTag(filterTag === tag ? null : tag)}
+              className={cn(
+                "px-2.5 py-1 rounded-full font-mono text-[10px] tracking-wider uppercase transition-all duration-200 border",
+                filterTag === tag
+                  ? "bg-[#c9a24b]/20 text-[#c9a24b] border-[#c9a24b]/40"
+                  : "bg-black/20 border-white/5 text-muted-foreground hover:text-foreground",
+              )}
+            >
               #{tag}
             </button>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* New/Edit form */}
-      <AnimatePresence>
-        {showNew && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="ethereal-glass p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium text-foreground">{editing ? t("journal.editEntry") : t("journal.newEntryTitle")}</h3>
-              <button onClick={resetForm} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
-            </div>
-            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder={t("journal.titleOptional")} className="w-full px-3 py-2 rounded-lg bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30" />
-            <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder={t("journal.writeThoughts")} rows={5} className="w-full px-3 py-2 rounded-lg bg-secondary/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none" />
-            <div>
-              <p className="text-xs text-muted-foreground mb-2">{t("journal.associatedMood")}</p>
-              <div className="flex gap-2" role="group" aria-label={t("journal.associatedMood")}>
-                {MOOD_EMOJIS.map((emoji, i) => {
-                  const score = i + 1;
-                  const selected = form.mood_score === score;
-                  const label = t(MOOD_LABEL_KEYS[i]);
-                  return (
-                    <button
-                      key={score}
-                      type="button"
-                      aria-label={label}
-                      aria-pressed={selected}
-                      onClick={() => setForm((f) => ({ ...f, mood_score: selected ? null : score }))}
-                      className={`min-h-[44px] min-w-[44px] text-xl rounded-lg transition-all cursor-pointer ${selected ? "bg-primary/20 ring-2 ring-primary/40" : "opacity-50 hover:opacity-100"}`}
-                    >
-                      <span aria-hidden>{emoji}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-2">{t("journal.tags")}</p>
-              <div className="flex gap-1 flex-wrap">
-                {suggestedTags.map(tag => (
-                  <button key={tag} onClick={() => toggleTag(tag)} className={`px-2 py-1 rounded-lg text-xs transition-colors ${form.tags.includes(tag) ? "bg-primary/20 text-primary" : "bg-secondary/30 text-muted-foreground hover:text-foreground"}`}>
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => void saveEntry()}
-              disabled={!form.content.trim() || saving}
-              className="flex min-h-[44px] items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm disabled:opacity-50 cursor-pointer"
+      {/* Entries feed */}
+      {loading ? (
+        <div className="space-y-3" aria-busy="true" aria-label={t("journal.loading")}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="aegis-dock-tile h-28 animate-pulse rounded-2xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="aegis-dock-tile rounded-2xl text-center py-14 px-8 space-y-2">
+          <BookOpen size={36} strokeWidth={1} className="mx-auto mb-3 text-primary/30" />
+          <p className="font-cormorant text-xl font-light italic text-muted-foreground">
+            Chaque pensée mérite d'être consignée
+          </p>
+          <p className="font-cinzel text-[10px] font-semibold tracking-[0.2em] uppercase text-muted-foreground/60">
+            {t("journal.noEntries")}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((entry, i) => (
+            <motion.div
+              key={entry.id}
+              {...fadeUp(i * 0.03)}
+              className="aegis-dock-tile rounded-2xl p-5 group hover:border-[#c9a24b]/40 transition-all duration-300"
             >
-              {saving ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Save size={14} aria-hidden />}
-              {t("general.save")}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Entries list */}
-      <div className="space-y-3">
-        {loading && (
-          <div className="space-y-3" aria-busy="true" aria-label={t("journal.loading")}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="glass-card h-28 animate-pulse rounded-2xl" />
-            ))}
-          </div>
-        )}
-        {!loading && filtered.length === 0 && (
-          <div className="glass-card text-center py-14 px-8">
-            <BookOpen size={36} strokeWidth={1} className="mx-auto mb-4 text-primary/20" />
-            <p className="font-cormorant text-xl font-light italic text-text-tertiary/70 mb-2">Chaque pensée mérite d'être consignée</p>
-            <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">{t("journal.noEntries")}</p>
-          </div>
-        )}
-        {!loading && filtered.map((entry, i) => (
-          <motion.div key={entry.id} {...fadeUp(i * 0.04)} className="dashboard-panel p-5 group hover:border-primary/20 transition-colors">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex items-center gap-2">
-                {entry.mood_score && <span className="text-lg">{MOOD_EMOJIS[entry.mood_score - 1]}</span>}
-                <h3 className="text-sm font-medium text-foreground">{entry.title || t("journal.noTitle")}</h3>
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-2">
+                  {entry.mood_score && <span className="text-base">{MOOD_EMOJIS[entry.mood_score - 1]}</span>}
+                  <h3 className="font-cinzel text-xs font-semibold uppercase tracking-[0.14em] text-foreground">
+                    {entry.title || t("journal.noTitle")}
+                  </h3>
+                </div>
+                <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(entry)}
+                    aria-label={t("journal.editEntry")}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Edit3 size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteEntry(entry.id)}
+                    aria-label={t("journal.deleteEntry")}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-colors"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                <button type="button" onClick={() => startEdit(entry)} aria-label={t("journal.editEntry")} className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-secondary/50 text-muted-foreground"><Edit3 size={13} /></button>
-                <button type="button" onClick={() => deleteEntry(entry.id)} aria-label={t("journal.deleteEntry")} className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-destructive/60"><Trash2 size={13} /></button>
+              <p className="text-xs text-muted-foreground/90 whitespace-pre-wrap leading-relaxed font-sans">
+                {entry.content}
+              </p>
+              <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/5">
+                <div className="flex gap-1 flex-wrap">
+                  {(entry.tags || []).map((tag) => (
+                    <span key={tag} className="px-2 py-0.5 rounded-md bg-[#c9a24b]/10 text-[#c9a24b] font-mono text-[9px]">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+                <span className="font-mono text-[9px] text-muted-foreground flex items-center gap-1">
+                  <Clock size={10} />
+                  {new Date(entry.created_at).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
               </div>
-            </div>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{entry.content}</p>
-            <div className="flex items-center justify-between mt-3">
-              <div className="flex gap-1">
-                {(entry.tags || []).map(tag => (
-                  <span key={tag} className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px]">#{tag}</span>
-                ))}
-              </div>
-              <span className="text-[10px] text-muted-foreground">{new Date(entry.created_at).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
+  );
+
+  return (
+    <MemberPageScaffold width="wide" viewport>
+      <MemberSplitLayout
+        left={leftPane}
+        right={rightPane}
+        leftCols="lg:col-span-5"
+        rightCols="lg:col-span-7"
+        scrollRight={true}
+        scrollLeft={true}
+      />
+    </MemberPageScaffold>
   );
 }

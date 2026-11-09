@@ -19,9 +19,17 @@ export function FinalCtaSection() {
           <h2 className="aegis-landing__headline mx-auto max-w-3xl whitespace-pre-line text-[clamp(2rem,4vw,3rem)] text-[color:var(--aegis-dark-text)]">
             {copy.finalCta.title}
           </h2>
-          <LandingButton href="#tarif" variant="bronze" className="mt-10">
-            {copy.finalCta.cta}
-          </LandingButton>
+          <div className="mt-10 flex flex-col items-center gap-3">
+            <LandingButton href="#tarif" variant="bronze">
+              {copy.finalCta.cta}
+            </LandingButton>
+            <a
+              href="/auth"
+              className="inline-flex min-h-[44px] items-center justify-center font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--aegis-dark-secondary)] transition-colors hover:text-[color:var(--aegis-dark-text)]"
+            >
+              {copy.nav.signIn}
+            </a>
+          </div>
           {copy.finalCta.caption ? (
             <p className="mt-4 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--aegis-dark-secondary)]">
               {copy.finalCta.caption}

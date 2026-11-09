@@ -101,7 +101,7 @@ export function PulseCardContentPreview({
         <span className="uppercase tracking-wider">{format}</span>
       </div>
 
-      {(card.archetype_targets?.length ?? 0) > 0 ? (
+      {Array.isArray(card.archetype_targets) && card.archetype_targets.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {card.archetype_targets.map((a) => (
             <Badge key={a} variant="outline" className="text-[10px] border-accent-primary/30 text-accent-primary">

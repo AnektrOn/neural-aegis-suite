@@ -8,6 +8,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { type DeepDiveResult } from "@/features/archetype-deepdive-v2/domain/computeDeepDiveScores";
 import { loadUnifiedDeepDiveResult } from "@/features/archetype-deepdive-v2/domain/loadUnifiedScores";
 import { archLabel } from "@/features/archetype-deepdive-v2/domain/narrativeContent";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
 
 export default function DeepDiveScores() {
   const { user } = useAuth();
@@ -54,7 +55,7 @@ export default function DeepDiveScores() {
 
   if (!result || result.answeredCount === 0) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-4">
+      <div className="max-w-2xl mx-auto px-3 sm:px-5 py-16 text-center space-y-4">
         <h1 className="text-neural-title text-2xl">
           {locale === "fr" ? "Aucun score à afficher" : "No scores yet"}
         </h1>
@@ -76,17 +77,17 @@ export default function DeepDiveScores() {
   const top12 = result.archetypes.slice(0, 12);
 
   return (
-    <div className="max-w-5xl mx-auto py-6 space-y-8">
+    <MemberPageScaffold width="wide" className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <Link
             to="/profile"
-            className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-secondary transition-colors mb-2"
+            className="inline-flex items-center gap-1.5 font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.2em] text-[#9e7828] dark:text-[#c9a24b] hover:opacity-80 transition-opacity mb-2"
           >
             <ArrowLeft size={12} /> {locale === "fr" ? "Retour profil" : "Back to profile"}
           </Link>
-          <h1 className="text-neural-title text-2xl md:text-3xl">
+          <h1 className="font-cormorant text-3xl md:text-4xl font-light text-foreground tracking-tight">
             {locale === "fr" ? "Mes scores Deep Dive" : "My Deep Dive scores"}
           </h1>
           <p className="text-text-secondary text-sm mt-1">
@@ -106,8 +107,11 @@ export default function DeepDiveScores() {
 
       {/* Top 3 */}
       <section>
-        <h2 className="text-neural-label mb-3">{locale === "fr" ? "Top 3 archétypes" : "Top 3 archetypes"}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-[#9e7828] dark:text-[#c9a24b] mb-3 flex items-center gap-2">
+          <Sparkles size={13} className="text-[#c9a24b]" />
+          <span>{locale === "fr" ? "Top 3 archétypes directeurs" : "Top 3 ruling archetypes"}</span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
           {result.topThree.map((arch, i) => {
             const score = result.archetypes.find((a) => a.archetype === arch)!;
             return (
@@ -116,18 +120,23 @@ export default function DeepDiveScores() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
-                className="rounded-2xl border border-primary/20 bg-bg-surface/40 backdrop-blur-xl p-5"
+                className="aegis-dock-tile rounded-2xl border border-[rgba(233,228,216,0.1)] p-5 space-y-3 shadow-sm relative overflow-hidden"
               >
-                <p className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary">#{i + 1}</p>
-                <p className="text-foreground text-xl font-medium mt-1">{archLabel(arch, locale)}</p>
-                <div className="mt-3 space-y-1.5">
-                  <Bar label="Light" value={score.light} max={Math.max(score.total, 1)} color="bg-primary/70" />
-                  <Bar label="Shadow" value={score.shadow} max={Math.max(score.total, 1)} color="bg-accent-danger/60" />
+                <div className="flex items-center justify-between">
+                  <span className="font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#c9a24b]">
+                    RANG #{i + 1}
+                  </span>
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    {Math.round(score.intensity * 100)}% {locale === "fr" ? "intensité" : "intensity"}
+                  </span>
                 </div>
-                <p className="text-xs text-text-tertiary mt-3">
-                  {locale === "fr" ? "Intensité" : "Intensity"} :{" "}
-                  <span className="text-foreground">{Math.round(score.intensity * 100)}%</span>
+                <p className="font-cormorant text-2xl font-light text-foreground leading-tight">
+                  {archLabel(arch, locale)}
                 </p>
+                <div className="space-y-2 pt-1">
+                  <Bar label="Lumière" value={score.light} max={Math.max(score.total, 1)} color="bg-[#c9a24b]" />
+                  <Bar label="Ombre" value={score.shadow} max={Math.max(score.total, 1)} color="bg-rose-500/80" />
+                </div>
               </motion.div>
             );
           })}
@@ -138,14 +147,16 @@ export default function DeepDiveScores() {
       {result.shadowAlerts.length > 0 && (
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={14} className="text-accent-warning" />
-            <h2 className="text-neural-label">{locale === "fr" ? "Zones d'ombre actives" : "Active shadow zones"}</h2>
+            <AlertTriangle size={14} className="text-amber-400" />
+            <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-400">
+              {locale === "fr" ? "Zones d'ombre actives" : "Active shadow zones"}
+            </h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {result.shadowAlerts.map((arch) => (
               <span
                 key={arch}
-                className="px-3 py-1.5 rounded-full text-xs bg-accent-warning/10 border border-accent-warning/30 text-accent-warning"
+                className="px-3 py-1.5 rounded-xl font-cinzel text-[10px] uppercase tracking-wider bg-amber-500/10 border border-amber-500/30 text-amber-400"
               >
                 {archLabel(arch, locale)}
               </span>
@@ -156,33 +167,35 @@ export default function DeepDiveScores() {
 
       {/* Full ranking */}
       <section>
-        <h2 className="text-neural-label mb-3">{locale === "fr" ? "Classement complet" : "Full ranking"}</h2>
-        <div className="overflow-x-auto rounded-2xl border border-border-subtle bg-bg-surface/40">
+        <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-3">
+          {locale === "fr" ? "Classement complet" : "Full ranking"}
+        </h2>
+        <div className="overflow-x-auto rounded-2xl border border-[rgba(233,228,216,0.1)] aegis-dock-tile shadow-sm">
           <table className="w-full text-sm">
-            <thead className="text-text-tertiary text-[10px] uppercase tracking-[0.18em]">
-              <tr className="border-b border-border-subtle">
-                <th className="text-left p-3">#</th>
-                <th className="text-left p-3">{locale === "fr" ? "Archétype" : "Archetype"}</th>
-                <th className="text-right p-3">Light</th>
-                <th className="text-right p-3">Shadow</th>
-                <th className="text-right p-3">{locale === "fr" ? "Net" : "Net"}</th>
-                <th className="text-right p-3">{locale === "fr" ? "Intensité" : "Intensity"}</th>
+            <thead className="font-cinzel text-muted-foreground text-[9.5px] uppercase tracking-[0.18em]">
+              <tr className="border-b border-white/[0.08]">
+                <th className="text-left p-3.5">#</th>
+                <th className="text-left p-3.5">{locale === "fr" ? "Archétype" : "Archetype"}</th>
+                <th className="text-right p-3.5">Light</th>
+                <th className="text-right p-3.5">Shadow</th>
+                <th className="text-right p-3.5">{locale === "fr" ? "Net" : "Net"}</th>
+                <th className="text-right p-3.5">{locale === "fr" ? "Intensité" : "Intensity"}</th>
               </tr>
             </thead>
             <tbody>
               {top12.map((a, i) => (
-                <tr key={a.archetype} className="border-b border-border-subtle/40 last:border-b-0">
-                  <td className="p-3 text-text-tertiary">{i + 1}</td>
-                  <td className="p-3 text-foreground">{archLabel(a.archetype, locale)}</td>
-                  <td className="p-3 text-right text-primary/80">{a.light.toFixed(1)}</td>
-                  <td className="p-3 text-right text-accent-danger/80">{a.shadow.toFixed(1)}</td>
+                <tr key={a.archetype} className="border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] transition-colors">
+                  <td className="p-3.5 font-mono text-xs text-muted-foreground">{i + 1}</td>
+                  <td className="p-3.5 font-medium text-foreground">{archLabel(a.archetype, locale)}</td>
+                  <td className="p-3.5 text-right font-mono text-xs text-[#c9a24b]">{a.light.toFixed(1)}</td>
+                  <td className="p-3.5 text-right font-mono text-xs text-rose-400/90">{a.shadow.toFixed(1)}</td>
                   <td
-                    className={`p-3 text-right ${a.net >= 0 ? "text-primary" : "text-accent-warning"}`}
+                    className={`p-3.5 text-right font-mono text-xs ${a.net >= 0 ? "text-[#c9a24b]" : "text-amber-400"}`}
                   >
                     {a.net >= 0 ? "+" : ""}
                     {a.net.toFixed(1)}
                   </td>
-                  <td className="p-3 text-right text-text-secondary">{Math.round(a.intensity * 100)}%</td>
+                  <td className="p-3.5 text-right font-mono text-xs text-muted-foreground">{Math.round(a.intensity * 100)}%</td>
                 </tr>
               ))}
             </tbody>
@@ -192,39 +205,39 @@ export default function DeepDiveScores() {
 
       {/* Houses */}
       <section>
-        <h2 className="text-neural-label mb-3">
+        <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-3">
           {locale === "fr" ? "Par maison (Caroline Myss)" : "Per house (Caroline Myss)"}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {result.houses.map((h) => (
             <div
               key={h.house}
-              className="rounded-xl border border-border-subtle bg-bg-surface/40 p-4"
+              className="aegis-dock-tile rounded-2xl border border-[rgba(233,228,216,0.08)] p-4 shadow-sm space-y-2"
             >
               <div className="flex items-baseline justify-between gap-2">
-                <p className="text-foreground text-sm">
-                  <span className="text-text-tertiary text-xs mr-1">M{h.house}</span>
+                <p className="text-foreground text-sm font-medium">
+                  <span className="font-cinzel text-[9.5px] uppercase tracking-wider text-[#c9a24b] mr-1.5">M{h.house}</span>
                   {locale === "fr" ? h.label_fr : h.label_en}
                 </p>
-                <span className="text-[10px] text-text-tertiary">
+                <span className="font-mono text-[10px] text-muted-foreground">
                   {h.answered}/{h.total}
                 </span>
               </div>
               {h.topArchetype ? (
-                <p className="text-xs text-primary mt-2">
-                  → {archLabel(h.topArchetype, locale)}{" "}
-                  <span className="text-text-tertiary">({h.topArchetypeWeight.toFixed(1)})</span>
+                <p className="text-xs text-[#c9a24b] pt-1 flex items-center justify-between">
+                  <span>→ {archLabel(h.topArchetype, locale)}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground">({h.topArchetypeWeight.toFixed(1)})</span>
                 </p>
               ) : (
-                <p className="text-xs text-text-tertiary mt-2">
-                  {locale === "fr" ? "—" : "—"}
+                <p className="text-xs text-muted-foreground pt-1">
+                  —
                 </p>
               )}
             </div>
           ))}
         </div>
       </section>
-    </div>
+    </MemberPageScaffold>
   );
 }
 

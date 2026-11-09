@@ -29,6 +29,7 @@ function maxOrbitRadius(viewW: number, viewH: number, n: number): number {
 }
 
 export type MobileDockCircleItem = {
+  id: string;
   to: string;
   label: string;
   Icon: LucideIcon;
@@ -148,7 +149,7 @@ export function MobileDockCircleMenu({
                   const { x, y } = pointOnCircle(index, n, orbitR);
                   return (
                     <motion.div
-                      key={item.to}
+                      key={item.id}
                       className="absolute left-0 top-0"
                       initial={false}
                       animate={{

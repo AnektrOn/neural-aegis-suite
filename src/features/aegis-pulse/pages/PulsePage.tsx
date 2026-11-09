@@ -1,8 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Library, X, CheckCircle2, RefreshCw, AlertCircle, Hexagon, HelpCircle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Library,
+  X,
+  CheckCircle2,
+  RefreshCw,
+  AlertCircle,
+  Hexagon,
+  HelpCircle,
+  Sparkles,
+  BookOpen,
+  ArrowRight,
+  Unlock,
+  Lock,
+} from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import type { PulseCard, SwipeAction } from "../domain/types";
+import type { PulseCard, SwipeAction, RuneProgress } from "../domain/types";
 import {
   recordPulseSwipe,
   recyclePulseIgnored,
@@ -13,14 +26,19 @@ import {
 import { usePulseDeck } from "../hooks/usePulseDeck";
 import { usePulseGrimoire } from "../hooks/usePulseGrimoire";
 import { SwipeableCard } from "../components/SwipeableCard";
-import { PulseGrimoire } from "../components/PulseGrimoire";
-import { PulseRuneTracker } from "../components/PulseRuneTracker";
+import { PulseGrimoire, CardRow } from "../components/PulseGrimoire";
+import { PulseRuneTracker, buildGlyphGroups, type GlyphGroup } from "../components/PulseRuneTracker";
 import { PulseCourseView } from "../components/PulseCourseView";
 import { PulseOnboarding } from "../components/PulseOnboarding";
 import { SacredGeometry } from "../components/SacredGeometry";
 import { isPulseOnboarded, markPulseOnboarded } from "../lib/pulseOnboarding";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
+import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
+import { cn } from "@/lib/utils";
 
 type PulseView = "deck" | "grimoire" | "runes";
+type CodexTab = "grimoire" | "runes";
+type GrimoireSubTab = "in_progress" | "validated";
 
 export default function PulsePage() {
   const { t } = useLanguage();
@@ -28,14 +46,16 @@ export default function PulsePage() {
   const { state: deckState, reload: reloadDeck } = usePulseDeck();
   const [localCards, setLocalCards] = useState<PulseCard[]>([]);
   const [activeView, setActiveView] = useState<PulseView>("deck");
-  const grimoireEnabled = activeView === "grimoire" || activeView === "runes";
-  const { state: grimoireState, reload: reloadGrimoire } = usePulseGrimoire(grimoireEnabled);
+  const { state: grimoireState, reload: reloadGrimoire } = usePulseGrimoire(true);
   const [activeCourse, setActiveCourse] = useState<PulseCard | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
   const [isRecycling, setIsRecycling] = useState(false);
   const [diag, setDiag] = useState<PulseDiagnostic | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [codexTab, setCodexTab] = useState<CodexTab>("grimoire");
+  const [grimoireSubTab, setGrimoireSubTab] = useState<GrimoireSubTab>("in_progress");
+  const [selectedGroupCode, setSelectedGroupCode] = useState<string | null>(null);
   const onboardingInitRef = useRef(false);
 
   useEffect(() => {
@@ -64,8 +84,23 @@ export default function PulsePage() {
     }
   }, [deckState]);
 
-  const libraryCount =
-    grimoireState.status === "ready" ? grimoireState.library.length : 0;
+  const library = grimoireState.status === "ready" ? grimoireState.library : [];
+  const libraryCount = library.length;
+  const inProgressCards = useMemo(() => library.filter((c) => !c.isCourseCompleted), [library]);
+  const validatedCards = useMemo(() => library.filter((c) => c.isCourseCompleted), [library]);
+
+  const runes = grimoireState.status === "ready" ? grimoireState.runes : [];
+  const glyphGroups = useMemo(() => buildGlyphGroups(runes), [runes]);
+  const unlockedRunesCount = useMemo(() => runes.filter((r) => r.isUnlocked).length, [runes]);
+  const totalRunesCount = runes.length;
+
+  const activeGroup = useMemo(() => {
+    if (!glyphGroups.length) return null;
+    if (selectedGroupCode) {
+      return glyphGroups.find((g) => g.collectionCode === selectedGroupCode) ?? glyphGroups[0];
+    }
+    return glyphGroups[0];
+  }, [glyphGroups, selectedGroupCode]);
 
   const showNotification = useCallback((message: string) => {
     setToast(message);
@@ -100,10 +135,29 @@ export default function PulsePage() {
     [isSwiping, reloadDeck, reloadGrimoire, showNotification, t],
   );
 
-  const forceSwipe = (direction: "left" | "right") => {
-    if (localCards.length === 0 || isSwiping) return;
-    void handleSwipe(direction, localCards[0]);
-  };
+  const forceSwipe = useCallback(
+    (direction: "left" | "right") => {
+      if (localCards.length === 0 || isSwiping) return;
+      void handleSwipe(direction, localCards[0]);
+    },
+    [localCards, isSwiping, handleSwipe],
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+      if (activeCourse || showOnboarding) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        forceSwipe("left");
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        forceSwipe("right");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [forceSwipe, activeCourse, showOnboarding]);
 
   const handleRecycleIgnored = useCallback(async () => {
     setIsRecycling(true);
@@ -117,8 +171,7 @@ export default function PulsePage() {
     setIsRecycling(false);
   }, [reloadDeck, showNotification, t]);
 
-  const onboardingOverlay =
-    showOnboarding ? <PulseOnboarding onComplete={completeOnboarding} /> : null;
+  const onboardingOverlay = showOnboarding ? <PulseOnboarding onComplete={completeOnboarding} /> : null;
 
   if (activeCourse) {
     return (
@@ -131,8 +184,8 @@ export default function PulsePage() {
             if (result.ok && result.runeUnlocked && result.principleCode) {
               const runeName =
                 grimoireState.status === "ready"
-                  ? grimoireState.runes.find((r) => r.principleCode === result.principleCode)
-                      ?.principleName ?? activeCourse.principleName
+                  ? grimoireState.runes.find((r) => r.principleCode === result.principleCode)?.principleName ??
+                    activeCourse.principleName
                   : activeCourse.principleName;
               showNotification(t("pulse.runeUnlocked", { name: runeName }));
             } else {
@@ -146,6 +199,7 @@ export default function PulsePage() {
     );
   }
 
+  // Mobile dedicated full screen modal views
   if (activeView === "grimoire") {
     return (
       <>
@@ -165,78 +219,56 @@ export default function PulsePage() {
   if (activeView === "runes") {
     return (
       <>
-        <PulseRuneTracker
-          state={grimoireState}
-          onClose={() => setActiveView("deck")}
-        />
+        <PulseRuneTracker state={grimoireState} onClose={() => setActiveView("deck")} />
         {onboardingOverlay}
       </>
     );
   }
 
-  return (
-    <div className="min-h-[calc(100vh-8rem)] bg-bg-base flex flex-col relative overflow-hidden -m-4 md:-m-6 rounded-[18px]">
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.04]"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, hsl(var(--foreground) / 0.35) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-        }}
-      />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vw] max-w-[700px] max-h-[700px] rounded-full blur-[100px] pointer-events-none bg-[hsla(var(--neural-glow)/0.04)]" />
-
-      <nav className="w-full px-4 sm:px-5 md:px-6 py-4 flex justify-between items-center z-50 relative">
-        <button
-          type="button"
-          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full"
-          onClick={() => setActiveView("runes")}
-          aria-label={t("pulse.runeTrackerTitle")}
-        >
-          <Hexagon size={20} strokeWidth={1.5} />
-        </button>
-        <div className="flex items-center gap-2">
-          <h1 className="font-barlow text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            {t("pulse.title")}
-          </h1>
+  // Dual-pane layout: Left is Focal Card Deck, Right is Integrated Live Codex
+  const leftDeckPane = (
+    <div className="flex flex-col h-full justify-between space-y-4">
+      {/* Kicker & Title Header */}
+      <div>
+        <div className="flex items-center justify-between">
+          <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b]">
+            AEGIS PULSE · FRAGMENTS DE CONSCIENCE
+          </p>
           <button
             type="button"
             onClick={() => setShowOnboarding(true)}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors rounded-full"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             aria-label={t("pulse.showGuide")}
           >
-            <HelpCircle size={16} strokeWidth={1.5} />
+            <HelpCircle size={15} strokeWidth={1.5} />
+            <span className="font-cinzel text-[10px] uppercase tracking-wider hidden sm:inline">Guide</span>
           </button>
         </div>
-        <button
-          type="button"
-          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors relative rounded-full"
-          onClick={() => setActiveView("grimoire")}
-          aria-label={t("pulse.grimoireTitle")}
-        >
-          <Library size={20} strokeWidth={1.5} />
-          {libraryCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 bg-accent-primary text-primary-foreground text-[8px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded-full">
-              {libraryCount}
-            </span>
-          )}
-        </button>
-      </nav>
+        <h1 className="font-cormorant text-2xl sm:text-3xl font-light text-foreground mt-1">
+          {t("pulse.title")}
+        </h1>
+        <p className="font-sans text-xs text-muted-foreground mt-1">
+          {localCards.length > 0
+            ? `${localCards.length} fragments prêts à être assimilés ou ignorés.`
+            : "Cycle d'assimilation actuel complété."}
+        </p>
+      </div>
 
-      <main className="flex-1 flex flex-col items-center justify-center relative z-10 px-4 sm:px-6 md:px-8 w-full max-w-md md:max-w-xl lg:max-w-2xl mx-auto pb-10">
+      {/* Main Interactive Deck Frame */}
+      <div className="relative w-full aspect-[3/4] max-h-[50dvh] sm:max-h-[55dvh] lg:max-h-[58dvh] mx-auto flex items-center justify-center">
         {deckState.status === "loading" && localCards.length === 0 && (
           <div className="flex justify-center py-24">
-            <div className="w-6 h-6 border-2 border-border-subtle border-t-accent-primary rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-border-subtle border-t-accent-primary rounded-full animate-spin" />
           </div>
         )}
 
         {deckState.status === "error" && (
-          <div className="text-center p-8">
+          <div className="text-center p-8 dashboard-panel w-full">
             <p className="text-muted-foreground font-sans text-sm mb-4">{deckState.message}</p>
             <button
               type="button"
               onClick={() => void reloadDeck()}
-              className="dashboard-cta--inline dashboard-cta px-6 py-3 font-barlow text-xs uppercase tracking-[0.14em]"
+              className="btn-solaire px-6 py-2.5 font-cinzel text-xs uppercase tracking-[0.14em]"
             >
               {t("pulse.retry")}
             </button>
@@ -244,7 +276,7 @@ export default function PulsePage() {
         )}
 
         {deckState.status !== "error" && (
-          <div className="relative w-full aspect-[3/4] max-h-[65dvh] sm:max-h-[70dvh] md:max-h-[75dvh]">
+          <>
             {localCards.length > 0 ? (
               localCards.map((card, index) => {
                 if (index > 2) return null;
@@ -254,11 +286,9 @@ export default function PulsePage() {
                     key={card.id}
                     className="absolute inset-0"
                     style={{
-                      transform: !isTop
-                        ? `scale(${1 - index * 0.05}) translateY(${index * 12}px)`
-                        : "none",
+                      transform: !isTop ? `scale(${1 - index * 0.05}) translateY(${index * 12}px)` : "none",
                       zIndex: 10 - index,
-                      opacity: 1 - index * 0.3,
+                      opacity: 1 - index * 0.28,
                       transition: "all 0.3s ease-out",
                     }}
                   >
@@ -267,47 +297,27 @@ export default function PulsePage() {
                 );
               })
             ) : deckState.status === "ready" || deckState.status === "idle" ? (
-              <div className="absolute inset-0 dashboard-panel flex flex-col items-center justify-center p-6 sm:p-8 text-center">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 mb-5 sm:mb-6 opacity-20">
+              <div className="w-full h-full dashboard-panel flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-16 h-16 mb-4 opacity-25">
                   <SacredGeometry type="MENTALISM" isGlowing={false} />
                 </div>
-                <h2 className="text-base sm:text-lg font-cormorant text-foreground tracking-widest uppercase mb-3">
+                <h2 className="text-base font-cormorant text-foreground tracking-widest uppercase mb-2">
                   {t("pulse.cycleComplete")}
                 </h2>
-                <p className="text-muted-foreground font-sans text-xs sm:text-sm mb-6">
+                <p className="text-muted-foreground font-sans text-xs mb-5 max-w-sm">
                   {t("pulse.cycleCompleteHint")}
                 </p>
 
-                {/* Diagnostic: dev-only when deck empty due to targeting/RPC issue, not exhaustion */}
                 {import.meta.env.DEV && diag && diag.total > 0 && !isPulseDeckExhausted(diag) && (
-                  <div className="mb-5 p-3 rounded-lg border border-amber-400/20 bg-amber-400/5 max-w-sm text-left">
-                    <div className="flex items-center gap-2 text-xs text-amber-400 mb-2">
+                  <div className="mb-4 p-3 rounded-lg border border-amber-400/20 bg-amber-400/5 max-w-sm text-left">
+                    <div className="flex items-center gap-2 text-xs text-amber-400 mb-1">
                       <AlertCircle size={13} />
                       <span className="font-medium">{t("pulse.diagnosticTitle")}</span>
                     </div>
-                    <div className="space-y-1 text-[11px] text-muted-foreground leading-relaxed font-mono">
+                    <div className="space-y-0.5 text-[10px] text-muted-foreground font-mono">
                       <p>user: {diag.userId ?? "—"}</p>
-                      <p>cartes en base: {diag.total} ({diag.active} actives)</p>
-                      <p>pour vous (ciblage): {diag.forYou}</p>
-                      <p>RPC deck retourne: {diag.rpcCards}</p>
-                      <p>{t("pulse.diagSwiped")} {diag.swiped}</p>
-                      {diag.sampleKeys.length > 0 && (
-                        <p className="break-all">clés: {diag.sampleKeys.join(", ")}</p>
-                      )}
-                      {diag.rpcError && (
-                        <p className="text-red-400">RPC: {diag.rpcError}</p>
-                      )}
+                      <p>total: {diag.total} | assignées: {diag.forYou} | rpc: {diag.rpcCards}</p>
                     </div>
-                    {diag.userId && diag.forYou === 0 && diag.active > 0 && (
-                      <p className="text-[11px] text-amber-400 mt-2 leading-relaxed">
-                        Aucune carte ne vous est assignée. Votre UUID ne correspond pas au target_user_ids des cartes en base.
-                      </p>
-                    )}
-                    {diag.forYou > 0 && diag.rpcCards === 0 && diag.swiped === 0 && !diag.rpcError && (
-                      <p className="text-[11px] text-amber-400 mt-2 leading-relaxed">
-                        Des cartes vous sont assignées mais le RPC ne les retourne pas — vérifiez que la migration 120700 est appliquée.
-                      </p>
-                    )}
                   </div>
                 )}
 
@@ -315,47 +325,373 @@ export default function PulsePage() {
                   type="button"
                   onClick={() => void handleRecycleIgnored()}
                   disabled={isRecycling}
-                  className="dashboard-cta--inline dashboard-cta px-6 py-3 font-barlow text-xs uppercase tracking-[0.14em] flex items-center gap-2 disabled:opacity-50"
+                  className="btn-solaire px-5 py-2.5 font-cinzel text-xs uppercase tracking-[0.14em] flex items-center gap-2 disabled:opacity-50"
                 >
-                  <RefreshCw size={14} className={isRecycling ? "animate-spin" : ""} />
+                  <RefreshCw size={13} className={isRecycling ? "animate-spin" : ""} />
                   {isRecycling ? t("pulse.recycling") : t("pulse.recycleIgnored")}
                 </button>
               </div>
             ) : null}
-          </div>
+          </>
         )}
+      </div>
 
-        {localCards.length > 0 && (
-          <div className="flex items-center justify-center gap-10 sm:gap-14 md:gap-16 mt-6 sm:mt-8">
-            <button
-              type="button"
-              onClick={() => forceSwipe("left")}
-              disabled={isSwiping}
-              className="w-12 h-12 md:w-14 md:h-14 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-all disabled:opacity-30 active:scale-95"
-              aria-label={t("pulse.swipeIgnore")}
-            >
-              <X size={22} strokeWidth={1.5} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveView("grimoire")}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-accent-primary transition-colors rounded-full"
-              aria-label={t("pulse.grimoireTitle")}
-            >
-              <div className="w-2 h-2 bg-accent-primary rounded-full shadow-[0_0_8px_hsla(var(--primary)/0.5)]" />
-            </button>
-            <button
-              type="button"
-              onClick={() => forceSwipe("right")}
-              disabled={isSwiping}
-              className="w-12 h-12 md:w-14 md:h-14 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-accent-primary hover:bg-accent-primary/10 hover:border-accent-primary/30 transition-all disabled:opacity-30 active:scale-95"
-              aria-label={t("pulse.swipeAssimilate")}
-            >
-              <CheckCircle2 size={22} strokeWidth={1.5} />
-            </button>
+      {/* Action Controls & Keyboard Hints */}
+      <div className="pt-2">
+        {localCards.length > 0 ? (
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center justify-center gap-8 sm:gap-12">
+              <button
+                type="button"
+                onClick={() => forceSwipe("left")}
+                disabled={isSwiping}
+                className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full border border-white/10 bg-black/40 text-muted-foreground hover:text-[#e9e4d8] hover:border-white/25 transition-all disabled:opacity-30 active:scale-95 shadow-md backdrop-blur-md"
+                aria-label={t("pulse.swipeIgnore")}
+              >
+                <X size={20} strokeWidth={1.5} />
+              </button>
+
+              {/* Mobile shortcuts to Grimoire / Runes */}
+              <div className="lg:hidden flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveView("runes")}
+                  className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full border border-border-subtle/50"
+                  aria-label={t("pulse.runeTrackerTitle")}
+                >
+                  <Hexagon size={16} strokeWidth={1.5} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveView("grimoire")}
+                  className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full border border-border-subtle/50 relative"
+                  aria-label={t("pulse.grimoireTitle")}
+                >
+                  <Library size={16} strokeWidth={1.5} />
+                  {libraryCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-accent-primary text-primary-foreground text-[8px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                      {libraryCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => forceSwipe("right")}
+                disabled={isSwiping}
+                className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full border border-[#c9a24b]/40 bg-[#c9a24b]/15 text-[#c9a24b] hover:bg-[#c9a24b]/25 hover:border-[#c9a24b]/70 hover:shadow-[0_0_16px_rgba(201,162,75,0.3)] transition-all disabled:opacity-30 active:scale-95 shadow-md backdrop-blur-md"
+                aria-label={t("pulse.swipeAssimilate")}
+              >
+                <CheckCircle2 size={20} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <p className="font-mono text-[10px] tracking-wider text-muted-foreground/50 uppercase hidden lg:block">
+              [←] Ignorer &bull; [→] Assimiler
+            </p>
+          </div>
+        ) : (
+          <div className="text-center">
+            <p className="font-cinzel text-[10px] uppercase tracking-widest text-muted-foreground">
+              Toutes les impulsions sont à jour
+            </p>
           </div>
         )}
-      </main>
+      </div>
+    </div>
+  );
+
+  const rightCodexPane = (
+    <div className="flex flex-col h-full space-y-4">
+      {/* Codex Tabs Header */}
+      <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCodexTab("grimoire")}
+            className={cn(
+              "font-cinzel text-xs uppercase tracking-[0.14em] px-3.5 py-1.5 rounded-lg border transition-all duration-200 flex items-center gap-2",
+              codexTab === "grimoire"
+                ? "border-[#9e7828]/50 bg-[#9e7828]/10 text-[#9e7828] dark:border-[#c9a24b]/50 dark:bg-[#c9a24b]/15 dark:text-[#c9a24b]"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Library size={14} strokeWidth={1.5} />
+            <span>Grimoire</span>
+            <span className="font-mono text-[10px] opacity-70">({libraryCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCodexTab("runes")}
+            className={cn(
+              "font-cinzel text-xs uppercase tracking-[0.14em] px-3.5 py-1.5 rounded-lg border transition-all duration-200 flex items-center gap-2",
+              codexTab === "runes"
+                ? "border-[#9e7828]/50 bg-[#9e7828]/10 text-[#9e7828] dark:border-[#c9a24b]/50 dark:bg-[#c9a24b]/15 dark:text-[#c9a24b]"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Hexagon size={14} strokeWidth={1.5} />
+            <span>Runes de Sagesse</span>
+            <span className="font-mono text-[10px] opacity-70">
+              ({unlockedRunesCount}/{totalRunesCount})
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Codex Body */}
+      {codexTab === "grimoire" ? (
+        <div className="space-y-3">
+          {/* Sub-tabs: En cours / Validés */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setGrimoireSubTab("in_progress")}
+              className={cn(
+                "font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border transition-colors",
+                grimoireSubTab === "in_progress"
+                  ? "border-accent-primary/40 bg-accent-primary/10 text-accent-primary"
+                  : "border-border-subtle text-muted-foreground hover:text-foreground",
+              )}
+            >
+              À intégrer ({inProgressCards.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setGrimoireSubTab("validated")}
+              className={cn(
+                "font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border transition-colors",
+                grimoireSubTab === "validated"
+                  ? "border-accent-primary/40 bg-accent-primary/10 text-accent-primary"
+                  : "border-border-subtle text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Validés ({validatedCards.length})
+            </button>
+          </div>
+
+          {/* Cards List */}
+          {grimoireState.status === "loading" ? (
+            <div className="flex justify-center py-16">
+              <div className="w-6 h-6 border-2 border-border-subtle border-t-accent-primary rounded-full animate-spin" />
+            </div>
+          ) : (grimoireSubTab === "in_progress" ? inProgressCards : validatedCards).length === 0 ? (
+            <div className="dashboard-panel p-8 text-center space-y-3">
+              <BookOpen size={28} strokeWidth={1.25} className="mx-auto text-muted-foreground/30" />
+              <p className="font-cormorant text-base text-foreground">
+                {grimoireSubTab === "in_progress"
+                  ? "Aucun fragment en attente d'intégration"
+                  : "Aucun fragment encore validé"}
+              </p>
+              <p className="font-sans text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                Balayez les cartes vers la droite pour assimiler des fragments de conscience et les inscrire dans votre grimoire.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(grimoireSubTab === "in_progress" ? inProgressCards : validatedCards).map((item) => (
+                <CardRow
+                  key={item.id}
+                  item={item}
+                  onOpenCourse={(c) => setActiveCourse(c)}
+                  completed={item.isCourseCompleted}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Glyphs Group Selector */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {glyphGroups.map((g) => {
+              const isSelected = activeGroup?.collectionCode === g.collectionCode;
+              const isComplete = g.progress >= 1;
+              const firstRune = g.runes[0];
+              const glyphCode = g.collectionCode === "__none__" ? "AEGIS" : g.collectionCode;
+              return (
+                <button
+                  key={g.collectionCode}
+                  type="button"
+                  onClick={() => setSelectedGroupCode(g.collectionCode)}
+                  className={cn(
+                    "aegis-dock-tile p-3.5 rounded-2xl text-left transition-all duration-200 relative group flex flex-col justify-between min-h-[104px]",
+                    isSelected
+                      ? "border-[#c9a24b]/60 shadow-[0_0_20px_rgba(201,162,75,0.18)]"
+                      : "hover:border-[#c9a24b]/30",
+                  )}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-8 h-8 relative opacity-75 group-hover:opacity-100 transition-opacity">
+                      <SacredGeometry
+                        type={glyphCode}
+                        glowIntensity={g.progress}
+                        glyphSvg={firstRune?.glyphSvg}
+                      />
+                    </div>
+                    {isComplete ? (
+                      <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-400/40">
+                        <Unlock size={10} />
+                      </span>
+                    ) : (
+                      <span className="w-5 h-5 rounded-full bg-black/20 text-muted-foreground flex items-center justify-center border border-border-subtle">
+                        <Lock size={10} />
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-cinzel text-[10px] font-semibold uppercase tracking-wider text-foreground truncate">
+                      {g.collectionName}
+                    </p>
+                    <p className="font-mono text-[9px] text-[#c9a24b] mt-0.5">
+                      {g.unlockedCount}/{g.totalCount} ({Math.round(g.progress * 100)}%)
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Rune Group Detail Card */}
+          {activeGroup && (
+            <div className="aegis-dock-tile rounded-2xl p-5 space-y-4 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-cinzel text-[10.5px] uppercase tracking-[0.2em] text-[#9e7828] dark:text-[#c9a24b]">
+                    COLLECTION DE RUNES
+                  </p>
+                  <h3 className="font-cormorant text-xl text-foreground font-light">
+                    {activeGroup.collectionName}
+                  </h3>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono text-sm font-semibold text-foreground">
+                    {Math.round(activeGroup.progress * 100)}%
+                  </span>
+                  <p className="font-mono text-[9px] text-muted-foreground uppercase">Déverrouillé</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full h-1.5 rounded-full bg-black/20 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#9e7828] to-[#c9a24b] transition-all duration-500"
+                  style={{ width: `${Math.round(activeGroup.progress * 100)}%` }}
+                />
+              </div>
+
+              {/* Runes within this group */}
+              <div className="space-y-2 pt-1">
+                {activeGroup.runes.map((rune) => (
+                  <div
+                    key={rune.principleCode}
+                    className="aegis-dock-tile rounded-xl p-3 flex items-center justify-between gap-3 hover:border-[#c9a24b]/35 transition-all"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-7 h-7 shrink-0 opacity-80">
+                        <SacredGeometry type={rune.principleCode} isGlowing={rune.isUnlocked} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-cinzel text-xs font-semibold text-foreground truncate">
+                          {rune.principleName}
+                        </p>
+                        <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-wider">
+                          Code: {rune.principleCode}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      {rune.isUnlocked ? (
+                        <span className="font-cinzel text-[9px] uppercase tracking-wider px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+                          Initié
+                        </span>
+                      ) : (
+                        <span className="font-cinzel text-[9px] uppercase tracking-wider px-2 py-0.5 rounded border border-border-subtle text-muted-foreground">
+                          {rune.pulsesCount}/{rune.pulsesToUnlock} puls.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <MemberPageScaffold width="wide" viewport className="min-w-0 overflow-x-hidden">
+      {/* Mobile Top Navigation Pills (<lg) */}
+      <div className="lg:hidden px-4 pt-3 pb-1">
+        <div className="flex items-center justify-between gap-1 p-1 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md member-top-dock-margin-end">
+          <button
+            type="button"
+            onClick={() => setActiveView("deck")}
+            className={cn(
+              "flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-cinzel text-[9.5px] font-semibold uppercase tracking-wider transition-all",
+              activeView === "deck"
+                ? "bg-[#c9a24b] text-[#0b0b0a] shadow-sm font-bold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Sparkles size={12} strokeWidth={1.5} />
+            <span className="truncate">Deck ({localCards.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveView("grimoire");
+              setCodexTab("grimoire");
+            }}
+            className={cn(
+              "flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-cinzel text-[9.5px] font-semibold uppercase tracking-wider transition-all",
+              activeView === "grimoire"
+                ? "bg-[#c9a24b] text-[#0b0b0a] shadow-sm font-bold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Library size={12} strokeWidth={1.5} />
+            <span className="truncate">Grimoire ({libraryCount})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveView("runes");
+              setCodexTab("runes");
+            }}
+            className={cn(
+              "flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-cinzel text-[9.5px] font-semibold uppercase tracking-wider transition-all",
+              activeView === "runes"
+                ? "bg-[#c9a24b] text-[#0b0b0a] shadow-sm font-bold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Hexagon size={12} strokeWidth={1.5} />
+            <span className="truncate">Runes ({unlockedRunesCount}/{totalRunesCount})</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Split View (>=lg) */}
+      <div className="hidden lg:contents">
+        <MemberSplitLayout
+          left={leftDeckPane}
+          right={rightCodexPane}
+          leftColSpan={6}
+          rightColSpan={6}
+          scrollRight={true}
+        />
+      </div>
+
+      {/* Mobile Active View (<lg) */}
+      <div className="lg:hidden px-4 pb-[calc(var(--mobile-dock-padding,5rem)+1.5rem)]">
+        {activeView === "deck" && <div className="pt-2">{leftDeckPane}</div>}
+        {activeView !== "deck" && <div className="pt-2">{rightCodexPane}</div>}
+      </div>
 
       {toast && (
         <div
@@ -372,6 +708,6 @@ export default function PulsePage() {
       )}
 
       {onboardingOverlay}
-    </div>
+    </MemberPageScaffold>
   );
 }

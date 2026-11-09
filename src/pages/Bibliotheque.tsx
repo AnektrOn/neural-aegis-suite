@@ -9,6 +9,9 @@ import type { LibraryScope } from "@/lib/library-scope";
 import { getLibraryScope, isLibraryScope } from "@/lib/library-scope";
 import { pickLocalizedText } from "@/lib/content-i18n";
 import type { Locale } from "@/i18n/translations";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
+import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
+import { cn } from "@/lib/utils";
 
 type JsonI18n = Partial<Record<Locale, string>> | Record<string, string> | null;
 
@@ -82,6 +85,7 @@ export default function Bibliotheque() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scopeFilter, setScopeFilter] = useState<LibraryFilter>("all");
+  const [mobileTab, setMobileTab] = useState<"player" | "catalog">("player");
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -235,29 +239,32 @@ export default function Bibliotheque() {
     return t("library.filterPerso");
   };
 
-  return (
-    <div className="space-y-8 max-w-6xl">
+  const leftPane = (
+    <div className="space-y-4">
       <div>
-        <p className="text-neural-label mb-3 text-neural-accent/60">{t("library.kicker")}</p>
-        <h1 className="text-neural-title text-3xl text-foreground flex items-center gap-3">
-          <Library size={28} strokeWidth={1.25} className="text-primary shrink-0" />
+        <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
+          {t("library.kicker")} · TRANSMISSIONS MAÎTRES
+        </p>
+        <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight flex items-center gap-2.5">
+          <Library size={28} strokeWidth={1.2} className="text-[#c9a24b] shrink-0" />
           {t("library.title")}
         </h1>
-        <p className="text-sm text-muted-foreground mt-2 max-w-2xl">{t("library.subtitle")}</p>
+        <p className="font-sans text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">{t("library.subtitle")}</p>
       </div>
 
       {!loading && rows.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 pt-1 sm:flex-wrap">
           {(["all", "global_fr", "global_en", "perso"] as const).map((key) => (
             <button
               key={key}
               type="button"
               onClick={() => setScopeFilter(key)}
-              className={`text-[9px] uppercase tracking-[0.2em] px-4 py-2 rounded-full border transition-all ${
+              className={cn(
+                "shrink-0 font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.14em] px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer whitespace-nowrap",
                 scopeFilter === key
-                  ? "text-primary border-primary/30 bg-primary/5"
-                  : "text-muted-foreground border-border hover:border-muted-foreground/30"
-              }`}
+                  ? "border-[#c9a24b]/60 bg-[#c9a24b]/20 text-[#c9a24b] shadow-sm font-semibold"
+                  : "border-white/5 bg-black/25 text-muted-foreground hover:border-white/15 hover:text-foreground",
+              )}
             >
               {key === "all" ? t("library.filterAll") : scopeLabel(key)}
             </button>
@@ -265,94 +272,165 @@ export default function Bibliotheque() {
         </div>
       )}
 
+      {/* Mobile Segmented Switcher (<lg) */}
+      <div className="flex lg:hidden items-center p-1 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md shadow-sm">
+        <button
+          type="button"
+          onClick={() => setMobileTab("player")}
+          className={cn(
+            "flex-1 py-2 px-2 rounded-lg text-xs font-cinzel uppercase tracking-[0.12em] font-medium transition-all text-center",
+            mobileTab === "player"
+              ? "bg-[#c9a24b]/20 text-[#c9a24b] border border-[#c9a24b]/40 shadow-sm font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          📺 Lecteur
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab("catalog")}
+          className={cn(
+            "flex-1 py-2 px-2 rounded-lg text-xs font-cinzel uppercase tracking-[0.12em] font-medium transition-all text-center",
+            mobileTab === "catalog"
+              ? "bg-[#c9a24b]/20 text-[#c9a24b] border border-[#c9a24b]/40 shadow-sm font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          📜 Catalogue ({visibleRows.length})
+        </button>
+      </div>
+
+      <div className={cn("space-y-4", mobileTab !== "player" && "hidden lg:block", "pb-[calc(var(--mobile-dock-padding,5rem)+1.5rem)] lg:pb-0")}>
+      {selected && embedSrc ? (
+        <div className="aegis-dock-tile p-5 space-y-3.5 rounded-2xl shadow-[0_12px_44px_rgba(0,0,0,0.4)]">
+          <div className="flex items-center justify-between">
+            <h2 className="font-cinzel text-xs font-semibold uppercase tracking-wider text-foreground truncate pr-2">
+              {selected.title}
+            </h2>
+            <span className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-white/10 bg-black/30 text-[#c9a24b] shrink-0">
+              {scopeLabel(selected.library_scope)}
+            </span>
+          </div>
+          <div className="relative w-full overflow-hidden rounded-xl border border-white/10 bg-black aspect-video shadow-2xl">
+            <iframe
+              title={selected.title}
+              src={embedSrc}
+              className="absolute inset-0 h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+            />
+          </div>
+          <p className="font-mono text-[10.5px] text-muted-foreground flex items-center justify-between">
+            <span>{selected.duration || "—"}</span>
+            <span>Assigné le {new Date(selected.assigned_at).toLocaleDateString(dateLocale)}</span>
+          </p>
+        </div>
+      ) : (
+        <div className="aegis-dock-tile p-12 text-center text-muted-foreground text-sm rounded-2xl shadow-md space-y-2">
+          <Library size={32} strokeWidth={1} className="mx-auto text-[#c9a24b]/30" />
+          <p className="font-cormorant text-lg font-light italic">{t("library.selectPrompt")}</p>
+        </div>
+      )}
+      </div>
+    </div>
+  );
+
+  const rightPane = (
+    <div className={cn("space-y-3", mobileTab !== "catalog" && "hidden lg:block")}>
+      <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
+        <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          {t("library.listHeading")}
+        </p>
+        <span className="font-mono text-xs text-muted-foreground">
+          {visibleRows.length} {visibleRows.length > 1 ? "vidéos" : "vidéo"}
+        </span>
+      </div>
+
       {loading && (
-        <div className="ethereal-glass p-12 text-center">
-          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+        <div className="aegis-dock-tile p-12 text-center rounded-2xl">
+          <div className="w-7 h-7 border-2 border-[#c9a24b]/30 border-t-[#c9a24b] rounded-full animate-spin mx-auto" />
         </div>
       )}
 
       {!loading && rows.length === 0 && (
-        <div className="ethereal-glass p-12 text-center">
-          <Library size={32} strokeWidth={1} className="mx-auto mb-4 text-muted-foreground/30" />
+        <div className="aegis-dock-tile p-12 text-center rounded-2xl shadow-md">
+          <Library size={32} strokeWidth={1} className="mx-auto mb-3 text-muted-foreground/30" />
           <p className="text-muted-foreground text-sm">{t("library.empty")}</p>
         </div>
       )}
 
       {!loading && rows.length > 0 && visibleRows.length === 0 && (
-        <div className="ethereal-glass p-12 text-center">
+        <div className="aegis-dock-tile p-12 text-center rounded-2xl shadow-md">
           <p className="text-muted-foreground text-sm">{t("library.emptyFilter")}</p>
         </div>
       )}
 
-      {!loading && rows.length > 0 && visibleRows.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-2 space-y-2">
-            <p className="text-neural-label mb-2">{t("library.listHeading")}</p>
-            <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
-              {visibleRows.map((item, i) => {
-                const active = item.id === selectedId;
-                const sc = item.library_scope;
-                return (
-                  <motion.button
-                    key={item.id}
-                    type="button"
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    onClick={() => setSelectedId(item.id)}
-                    className={`w-full text-left ethereal-glass p-4 rounded-xl border transition-all ${
+      {!loading && visibleRows.length > 0 && (
+        <div className="space-y-2">
+          {visibleRows.map((item, i) => {
+            const active = item.id === selectedId;
+            const sc = item.library_scope;
+            return (
+              <motion.button
+                key={item.id}
+                type="button"
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: Math.min(i * 0.03, 0.25) }}
+                onClick={() => {
+                  setSelectedId(item.id);
+                  setMobileTab("player");
+                }}
+                className={cn(
+                  "w-full text-left aegis-dock-tile p-3.5 rounded-2xl border transition-all cursor-pointer shadow-sm",
+                  active
+                    ? "border-[#c9a24b]/60 bg-[#c9a24b]/15 shadow-[0_0_24px_rgba(201,162,75,0.18)]"
+                    : "border-white/5 hover:border-[#c9a24b]/30 hover:bg-black/30",
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={cn(
+                      "mt-0.5 shrink-0 rounded-xl p-2.5 border transition-all",
                       active
-                        ? "border-primary/40 bg-primary/5"
-                        : "border-border/20 hover:border-primary/25"
-                    }`}
+                        ? "border-[#c9a24b] bg-[#c9a24b] text-[#0b0b0a] shadow-sm"
+                        : "border-white/10 bg-black/30 text-muted-foreground",
+                    )}
                   >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`mt-0.5 shrink-0 rounded-lg p-2 border ${
-                          active ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground"
-                        }`}
-                      >
-                        <Play size={14} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
-                          <span className="text-[8px] uppercase tracking-widest px-2 py-0.5 rounded-full border border-border/40 text-muted-foreground shrink-0">
-                            {scopeLabel(sc)}
-                          </span>
-                        </div>
-                        <p className="text-neural-label mt-0.5 text-xs">
-                          {item.duration || "—"} · {new Date(item.assigned_at).toLocaleDateString(dateLocale)}
-                        </p>
-                      </div>
+                    <Play size={13} fill={active ? "currentColor" : "none"} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className={cn("text-xs font-medium truncate", active ? "text-[#c9a24b] font-semibold" : "text-foreground")}>
+                        {item.title}
+                      </p>
+                      <span className="text-[8px] uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/10 text-muted-foreground shrink-0 font-mono">
+                        {scopeLabel(sc)}
+                      </span>
                     </div>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="lg:col-span-3 space-y-3">
-            <p className="text-neural-label">{t("library.playerHeading")}</p>
-            {selected && embedSrc ? (
-              <div className="ethereal-glass p-4 sm:p-5 space-y-3">
-                <p className="text-sm font-medium text-foreground">{selected.title}</p>
-                <div className="relative w-full overflow-hidden rounded-xl border border-border/30 bg-black aspect-video">
-                  <iframe
-                    title={selected.title}
-                    src={embedSrc}
-                    className="absolute inset-0 h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    allowFullScreen
-                  />
+                    <p className="font-mono mt-1 text-[10px] text-muted-foreground">
+                      {item.duration || "—"} &bull; {new Date(item.assigned_at).toLocaleDateString(dateLocale)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="ethereal-glass p-8 text-center text-muted-foreground text-sm">{t("library.selectPrompt")}</div>
-            )}
-          </div>
+              </motion.button>
+            );
+          })}
         </div>
       )}
     </div>
+  );
+
+  return (
+    <MemberPageScaffold width="wide" viewport className="min-w-0 overflow-x-hidden">
+      <MemberSplitLayout
+        left={leftPane}
+        right={rightPane}
+        leftColSpan={7}
+        rightColSpan={5}
+        scrollRight={true}
+        scrollLeft={true}
+      />
+    </MemberPageScaffold>
   );
 }

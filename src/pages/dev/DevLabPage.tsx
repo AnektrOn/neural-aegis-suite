@@ -3,6 +3,7 @@ import {
   Activity,
   ArrowLeft,
   ArrowUpRight,
+  BookOpen,
   Box,
   Film,
   Droplets,
@@ -33,6 +34,17 @@ type DevFeature = {
 
 const FEATURES: DevFeature[] = [
   {
+    path: "/dev/jung-glossary",
+    title: "Codex Doctrinal — Jung",
+    titleEn: "Doctrinal Codex — Jung",
+    blurb: "L'Homme à la découverte de son âme — 5 piliers, 20 concepts, modes Codex & Atlas, boussole typologique.",
+    blurbEn: "The Undiscovered Self & Soul — 5 pillars, 20 concepts, Codex & Atlas modes, typology compass.",
+    status: "active",
+    tags: ["doctrine", "carl-jung", "codex", "atlas"],
+    icon: BookOpen,
+    accent: "from-amber-500/25 to-stone-500/10",
+  },
+  {
     path: "/dashboard",
     title: "Bio-Executive Dashboard",
     titleEn: "Bio-Executive Dashboard",
@@ -44,7 +56,7 @@ const FEATURES: DevFeature[] = [
     accent: "from-emerald-500/20 to-amber-500/5",
   },
   {
-    path: "/dev/aegis-dashboard?fixtures=1",
+    path: "/dev/aegis-dashboard",
     title: "Hero Lab (fixtures)",
     titleEn: "Hero Lab (fixtures)",
     blurb: "Éditeur de layout héros + mock — ne remplace pas /dashboard.",

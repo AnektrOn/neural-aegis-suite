@@ -33,6 +33,7 @@ export function PromotePhoneChrome({ children }: { children: React.ReactNode }) 
     const def = RADIAL_CATALOG[id];
     const promoteSlug = PATH_TO_PROMOTE_SLUG[def.to];
     return {
+      id,
       to: promoteSlug ? `/dev/promote/${promoteSlug}` : def.to,
       Icon: def.icon,
       label: t(def.labelKey),

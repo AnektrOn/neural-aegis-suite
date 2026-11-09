@@ -125,3 +125,5 @@ Pages full-bleed (comme dashboard) : classe opt-out sur `PageWrapper` ou prop `m
 3. Aucune régression sur `/dashboard` et `MEMBER_SHELL_V2`.
 
 Commence par lire `MemberAppShell.tsx`, `AppLayout.tsx`, puis migre **CaptureHub** et **MoodTracker** comme modèles pour le reste.
+
+**Garde-fou DA (review obligatoire)** : lire `docs/MEMBER_SHELL_V2_DA_GUARDRAIL.md` et faire passer `bash scripts/validate-member-shell-da.sh` avant de livrer une vague.

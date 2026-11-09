@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { MemberPageHeader } from "@/components/ui/MemberPageHeader";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
+import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Inbox, Megaphone, User, MailOpen, ExternalLink } from "lucide-react";
@@ -126,47 +129,102 @@ export default function Messages() {
     timeStyle: "short",
   });
 
-  return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <header>
-        <p className="text-neural-label mb-3">{t("messages.sectionLabel")}</p>
-        <h1 className="text-neural-title text-3xl text-foreground">{t("messages.title")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("messages.subtitle")}</p>
-      </header>
+  const unreadCount = useMemo(() => messages.filter((m) => !m.isRead).length, [messages]);
 
-      <div className="flex flex-wrap items-center gap-2">
-        {filters.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFilter(f.id)}
-            className={cn(
-              "min-h-[40px] rounded-xl border px-4 text-xs uppercase tracking-[0.12em] transition-colors",
-              filter === f.id
-                ? "border-primary/40 bg-primary/15 text-primary"
-                : "border-border/30 bg-secondary/10 text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {f.label} <span className="opacity-60">({f.count})</span>
-          </button>
-        ))}
+  const leftPane = (
+    <div className="space-y-5">
+      <div>
+        <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
+          {t("messages.sectionLabel")} · CENTRE DE COMMANDE
+        </p>
+        <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
+          {t("messages.title")}
+        </h1>
+        <p className="font-sans text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
+          {t("messages.subtitle")}
+        </p>
+      </div>
+
+      {/* Filter Categories */}
+      <div className="space-y-2">
+        <p className="font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.2em] text-muted-foreground px-1">
+          DOSSIERS & TRANSMISSIONS
+        </p>
+        <div className="flex flex-row overflow-x-auto no-scrollbar gap-2 sm:flex-col">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                "w-full text-left rounded-xl border p-3.5 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm",
+                filter === f.id
+                  ? "border-[#c9a24b]/60 bg-[#c9a24b]/15 text-foreground shadow-[0_0_16px_rgba(201,162,75,0.12)] font-semibold"
+                  : "border-white/5 bg-black/25 text-muted-foreground hover:border-white/15 hover:text-foreground",
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                {f.id === "global" ? (
+                  <Megaphone size={14} className="text-[#c9a24b]" />
+                ) : f.id === "personal" ? (
+                  <User size={14} className="text-[#c9a24b]" />
+                ) : (
+                  <Inbox size={14} className="text-[#c9a24b]" />
+                )}
+                <span className="font-cinzel text-xs font-semibold uppercase tracking-wider">
+                  {f.label}
+                </span>
+              </div>
+              <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-black/30 border border-white/5 text-[#c9a24b]">
+                {f.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Actions & Telemetry */}
+      <div className="aegis-dock-tile p-5 rounded-2xl space-y-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+        <div className="flex items-center justify-between">
+          <span className="font-cinzel text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Non lus
+          </span>
+          <span className="font-cormorant text-2xl font-light text-[#c9a24b] tabular-nums">
+            {unreadCount}
+          </span>
+        </div>
+
         <button
           type="button"
           onClick={() => void markAllRead()}
-          className="ml-auto flex min-h-[40px] items-center gap-2 rounded-xl border border-border/30 px-4 text-xs uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground"
+          disabled={unreadCount === 0}
+          className="w-full flex min-h-[40px] items-center justify-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 font-cinzel text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-all hover:text-foreground hover:border-[#c9a24b]/40 hover:bg-[#c9a24b]/10 disabled:opacity-40 cursor-pointer"
         >
-          <MailOpen size={14} />
+          <MailOpen size={13} />
           {t("messages.markAllRead")}
         </button>
+      </div>
+    </div>
+  );
+
+  const rightPane = (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
+        <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          FLUX DES TRANSMISSIONS
+        </p>
+        <span className="font-mono text-xs text-muted-foreground">
+          {visible.length} {visible.length > 1 ? "messages" : "message"}
+        </span>
       </div>
 
       {loading ? (
         <div className="flex justify-center p-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#c9a24b]/30 border-t-[#c9a24b]" />
         </div>
       ) : visible.length === 0 ? (
-        <div className="ethereal-glass flex flex-col items-center gap-3 p-12 text-center">
-          <Inbox size={28} strokeWidth={1.5} className="text-muted-foreground" />
+        <div className="aegis-dock-tile flex flex-col items-center gap-3 p-12 text-center rounded-2xl shadow-md">
+          <Inbox size={32} strokeWidth={1} className="text-[#c9a24b]/30" />
           <p className="text-sm text-muted-foreground">{t("messages.empty")}</p>
         </div>
       ) : (
@@ -174,46 +232,74 @@ export default function Messages() {
           {visible.map((m, i) => (
             <motion.li
               key={m.id}
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: Math.min(i * 0.03, 0.3) }}
+              transition={{ delay: Math.min(i * 0.03, 0.25) }}
               className={cn(
-                "ethereal-glass space-y-3 p-6",
-                !m.isRead && "border-primary/30 ring-1 ring-primary/20",
+                "aegis-dock-tile space-y-3 p-5 rounded-2xl transition-all duration-200 shadow-sm",
+                !m.isRead
+                  ? "border-[#c9a24b]/50 shadow-[0_0_24px_rgba(201,162,75,0.18)] bg-black/30"
+                  : "border-white/5",
               )}
             >
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span
                   className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]",
+                    "flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[9.5px] font-cinzel uppercase tracking-[0.14em]",
                     m.scope === "global"
-                      ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-border/30 bg-secondary/10 text-muted-foreground",
+                      ? "border-[#c9a24b]/30 bg-[#c9a24b]/10 text-[#c9a24b]"
+                      : "border-white/10 bg-black/20 text-muted-foreground",
                   )}
                 >
-                  {m.scope === "global" ? <Megaphone size={11} /> : <User size={11} />}
+                  {m.scope === "global" ? <Megaphone size={10} /> : <User size={10} />}
                   {m.scope === "global" ? t("messages.badgeGlobal") : t("messages.badgePersonal")}
                 </span>
-                <span className="text-xs text-muted-foreground">{dateFormat.format(new Date(m.createdAt))}</span>
-                {!m.isRead && (
-                  <span className="text-[10px] uppercase tracking-[0.14em] text-primary">{t("messages.unread")}</span>
-                )}
+
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    {dateFormat.format(new Date(m.createdAt))}
+                  </span>
+                  {!m.isRead && (
+                    <span className="font-cinzel text-[9px] uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-[#c9a24b]/40 bg-[#c9a24b]/15 text-[#c9a24b] font-semibold">
+                      {t("messages.unread")}
+                    </span>
+                  )}
+                </div>
               </div>
-              <h2 className="text-base font-medium text-foreground">{m.title}</h2>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{m.body}</p>
+
+              <h2 className="text-sm font-semibold text-foreground font-cinzel tracking-wide">{m.title}</h2>
+              <p className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground font-sans">
+                {m.body}
+              </p>
+
               {m.link && (
-                <Link
-                  to={m.link}
-                  className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-primary hover:underline"
-                >
-                  <ExternalLink size={13} />
-                  {t("messages.openLink")}
-                </Link>
+                <div className="pt-1">
+                  <Link
+                    to={m.link}
+                    className="inline-flex items-center gap-1.5 font-cinzel text-[10px] uppercase tracking-[0.14em] text-[#c9a24b] hover:underline"
+                  >
+                    <ExternalLink size={12} />
+                    {t("messages.openLink")}
+                  </Link>
+                </div>
               )}
             </motion.li>
           ))}
         </ul>
       )}
     </div>
+  );
+
+  return (
+    <MemberPageScaffold width="wide" viewport className="min-w-0 overflow-x-hidden">
+      <MemberSplitLayout
+        left={leftPane}
+        right={rightPane}
+        leftColSpan={4}
+        rightColSpan={8}
+        scrollRight={true}
+        scrollLeft={true}
+      />
+    </MemberPageScaffold>
   );
 }

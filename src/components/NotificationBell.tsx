@@ -10,9 +10,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Z_INDEX } from "@/lib/zIndex";
+import { useMemberInboxUnread } from "@/hooks/useMemberInboxUnread";
 
-interface Notification {
+interface BellItem {
   id: string;
+  source: "notification" | "admin_message";
+  rawId: string;
   title: string;
   message: string;
   type: string;
@@ -20,8 +23,6 @@ interface Notification {
   link: string | null;
   created_at: string;
 }
-
-/** Voir `src/lib/admin-notification-registry.ts` pour la liste des types admin vs utilisateur. */
 
 function formatNotificationTime(iso: string, locale: string): string {
   const loc = locale === "fr" ? "fr-FR" : "en-US";
@@ -38,32 +39,66 @@ export default function NotificationBell() {
   const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [items, setItems] = useState<BellItem[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { unreadCount: inboxUnreadCount, refresh: refreshInboxUnread } = useMemberInboxUnread(user?.id);
 
-  const loadNotifications = useCallback(async () => {
+  const loadInbox = useCallback(async () => {
     if (!user?.id) return;
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (error) {
-      console.error("notifications load", error);
-      setNotifications([]);
-      return;
-    }
-    setNotifications(((data as any[]) || []) as Notification[]);
-  }, [user?.id]);
+    const [notifRes, adminRes] = await Promise.all([
+      supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(16),
+      supabase
+        .from("admin_messages")
+        .select("*")
+        .eq("recipient_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(16),
+    ]);
+
+    const fromNotif: BellItem[] = ((notifRes.data as any[]) || []).map((n) => ({
+      id: `nt-${n.id}`,
+      source: "notification" as const,
+      rawId: n.id,
+      title: n.title ?? "",
+      message: n.message ?? "",
+      type: n.type ?? "info",
+      is_read: Boolean(n.is_read),
+      link: n.link ?? null,
+      created_at: n.created_at,
+    }));
+
+    const fromAdmin: BellItem[] = ((adminRes.data as any[]) || []).map((m) => ({
+      id: `am-${m.id}`,
+      source: "admin_message" as const,
+      rawId: m.id,
+      title: m.subject ?? "",
+      message: m.body ?? "",
+      type: "admin",
+      is_read: Boolean(m.is_read),
+      link: "/messages",
+      created_at: m.created_at,
+    }));
+
+    const merged = [...fromNotif, ...fromAdmin]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 20);
+
+    setItems(merged);
+    void refreshInboxUnread();
+  }, [user?.id, refreshInboxUnread]);
 
   useEffect(() => {
     if (!user?.id) return;
-    void loadNotifications();
+    void loadInbox();
 
     const channel = supabase
-      .channel(`notifications-${user.id}`)
+      .channel(`notifications-bell-${user.id}`)
       .on(
         "postgres_changes",
         {
@@ -74,30 +109,47 @@ export default function NotificationBell() {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            const n = payload.new as Notification;
-            setNotifications((prev) => [n, ...prev].slice(0, 20));
+            const n = payload.new as Record<string, unknown>;
+            const item: BellItem = {
+              id: `nt-${String(n.id)}`,
+              source: "notification",
+              rawId: String(n.id),
+              title: String(n.title ?? ""),
+              message: String(n.message ?? ""),
+              type: String(n.type ?? "info"),
+              is_read: Boolean(n.is_read),
+              link: (n.link as string | null) ?? null,
+              created_at: String(n.created_at),
+            };
+            setItems((prev) => [item, ...prev].slice(0, 20));
             const toastFn =
-              n.type === "success"
+              item.type === "success"
                 ? toast.success
-                : n.type === "error"
+                : item.type === "error"
                   ? toast.error
                   : toast;
-            toastFn(n.title, { description: n.message });
-          } else if (payload.eventType === "UPDATE") {
-            setNotifications((prev) =>
-              prev.map((n) => (n.id === (payload.new as Notification).id ? (payload.new as Notification) : n))
-            );
-          } else if (payload.eventType === "DELETE") {
-            setNotifications((prev) => prev.filter((n) => n.id !== (payload.old as Notification).id));
+            toastFn(item.title, { description: item.message });
+          } else {
+            void loadInbox();
           }
-        }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "admin_messages",
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        () => void loadInbox(),
       )
       .subscribe();
 
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user, loadNotifications]);
+  }, [user, loadInbox]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -108,47 +160,66 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handler);
   }, [isMobile]);
 
-  const markRead = async (id: string) => {
-    await supabase
-      .from("notifications")
-      .update({ is_read: true } as any)
-      .eq("id", id);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+  const markRead = async (item: BellItem) => {
+    if (item.source === "notification") {
+      await supabase.from("notifications").update({ is_read: true } as any).eq("id", item.rawId);
+    } else {
+      await supabase.from("admin_messages").update({ is_read: true }).eq("id", item.rawId);
+    }
+    setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, is_read: true } : n)));
+    void refreshInboxUnread();
   };
 
   const markAllRead = async () => {
-    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
-    if (unreadIds.length === 0) return;
-    await supabase
-      .from("notifications")
-      .update({ is_read: true } as any)
-      .in("id", unreadIds);
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    const unreadNotif = items.filter((n) => n.source === "notification" && !n.is_read);
+    const unreadAdmin = items.filter((n) => n.source === "admin_message" && !n.is_read);
+    if (unreadNotif.length) {
+      await supabase
+        .from("notifications")
+        .update({ is_read: true } as any)
+        .in(
+          "id",
+          unreadNotif.map((n) => n.rawId),
+        );
+    }
+    if (unreadAdmin.length) {
+      await supabase
+        .from("admin_messages")
+        .update({ is_read: true })
+        .in(
+          "id",
+          unreadAdmin.map((n) => n.rawId),
+        );
+    }
+    setItems((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    void refreshInboxUnread();
   };
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadCount = inboxUnreadCount > 0 ? inboxUnreadCount : items.filter((n) => !n.is_read).length;
 
   const NotificationList = () => (
     <>
       <div className="p-3 border-b border-border flex justify-between items-center">
         <h3 className="text-xs font-medium text-foreground uppercase tracking-wider">{t("notifications.title")}</h3>
         {unreadCount > 0 && (
-          <button onClick={markAllRead} className="text-[10px] text-primary hover:underline">
+          <button type="button" onClick={() => void markAllRead()} className="text-[10px] text-primary hover:underline">
             {t("notifications.markAllRead")}
           </button>
         )}
       </div>
-      {notifications.length === 0 ? (
+      {items.length === 0 ? (
         <div className="p-6 text-center text-muted-foreground text-xs">{t("notifications.none")}</div>
       ) : (
-        notifications.map((n) => (
+        items.map((n) => (
           <button
             key={n.id}
+            type="button"
             onClick={() => {
-              void markRead(n.id);
-              if (n.link) {
+              void markRead(n);
+              const dest = n.link;
+              if (dest) {
                 setOpen(false);
-                navigate(n.link);
+                navigate(dest);
               }
             }}
             className={`w-full text-left p-3 border-b border-border/50 hover:bg-secondary/20 transition-colors ${!n.is_read ? "bg-primary/5" : ""}`}
@@ -157,7 +228,7 @@ export default function NotificationBell() {
               {!n.is_read && <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />}
               <div className={!n.is_read ? "" : "ml-3.5"}>
                 <p className="text-xs font-medium text-foreground">{n.title}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{n.message}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                 <p className="text-[9px] text-muted-foreground mt-1">
                   {formatNotificationTime(n.created_at, locale)}
                 </p>
@@ -166,6 +237,18 @@ export default function NotificationBell() {
           </button>
         ))
       )}
+      <div className="p-2 border-t border-border">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            navigate("/messages");
+          }}
+          className="w-full min-h-[40px] rounded-lg text-[10px] font-cinzel uppercase tracking-wider text-primary hover:bg-primary/10 transition-colors"
+        >
+          {t("notifications.viewAllMessages")}
+        </button>
+      </div>
     </>
   );
 
@@ -173,33 +256,31 @@ export default function NotificationBell() {
     HTMLButtonElement,
     React.ComponentPropsWithoutRef<"button"> & { expanded?: boolean }
   >(({ className, onClick, expanded, ...rest }, ref) => (
-      <button
-        ref={ref}
-        type="button"
-        {...rest}
-        aria-label={t("notifications.openPanel")}
-        aria-expanded={expanded ?? false}
-        onClick={(e) => {
-          setOpen((o) => !o);
-          onClick?.(e);
-        }}
-        className={cn(
-          "relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors",
-          className
-        )}
-      >
-        <Bell size={16} aria-hidden />
-        {unreadCount > 0 && (
-          <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-1 rounded-full bg-accent text-[8px] text-accent-foreground flex items-center justify-center font-semibold leading-none ring-2 ring-bg-surface pointer-events-none">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
-    )
-  );
+    <button
+      ref={ref}
+      type="button"
+      {...rest}
+      aria-label={t("notifications.openPanel")}
+      aria-expanded={expanded ?? false}
+      onClick={(e) => {
+        setOpen((o) => !o);
+        onClick?.(e);
+      }}
+      className={cn(
+        "relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors",
+        className,
+      )}
+    >
+      <Bell size={16} aria-hidden />
+      {unreadCount > 0 && (
+        <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-1 rounded-full bg-accent text-[8px] text-accent-foreground flex items-center justify-center font-semibold leading-none ring-2 ring-bg-surface pointer-events-none">
+          {unreadCount > 9 ? "9+" : unreadCount}
+        </span>
+      )}
+    </button>
+  ));
   BellButton.displayName = "BellButton";
 
-  // ── Mobile: bottom sheet anchored above the mobile dock ─────────────────────
   if (isMobile) {
     const mobilePanel = (
       <AnimatePresence>
@@ -246,7 +327,6 @@ export default function NotificationBell() {
     );
   }
 
-  // ── Tablet & Desktop: dropdown anchored to the bell button ─────────────────
   return (
     <div ref={ref} className="relative">
       <BellButton expanded={open} />

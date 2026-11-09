@@ -24,6 +24,8 @@ export interface PulseCardRow {
 export interface PulseCardImportPayload {
   external_key: string;
   principle: string;
+  /** Optional glyph/collection code from markdown (e.g. JUNG_AME) — used to auto-seed missing runes. */
+  glyph?: string;
   archetype_targets: string[];
   target_user_ids: string[];
   content_type: string;
@@ -44,26 +46,86 @@ export interface ImportPreview {
   cards: PulseCardImportPayload[];
 }
 
-export async function listPulseCards(): Promise<PulseCardRow[]> {
-  const { data, error } = await supabase
-    .from("aegis_synapse_cards" as never)
-    .select("*, aegis_rune_principles!inner(code, name_i18n)" as never)
-    .order("sort_order" as never, { ascending: true });
+export function parseStringOrArray(val: unknown): string[] {
+  if (Array.isArray(val)) return val.map(String).filter(Boolean);
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+      } catch {
+        /* ignore */
+      }
+    }
+    // Postgres array format "{uuid1,uuid2}"
+    return trimmed
+      .replace(/^\{|\}$/g, "")
+      .split(",")
+      .map((s) => s.replace(/^"|"$/g, "").trim())
+      .filter(Boolean);
+  }
+  return [];
+}
 
-  if (error) {
-    console.error("listPulseCards:", error.message);
+export async function listPulseCards(): Promise<PulseCardRow[]> {
+  try {
+    const [cardsRes, principlesRes] = await Promise.all([
+      supabase
+        .from("aegis_synapse_cards" as never)
+        .select("*" as never)
+        .order("sort_order" as never, { ascending: true }),
+      supabase
+        .from("aegis_rune_principles" as never)
+        .select("id, code, name_i18n" as never),
+    ]);
+
+    if (cardsRes.error) {
+      console.error("listPulseCards cards:", cardsRes.error.message);
+      return [];
+    }
+
+    const principleMap = new Map<string, { code: string; name: string }>();
+    if (principlesRes.data) {
+      for (const p of (principlesRes.data as { id: string; code: string; name_i18n?: Record<string, string> }[]) ?? []) {
+        principleMap.set(p.id, {
+          code: p.code,
+          name: p.name_i18n?.fr ?? p.name_i18n?.en ?? p.code,
+        });
+      }
+    }
+
+    return ((cardsRes.data as never[]) ?? []).map((row: never) => {
+      const r = row as Record<string, unknown>;
+      const pId = String(r.principle_id ?? "");
+      const pInfo = principleMap.get(pId);
+
+      return {
+        ...r,
+        id: String(r.id ?? ""),
+        external_key: (r.external_key as string) ?? null,
+        principle_id: pId,
+        principle_code: pInfo?.code ?? (r.principle_code as string) ?? "",
+        principle_name: pInfo?.name ?? (r.principle_name as string) ?? "",
+        title_i18n: (r.title_i18n as Record<string, string>) ?? {},
+        problem_i18n: (r.problem_i18n as Record<string, string>) ?? {},
+        bullets_i18n: (r.bullets_i18n as Record<string, string[]>) ?? {},
+        format_i18n: (r.format_i18n as Record<string, string>) ?? {},
+        course_content_i18n: (r.course_content_i18n as Record<string, { hook?: string; concept?: string; action?: string }>) ?? {},
+        archetype_targets: parseStringOrArray(r.archetype_targets),
+        target_user_ids: parseStringOrArray(r.target_user_ids),
+        content_type: (r.content_type as string) ?? "card",
+        time_label: (r.time_label as string) ?? "2 MIN",
+        is_active: Boolean(r.is_active),
+        sort_order: typeof r.sort_order === "number" ? r.sort_order : 0,
+        created_at: (r.created_at as string) ?? "",
+      } as PulseCardRow;
+    });
+  } catch (err) {
+    console.error("listPulseCards unhandled exception:", err);
     return [];
   }
-
-  return ((data as never[]) ?? []).map((row: never) => {
-    const r = row as Record<string, unknown>;
-    const p = r.aegis_rune_principles as Record<string, unknown> | undefined;
-    return {
-      ...r,
-      principle_code: p?.code as string,
-      principle_name: ((p?.name_i18n as Record<string, string>) ?? {}).fr ?? "",
-    } as PulseCardRow;
-  });
 }
 
 export function parseAndPreviewImport(jsonText: string): ImportPreview {
@@ -120,9 +182,15 @@ export function parseAndPreviewImport(jsonText: string): ImportPreview {
       (legacyUserType && knownContentTypes.has(legacyUserType) && legacyUserType) ||
       "card";
 
+    const glyph =
+      typeof obj.glyph === "string" && obj.glyph.trim()
+        ? obj.glyph.trim().toUpperCase()
+        : undefined;
+
     cards.push({
       external_key: obj.external_key as string,
       principle: obj.principle as string,
+      glyph,
       archetype_targets: archetypes,
       target_user_ids: targetUserIds,
       content_type: contentType,
@@ -140,6 +208,103 @@ export function parseAndPreviewImport(jsonText: string): ImportPreview {
   return { total: items.length, valid: cards.length, errors, cards };
 }
 
+function humanizePrincipleCode(code: string): string {
+  return code
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+async function ensurePrincipleForImport(
+  principleCode: string,
+  glyphCode: string | undefined,
+  principleMap: Map<string, string>,
+  collectionMap: Map<string, string>,
+): Promise<{ id: string | null; error?: string }> {
+  const existing = principleMap.get(principleCode);
+  if (existing) return { id: existing };
+
+  let collectionId: string | null = null;
+  const glyph = (glyphCode ?? "").trim().toUpperCase();
+
+  if (glyph) {
+    collectionId = collectionMap.get(glyph) ?? null;
+    if (!collectionId) {
+      const label = humanizePrincipleCode(glyph);
+      const { data: upserted, error: collErr } = await supabase
+        .from("aegis_rune_collections" as never)
+        .upsert(
+          {
+            code: glyph,
+            name_i18n: { fr: label, en: label },
+            description_i18n: { fr: "", en: "" },
+            icon_key: "sparkles",
+            sort_order: collectionMap.size + 1,
+            is_active: true,
+          } as never,
+          { onConflict: "code" as never },
+        )
+        .select("id, code" as never)
+        .maybeSingle();
+
+      if (collErr) {
+        return { id: null, error: `collection '${glyph}' — ${collErr.message}` };
+      }
+      const row = upserted as { id: string; code: string } | null;
+      if (row?.id) {
+        collectionMap.set(row.code, row.id);
+        collectionId = row.id;
+      }
+    }
+  }
+
+  const label = humanizePrincipleCode(principleCode);
+  const { data: created, error: runeErr } = await supabase
+    .from("aegis_rune_principles" as never)
+    .upsert(
+      {
+        code: principleCode,
+        name_i18n: { fr: label, en: label },
+        quote_i18n: { fr: "", en: "" },
+        description_i18n: { fr: "", en: "" },
+        bg_class: "from-indigo-950 to-black",
+        text_class: "text-indigo-100",
+        sort_order: principleMap.size + 1,
+        pulses_to_unlock: 3,
+        is_active: true,
+        collection_id: collectionId,
+        icon_key: "orbit",
+      } as never,
+      { onConflict: "code" as never },
+    )
+    .select("id, code" as never)
+    .maybeSingle();
+
+  if (runeErr) {
+    return { id: null, error: `principe '${principleCode}' — ${runeErr.message}` };
+  }
+
+  const row = created as { id: string; code: string } | null;
+  if (!row?.id) {
+    // Upsert without RETURNING fallback: re-fetch
+    const { data: fetched, error: fetchErr } = await supabase
+      .from("aegis_rune_principles" as never)
+      .select("id, code" as never)
+      .eq("code" as never, principleCode as never)
+      .maybeSingle();
+    if (fetchErr || !(fetched as { id?: string } | null)?.id) {
+      return { id: null, error: `principe '${principleCode}' introuvable après création` };
+    }
+    const id = (fetched as { id: string }).id;
+    principleMap.set(principleCode, id);
+    return { id };
+  }
+
+  principleMap.set(row.code, row.id);
+  return { id: row.id };
+}
+
 export async function runPulseImport(
   cards: PulseCardImportPayload[],
 ): Promise<{ ok: boolean; inserted: number; updated: number; errors: string[] }> {
@@ -147,20 +312,38 @@ export async function runPulseImport(
   let updated = 0;
   const errors: string[] = [];
 
-  const { data: principles } = await supabase
-    .from("aegis_rune_principles" as never)
-    .select("id, code" as never);
+  const [{ data: principles }, { data: collections }] = await Promise.all([
+    supabase.from("aegis_rune_principles" as never).select("id, code" as never),
+    supabase.from("aegis_rune_collections" as never).select("id, code" as never),
+  ]);
 
   const principleMap = new Map<string, string>();
   for (const p of (principles as { id: string; code: string }[]) ?? []) {
     principleMap.set(p.code, p.id);
   }
 
+  const collectionMap = new Map<string, string>();
+  for (const c of (collections as { id: string; code: string }[]) ?? []) {
+    collectionMap.set(c.code, c.id);
+  }
+
   for (const card of cards) {
-    const principleId = principleMap.get(card.principle);
+    let principleId = principleMap.get(card.principle) ?? null;
     if (!principleId) {
-      errors.push(`${card.external_key}: principe '${card.principle}' introuvable`);
-      continue;
+      const ensured = await ensurePrincipleForImport(
+        card.principle,
+        card.glyph,
+        principleMap,
+        collectionMap,
+      );
+      if (!ensured.id) {
+        errors.push(
+          `${card.external_key}: principe '${card.principle}' introuvable` +
+            (ensured.error ? ` (${ensured.error})` : " — créez la rune dans Admin Pulse → Runes, ou renseignez glyph"),
+        );
+        continue;
+      }
+      principleId = ensured.id;
     }
 
     const payload = {
@@ -271,17 +454,22 @@ export interface ProfileOption {
 }
 
 export async function fetchProfileOptions(): Promise<ProfileOption[]> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .order("display_name", { ascending: true })
-    .limit(1000);
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .order("display_name", { ascending: true })
+      .limit(1000);
 
-  if (error) {
-    console.error("fetchProfileOptions:", error.message);
+    if (error) {
+      console.error("fetchProfileOptions:", error.message);
+      return [];
+    }
+    return (data ?? []) as ProfileOption[];
+  } catch (err) {
+    console.error("fetchProfileOptions unhandled exception:", err);
     return [];
   }
-  return (data ?? []) as ProfileOption[];
 }
 
 export interface PulseSwipeLogEntry {

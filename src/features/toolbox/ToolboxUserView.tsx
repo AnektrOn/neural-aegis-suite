@@ -39,6 +39,7 @@ import {
 } from "@/features/toolbox/ToolboxAssignmentStatsStrip";
 import { useToolboxExerciseSessionOptional } from "@/features/toolbox/ToolboxExerciseSessionContext";
 import AddToCalendarButton from "@/features/toolbox/AddToCalendarButton";
+import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
 
 interface ToolboxItem {
   id: string;
@@ -97,6 +98,7 @@ export function ToolboxUserView({
   const [widgetReloadKeys, setWidgetReloadKeys] = useState<Record<string, number>>({});
   const [refreshingList, setRefreshingList] = useState(false);
   const [completionDialog, setCompletionDialog] = useState<{ open: boolean; itemId: string | null; status: string }>({ open: false, itemId: null, status: "" });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!userId) return;
@@ -442,6 +444,11 @@ export function ToolboxUserView({
     [activeWidget, items],
   );
 
+  const selectedItem = useMemo(
+    () => (selectedId ? items.find((i) => i.id === selectedId) ?? filtered[0] ?? null : filtered[0] ?? null),
+    [selectedId, items, filtered],
+  );
+
   const openTodoItem = useCallback(
     (item: ToolboxItem) => {
       const isWaiting = (item.user_delivery_status || "active") === "waiting";
@@ -546,30 +553,39 @@ export function ToolboxUserView({
   const totalItems = items.filter((i) => (i.user_delivery_status || "active") !== "waiting").length;
   const progressPct = totalItems > 0 ? Math.round((doneCount / totalItems) * 100) : 0;
 
-  return (
-    <div className={cn("mx-auto w-full min-w-0 max-w-5xl overflow-x-hidden space-y-6 sm:space-y-8", className)}>
+  const spotlightCfg = selectedItem
+    ? TOOLBOX_TYPE_META[selectedItem.content_type] || TOOLBOX_TYPE_META.course
+    : null;
+  const spotlightWaiting = selectedItem ? (selectedItem.user_delivery_status || "active") === "waiting" : false;
+  const spotlightExternal = selectedItem ? selectedItem.content_type === "external_link" && selectedItem.external_url : false;
+  const spotlightVideo = Boolean(spotlightExternal && selectedItem?.external_url && isLikelyVideoUrl(selectedItem.external_url));
+  const spotlightHabitLinked = selectedItem ? isInHabits(selectedItem.id) : false;
+  const spotlightHabitBusy = selectedItem ? habitLinkBusy === selectedItem.id : false;
+
+  const leftPane = (
+    <div className="flex flex-col gap-4 sm:gap-5 min-h-0 justify-between">
       {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-3 sm:gap-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-1.5">
+          <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.26em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
             {t("toolbox.neuralLibrary")}
           </p>
-          <h1 className="font-cormorant text-2xl sm:text-3xl md:text-4xl font-light text-text-primary tracking-tight mb-3 break-words">
+          <h1 className="font-cormorant text-2xl sm:text-3xl md:text-4xl font-light text-foreground tracking-tight mb-2 break-words">
             {t("toolbox.title")}
           </h1>
           {items.length > 0 ? (
             <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
               <div className="h-1.5 min-w-[5rem] flex-1 max-w-[180px] rounded-full bg-border/40 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-primary/60 transition-all duration-700"
+                  className="h-full rounded-full bg-primary/70 transition-all duration-700"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
-              <span className="font-display text-[10px] tracking-[0.15em] text-text-tertiary/70 tabular-nums whitespace-nowrap shrink-0">
+              <span className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground tabular-nums whitespace-nowrap shrink-0">
                 {doneCount}/{totalItems}
               </span>
               {todoCount > 0 ? (
-                <span className="shrink-0 rounded-full border border-primary/30 bg-primary/8 px-2 py-0.5 font-display text-[9px] tracking-[0.14em] uppercase text-primary max-w-full truncate">
+                <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-cinzel text-[9px] font-semibold tracking-[0.14em] uppercase text-primary max-w-full truncate">
                   {t("toolbox.statsTodoChip", { n: String(todoCount) })}
                 </span>
               ) : null}
@@ -581,9 +597,9 @@ export function ToolboxUserView({
           onClick={() => void refreshList()}
           disabled={loading || refreshingList}
           aria-label={t("toolbox.reload")}
-          className="mt-1 flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-border/50 bg-background/60 text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary disabled:opacity-40"
+          className="mt-1 flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-full border border-border/50 bg-background/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-40"
         >
-          <RefreshCw size={15} className={cn((loading || refreshingList) && "animate-spin")} />
+          <RefreshCw size={14} className={cn((loading || refreshingList) && "animate-spin")} />
         </button>
       </div>
 
@@ -608,11 +624,11 @@ export function ToolboxUserView({
       ) : null}
 
       {/* ── Main tabs ── */}
-      <div className="min-w-0 space-y-3">
+      <div className="min-w-0 space-y-2.5">
         <div
           role="tablist"
           aria-label={t("toolbox.title")}
-          className="flex min-w-0 gap-1 rounded-2xl border border-border/40 bg-background/40 p-1"
+          className="aegis-dock-tile flex min-w-0 gap-1 rounded-2xl p-1"
         >
           {(
             [
@@ -636,15 +652,15 @@ export function ToolboxUserView({
                 });
               }}
               className={cn(
-                "flex min-w-0 flex-1 min-h-[40px] items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.12em] sm:tracking-[0.16em] transition-all duration-150",
+                "flex min-w-0 flex-1 min-h-[38px] items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 font-cinzel text-[10px] font-semibold uppercase tracking-[0.14em] transition-all",
                 mainView === entry.key
-                  ? "bg-background shadow-sm border border-border/40 text-foreground"
+                  ? "bg-white/10 dark:bg-white/10 text-[#c9a24b] shadow-sm border border-[#c9a24b]/30 backdrop-blur-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
               <span className="truncate">{entry.label}</span>
               {entry.badge ? (
-                <span className="inline-flex min-w-[16px] shrink-0 items-center justify-center rounded-full bg-primary/15 px-1 py-0.5 text-[8px] tabular-nums text-primary">
+                <span className="inline-flex min-w-[16px] shrink-0 items-center justify-center rounded-full bg-[#c9a24b]/15 px-1 py-0.5 text-[8px] font-mono tabular-nums text-[#c9a24b]">
                   {entry.badge}
                 </span>
               ) : null}
@@ -652,20 +668,20 @@ export function ToolboxUserView({
           ))}
         </div>
 
-        {/* Type filter — horizontal scrolling chips */}
+        {/* Type filter */}
         {types.length > 1 ? (
-          <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex w-max min-w-full gap-2">
+          <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-0.5 no-scrollbar">
+            <div className="flex w-max min-w-full gap-1.5">
               {types.map((f) => (
                 <button
                   key={f}
                   type="button"
                   onClick={() => startTransition(() => setTypeFilter(f))}
                   className={cn(
-                    "shrink-0 min-h-[34px] rounded-full border px-3 py-1 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] transition-colors whitespace-nowrap",
+                    "shrink-0 min-h-[30px] rounded-full border px-3 py-1 font-cinzel text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors whitespace-nowrap",
                     typeFilter === f
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border/40 text-muted-foreground hover:border-primary/20 hover:text-foreground",
+                      ? "border-[#c9a24b]/40 bg-[#c9a24b]/10 text-[#c9a24b]"
+                      : "border-border/40 text-muted-foreground hover:border-[#c9a24b]/20 hover:text-foreground",
                   )}
                 >
                   {getTypeLabel(f)}
@@ -676,12 +692,105 @@ export function ToolboxUserView({
         ) : null}
       </div>
 
+      {/* ── Spotlight Practice Card ── */}
+      {selectedItem && spotlightCfg ? (
+        <div className="aegis-dock-tile rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] space-y-4">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#c9a24b]/30 bg-[#c9a24b]/10 backdrop-blur-sm shadow-[0_2px_8px_rgba(201,162,75,0.12)]">
+              <spotlightCfg.icon size={20} strokeWidth={1.5} className="text-[#c9a24b]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                <span className="font-cinzel text-[9px] font-semibold uppercase tracking-[0.16em] text-[#c9a24b]">
+                  {getTypeLabel(selectedItem.content_type)}
+                </span>
+                {durationLabel(selectedItem) ? (
+                  <span className="font-mono text-[9px] text-muted-foreground">· {durationLabel(selectedItem)}</span>
+                ) : null}
+              </div>
+              <h2 className="font-cormorant text-xl sm:text-2xl font-light text-foreground leading-snug break-words">
+                {getLocalizedTitle(selectedItem)}
+              </h2>
+            </div>
+          </div>
+
+          {getLocalizedDescription(selectedItem) ? (
+            <p className="font-sans text-xs text-muted-foreground leading-relaxed line-clamp-3">
+              {getLocalizedDescription(selectedItem)}
+            </p>
+          ) : null}
+
+          <div className="pt-1">
+            {spotlightWaiting ? (
+              <button
+                type="button"
+                onClick={() => void confirmWaiting(selectedItem.id)}
+                className="w-full flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 font-cinzel text-xs font-semibold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-200 transition-colors hover:bg-amber-500/15"
+              >
+                <CheckCircle2 size={13} />
+                <span>{t("toolbox.confirmDelivery")}</span>
+              </button>
+            ) : spotlightVideo ? (
+              <Link
+                to="/bibliotheque"
+                className="w-full btn-solaire flex min-h-[44px] items-center justify-center gap-2 rounded-xl py-2.5 font-cinzel text-xs font-semibold uppercase tracking-[0.16em]"
+              >
+                <Library size={13} />
+                <span>{t("toolbox.openInLibrary")}</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openTodoItem(selectedItem)}
+                className="w-full btn-solaire flex min-h-[44px] items-center justify-center gap-2 rounded-xl py-2.5 font-cinzel text-xs font-semibold uppercase tracking-[0.16em]"
+              >
+                <Play size={12} fill="currentColor" />
+                <span>Démarrer l'exercice</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/20 pt-3">
+            <ToolboxAssignmentStatsStrip stats={getStatsForItem(selectedItem.id)} className="min-w-0" />
+            {!spotlightWaiting ? (
+              <div className="flex items-center gap-1.5">
+                <ToolboxHabitLinkButton
+                  itemId={selectedItem.id}
+                  linked={spotlightHabitLinked}
+                  busy={spotlightHabitBusy}
+                  onToggle={(id) => void toggleHabitLink(id)}
+                  compact={true}
+                />
+                <AddToCalendarButton
+                  title={getLocalizedTitle(selectedItem)}
+                  description={getLocalizedDescription(selectedItem)}
+                  duration={durationLabel(selectedItem) ?? selectedItem.duration}
+                  path={`/toolbox?item=${selectedItem.id}`}
+                  category={getTypeLabel(selectedItem.content_type)}
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const rightPane = (
+    <div className="flex flex-col gap-4 min-h-0">
+      <div className="flex items-center justify-between">
+        <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90">
+          File de Pratiques
+        </h2>
+        <span className="font-mono text-[10px] text-muted-foreground">{filtered.length} exercices</span>
+      </div>
+
       {(mainView === "all" || mainView === "history") ? (
-        <div className="min-w-0 rounded-2xl border border-border/30 bg-background/30 px-3 py-3 sm:px-4 sm:py-3.5 space-y-3">
+        <div className="min-w-0 aegis-dock-tile rounded-2xl px-3 py-3 sm:px-4 sm:py-3.5 space-y-3">
           {/* Lifetime stats row */}
           <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-1.5 sm:gap-x-5">
             {[
-              { count: historyTotals.completed, label: t("toolbox.completed"), dot: "bg-primary/70" },
+              { count: historyTotals.completed, label: t("toolbox.completed"), dot: "bg-[#c9a24b]" },
               { count: historyTotals.abandoned, label: t("toolbox.abandoned"), dot: "bg-destructive/70" },
               { count: historyTotals.ignored, label: t("toolbox.ignored"), dot: "bg-border" },
             ].filter(s => s.count > 0).map((s) => (
@@ -692,8 +801,8 @@ export function ToolboxUserView({
               </span>
             ))}
           </div>
-          {/* Status filter chips — scroll on narrow screens */}
-          <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Status filter chips */}
+          <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-0.5 no-scrollbar">
             <div className="flex w-max min-w-full flex-wrap gap-1.5 sm:w-auto" role="tablist" aria-label={t("toolbox.statusFilter")}>
               {statusFilterOptions.map((entry) => (
                 <button
@@ -703,10 +812,10 @@ export function ToolboxUserView({
                   aria-selected={statusFilter === entry.key}
                   onClick={() => startTransition(() => setStatusFilter(entry.key))}
                   className={cn(
-                    "shrink-0 min-h-[32px] rounded-full border px-2.5 sm:px-3 py-1 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] transition-all whitespace-nowrap",
+                    "shrink-0 min-h-[30px] rounded-full border px-2.5 sm:px-3 py-1 font-cinzel text-[9px] font-semibold uppercase tracking-[0.12em] transition-all whitespace-nowrap",
                     statusFilter === entry.key
-                      ? "border-primary/40 bg-primary/10 text-primary shadow-sm"
-                      : "border-border/40 text-muted-foreground hover:border-primary/20 hover:text-foreground",
+                      ? "border-[#c9a24b]/40 bg-[#c9a24b]/10 text-[#c9a24b] shadow-sm"
+                      : "border-border/40 text-muted-foreground hover:border-[#c9a24b]/20 hover:text-foreground",
                   )}
                 >
                   {entry.label}
@@ -846,9 +955,9 @@ export function ToolboxUserView({
                     >
                       <article
                         className={cn(
-                          "ethereal-glass flex min-w-0 flex-col gap-0 rounded-2xl border border-border/35 overflow-hidden transition-all",
-                          linkedToHabits && "border-primary/35",
-                          !isWaiting && "cursor-pointer hover:border-primary/25 sm:active:scale-[0.995]",
+                          "aegis-dock-tile flex min-w-0 flex-col gap-0 rounded-2xl overflow-hidden transition-all duration-200",
+                          linkedToHabits && "border-[#c9a24b]/40",
+                          !isWaiting && "cursor-pointer hover:border-[#c9a24b]/40 sm:active:scale-[0.995]",
                         )}
                         role={isWaiting ? undefined : "button"}
                         tabIndex={isWaiting ? undefined : 0}
@@ -869,7 +978,7 @@ export function ToolboxUserView({
                           <div className="flex min-w-0 flex-1 items-start gap-3">
                             <div className={cn(
                               "mt-0.5 shrink-0 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl",
-                              "border border-border/30 bg-background/60",
+                              "border border-[#c9a24b]/30 bg-[#c9a24b]/10 backdrop-blur-sm text-[#c9a24b]",
                             )}>
                               <cfg.icon size={17} strokeWidth={1.5} className={cfg.color} />
                             </div>
@@ -1192,6 +1301,19 @@ export function ToolboxUserView({
           )}
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div className={cn("w-full min-w-0 max-w-none h-full flex flex-col", className)}>
+      <MemberSplitLayout
+        left={leftPane}
+        right={rightPane}
+        leftCols="lg:col-span-5"
+        rightCols="lg:col-span-7"
+        scrollRight={true}
+        scrollLeft={false}
+      />
 
       {/* Todo exercise modal — local fallback when global session provider is absent (admin preview) */}
       {!exerciseSession ? (

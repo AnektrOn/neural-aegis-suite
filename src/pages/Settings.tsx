@@ -1,4 +1,8 @@
 import { useState, useEffect } from "react";
+import { MemberPageHeader } from "@/components/ui/MemberPageHeader";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
+import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
+import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   Settings2,
@@ -218,78 +222,134 @@ export default function Settings() {
   const overflowEligiblePanels = getAllMenuPanels().filter((p) => p.overflowEligible && !p.navExcluded);
   const hideablePanels = getAllMenuPanels().filter((p) => p.hideable && !p.navExcluded);
 
-  return (
-    <div className="mx-auto max-w-3xl space-y-10">
+  const leftPane = (
+    <div className="space-y-4">
       <div>
-        <p className="text-neural-label mb-3">{t("settings.sectionLabel")}</p>
-        <h1 className="text-neural-title text-3xl text-foreground">{t("settings.title")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("settings.subtitle")}</p>
+        <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
+          {t("settings.sectionLabel")} · CONTRÔLE SYSTÈME
+        </p>
+        <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
+          {t("settings.title")}
+        </h1>
+        <p className="font-sans text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
+          {t("settings.subtitle")}
+        </p>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="ethereal-glass space-y-6 p-8"
-      >
-        <div className="flex items-center gap-3 border-b border-border/30 pb-4">
-          <Settings2 size={20} strokeWidth={1.5} className="text-primary" />
-          <p className="text-neural-label">{t("settings.appearance")}</p>
+      {/* Apparence : Theme & Language */}
+      <div className="aegis-dock-tile p-5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] space-y-4">
+        <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3">
+          <Settings2 size={16} strokeWidth={1.5} className="text-[#c9a24b]" />
+          <h2 className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            {t("settings.appearance")}
+          </h2>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-sm text-muted-foreground">{t("settings.theme")}</span>
-          <div className="rounded-xl border border-border/20 bg-secondary/10 p-1">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{t("settings.theme")}</span>
+          <div className="rounded-xl border border-white/10 bg-black/20 p-1">
             <ThemeToggle collapsed={false} />
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-sm text-muted-foreground">{t("settings.language")}</span>
-          <div className="rounded-xl border border-border/20 bg-secondary/10 p-1">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{t("settings.language")}</span>
+          <div className="rounded-xl border border-white/10 bg-black/20 p-1">
             <LanguageSwitcher collapsed={false} />
           </div>
         </div>
-      </motion.div>
+      </div>
+
+      {/* Push Notifications */}
+      <div className="aegis-dock-tile p-5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] space-y-3">
+        <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {t("settings.notifications")}
+        </p>
+        <PushNotificationToggle className="w-full justify-center sm:justify-start" />
+      </div>
 
       <EmployerDataConsentCard />
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.04 }}
-        className="ethereal-glass space-y-4 p-8"
-      >
-        <p className="text-neural-label">{t("settings.notifications")}</p>
-        <PushNotificationToggle className="w-full justify-center sm:justify-start" />
-      </motion.div>
+      {/* Data Export & RGPD */}
+      <div className="aegis-dock-tile p-5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] space-y-3">
+        <div className="flex items-center gap-2">
+          <FileText size={16} strokeWidth={1.5} className="text-[#c9a24b]" />
+          <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            {t("profile.dataExport")}
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">{t("profile.exportDescription")}</p>
+        <button
+          type="button"
+          onClick={() => void exportData()}
+          disabled={exporting}
+          className="w-full flex min-h-[40px] items-center justify-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 font-cinzel text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-all hover:text-foreground hover:border-[#c9a24b]/40 hover:bg-[#c9a24b]/10 disabled:opacity-40 cursor-pointer"
+        >
+          <Download size={13} />
+          {exporting ? t("profile.exporting") : t("profile.exportButton")}
+        </button>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.06 }}
-        className="ethereal-glass space-y-6 p-8"
-      >
-        <div className="flex items-center gap-3">
-          <LayoutGrid size={18} strokeWidth={1.5} className="text-primary" />
+      {/* Account Deletion */}
+      <div className="aegis-dock-tile p-5 rounded-2xl border border-destructive/20 shadow-sm space-y-3">
+        <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-destructive/80">
+          {locale === "fr" ? "Zone de Danger · Suppression" : "Danger Zone · Deletion"}
+        </p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {locale === "fr"
+            ? "Suppression définitive (RGPD). Tapez DELETE pour confirmer."
+            : "Permanent deletion (GDPR). Type DELETE to confirm."}
+        </p>
+        <input
+          value={deleteConfirm}
+          onChange={(e) => setDeleteConfirm(e.target.value)}
+          placeholder="DELETE"
+          className="w-full min-h-[40px] rounded-xl border border-white/10 bg-black/40 px-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-destructive/40"
+        />
+        <button
+          type="button"
+          disabled={deletingAccount || deleteConfirm !== "DELETE"}
+          onClick={() => void deleteMyAccount()}
+          className="w-full min-h-[40px] rounded-xl border border-destructive/40 bg-destructive/10 text-xs font-cinzel uppercase tracking-[0.16em] text-destructive hover:bg-destructive/20 transition-all disabled:opacity-40 cursor-pointer"
+        >
+          {deletingAccount
+            ? locale === "fr" ? "Suppression…" : "Deleting…"
+            : locale === "fr" ? "Supprimer définitivement" : "Delete permanently"}
+        </button>
+      </div>
+    </div>
+  );
+
+  const rightPane = (
+    <div className="space-y-4">
+      {/* Menu Architecture Tile */}
+      <div className="aegis-dock-tile p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] space-y-5">
+        <div className="flex items-center gap-3 border-b border-white/[0.08] pb-3">
+          <LayoutGrid size={18} strokeWidth={1.5} className="text-[#c9a24b]" />
           <div>
-            <p className="text-neural-label">{t("settings.myMenuTitle")}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t("settings.myMenuHint")}</p>
+            <h2 className="font-cinzel text-xs font-semibold uppercase tracking-[0.16em] text-foreground">
+              {t("settings.myMenuTitle")}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("settings.myMenuHint")}</p>
           </div>
         </div>
 
+        {/* Dock Slots Config */}
         <div className="space-y-3">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t("settings.myMenuDock")}</p>
+          <p className="font-cinzel text-[10px] uppercase tracking-[0.2em] text-[#c9a24b]">
+            {t("settings.myMenuDock")}
+          </p>
           <div className="grid gap-3 sm:grid-cols-2">
             {menuDraft.dock.map((slotId, index) => (
               <label key={index} className="flex flex-col gap-1.5">
-                <span className="text-xs text-muted-foreground">
+                <span className="font-cinzel text-[9.5px] uppercase tracking-wider text-muted-foreground">
                   {t("nav.dockSlot")} {index + 1}
                 </span>
                 <select
-                  className="rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5 text-sm"
+                  className="rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-xs text-foreground focus:outline-none focus:border-[#c9a24b]/50 cursor-pointer"
                   value={slotId}
                   onChange={(e) => setDockSlot(index, e.target.value as MenuPanelId)}
                 >
                   {dockEligiblePanels.map((p) => (
-                    <option key={p.id} value={p.id}>
+                    <option key={p.id} value={p.id} className="bg-[#161614] text-foreground">
                       {t(p.labelKey)}
                     </option>
                   ))}
@@ -299,21 +359,24 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="space-y-3">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t("settings.myMenuOverflow")}</p>
+        {/* Overflow Menu Config */}
+        <div className="space-y-3 pt-2 border-t border-white/[0.08]">
+          <p className="font-cinzel text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            {t("settings.myMenuOverflow")}
+          </p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {overflowEligiblePanels.map((p) => {
               const checked = menuDraft.overflow.includes(p.id);
               return (
                 <li key={p.id}>
-                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-2.5 hover:border-white/15 transition-all">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 accent-primary"
+                      className="h-4 w-4 accent-[#c9a24b] rounded"
                       checked={checked}
                       onChange={() => toggleOverflow(p.id)}
                     />
-                    <span className="text-sm">{t(p.labelKey)}</span>
+                    <span className="text-xs text-foreground">{t(p.labelKey)}</span>
                   </label>
                 </li>
               );
@@ -321,21 +384,24 @@ export default function Settings() {
           </ul>
         </div>
 
-        <div className="space-y-3">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t("settings.myMenuHidden")}</p>
+        {/* Hidden Items Config */}
+        <div className="space-y-3 pt-2 border-t border-white/[0.08]">
+          <p className="font-cinzel text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            {t("settings.myMenuHidden")}
+          </p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {hideablePanels.map((p) => {
               const checked = menuDraft.hidden.includes(p.id);
               return (
                 <li key={p.id}>
-                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/25 bg-secondary/10 px-3 py-2.5">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-2.5 hover:border-white/15 transition-all">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 accent-primary"
+                      className="h-4 w-4 accent-[#c9a24b] rounded"
                       checked={checked}
                       onChange={() => toggleHidden(p.id)}
                     />
-                    <span className="text-sm">{t(p.labelKey)}</span>
+                    <span className="text-xs text-foreground">{t(p.labelKey)}</span>
                   </label>
                 </li>
               );
@@ -343,108 +409,78 @@ export default function Settings() {
           </ul>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        {/* Save & Reset Buttons */}
+        <div className="flex flex-col sm:flex-row gap-2.5 pt-2 border-t border-white/[0.08]">
           <button
             type="button"
             onClick={() => setMenuDraft(defaultUserMenuPrefs())}
-            className="btn-neural flex-1 border border-border/40 bg-transparent"
+            className="flex-1 py-2.5 rounded-xl border border-white/10 bg-black/25 text-xs font-cinzel uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground hover:border-white/20 transition-all cursor-pointer"
           >
             {t("settings.myMenuReset")}
           </button>
-          <button type="button" onClick={() => void saveMenu()} disabled={savingMenu} className="btn-neural flex-1">
-            <Save size={14} />
-            {savingMenu ? t("settings.myMenuSaving") : t("settings.myMenuSave")}
+          <button
+            type="button"
+            onClick={() => void saveMenu()}
+            disabled={savingMenu}
+            className="btn-solaire flex-1 py-2.5 rounded-xl text-xs font-cinzel uppercase tracking-[0.16em] font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+          >
+            <Save size={13} />
+            <span>{savingMenu ? t("settings.myMenuSaving") : t("settings.myMenuSave")}</span>
           </button>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08 }}
-        className="ethereal-glass p-8"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <FileText size={18} strokeWidth={1.5} className="text-primary" />
-          <p className="text-neural-label">{t("profile.dataExport")}</p>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">{t("profile.exportDescription")}</p>
-        <button onClick={() => void exportData()} disabled={exporting} className="btn-neural w-full">
-          <Download size={14} />
-          {exporting ? t("profile.exporting") : t("profile.exportButton")}
-        </button>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="ethereal-glass p-8 border border-destructive/20"
-      >
-        <p className="text-neural-label text-destructive/80 mb-2">
-          {locale === "fr" ? "Supprimer mon compte" : "Delete my account"}
-        </p>
-        <p className="text-sm text-muted-foreground mb-4">
-          {locale === "fr"
-            ? "Suppression définitive (RGPD). Tapez DELETE pour confirmer. Les abonnements Stripe actifs sont annulés."
-            : "Permanent deletion (GDPR). Type DELETE to confirm. Active Stripe subscriptions are cancelled."}
-        </p>
-        <input
-          value={deleteConfirm}
-          onChange={(e) => setDeleteConfirm(e.target.value)}
-          placeholder="DELETE"
-          className="mb-3 w-full min-h-[44px] rounded-lg border border-border bg-bg-base px-3 text-sm"
-        />
-        <button
-          type="button"
-          disabled={deletingAccount || deleteConfirm !== "DELETE"}
-          onClick={() => void deleteMyAccount()}
-          className="btn-neural w-full border border-destructive/40 text-destructive disabled:opacity-40"
-        >
-          {deletingAccount
-            ? locale === "fr"
-              ? "Suppression…"
-              : "Deleting…"
-            : locale === "fr"
-              ? "Supprimer définitivement"
-              : "Delete permanently"}
-        </button>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.12 }}
-        className="ethereal-glass flex flex-col gap-4 p-8 sm:flex-row sm:items-center sm:justify-between"
-      >
+      {/* Mobile PWA & Android Installation */}
+      <div className="aegis-dock-tile p-5 rounded-2xl shadow-sm flex items-center justify-between gap-4">
         <div className="flex items-start gap-3">
-          <Mail size={20} strokeWidth={1.5} className="text-primary shrink-0" aria-hidden />
+          <Smartphone size={18} strokeWidth={1.5} className="text-[#c9a24b] shrink-0 mt-0.5" />
           <div>
-            <p className="text-neural-label">{t("nav.newsletter")}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t("newsletter.subtitle")}</p>
+            <h3 className="font-cinzel text-xs font-semibold uppercase tracking-wider text-foreground">
+              {t("install.title")}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("install.onboardingDesc")}</p>
           </div>
         </div>
-        <Button asChild variant="outline" className="min-h-[44px] shrink-0">
-          <Link to="/newsletter">{t("newsletter.submit")}</Link>
-        </Button>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.14 }}
-        className="ethereal-glass p-8"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <Smartphone size={18} strokeWidth={1.5} className="text-primary" />
-          <p className="text-neural-label">{t("install.title")}</p>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">{t("install.onboardingDesc")}</p>
-        <button onClick={() => navigate("/install-android")} className="btn-neural w-full">
-          <Smartphone size={14} />
-          {t("install.title")}
+        <button
+          type="button"
+          onClick={() => navigate("/install-android")}
+          className="shrink-0 px-4 py-2 rounded-xl border border-white/10 bg-black/30 text-xs font-cinzel uppercase tracking-wider text-[#c9a24b] hover:border-[#c9a24b]/40 hover:bg-[#c9a24b]/10 transition-all cursor-pointer"
+        >
+          Installer
         </button>
-      </motion.div>
+      </div>
+
+      {/* Newsletter */}
+      <div className="aegis-dock-tile p-5 rounded-2xl shadow-sm flex items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <Mail size={18} strokeWidth={1.5} className="text-[#6ba4f8] shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-cinzel text-xs font-semibold uppercase tracking-wider text-foreground">
+              {t("nav.newsletter")}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("newsletter.subtitle")}</p>
+          </div>
+        </div>
+        <Link
+          to="/newsletter"
+          className="shrink-0 px-4 py-2 rounded-xl border border-white/10 bg-black/30 text-xs font-cinzel uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-white/25 transition-all"
+        >
+          {t("newsletter.submit")}
+        </Link>
+      </div>
     </div>
+  );
+
+  return (
+    <MemberPageScaffold width="wide" viewport className="min-w-0 overflow-x-hidden">
+      <MemberSplitLayout
+        left={leftPane}
+        right={rightPane}
+        leftColSpan={5}
+        rightColSpan={7}
+        scrollRight={true}
+        scrollLeft={true}
+      />
+    </MemberPageScaffold>
   );
 }

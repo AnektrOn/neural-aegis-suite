@@ -73,9 +73,12 @@ export function LandingHero() {
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[color:var(--aegis-muted)] md:mt-5 md:text-[17px] md:leading-[1.6]">
               {copy.hero.subtitle}
             </p>
-            <div className="mt-8 hidden flex-col items-start gap-3 sm:flex">
-              <LandingButton href="#tarif" variant="dark">
+            <div className="mt-8 flex flex-col items-stretch gap-3 sm:items-start">
+              <LandingButton href="#tarif" variant="dark" className="w-full sm:w-auto">
                 {copy.hero.cta}
+              </LandingButton>
+              <LandingButton href="/auth" variant="ghost" className="w-full sm:w-auto">
+                {copy.nav.signIn}
               </LandingButton>
               <p className="font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--aegis-text-secondary)]">
                 {copy.hero.caption}
@@ -106,11 +109,6 @@ export function LandingHero() {
             </span>
           </div>
         </div>
-      </div>
-      <div className="mt-6 flex flex-col gap-3 sm:hidden">
-        <p className="font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--aegis-text-secondary)]">
-          {copy.hero.caption}
-        </p>
       </div>
     </div>
   );

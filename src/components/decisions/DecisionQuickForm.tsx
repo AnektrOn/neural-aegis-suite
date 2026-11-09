@@ -32,11 +32,14 @@ export function DecisionQuickForm({ onSubmit, isPending, labels }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="glass-card space-y-4 border-0 p-4 sm:p-5">
-      <h2 className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70">
-        {labels.title}
-      </h2>
-      <div className="space-y-2">
+    <form onSubmit={handleSubmit} className="aegis-dock-tile space-y-4 rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+      <div className="flex items-center gap-2 border-b border-white/[0.08] pb-2.5">
+        <div className="w-1.5 h-3.5 rounded-full bg-[#c9a24b]" />
+        <h2 className="font-cinzel text-[10.5px] font-semibold tracking-[0.2em] uppercase text-[#c9a24b]">
+          {labels.title}
+        </h2>
+      </div>
+      <div className="space-y-1.5">
         <label htmlFor="decision-quick-name" className={decisionLabelClass}>
           {labels.name}
         </label>
@@ -51,7 +54,7 @@ export function DecisionQuickForm({ onSubmit, isPending, labels }: Props) {
           autoComplete="off"
         />
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <p className={decisionLabelClass}>{labels.priority}</p>
         <div className="flex flex-wrap gap-2" role="group" aria-label={labels.priority}>
           {PRIORITY_LEVELS.map((p) => (
@@ -61,10 +64,10 @@ export function DecisionQuickForm({ onSubmit, isPending, labels }: Props) {
               onClick={() => setPriority(p)}
               aria-pressed={priority === p}
               className={cn(
-                "min-h-11 min-w-11 rounded-xl border px-3 text-sm font-medium tabular-nums transition-colors",
+                "min-h-10 min-w-10 rounded-xl border px-3 text-xs font-mono font-semibold tabular-nums transition-all cursor-pointer",
                 priority === p
-                  ? "border-primary/40 bg-primary/15 text-primary"
-                  : "border-border/50 bg-card/40 text-muted-foreground hover:border-primary/25",
+                  ? "border-[#c9a24b]/60 bg-[#c9a24b]/20 text-[#c9a24b] shadow-[0_0_12px_rgba(201,162,75,0.2)]"
+                  : "border-white/10 bg-black/25 text-muted-foreground hover:border-white/20 hover:text-foreground",
               )}
             >
               P{p}
@@ -72,10 +75,14 @@ export function DecisionQuickForm({ onSubmit, isPending, labels }: Props) {
           ))}
         </div>
       </div>
-      <Button type="submit" className="w-full sm:w-auto" disabled={isPending || !name.trim()}>
-        <Save className="size-4" aria-hidden />
-        {labels.save}
-      </Button>
+      <button
+        type="submit"
+        disabled={isPending || !name.trim()}
+        className="btn-solaire w-full py-2.5 rounded-xl font-cinzel text-xs uppercase tracking-[0.16em] font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+      >
+        <Save className="size-3.5" aria-hidden />
+        <span>{labels.save}</span>
+      </button>
     </form>
   );
 }

@@ -64,14 +64,14 @@ export function AnalyticsCharts({ data, t }: AnalyticsChartsProps) {
 
   return (
     <>
-      <motion.div {...fadeUp()} className="dashboard-panel p-4 sm:p-8">
-        <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">
+      <motion.div {...fadeUp()} className="aegis-dock-tile rounded-2xl p-4 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+        <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.2em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-6">
           {t("analytics.mood30d")}
         </p>
         <div className="h-48 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={moodData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.25)" />
               <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
               <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
               <Tooltip contentStyle={tooltipStyle} />
@@ -89,14 +89,14 @@ export function AnalyticsCharts({ data, t }: AnalyticsChartsProps) {
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div {...fadeUp(0.1)} className="dashboard-panel p-8">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">
+        <motion.div {...fadeUp(0.1)} className="aegis-dock-tile rounded-2xl p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.2em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-6">
             {t("analytics.sleepStressTrends")}
           </p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sleepStressData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.25)" />
                 <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <Tooltip contentStyle={tooltipStyle} />
@@ -108,14 +108,14 @@ export function AnalyticsCharts({ data, t }: AnalyticsChartsProps) {
           </div>
         </motion.div>
 
-        <motion.div {...fadeUp(0.15)} className="dashboard-panel p-8">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">
+        <motion.div {...fadeUp(0.15)} className="aegis-dock-tile rounded-2xl p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.2em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-6">
             {t("analytics.mealsPerDay")}
           </p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={sleepStressData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.25)" />
                 <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <Tooltip contentStyle={tooltipStyle} />
@@ -127,14 +127,14 @@ export function AnalyticsCharts({ data, t }: AnalyticsChartsProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <motion.div {...fadeUp(0.2)} className="dashboard-panel p-8">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">
+        <motion.div {...fadeUp(0.2)} className="aegis-dock-tile rounded-2xl p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.2em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-6">
             {t("analytics.habitCompletion7d")}
           </p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={habitData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.25)" />
                 <XAxis dataKey="jour" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                 <Tooltip contentStyle={tooltipStyle} />
@@ -144,8 +144,8 @@ export function AnalyticsCharts({ data, t }: AnalyticsChartsProps) {
           </div>
         </motion.div>
 
-        <motion.div {...fadeUp(0.25)} className="dashboard-panel p-8 flex flex-col items-center justify-center">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">
+        <motion.div {...fadeUp(0.25)} className="aegis-dock-tile rounded-2xl p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center">
+          <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.2em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-6">
             {t("analytics.avgCompletionRate")}
           </p>
           <div className="h-48 w-48">
@@ -160,8 +160,8 @@ export function AnalyticsCharts({ data, t }: AnalyticsChartsProps) {
           </p>
         </motion.div>
 
-        <motion.div {...fadeUp(0.3)} className="dashboard-panel p-8">
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/70 mb-6">
+        <motion.div {...fadeUp(0.3)} className="aegis-dock-tile rounded-2xl p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.2em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-6">
             {t("analytics.decisionsOverview")}
           </p>
           {decisionPieData.length > 0 ? (

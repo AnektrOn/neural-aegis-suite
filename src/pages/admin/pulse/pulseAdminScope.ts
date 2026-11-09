@@ -6,10 +6,15 @@ export function cardsInUserScope(
   userFilter: string,
 ): PulseCardRow[] {
   if (userFilter === "unassigned") {
-    return allCards.filter((c) => !c.target_user_ids?.length);
+    return allCards.filter(
+      (c) => !Array.isArray(c.target_user_ids) || c.target_user_ids.length === 0,
+    );
   }
   if (userFilter !== "all") {
-    return allCards.filter((c) => c.target_user_ids?.includes(userFilter));
+    return allCards.filter(
+      (c) =>
+        Array.isArray(c.target_user_ids) && c.target_user_ids.includes(userFilter),
+    );
   }
   return allCards;
 }

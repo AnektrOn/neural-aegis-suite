@@ -13,22 +13,22 @@ interface PulseGrimoireProps {
 
 type GrimoireTab = "in_progress" | "validated";
 
-function CardRow({ item, onOpenCourse, completed }: { item: PulseCard; onOpenCourse: (card: PulseCard) => void; completed?: boolean }) {
+export function CardRow({ item, onOpenCourse, completed }: { item: PulseCard; onOpenCourse: (card: PulseCard) => void; completed?: boolean }) {
   const accent = getRuneAccent(item.principleCode);
   return (
     <button
       type="button"
       onClick={() => onOpenCourse(item)}
-      className="w-full text-left group card-interactive border p-3.5 sm:p-4 flex items-center gap-3 sm:gap-4 min-h-[56px] active:scale-[0.98]"
+      className="w-full text-left group aegis-dock-tile rounded-xl p-3.5 sm:p-4 flex items-center gap-3 sm:gap-4 min-h-[56px] active:scale-[0.98] transition-all hover:border-[#c9a24b]/40"
     >
       <div
-        className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
+        className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
         style={{ filter: `drop-shadow(0 0 6px hsla(${accent} / 0.2))` }}
       >
         <SacredGeometry type={item.principleCode} isGlowing />
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-cormorant text-text-primary text-sm md:text-base leading-tight truncate">
+        <h3 className="font-cormorant text-text-primary group-hover:text-[#c9a24b] transition-colors text-sm md:text-base leading-tight truncate">
           {item.title}
         </h3>
         <div className="mt-1 font-mono text-[9px] tracking-widest text-muted-foreground uppercase">
@@ -37,13 +37,13 @@ function CardRow({ item, onOpenCourse, completed }: { item: PulseCard; onOpenCou
       </div>
       {completed ? (
         <CheckCircle2
-          className="text-accent-primary shrink-0"
+          className="text-[#c9a24b] shrink-0"
           size={16}
           strokeWidth={1.5}
         />
       ) : (
         <ChevronRight
-          className="text-border-subtle group-hover:text-text-secondary transition-colors shrink-0"
+          className="text-muted-foreground/40 group-hover:text-[#c9a24b] group-hover:translate-x-0.5 transition-all shrink-0"
           size={16}
           strokeWidth={1.5}
         />
@@ -63,7 +63,7 @@ export function PulseGrimoire({ state, onClose, onOpenCourse }: PulseGrimoirePro
   const activeCards = tab === "in_progress" ? inProgress : validated;
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] -m-4 md:-m-6 bg-bg-base rounded-[18px] relative overflow-hidden">
+    <div className="min-h-[calc(100dvh-var(--mobile-dock-padding))] bg-bg-base relative overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.03]"
         style={{

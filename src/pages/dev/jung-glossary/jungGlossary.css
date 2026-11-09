@@ -1,0 +1,73 @@
+/* Codex Doctrinal Jung — Precision Swiss & Obsidian Styling */
+
+.jung-codex {
+  --codex-font-serif: "Cormorant Garamond", Georgia, serif;
+  --codex-font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --codex-font-mono: "DM Mono", ui-monospace, monospace;
+
+  /* Obsidian Dark (Default in dark mode) */
+  --codex-abyss: #070707;
+  --codex-bg: #0b0b0a;
+  --codex-surface: #141412;
+  --codex-surface-elevated: #1a1a18;
+  --codex-cardline: rgba(233, 228, 216, 0.08);
+  --codex-cardline-hover: rgba(201, 162, 75, 0.35);
+  --codex-gold: #c9a24b;
+  --codex-gold-light: #e0ba65;
+  --codex-gold-muted: rgba(201, 162, 75, 0.15);
+  --codex-ink: #f2eee6;
+  --codex-ink-secondary: #a8a499;
+  --codex-ink-tertiary: #6b675e;
+}
+
+html.light .jung-codex {
+  /* Museum Paper & Carbon Ink (Light Mode) */
+  --codex-abyss: #f3f0e8;
+  --codex-bg: #faf8f5;
+  --codex-surface: #ffffff;
+  --codex-surface-elevated: #f4efe6;
+  --codex-cardline: rgba(20, 20, 19, 0.09);
+  --codex-cardline-hover: rgba(142, 107, 43, 0.4);
+  --codex-gold: #8e6b2b;
+  --codex-gold-light: #ab853c;
+  --codex-gold-muted: rgba(142, 107, 43, 0.12);
+  --codex-ink: #161514;
+  --codex-ink-secondary: #57544d;
+  --codex-ink-tertiary: #878379;
+}
+
+.jung-codex {
+  background-color: var(--codex-bg);
+  color: var(--codex-ink);
+  font-family: var(--codex-font-sans);
+}
+
+.font-garamond {
+  font-family: var(--codex-font-serif);
+}
+
+.font-mono-code {
+  font-family: var(--codex-font-mono);
+}
+
+/* Subtle editorial scrollbar */
+.jung-codex ::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.jung-codex ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.jung-codex ::-webkit-scrollbar-thumb {
+  background: var(--codex-cardline);
+  border-radius: 9999px;
+}
+.jung-codex ::-webkit-scrollbar-thumb:hover {
+  background: var(--codex-gold);
+}
+
+/* Smooth reading selection */
+.jung-codex ::selection {
+  background: var(--codex-gold-muted);
+  color: var(--codex-ink);
+}
