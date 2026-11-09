@@ -3,7 +3,10 @@ import { resolveBreathworkAlias, isBreathworkAliasSlug } from "@/lib/toolbox-bre
 import { applySlugTheme, getSlugAccent } from "@/lib/toolbox-slug-themes";
 import type { MicroPracticeConfig } from "@/components/widgets/MicroPracticeWidget";
 import type { ToolboxContentTypeDefinition } from "@/lib/toolbox-content-type-definitions";
-import { getBuiltinToolboxContentTypeDefinition } from "@/lib/toolbox-content-type-definitions";
+import {
+  BUILTIN_TOOLBOX_SLUG_ALIASES,
+  getBuiltinToolboxContentTypeDefinition,
+} from "@/lib/toolbox-content-type-definitions";
 
 export type ResolvedWidgetKind =
   | "breathwork"
@@ -104,10 +107,42 @@ const BESPOKE_SLUGS = new Set([
   "shadow_checkin",
 ]);
 
+const AEGIS_META_KEYS = [
+  "tier",
+  "pillar",
+  "exocortex_organ",
+  "mechanism_tag",
+  "parent_template_key",
+  "why_this_for_you",
+  "why_this_for_you_i18n",
+  "resistance_fallback_sec",
+  "archetype_targets",
+  "shadow_targets",
+  "distribution_mode",
+  "instructions_i18n",
+] as const;
+
+function withAegisMeta(
+  src: Record<string, unknown>,
+  target: Record<string, unknown>,
+): Record<string, unknown> {
+  const out = { ...target };
+  for (const key of AEGIS_META_KEYS) {
+    if (src[key] !== undefined && out[key] === undefined) {
+      out[key] = src[key];
+    }
+  }
+  return out;
+}
+
 function adaptGratitudeTriple(cfg: Record<string, unknown>): ResolvedToolboxWidget {
   return {
     kind: "gratitude",
-    config: { entries_count: readPosInt(cfg.entries_count, 3) },
+    config: withAegisMeta(cfg, {
+      entries_count: readPosInt(cfg.entries_count, 3),
+      ...(Array.isArray(cfg.prompts) ? { prompts: cfg.prompts } : {}),
+      ...(cfg.prompts_i18n ? { prompts_i18n: cfg.prompts_i18n } : {}),
+    }),
   };
 }
 
@@ -115,45 +150,66 @@ function adaptAffirmationsCycle(cfg: Record<string, unknown>): ResolvedToolboxWi
   const lines = toStringList(cfg.affirmations);
   return {
     kind: "affirmations",
-    config: {
+    config: withAegisMeta(cfg, {
       duration_min: readPosInt(cfg.duration_min, 5),
       affirmations: lines.length ? lines : ["Je reste stable", "Je passe à l'action"],
+      ...(cfg.affirmations_i18n ? { affirmations_i18n: cfg.affirmations_i18n } : {}),
       instructions: readStr(cfg.instructions),
-    },
+    }),
   };
 }
 
 function adaptIntentionMorning(cfg: Record<string, unknown>): ResolvedToolboxWidget {
   const fields = toStringList(cfg.fields);
-  const question = fields[0] || readStr(cfg.instructions) || "Quelle est ton intention du jour ?";
+  const question =
+    readStr(cfg.question) || fields[0] || readStr(cfg.instructions) || "Quelle est ton intention du jour ?";
   return {
     kind: "intention",
-    config: {
+    config: withAegisMeta(cfg, {
       question,
+      ...(cfg.question_i18n ? { question_i18n: cfg.question_i18n } : {}),
+      ...(cfg.note_prompt ? { note_prompt: cfg.note_prompt } : {}),
+      ...(cfg.note_prompt_i18n ? { note_prompt_i18n: cfg.note_prompt_i18n } : {}),
       duration_sec: readPosInt(cfg.duration_sec, 360),
-      allow_note: true,
-    },
+      allow_note: cfg.allow_note !== false,
+    }),
   };
 }
 
 function adaptStopRumination(cfg: Record<string, unknown>): ResolvedToolboxWidget {
-  const steps = toStringList(cfg.steps);
+  const rawSteps = Array.isArray(cfg.steps) ? cfg.steps : [];
+  const hasStructuredSteps = rawSteps.some(
+    (s) => s && typeof s === "object" && ("title" in s || "hint" in s || "title_i18n" in s || "hint_i18n" in s),
+  );
+  const steps = hasStructuredSteps
+    ? rawSteps
+    : toStringList(cfg.steps).map((text, i) => ({
+        title: ["Nommer", "Respirer", "Observer", "Rediriger"][i] ?? `Étape ${i + 1}`,
+        hint: text,
+      }));
   return {
     kind: "stop_protocol",
-    config: {
-      mode: "timed",
-      step_duration_sec: Math.max(30, Math.floor(readPosInt(cfg.duration_sec, 180) / 4)),
-      steps: steps.length
-        ? steps.map((text, i) => ({
-            title: ["Nommer", "Respirer", "Observer", "Rediriger"][i] ?? `Étape ${i + 1}`,
-            hint: text,
-          }))
-        : undefined,
-    },
+    config: withAegisMeta(cfg, {
+      mode: cfg.mode === "manual" ? "manual" : "timed",
+      step_duration_sec: readPosInt(
+        cfg.step_duration_sec,
+        Math.max(30, Math.floor(readPosInt(cfg.duration_sec, 180) / 4)),
+      ),
+      steps: steps.length ? steps : undefined,
+    }),
   };
 }
 
 function adaptVisualization(cfg: Record<string, unknown>, slug: string): ResolvedToolboxWidget {
+  if (Array.isArray(cfg.scenes) && cfg.scenes.length > 0) {
+    return {
+      kind: "visualization",
+      config: withAegisMeta(cfg, {
+        mode: cfg.mode === "manual" ? "manual" : "timed",
+        scenes: cfg.scenes,
+      }),
+    };
+  }
   const total = readPosInt(cfg.duration_sec, slug === "safe_place" ? 420 : 480);
   const intro = readStr(cfg.instructions);
   const sceneCount = slug === "safe_place" ? 3 : 2;
@@ -171,11 +227,20 @@ function adaptVisualization(cfg: Record<string, unknown>, slug: string): Resolve
   }));
   return {
     kind: "visualization",
-    config: { mode: "timed", scenes },
+    config: withAegisMeta(cfg, { mode: "timed", scenes }),
   };
 }
 
 function adaptProgressiveRelax(cfg: Record<string, unknown>): ResolvedToolboxWidget {
+  if (Array.isArray(cfg.zones) && cfg.zones.length > 0) {
+    return {
+      kind: "body_scan",
+      config: withAegisMeta(cfg, {
+        mode: cfg.mode === "manual" ? "manual" : "timed",
+        zones: cfg.zones,
+      }),
+    };
+  }
   const steps = toStringList(cfg.steps);
   const zones = (steps.length ? steps : ["Mains", "Épaules", "Jambes"]).map((label, i) => ({
     id: `zone-${i}`,
@@ -185,7 +250,7 @@ function adaptProgressiveRelax(cfg: Record<string, unknown>): ResolvedToolboxWid
   }));
   return {
     kind: "body_scan",
-    config: { zones },
+    config: withAegisMeta(cfg, { zones }),
   };
 }
 
@@ -194,24 +259,25 @@ function adaptMicro(slug: string, cfg: Record<string, unknown>): ResolvedToolbox
   if (slug === "habit_checkbox" && !merged.steps?.length) {
     merged.steps = [{ text: readStr(cfg.habit_name) || "Marquer comme fait" }];
   }
-  if (slug === "intention_week") {
+  if (slug === "intention_week" && !merged.steps?.length) {
     const fields = Array.isArray(cfg.fields)
       ? (cfg.fields as unknown[]).map((f) => String(f))
       : ["Intention", "Action 1", "Action 2", "Action 3"];
     merged.steps = fields.map((f) => ({ text: f }));
     merged.instructions = readStr(cfg.instructions) || merged.instructions;
   }
-  return { kind: "micro_practice", config: merged as Record<string, unknown> };
+  return { kind: "micro_practice", config: withAegisMeta(cfg, merged as Record<string, unknown>) };
 }
 
 function adaptJournalTimed(slug: string, cfg: Record<string, unknown>): ResolvedToolboxWidget {
   return {
     kind: "journal_timed",
-    config: {
+    config: withAegisMeta(cfg, {
       prompt: readStr(cfg.instructions) || readStr(cfg.prompt),
+      ...(cfg.prompt_i18n ? { prompt_i18n: cfg.prompt_i18n } : {}),
       duration_sec: readPosInt(cfg.duration_sec, slug === "morning_pages" ? 900 : 600),
       accent_color: getSlugAccent(slug, cfg),
-    },
+    }),
     accent: getSlugAccent(slug, cfg),
   };
 }
@@ -223,12 +289,13 @@ function adaptBespoke(slug: string, cfg: Record<string, unknown>): ResolvedToolb
     : [];
   return {
     kind: slug as ResolvedWidgetKind,
-    config: { ...cfg, fields, instructions: readStr(cfg.instructions), accent_color: accent },
+    config: withAegisMeta(cfg, { ...cfg, fields, instructions: readStr(cfg.instructions), accent_color: accent }),
     accent,
   };
 }
 
-export function isResolverMappedSlug(slug: string): boolean {
+export function isResolverMappedSlug(rawSlug: string): boolean {
+  const slug = BUILTIN_TOOLBOX_SLUG_ALIASES[rawSlug] ?? rawSlug;
   if (
     isBreathworkAliasSlug(slug)
     || NATIVE_ADAPTER_SLUGS.has(slug)
@@ -243,12 +310,13 @@ export function isResolverMappedSlug(slug: string): boolean {
 }
 
 export function resolveToolboxWidget(
-  slug: string,
+  rawSlug: string,
   rawCfg: Record<string, unknown> | null,
   definitionsBySlug: Record<string, ToolboxContentTypeDefinition> = {},
 ): ResolvedToolboxWidget | null {
+  const slug = BUILTIN_TOOLBOX_SLUG_ALIASES[rawSlug] ?? rawSlug;
   const cfg = mergeInstructions(rawCfg ?? {});
-  const def = definitionsBySlug[slug] || getBuiltinToolboxContentTypeDefinition(slug);
+  const def = definitionsBySlug[rawSlug] || definitionsBySlug[slug] || getBuiltinToolboxContentTypeDefinition(slug);
 
   const breath = resolveBreathworkAlias(slug, cfg);
   if (breath) {

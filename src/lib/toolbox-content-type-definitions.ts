@@ -141,12 +141,12 @@ export const BUILTIN_TOOLBOX_CONTENT_TYPES: ToolboxContentTypeDefinition[] = [
   },
   {
     slug: "focus_introspectif",
-    label_fr: "Point Zéro Pré-Décisionnel",
-    label_en: "Pre-Decision Zero Point",
+    label_fr: "Point Zéro Pré-Décisionnel (Decision Log)",
+    label_en: "Pre-Decision Zero Point (Decision Log)",
     description_fr:
-      "Relâcher le biais « pour » et le biais « contre » jusqu'au point d'équilibre neutre avant de trancher.",
+      "Calibration à froid de la neutralité avant de trancher : relâcher le biais « pour » et le biais « contre ».",
     description_en:
-      "Release both 'for' and 'against' biases until reaching neutral equilibrium before deciding.",
+      "Cold neutrality calibration before deciding: release both 'for' and 'against' biases.",
     category: "attention",
     icon: "eye",
     renderer_kind: "native",
@@ -167,8 +167,8 @@ export const BUILTIN_TOOLBOX_CONTENT_TYPES: ToolboxContentTypeDefinition[] = [
         en: "Release the pull of For and the fear of Against until reaching Zero Point neutrality.",
       },
     },
-    default_title_fr: "Point Zéro Pré-Décisionnel",
-    default_title_en: "Pre-Decision Zero Point",
+    default_title_fr: "Point Zéro Pré-Décisionnel (Decision Log)",
+    default_title_en: "Pre-Decision Zero Point (Decision Log)",
     tier: "beginner",
     pillar: "gouvernance_souveraine",
     exocortex_organ: "decision_log",
@@ -1137,8 +1137,8 @@ export const BUILTIN_TOOLBOX_CONTENT_TYPES: ToolboxContentTypeDefinition[] = [
   ),
   nativeExercise(
     "gratitude_triple",
-    "Audit des Appuis Souverains (3 Actifs)",
-    "Sovereign Leverage Audit (3 Assets)",
+    "Audit des Appuis Souverains (Actifs Réels)",
+    "Sovereign Leverage Audit (Real Assets)",
     "journal",
     "heart",
     "Identifier 3 leviers ou alliances solides déjà acquis pour couper l'illusion de manque.",

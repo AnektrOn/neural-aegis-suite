@@ -2,14 +2,16 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, CheckCircle2, Zap } from "lucide-react";
+import { ChevronRight, CheckCircle2, Zap, Check, FastForward } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import type { Locale } from "@/i18n/translations";
 import type { MicroHeroPreset } from "@/lib/toolbox-slug-themes";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
+import type { AegisToolboxExtendedConfig } from "@/lib/toolbox-content-type-definitions";
 import {
   TOOLBOX_PHASE_COLORS,
+  ToolboxPrescriptionBanner,
   ToolboxWidgetHeader,
   ToolboxWidgetLaunchButton,
   ToolboxWidgetPrimaryButton,
@@ -21,11 +23,11 @@ import {
   resolveToolboxAccent,
 } from "@/features/toolbox/ui";
 
-export interface MicroPracticeConfig {
+export interface MicroPracticeConfig extends AegisToolboxExtendedConfig {
   instructions?: string;
   instructions_i18n?: unknown;
   duration_sec?: number;
-  steps?: Array<{ text: string; text_i18n?: unknown }>;
+  steps?: Array<{ text: string; text_i18n?: unknown; title?: string; hint?: string; title_i18n?: unknown; hint_i18n?: unknown }>;
   accent_color?: string;
   hero?: MicroHeroPreset;
   time_budget_mode?: boolean;
@@ -180,10 +182,27 @@ export default function MicroPracticeWidget({
   const localizedSteps = useMemo(() => {
     const raw = config.steps;
     if (!Array.isArray(raw) || raw.length === 0) return null;
-    return raw.map((s) => pickWidgetCatalogCopy(locale as Locale, s.text_i18n as any, s.text));
+    return raw.map((s) => {
+      const text = pickWidgetCatalogCopy(locale as Locale, s.text_i18n as any, s.text);
+      if (text && text.trim()) return text;
+      const stepTitle = pickWidgetCatalogCopy(locale as Locale, s.title_i18n as any, s.title ?? "");
+      const stepHint = pickWidgetCatalogCopy(locale as Locale, s.hint_i18n as any, s.hint ?? "");
+      if (stepTitle && stepHint) return `${stepTitle} — ${stepHint}`;
+      return stepTitle || stepHint || "";
+    });
   }, [config.steps, locale]);
   const hasSteps = localizedSteps != null && localizedSteps.length > 0;
-  const totalSec = Math.max(0, config.duration_sec ?? 0);
+  const baseTotalSec = Math.max(0, config.duration_sec ?? 0);
+  const fallbackSec = useMemo(() => {
+    const raw = config.resistance_fallback_sec;
+    const num = typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+    if (num > 0 && (baseTotalSec === 0 || num < baseTotalSec)) return num;
+    if (baseTotalSec > 120) return 90;
+    return 0;
+  }, [config.resistance_fallback_sec, baseTotalSec]);
+
+  const [expressActive, setExpressActive] = useState(false);
+  const totalSec = expressActive && fallbackSec > 0 ? fallbackSec : baseTotalSec;
   const hasDuration = totalSec > 0;
 
   const [started, setStarted] = useState(false);
@@ -191,7 +210,7 @@ export default function MicroPracticeWidget({
   const markCompletedRef = useRef<() => void>(() => {});
 
   const timer = usePersistedExerciseTimer({
-    sessionKey: hasDuration ? sessionKey : undefined,
+    sessionKey: hasDuration ? (expressActive ? `${sessionKey ?? "micro"}:express` : sessionKey) : undefined,
     totalSeconds: Math.max(1, totalSec || 1),
     onComplete: hasDuration ? () => markCompletedRef.current() : undefined,
   });
@@ -200,7 +219,18 @@ export default function MicroPracticeWidget({
   const elapsedRef = useRef(elapsed);
   elapsedRef.current = elapsed;
 
+  const triggerHaptic = () => {
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(10);
+      }
+    } catch {
+      // Ignore haptic errors on unsupported browsers
+    }
+  };
+
   const markCompleted = useCallback(() => {
+    triggerHaptic();
     completedRef.current = true;
     onComplete?.({
       elapsedSec: elapsed,
@@ -214,6 +244,7 @@ export default function MicroPracticeWidget({
 
   const remaining = Math.max(0, totalSec - elapsed);
   const progress = totalSec > 0 ? Math.min(elapsed / totalSec, 1) : 0;
+  const stepProgress = hasSteps ? (stepIdx + 1) / localizedSteps!.length : 0;
 
   useEffect(() => {
     if (running || elapsed > 0) hasStartedRef.current = true;
@@ -230,14 +261,24 @@ export default function MicroPracticeWidget({
   );
 
   const start = () => {
+    triggerHaptic();
     hasStartedRef.current = true;
     setStarted(true);
     if (hasDuration) timer.setRunning(true);
   };
 
+  const activateExpress = () => {
+    triggerHaptic();
+    setExpressActive(true);
+    hasStartedRef.current = true;
+    setStarted(true);
+    timer.setRunning(true);
+  };
+
   const nextStep = () => {
     const n = localizedSteps?.length ?? 0;
     if (n === 0) return;
+    triggerHaptic();
     if (stepIdx >= n - 1) {
       markCompleted();
     } else {
@@ -248,6 +289,7 @@ export default function MicroPracticeWidget({
   const reset = () => {
     setStarted(false);
     setStepIdx(0);
+    setExpressActive(false);
     resetTimer();
   };
 
@@ -266,7 +308,60 @@ export default function MicroPracticeWidget({
         <ToolboxWidgetHeader title={title} icon={Zap} iconClassName="text-neural-accent" />
       ) : null}
 
+      <ToolboxPrescriptionBanner
+        config={config as unknown as Record<string, unknown>}
+        locale={locale === "en" ? "en" : "fr"}
+      />
+
       <MicroHeroVisual hero={hero} accent={accent} running={started && !sessionDone} />
+
+      {hasSteps && started && !sessionDone ? (
+        <div className="w-full space-y-2">
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
+            {localizedSteps!.map((_, idx) => {
+              const isDone = idx < stepIdx;
+              const isCurrent = idx === stepIdx;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic();
+                    setStepIdx(idx);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-mono transition-all"
+                  style={{
+                    borderColor: isCurrent
+                      ? accent
+                      : isDone
+                        ? `color-mix(in srgb, ${accent} 40%, transparent)`
+                        : "hsl(var(--border) / 0.4)",
+                    backgroundColor: isCurrent
+                      ? `color-mix(in srgb, ${accent} 15%, transparent)`
+                      : isDone
+                        ? `color-mix(in srgb, ${accent} 8%, transparent)`
+                        : "transparent",
+                    color: isCurrent || isDone ? accent : "hsl(var(--muted-foreground))",
+                  }}
+                >
+                  {isDone ? <Check className="size-3" /> : null}
+                  <span>
+                    {idx + 1}/{localizedSteps!.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-secondary/50">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: accent }}
+              animate={{ width: `${stepProgress * 100}%` }}
+              transition={{ duration: 0.25 }}
+            />
+          </div>
+        </div>
+      ) : null}
 
       <AnimatePresence mode="wait">
         {!started && !sessionDone ? (
@@ -349,9 +444,22 @@ export default function MicroPracticeWidget({
 
       <div className="flex flex-wrap items-center justify-center gap-3">
         {!started && !sessionDone ? (
-          <ToolboxWidgetLaunchButton type="button" onClick={start} className="inline-flex items-center gap-2">
-            {t("toolbox.micro.start")}
-          </ToolboxWidgetLaunchButton>
+          <>
+            <ToolboxWidgetLaunchButton type="button" onClick={start} className="inline-flex items-center gap-2">
+              {t("toolbox.micro.start")}
+            </ToolboxWidgetLaunchButton>
+            {fallbackSec > 0 && !expressActive ? (
+              <button
+                type="button"
+                onClick={activateExpress}
+                data-slot="toolbox-express-fallback"
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+              >
+                <FastForward className="size-3.5 text-primary" />
+                {locale === "en" ? `⚡ Express Mode (${fallbackSec}s)` : `⚡ Mode Express (${fallbackSec}s)`}
+              </button>
+            ) : null}
+          </>
         ) : sessionDone ? (
           <ToolboxWidgetTimerControls
             isRunning={false}
@@ -374,10 +482,23 @@ export default function MicroPracticeWidget({
               />
             ) : null}
             {hasSteps ? (
-              <ToolboxWidgetSecondaryButton type="button" onClick={nextStep}>
-                {stepIdx >= (localizedSteps?.length ?? 1) - 1 ? t("toolbox.micro.finish") : t("toolbox.micro.next")}
+              <ToolboxWidgetSecondaryButton type="button" onClick={nextStep} className="font-medium">
+                {stepIdx >= (localizedSteps?.length ?? 1) - 1
+                  ? (locale === "en" ? "Protocol completed →" : "Étape accomplie →")
+                  : (locale === "en" ? "Next step →" : "Étape accomplie →")}
                 <ChevronRight size={14} />
               </ToolboxWidgetSecondaryButton>
+            ) : null}
+            {fallbackSec > 0 && !expressActive ? (
+              <button
+                type="button"
+                onClick={activateExpress}
+                data-slot="toolbox-express-fallback"
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+              >
+                <FastForward className="size-3.5 text-primary" />
+                {locale === "en" ? `⚡ Express Mode (${fallbackSec}s)` : `⚡ Mode Express (${fallbackSec}s)`}
+              </button>
             ) : null}
             {!hasSteps && !hasDuration ? (
               <ToolboxWidgetPrimaryButton onClick={markCompleted} className="w-auto min-w-[12rem] px-6">

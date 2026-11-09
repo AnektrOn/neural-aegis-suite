@@ -1,8 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type ToolboxPostState = "tension_released" | "clarity_restored" | "still_in_resistance";
+
 export interface ToolboxCompletionPayload {
   elapsedSec: number;
   durationBudgetSec?: number;
+  postState?: ToolboxPostState;
+  notes?: string;
 }
 
 export type ToolboxOnComplete = (payload?: ToolboxCompletionPayload) => void;

@@ -181,12 +181,14 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
       let assignments = 0;
       let skipped = 0;
 
-      const catalogItems = parseResult.items.filter(
-        (i) => resolveImportDistribution(i, assignUsers, catalogOnly).mode === "catalog",
-      );
-      const distributedItems = parseResult.items.filter(
-        (i) => resolveImportDistribution(i, assignUsers, catalogOnly).mode !== "catalog",
-      );
+      const catalogItems = parseResult.items.filter((i) => {
+        const mode = resolveImportDistribution(i, assignUsers, catalogOnly).mode;
+        return mode === "catalog" || mode === "global";
+      });
+      const distributedItems = parseResult.items.filter((i) => {
+        const mode = resolveImportDistribution(i, assignUsers, catalogOnly).mode;
+        return mode !== "catalog" && mode !== "global";
+      });
 
       if (catalogItems.length) {
         const payload = parsedItemsToCatalogPayload(catalogItems);
@@ -414,6 +416,35 @@ function ToolboxMarkdownImportPanel({ onImported }: Props) {
                         <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                         <div className="min-w-0 space-y-1">
                           <p className="font-medium text-foreground">{title}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 py-0.5">
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
+                                effectiveMode === "catalog" || effectiveMode === "global"
+                                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                                  : "border-amber-500/40 bg-amber-500/10 text-amber-300",
+                              )}
+                            >
+                              {effectiveMode === "catalog" || effectiveMode === "global"
+                                ? "GLOBAL (Catalogue)"
+                                : "INDIVIDUAL (User)"}
+                            </span>
+                            {item.widget_config?.tier ? (
+                              <span className="inline-flex items-center rounded-md border border-border/40 bg-background/50 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+                                Tier: {String(item.widget_config.tier)}
+                              </span>
+                            ) : null}
+                            {item.widget_config?.exocortex_organ ? (
+                              <span className="inline-flex items-center rounded-md border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-primary">
+                                Organ: {String(item.widget_config.exocortex_organ)}
+                              </span>
+                            ) : null}
+                            {item.widget_config?.pillar ? (
+                              <span className="inline-flex items-center rounded-md border border-border/30 bg-secondary/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+                                {String(item.widget_config.pillar)}
+                              </span>
+                            ) : null}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {item.content_type} · {effectiveMode}
                           </p>

@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import type { StopProtocolConfig } from "@/components/widgets/StopProtocolWidget";
+import type { StopProtocolConfig, StopStepLegacy } from "@/components/widgets/StopProtocolWidget";
 import { useLanguage } from "@/i18n/LanguageContext";
-import type { TranslationKey } from "@/i18n/translations";
+import type { Locale, TranslationKey } from "@/i18n/translations";
+import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import {
+  ToolboxPrescriptionBanner,
   ToolboxNebulaOverlayControls,
   ToolboxNebulaOverlayHeader,
   ToolboxNebulaOverlayPrimaryButton,
   ToolboxNebulaStepBadges,
   ToolboxWidgetTimerControls,
   toolboxNebulaOverlayRootClass,
+  parseToolboxStepBullet,
 } from "@/features/toolbox/ui";
 import { driveForStopStep } from "../toolboxParticleDrives";
 import { useToolboxParticleDriveRef } from "../useToolboxParticleDriveRef";
@@ -27,9 +30,34 @@ interface StopStep {
 }
 
 function buildSteps(
+  config: StopProtocolConfig,
   stepDuration: number,
   t: (key: TranslationKey) => string,
+  locale: Locale,
 ): StopStep[] {
+  const raw = config.steps;
+  if (
+    Array.isArray(raw) &&
+    raw.length > 0 &&
+    raw[0] &&
+    typeof raw[0] === "object" &&
+    ("title" in raw[0] || "text" in raw[0])
+  ) {
+    return (raw as StopStepLegacy[]).map((s, i) => {
+      const rawTitle = pickWidgetCatalogCopy(locale, s.title_i18n as unknown, s.title ?? s.text ?? "");
+      const rawHint = pickWidgetCatalogCopy(locale, s.hint_i18n as unknown, s.hint ?? "");
+      const parsed = !rawHint && rawTitle ? parseToolboxStepBullet(rawTitle) : null;
+      const titleLoc = parsed?.title || rawTitle;
+      const hintLoc = rawHint?.trim() ? rawHint : parsed?.body || titleLoc;
+      return {
+        letter: LETTERS[i] ?? String(i + 1),
+        caption: titleLoc.replace(/^[STOPS]\s*[—–-]\s*/i, "").split(/\s+/)[0] || titleLoc,
+        subtitle: titleLoc,
+        instruction: hintLoc,
+        duration_sec: stepDuration,
+      };
+    });
+  }
   return LETTERS.map((letter) => ({
     letter,
     caption: t(`toolbox.stopV2.${letter}.caption` as TranslationKey),
@@ -51,10 +79,13 @@ export function ToolboxParticleStop({
   variant = "panel",
   onComplete,
 }: Props) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const stepDuration = config.step_duration_sec ?? 30;
   const mode = config.mode === "timed" ? "timed" : "manual";
-  const steps = useMemo(() => buildSteps(stepDuration, t), [stepDuration, t]);
+  const steps = useMemo(
+    () => buildSteps(config, stepDuration, t, locale as Locale),
+    [config, stepDuration, t, locale],
+  );
   const totalMin = Math.max(1, Math.round((stepDuration * steps.length) / 60));
 
   const [isRunning, setIsRunning] = useState(false);
@@ -181,18 +212,23 @@ export function ToolboxParticleStop({
       label={t("toolbox.typeStopProtocol")}
     >
       <div className={toolboxNebulaOverlayRootClass}>
+        <ToolboxPrescriptionBanner
+          config={config as unknown as Record<string, unknown>}
+          locale={locale === "en" ? "en" : "fr"}
+        />
+
         <ToolboxNebulaOverlayHeader
           title={title}
           headline={
             completed
               ? undefined
               : started && currentStep
-                ? currentStep.letter
+                ? currentStep.subtitle || currentStep.letter
                 : t("toolbox.stopV2.idleTitle")
           }
           headlineClassName={
             started && currentStep && !completed
-              ? "font-cinzel text-4xl font-semibold tracking-widest"
+              ? "font-cinzel text-lg sm:text-xl font-semibold tracking-wide"
               : undefined
           }
           instruction={
@@ -252,6 +288,10 @@ export function ToolboxParticleStop({
               pauseLabel={t("toolbox.pause")}
               resetLabel={t("toolbox.restart")}
             />
+            <ToolboxNebulaOverlayPrimaryButton type="button" onClick={advance}>
+              <ChevronRight className="mr-1.5 h-3.5 w-3.5" />
+              {t("toolbox.stopV2.nextStep")}
+            </ToolboxNebulaOverlayPrimaryButton>
           </ToolboxNebulaOverlayControls>
         )}
       </div>

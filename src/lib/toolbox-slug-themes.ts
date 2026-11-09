@@ -1,4 +1,5 @@
 import type { MicroPracticeConfig } from "@/components/widgets/MicroPracticeWidget";
+import { BUILTIN_TOOLBOX_SLUG_ALIASES } from "@/lib/toolbox-content-type-definitions";
 
 export type MicroHeroPreset = "pulse" | "orbit" | "steps" | "ink" | "shake" | "flame" | "shield" | "spark";
 
@@ -9,6 +10,7 @@ export interface SlugTheme {
 
 /** Per-slug visual identity for MicroPractice and bespoke widgets. */
 export const TOOLBOX_SLUG_THEMES: Record<string, SlugTheme> = {
+  micro_practice: { accent: "hsl(176 70% 48%)", hero: "steps" },
   micro_movement: { accent: "hsl(35 80% 58%)", hero: "pulse" },
   shake_release: { accent: "hsl(0 65% 55%)", hero: "shake" },
   posture_reset: { accent: "hsl(176 70% 48%)", hero: "steps" },
@@ -20,6 +22,9 @@ export const TOOLBOX_SLUG_THEMES: Record<string, SlugTheme> = {
   worry_dump: { accent: "hsl(220 55% 55%)", hero: "ink" },
   evening_review: { accent: "hsl(250 45% 55%)", hero: "ink" },
   belief_reframe: { accent: "hsl(270 50% 60%)", hero: "spark" },
+  cognitive_reframe: { accent: "hsl(270 50% 60%)", hero: "spark" },
+  grounding_54321: { accent: "hsl(176 70% 48%)", hero: "orbit" },
+  breath_physiological_sigh: { accent: "hsl(176 70% 48%)", hero: "pulse" },
   if_then_plan: { accent: "hsl(176 70% 48%)", hero: "steps" },
   archetype_mirror: { accent: "hsl(35 80% 58%)", hero: "spark" },
   light_quality_practice: { accent: "hsl(45 90% 55%)", hero: "flame" },
@@ -43,7 +48,8 @@ export function applySlugTheme(
   slug: string,
   cfg: Record<string, unknown>,
 ): MicroPracticeConfig & { hero?: MicroHeroPreset } {
-  const theme = TOOLBOX_SLUG_THEMES[slug];
+  const canonical = BUILTIN_TOOLBOX_SLUG_ALIASES[slug] ?? slug;
+  const theme = TOOLBOX_SLUG_THEMES[slug] ?? TOOLBOX_SLUG_THEMES[canonical];
   return {
     ...(cfg as MicroPracticeConfig),
     accent_color:
@@ -55,5 +61,10 @@ export function applySlugTheme(
 
 export function getSlugAccent(slug: string, cfg?: Record<string, unknown>): string {
   if (cfg && typeof cfg.accent_color === "string") return cfg.accent_color;
-  return TOOLBOX_SLUG_THEMES[slug]?.accent ?? "hsl(176 70% 48%)";
+  const canonical = BUILTIN_TOOLBOX_SLUG_ALIASES[slug] ?? slug;
+  return (
+    TOOLBOX_SLUG_THEMES[slug]?.accent
+    ?? TOOLBOX_SLUG_THEMES[canonical]?.accent
+    ?? "hsl(176 70% 48%)"
+  );
 }

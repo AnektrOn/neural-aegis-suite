@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ToolboxPrescriptionBanner } from "@/features/toolbox/ui/ToolboxPrescriptionBanner";
 import type { ToolboxItem, ToolboxItemLocale } from "../types";
 import { pickToolboxItemCopy } from "../parseToolboxItemMarkdown";
 import { ToolboxStepper } from "./ToolboxStepper";
@@ -60,6 +61,14 @@ export function ToolboxDetail({
         <h1 className="text-lg font-medium leading-snug text-foreground">{copy.title}</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">{copy.description}</p>
       </header>
+
+      <ToolboxPrescriptionBanner
+        config={item.config as Record<string, unknown>}
+        locale={locale}
+        archetypeTargets={item.archetype_targets}
+        shadowTargets={item.shadow_targets}
+        distributionMode={item.distribution.mode}
+      />
 
       <ToolboxTimer
         durationSec={durationSec}

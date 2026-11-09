@@ -1,4 +1,5 @@
 import { bilingualPair } from "@/lib/content-i18n";
+import { BUILTIN_TOOLBOX_SLUG_ALIASES } from "@/lib/toolbox-content-type-definitions";
 import { lookupCatalogFrToEn } from "@/lib/toolbox-widget-i18n";
 
 function readI18n(v: unknown): { fr: string; en: string } {
@@ -144,6 +145,19 @@ export function hydrateToolboxWidgetConfigForPersistence(
   const unresolved: string[] = [];
   const out: Record<string, unknown> =
     widgetConfig && typeof widgetConfig === "object" ? cloneConfig(widgetConfig) : {};
+  const canonicalType = BUILTIN_TOOLBOX_SLUG_ALIASES[contentType] ?? contentType;
+
+  // Hydrate personalized clinical context (why_this_for_you / why_this_for_you_i18n) without blocking on single-locale user notes
+  if ("why_this_for_you" in out || "why_this_for_you_i18n" in out) {
+    const leg = typeof out.why_this_for_you === "string" ? out.why_this_for_you.trim() : "";
+    const { fr: frI, en: enI } = readI18n(out.why_this_for_you_i18n);
+    const fr = frI || leg;
+    const en = enI || (fr ? lookupCatalogFrToEn(fr) ?? fr : "");
+    if (fr || en) {
+      out.why_this_for_you = fr || en;
+      out.why_this_for_you_i18n = bilingualPair(fr || en, en || fr);
+    }
+  }
 
   const mergeOn = (
     path: string,
@@ -168,7 +182,7 @@ export function hydrateToolboxWidgetConfigForPersistence(
     unresolved.push(path);
   };
 
-  switch (contentType) {
+  switch (canonicalType) {
     case "focus_introspectif":
       mergeOn("widget_config.intention_i18n", out, "intention", "intention_i18n");
       break;

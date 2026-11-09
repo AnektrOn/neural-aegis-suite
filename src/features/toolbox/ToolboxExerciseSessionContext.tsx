@@ -32,6 +32,7 @@ import {
   upsertToolboxCompletion,
   resetToolboxCompletionForReload,
   type ToolboxCompletionPayload,
+  type ToolboxPostState,
 } from "@/lib/toolbox-completion";
 import { clearTimerSession, hasActiveToolboxSession } from "@/lib/toolbox-session-storage";
 import {
@@ -108,6 +109,8 @@ function ToolboxExerciseModalLayer({
   const [stats, setStats] = useState<ToolboxAssignmentStats | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [reloadBusy, setReloadBusy] = useState(false);
+  const [selectedPostState, setSelectedPostState] = useState<ToolboxPostState | null>(null);
+  const lastPayloadRef = useRef<ToolboxCompletionPayload | undefined>(undefined);
   const [completionDialog, setCompletionDialog] = useState<{
     open: boolean;
     status: string;
@@ -160,6 +163,8 @@ function ToolboxExerciseModalLayer({
 
   const recordCompletion = useCallback(
     async (status: "completed" | "abandoned", payload?: ToolboxCompletionPayload) => {
+      lastPayloadRef.current = payload;
+      setSelectedPostState(payload?.postState ?? null);
       const { error } = await upsertToolboxCompletion({
         assignmentId,
         userId,
@@ -362,6 +367,51 @@ function ToolboxExerciseModalLayer({
                 <DialogDescription className="text-center text-sm">{completionDialog.title}</DialogDescription>
               ) : null}
             </DialogHeader>
+            {completionDialog.status === "completed" ? (
+              <div className="w-full space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  {locale === "en" ? "Post-protocol state" : "État post-protocole"}
+                </p>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+                  {[
+                    { id: "tension_released" as const, labelFr: "Tension relâchée", labelEn: "Tension released", icon: "🌿" },
+                    { id: "clarity_restored" as const, labelFr: "Clarté retrouvée", labelEn: "Clarity restored", icon: "⚡" },
+                    { id: "still_in_resistance" as const, labelFr: "Encore en résistance", labelEn: "Still in resistance", icon: "🛡️" },
+                  ].map((opt) => {
+                    const isSelected = selectedPostState === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={async () => {
+                          setSelectedPostState(opt.id);
+                          await upsertToolboxCompletion({
+                            assignmentId,
+                            userId,
+                            status: "completed",
+                            payload: {
+                              elapsedSec: lastPayloadRef.current?.elapsedSec ?? 0,
+                              durationBudgetSec: lastPayloadRef.current?.durationBudgetSec,
+                              postState: opt.id,
+                            },
+                          });
+                        }}
+                        className={cn(
+                          "flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] transition-all",
+                          isSelected
+                            ? "border-primary bg-primary/20 text-primary font-medium"
+                            : "border-border/40 bg-background/50 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        )}
+                      >
+                        <span>{opt.icon}</span>
+                        <span>{locale === "en" ? opt.labelEn : opt.labelFr}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
             {completionDialog.stats ? (
               <div className="w-full rounded-xl border border-border/30 bg-background/40 px-4 py-3">
                 <ToolboxAssignmentStatsStrip stats={completionDialog.stats} className="justify-center" />
@@ -369,7 +419,10 @@ function ToolboxExerciseModalLayer({
             ) : null}
             <button
               type="button"
-              onClick={() => setCompletionDialog({ open: false, status: "", title: "", stats: null })}
+              onClick={() => {
+                setSelectedPostState(null);
+                setCompletionDialog({ open: false, status: "", title: "", stats: null });
+              }}
               className="min-h-[40px] rounded-full border border-border/40 px-6 text-[9px] uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
             >
               {t("general.close")}

@@ -11,6 +11,14 @@ describe("toolboxStepText", () => {
     });
   });
 
+  it("parseToolboxStepBullet splits title and body on colon and strips markdown bold", () => {
+    const line = "- **Seuil 70 %** : Définissez les 3 critères non-négociables.";
+    expect(parseToolboxStepBullet(line)).toEqual({
+      title: "Seuil 70 %",
+      body: "Définissez les 3 critères non-négociables.",
+    });
+  });
+
   it("isLongToolboxCopy detects cognitive framework paragraphs", () => {
     const short = "Respire trois fois.";
     const long = "A".repeat(300);

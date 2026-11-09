@@ -1,9 +1,10 @@
 import type { BreathworkConfig } from "@/components/widgets/BreathworkWidget";
+import { BUILTIN_TOOLBOX_SLUG_ALIASES } from "@/lib/toolbox-content-type-definitions";
 
 export type BreathVisualVariant = "circle" | "box";
 
 export interface ResolvedBreathwork {
-  config: BreathworkConfig;
+  config: BreathworkConfig & Record<string, unknown>;
   visualVariant: BreathVisualVariant;
 }
 
@@ -133,7 +134,8 @@ const BREATH_ALIAS_DEFAULTS: Record<
 };
 
 export function isBreathworkAliasSlug(slug: string): boolean {
-  return slug in BREATH_ALIAS_DEFAULTS;
+  const canonical = BUILTIN_TOOLBOX_SLUG_ALIASES[slug] ?? slug;
+  return canonical in BREATH_ALIAS_DEFAULTS;
 }
 
 /**
@@ -144,7 +146,8 @@ export function resolveBreathworkAlias(
   slug: string,
   cfg: Record<string, unknown>,
 ): ResolvedBreathwork | null {
-  const alias = BREATH_ALIAS_DEFAULTS[slug];
+  const canonical = BUILTIN_TOOLBOX_SLUG_ALIASES[slug] ?? slug;
+  const alias = BREATH_ALIAS_DEFAULTS[canonical];
   if (!alias) return null;
   const visual =
     cfg.breath_visual === "box" || cfg.breath_visual === "circle"
@@ -152,8 +155,13 @@ export function resolveBreathworkAlias(
       : alias.visual;
   const hint = readInstructionFragment(cfg);
   const base = alias.build(cfg);
+  const merged: BreathworkConfig & Record<string, unknown> = {
+    ...cfg,
+    ...base,
+    ...(hint ? { instructions: hint } : {}),
+  };
   return {
-    config: hint ? { ...base, instructions: hint } : base,
+    config: merged,
     visualVariant: visual,
   };
 }

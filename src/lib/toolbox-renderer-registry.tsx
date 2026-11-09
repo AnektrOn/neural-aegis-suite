@@ -12,6 +12,7 @@ import {
 } from "@/lib/toolbox-widget-resolver";
 import { resolveToolboxContentSlug } from "@/lib/toolbox-content-slug";
 import { overlayHabitDurationOnWidgetConfig, hydrateToolboxWidgetDuration } from "@/lib/toolbox-widget-duration";
+import { ToolboxPrescriptionBannerScope } from "@/features/toolbox/ui/ToolboxPrescriptionBanner";
 
 export interface ToolboxRenderableItem {
   id?: string;
@@ -214,13 +215,25 @@ export function renderToolboxWidget({
     onAbandon: safeOnAbandon,
   };
 
+  const wrapWithPrescription = (node: ReactNode): ReactNode => {
+    if (!node) return null;
+    return (
+      <ToolboxPrescriptionBannerScope
+        config={cfg as Record<string, unknown>}
+        locale={locale === "en" ? "en" : "fr"}
+      >
+        {node}
+      </ToolboxPrescriptionBannerScope>
+    );
+  };
+
   switch (slug) {
     case "breathwork":
-      return renderDynamicWidget("breathwork", baseProps);
+      return wrapWithPrescription(renderDynamicWidget("breathwork", baseProps));
     case "focus_introspectif":
-      return renderDynamicWidget("focus_introspectif", baseProps);
+      return wrapWithPrescription(renderDynamicWidget("focus_introspectif", baseProps));
     case "body_scan":
-      return renderDynamicWidget("body_scan", baseProps);
+      return wrapWithPrescription(renderDynamicWidget("body_scan", baseProps));
     case "affirmations":
       if (
         cfg?.duration_min == null &&
@@ -228,25 +241,27 @@ export function renderToolboxWidget({
       ) {
         return null;
       }
-      return renderDynamicWidget("affirmations", baseProps);
+      return wrapWithPrescription(renderDynamicWidget("affirmations", baseProps));
     case "visualization":
-      return renderDynamicWidget("visualization", baseProps);
+      return wrapWithPrescription(renderDynamicWidget("visualization", baseProps));
     case "stop_protocol":
-      return renderDynamicWidget("stop_protocol", baseProps);
+      return wrapWithPrescription(renderDynamicWidget("stop_protocol", baseProps));
     case "intention":
-      return renderDynamicWidget("intention", baseProps);
+      return wrapWithPrescription(renderDynamicWidget("intention", baseProps));
     case "gratitude":
-      return renderDynamicWidget("gratitude", { ...baseProps, sessionKey: undefined });
+      return wrapWithPrescription(renderDynamicWidget("gratitude", { ...baseProps, sessionKey: undefined }));
     case "micro_practice":
-      return renderDynamicWidget("micro_practice", baseProps);
+      return wrapWithPrescription(renderDynamicWidget("micro_practice", baseProps));
     case "journal_prompt": {
       const prompt = pickWidgetCatalogCopy(locale, cfg?.prompt_i18n as never, cfg?.prompt as never) as string | undefined;
       if (!prompt || !prompt.trim()) return null;
-      return renderDynamicWidget("journal_prompt", {
-        ...baseProps,
-        config: { ...cfg, prompt } as Record<string, unknown>,
-        sessionKey: undefined,
-      });
+      return wrapWithPrescription(
+        renderDynamicWidget("journal_prompt", {
+          ...baseProps,
+          config: { ...cfg, prompt } as Record<string, unknown>,
+          sessionKey: undefined,
+        }),
+      );
     }
     case "external_link":
       return item.external_url
@@ -263,50 +278,29 @@ export function renderToolboxWidget({
         : (fallbackForExternalLink ?? null);
     default: {
       const resolved = resolveToolboxWidget(slug, cfg as Record<string, unknown>, definitionsBySlug);
-      // #region agent log
-      if (slug.includes("journal") || slug === "worry_dump" || slug === "evening_review" || slug === "morning_pages" || slug === "letter_unsent") {
-        fetch("http://127.0.0.1:7734/ingest/5c724db7-3dd7-4e14-aa0c-d7fe395f7450", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c757ff" },
-          body: JSON.stringify({
-            sessionId: "c757ff",
-            runId: "journal-panel-pre",
-            hypothesisId: "H1-H3",
-            location: "toolbox-renderer-registry.tsx:renderToolboxWidget",
-            message: "journal widget resolve",
-            data: {
-              slug,
-              resolvedKind: resolved?.kind ?? null,
-              hasPrompt: Boolean(
-                typeof (resolved?.config as Record<string, unknown> | undefined)?.prompt === "string"
-                && String((resolved?.config as Record<string, unknown>).prompt).trim(),
-              ),
-              cfgKeys: cfg ? Object.keys(cfg as object) : [],
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-      }
-      // #endregion
       if (resolved && resolved.kind !== "composed") {
-        return renderResolved(resolved, {
-          item,
-          locale,
-          title,
-          hideTitle,
-          sessionKey,
-          onComplete,
-          onAbandon,
-          definitionsBySlug,
-          fallbackForExternalLink,
-        });
+        return wrapWithPrescription(
+          renderResolved(resolved, {
+            item,
+            locale,
+            title,
+            hideTitle,
+            sessionKey,
+            onComplete,
+            onAbandon,
+            definitionsBySlug,
+            fallbackForExternalLink,
+          }),
+        );
       }
       const def = definitionsBySlug[slug] || getBuiltinToolboxContentTypeDefinition(slug);
       if (def?.renderer_kind !== "composed_v1" && !resolved) return null;
-      return renderDynamicWidget("composed_v1", {
-        ...baseProps,
-        blueprint: def?.ui_blueprint,
-      });
+      return wrapWithPrescription(
+        renderDynamicWidget("composed_v1", {
+          ...baseProps,
+          blueprint: def?.ui_blueprint,
+        }),
+      );
     }
   }
 }
