@@ -402,7 +402,7 @@ function PersonaPortraitLibraryCarousel({
   const { locale, t } = useLanguage();
   const isFR = locale === "fr";
   const [activeIndex, setActiveIndex] = useState(0);
-  const swipeSurfaceRef = useRef<HTMLElement>(null);
+  const swipeSurfaceRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useMemo(
     () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     [],

@@ -649,7 +649,7 @@ export default function PulsePage() {
             }}
             className={cn(
               "flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-cinzel text-[9.5px] font-semibold uppercase tracking-wider transition-all",
-              activeView === "grimoire"
+              false
                 ? "bg-[#c9a24b] text-[#0b0b0a] shadow-sm font-bold"
                 : "text-muted-foreground hover:text-foreground",
             )}
@@ -665,7 +665,7 @@ export default function PulsePage() {
             }}
             className={cn(
               "flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-cinzel text-[9.5px] font-semibold uppercase tracking-wider transition-all",
-              activeView === "runes"
+              false
                 ? "bg-[#c9a24b] text-[#0b0b0a] shadow-sm font-bold"
                 : "text-muted-foreground hover:text-foreground",
             )}
