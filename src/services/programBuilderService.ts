@@ -140,6 +140,8 @@ export interface ToolboxCatalogImportPayload {
     external_url?: string;
     widget_config: Record<string, unknown>;
     is_active?: boolean;
+    archetype_targets?: string[];
+    shadow_targets?: string[];
     /** Surcharge les `default_user_ids` pour cet item. */
     user_ids?: string[];
     /** Statut par défaut pour les utilisateurs listés dans `user_ids` (ou défaut racine). */
@@ -655,8 +657,9 @@ export async function assignToolboxTemplateToUser(params: {
   userId: string;
   templateId: string;
   userDeliveryStatus?: ToolboxUserDeliveryStatus;
+  customWidgetConfig?: Record<string, unknown>;
 }) {
-  const { actorId, userId, templateId, userDeliveryStatus = "active" } = params;
+  const { actorId, userId, templateId, userDeliveryStatus = "active", customWidgetConfig } = params;
   const { data: template, error: tErr } = await supabase
     .from("toolbox_templates" as any)
     .select("*")
@@ -664,9 +667,24 @@ export async function assignToolboxTemplateToUser(params: {
     .single();
   if (tErr) throw tErr;
 
+  const rawTplCfg = ((template as any).widget_config || {}) as Record<string, unknown>;
+  const enrichedTplCfg: Record<string, unknown> = {
+    ...rawTplCfg,
+    ...(Array.isArray((template as any).archetype_targets) &&
+    (template as any).archetype_targets.length > 0 &&
+    rawTplCfg.archetype_targets === undefined
+      ? { archetype_targets: (template as any).archetype_targets }
+      : {}),
+    ...(Array.isArray((template as any).shadow_targets) &&
+    (template as any).shadow_targets.length > 0 &&
+    rawTplCfg.shadow_targets === undefined
+      ? { shadow_targets: (template as any).shadow_targets }
+      : {}),
+  };
+
   const { widget_config, unresolvedPaths } = hydrateToolboxWidgetConfigForPersistence(
     (template as any).content_type,
-    ((template as any).widget_config || {}) as Record<string, unknown>
+    enrichedTplCfg
   );
   if (unresolvedPaths.length > 0) {
     throw new Error(
@@ -687,7 +705,7 @@ export async function assignToolboxTemplateToUser(params: {
       ? mergeI18nObject((template as any).description_i18n ?? null, null, null, null)
       : mergeI18nObject((template as any).description_i18n ?? null, null, null, (template as any).description ?? null),
     external_url: (template as any).external_url,
-    widget_config,
+    widget_config: customWidgetConfig ? { ...widget_config, ...customWidgetConfig } : widget_config,
     assigned_by: actorId,
     template_id: (template as any).id,
     user_delivery_status: userDeliveryStatus,
@@ -1367,6 +1385,8 @@ export async function runToolboxCatalogImport(params: {
           external_url: t.external_url,
           widget_config: t.widget_config,
           is_active: t.is_active ?? true,
+          archetype_targets: t.archetype_targets,
+          shadow_targets: t.shadow_targets,
         },
         actorId
       );
@@ -1555,9 +1575,16 @@ export async function distributeToolboxToUsers(params: {
   userIds: string[];
   userDeliveryStatus?: ToolboxUserDeliveryStatus;
   distributionMetadata?: Record<string, unknown>;
+  customWidgetConfig?: Record<string, unknown>;
 }): Promise<{ created: number; skipped: number; assignmentIds: string[] }> {
-  const { actorId, templateId, userIds, userDeliveryStatus = "active", distributionMetadata } =
-    params;
+  const {
+    actorId,
+    templateId,
+    userIds,
+    userDeliveryStatus = "active",
+    distributionMetadata,
+    customWidgetConfig,
+  } = params;
   const unique = [...new Set(userIds.filter(isUuidLike))];
   let created = 0;
   let skipped = 0;
@@ -1579,6 +1606,7 @@ export async function distributeToolboxToUsers(params: {
           userId,
           templateId,
           userDeliveryStatus,
+          customWidgetConfig,
         });
         return { kind: "created" as const, id: (data as any).id as string };
       }),
@@ -1613,6 +1641,7 @@ export async function distributeToolboxContent(params: {
   actorId: string;
   templateId: string;
   distribution: ToolboxDistributionInput;
+  customWidgetConfig?: Record<string, unknown>;
 }): Promise<{ created: number; skipped: number; userCount: number }> {
   const userIds = await resolveDistributionUserIds(params.distribution);
   if (params.distribution.mode === "catalog" || userIds.length === 0) {
@@ -1628,6 +1657,7 @@ export async function distributeToolboxContent(params: {
       locale: params.distribution.locale,
       company_id: params.distribution.companyId,
     },
+    customWidgetConfig: params.customWidgetConfig,
   });
   return { ...result, userCount: userIds.length };
 }

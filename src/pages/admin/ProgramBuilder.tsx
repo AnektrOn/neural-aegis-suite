@@ -29,6 +29,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import type { Locale } from "@/i18n/translations";
 import ToolboxDistributionPicker from "@/features/toolbox-admin/ToolboxDistributionPicker";
+import { getBuiltinToolboxContentTypeDefinition } from "@/lib/toolbox-content-type-definitions";
 
 type Profile = { id: string; display_name: string | null };
 type CompanyOption = { id: string; name: string };
@@ -94,6 +95,11 @@ export default function ProgramBuilder() {
   const [statusFeed, setStatusFeed] = useState<{ habits: any[]; toolbox: any[]; journals: any[] } | null>(null);
   const [catalogFilterType, setCatalogFilterType] = useState<"all" | "habit" | "toolbox" | "journal">("all");
   const [catalogFilterTag, setCatalogFilterTag] = useState("");
+  const [catalogTierFilter, setCatalogTierFilter] = useState<string>("all");
+  const [catalogOrganFilter, setCatalogOrganFilter] = useState<string>("all");
+  const [customWhyFr, setCustomWhyFr] = useState("");
+  const [customWhyEn, setCustomWhyEn] = useState("");
+  const [personalizeOpen, setPersonalizeOpen] = useState(false);
   const [editRow, setEditRow] = useState<{ kind: "habit" | "toolbox" | "journal"; id: string } | null>(null);
   const [editPayload, setEditPayload] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -164,14 +170,24 @@ export default function ProgramBuilder() {
           : [],
       toolbox:
         catalogFilterType === "all" || catalogFilterType === "toolbox"
-          ? catalog.toolbox.filter((row) => tagMatch(row) && !(row.content_type === "external_link" && isLikelyVideoUrl(row.external_url)))
+          ? catalog.toolbox.filter((row) => {
+              if (row.content_type === "external_link" && isLikelyVideoUrl(row.external_url)) return false;
+              if (!tagMatch(row)) return false;
+              const cfg = (row.widget_config || {}) as any;
+              const def = getBuiltinToolboxContentTypeDefinition(row.content_type);
+              const tier = cfg.tier || def?.tier || "beginner";
+              const organ = cfg.exocortex_organ || def?.exocortex_organ;
+              if (catalogTierFilter !== "all" && tier !== catalogTierFilter) return false;
+              if (catalogOrganFilter !== "all" && organ !== catalogOrganFilter) return false;
+              return true;
+            })
           : [],
       journal:
         catalogFilterType === "all" || catalogFilterType === "journal"
           ? catalog.journal.filter(tagMatch)
           : [],
     };
-  }, [catalog, catalogFilterType, catalogFilterTag]);
+  }, [catalog, catalogFilterType, catalogFilterTag, catalogTierFilter, catalogOrganFilter]);
 
   const createCatalogItems = async () => {
     if (!user) return;
@@ -262,15 +278,34 @@ export default function ProgramBuilder() {
           toolboxDistribution.mode === "individual" && !toolboxDistribution.userId?.trim()
             ? { ...toolboxDistribution, userId: selectedUserId }
             : toolboxDistribution;
+
+        const selectedTpl = catalog.toolbox.find((t) => t.id === assignSelection.toolboxTemplateId);
+        const hasCustomWhy = customWhyFr.trim().length > 0 || customWhyEn.trim().length > 0;
+        const customWidgetConfig = hasCustomWhy
+          ? {
+              parent_template_key: selectedTpl?.external_key || selectedTpl?.id,
+              distribution_mode: "individual",
+              why_this_for_you: customWhyFr.trim() || customWhyEn.trim(),
+              why_this_for_you_i18n: {
+                fr: customWhyFr.trim() || customWhyEn.trim(),
+                en: customWhyEn.trim() || customWhyFr.trim(),
+              },
+            }
+          : undefined;
+
         const result = await distributeToolboxContent({
           actorId: user.id,
           templateId: assignSelection.toolboxTemplateId,
           distribution: dist,
+          customWidgetConfig,
         });
         toast({
           title: "Assigned",
           description: `Toolbox distributed: ${result.created} created, ${result.skipped} skipped (${result.userCount} users).`,
         });
+        setCustomWhyFr("");
+        setCustomWhyEn("");
+        setPersonalizeOpen(false);
       }
       if (kind === "journal" && assignSelection.journalTemplateId) {
         await assignJournalPromptTemplateToUser({
@@ -499,7 +534,7 @@ export default function ProgramBuilder() {
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save templates
           </button>
 
-          <div className="ethereal-glass p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="ethereal-glass p-4 grid grid-cols-1 md:grid-cols-5 gap-3">
             <select
               className={inputClass}
               value={catalogFilterType}
@@ -516,6 +551,27 @@ export default function ProgramBuilder() {
               value={catalogFilterTag}
               onChange={(e) => setCatalogFilterTag(e.target.value)}
             />
+            <select
+              className={inputClass}
+              value={catalogTierFilter}
+              onChange={(e) => setCatalogTierFilter(e.target.value)}
+            >
+              <option value="all">All tiers</option>
+              <option value="beginner">Débutant (beginner)</option>
+              <option value="initiate">Initié (initiate)</option>
+              <option value="sovereign">Souverain (sovereign)</option>
+            </select>
+            <select
+              className={inputClass}
+              value={catalogOrganFilter}
+              onChange={(e) => setCatalogOrganFilter(e.target.value)}
+            >
+              <option value="all">All organs</option>
+              <option value="vortex_emergency">Mode Vortex</option>
+              <option value="decision_log">Decision Log</option>
+              <option value="people_board">People Board</option>
+              <option value="daily_posture">Posture Quotidienne</option>
+            </select>
             <div className="text-xs text-muted-foreground self-center">
               {filteredCatalog.habits.length + filteredCatalog.toolbox.length + filteredCatalog.journal.length} template(s)
             </div>
@@ -533,12 +589,18 @@ export default function ProgramBuilder() {
             />
             <CatalogList
               title="Toolbox catalog"
-              rows={filteredCatalog.toolbox.map((t) => ({
-                id: t.id,
-                label: `${pickCatalogTemplateDisplayTitle(locale as Locale, { title: t.title, title_i18n: t.title_i18n })} · ${t.content_type} · ${joinTagList(t.archetype_targets)}`,
-                onEdit: () => beginEdit("toolbox", t),
-                onDelete: () => removeTemplate("toolbox", t.id),
-              }))}
+              rows={filteredCatalog.toolbox.map((t) => {
+                const cfg = (t.widget_config || {}) as any;
+                const def = getBuiltinToolboxContentTypeDefinition(t.content_type);
+                const tier = cfg.tier || def?.tier || "beginner";
+                const organ = cfg.exocortex_organ || def?.exocortex_organ || "daily_posture";
+                return {
+                  id: t.id,
+                  label: `[${tier.toUpperCase()}] [${organ}] ${pickCatalogTemplateDisplayTitle(locale as Locale, { title: t.title, title_i18n: t.title_i18n })} · ${t.content_type} · ${joinTagList(t.archetype_targets)}`,
+                  onEdit: () => beginEdit("toolbox", t),
+                  onDelete: () => removeTemplate("toolbox", t.id),
+                };
+              })}
             />
             <CatalogList
               title="Journal catalog"
@@ -649,6 +711,43 @@ export default function ProgramBuilder() {
                 buttonLabel="Assign toolbox item"
                 onAssign={() => assignSelected("toolbox")}
               />
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setPersonalizeOpen((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-amber-400 hover:text-amber-300 w-full text-left"
+                >
+                  <Sparkles className="size-3.5 shrink-0" />
+                  <span>Personnaliser pour cet Utilisateur (Global → Individual)</span>
+                </button>
+                {personalizeOpen ? (
+                  <div className="space-y-2 pt-2 border-t border-amber-500/20">
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      Saisis l'intention clinique personnalisée (pourquoi ce protocole lui est prescrit). L'assignation sera créée en mode <code>individual</code> avec lien au template global sans modifier ce dernier.
+                    </p>
+                    <div>
+                      <label className="text-[9px] uppercase tracking-wider text-muted-foreground">Pourquoi ce protocole pour toi (FR)</label>
+                      <textarea
+                        className={inputClass}
+                        rows={2}
+                        placeholder="Ex: Recommandé suite à l'analyse pour désamorcer le contrôle du Saboteur..."
+                        value={customWhyFr}
+                        onChange={(e) => setCustomWhyFr(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] uppercase tracking-wider text-muted-foreground">Why this protocol for you (EN)</label>
+                      <textarea
+                        className={inputClass}
+                        rows={2}
+                        placeholder="Ex: Prescribed following analysis to defuse Saboteur control..."
+                        value={customWhyEn}
+                        onChange={(e) => setCustomWhyEn(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
             <AssignmentCard
               title="Assign journal prompt"

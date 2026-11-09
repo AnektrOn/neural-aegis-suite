@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send } from "lucide-react";
+import { Send, Sparkles, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_BODY_SCAN_TOTAL_SEC, DEFAULT_BODY_SCAN_ZONES } from "@/components/widgets/BodyScanWidget";
 import { DEFAULT_VISUALIZATION_SCENES, DEFAULT_VISUALIZATION_TOTAL_SEC } from "@/components/widgets/VisualizationWidget";
@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { translations, type TranslationKey, type Locale } from "@/i18n/translations";
+import type { ToolboxTier } from "@/lib/toolbox-content-type-definitions";
 
 function tFor(loc: Locale, key: TranslationKey, params?: Record<string, string | number>): string {
   let str: string = (translations as any)[key]?.[loc] || (translations as any)[key]?.fr || key;
@@ -108,6 +109,14 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
   const [mpDurationMin, setMpDurationMin] = useState(5);
   const [mpStepsRaw, setMpStepsRaw] = useState("");
   const [mpStepsRawEn, setMpStepsRawEn] = useState("");
+
+  // Clinical prescription / individualization
+  const [whyThisForYouFr, setWhyThisForYouFr] = useState("");
+  const [whyThisForYouEn, setWhyThisForYouEn] = useState("");
+  const [prescriptionTier, setPrescriptionTier] = useState<ToolboxTier>("beginner");
+  const [archetypeTargets, setArchetypeTargets] = useState("");
+  const [shadowTargets, setShadowTargets] = useState("");
+  const [showPrescriptionFields, setShowPrescriptionFields] = useState(false);
 
   const computeBreathworkDuration = () => {
     const cycleTime = bwBreathIn + bwPause1 + bwBreathOut + bwPause2;
@@ -393,6 +402,27 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
     title = titleFr || titleEn || "";
     const toastTitle = (locale === "en" ? titleEn : titleFr) || titleFr || titleEn;
 
+    const finalWidgetConfig: Record<string, unknown> = { ...(widgetConfig || {}) };
+    const cleanWhyFr = whyThisForYouFr.trim();
+    const cleanWhyEn = whyThisForYouEn.trim();
+    if (cleanWhyFr || cleanWhyEn) {
+      finalWidgetConfig.distribution_mode = "individual";
+      finalWidgetConfig.why_this_for_you = cleanWhyFr || cleanWhyEn;
+      finalWidgetConfig.why_this_for_you_i18n = bilingualPair(
+        cleanWhyFr || cleanWhyEn,
+        cleanWhyEn || cleanWhyFr
+      );
+    }
+    if (prescriptionTier) {
+      finalWidgetConfig.tier = prescriptionTier;
+    }
+    if (archetypeTargets.trim()) {
+      finalWidgetConfig.archetype_targets = archetypeTargets.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    if (shadowTargets.trim()) {
+      finalWidgetConfig.shadow_targets = shadowTargets.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+
     try {
       await assignToolboxDirect({
         actorId: user.id,
@@ -407,7 +437,7 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
               : undefined,
         duration,
         externalUrl,
-        widgetConfig,
+        widgetConfig: finalWidgetConfig,
       });
       if (selectedType === "journal_prompt" && jpPrompt.trim()) {
         await logProgramEvent({
@@ -832,6 +862,92 @@ export default function ToolboxAssignmentForm({ userId, onAssigned }: Props) {
                 </p>
               </div>
             )}
+
+            {/* Prescription Personnalisée & Contexte Clinique */}
+            <div className="pt-3 border-t border-border/30 space-y-3">
+              <button
+                type="button"
+                onClick={() => setShowPrescriptionFields(!showPrescriptionFields)}
+                className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider hover:opacity-80 transition-opacity"
+              >
+                <Sparkles size={14} />
+                <span>
+                  {showPrescriptionFields
+                    ? "Masquer la prescription clinique sur-mesure"
+                    : "Prescrire sur-mesure pour cet utilisateur (Intention clinique & Cibles)"}
+                </span>
+                <span className="text-[10px] lowercase text-muted-foreground font-normal">
+                  ({showPrescriptionFields ? "cliquer pour replier" : "optionnel — passe en mode individuel"})
+                </span>
+              </button>
+
+              {showPrescriptionFields && (
+                <div className="rounded-lg border border-primary/25 bg-primary/5 p-3.5 space-y-3 text-xs">
+                  <div className="flex items-center gap-1.5 text-text-primary font-medium">
+                    <UserCheck size={14} className="text-primary" />
+                    <span>Intention clinique personnalisée (« Pourquoi cet outil pour toi »)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Pourquoi cet outil pour toi (FR)</label>
+                      <textarea
+                        rows={2}
+                        value={whyThisForYouFr}
+                        onChange={(e) => setWhyThisForYouFr(e.target.value)}
+                        placeholder="Ex: Prescrit suite à l'analyse de ta charge allostatique..."
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Why this tool for you (EN)</label>
+                      <textarea
+                        rows={2}
+                        value={whyThisForYouEn}
+                        onChange={(e) => setWhyThisForYouEn(e.target.value)}
+                        placeholder="Ex: Prescribed following your recent allostatic load review..."
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className={labelClass}>Niveau de maîtrise (Tier)</label>
+                      <select
+                        value={prescriptionTier}
+                        onChange={(e) => setPrescriptionTier(e.target.value as ToolboxTier)}
+                        className={inputClass}
+                      >
+                        <option value="beginner">Débutant (Court, guidé, pas-à-pas)</option>
+                        <option value="initiate">Initié (Standard)</option>
+                        <option value="sovereign">Souverain (Avancé, autonome)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Archétypes ciblés (séparés par virgules)</label>
+                      <input
+                        type="text"
+                        value={archetypeTargets}
+                        onChange={(e) => setArchetypeTargets(e.target.value)}
+                        placeholder="Ex: Saboteur, Victime, Enfant"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Ombres ciblées (séparées par virgules)</label>
+                      <input
+                        type="text"
+                        value={shadowTargets}
+                        onChange={(e) => setShadowTargets(e.target.value)}
+                        placeholder="Ex: Peur du rejet, Fuite dans l'action"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <button onClick={handleSubmit} disabled={submitting}
               className="btn-neural disabled:opacity-50">

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FastForward } from "lucide-react";
 import type { MicroPracticeConfig } from "@/components/widgets/MicroPracticeWidget";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale } from "@/i18n/translations";
@@ -9,6 +9,7 @@ import type { MicroHeroPreset } from "@/lib/toolbox-slug-themes";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import {
+  ToolboxPrescriptionBanner,
   ToolboxNebulaOverlayControls,
   ToolboxNebulaOverlayHeader,
   ToolboxNebulaOverlayPrimaryButton,
@@ -73,7 +74,17 @@ export function ToolboxMatterMovement({
   }, [merged.steps, locale]);
 
   const hasSteps = localizedSteps != null && localizedSteps.length > 0;
-  const totalSec = Math.max(0, merged.duration_sec ?? 0);
+  const baseTotalSec = Math.max(0, merged.duration_sec ?? 0);
+  const fallbackSec = useMemo(() => {
+    const raw = merged.resistance_fallback_sec;
+    const num = typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+    if (num > 0 && (baseTotalSec === 0 || num < baseTotalSec)) return num;
+    if (baseTotalSec > 120) return 90;
+    return 0;
+  }, [merged.resistance_fallback_sec, baseTotalSec]);
+
+  const [expressActive, setExpressActive] = useState(false);
+  const totalSec = expressActive && fallbackSec > 0 ? fallbackSec : baseTotalSec;
   const hasDuration = totalSec > 0;
 
   const [started, setStarted] = useState(false);
@@ -140,12 +151,20 @@ export function ToolboxMatterMovement({
   const start = () => {
     hasStartedRef.current = true;
     setStarted(true);
-    if (hasDuration) toggleRunning();
+    if (hasDuration && !isRunning) toggleRunning();
+  };
+
+  const activateExpress = () => {
+    setExpressActive(true);
+    hasStartedRef.current = true;
+    setStarted(true);
+    if (!isRunning) toggleRunning();
   };
 
   const restart = () => {
     setStarted(false);
     setStepIdx(0);
+    setExpressActive(false);
     resetTimer();
   };
 
@@ -191,6 +210,11 @@ export function ToolboxMatterMovement({
   return (
     <ToolboxMatterShell embedded={embedded} variant={variant} driveRef={driveRef}>
       <div className={toolboxNebulaOverlayRootClass}>
+        <ToolboxPrescriptionBanner
+          config={merged as unknown as Record<string, unknown>}
+          locale={locale === "en" ? "en" : "fr"}
+        />
+
         <ToolboxNebulaOverlayHeader
           title={title}
           headline={headline}
@@ -225,9 +249,21 @@ export function ToolboxMatterMovement({
 
         <ToolboxNebulaOverlayControls>
           {!started && !sessionDone ? (
-            <ToolboxNebulaOverlayPrimaryButton type="button" onClick={start}>
-              {t("toolbox.launch")}
-            </ToolboxNebulaOverlayPrimaryButton>
+            <>
+              <ToolboxNebulaOverlayPrimaryButton type="button" onClick={start}>
+                {t("toolbox.launch")}
+              </ToolboxNebulaOverlayPrimaryButton>
+              {fallbackSec > 0 && !expressActive ? (
+                <ToolboxNebulaOverlayPrimaryButton
+                  type="button"
+                  onClick={activateExpress}
+                  data-slot="toolbox-express-fallback"
+                >
+                  <FastForward className="mr-1.5 h-3.5 w-3.5" />
+                  {locale === "en" ? `⚡ Express Mode (${fallbackSec}s)` : `⚡ Mode Express (${fallbackSec}s)`}
+                </ToolboxNebulaOverlayPrimaryButton>
+              ) : null}
+            </>
           ) : null}
 
           {started && hasDuration ? (
@@ -246,8 +282,8 @@ export function ToolboxMatterMovement({
             <ToolboxNebulaOverlayPrimaryButton type="button" onClick={nextStep}>
               <ChevronRight className="mr-1.5 h-3.5 w-3.5" />
               {stepIdx >= (localizedSteps?.length ?? 1) - 1
-                ? t("toolbox.micro.finish")
-                : t("toolbox.micro.next")}
+                ? (locale === "en" ? "Protocol completed →" : "Étape accomplie →")
+                : (locale === "en" ? "Next step →" : "Étape accomplie →")}
             </ToolboxNebulaOverlayPrimaryButton>
           ) : null}
 

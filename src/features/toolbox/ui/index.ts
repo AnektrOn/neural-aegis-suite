@@ -20,3 +20,4 @@ export * from "./ToolboxNebulaStepBadges";
 export * from "./ToolboxNebulaOptionPills";
 export * from "./ToolboxNebulaOverlayControls";
 export * from "./ToolboxWidgetProductionPreview";
+export * from "./ToolboxPrescriptionBanner";

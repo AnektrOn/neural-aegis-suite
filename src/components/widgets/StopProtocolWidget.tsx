@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useWidgetAbandonGuard } from "@/hooks/useWidgetAbandonGuard";
 import { usePersistedExerciseTimer } from "@/hooks/usePersistedExerciseTimer";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldAlert, ChevronRight, Check } from "lucide-react";
+import { ShieldAlert, ChevronRight, Check, FastForward } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import type { Locale } from "@/i18n/translations";
@@ -10,13 +10,16 @@ import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
 import { hslWithAlpha } from "@/features/toolbox/ui/toolboxPhaseColors";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
 import { playToolboxTimerCompleteSound } from "@/lib/toolbox-timer-sound";
+import type { AegisToolboxExtendedConfig } from "@/lib/toolbox-content-type-definitions";
 import {
   TOOLBOX_STOP_STEP_COLORS,
+  ToolboxPrescriptionBanner,
   ToolboxWidgetHeader,
   ToolboxWidgetLaunchButton,
   ToolboxWidgetRoot,
   ToolboxWidgetSecondaryButton,
   ToolboxWidgetTimerControls,
+  parseToolboxStepBullet,
 } from "@/features/toolbox/ui";
 
 export interface StopStepLegacy {
@@ -24,9 +27,11 @@ export interface StopStepLegacy {
   hint: string;
   title_i18n?: unknown;
   hint_i18n?: unknown;
+  text?: string;
+  text_i18n?: unknown;
 }
 
-export interface StopProtocolConfig {
+export interface StopProtocolConfig extends AegisToolboxExtendedConfig {
   mode?: "timed" | "manual";
   step_duration_sec?: number;
   duration_sec?: number;
@@ -69,13 +74,16 @@ function buildDefaultSteps(duration: number, t: (key: TranslationKey, params?: R
 
 function legacyToSteps(legacy: StopStepLegacy[], stepDuration: number, locale: Locale): Step[] {
   return legacy.map((s, i) => {
-    const titleLoc = pickWidgetCatalogCopy(locale, s.title_i18n as any, s.title);
-    const hintLoc = pickWidgetCatalogCopy(locale, s.hint_i18n as any, s.hint);
+    const rawTitle = pickWidgetCatalogCopy(locale, s.title_i18n as any, s.title ?? s.text ?? "");
+    const rawHint = pickWidgetCatalogCopy(locale, s.hint_i18n as any, s.hint ?? "");
+    const parsed = !rawHint && rawTitle ? parseToolboxStepBullet(rawTitle) : null;
+    const titleLoc = parsed?.title || rawTitle;
+    const hintLoc = rawHint?.trim() ? rawHint : parsed?.body || titleLoc;
     return {
       letter: LETTERS[i] ?? String(i + 1),
-      caption: titleLoc.split(/\s+/)[0] || titleLoc,
+      caption: titleLoc.replace(/^[STOPS]\s*[—–-]\s*/i, "").split(/\s+/)[0] || titleLoc,
       subtitle: titleLoc,
-      instruction: hintLoc?.trim() ? hintLoc : titleLoc,
+      instruction: hintLoc,
       color: DEFAULT_COLORS[i % DEFAULT_COLORS.length],
       duration_sec: stepDuration,
     };
@@ -85,11 +93,18 @@ function legacyToSteps(legacy: StopStepLegacy[], stepDuration: number, locale: L
 function normalizeSteps(
   config: StopProtocolConfig,
   t: (key: TranslationKey, params?: Record<string, string | number>) => string,
-  locale: Locale
+  locale: Locale,
+  effectiveStepDurationSec?: number,
 ): Step[] {
-  const stepDuration = config.step_duration_sec ?? 30;
+  const stepDuration = effectiveStepDurationSec ?? config.step_duration_sec ?? 30;
   const raw = config.steps;
-  if (Array.isArray(raw) && raw.length > 0 && raw[0] && typeof raw[0] === "object" && "title" in raw[0]) {
+  if (
+    Array.isArray(raw) &&
+    raw.length > 0 &&
+    raw[0] &&
+    typeof raw[0] === "object" &&
+    ("title" in raw[0] || "text" in raw[0])
+  ) {
     return legacyToSteps(raw as StopStepLegacy[], stepDuration, locale);
   }
   return buildDefaultSteps(stepDuration, t);
@@ -103,11 +118,38 @@ function fmtTime(sec: number) {
 
 export default function StopProtocolWidget({ config, title, hideTitle, sessionKey, onComplete, onAbandon }: Props) {
   const { t, locale } = useLanguage();
-  const stepDuration = config.step_duration_sec ?? 30;
+  const [expressActive, setExpressActive] = useState(false);
+
+  const rawStepCount = Array.isArray(config.steps) && config.steps.length > 0 ? config.steps.length : 4;
+  const baseStepDuration = config.step_duration_sec ?? 30;
+  const baseTotalSec =
+    config.time_budget_mode === true && (config.duration_sec ?? 0) > 0
+      ? Math.max(1, config.duration_sec ?? 1)
+      : (config.duration_sec ?? baseStepDuration * rawStepCount);
+
+  const fallbackSec = useMemo(() => {
+    const raw = config.resistance_fallback_sec;
+    const num = typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+    if (num > 0 && num < baseTotalSec) return num;
+    if (baseTotalSec > 120) return 90;
+    return 0;
+  }, [config.resistance_fallback_sec, baseTotalSec]);
+
+  const stepDuration =
+    expressActive && fallbackSec > 0
+      ? Math.max(10, Math.floor(fallbackSec / Math.max(1, rawStepCount)))
+      : baseStepDuration;
   const budgetMode = config.time_budget_mode === true && (config.duration_sec ?? 0) > 0;
-  const budgetSec = budgetMode ? Math.max(1, config.duration_sec ?? 1) : 0;
+  const budgetSec = budgetMode
+    ? expressActive && fallbackSec > 0
+      ? fallbackSec
+      : Math.max(1, config.duration_sec ?? 1)
+    : 0;
   const mode = budgetMode ? "manual" : config.mode === "timed" ? "timed" : "manual";
-  const steps = useMemo(() => normalizeSteps(config, t, locale as Locale), [config, t, locale]);
+  const steps = useMemo(
+    () => normalizeSteps(config, t, locale as Locale, stepDuration),
+    [config, t, locale, stepDuration],
+  );
 
   const [isRunning, setIsRunning] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(-1);
@@ -175,7 +217,18 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
       : undefined,
   );
 
+  const triggerHaptic = () => {
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(10);
+      }
+    } catch {
+      // Ignore haptic errors on unsupported browsers
+    }
+  };
+
   const advance = useCallback(() => {
+    triggerHaptic();
     const nextIdx = currentIdx + 1;
     if (nextIdx >= steps.length) {
       setCompletedSteps((prev) => new Set([...prev, currentIdx]));
@@ -213,8 +266,22 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
   }, [budgetMode, isRunning, currentIdx, mode, stepDuration, advance, steps]);
 
   const start = () => {
+    triggerHaptic();
     hasStartedRef.current = true;
     setCurrentIdx(0);
+    setPhaseProgress(0);
+    if (budgetMode) {
+      timer.setRunning(true);
+    } else if (mode === "timed") {
+      setIsRunning(true);
+    }
+  };
+
+  const activateExpress = () => {
+    triggerHaptic();
+    setExpressActive(true);
+    hasStartedRef.current = true;
+    if (currentIdx < 0) setCurrentIdx(0);
     setPhaseProgress(0);
     if (budgetMode) {
       timer.setRunning(true);
@@ -229,6 +296,7 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
     setPhaseProgress(0);
     setCompletedSteps(new Set());
     setCompleted(false);
+    setExpressActive(false);
     completedRef.current = false;
     hasStartedRef.current = false;
     if (budgetMode) timer.reset();
@@ -255,6 +323,11 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
       {hideTitle === false ? (
         <ToolboxWidgetHeader title={title} icon={ShieldAlert} iconClassName="text-destructive" />
       ) : null}
+
+      <ToolboxPrescriptionBanner
+        config={config as unknown as Record<string, unknown>}
+        locale={locale === "en" ? "en" : "fr"}
+      />
 
       <div className="flex items-center gap-3">
         {steps.map((step, i) => {
@@ -325,33 +398,38 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
           </motion.div>
         ) : currentStep ? (
           <motion.div
-            key={currentStep.letter}
+            key={`${currentStep.letter}-${currentIdx}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.35 }}
-            className="w-full max-w-[280px] rounded-2xl p-4 space-y-2"
+            className="w-full max-w-[320px] rounded-2xl p-4 space-y-2.5"
             style={{
               background: hslWithAlpha(currentStep.color, 0.06),
               border: `1px solid ${hslWithAlpha(currentStep.color, 0.2)}`,
             }}
           >
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] uppercase tracking-[0.2em] font-medium" style={{ color: currentStep.color }}>
-                {currentStep.subtitle}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                {currentIdx + 1} / {steps.length}
               </span>
               {mode === "timed" && !budgetMode && (
-                <span className="ml-auto text-[10px] font-cinzel" style={{ color: currentStep.color }}>
+                <span className="text-[10px] font-cinzel" style={{ color: currentStep.color }}>
                   {remaining}s
                 </span>
               )}
               {budgetMode && (
-                <span className="ml-auto text-[10px] font-mono" style={{ color: currentStep.color }}>
+                <span className="text-[10px] font-mono" style={{ color: currentStep.color }}>
                   {fmtTime(budgetRemaining)}
                 </span>
               )}
             </div>
-            <p className="text-xs text-foreground/75 italic leading-relaxed">« {currentStep.instruction} »</p>
+            <p className="text-sm font-semibold tracking-tight leading-snug" style={{ color: currentStep.color }}>
+              {currentStep.subtitle}
+            </p>
+            <p className="border-t border-white/10 pt-2 text-xs text-foreground/85 leading-relaxed">
+              {currentStep.instruction}
+            </p>
             {mode === "timed" && !budgetMode && (
               <div className="w-full h-0.5 rounded-full bg-white/5 overflow-hidden mt-2">
                 <motion.div
@@ -391,10 +469,23 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
 
       <div className="flex flex-wrap items-center justify-center gap-3">
         {!started && !sessionDone ? (
-          <ToolboxWidgetLaunchButton type="button" onClick={start} className="inline-flex items-center gap-2">
-            <ShieldAlert size={14} />
-            {t("toolbox.stopV2.startButton")}
-          </ToolboxWidgetLaunchButton>
+          <>
+            <ToolboxWidgetLaunchButton type="button" onClick={start} className="inline-flex items-center gap-2">
+              <ShieldAlert size={14} />
+              {t("toolbox.stopV2.startButton")}
+            </ToolboxWidgetLaunchButton>
+            {fallbackSec > 0 && !expressActive ? (
+              <button
+                type="button"
+                onClick={activateExpress}
+                data-slot="toolbox-express-fallback"
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+              >
+                <FastForward className="size-3.5 text-primary" />
+                {locale === "en" ? `⚡ Express Mode (${fallbackSec}s)` : `⚡ Mode Express (${fallbackSec}s)`}
+              </button>
+            ) : null}
+          </>
         ) : sessionDone ? (
           <ToolboxWidgetTimerControls
             isRunning={false}
@@ -416,12 +507,23 @@ export default function StopProtocolWidget({ config, title, hideTitle, sessionKe
                 resetLabel="Reset"
               />
             )}
-            {(budgetMode || mode === "manual") && (
-              <ToolboxWidgetSecondaryButton type="button" onClick={advance}>
-                {currentIdx === steps.length - 1 ? t("toolbox.stopV2.finishStep") : t("toolbox.stopV2.nextStep")}
-                <ChevronRight size={14} />
-              </ToolboxWidgetSecondaryButton>
-            )}
+            <ToolboxWidgetSecondaryButton type="button" onClick={advance} className="font-medium">
+              {currentIdx === steps.length - 1
+                ? (locale === "en" ? "Protocol completed →" : "Étape accomplie →")
+                : (locale === "en" ? "Next step →" : "Étape accomplie →")}
+              <ChevronRight size={14} />
+            </ToolboxWidgetSecondaryButton>
+            {fallbackSec > 0 && !expressActive ? (
+              <button
+                type="button"
+                onClick={activateExpress}
+                data-slot="toolbox-express-fallback"
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+              >
+                <FastForward className="size-3.5 text-primary" />
+                {locale === "en" ? `⚡ Express Mode (${fallbackSec}s)` : `⚡ Mode Express (${fallbackSec}s)`}
+              </button>
+            ) : null}
             {mode === "manual" && !budgetMode ? (
               <ToolboxWidgetSecondaryButton type="button" onClick={reset}>
                 Reset

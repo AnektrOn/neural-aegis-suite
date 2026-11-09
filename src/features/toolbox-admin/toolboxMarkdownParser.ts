@@ -5,6 +5,13 @@
 
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import {
+  BUILTIN_TOOLBOX_SLUG_ALIASES,
+  type AegisToolboxExtendedConfig,
+  type ToolboxExocortexOrgan,
+  type ToolboxPillar,
+  type ToolboxTier,
+} from "@/lib/toolbox-content-type-definitions";
+import {
   TOOLBOX_CONTENT_TYPES,
   isKnownToolboxContentType,
   validateToolboxCatalogPayload,
@@ -330,12 +337,31 @@ function parseStopSteps(text: string): { title: string; hint: string }[] {
     if (cognitive) {
       return { title: cognitive[1].trim(), hint: cognitive[2].trim() };
     }
-    const boldTitle = line.match(/^\*\*([^*]+)\*\*\s*:?\s*(.*)$/);
+    const boldTitle = line.match(/^\*\*([^*]+)\*\*\s*(?:[—–-]|:)?\s*(.*)$/);
     if (boldTitle) {
       return { title: boldTitle[1].trim(), hint: boldTitle[2].trim() };
     }
-    const m = line.match(/^(.+?)\s*[—–-]\s*(.+)$/);
-    if (m) return { title: m[1].trim(), hint: m[2].trim() };
+    const emOrEnDash = line.match(/^(.+?)\s*[—–]\s*(.+)$/);
+    if (emOrEnDash) {
+      return {
+        title: emOrEnDash[1].replace(/^\*\*|\*\*$/g, "").trim(),
+        hint: emOrEnDash[2].trim(),
+      };
+    }
+    const spacedHyphen = line.match(/^(.+?)\s+-\s+(.+)$/);
+    if (spacedHyphen) {
+      return {
+        title: spacedHyphen[1].replace(/^\*\*|\*\*$/g, "").trim(),
+        hint: spacedHyphen[2].trim(),
+      };
+    }
+    const colonMatch = line.match(/^([^:]{2,80}?)\s*:\s+(.+)$/);
+    if (colonMatch) {
+      return {
+        title: colonMatch[1].replace(/^\*\*|\*\*$/g, "").trim(),
+        hint: colonMatch[2].trim(),
+      };
+    }
     return { title: line, hint: "" };
   });
 }
@@ -384,6 +410,7 @@ const CONTENT_TYPE_ALIASES: Record<string, string> = {
   /** Cognitive timed protocols (Obsidian toolbox cognitive folder). */
   framework: "micro_practice",
   cognitive_framework: "micro_practice",
+  ...BUILTIN_TOOLBOX_SLUG_ALIASES,
 };
 
 /** Shadow / invalid archetype slugs often placed in archetype_targets by mistake. */
@@ -497,13 +524,101 @@ function microPracticeStepText(title: string, hint: string): string {
   return t || h;
 }
 
+function extractAegisExtendedMeta(
+  meta: Record<string, unknown>,
+  config: Record<string, unknown>,
+  sections: Record<string, string>,
+): AegisToolboxExtendedConfig {
+  const ext: AegisToolboxExtendedConfig = {};
+
+  const tierRaw = String(config.tier ?? meta.tier ?? "").trim().toLowerCase();
+  if (tierRaw === "beginner" || tierRaw === "initiate" || tierRaw === "sovereign") {
+    ext.tier = tierRaw as ToolboxTier;
+  }
+
+  const pillarRaw = String(config.pillar ?? meta.pillar ?? "").trim().toLowerCase();
+  if (
+    pillarRaw === "homeostasie_nerveuse" ||
+    pillarRaw === "conscience_interface" ||
+    pillarRaw === "alchimie_archetypale" ||
+    pillarRaw === "gouvernance_souveraine"
+  ) {
+    ext.pillar = pillarRaw as ToolboxPillar;
+  }
+
+  const organRaw = String(config.exocortex_organ ?? meta.exocortex_organ ?? "").trim().toLowerCase();
+  if (
+    organRaw === "vortex_emergency" ||
+    organRaw === "decision_log" ||
+    organRaw === "people_board" ||
+    organRaw === "daily_posture" ||
+    organRaw === "voice_oracle"
+  ) {
+    ext.exocortex_organ = organRaw as ToolboxExocortexOrgan;
+  }
+
+  const mechanismTag = String(config.mechanism_tag ?? meta.mechanism_tag ?? "").trim();
+  if (mechanismTag) {
+    ext.mechanism_tag = mechanismTag;
+  }
+
+  const parentKey = String(config.parent_template_key ?? meta.parent_template_key ?? "").trim();
+  if (parentKey) {
+    ext.parent_template_key = parentKey;
+  }
+
+  const fallbackRaw = config.resistance_fallback_sec ?? meta.resistance_fallback_sec;
+  const fallbackNum = typeof fallbackRaw === "number" ? fallbackRaw : Number(fallbackRaw);
+  if (Number.isFinite(fallbackNum) && fallbackNum > 0) {
+    ext.resistance_fallback_sec = Math.floor(fallbackNum);
+  }
+
+  const whyFromMeta = readI18nWithFallback(meta, ["why_this_for_you_i18n", "why_this_for_you", "context"]);
+  const whyFromConfig = readI18nWithFallback(config, ["why_this_for_you_i18n", "why_this_for_you", "context"]);
+  const whySectionFr = (
+    sections.context_fr ||
+    sections.why_fr ||
+    sections.why_this_for_you_fr ||
+    sections.pourquoi_fr ||
+    ""
+  ).trim();
+  const whySectionEn = (
+    sections.context_en ||
+    sections.why_en ||
+    sections.why_this_for_you_en ||
+    sections.pourquoi_en ||
+    ""
+  ).trim();
+
+  const whyFr = whySectionFr || whyFromConfig.fr || whyFromMeta.fr;
+  const whyEn = whySectionEn || whyFromConfig.en || whyFromMeta.en;
+
+  if (whyFr || whyEn) {
+    ext.why_this_for_you = whyFr || whyEn;
+    ext.why_this_for_you_i18n = {
+      fr: whyFr || whyEn,
+      en: whyEn || whyFr,
+    };
+  }
+
+  return ext;
+}
+
 function buildWidgetConfig(
   contentType: string,
   config: Record<string, unknown>,
   sections: Record<string, string>,
+  meta: Record<string, unknown> = {},
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...config };
   const sectionCopy = { ...sections };
+
+  const aegisExt = extractAegisExtendedMeta(meta, config, sections);
+  for (const [k, v] of Object.entries(aegisExt)) {
+    if (v !== undefined) {
+      out[k] = v;
+    }
+  }
 
   let instrFr = sectionCopy.instructions_fr || "";
   let instrEn = sectionCopy.instructions_en || "";
@@ -555,13 +670,13 @@ function buildWidgetConfig(
       const hintFr = stepsFr[i]?.hint || stepsEn[i]?.hint || "";
       const hintEn = stepsEn[i]?.hint || stepsFr[i]?.hint || "";
       const textFr =
-        contentType === "micro_practice"
-          ? microPracticeStepText(titleFr, hintFr)
-          : titleFr || titleEn;
+        contentType === "stop_protocol"
+          ? titleFr || titleEn
+          : microPracticeStepText(titleFr, hintFr);
       const textEn =
-        contentType === "micro_practice"
-          ? microPracticeStepText(titleEn, hintEn)
-          : titleEn || titleFr;
+        contentType === "stop_protocol"
+          ? titleEn || titleFr
+          : microPracticeStepText(titleEn, hintEn);
       return {
         text: textFr || textEn,
         title: titleFr || titleEn,
@@ -749,16 +864,25 @@ export function parseToolboxMarkdownDocument(
     errors.push(`${source}: URL vidéo — utiliser la bibliothèque, pas toolbox.`);
   }
 
-  const widget_config = buildWidgetConfig(contentType, config, sections);
+  const widget_config = buildWidgetConfig(contentType, config, sections, meta);
   if (externalUrl) widget_config.external_url = externalUrl;
   seedDurationMin(widget_config, meta.duration);
   if (contentType === "micro_practice") {
     finalizeMicroPracticeWidgetConfig(widget_config, meta.duration);
   }
+  if (contentType === "breathwork") {
+    if (typeof widget_config.cycles !== "number") widget_config.cycles = 6;
+    if (typeof widget_config.breath_in_sec !== "number") widget_config.breath_in_sec = 4;
+    if (typeof widget_config.pause1_sec !== "number") widget_config.pause1_sec = 4;
+    if (typeof widget_config.breath_out_sec !== "number") widget_config.breath_out_sec = 6;
+    if (typeof widget_config.pause2_sec !== "number") widget_config.pause2_sec = 2;
+  }
 
   const distribution = parseDistribution(meta);
-  if (distribution.mode === "individual" && distribution.user_id && !UUID_RE.test(distribution.user_id)) {
-    errors.push(`${source}: distribution.user_id UUID invalide.`);
+  if (distribution.mode === "individual") {
+    if (!distribution.user_id || !UUID_RE.test(distribution.user_id)) {
+      errors.push(`${source}: distribution.user_id UUID invalide ou manquant en mode individual.`);
+    }
   }
   if (distribution.mode === "group") {
     if (!distribution.user_ids.length && !distribution.company_id) {
@@ -780,6 +904,16 @@ export function parseToolboxMarkdownDocument(
       continue;
     }
     errors.push(`${source}: archetype invalide '${a}'.`);
+  }
+
+  if (archetypeTargets.length > 0 && widget_config.archetype_targets === undefined) {
+    widget_config.archetype_targets = archetypeTargets;
+  }
+  if (shadowTargets.length > 0 && widget_config.shadow_targets === undefined) {
+    widget_config.shadow_targets = shadowTargets;
+  }
+  if (distribution.mode === "individual" && widget_config.distribution_mode === undefined) {
+    widget_config.distribution_mode = "individual";
   }
 
   if (errors.length > 0) return { item: null, errors };
@@ -816,6 +950,8 @@ export function parsedItemsToCatalogPayload(
       duration: item.duration,
       widget_config: item.widget_config,
       is_active: item.is_active,
+      archetype_targets: item.archetype_targets,
+      shadow_targets: item.shadow_targets,
       assignment_status: item.distribution.assignment_status,
     };
 

@@ -42,12 +42,12 @@ export function ToolboxWidgetStepCard({
         {metaRight ? <span className="shrink-0 text-[10px] font-mono text-muted-foreground">{metaRight}</span> : null}
       </div>
       {title ? (
-        <p className="text-sm font-medium leading-snug text-foreground">{title}</p>
+        <p className="text-sm font-semibold tracking-tight leading-snug text-foreground">{title}</p>
       ) : null}
       <p
         className={cn(
           "text-sm leading-relaxed text-foreground/85",
-          title ? "mt-2" : "",
+          title ? "mt-2 border-t border-border/20 pt-2" : "",
           "max-h-[min(50dvh,24rem)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]",
         )}
       >

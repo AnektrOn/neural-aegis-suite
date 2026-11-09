@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Play, ExternalLink, CheckCircle2, XCircle, ListChecks, Loader2, Library, RotateCcw, RefreshCw, ChevronRight } from "lucide-react";
+import {
+  Play, ExternalLink, CheckCircle2, XCircle, ListChecks, Loader2, Library,
+  RotateCcw, RefreshCw, ChevronRight, Zap, ShieldAlert, Scale, Users, Activity,
+  Sparkles, Filter, Compass, Check
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -29,6 +33,7 @@ import {
   upsertToolboxCompletion,
   resetToolboxCompletionForReload,
   type ToolboxCompletionPayload,
+  type ToolboxPostState,
 } from "@/lib/toolbox-completion";
 import { cn } from "@/lib/utils";
 import { clearTimerSession } from "@/lib/toolbox-session-storage";
@@ -40,6 +45,13 @@ import {
 import { useToolboxExerciseSessionOptional } from "@/features/toolbox/ToolboxExerciseSessionContext";
 import AddToCalendarButton from "@/features/toolbox/AddToCalendarButton";
 import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
+import {
+  getBuiltinToolboxContentTypeDefinition,
+  type ToolboxTier,
+  type ToolboxExocortexOrgan,
+} from "@/lib/toolbox-content-type-definitions";
+import { extractWhyThisForYou } from "@/features/toolbox/ui/ToolboxPrescriptionBanner";
+import { resolveToolboxAccent } from "@/features/toolbox/ui/resolveToolboxAccent";
 
 interface ToolboxItem {
   id: string;
@@ -62,6 +74,19 @@ interface CompletionRecord {
 
 type MainView = "todo" | "all" | "history";
 type StatusFilter = "all" | "pending" | "completed" | "abandoned" | "ignored";
+
+const ORGAN_META: Record<string, { labelFr: string; labelEn: string; icon: typeof Zap; color: string }> = {
+  vortex_emergency: { labelFr: "Mode Vortex", labelEn: "Vortex Mode", icon: ShieldAlert, color: "text-red-400" },
+  decision_log: { labelFr: "Decision Log", labelEn: "Decision Log", icon: Scale, color: "text-amber-400" },
+  people_board: { labelFr: "People Board", labelEn: "People Board", icon: Users, color: "text-cyan-400" },
+  daily_posture: { labelFr: "Posture Quotidienne", labelEn: "Daily Posture", icon: Activity, color: "text-emerald-400" },
+};
+
+const TIER_META: Record<ToolboxTier, { labelFr: string; labelEn: string; border: string; bg: string; text: string }> = {
+  beginner: { labelFr: "Débutant", labelEn: "Beginner", border: "border-emerald-500/30", bg: "bg-emerald-500/10", text: "text-emerald-400" },
+  initiate: { labelFr: "Initié", labelEn: "Initiate", border: "border-cyan-500/30", bg: "bg-cyan-500/10", text: "text-cyan-400" },
+  sovereign: { labelFr: "Souverain", labelEn: "Sovereign", border: "border-amber-500/30", bg: "bg-amber-500/10", text: "text-amber-400" },
+};
 
 export interface ToolboxUserViewProps {
   userId: string;
@@ -92,6 +117,12 @@ export function ToolboxUserView({
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [mainView, setMainView] = useState<MainView>("todo");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [vortexOnly, setVortexOnly] = useState(false);
+  const [beginnerOnly, setBeginnerOnly] = useState(false);
+  const [contextFilter, setContextFilter] = useState<"all" | "vortex_emergency" | "decision_log" | "people_board" | "somatic_reset">("all");
+  const [durationFilter, setDurationFilter] = useState<"all" | "le_2min" | "3_5min" | "gt_5min">("all");
+  const [lastPayload, setLastPayload] = useState<ToolboxCompletionPayload | undefined>(undefined);
+  const [selectedPostState, setSelectedPostState] = useState<ToolboxPostState | null>(null);
   const [assignmentStats, setAssignmentStats] = useState<Record<string, ToolboxAssignmentStats>>({});
   const [habitLinkBusy, setHabitLinkBusy] = useState<string | null>(null);
   const [reloadBusy, setReloadBusy] = useState<string | null>(null);
@@ -101,7 +132,10 @@ export function ToolboxUserView({
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setIsError(false);
     try {
@@ -151,7 +185,11 @@ export function ToolboxUserView({
   }, [userId, t, toast]);
 
   useEffect(() => {
-    if (userId) void loadData();
+    if (userId) {
+      void loadData();
+    } else {
+      setLoading(false);
+    }
   }, [userId, loadData]);
 
   useEffect(() => {
@@ -245,6 +283,9 @@ export function ToolboxUserView({
       blockReadOnlyAction();
       return;
     }
+
+    setLastPayload(payload);
+    setSelectedPostState(payload?.postState ?? null);
 
     const { error } = await upsertToolboxCompletion({
       assignmentId,
@@ -368,10 +409,111 @@ export function ToolboxUserView({
     [items],
   );
 
+  const getItemDurationSec = useCallback((item: ToolboxItem): number => {
+    const cfg = item.widget_config || {};
+    if (typeof cfg.duration_sec === "number" && cfg.duration_sec > 0) return cfg.duration_sec;
+    if (typeof cfg.step_duration_sec === "number" && Array.isArray(cfg.steps)) {
+      return cfg.step_duration_sec * cfg.steps.length;
+    }
+    if (typeof item.duration === "string") {
+      const m = item.duration.match(/(\d+)/);
+      if (m) return parseInt(m[1], 10) * 60;
+    }
+    return 120;
+  }, []);
+
+  const getItemTier = useCallback((item: ToolboxItem): ToolboxTier => {
+    const cfg = item.widget_config || {};
+    if (cfg.tier === "beginner" || cfg.tier === "initiate" || cfg.tier === "sovereign") {
+      return cfg.tier;
+    }
+    const def = getBuiltinToolboxContentTypeDefinition(item.content_type);
+    return def?.tier ?? "beginner";
+  }, []);
+
+  const getItemOrgan = useCallback((item: ToolboxItem): ToolboxExocortexOrgan | undefined => {
+    const cfg = item.widget_config || {};
+    if (cfg.exocortex_organ) return cfg.exocortex_organ;
+    const def = getBuiltinToolboxContentTypeDefinition(item.content_type);
+    return def?.exocortex_organ;
+  }, []);
+
+  const isIndividualItem = useCallback((item: ToolboxItem): boolean => {
+    const cfg = item.widget_config || {};
+    if (cfg.distribution_mode === "individual" || (item as any).distribution_metadata?.mode === "individual") {
+      return true;
+    }
+    const why = extractWhyThisForYou(cfg, locale as "fr" | "en");
+    if (why && why.trim().length > 0) return true;
+    if (typeof cfg.parent_template_key === "string" && cfg.parent_template_key.trim().length > 0) return true;
+    if (Array.isArray(cfg.archetype_targets) && cfg.archetype_targets.length > 0) return true;
+    if (Array.isArray(cfg.shadow_targets) && cfg.shadow_targets.length > 0) return true;
+    return false;
+  }, [locale]);
+
   const filtered = useMemo(() => {
     return items
       .filter((i) => typeFilter === "all" || i.content_type === typeFilter)
       .filter((i) => {
+        if (vortexOnly) {
+          const organ = getItemOrgan(i);
+          const sec = getItemDurationSec(i);
+          const isVortexSlug = [
+            "stop_protocol",
+            "physiological_sigh",
+            "breath_physiological_sigh",
+            "shake_release",
+            "cold_exposure_prep",
+            "vagal_hum",
+          ].includes(i.content_type);
+          if (organ !== "vortex_emergency" && !isVortexSlug && sec > 120) return false;
+        }
+
+        if (beginnerOnly) {
+          if (getItemTier(i) !== "beginner") return false;
+        }
+
+        if (contextFilter !== "all") {
+          const organ = getItemOrgan(i);
+          if (contextFilter === "vortex_emergency") {
+            if (
+              organ !== "vortex_emergency" &&
+              !["stop_protocol", "physiological_sigh", "breath_physiological_sigh", "shake_release"].includes(i.content_type)
+            ) {
+              return false;
+            }
+          } else if (contextFilter === "decision_log") {
+            if (
+              organ !== "decision_log" &&
+              !["focus_introspectif", "decision_matrix", "worry_dump", "evening_review", "gratitude", "gratitude_triple"].includes(i.content_type)
+            ) {
+              return false;
+            }
+          } else if (contextFilter === "people_board") {
+            if (
+              organ !== "people_board" &&
+              !["journal_prompt", "relation_repair", "archetype_mirror", "shadow_checkin", "sacred_no", "boundary_practice", "dialogue_parts"].includes(i.content_type)
+            ) {
+              return false;
+            }
+          } else if (contextFilter === "somatic_reset") {
+            if (
+              organ !== "daily_posture" &&
+              organ !== "vortex_emergency" &&
+              !["breath_box", "breath_coherence", "body_scan", "micro_movement", "shake_release", "progressive_relax", "posture_reset"].includes(i.content_type)
+            ) {
+              return false;
+            }
+          }
+        }
+
+        if (durationFilter !== "all") {
+          const sec = getItemDurationSec(i);
+          if (durationFilter === "le_2min" && sec > 120) return false;
+          if (durationFilter === "3_5min" && (sec <= 120 || sec > 300)) return false;
+          if (durationFilter === "gt_5min" && sec <= 300) return false;
+        }
+
         const status = getItemStatus(i.id);
         const waiting = (i.user_delivery_status || "active") === "waiting";
 
@@ -399,7 +541,29 @@ export function ToolboxUserView({
 
         return true;
       });
-  }, [items, typeFilter, mainView, statusFilter, completions]);
+  }, [
+    items,
+    typeFilter,
+    vortexOnly,
+    beginnerOnly,
+    contextFilter,
+    durationFilter,
+    mainView,
+    statusFilter,
+    completions,
+    getItemOrgan,
+    getItemDurationSec,
+    getItemTier,
+  ]);
+
+  const individualItems = useMemo(
+    () => filtered.filter((i) => isIndividualItem(i)),
+    [filtered, isIndividualItem],
+  );
+  const globalItems = useMemo(
+    () => filtered.filter((i) => !isIndividualItem(i)),
+    [filtered, isIndividualItem],
+  );
 
   const statusFilterOptions = useMemo((): Array<{ key: StatusFilter; label: string }> => {
     if (mainView === "history") {
@@ -785,6 +949,91 @@ export function ToolboxUserView({
         <span className="font-mono text-[10px] text-muted-foreground">{filtered.length} exercices</span>
       </div>
 
+      {/* ── Quick-Action Bar (Cockpit d'Intervention Posturale) ── */}
+      <div className="aegis-dock-tile rounded-2xl p-3 sm:p-4 space-y-3 border border-border/40 bg-secondary/5">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <button
+            type="button"
+            onClick={() => setVortexOnly((v) => !v)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all shadow-sm",
+              vortexOnly
+                ? "border-red-500 bg-red-500/20 text-red-300 ring-2 ring-red-500/30"
+                : "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/15",
+            )}
+          >
+            <Zap className="size-3.5" />
+            <span>{locale === "en" ? "⚡ Vortex Mode (< 2 min)" : "⚡ Mode Vortex (Urgence < 2 min)"}</span>
+          </button>
+
+          <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
+            <input
+              type="checkbox"
+              checked={beginnerOnly}
+              onChange={(e) => setBeginnerOnly(e.target.checked)}
+              className="size-3.5 rounded border-border"
+            />
+            <span className={beginnerOnly ? "text-emerald-400 font-medium" : ""}>
+              {locale === "en" ? "Beginner Mode (Essentials)" : "Mode Débutant (Essentiels)"}
+            </span>
+          </label>
+        </div>
+
+        {/* Context filter pills */}
+        <div className="-mx-1 overflow-x-auto px-1 pb-0.5 no-scrollbar">
+          <div className="flex w-max min-w-full gap-1.5">
+            {[
+              { id: "all" as const, labelFr: "Tous", labelEn: "All" },
+              { id: "vortex_emergency" as const, labelFr: "🌪️ Urgence Vortex", labelEn: "🌪️ Vortex Urgency" },
+              { id: "decision_log" as const, labelFr: "⚖️ Avant Décision", labelEn: "⚖️ Decision Log" },
+              { id: "people_board" as const, labelFr: "👥 Tension Relationnelle", labelEn: "👥 People Board" },
+              { id: "somatic_reset" as const, labelFr: "🧬 Reset Somatique", labelEn: "🧬 Somatic Reset" },
+            ].map((ctx) => (
+              <button
+                key={ctx.id}
+                type="button"
+                onClick={() => setContextFilter(ctx.id)}
+                className={cn(
+                  "shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors whitespace-nowrap",
+                  contextFilter === ctx.id
+                    ? "border-primary bg-primary/20 text-primary shadow-sm"
+                    : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                )}
+              >
+                {locale === "en" ? ctx.labelEn : ctx.labelFr}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Duration filter pills */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/20 text-[10px]">
+          <span className="text-muted-foreground uppercase tracking-wider text-[9px] mr-1">
+            {locale === "en" ? "Duration:" : "Durée :"}
+          </span>
+          {[
+            { id: "all" as const, labelFr: "Toutes", labelEn: "All" },
+            { id: "le_2min" as const, labelFr: "≤ 2 min", labelEn: "≤ 2 min" },
+            { id: "3_5min" as const, labelFr: "3-5 min", labelEn: "3-5 min" },
+            { id: "gt_5min" as const, labelFr: "5+ min", labelEn: "5+ min" },
+          ].map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => setDurationFilter(d.id)}
+              className={cn(
+                "rounded-md border px-2 py-0.5 font-mono text-[9px] transition-colors",
+                durationFilter === d.id
+                  ? "border-primary/60 bg-primary/15 text-primary font-medium"
+                  : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+              )}
+            >
+              {locale === "en" ? d.labelEn : d.labelFr}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {(mainView === "all" || mainView === "history") ? (
         <div className="min-w-0 aegis-dock-tile rounded-2xl px-3 py-3 sm:px-4 sm:py-3.5 space-y-3">
           {/* Lifetime stats row */}
@@ -921,7 +1170,13 @@ export function ToolboxUserView({
             </svg>
           </div>
           <p className="font-cormorant text-xl font-light italic text-text-tertiary/70 mb-2">{t("toolbox.emptyCoachPrep")}</p>
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">{t("toolbox.noContentAssigned")}</p>
+          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">
+            {vortexOnly || beginnerOnly || contextFilter !== "all" || durationFilter !== "all"
+              ? locale === "en"
+                ? "No protocol matches the active quick filters."
+                : "Aucun protocole ne correspond aux filtres actifs."
+              : t("toolbox.noContentAssigned")}
+          </p>
         </div>
       ) : (
         <div
@@ -931,144 +1186,387 @@ export function ToolboxUserView({
           className="min-w-0 space-y-6"
         >
           {mainView === "todo" ? (
-            <div className="space-y-2.5">
-              <ul className="space-y-2.5">
-                {filtered.map((item, i) => {
-                  const cfg = TOOLBOX_TYPE_META[item.content_type] || TOOLBOX_TYPE_META.course;
-                  const isWaiting = (item.user_delivery_status || "active") === "waiting";
-                  const isExternal = item.content_type === "external_link" && item.external_url;
-                  const isVideoLink = Boolean(isExternal && item.external_url && isLikelyVideoUrl(item.external_url));
-                  const linkedToHabits = isInHabits(item.id);
-                  const habitBusy = habitLinkBusy === item.id;
-                  const description =
-                    getLocalizedDescription(item) ||
-                    (TOOLBOX_TYPE_META[item.content_type]
-                      ? t(TOOLBOX_TYPE_META[item.content_type].labelKey as any)
-                      : "");
+            <div className="space-y-6">
+              {/* Section 1 : Prescriptions Personnalisées */}
+              {individualItems.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="size-4 text-amber-400" />
+                      <div>
+                        <h3 className="font-cinzel text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">
+                          {locale === "en" ? "1. Prescribed for You" : "1. Prescriptions Personnalisées"}
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground/80">
+                          {locale === "en"
+                            ? "Protocols calibrated to your neural state, archetypes, and shadows."
+                            : "Protocoles calibrés sur ton état neuro-somatique, tes archétypes et tes ombres."}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="font-mono text-[10px] text-amber-400/90 font-medium">
+                      {individualItems.length} {locale === "en" ? "protocol(s)" : "protocole(s)"}
+                    </span>
+                  </div>
 
-                  return (
-                    <motion.li
-                      key={item.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: reduceMotion ? 0 : i * 0.04, duration: 0.22 }}
-                    >
-                      <article
-                        className={cn(
-                          "aegis-dock-tile flex min-w-0 flex-col gap-0 rounded-2xl overflow-hidden transition-all duration-200",
-                          linkedToHabits && "border-[#c9a24b]/40",
-                          !isWaiting && "cursor-pointer hover:border-[#c9a24b]/40 sm:active:scale-[0.995]",
-                        )}
-                        role={isWaiting ? undefined : "button"}
-                        tabIndex={isWaiting ? undefined : 0}
-                        onClick={isWaiting ? undefined : () => openTodoItem(item)}
-                        onKeyDown={
-                          isWaiting
-                            ? undefined
-                            : (e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  openTodoItem(item);
-                                }
-                              }
-                        }
-                      >
-                        {/* Main row — stacks on mobile */}
-                        <div className="flex flex-col gap-3 px-3 py-3.5 sm:flex-row sm:items-start sm:gap-3.5 sm:px-5 sm:py-4">
-                          <div className="flex min-w-0 flex-1 items-start gap-3">
-                            <div className={cn(
-                              "mt-0.5 shrink-0 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl",
-                              "border border-[#c9a24b]/30 bg-[#c9a24b]/10 backdrop-blur-sm text-[#c9a24b]",
-                            )}>
-                              <cfg.icon size={17} strokeWidth={1.5} className={cfg.color} />
-                            </div>
-                            <div className="min-w-0 flex-1 py-0.5">
-                              <div className="mb-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                <p className="min-w-0 text-sm font-medium text-foreground leading-snug break-words">
-                                  {getLocalizedTitle(item)}
-                                </p>
-                                {isWaiting ? (
-                                  <span className="shrink-0 text-[8px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border text-amber-600 border-amber-500/30 bg-amber-500/10">
-                                    {t("toolbox.deliveryWaitingBadge")}
-                                  </span>
-                                ) : null}
-                                {linkedToHabits ? (
-                                  <span className="shrink-0 text-[8px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full border text-primary border-primary/30 bg-primary/8">
-                                    {t("toolbox.inHabitsBadge")}
-                                  </span>
-                                ) : null}
+                  <ul className="space-y-2.5">
+                    {individualItems.map((item, idx) => {
+                      const cfg = TOOLBOX_TYPE_META[item.content_type] || TOOLBOX_TYPE_META.course;
+                      const isWaiting = (item.user_delivery_status || "active") === "waiting";
+                      const isExternal = item.content_type === "external_link" && item.external_url;
+                      const isVideoLink = Boolean(isExternal && item.external_url && isLikelyVideoUrl(item.external_url));
+                      const linkedToHabits = isInHabits(item.id);
+                      const habitBusy = habitLinkBusy === item.id;
+                      const description =
+                        getLocalizedDescription(item) ||
+                        (TOOLBOX_TYPE_META[item.content_type] ? t(TOOLBOX_TYPE_META[item.content_type].labelKey as any) : "");
+                      const whyText = extractWhyThisForYou(item.widget_config, locale as "fr" | "en");
+                      const tier = getItemTier(item);
+                      const organ = getItemOrgan(item);
+                      const tierMeta = TIER_META[tier];
+                      const organMeta = organ ? ORGAN_META[organ] : undefined;
+                      const archetypeTargets = Array.isArray(item.widget_config?.archetype_targets)
+                        ? item.widget_config.archetype_targets
+                        : [];
+                      const shadowTargets = Array.isArray(item.widget_config?.shadow_targets)
+                        ? item.widget_config.shadow_targets
+                        : [];
+
+                      return (
+                        <motion.li
+                          key={item.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: reduceMotion ? 0 : idx * 0.04, duration: 0.22 }}
+                        >
+                          <article
+                            className={cn(
+                              "flex min-w-0 flex-col gap-0 rounded-2xl overflow-hidden transition-all duration-200 border",
+                              "border-amber-500/35 bg-gradient-to-r from-amber-500/[0.08] via-amber-500/[0.02] to-transparent shadow-[0_4px_24px_rgba(201,162,75,0.08)]",
+                              linkedToHabits && "border-[#c9a24b]/50",
+                              !isWaiting && "cursor-pointer hover:border-amber-400/50 sm:active:scale-[0.995]",
+                            )}
+                            role={isWaiting ? undefined : "button"}
+                            tabIndex={isWaiting ? undefined : 0}
+                            onClick={isWaiting ? undefined : () => openTodoItem(item)}
+                            onKeyDown={
+                              isWaiting
+                                ? undefined
+                                : (e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      openTodoItem(item);
+                                    }
+                                  }
+                            }
+                          >
+                            <div className="flex flex-col gap-3 px-3.5 py-3.5 sm:flex-row sm:items-start sm:gap-4 sm:px-5 sm:py-4">
+                              <div className="flex min-w-0 flex-1 items-start gap-3">
+                                <div className="mt-0.5 shrink-0 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/15 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                                  <cfg.icon size={17} strokeWidth={1.5} className="text-amber-300" />
+                                </div>
+                                <div className="min-w-0 flex-1 py-0.5">
+                                  <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300">
+                                      <Sparkles className="size-2.5" />
+                                      {locale === "en" ? "Tailored for you" : "Prescrit pour toi"}
+                                    </span>
+                                    {tierMeta ? (
+                                      <span
+                                        className={cn(
+                                          "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider",
+                                          tierMeta.border,
+                                          tierMeta.bg,
+                                          tierMeta.text,
+                                        )}
+                                      >
+                                        {locale === "en" ? tierMeta.labelEn : tierMeta.labelFr}
+                                      </span>
+                                    ) : null}
+                                    {organMeta ? (
+                                      <span className="inline-flex items-center gap-1 rounded-md border border-border/40 bg-background/50 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+                                        <organMeta.icon className={cn("size-2.5", organMeta.color)} />
+                                        {locale === "en" ? organMeta.labelEn : organMeta.labelFr}
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  <p className="min-w-0 text-sm font-medium text-foreground leading-snug break-words">
+                                    {getLocalizedTitle(item)}
+                                  </p>
+                                  <p className="font-display text-[9px] uppercase tracking-[0.14em] text-muted-foreground truncate mt-0.5">
+                                    {getTypeLabel(item.content_type)}
+                                    {durationLabel(item) ? <span className="opacity-70"> · {durationLabel(item)}</span> : null}
+                                  </p>
+
+                                  {whyText ? (
+                                    <div className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-200/95 leading-relaxed italic">
+                                      « {whyText} »
+                                    </div>
+                                  ) : null}
+
+                                  {(archetypeTargets.length > 0 || shadowTargets.length > 0) ? (
+                                    <div className="mt-2 flex flex-wrap items-center gap-1">
+                                      {archetypeTargets.map((arch: string) => (
+                                        <span
+                                          key={arch}
+                                          className="rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[8.5px] font-medium uppercase tracking-wider text-amber-300"
+                                        >
+                                          {arch}
+                                        </span>
+                                      ))}
+                                      {shadowTargets.map((sh: string) => (
+                                        <span
+                                          key={sh}
+                                          className="rounded border border-purple-500/25 bg-purple-500/10 px-1.5 py-0.5 text-[8.5px] font-medium uppercase tracking-wider text-purple-300"
+                                        >
+                                          {sh.replace(/_/g, " ")}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : null}
+
+                                  {description && !whyText ? (
+                                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground/80 break-words">
+                                      {description}
+                                    </p>
+                                  ) : null}
+                                </div>
                               </div>
-                              <p className="font-display text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground truncate">
-                                {getTypeLabel(item.content_type)}
-                                {durationLabel(item) ? <span className="opacity-50"> · {durationLabel(item)}</span> : null}
-                              </p>
-                              {description ? (
-                                <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground/80 break-words">
-                                  {description}
-                                </p>
+
+                              <div className="w-full shrink-0 sm:w-auto sm:self-center" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => openTodoItem(item)}
+                                  className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-4 text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-200 transition-colors hover:bg-amber-500/25 sm:w-auto"
+                                >
+                                  {t("toolbox.todoOpenExercise")}
+                                  <ChevronRight size={13} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div
+                              className="flex min-w-0 flex-col gap-2 border-t border-border/20 bg-background/20 px-3.5 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ToolboxAssignmentStatsStrip stats={getStatsForItem(item.id)} className="min-w-0" />
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <ToolboxHabitLinkButton
+                                  itemId={item.id}
+                                  linked={linkedToHabits}
+                                  busy={habitBusy}
+                                  onToggle={(id) => void toggleHabitLink(id)}
+                                  compact={false}
+                                />
+                                <AddToCalendarButton
+                                  title={getLocalizedTitle(item)}
+                                  description={getLocalizedDescription(item)}
+                                  duration={durationLabel(item) ?? item.duration}
+                                  path={`/toolbox?item=${item.id}`}
+                                  category={getTypeLabel(item.content_type)}
+                                />
+                              </div>
+                            </div>
+                          </article>
+                        </motion.li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* Section 2 : L'Arsenal Opératif */}
+              {globalItems.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between border-b border-border/20 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Compass className="size-4 text-muted-foreground" />
+                      <div>
+                        <h3 className="font-cinzel text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                          {individualItems.length > 0
+                            ? locale === "en"
+                              ? "2. Operative Arsenal"
+                              : "2. L'Arsenal Opératif"
+                            : locale === "en"
+                              ? "Operative Arsenal"
+                              : "L'Arsenal Opératif"}
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground/70">
+                          {locale === "en"
+                            ? "Universal protocol library structured by mastery tiers."
+                            : "Bibliothèque universelle d'outils structurée par niveaux de maîtrise."}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="font-mono text-[10px] text-muted-foreground font-medium">
+                      {globalItems.length} {locale === "en" ? "tool(s)" : "outil(s)"}
+                    </span>
+                  </div>
+
+                  <ul className="space-y-2.5">
+                    {globalItems.map((item, idx) => {
+                      const cfg = TOOLBOX_TYPE_META[item.content_type] || TOOLBOX_TYPE_META.course;
+                      const isWaiting = (item.user_delivery_status || "active") === "waiting";
+                      const isExternal = item.content_type === "external_link" && item.external_url;
+                      const isVideoLink = Boolean(isExternal && item.external_url && isLikelyVideoUrl(item.external_url));
+                      const linkedToHabits = isInHabits(item.id);
+                      const habitBusy = habitLinkBusy === item.id;
+                      const description =
+                        getLocalizedDescription(item) ||
+                        (TOOLBOX_TYPE_META[item.content_type] ? t(TOOLBOX_TYPE_META[item.content_type].labelKey as any) : "");
+                      const tier = getItemTier(item);
+                      const organ = getItemOrgan(item);
+                      const tierMeta = TIER_META[tier];
+                      const organMeta = organ ? ORGAN_META[organ] : undefined;
+
+                      return (
+                        <motion.li
+                          key={item.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: reduceMotion ? 0 : idx * 0.04, duration: 0.22 }}
+                        >
+                          <article
+                            className={cn(
+                              "aegis-dock-tile flex min-w-0 flex-col gap-0 rounded-2xl overflow-hidden transition-all duration-200",
+                              linkedToHabits && "border-[#c9a24b]/40",
+                              !isWaiting && "cursor-pointer hover:border-[#c9a24b]/40 sm:active:scale-[0.995]",
+                            )}
+                            role={isWaiting ? undefined : "button"}
+                            tabIndex={isWaiting ? undefined : 0}
+                            onClick={isWaiting ? undefined : () => openTodoItem(item)}
+                            onKeyDown={
+                              isWaiting
+                                ? undefined
+                                : (e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      openTodoItem(item);
+                                    }
+                                  }
+                            }
+                          >
+                            <div className="flex flex-col gap-3 px-3 py-3.5 sm:flex-row sm:items-start sm:gap-3.5 sm:px-5 sm:py-4">
+                              <div className="flex min-w-0 flex-1 items-start gap-3">
+                                <div
+                                  className={cn(
+                                    "mt-0.5 shrink-0 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl",
+                                    "border border-[#c9a24b]/30 bg-[#c9a24b]/10 backdrop-blur-sm text-[#c9a24b]",
+                                  )}
+                                >
+                                  <cfg.icon size={17} strokeWidth={1.5} className={cfg.color} />
+                                </div>
+                                <div className="min-w-0 flex-1 py-0.5">
+                                  <div className="mb-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <p className="min-w-0 text-sm font-medium text-foreground leading-snug break-words">
+                                      {getLocalizedTitle(item)}
+                                    </p>
+                                    {tierMeta ? (
+                                      <span
+                                        className={cn(
+                                          "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8.5px] font-medium uppercase tracking-wider",
+                                          tierMeta.border,
+                                          tierMeta.bg,
+                                          tierMeta.text,
+                                        )}
+                                      >
+                                        {locale === "en" ? tierMeta.labelEn : tierMeta.labelFr}
+                                      </span>
+                                    ) : null}
+                                    {organMeta ? (
+                                      <span className="inline-flex items-center gap-1 rounded-md border border-border/40 bg-background/50 px-1.5 py-0.5 text-[8.5px] font-medium uppercase tracking-wider text-muted-foreground">
+                                        <organMeta.icon className={cn("size-2.5", organMeta.color)} />
+                                        {locale === "en" ? organMeta.labelEn : organMeta.labelFr}
+                                      </span>
+                                    ) : null}
+                                    {isWaiting ? (
+                                      <span className="shrink-0 text-[8px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border text-amber-600 border-amber-500/30 bg-amber-500/10">
+                                        {t("toolbox.deliveryWaitingBadge")}
+                                      </span>
+                                    ) : null}
+                                    {linkedToHabits ? (
+                                      <span className="shrink-0 text-[8px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full border text-primary border-primary/30 bg-primary/8">
+                                        {t("toolbox.inHabitsBadge")}
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  <p className="font-display text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.16em] text-muted-foreground truncate">
+                                    {getTypeLabel(item.content_type)}
+                                    {durationLabel(item) ? <span className="opacity-50"> · {durationLabel(item)}</span> : null}
+                                  </p>
+
+                                  {description ? (
+                                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground/80 break-words">
+                                      {description}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </div>
+
+                              <div className="w-full shrink-0 sm:w-auto sm:self-center" onClick={(e) => e.stopPropagation()}>
+                                {isWaiting ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => void confirmWaiting(item.id)}
+                                    className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-amber-700 dark:text-amber-200 transition-colors hover:bg-amber-500/15 sm:w-auto"
+                                  >
+                                    <CheckCircle2 size={11} />
+                                    {t("toolbox.confirmDelivery")}
+                                  </button>
+                                ) : isVideoLink ? (
+                                  <Link
+                                    to="/bibliotheque"
+                                    className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-primary transition-colors hover:bg-primary/15 sm:w-auto"
+                                  >
+                                    <Library size={11} />
+                                    {t("toolbox.openInLibrary")}
+                                  </Link>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => openTodoItem(item)}
+                                    className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-primary transition-colors hover:bg-primary/15 sm:w-auto"
+                                  >
+                                    {t("toolbox.todoOpenExercise")}
+                                    <ChevronRight size={13} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div
+                              className="flex min-w-0 flex-col gap-2 border-t border-border/20 bg-background/20 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ToolboxAssignmentStatsStrip stats={getStatsForItem(item.id)} className="min-w-0" />
+                              {!isWaiting ? (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <ToolboxHabitLinkButton
+                                    itemId={item.id}
+                                    linked={linkedToHabits}
+                                    busy={habitBusy}
+                                    onToggle={(id) => void toggleHabitLink(id)}
+                                    compact={false}
+                                  />
+                                  <AddToCalendarButton
+                                    title={getLocalizedTitle(item)}
+                                    description={getLocalizedDescription(item)}
+                                    duration={durationLabel(item) ?? item.duration}
+                                    path={`/toolbox?item=${item.id}`}
+                                    category={getTypeLabel(item.content_type)}
+                                  />
+                                </div>
                               ) : null}
                             </div>
-                          </div>
-                          <div className="w-full shrink-0 sm:w-auto sm:self-center" onClick={(e) => e.stopPropagation()}>
-                            {isWaiting ? (
-                              <button
-                                type="button"
-                                onClick={() => void confirmWaiting(item.id)}
-                                className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-amber-700 dark:text-amber-200 transition-colors hover:bg-amber-500/15 sm:w-auto"
-                              >
-                                <CheckCircle2 size={11} />
-                                {t("toolbox.confirmDelivery")}
-                              </button>
-                            ) : isVideoLink ? (
-                              <Link
-                                to="/bibliotheque"
-                                className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-primary transition-colors hover:bg-primary/15 sm:w-auto"
-                              >
-                                <Library size={11} />
-                                {t("toolbox.openInLibrary")}
-                              </Link>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => openTodoItem(item)}
-                                className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-primary transition-colors hover:bg-primary/15 sm:w-auto"
-                              >
-                                {t("toolbox.todoOpenExercise")}
-                                <ChevronRight size={13} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        {/* Footer bar — stats + habit button */}
-                        <div
-                          className="flex min-w-0 flex-col gap-2 border-t border-border/20 bg-background/20 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-5"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ToolboxAssignmentStatsStrip stats={getStatsForItem(item.id)} className="min-w-0" />
-                          {!isWaiting ? (
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <ToolboxHabitLinkButton
-                                itemId={item.id}
-                                linked={linkedToHabits}
-                                busy={habitBusy}
-                                onToggle={(id) => void toggleHabitLink(id)}
-                                compact={false}
-                              />
-                              <AddToCalendarButton
-                                title={getLocalizedTitle(item)}
-                                description={getLocalizedDescription(item)}
-                                duration={durationLabel(item) ?? item.duration}
-                                path={`/toolbox?item=${item.id}`}
-                                category={getTypeLabel(item.content_type)}
-                              />
-                            </div>
-                          ) : null}
-                        </div>
-                      </article>
-                    </motion.li>
-                  );
-                })}
-              </ul>
+                          </article>
+                        </motion.li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
           ) : (
           <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
@@ -1404,6 +1902,53 @@ export function ToolboxUserView({
                 </DialogDescription>
               ) : null}
             </DialogHeader>
+
+            {completionDialog.status === "completed" && completionDialog.itemId ? (
+              <div className="w-full space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  {locale === "en" ? "Post-protocol state" : "État post-protocole"}
+                </p>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+                  {[
+                    { id: "tension_released" as const, labelFr: "Tension relâchée", labelEn: "Tension released", icon: "🌿" },
+                    { id: "clarity_restored" as const, labelFr: "Clarté retrouvée", labelEn: "Clarity restored", icon: "⚡" },
+                    { id: "still_in_resistance" as const, labelFr: "Encore en résistance", labelEn: "Still in resistance", icon: "🛡️" },
+                  ].map((opt) => {
+                    const isSelected = selectedPostState === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={async () => {
+                          if (completionDialog.itemId) {
+                            setSelectedPostState(opt.id);
+                            await upsertToolboxCompletion({
+                              assignmentId: completionDialog.itemId,
+                              userId,
+                              status: "completed",
+                              payload: {
+                                elapsedSec: lastPayload?.elapsedSec ?? 0,
+                                durationBudgetSec: lastPayload?.durationBudgetSec,
+                                postState: opt.id,
+                              },
+                            });
+                          }
+                        }}
+                        className={cn(
+                          "flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] transition-all",
+                          isSelected
+                            ? "border-primary bg-primary/20 text-primary font-medium"
+                            : "border-border/40 bg-background/50 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        )}
+                      >
+                        <span>{opt.icon}</span>
+                        <span>{locale === "en" ? opt.labelEn : opt.labelFr}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             {/* Lifetime stats */}
             {(allCompletionStats.completed + allCompletionStats.abandoned + allCompletionStats.ignored) > 0 ? (
