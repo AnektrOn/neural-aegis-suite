@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings2, User } from "lucide-react";
+import { LayoutDashboard, Layers, Settings2, User } from "lucide-react";
 import AegisHealthSection from "@/components/AegisHealthSection";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -12,7 +12,6 @@ import {
   getPersonaContent,
   type PersonaViewProps,
 } from "./personaParts";
-import { PersonaPortraitLibrary } from "./PersonaPortraitLibrary";
 import { Houses72PersonaCTA } from "@/features/houses72/components/Houses72PersonaCTA";
 import { UserReportsSection } from "@/features/user-reports/UserReportsSection";
 
@@ -21,9 +20,6 @@ export function PersonaProfileScreen({
   profile,
   displayName,
   tracking,
-  portraitLenses,
-  taoSummary,
-  portraitsLoading,
 }: PersonaViewProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -39,9 +35,9 @@ export function PersonaProfileScreen({
   } = getPersonaContent(profile, displayName);
 
   return (
-    <div className="persona-user-page mx-auto w-full max-w-lg pb-24">
+    <div className="persona-user-page mx-auto w-full max-w-lg pb-[calc(var(--mobile-dock-padding,5rem)+1.5rem)]">
       <header className="persona-user-cover relative px-5 pt-6 pb-14 text-center">
-        <p className="font-display text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-6 text-left">
+        <p className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.28em] text-primary/80 mb-6 text-left member-top-dock-clearance">
           {t("persona.glimpse.eyebrow")}
         </p>
 
@@ -84,13 +80,11 @@ export function PersonaProfileScreen({
         {tracking ? <PersonaTrackingStrip stats={tracking} /> : null}
         <AegisHealthSection variant="compact" />
 
-        <PersonaPortraitLibrary
-          lenses={portraitLenses}
-          loading={portraitsLoading}
-          profile={profile}
-          taoSummary={taoSummary}
-          shadowTheme={n.primaryShadowTheme}
-          headingId="persona-portraits-heading-mobile"
+        <PersonaLinkRow
+          to="/persona/portraits"
+          icon={<Layers size={18} strokeWidth={1.5} aria-hidden />}
+          title={t("persona.glimpse.portraitsLink")}
+          detail={t("persona.glimpse.portraitsDetail")}
         />
 
         {user?.id ? <UserReportsSection userId={user.id} /> : null}

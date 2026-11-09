@@ -40,9 +40,12 @@ describe("buildPortraitLenses", () => {
       dominantColor: "#fff",
     });
 
-    expect(lenses.map((l) => l.id)).toEqual(["myss", "tao"]);
+    expect(lenses.map((l) => l.id)).toEqual(["myss", "manly_hall", "tao", "jung", "blavatsky"]);
     expect(lenses[0].status).toBe("ready");
-    expect(lenses[1].status).toBe("ready");
+    expect(lenses[2].status).toBe("ready");
+    expect(lenses[0].coverArtUrl).toContain("myss-cover");
+    expect(lenses[1].coverArtUrl).toContain("manly-hall-cover");
+    expect(lenses[2].coverArtUrl).toContain("tao-cover");
     expect(defaultPortraitLensId(lenses)).toBe("myss");
   });
 });

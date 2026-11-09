@@ -78,6 +78,9 @@ export function LandingNav() {
         ))}
       </nav>
       <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
+        <LandingButton href="/auth" variant="ghost" className="inline-flex px-3 sm:hidden">
+          {copy.nav.signIn}
+        </LandingButton>
         <button
           type="button"
           className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-[color:var(--aegis-text)] lg:hidden"
@@ -94,6 +97,9 @@ export function LandingNav() {
             )}
           </svg>
         </button>
+        <LandingButton href="/auth" variant="ghost" className="hidden sm:inline-flex">
+          {copy.nav.signIn}
+        </LandingButton>
         <LandingButton href="#tarif" variant="dark" className="hidden sm:inline-flex">
           {copy.nav.cta}
         </LandingButton>
@@ -139,6 +145,14 @@ export function LandingNav() {
             {copy.nav[l.key]}
           </a>
         ))}
+        <LandingButton
+          href="/auth"
+          variant="ghost"
+          className="mt-2 w-full justify-center"
+          onClick={() => setOpen(false)}
+        >
+          {copy.nav.signIn}
+        </LandingButton>
       </nav>
     </header>
   );

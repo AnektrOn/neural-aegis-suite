@@ -27,6 +27,9 @@ export function PricingCard() {
       <LandingButton href="#tarif" variant="dark" className="mt-8 w-full">
         {copy.tarif.cta}
       </LandingButton>
+      <LandingButton href="/auth" variant="ghost" className="mt-3 w-full">
+        {copy.nav.signIn}
+      </LandingButton>
     </LandingCard>
   );
 }

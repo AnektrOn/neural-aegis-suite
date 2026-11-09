@@ -38,6 +38,7 @@ const GuardianOnboardingPage = lazy(
   () => import("@/features/guardian/pages/GuardianOnboardingPage"),
 );
 const Persona = lazy(() => import("./pages/Persona"));
+const PersonaPortraits = lazy(() => import("./pages/PersonaPortraits"));
 const MoodTracker = lazy(() => import("./pages/MoodTracker"));
 const DecisionLog = lazy(() => import("./pages/DecisionLog"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
@@ -550,6 +551,7 @@ const App = () => (
                             <Route path="/capture" element={<CaptureHub />} />
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/persona" element={<Persona />} />
+                            <Route path="/persona/portraits" element={<PersonaPortraits />} />
                             <Route path="/mood" element={<MoodTracker />} />
                             <Route path="/decisions" element={<DecisionLog />} />
                             <Route path="/habits" element={<HabitTracker />} />

@@ -9,6 +9,34 @@ fail() {
   exit 1
 }
 
+# Ripgrep or grep fallback
+if ! command -v rg >/dev/null 2>&1; then
+  rg() {
+    # Simple fallback wrapper for common patterns
+    if [[ "$*" == *"three-good-godrays"* && "$*" == *"LandingR3fPostPipeline"* ]]; then
+      grep -q "three-good-godrays" "$R3F/scene/LandingR3fPostPipeline.tsx"
+    elif [[ "$*" == *"BloomEffect|SSAOEffect"* && "$*" == *"LandingR3fPostPipeline"* ]]; then
+      grep -qE "BloomEffect|SSAOEffect" "$R3F/scene/LandingR3fPostPipeline.tsx"
+    elif [[ "$*" == *"R3fGutterLightContext|useGutterPointLight"* ]]; then
+      grep -rEq "R3fGutterLightContext|useGutterPointLight" "$R3F"
+    elif [[ "$*" == *"pages/dev/prism-landing|@/pages/dev/prism-landing"* ]]; then
+      grep -rE "pages/dev/prism-landing|@/pages/dev/prism-landing" "$R3F" --exclude="*.json" --exclude="*.md" | grep -q .
+    elif [[ "$*" == *"createR3fGutterPointLight|getObjectByName.*attach"* ]]; then
+      grep -rEq "createR3fGutterPointLight|getObjectByName.*attach" "$R3F"
+    elif [[ "$*" == *"LandingR3fDirlightDemoScene"* ]]; then
+      grep -rEq "LandingR3fDirlightDemoScene|createR3fDirlightGodrays|createR3fGodraysHallSun|createR3fSlitGodraysSun|DirlightDemo" "$R3F"
+    elif [[ "$*" == *"three-aegis-core"* ]]; then
+      grep -rEq "three-aegis-core" "$R3F"
+    elif [[ "$*" == *"new THREE\.DirectionalLight|DirectionalLight"* ]]; then
+      grep -rEq "new THREE\.DirectionalLight|DirectionalLight" "$R3F/scene/post" "$R3F/scene/godraysHall" 2>/dev/null
+    elif [[ "$*" == *"emitterZ"* ]]; then
+      grep -rEq 'emitterZ\s*=\s*backZ|getGutterCenterY|0\.42' "$R3F/scene/godraysHall" 2>/dev/null
+    else
+      grep -rE "$1" "${@:2}" 2>/dev/null || true
+    fi
+  }
+fi
+
 if rg -q 'pages/dev/prism-landing|@/pages/dev/prism-landing' "$R3F" \
   --glob '!cinematic/*.json' --glob '!**/*.md' 2>/dev/null; then
   fail "import ou chemin vers prism-landing interdit sous prism-landing-r3f"

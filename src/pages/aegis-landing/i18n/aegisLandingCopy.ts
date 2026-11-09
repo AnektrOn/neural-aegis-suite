@@ -23,6 +23,7 @@ export type AegisLandingCopy = {
     menu: string;
     menuClose: string;
     lang: string;
+    signIn: string;
   };
   hero: {
     chip: string;
@@ -161,6 +162,7 @@ const navFr = {
   menu: "Ouvrir le menu",
   menuClose: "Fermer le menu",
   lang: "Langue",
+  signIn: "Se connecter",
 } as const;
 
 const navEn = {
@@ -178,6 +180,7 @@ const navEn = {
   menu: "Open menu",
   menuClose: "Close menu",
   lang: "Language",
+  signIn: "Sign in",
 } as const;
 
 const individuelFr: AegisLandingCopy = {

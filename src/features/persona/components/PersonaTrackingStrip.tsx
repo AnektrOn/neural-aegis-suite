@@ -28,24 +28,24 @@ function TrackingPill({
       to={to}
       state={state}
       className={cn(
-        "flex flex-1 min-w-[72px] flex-col items-center justify-center gap-0.5 rounded-xl border px-2 py-3 min-h-[64px]",
-        "transition-colors hover:border-primary/35 hover:bg-card/60",
+        "aegis-dock-tile flex flex-1 min-w-[72px] flex-col items-center justify-center gap-1 rounded-xl px-2 py-3 min-h-[68px]",
+        "transition-all hover:border-[#c9a24b]/40 hover:-translate-y-0.5",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         highlight
-          ? "border-[hsl(var(--warning)/0.4)] bg-[hsl(var(--warning)/0.08)]"
-          : "border-border/35 bg-background/40",
+          ? "border-amber-400/40 bg-amber-400/10"
+          : "hover:border-[#c9a24b]/30",
       )}
     >
-      <span className="text-muted-foreground mb-0.5">{icon}</span>
+      <span className={cn("mb-0.5", highlight ? "text-amber-400" : "text-[#c9a24b]")}>{icon}</span>
       <span
         className={cn(
-          "font-display text-xl tabular-nums leading-none",
-          highlight ? "text-[hsl(var(--warning))]" : "text-foreground",
+          "font-cormorant text-2xl font-light tabular-nums leading-none",
+          highlight ? "text-amber-400" : "text-foreground",
         )}
       >
         {value}
       </span>
-      <span className="text-[8px] uppercase tracking-wider text-muted-foreground text-center leading-tight font-display px-0.5">
+      <span className="font-cinzel text-[8.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground text-center leading-tight px-0.5">
         {label}
       </span>
     </Link>
@@ -56,11 +56,11 @@ export function PersonaTrackingStrip({ stats }: PersonaTrackingStripProps) {
   const { t } = useLanguage();
 
   return (
-    <section className="glass-card rounded-2xl p-3">
-      <p className="mb-2.5 px-1 font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+    <section className="aegis-dock-tile rounded-2xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+      <p className="mb-2.5 px-1 font-cinzel text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9e7828] dark:text-[#c9a24b]">
         {t("persona.glimpse.tracking")}
       </p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2.5">
         <TrackingPill
           to="/decisions"
           value={stats.pendingDecisions}

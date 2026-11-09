@@ -1,12 +1,13 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { ToolboxUserView } from "@/features/toolbox/ToolboxUserView";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
 
 export default function Toolbox() {
   const { user } = useAuth();
   if (!user) return null;
   return (
-    <div className="min-w-0 w-full overflow-x-hidden">
+    <MemberPageScaffold width="wide" viewport className="min-w-0 overflow-x-hidden">
       <ToolboxUserView userId={user.id} enableDeepLinkOpen />
-    </div>
+    </MemberPageScaffold>
   );
 }

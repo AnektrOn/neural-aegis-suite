@@ -4660,6 +4660,42 @@ excerpt_fr: email brief
     fr: "Chaque cadre révèle une facette de ton profil. Sélectionne un portrait pour l'aperçu — le rapport complet vit dans le Deep Dive.",
     en: "Each framework reveals a facet of your profile. Select a portrait for the preview — full reports live in Deep Dive.",
   },
+  "persona.portraits.sectionLabel": {
+    fr: "Hub Portrait",
+    en: "Portrait hub",
+  },
+  "persona.portraits.pageTitle": {
+    fr: "Portraits analytiques",
+    en: "Analytical portraits",
+  },
+  "persona.portraits.backToPersona": {
+    fr: "Retour au Persona",
+    en: "Back to Persona",
+  },
+  "persona.portraits.noProfile": {
+    fr: "Complète ton assessment pour débloquer les prismes Myss, Tao, Jung et les autres cadres.",
+    en: "Complete your assessment to unlock Myss, Tao, Jung, and other analytical lenses.",
+  },
+  "persona.portraits.countLabel": {
+    fr: "publiés",
+    en: "published",
+  },
+  "persona.portraits.swipeHint": {
+    fr: "Glisse pour parcourir la bibliothèque de prismes",
+    en: "Swipe to browse the lens library",
+  },
+  "persona.portraits.coverFlowHint": {
+    fr: "Glisse (doigt ou souris), tape une couverture, ou utilise les flèches",
+    en: "Drag with finger or mouse, tap a cover, or use the arrows",
+  },
+  "persona.glimpse.portraitsLink": {
+    fr: "Portraits analytiques",
+    en: "Analytical portraits",
+  },
+  "persona.glimpse.portraitsDetail": {
+    fr: "Myss, Tao, Jung, Blavatsky — cartes à débloquer par Deep Dive",
+    en: "Myss, Tao, Jung, Blavatsky — unlockable lens cards via Deep Dive",
+  },
   "persona.portraits.selectorLabel": {
     fr: "Sélectionner un portrait analytique",
     en: "Select an analytical portrait",
@@ -4671,8 +4707,110 @@ excerpt_fr: email brief
   "persona.lens.myss.framework": { fr: "Caroline Myss", en: "Caroline Myss" },
   "persona.lens.myss.system": { fr: "Archétypes", en: "Archetypes" },
   "persona.lens.myss.cta": { fr: "Ouvrir le Deep Dive Myss", en: "Open Myss Deep Dive" },
+  "persona.lens.myss.ctaStart": {
+    fr: "Commencer le questionnaire Myss",
+    en: "Start the Myss questionnaire",
+  },
   "persona.lens.tao.framework": { fr: "Benebell Wen", en: "Benebell Wen" },
   "persona.lens.tao.system": { fr: "Wu Xing · Tao", en: "Wu Xing · Tao" },
+  "persona.lens.tao.ctaStart": {
+    fr: "Ouvrir le Wu Xing Deep Dive",
+    en: "Open the Wu Xing Deep Dive",
+  },
+  "persona.lens.jung.framework": { fr: "Carl Jung", en: "Carl Jung" },
+  "persona.lens.jung.system": { fr: "Âme & complexes", en: "Soul & complexes" },
+  "persona.lens.jung.ctaStart": {
+    fr: "Démarrer le Deep Dive Jung",
+    en: "Start the Jung Deep Dive",
+  },
+  "persona.lens.jung.ctaOpen": {
+    fr: "Ouvrir le rapport Jung",
+    en: "Open the Jung report",
+  },
+  "persona.lens.jung.empty": {
+    fr: "Complète le questionnaire Jung pour débloquer ce prisme analytique.",
+    en: "Complete the Jung questionnaire to unlock this analytical lens.",
+  },
+  "persona.lens.blavatsky.framework": { fr: "H. P. Blavatsky", en: "H. P. Blavatsky" },
+  "persona.lens.blavatsky.system": { fr: "Théosophie", en: "Theosophy" },
+  "persona.lens.blavatsky.ctaStart": {
+    fr: "Démarrer le Deep Dive Blavatsky",
+    en: "Start the Blavatsky Deep Dive",
+  },
+  "persona.lens.blavatsky.ctaOpen": {
+    fr: "Ouvrir le rapport Blavatsky",
+    en: "Open the Blavatsky report",
+  },
+  "persona.lens.blavatsky.empty": {
+    fr: "Complète le questionnaire Blavatsky pour débloquer ce prisme.",
+    en: "Complete the Blavatsky questionnaire to unlock this lens.",
+  },
+  "persona.lens.manly_hall.framework": { fr: "Manly P. Hall", en: "Manly P. Hall" },
+  "persona.lens.manly_hall.system": { fr: "Ésotérisme", en: "Esotericism" },
+  "persona.lens.manly_hall.ctaStart": {
+    fr: "Démarrer le Deep Dive Hall",
+    en: "Start the Hall Deep Dive",
+  },
+  "persona.lens.manly_hall.ctaOpen": {
+    fr: "Ouvrir le rapport Hall",
+    en: "Open the Hall report",
+  },
+  "persona.lens.manly_hall.empty": {
+    fr: "Ce prisme arrive très bientôt — tu seras notifié quand le questionnaire est prêt.",
+    en: "This lens is coming very soon — you'll be notified when the questionnaire is ready.",
+  },
+  "persona.lens.comingSoon": {
+    fr: "Questionnaire en préparation — reste sur Persona pour le débloquer dès sa mise en ligne.",
+    en: "Questionnaire in preparation — stay on Persona to unlock it when it goes live.",
+  },
+  "capture.station.mood": {
+    fr: "Saisie rapide 1–10 · pour sommeil, stress et repas, ouvre la station Humeur.",
+    en: "Quick 1–10 log · for sleep, stress, and meals, open the Mood station.",
+  },
+  "capture.station.decisions": {
+    fr: "Clarifiez, tranchez et suivez vos choix stratégiques.",
+    en: "Clarify, decide, and track your strategic choices.",
+  },
+  "capture.station.habits": {
+    fr: "Consolidez vos routines et disciplines quotidiennes.",
+    en: "Strengthen your daily routines and disciplines.",
+  },
+  "capture.station.people": {
+    fr: "Cartographiez la qualité et l'énergie de vos relations.",
+    en: "Map the quality and energy of your relationships.",
+  },
+  "capture.station.journal": {
+    fr: "Déposez vos pensées, rétrospectives et apprentissages.",
+    en: "Capture thoughts, retrospectives, and learnings.",
+  },
+  "capture.station.default": {
+    fr: "Accès direct au protocole.",
+    en: "Direct access to the protocol.",
+  },
+  "capture.mood.scaleHint": {
+    fr: "Même échelle que la station Humeur (fréquences 1–10).",
+    en: "Same scale as the Mood station (frequencies 1–10).",
+  },
+  "capture.mood.fullLogLink": {
+    fr: "Saisie complète",
+    en: "Full mood log",
+  },
+  "capture.thought.placeholder": {
+    fr: "Notez une idée, une intuition ou un événement clé... (⌘+Entrée)",
+    en: "Note an idea, intuition, or key event... (⌘+Enter)",
+  },
+  "capture.decision.placeholder": {
+    fr: "Quelle décision devez-vous trancher ? (⌘+Entrée)",
+    en: "What decision do you need to make? (⌘+Enter)",
+  },
+  "capture.decision.priority": {
+    fr: "Priorité",
+    en: "Priority",
+  },
+  "notifications.viewAllMessages": {
+    fr: "Tout voir dans Messages",
+    en: "View all in Messages",
+  },
   "persona.glimpse.taoTitle": { fr: "Portrait Wu Xing", en: "Wu Xing portrait" },
   "persona.glimpse.taoEmpty": {
     fr: "Ton analyse Tao (Benebell Wen) sera publiée ici en aperçu dès qu'une première section est disponible.",

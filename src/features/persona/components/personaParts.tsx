@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, ChevronRight, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowUpRight, ChevronRight, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SampleProfile } from "@/features/archetype-deepdive-v2/domain/sampleProfile";
@@ -10,16 +10,11 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { parseProfileLabel } from "../lib/parseProfileLabel";
 import { themeFor } from "../lib/archetypeTheme";
 import type { PersonaTrackingStats } from "../services/personaTrackingStats";
-import type { PortraitLensCard } from "../lib/portraitLensTypes";
-import type { TaoPersonaSummary } from "@/features/tao-portrait/lib/buildTaoPersonaSummary";
 
 export interface PersonaViewProps {
   profile: SampleProfile;
   displayName?: string;
   tracking: PersonaTrackingStats | null;
-  portraitLenses: PortraitLensCard[];
-  taoSummary: TaoPersonaSummary | null;
-  portraitsLoading?: boolean;
 }
 
 export function archName(key: AnyArchetypeKey, locale: "fr" | "en"): string {
@@ -78,64 +73,28 @@ export function PersonaLinkRow({
     <Link
       to={to}
       className={cn(
-        "flex items-center gap-3 rounded-xl border border-border/40 bg-card/50 transition-colors",
-        "hover:border-primary/35 hover:bg-card/70",
+        "group flex items-center gap-3 rounded-xl aegis-dock-tile transition-all",
+        "hover:border-[#c9a24b]/40",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         compact ? "px-3 py-2.5 min-h-[44px]" : "px-4 py-3.5 min-h-[52px]",
       )}
     >
       <div
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary",
+          "flex shrink-0 items-center justify-center rounded-lg bg-[#c9a24b]/10 text-[#c9a24b] border border-[#c9a24b]/20 group-hover:bg-[#c9a24b]/20 transition-colors",
           compact ? "h-8 w-8" : "h-10 w-10",
         )}
       >
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className={cn("font-medium text-foreground", compact ? "text-xs" : "text-sm")}>{title}</p>
+        <p className={cn("font-cinzel text-xs font-semibold text-foreground group-hover:text-[#c9a24b] transition-colors uppercase tracking-[0.14em]", compact ? "text-[11px]" : "text-xs")}>{title}</p>
         {!compact ? (
-          <p className="text-xs text-muted-foreground leading-snug line-clamp-1">{detail}</p>
+          <p className="text-xs text-muted-foreground leading-snug line-clamp-1 font-sans">{detail}</p>
         ) : null}
       </div>
-      <ChevronRight size={compact ? 14 : 16} className="shrink-0 text-muted-foreground" aria-hidden />
+      <ChevronRight size={compact ? 14 : 16} className="shrink-0 text-muted-foreground group-hover:text-[#c9a24b] group-hover:translate-x-0.5 transition-all" aria-hidden />
     </Link>
-  );
-}
-
-export function DeepDiveBridge({ horizontal }: { horizontal?: boolean }) {
-  const { t } = useLanguage();
-
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border border-primary/25 bg-primary/5 p-4 space-y-3",
-        horizontal && "sm:flex sm:items-center sm:justify-between sm:gap-6 sm:space-y-0 sm:p-5",
-      )}
-    >
-      <div className="flex items-start gap-3 min-w-0">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <Sparkles size={18} strokeWidth={1.5} aria-hidden />
-        </div>
-        <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-foreground">{t("persona.glimpse.deepDiveLink")}</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">{t("persona.glimpse.deepDiveDetail")}</p>
-        </div>
-      </div>
-      <Button
-        asChild
-        size="lg"
-        className={cn(
-          "min-h-[48px] font-display text-xs tracking-wider",
-          horizontal ? "w-full sm:w-auto sm:shrink-0" : "w-full",
-        )}
-      >
-        <Link to="/deep-dive">
-          {t("persona.glimpse.ctaDeepDive")}
-          <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden />
-        </Link>
-      </Button>
-    </div>
   );
 }
 
@@ -196,12 +155,12 @@ export function PersonaTriadStrip({
 
   return (
     <section
-      className={cn(!embedded && "glass-card rounded-2xl p-4 sm:p-5")}
+      className={cn(!embedded && "aegis-dock-tile rounded-2xl p-4 sm:p-5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]")}
       aria-labelledby={headingId}
     >
       <p
         id={headingId}
-        className="mb-3 font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
+        className="mb-3 font-cinzel text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9e7828] dark:text-[#c9a24b]"
       >
         {t("persona.glimpse.triad")}
       </p>
@@ -214,14 +173,14 @@ export function PersonaTriadStrip({
           return (
             <div
               key={b.archetype}
-              className="flex flex-1 flex-col items-center gap-1 rounded-xl border border-border/30 bg-background/40 px-2 py-3 min-h-[80px] justify-center"
+              className="flex flex-1 flex-col items-center gap-1 rounded-xl border border-white/10 bg-black/25 px-2 py-3 min-h-[80px] justify-center"
             >
               <Icon size={18} strokeWidth={1.25} style={{ color: th.color }} aria-hidden />
-              <span className="font-display text-[9px] uppercase tracking-wider text-center text-foreground/90 leading-tight sm:text-[10px]">
+              <span className="font-cinzel text-[9px] font-semibold uppercase tracking-wider text-center text-foreground/90 leading-tight sm:text-[10px]">
                 {archName(b.archetype, locale)}
               </span>
               {pct !== null ? (
-                <span className="font-display text-sm tabular-nums text-foreground/80">{pct}%</span>
+                <span className="font-cormorant text-base font-light tabular-nums text-[#c9a24b]">{pct}%</span>
               ) : null}
             </div>
           );
@@ -243,14 +202,14 @@ export function PersonaAboutCard({
   const { t } = useLanguage();
 
   return (
-    <section className="glass-card rounded-2xl p-4 sm:p-5 space-y-2 h-full" aria-labelledby={headingId}>
+    <section className="aegis-dock-tile rounded-2xl p-4 sm:p-5 space-y-2 h-full shadow-[0_8px_32px_rgba(0,0,0,0.3)]" aria-labelledby={headingId}>
       <h2
         id={headingId}
-        className="font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
+        className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9e7828] dark:text-[#c9a24b]"
       >
         {t("persona.glimpse.about")}
       </h2>
-      <p className="text-sm text-foreground/90 leading-relaxed font-body">{glimpseLine}</p>
+      <p className="text-sm text-foreground/90 leading-relaxed font-sans">{glimpseLine}</p>
       <p className="text-xs text-muted-foreground">{t("persona.glimpse.shadowHint", { theme: shadowTheme })}</p>
     </section>
   );
@@ -268,15 +227,15 @@ export function PersonaNowCard({
   const { t } = useLanguage();
 
   return (
-    <section className="glass-card rounded-2xl p-4 sm:p-5 space-y-2 h-full" aria-labelledby={headingId}>
+    <section className="aegis-dock-tile rounded-2xl p-4 sm:p-5 space-y-2 h-full shadow-[0_8px_32px_rgba(0,0,0,0.3)]" aria-labelledby={headingId}>
       <h2
         id={headingId}
-        className="font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
+        className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9e7828] dark:text-[#c9a24b]"
       >
         {t("persona.glimpse.now")}
       </h2>
-      <p className="font-display text-sm uppercase tracking-wide text-foreground">{practiceTitle}</p>
-      <p className="text-xs text-muted-foreground leading-relaxed sm:text-sm">{description}</p>
+      <p className="font-cormorant text-lg text-foreground font-light">{practiceTitle}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed sm:text-sm font-sans">{description}</p>
     </section>
   );
 }

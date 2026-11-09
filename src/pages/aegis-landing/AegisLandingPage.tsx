@@ -79,7 +79,7 @@ export default function AegisLandingPage({
   return (
     <AegisLandingLocaleProvider audience={audience}>
       <LandingHelmet />
-      <div className="aegis-landing relative min-h-dvh pb-24 sm:pb-0">
+      <div className="aegis-landing relative min-h-dvh pb-32 sm:pb-0">
         <LandingSkip />
         <LandingNav />
         <main id="aegis-landing-main">

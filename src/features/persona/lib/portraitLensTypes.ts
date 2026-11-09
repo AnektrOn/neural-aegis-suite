@@ -28,4 +28,12 @@ export interface PortraitLensCard {
   actions: PortraitLensAction[];
   /** Drives optional detail slots (triad, pole grid, etc.). */
   detailKind: "myss" | "tao" | "generic";
+  /** Copy when status is empty (per-lens). */
+  emptyDetailKey?: TranslationKey;
+  /** Questionnaire or report not yet shipped. */
+  comingSoon?: boolean;
+  /** Visual lock for carousel (unlock via completion). */
+  locked?: boolean;
+  /** Full-bleed cover art on carousel cards (public URL or bundled import). */
+  coverArtUrl?: string;
 }

@@ -54,9 +54,10 @@ const PRINCIPLES_COLORS: Record<string, string> = {
   GENDER: "text-teal-400 border-teal-400/30",
 };
 
-function profileLabel(profiles: Map<string, ProfileOption>, userId: string): string {
+function profileLabel(profiles: Map<string, ProfileOption>, userId: unknown): string {
+  if (typeof userId !== "string" || !userId) return "—";
   const p = profiles.get(userId);
-  return p?.display_name ?? userId.slice(0, 8) + "…";
+  return p?.display_name ?? (userId.length > 8 ? `${userId.slice(0, 8)}…` : userId);
 }
 
 export function PulseManagement() {
@@ -89,15 +90,20 @@ export function PulseManagement() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [data, statsData, profileData] = await Promise.all([
-      listPulseCards(),
-      fetchPulseCardStats(),
-      fetchProfileOptions(),
-    ]);
-    setCards(data);
-    setStats(statsData);
-    setProfiles(profileData);
-    setLoading(false);
+    try {
+      const [data, statsData, profileData] = await Promise.all([
+        listPulseCards(),
+        fetchPulseCardStats(),
+        fetchProfileOptions(),
+      ]);
+      setCards(data);
+      setStats(statsData);
+      setProfiles(profileData);
+    } catch (err) {
+      console.error("PulseManagement load failed:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -115,33 +121,37 @@ export function PulseManagement() {
     let cancelled = false;
 
     void (async () => {
-      const [progress, log] = await Promise.all([
-        fetchUserRuneProgress(userFilter),
-        fetchPulseSwipeLog(userFilter),
-      ]);
-      if (cancelled) return;
+      try {
+        const [progress, log] = await Promise.all([
+          fetchUserRuneProgress(userFilter),
+          fetchPulseSwipeLog(userFilter),
+        ]);
+        if (cancelled) return;
 
-      setUserSwipeSummary(
-        progress?.swipes
-          ? { assimilated: progress.swipes.assimilated, ignored: progress.swipes.ignored }
-          : { assimilated: 0, ignored: 0 },
-      );
+        setUserSwipeSummary(
+          progress?.swipes
+            ? { assimilated: progress.swipes.assimilated, ignored: progress.swipes.ignored }
+            : { assimilated: 0, ignored: 0 },
+        );
 
-      const map = new Map<string, PulseCardSwipeStats>();
-      for (const entry of log) {
-        const existing = map.get(entry.card_id) ?? {
-          card_id: entry.card_id,
-          external_key: entry.external_key,
-          yes_count: 0,
-          no_count: 0,
-          total_swipes: 0,
-        };
-        if (entry.action === "assimilated") existing.yes_count += 1;
-        else existing.no_count += 1;
-        existing.total_swipes += 1;
-        map.set(entry.card_id, existing);
+        const map = new Map<string, PulseCardSwipeStats>();
+        for (const entry of log) {
+          const existing = map.get(entry.card_id) ?? {
+            card_id: entry.card_id,
+            external_key: entry.external_key,
+            yes_count: 0,
+            no_count: 0,
+            total_swipes: 0,
+          };
+          if (entry.action === "assimilated") existing.yes_count += 1;
+          else existing.no_count += 1;
+          existing.total_swipes += 1;
+          map.set(entry.card_id, existing);
+        }
+        setUserCardStats(map);
+      } catch (err) {
+        console.error("PulseManagement user-scoped fetch failed:", err);
       }
-      setUserCardStats(map);
     })();
 
     return () => {
@@ -185,7 +195,10 @@ export function PulseManagement() {
   const usersWithCards = useMemo(() => {
     const ids = new Set<string>();
     for (const c of cards) {
-      for (const uid of c.target_user_ids ?? []) ids.add(uid);
+      const uids = Array.isArray(c.target_user_ids) ? c.target_user_ids : [];
+      for (const uid of uids) {
+        if (typeof uid === "string" && uid.trim()) ids.add(uid.trim());
+      }
     }
     return [...ids].sort((a, b) =>
       profileLabel(profileMap, a).localeCompare(profileLabel(profileMap, b)),
@@ -196,7 +209,7 @@ export function PulseManagement() {
     .filter((c) => {
       if (search) {
         const q = search.toLowerCase();
-        const title = (c.title_i18n?.fr ?? "").toLowerCase();
+        const title = (c.title_i18n?.fr ?? c.title_i18n?.en ?? "").toLowerCase();
         const key = (c.external_key ?? "").toLowerCase();
         if (!title.includes(q) && !key.includes(q)) return false;
       }
@@ -204,10 +217,11 @@ export function PulseManagement() {
       if (activeFilter === "active" && !c.is_active) return false;
       if (activeFilter === "draft" && c.is_active) return false;
 
+      const cardUserIds = Array.isArray(c.target_user_ids) ? c.target_user_ids : [];
       if (userFilter === "unassigned") {
-        if (c.target_user_ids?.length > 0) return false;
+        if (cardUserIds.length > 0) return false;
       } else if (userFilter !== "all") {
-        if (!c.target_user_ids?.includes(userFilter)) return false;
+        if (!cardUserIds.includes(userFilter)) return false;
       }
 
       if (swipeFilter !== "all") {
@@ -238,7 +252,7 @@ export function PulseManagement() {
         const ratioB = rB && rB.total_swipes > 0 ? rB.yes_count / rB.total_swipes : -1;
         return ratioB - ratioA;
       }
-      return a.sort_order - b.sort_order;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
     });
 
   const filteredIds = filtered.map((c) => c.id);
@@ -549,20 +563,22 @@ export function PulseManagement() {
                     checked={isSelected}
                     onChange={() => toggleSelect(card.id)}
                     className="size-4 shrink-0 accent-primary cursor-pointer"
-                    aria-label={`Sélectionner ${card.title_i18n?.fr}`}
+                    aria-label={`Sélectionner ${card.title_i18n?.fr ?? card.title_i18n?.en ?? card.external_key ?? card.id}`}
                   />
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-text-primary">
-                        {card.title_i18n?.fr ?? "—"}
+                        {card.title_i18n?.fr ?? card.title_i18n?.en ?? card.external_key ?? "—"}
                       </p>
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] py-0 px-1.5 ${PRINCIPLES_COLORS[card.principle_code ?? ""] ?? ""}`}
-                      >
-                        {card.principle_code}
-                      </Badge>
+                      {card.principle_code && (
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] py-0 px-1.5 ${PRINCIPLES_COLORS[card.principle_code ?? ""] ?? ""}`}
+                        >
+                          {card.principle_code}
+                        </Badge>
+                      )}
                       {!card.is_active && (
                         <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
                           Draft
@@ -573,23 +589,24 @@ export function PulseManagement() {
                           {card.content_type}
                         </Badge>
                       )}
-                      {card.archetype_targets?.map((a: string) => (
-                        <Badge
-                          key={a}
-                          variant="outline"
-                          className="text-[10px] py-0 px-1.5 text-accent-primary border-accent-primary/30"
-                        >
-                          {a}
-                        </Badge>
-                      ))}
+                      {Array.isArray(card.archetype_targets) &&
+                        card.archetype_targets.map((a: string) => (
+                          <Badge
+                            key={a}
+                            variant="outline"
+                            className="text-[10px] py-0 px-1.5 text-accent-primary border-accent-primary/30"
+                          >
+                            {a}
+                          </Badge>
+                        ))}
                     </div>
                     <div className="flex items-center gap-2 mt-1 flex-wrap text-[11px] text-muted-foreground">
                       <span className="font-mono">{card.external_key ?? "—"}</span>
                       <span>·</span>
-                      <span>{card.time_label}</span>
+                      <span>{card.time_label ?? "2 MIN"}</span>
                       <span>·</span>
-                      <span>#{card.sort_order}</span>
-                      {card.target_user_ids?.length > 0 && (
+                      <span>#{card.sort_order ?? 0}</span>
+                      {Array.isArray(card.target_user_ids) && card.target_user_ids.length > 0 && (
                         <>
                           <span>·</span>
                           <span className="text-cyan-400">

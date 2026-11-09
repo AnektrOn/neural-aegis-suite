@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useReducer } from "react";
 import AdminHubShell from "@/components/admin/AdminHubShell";
+import { AppRouteErrorBoundary } from "@/components/AppRouteErrorBoundary";
 
 const PulseManagement = lazy(() =>
   import("./pulse/PulseManagement").then((m) => ({ default: m.PulseManagement })),
@@ -31,24 +32,32 @@ export default function AdminPulseHub() {
       pathname="/admin/pulse"
       panels={{
         manage: (
-          <Suspense fallback={<HubPanelLoader />}>
-            <PulseManagement key={refreshKey} />
-          </Suspense>
+          <AppRouteErrorBoundary label="admin-pulse-manage">
+            <Suspense fallback={<HubPanelLoader />}>
+              <PulseManagement key={refreshKey} />
+            </Suspense>
+          </AppRouteErrorBoundary>
         ),
         stats: (
-          <Suspense fallback={<HubPanelLoader />}>
-            <PulseUserStats />
-          </Suspense>
+          <AppRouteErrorBoundary label="admin-pulse-stats">
+            <Suspense fallback={<HubPanelLoader />}>
+              <PulseUserStats />
+            </Suspense>
+          </AppRouteErrorBoundary>
         ),
         import: (
-          <Suspense fallback={<HubPanelLoader />}>
-            <PulseJsonImport onImported={onImported} />
-          </Suspense>
+          <AppRouteErrorBoundary label="admin-pulse-import">
+            <Suspense fallback={<HubPanelLoader />}>
+              <PulseJsonImport onImported={onImported} />
+            </Suspense>
+          </AppRouteErrorBoundary>
         ),
         runes: (
-          <Suspense fallback={<HubPanelLoader />}>
-            <PulseRuneManager />
-          </Suspense>
+          <AppRouteErrorBoundary label="admin-pulse-runes">
+            <Suspense fallback={<HubPanelLoader />}>
+              <PulseRuneManager />
+            </Suspense>
+          </AppRouteErrorBoundary>
         ),
       }}
     />

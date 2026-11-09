@@ -24,7 +24,7 @@ export default function ProgressEvolutionPage() {
   const { isLoading, snapshots, adherence, error } = useProgressEvolution(user?.id);
 
   return (
-    <div className="min-h-full -mx-6 px-5 pb-12 sm:px-8 md:-mx-10 md:px-10 bg-aegis-gradient">
+    <div className="min-h-full px-5 pb-[calc(var(--mobile-dock-padding,5rem)+1.5rem)] sm:px-8 md:px-10 bg-aegis-gradient">
       <div className="mx-auto max-w-3xl space-y-8">
         {/* Back */}
         <button

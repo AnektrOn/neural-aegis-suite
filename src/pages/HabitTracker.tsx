@@ -13,6 +13,10 @@ import type { Locale } from "@/i18n/translations";
 import HabitToolboxModal, { type HabitToolboxItem } from "@/features/habits/components/HabitToolboxModal";
 import { resolveToolboxContentSlug } from "@/lib/toolbox-content-slug";
 import { TOOLBOX_TYPE_META } from "@/lib/toolbox-renderer-registry";
+import { MemberPageHeader } from "@/components/ui/MemberPageHeader";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
+import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
+import { cn } from "@/lib/utils";
 
 interface AssignedHabit {
   id: string;
@@ -52,6 +56,7 @@ export default function HabitTracker() {
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "pending">("all");
+  const [mobileTab, setMobileTab] = useState<"habits" | "cadence">("habits");
   const today = new Date().toISOString().split("T")[0];
 
   const loadData = async (opts?: { silent?: boolean }) => {
@@ -234,82 +239,176 @@ export default function HabitTracker() {
   }, [habits, toolboxItemsById]);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
+    return (
+      <MemberPageScaffold>
+        <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+      </MemberPageScaffold>
+    );
   }
 
-  return (
-    <div className="space-y-8 max-w-4xl">
-      <div>
-        <p className="font-display text-[10px] tracking-[0.22em] uppercase text-text-tertiary/70 mb-2">{t("habits.performanceArchitecture")}</p>
-        <h1 className="font-cormorant text-3xl sm:text-4xl font-light text-text-primary tracking-tight">{t("habits.trackingTitle")}</h1>
+  const progressPct = habits.length > 0 ? Math.round((completedCount / habits.length) * 100) : 0;
+
+  const leftPane = (
+    <div className="space-y-5">
+      <MemberPageHeader
+        kicker="ARCHITECTURE DE PERFORMANCE · HABITUDES"
+        title={t("habits.trackingTitle")}
+        subtitle="Maintenez la constance bio-exécutive au fil des jours."
+      />
+
+      {/* Mobile Segmented Switcher (<lg) */}
+      <div className="flex lg:hidden items-center p-1 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md shadow-sm">
+        <button
+          type="button"
+          onClick={() => setMobileTab("habits")}
+          className={cn(
+            "flex-1 py-2 px-2 rounded-lg text-xs font-cinzel uppercase tracking-[0.12em] font-medium transition-all text-center",
+            mobileTab === "habits"
+              ? "bg-[#c9a24b]/20 text-[#c9a24b] border border-[#c9a24b]/40 shadow-sm font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          ✅ Habitudes ({habits.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab("cadence")}
+          className={cn(
+            "flex-1 py-2 px-2 rounded-lg text-xs font-cinzel uppercase tracking-[0.12em] font-medium transition-all text-center",
+            mobileTab === "cadence"
+              ? "bg-[#c9a24b]/20 text-[#c9a24b] border border-[#c9a24b]/40 shadow-sm font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          📊 Cadence ({progressPct}%)
+        </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
-          <ListChecks size={16} strokeWidth={1.5} className="text-primary mb-3" />
-          <p className="font-cormorant text-3xl font-light text-foreground tabular-nums">{completedCount}/{habits.length}</p>
-          <p className="font-display text-[10px] tracking-[0.14em] uppercase text-text-tertiary/70 mt-1">{t("habits.completedToday")}</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="glass-card p-5">
-          <Flame size={16} strokeWidth={1.5} className="text-warning mb-3" />
-          <p className="font-cormorant text-3xl font-light text-foreground tabular-nums">{habits.length}</p>
-          <p className="font-display text-[10px] tracking-[0.14em] uppercase text-text-tertiary/70 mt-1">{t("habits.assignedHabits")}</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="glass-card p-5">
-          <p className="font-cormorant text-3xl font-light text-primary tabular-nums">{habits.length > 0 ? Math.round((completedCount / habits.length) * 100) : 0}%</p>
-          <p className="font-display text-[10px] tracking-[0.14em] uppercase text-text-tertiary/70 mt-1">{t("habits.dailyScore")}</p>
-        </motion.div>
+      <div className={cn("space-y-5", mobileTab !== "cadence" && "hidden lg:block", "pb-6 lg:pb-0")}>
+        {/* Daily Performance Score Card */}
+        <div className="aegis-dock-tile rounded-2xl p-5 space-y-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.24em] text-[#9e7828] dark:text-[#c9a24b]">
+                CADENCE QUOTIDIENNE
+              </p>
+              <p className="font-cormorant text-4xl font-light text-foreground tabular-nums mt-1">
+                {completedCount} <span className="text-muted-foreground text-2xl font-light">/ {habits.length}</span>
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="font-cormorant text-5xl font-light text-[#c9a24b] tabular-nums">
+                {progressPct}%
+              </span>
+              <p className="font-cinzel text-[9px] uppercase tracking-wider text-muted-foreground">
+                {t("habits.dailyScore")}
+              </p>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full h-2 rounded-full bg-black/30 overflow-hidden border border-white/5">
+            <div
+              className="h-full bg-gradient-to-r from-[#9e7828] to-[#c9a24b] transition-all duration-500 rounded-full shadow-[0_0_12px_rgba(201,162,75,0.4)]"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/[0.08] text-xs">
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-black/20 border border-white/5">
+              <ListChecks size={14} className="text-[#c9a24b]" />
+              <span className="text-muted-foreground text-[11px]">{t("habits.completedToday")}:</span>
+              <span className="font-semibold text-foreground font-mono">{completedCount}</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-black/20 border border-white/5">
+              <Flame size={14} className="text-amber-400" />
+              <span className="text-muted-foreground text-[11px]">{t("habits.assignedHabits")}:</span>
+              <span className="font-semibold text-foreground font-mono">{habits.length}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="space-y-2">
+          <p className="font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.2em] text-muted-foreground px-1">
+            CATÉGORIES
+          </p>
+          <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 pb-1 lg:flex-wrap">
+            {categories.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setCategoryFilter(category)}
+                className={cn(
+                  "shrink-0 font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.14em] px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer whitespace-nowrap",
+                  categoryFilter === category
+                    ? "border-[#c9a24b]/60 bg-[#c9a24b]/20 text-[#c9a24b] shadow-sm font-semibold"
+                    : "border-white/5 bg-black/25 text-muted-foreground hover:border-white/15 hover:text-foreground",
+                )}
+              >
+                {category === "all" ? t("habits.filterAllCategories") : category}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bio-Executive Cadence Tip */}
+        <div className="aegis-dock-tile p-4 rounded-xl border border-white/10 space-y-1.5 shadow-sm">
+          <p className="font-cinzel text-[9.5px] font-semibold uppercase tracking-wider text-[#c9a24b]">
+            MAXIME BIO-EXÉCUTIVE
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed italic font-body">
+            « La régularité de vos micro-habitudes ancre la résilience neuro-végétative sous haute pression. »
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const rightPane = (
+    <div className={cn("space-y-4", mobileTab !== "habits" && "hidden lg:block")}>
+      {/* Status Filter Pills */}
+      <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: "all" as const, label: t("habits.filterAllStatuses") },
+            { key: "completed" as const, label: t("toolbox.completed") },
+            { key: "pending" as const, label: t("toolbox.pending") },
+          ].map((entry) => (
+            <button
+              key={entry.key}
+              type="button"
+              onClick={() => setStatusFilter(entry.key)}
+              className={cn(
+                "font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.14em] px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer",
+                statusFilter === entry.key
+                  ? "border-[#c9a24b]/60 bg-[#c9a24b]/20 text-[#c9a24b] shadow-sm font-semibold"
+                  : "border-white/5 bg-black/25 text-muted-foreground hover:border-white/15 hover:text-foreground",
+              )}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
+        <span className="font-mono text-xs text-muted-foreground">
+          {filteredHabits.length} {filteredHabits.length > 1 ? "habitudes" : "habitude"}
+        </span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setCategoryFilter(category)}
-            className={`text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-lg border transition-all ${
-              categoryFilter === category
-                ? "border-primary/40 bg-primary/5 text-primary"
-                : "border-border/30 text-muted-foreground hover:border-primary/30"
-            }`}
-          >
-            {category === "all" ? t("habits.filterAllCategories") : category}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {[
-          { key: "all" as const, label: t("habits.filterAllStatuses") },
-          { key: "completed" as const, label: t("toolbox.completed") },
-          { key: "pending" as const, label: t("toolbox.pending") },
-        ].map((entry) => (
-          <button
-            key={entry.key}
-            onClick={() => setStatusFilter(entry.key)}
-            className={`text-[9px] uppercase tracking-[0.2em] px-3 py-2 rounded-lg border transition-all ${
-              statusFilter === entry.key
-                ? "border-primary/40 bg-primary/5 text-primary"
-                : "border-border/30 text-muted-foreground hover:border-primary/30"
-            }`}
-          >
-            {entry.label}
-          </button>
-        ))}
-      </div>
-
+      {/* Habits List */}
       {filteredHabits.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden className="mx-auto mb-4 text-primary/20">
+        <div className="aegis-dock-tile rounded-2xl p-12 text-center shadow-md">
+          <svg width="44" height="44" viewBox="0 0 48 48" fill="none" aria-hidden className="mx-auto mb-3 text-[#c9a24b]/30">
             <rect x="8" y="10" width="32" height="6" rx="3" stroke="currentColor" strokeWidth="1.5" />
             <rect x="8" y="21" width="32" height="6" rx="3" stroke="currentColor" strokeWidth="1.5" />
             <rect x="8" y="32" width="20" height="6" rx="3" stroke="currentColor" strokeWidth="1.5" />
             <circle cx="40" cy="35" r="6" stroke="currentColor" strokeWidth="1.5" />
             <path d="M37.5 35l2 2 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <p className="font-cormorant text-xl font-light text-text-tertiary/70 italic mb-2">
+          <p className="font-cormorant text-lg font-light text-muted-foreground/70 italic mb-1">
             {habits.length === 0 ? "Votre routine bien-être vous attend" : "Aucune habitude dans ce filtre"}
           </p>
-          <p className="font-display text-[10px] tracking-[0.18em] uppercase text-text-tertiary/40">
+          <p className="font-cinzel text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground/40">
             {habits.length === 0 ? t("habits.noHabitsAssigned") : t("habits.noHabitsInFilters")}
           </p>
         </div>
@@ -317,45 +416,60 @@ export default function HabitTracker() {
         <div className="space-y-2">
           {filteredHabits.map((habit, i) => {
             const completed = completedIds.has(habit.id);
-            const doneCount = completedIds.size;
-            const progressPct = habits.length > 0 ? Math.round((doneCount / habits.length) * 100) : 0;
             return (
               <motion.div
                 key={habit.id}
                 id={`habit-${habit.id}`}
-                initial={{ opacity: 0, x: -10 }}
+                initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.08 + i * 0.04 }}
-                className={`glass-card px-4 flex items-center gap-4 min-h-[60px] transition-all duration-200 hover:border-primary/30 ${completed ? "opacity-60" : ""} ${habit.isToolboxLinked ? "border-primary/25 bg-primary/5" : ""}`}
+                transition={{ delay: Math.min(i * 0.03, 0.25) }}
+                className={cn(
+                  "aegis-dock-tile rounded-2xl px-4 py-3.5 flex items-center gap-3.5 min-h-[58px] transition-all duration-200 hover:border-[#c9a24b]/30 shadow-sm",
+                  completed ? "opacity-65" : "",
+                  habit.isToolboxLinked ? "border-[#c9a24b]/30 bg-[#c9a24b]/5" : "",
+                )}
               >
                 <button
+                  type="button"
                   onClick={() => toggleComplete(habit.id)}
                   aria-label={`${completed ? "Décocher" : "Cocher"} ${habit.template_name}`}
                   aria-checked={completed}
                   role="checkbox"
-                  className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 transition-all duration-300 ${completed ? "bg-primary/20 border-primary/40" : "border-border hover:border-primary/30"}`}
+                  className={cn(
+                    "w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 transition-all cursor-pointer",
+                    completed
+                      ? "bg-[#c9a24b] border-[#c9a24b] text-[#0b0b0a] shadow-[0_0_12px_rgba(201,162,75,0.4)]"
+                      : "border-white/15 bg-black/30 text-muted-foreground/30 hover:border-[#c9a24b]/50 hover:text-foreground",
+                  )}
                   style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
                 >
-                  {completed && <Check size={14} className="text-primary" />}
+                  {completed ? (
+                    <Check size={15} strokeWidth={2.5} />
+                  ) : (
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                  )}
                 </button>
-                <div className="flex-1 min-w-0 py-3">
-                  <p className={`text-[15px] transition-colors ${completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{habit.template_name}</p>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`text-sm transition-colors font-medium truncate ${
+                      completed ? "line-through text-muted-foreground" : "text-foreground"
+                    }`}
+                  >
+                    {habit.template_name}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     {(() => {
                       const IconComp = categoryIcon(habit.template_category);
-                      return <IconComp size={10} strokeWidth={1.5} className="text-primary/40" />;
+                      return <IconComp size={10} strokeWidth={1.5} className="text-primary/50" />;
                     })()}
-                    <span className="font-display text-[9px] text-muted-foreground/40 tracking-wider uppercase">
+                    <span className="font-mono text-[9px] text-muted-foreground tracking-wider uppercase">
                       {habit.isToolboxLinked ? t("habits.toolboxLinked") : habit.template_category}
                     </span>
-                    {habit.isToolboxLinked && habit.template_category !== t("habits.toolboxLinked") ? (
-                      <span className="font-display text-[9px] text-muted-foreground/30 tracking-wider uppercase">
-                        · {habit.template_category}
-                      </span>
-                    ) : null}
                   </div>
                 </div>
-                <div className="shrink-0">
+
+                <div className="shrink-0 flex items-center gap-2">
                   <AddToCalendarButton
                     title={habit.template_name}
                     description={habit.template_category}
@@ -364,51 +478,60 @@ export default function HabitTracker() {
                     category={habit.template_category}
                     compact
                   />
-                </div>
-                {habit.isToolboxLinked && habit.toolbox_assignment_id ? (() => {
-                  const toolbox = toolboxItemsById[habit.toolbox_assignment_id];
-                  const toolboxCfg = (toolbox?.widget_config as Record<string, unknown>) ?? {};
-                  const slug = toolbox
-                    ? resolveToolboxContentSlug(toolbox.content_type, toolboxCfg)
-                    : "";
-                  const durationOpts = toolbox
-                    ? getHabitToolboxDurationOptions(slug, toolboxCfg, toolbox.duration)
-                    : null;
-                  const perStepMin =
-                    habit.duration_override_min ?? durationOpts?.defaultMinutes ?? null;
-                  const badge =
-                    durationOpts && perStepMin != null
-                      ? formatHabitDurationBadge(perStepMin, durationOpts)
+
+                  {habit.isToolboxLinked && habit.toolbox_assignment_id ? (() => {
+                    const toolbox = toolboxItemsById[habit.toolbox_assignment_id];
+                    const toolboxCfg = (toolbox?.widget_config as Record<string, unknown>) ?? {};
+                    const slug = toolbox
+                      ? resolveToolboxContentSlug(toolbox.content_type, toolboxCfg)
+                      : "";
+                    const durationOpts = toolbox
+                      ? getHabitToolboxDurationOptions(slug, toolboxCfg, toolbox.duration)
                       : null;
-                  return (
-                    <div className="shrink-0 flex items-center gap-1.5">
-                      {badge ? (
-                        <span className="inline-flex items-center gap-1 rounded-lg border border-border/25 px-2 py-1.5 text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
-                          <Clock size={10} />
-                          {badge}
-                        </span>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => openToolboxModal(habit)}
-                        className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-[9px] uppercase tracking-[0.2em] text-primary hover:bg-primary/15 transition-colors min-h-[36px]"
-                      >
-                        <Play size={11} />
-                        {t("habits.launchToolbox")}
-                      </button>
-                    </div>
-                  );
-                })() : null}
-                {i === 0 && habits.length > 0 && !habit.isToolboxLinked ? (
-                  <div className="shrink-0 text-right">
-                    <span className="font-display text-[10px] text-primary/60 tracking-widest">{progressPct}%</span>
-                  </div>
-                ) : null}
+                    const perStepMin =
+                      habit.duration_override_min ?? durationOpts?.defaultMinutes ?? null;
+                    const badge =
+                      durationOpts && perStepMin != null
+                        ? formatHabitDurationBadge(perStepMin, durationOpts)
+                        : null;
+                    return (
+                      <div className="flex items-center gap-1.5">
+                        {badge ? (
+                          <span className="inline-flex items-center gap-1 rounded border border-border/25 px-2 py-1 text-[9px] uppercase font-mono text-muted-foreground">
+                            <Clock size={10} />
+                            {badge}
+                          </span>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => openToolboxModal(habit)}
+                          className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 font-cinzel text-[9.5px] font-semibold uppercase tracking-wider text-primary hover:bg-primary/15 transition-colors min-h-[32px]"
+                        >
+                          <Play size={10} />
+                          {t("habits.launchToolbox")}
+                        </button>
+                      </div>
+                    );
+                  })() : null}
+                </div>
               </motion.div>
             );
           })}
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <MemberPageScaffold width="wide" viewport className="min-w-0 overflow-x-hidden">
+      <MemberSplitLayout
+        left={leftPane}
+        right={rightPane}
+        leftColSpan={5}
+        rightColSpan={7}
+        scrollRight={true}
+        scrollLeft={true}
+      />
 
       <HabitToolboxModal
         item={activeToolboxItem}
@@ -426,6 +549,6 @@ export default function HabitTracker() {
           );
         }}
       />
-    </div>
+    </MemberPageScaffold>
   );
 }

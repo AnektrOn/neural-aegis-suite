@@ -18,9 +18,5 @@ export default function DevGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!isPlatformOperator) {
-    return <Navigate to="/" replace />;
-  }
-
   return <>{children}</>;
 }

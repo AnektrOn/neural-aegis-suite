@@ -1,12 +1,17 @@
 ---
 external_key: pulse_PRINCIPLE_00X
+# Code rune DB (préféré). Format Jung : principle = axe thématique, rune = code DB.
 principle: MENTALISM
+# glyph: JUNG_AME
+# rune: DYNAMIQUE_COMPLEXES
 sort_order: 1
 time_label: "2 MIN"
 is_active: true
 archetype_targets:
   - sovereign
   - sage
+# targets:            # format Jung — tags libres (non-archétypes ignorés)
+#   - complexe_autonome
 title:
   fr: ""
   en: ""
@@ -25,20 +30,23 @@ bullets:
     - ""
 ---
 
-# Hook FR
+# FR
+
+# Hook
 
 
-# Hook EN
+# Concept
 
 
-# Concept FR
+# Action
+
+# EN
+
+# Hook
 
 
-# Concept EN
+# Concept
 
 
-# Action FR
-
-
-# Action EN
+# Action
 

@@ -9,16 +9,16 @@ interface NeuralCardProps extends HTMLAttributes<HTMLDivElement> {
 export const NeuralCard = forwardRef<HTMLDivElement, NeuralCardProps>(
   ({ className, glow = "none", variant = "default", ...props }, ref) => {
     const glowClass = {
-      blue: "shadow-[0_0_0_1px_rgba(79,142,247,0.15),0_0_24px_rgba(79,142,247,0.07)]",
-      purple: "shadow-[0_0_0_1px_rgba(124,109,250,0.15),0_0_24px_rgba(124,109,250,0.07)]",
-      green: "shadow-[0_0_0_1px_rgba(52,211,153,0.15),0_0_24px_rgba(52,211,153,0.07)]",
-      warm: "shadow-[0_0_0_1px_hsla(38,72%,58%,0.2),0_0_24px_hsla(38,72%,58%,0.08)]",
-      none: "shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]",
+      blue: "shadow-[0_0_0_1px_rgba(59,130,246,0.18),0_0_24px_rgba(59,130,246,0.06)]",
+      purple: "shadow-[0_0_0_1px_rgba(201,162,75,0.22),0_0_24px_rgba(201,162,75,0.08)]",
+      green: "shadow-[0_0_0_1px_rgba(52,211,153,0.18),0_0_24px_rgba(52,211,153,0.06)]",
+      warm: "shadow-[0_0_0_1px_rgba(201,162,75,0.28),0_0_24px_rgba(201,162,75,0.10)]",
+      none: "shadow-[0_4px_28px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(233,228,216,0.05)]",
     }[glow];
 
     const variantClass = {
-      default: "bg-bg-surface border border-border-subtle",
-      elevated: "bg-bg-elevated border border-border-active",
+      default: "bg-[#161614] dark:bg-[#161614] bg-white border border-[#e9e4d8]/10 dark:border-[#e9e4d8]/10 border-black/8",
+      elevated: "bg-[#1e1e1c] dark:bg-[#1e1e1c] bg-[#faf8f5] border border-[#e9e4d8]/15 dark:border-[#e9e4d8]/15 border-black/10",
       ghost: "bg-transparent border border-border-subtle/50",
       premium: "dashboard-panel border-0 shadow-none",
     }[variant];

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings2, User } from "lucide-react";
+import { LayoutDashboard, Layers, Settings2, User } from "lucide-react";
 import AegisHealthSection from "@/components/AegisHealthSection";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -6,23 +6,20 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PersonaStatsSection } from "./PersonaStatsSection";
 import { PersonaTrackingStrip } from "./PersonaTrackingStrip";
 import {
-  TrackingProgressBridge,
   PersonaLinkRow,
   PersonaNowCard,
   getPersonaContent,
   type PersonaViewProps,
 } from "./personaParts";
-import { PersonaPortraitLibrary } from "./PersonaPortraitLibrary";
 import { Houses72PersonaCTA } from "@/features/houses72/components/Houses72PersonaCTA";
 import { UserReportsSection } from "@/features/user-reports/UserReportsSection";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
+import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
 
 export function PersonaDesktopScreen({
   profile,
   displayName,
   tracking,
-  portraitLenses,
-  taoSummary,
-  portraitsLoading,
 }: PersonaViewProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -37,120 +34,133 @@ export function PersonaDesktopScreen({
     bioLine,
   } = getPersonaContent(profile, displayName);
 
-  return (
-    <div className="persona-desktop-page mx-auto w-full max-w-6xl px-6 py-8 pb-10">
-      <header className="persona-desktop-hero mb-8 rounded-2xl border border-border/30 overflow-hidden">
-        <div
-          className="px-8 py-8 flex items-center gap-8"
-          style={{
-            background: `linear-gradient(135deg, color-mix(in srgb, ${dominantTheme.color} 14%, hsl(var(--card))) 0%, hsl(var(--background)) 55%)`,
-          }}
-        >
+  const leftPane = (
+    <div className="space-y-5">
+      {/* Hero Master Identity Card */}
+      <div
+        className="aegis-dock-tile rounded-2xl p-6 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
+        style={{
+          background: `linear-gradient(135deg, color-mix(in srgb, ${dominantTheme.color} 14%, hsl(var(--background) / 0.72)) 0%, hsl(var(--background) / 0.88) 100%)`,
+        }}
+      >
+        <div className="flex items-start gap-4">
           <div
-            className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-2"
+            className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-2"
             style={{
               borderColor: `color-mix(in srgb, ${dominantTheme.color} 50%, transparent)`,
               background: `color-mix(in srgb, ${dominantTheme.color} 10%, hsl(var(--card)))`,
-              boxShadow: `0 0 56px color-mix(in srgb, ${dominantTheme.color} 20%, transparent)`,
+              boxShadow: `0 0 40px color-mix(in srgb, ${dominantTheme.color} 25%, transparent)`,
             }}
           >
-            <DominantIcon size={48} strokeWidth={1.25} style={{ color: dominantTheme.color }} aria-hidden />
+            <DominantIcon size={38} strokeWidth={1.25} style={{ color: dominantTheme.color }} aria-hidden />
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="font-display text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-3">
+            <p className="font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.24em] text-primary/80">
               {t("persona.glimpse.eyebrow")}
             </p>
             {shownName ? (
-              <p className="font-body text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="font-body text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground mt-0.5">
                 {shownName}
               </p>
             ) : null}
-            <h1
-              className={cn(
-                "font-cormorant-display text-4xl xl:text-5xl text-foreground leading-tight tracking-tight",
-                shownName ? "mt-1" : "mt-0",
-              )}
-            >
+            <h1 className="font-cormorant text-2xl xl:text-3xl text-foreground font-light leading-tight tracking-tight mt-1">
               {classTitle}
             </h1>
             {profile.subtitle ? (
-              <p className="mt-2 text-sm text-muted-foreground font-body">{profile.subtitle}</p>
+              <p className="mt-1 text-xs text-muted-foreground font-body">{profile.subtitle}</p>
             ) : null}
-            <p className="mt-3 text-base text-muted-foreground leading-relaxed max-w-2xl font-body italic">
-              {bioLine}
-            </p>
           </div>
         </div>
-      </header>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
-        <div className="space-y-6 min-w-0">
-          <PersonaPortraitLibrary
-            lenses={portraitLenses}
-            loading={portraitsLoading}
-            profile={profile}
-            taoSummary={taoSummary}
-            shadowTheme={n.primaryShadowTheme}
-            headingId="persona-portraits-heading-desktop"
-          />
-          {user?.id ? <UserReportsSection userId={user.id} /> : null}
-
-
-          {spotlightPractice && practiceTitle ? (
-            <PersonaNowCard
-              practiceTitle={practiceTitle}
-              description={spotlightPractice.description}
-              headingId="persona-now-heading-desktop"
-            />
-          ) : null}
-
-
-
-
-          <p className="text-[11px] text-muted-foreground/80 font-body leading-relaxed">
-            {t("persona.glimpse.footerNote")}
+        {bioLine ? (
+          <p className="mt-4 pt-3 border-t border-border/20 text-xs text-muted-foreground leading-relaxed font-body italic">
+            "{bioLine}"
           </p>
-        </div>
+        ) : null}
+      </div>
 
-        <aside className="space-y-5 sticky top-6">
-          {tracking ? <PersonaTrackingStrip stats={tracking} /> : null}
-          <AegisHealthSection variant="compact" />
-          <PersonaStatsSection profile={profile} />
+      {/* Real-Time Alignment & Biometrics */}
+      <div className="space-y-4">
+        {tracking ? <PersonaTrackingStrip stats={tracking} /> : null}
+        <AegisHealthSection variant="compact" />
+        <Houses72PersonaCTA userId={user?.id} variant="compact" />
 
-          <Houses72PersonaCTA userId={user?.id} variant="compact" />
-
-          <section className="space-y-2" aria-labelledby="persona-links-heading-desktop">
-            <p
-              id="persona-links-heading-desktop"
-              className="px-1 font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
-            >
-              {t("persona.glimpse.links")}
-            </p>
+        {/* Quick Navigation Links */}
+        <section className="space-y-2 pt-2" aria-labelledby="persona-links-heading-desktop">
+          <p
+            id="persona-links-heading-desktop"
+            className="px-1 font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.22em] text-muted-foreground"
+          >
+            {t("persona.glimpse.links")}
+          </p>
+          <div className="grid grid-cols-1 gap-1.5">
             <PersonaLinkRow
               to="/profile"
-              icon={<User size={16} strokeWidth={1.5} aria-hidden />}
+              icon={<User size={15} strokeWidth={1.5} aria-hidden />}
               title={t("persona.glimpse.accountLink")}
               detail={t("persona.glimpse.accountDetail")}
               compact
             />
             <PersonaLinkRow
               to="/settings"
-              icon={<Settings2 size={16} strokeWidth={1.5} aria-hidden />}
+              icon={<Settings2 size={15} strokeWidth={1.5} aria-hidden />}
               title={t("persona.glimpse.appSettingsLink")}
               detail={t("persona.glimpse.appSettingsDetail")}
               compact
             />
             <PersonaLinkRow
-              to="/"
-              icon={<LayoutDashboard size={16} strokeWidth={1.5} aria-hidden />}
+              to="/dashboard"
+              icon={<LayoutDashboard size={15} strokeWidth={1.5} aria-hidden />}
               title={t("persona.glimpse.dashboardLink")}
               detail={t("persona.glimpse.dashboardDetail")}
               compact
             />
-          </section>
-        </aside>
+          </div>
+        </section>
       </div>
     </div>
+  );
+
+  const rightPane = (
+    <div className="space-y-6">
+      <PersonaLinkRow
+        to="/persona/portraits"
+        icon={<Layers size={18} strokeWidth={1.5} aria-hidden />}
+        title={t("persona.glimpse.portraitsLink")}
+        detail={t("persona.glimpse.portraitsDetail")}
+      />
+
+      {/* Spotlight Practice if present */}
+      {spotlightPractice && practiceTitle ? (
+        <PersonaNowCard
+          practiceTitle={practiceTitle}
+          description={spotlightPractice.description}
+          headingId="persona-now-heading-desktop"
+        />
+      ) : null}
+
+      {/* Deep Analytics & Archetype Distribution */}
+      <PersonaStatsSection profile={profile} />
+
+      {/* User Reports & Assessments */}
+      {user?.id ? <UserReportsSection userId={user.id} /> : null}
+
+      <p className="text-[11px] text-muted-foreground/80 font-body leading-relaxed pb-4">
+        {t("persona.glimpse.footerNote")}
+      </p>
+    </div>
+  );
+
+  return (
+    <MemberPageScaffold width="wide" viewport className="min-w-0 overflow-x-hidden">
+      <MemberSplitLayout
+        left={leftPane}
+        right={rightPane}
+        leftColSpan={5}
+        rightColSpan={7}
+        scrollRight={true}
+      />
+    </MemberPageScaffold>
   );
 }

@@ -174,6 +174,10 @@ export default function AdminElevenLabsKnowledge() {
   const [driveEnabled, setDriveEnabled] = useState(false);
   const [userAgentId, setUserAgentId] = useState("");
   const [syncResults, setSyncResults] = useState<{ file: string; status: string; error?: string }[] | null>(null);
+  const [drivePreview, setDrivePreview] = useState<{
+    folder_name: string | null;
+    counts: { markdown: number; other: number; folders: number };
+  } | null>(null);
   const [bulkResult, setBulkResult] = useState<{ user: string; ok: number; failed: number; skipped: number; error?: string }[] | null>(null);
 
   const load = useCallback(async () => {
@@ -336,10 +340,22 @@ export default function AdminElevenLabsKnowledge() {
                   <input type="checkbox" checked={driveEnabled} onChange={(e) => setDriveEnabled(e.target.checked)} /> Synchronisation Drive activée
                 </label>
                 <p className="text-xs text-muted-foreground">Compte Google Drive connecté à l'app. Dernière synchro : {fmt(selected.last_synced_at)}</p>
+                {drivePreview && (
+                  <p className="text-xs text-muted-foreground">
+                    Aperçu « {drivePreview.folder_name ?? "—"} » : {drivePreview.counts.markdown} Markdown, {drivePreview.counts.folders} sous-dossiers, {drivePreview.counts.other} autre(s) fichier(s) non synchronisé(s).
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className={btn} disabled={busy === "drive"} onClick={() => run("drive", async () => { await call({ action: "set_drive", user_id: selected.id, drive_folder_id: driveFolder, enabled: driveEnabled }); toast.success("Réglages Drive enregistrés"); await load(); })}>
                     Enregistrer
                   </button>
+                  <Button type="button" variant="outline" className={btn} disabled={busy === "preview" || !driveFolder.trim()} onClick={() => run("preview", async () => {
+                    const res = await call({ action: "preview_drive", drive_folder_id: driveFolder });
+                    setDrivePreview({ folder_name: res.folder_name ?? null, counts: res.counts });
+                    toast.success("Aperçu Drive chargé");
+                  })}>
+                    {busy === "preview" ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />} Aperçu Drive
+                  </Button>
                   <Button type="button" variant="outline" className={btn} disabled={busy === "sync" || !selected.drive_folder_id || !selected.elevenlabs_agent_id} onClick={() => run("sync", async () => {
                     setSyncResults(null);
                     const r: { file: string; status: string; error?: string }[] = [];

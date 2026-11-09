@@ -301,7 +301,7 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   /* ------------------------------------------------------------------ */
   return (
     <PageWrapper>
-      <div className={`mx-auto space-y-6 py-8 ${lens === "tao" ? "max-w-5xl" : "max-w-5xl"}`}>
+      <div className={`mx-auto space-y-6 py-8 max-w-5xl ${mode === "user" ? "px-3 sm:px-5 lg:px-6" : ""}`}>
         {mode === "admin" && selectedSession && (
           <button
             onClick={() => setSelectedSession(null)}
@@ -313,14 +313,14 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
         )}
 
         {loadingProfile && (
-          <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
+          <Card className="p-10 text-center rounded-2xl border border-black/8 bg-white dark:border-[#e9e4d8]/10 dark:bg-[#161614] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_28px_rgba(0,0,0,0.32)]">
             <Loader2 size={20} strokeWidth={1.5} className="animate-spin mx-auto mb-3 text-text-tertiary" />
             <p className="text-text-secondary text-sm">{t("deepDive.buildingProfile")}</p>
           </Card>
         )}
 
         {!loadingProfile && profileError && lens === "myss" && !profile && (
-          <Card className="p-10 text-center backdrop-blur-3xl bg-white/[0.03] border border-white/10">
+          <Card className="p-10 text-center rounded-2xl border border-black/8 bg-white dark:border-[#e9e4d8]/10 dark:bg-[#161614] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_28px_rgba(0,0,0,0.32)]">
             <Sparkles size={28} strokeWidth={1.2} className="mx-auto mb-3 text-text-tertiary" />
             <p className="text-text-secondary text-sm">{profileError}</p>
           </Card>

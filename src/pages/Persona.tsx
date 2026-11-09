@@ -10,10 +10,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { usePersonaProfile } from "@/features/persona/hooks/usePersonaProfile";
 import { PersonaProfileScreen } from "@/features/persona/components/PersonaProfileScreen";
 import { PersonaDesktopScreen } from "@/features/persona/components/PersonaDesktopScreen";
-import { useTaoPortrait } from "@/features/tao-portrait/hooks/useTaoPortrait";
-import { buildTaoPersonaSummary } from "@/features/tao-portrait/lib/buildTaoPersonaSummary";
-import { buildPortraitLenses } from "@/features/persona/lib/buildPortraitLenses";
-import { getPersonaContent } from "@/features/persona/components/personaParts";
 import {
   fetchPersonaTrackingStats,
   type PersonaTrackingStats,
@@ -32,22 +28,6 @@ export default function Persona() {
 
   const userId = user?.id;
   const { profile, loading: profileLoading, error, reload } = usePersonaProfile(userId, locale);
-  const { parts: taoParts, loading: taoLoading } = useTaoPortrait(userId);
-  const taoSummary = useMemo(
-    () => buildTaoPersonaSummary(taoParts, { displayName }),
-    [taoParts, displayName],
-  );
-
-  const portraitLenses = useMemo(() => {
-    if (!profile) return [];
-    const { glimpseLine, dominantTheme } = getPersonaContent(profile, displayName);
-    return buildPortraitLenses({
-      profile,
-      taoSummary,
-      glimpseLine,
-      dominantColor: dominantTheme.color,
-    });
-  }, [profile, taoSummary, displayName]);
 
   const metaDisplayName = useMemo(() => {
     if (!user) return undefined;
@@ -132,7 +112,7 @@ export default function Persona() {
 
   if (!profile) {
     return (
-      <div className="min-h-full -mx-6 -mt-6 px-5 pt-6 pb-10 sm:px-8 md:-mx-10 md:-mt-10 md:px-10 md:pt-10 bg-aegis-gradient">
+      <div className="min-h-full px-5 pt-6 pb-10 sm:px-8 md:px-10 md:pt-10 bg-aegis-gradient">
         <div className="mx-auto max-w-2xl flex min-h-[60vh] items-center justify-center py-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -140,12 +120,12 @@ export default function Persona() {
             transition={{ duration: 0.5 }}
             className="glass-card w-full p-8 sm:p-10 text-center space-y-8 backdrop-blur-3xl bg-card/40 border-border/40"
           >
-            <div className="inline-flex items-center gap-2 text-primary text-xs uppercase tracking-[0.2em] font-display">
+            <div className="inline-flex items-center gap-2 text-primary text-xs uppercase tracking-[0.25em] font-cinzel font-semibold">
               <Sparkles className="w-4 h-4" strokeWidth={1.5} aria-hidden />
               {t("persona.noProfile.eyebrow")}
             </div>
             <div className="space-y-4">
-              <h1 className="font-serif text-3xl sm:text-4xl text-foreground leading-tight">
+              <h1 className="font-cormorant text-3xl sm:text-4xl text-foreground font-light leading-tight">
                 {t("persona.noProfile.title")}
               </h1>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-body">
@@ -153,15 +133,15 @@ export default function Persona() {
               </p>
             </div>
             <div className="rounded-xl border border-border/30 bg-background/30 p-6 space-y-3 text-left">
-              <h3 className="font-serif text-lg text-foreground">{t("persona.noProfile.whatIsIt")}</h3>
+              <h3 className="font-cormorant text-xl font-light text-foreground">{t("persona.noProfile.whatIsIt")}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{t("persona.noProfile.explanation")}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button size="lg" onClick={() => navigate("/onboarding/assessment")} className="min-h-[44px] font-display text-sm tracking-wider">
+              <Button size="lg" onClick={() => navigate("/onboarding/assessment")} className="min-h-[44px] btn-solaire text-xs tracking-[0.16em]">
                 {t("persona.noProfile.ctaAssessment")}
                 <ArrowRight className="ml-2 w-4 h-4" aria-hidden />
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/")} className="min-h-[44px] font-display text-sm tracking-wider">
+              <Button size="lg" variant="outline" onClick={() => navigate("/")} className="min-h-[44px] font-cinzel text-xs uppercase tracking-[0.16em]">
                 {t("persona.noProfile.ctaDashboard")}
               </Button>
             </div>
@@ -175,13 +155,10 @@ export default function Persona() {
     profile,
     displayName,
     tracking,
-    portraitLenses,
-    taoSummary,
-    portraitsLoading: taoLoading,
   };
 
   return (
-    <div className="min-h-full -mx-6 -mt-6 md:-mx-10 md:-mt-10 bg-aegis-gradient">
+    <div className="min-h-full bg-aegis-gradient">
       {isMobile ? (
         <PersonaProfileScreen {...screenProps} />
       ) : (

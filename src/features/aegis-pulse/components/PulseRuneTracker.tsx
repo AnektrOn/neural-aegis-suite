@@ -10,7 +10,7 @@ interface PulseRuneTrackerProps {
   onClose: () => void;
 }
 
-interface GlyphGroup {
+export interface GlyphGroup {
   collectionCode: string;
   collectionName: string;
   runes: RuneProgress[];
@@ -19,7 +19,7 @@ interface GlyphGroup {
   progress: number;
 }
 
-function buildGlyphGroups(runes: RuneProgress[]): GlyphGroup[] {
+export function buildGlyphGroups(runes: RuneProgress[]): GlyphGroup[] {
   const map = new Map<string, GlyphGroup>();
   for (const r of runes) {
     const key = r.collectionCode ?? "__none__";
@@ -192,7 +192,7 @@ export function PulseRuneTracker({ state, onClose }: PulseRuneTrackerProps) {
     : groups[0];
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] -m-4 md:-m-6 bg-bg-base rounded-[18px] relative overflow-hidden">
+    <div className="min-h-[calc(100dvh-var(--mobile-dock-padding))] bg-bg-base relative overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.03]"
         style={{

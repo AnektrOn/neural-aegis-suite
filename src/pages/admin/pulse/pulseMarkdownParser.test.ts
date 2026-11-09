@@ -382,6 +382,23 @@ Action EN
     expect(result.cards[0].principle).toBe("PRESENCE");
   });
 
+  it("parses Jung pulse-item with rune as principle and soft targets", () => {
+    const content = readFileSync(
+      join(process.cwd(), "src/pages/admin/pulse/fixtures/jung-pulse-item.md"),
+      "utf-8",
+    );
+    const result = parseMarkdownCards([{ name: "jung-pulse-item.md", content }]);
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(1);
+    expect(result.cards[0].external_key).toBe("pulse_JUNG_DYNAMIQUE_COMPLEXES_001");
+    expect(result.cards[0].principle).toBe("DYNAMIQUE_COMPLEXES");
+    expect(result.cards[0].glyph).toBe("JUNG_AME");
+    expect(result.cards[0].archetype_targets).toEqual([]);
+    expect(result.cards[0].format.fr).toBe("HACK MENTAL");
+    expect(result.cards[0].course_content.fr?.hook).toContain("complexe autonome");
+    expect(result.cards[0].course_content.en?.action).toContain("abandonment complex");
+  });
+
   it("normalizes Title Case archetype_targets (Sovereign → sovereign)", () => {
     const md = `---
 external_key: pulse_SHIELDING_space

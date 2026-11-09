@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { MemberPageHeader } from "@/components/ui/MemberPageHeader";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
 import {
   Copy,
   Check,
@@ -243,39 +245,43 @@ export default function Ambassador() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-16">
-      <header className="space-y-1">
-        <h1 className="font-heading text-2xl tracking-wide">{tr("title")}</h1>
-        <p className="text-sm text-muted-foreground">{tr("subtitle")}</p>
-      </header>
+    <MemberPageScaffold className="space-y-6">
+      <MemberPageHeader
+        kicker="PROGRAMME AFFILIATION · SOUVERAINETÉ"
+        title={tr("title")}
+        subtitle={tr("subtitle")}
+      />
 
-      <Card className="space-y-4 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="aegis-dock-tile space-y-4 p-6 sm:p-7 rounded-2xl border border-[rgba(233,228,216,0.1)] shadow-[0_12px_44px_rgba(0,0,0,0.35)] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-44 h-44 bg-[radial-gradient(circle,rgba(201,162,75,0.15)_0%,transparent_70%)] pointer-events-none" />
+        <div className="flex flex-wrap items-center justify-between gap-3 relative z-10">
           <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">{tr("yourLink")}</p>
-            <p className="mt-1 break-all font-mono text-sm">{link}</p>
+            <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.2em] text-[#9e7828] dark:text-[#c9a24b]">{tr("yourLink")}</p>
+            <p className="mt-1.5 break-all font-mono text-sm text-foreground bg-black/40 px-3 py-1.5 rounded-xl border border-white/10 select-all">{link}</p>
           </div>
           <div className="flex items-center gap-2">
             {data.status !== "active" && <Badge variant="outline">{tr("paused")}</Badge>}
-            <Badge variant="secondary">
+            <Badge variant="outline" className="border-[#c9a24b]/40 bg-[#c9a24b]/15 text-[#c9a24b] font-cinzel text-[10px] tracking-wider uppercase">
               {tr("rate")} · {Math.round((data.commission_rate ?? 0) * 100)}%
             </Badge>
-            <Button onClick={copy} size="sm" variant="outline">
-              {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+            <Button onClick={copy} size="sm" variant="outline" className="font-cinzel text-xs tracking-wider uppercase border-[#c9a24b]/40 hover:bg-[#c9a24b]/20 hover:text-[#c9a24b]">
+              {copied ? <Check className="mr-2 h-4 w-4 text-[#c9a24b]" /> : <Copy className="mr-2 h-4 w-4" />}
               {tr("copy")}
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">{tr("payoutNote")}</p>
-      </Card>
+        <p className="text-xs text-muted-foreground relative z-10">{tr("payoutNote")}</p>
+      </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
         {stats.map((s) => (
-          <Card key={s.label} className="p-4">
-            <s.icon className="h-4 w-4 text-primary" strokeWidth={1.2} />
-            <p className="mt-3 text-xl font-medium">{s.value}</p>
-            <p className="text-xs text-muted-foreground">{s.label}</p>
-          </Card>
+          <div key={s.label} className="aegis-dock-tile p-5 rounded-2xl border border-[rgba(233,228,216,0.08)] shadow-sm space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-[#c9a24b]/15 flex items-center justify-center text-[#c9a24b]">
+              <s.icon className="h-4 w-4" strokeWidth={1.4} />
+            </div>
+            <p className="font-cormorant text-2xl sm:text-3xl font-light text-foreground">{s.value}</p>
+            <p className="font-cinzel text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">{s.label}</p>
+          </div>
         ))}
       </div>
 
@@ -287,46 +293,42 @@ export default function Ambassador() {
         const fees = Math.round(gross * 0.015 + payments * 25 * rate);
         const net = Math.max(0, gross - fees);
         return (
-          <Card className="space-y-3 p-5">
-            <h2 className="font-heading text-lg">{tr("feeTitle")}</h2>
-            <p className="text-sm text-muted-foreground">{tr("feeNote")}</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-md border border-border/40 p-3">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">{tr("feeGross")}</p>
-                <p className="mt-1 text-lg font-medium">{money(gross)}</p>
+          <div className="aegis-dock-tile space-y-3.5 p-6 rounded-2xl border border-[rgba(233,228,216,0.1)] shadow-sm">
+            <h2 className="font-cinzel text-sm font-semibold tracking-wide text-foreground uppercase">{tr("feeTitle")}</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{tr("feeNote")}</p>
+            <div className="grid gap-3 sm:grid-cols-2 pt-1">
+              <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+                <p className="font-cinzel text-[9.5px] uppercase tracking-widest text-muted-foreground">{tr("feeGross")}</p>
+                <p className="mt-1 font-cormorant text-2xl font-light text-foreground">{money(gross)}</p>
               </div>
-              <div className="rounded-md border border-primary/30 p-3">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">{tr("feeEstimate")}</p>
-                <p className="mt-1 text-lg font-medium text-primary">≈ {money(net)}</p>
+              <div className="rounded-xl border border-[#c9a24b]/30 bg-[#c9a24b]/10 p-4">
+                <p className="font-cinzel text-[9.5px] uppercase tracking-widest text-[#c9a24b]">{tr("feeEstimate")}</p>
+                <p className="mt-1 font-cormorant text-2xl font-light text-[#c9a24b]">≈ {money(net)}</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">{tr("feeDisclaimer")}</p>
-          </Card>
+            <p className="text-[11px] text-muted-foreground">{tr("feeDisclaimer")}</p>
+          </div>
         );
       })()}
 
-
-
       <UltraDiscountTier totalCents={(data.pending_cents ?? 0) + (data.paid_cents ?? 0)} />
 
-
-
-      <Card className="p-5">
+      <div className="aegis-dock-tile p-6 rounded-2xl border border-[rgba(233,228,216,0.1)] shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-heading text-lg">{tr("referrals")}</h2>
+          <h2 className="font-cinzel text-sm font-semibold tracking-wide text-foreground uppercase">{tr("referrals")}</h2>
           <div className="flex flex-wrap items-center gap-2">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={tr("searchPlaceholder")}
               aria-label={tr("searchPlaceholder")}
-              className="h-9 rounded-md border border-border/50 bg-transparent px-3 text-sm outline-none focus:border-primary/60"
+              className="h-9 rounded-xl border border-white/10 bg-black/30 px-3 text-xs outline-none focus:border-[#c9a24b]/60"
             />
             <select
               value={planFilter}
               onChange={(e) => setPlanFilter(e.target.value)}
               aria-label={tr("colPlan")}
-              className="h-9 rounded-md border border-border/50 bg-transparent px-2 text-sm"
+              className="h-9 rounded-xl border border-white/10 bg-black/30 px-2.5 text-xs text-foreground"
             >
               <option value="all">{tr("allPlans")}</option>
               <option value="free">Initiation</option>
@@ -337,7 +339,7 @@ export default function Ambassador() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               aria-label={tr("colStatus")}
-              className="h-9 rounded-md border border-border/50 bg-transparent px-2 text-sm"
+              className="h-9 rounded-xl border border-white/10 bg-black/30 px-2.5 text-xs text-foreground"
             >
               <option value="all">{tr("allStatuses")}</option>
               <option value="converted">{tr("statusConverted")}</option>
@@ -346,7 +348,7 @@ export default function Ambassador() {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 pt-1">
           {([
             { key: "all", label: tr("catAll"), count: allRows.length },
             { key: "paid", label: tr("catPaid"), count: paidCount },
@@ -356,11 +358,12 @@ export default function Ambassador() {
               key={t.key}
               type="button"
               onClick={() => setCategory(t.key)}
-              className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+              className={cn(
+                "rounded-xl border px-3.5 py-1.5 font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.14em] transition-all cursor-pointer",
                 category === t.key
-                  ? "border-primary/60 bg-primary/10 text-foreground"
-                  : "border-border/40 text-muted-foreground hover:text-foreground"
-              }`}
+                  ? "border-[#c9a24b]/60 bg-[#c9a24b]/20 text-[#c9a24b]"
+                  : "border-white/5 bg-black/25 text-muted-foreground hover:border-white/15 hover:text-foreground",
+              )}
             >
               {t.label} · {t.count}
             </button>
@@ -438,35 +441,37 @@ export default function Ambassador() {
             </table>
           </div>
         )}
-      </Card>
+      </div>
 
       <div className="grid gap-4">
-        <Card className="p-5">
-          <h2 className="font-heading text-lg">{tr("commissions")}</h2>
-          <div className="mt-4 space-y-2">
+        <div className="aegis-dock-tile p-6 rounded-2xl border border-[rgba(233,228,216,0.1)] shadow-sm space-y-4">
+          <h2 className="font-cinzel text-sm font-semibold tracking-wide text-foreground uppercase">{tr("commissions")}</h2>
+          <div className="space-y-2">
             {(data.commissions ?? []).length === 0 && (
               <p className="text-sm text-muted-foreground">{tr("empty")}</p>
             )}
             {(data.commissions ?? []).map((c) => (
               <div
                 key={c.id}
-                className="flex items-center justify-between rounded-md border border-border/40 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-xl border border-white/5 bg-black/25 px-4 py-3 text-sm"
               >
                 <div>
-                  <p className="font-medium">
+                  <p className="font-cormorant text-lg font-light text-foreground">
                     {formatMoney(c.commission_cents, c.currency, locale === "en" ? "en-GB" : "fr-FR")}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="font-mono text-xs text-muted-foreground">
                     {new Date(c.occurred_at).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR")}
                     {c.product_id ? ` · ${c.product_id}` : ""}
                   </p>
                 </div>
-                <Badge variant={c.status === "paid" ? "default" : "outline"}>{c.status}</Badge>
+                <Badge variant={c.status === "paid" ? "default" : "outline"} className="border-[#c9a24b]/30 text-[#c9a24b] uppercase font-cinzel text-[9.5px]">
+                  {c.status}
+                </Badge>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       </div>
-    </div>
+    </MemberPageScaffold>
   );
 }

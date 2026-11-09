@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
+import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Network, LayoutGrid, Plus, X, Save, Trash2,
   TrendingUp, Send, MessageSquare, ChevronDown, Star,
-  AlertCircle, CheckCircle2, Edit3, ArrowLeft, MapPin,
+  AlertCircle, CheckCircle2, Edit3, ArrowLeft, MapPin, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +20,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { PeoplePlacesPanel } from "@/components/PeoplePlacesPanel";
+import { cn } from "@/lib/utils";
 
 const NeuralMap = lazy(() => import("@/components/NeuralMap"));
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -127,9 +130,8 @@ function NeuralRelationsSidebar({
   const { t, locale } = useLanguage();
   return (
     <aside
-      className="hidden md:flex flex-col w-full md:max-w-[20rem] lg:max-w-[22rem] shrink-0 rounded-2xl border border-white/[0.06] overflow-hidden min-h-0"
+      className="hidden md:flex flex-col w-full md:max-w-[20rem] lg:max-w-[22rem] shrink-0 rounded-2xl aegis-dock-tile overflow-hidden min-h-0 shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
       style={{
-        background: "hsl(220 15% 7% / 0.92)",
         maxHeight: "min(520px, calc(100vh - 12rem))",
       }}
     >
@@ -298,12 +300,11 @@ function PersonCard({
   return (
     <motion.div
       layout
-      className={`rounded-2xl overflow-hidden transition-all duration-300 ${
+      className={`aegis-dock-tile rounded-2xl overflow-hidden transition-all duration-300 ${
         hasChanges
-          ? "ring-1 ring-primary/40 shadow-[0_0_24px_hsl(176_70%_48%/0.08)]"
+          ? "ring-1 ring-[#c9a24b]/40 shadow-[0_0_24px_rgba(201,162,75,0.15)]"
           : ""
       }`}
-      style={{ background: "hsl(220 15% 8% / 0.7)", backdropFilter: "blur(12px)" }}
     >
       {/* Card header — always visible */}
       <button
@@ -423,22 +424,21 @@ function StatsStrip({ people }: { people: Person[] }) {
   const low = people.filter((p) => p.quality < 5).length;
 
   return (
-    <div className="flex items-stretch gap-px overflow-hidden rounded-2xl border border-white/[0.06]">
+    <div className="aegis-dock-tile flex items-stretch gap-px overflow-hidden rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
       {[
-        { label: t("people.statAverage"), value: avg, icon: <Star size={10} />, color: "text-white/50" },
-        { label: t("people.statTop"), value: high, icon: <CheckCircle2 size={10} />, color: "text-emerald-400/70" },
-        { label: t("people.statFollowUp"), value: low, icon: <AlertCircle size={10} />, color: "text-red-400/70" },
+        { label: t("people.statAverage"), value: avg, icon: <Star size={10} />, color: "text-[#c9a24b]" },
+        { label: t("people.statTop"), value: high, icon: <CheckCircle2 size={10} />, color: "text-emerald-400" },
+        { label: t("people.statFollowUp"), value: low, icon: <AlertCircle size={10} />, color: "text-amber-400" },
       ].map((stat, i) => (
         <div
           key={i}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-3 px-2"
-          style={{ background: "hsl(220 15% 8% / 0.6)" }}
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-3 px-2 bg-black/25 dark:bg-black/35"
         >
-          <div className={`flex items-center gap-1 ${stat.color} text-[9px] uppercase tracking-[0.12em]`}>
+          <div className={`flex items-center gap-1 ${stat.color} font-cinzel text-[8.5px] uppercase tracking-[0.14em]`}>
             {stat.icon}
             {stat.label}
           </div>
-          <span className="font-['Cormorant_Garamond'] text-xl text-white/70">{stat.value}</span>
+          <span className="font-cormorant text-2xl font-light text-foreground tabular-nums">{stat.value}</span>
         </div>
       ))}
     </div>
@@ -711,7 +711,8 @@ export default function PeopleBoard() {
     semester: t("people.periodSemester"), year: t("people.periodYear"),
   };
 
-  const [view, setView] = useState<"neural" | "card" | "places">("card");
+  const [rightTab, setRightTab] = useState<"contacts" | "places">("contacts");
+  const [mobileTab, setMobileTab] = useState<"map" | "contacts" | "places">("contacts");
   const [people, setPeople] = useState<Person[]>([]);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -729,7 +730,7 @@ export default function PeopleBoard() {
   useEffect(() => { if (user) loadPeople(); }, [user]);
 
   useEffect(() => {
-    if (view !== "neural" || !user || people.length === 0) {
+    if (!user || people.length === 0) {
       setNeuralLogsByContact({});
       return;
     }
@@ -765,7 +766,7 @@ export default function PeopleBoard() {
     return () => {
       cancelled = true;
     };
-  }, [view, user, people]);
+  }, [user, people]);
 
   const loadPeople = async () => {
     setLoading(true);
@@ -887,151 +888,180 @@ export default function PeopleBoard() {
     note: h.note,
   }));
 
-  return (
-    <div
-      className={`mx-auto w-full space-y-5 ${isMobile ? "pb-44" : "pb-32"} max-w-7xl`}
-    >
+  const leftPane = (
+    <div className="flex flex-col gap-4 h-full justify-between">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-neural-label mb-1">{t("people.relationalIntelligence")}</p>
-          <h1 className="text-neural-title text-2xl sm:text-3xl text-foreground">
-            {t("people.boardTitle")}
-          </h1>
-        </div>
+      <div>
+        <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.26em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
+          {t("people.relationalIntelligence")} · CARTOGRAPHIE NEURALE
+        </p>
+        <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
+          {t("people.boardTitle")}
+        </h1>
+        <p className="font-sans text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed">
+          Visualisez en 3D la proximité, la qualité d'échange et l'énergie de votre écosystème relationnel.
+        </p>
+      </div>
 
-        {/* View toggle */}
-        <div className="flex items-center gap-1.5 shrink-0 mt-1">
-          <button
-            onClick={() => setView("card")}
-            className={`p-2.5 rounded-xl border transition-all ${
-              view === "card"
-                ? "border-primary/30 bg-primary/5 text-primary"
-                : "border-border text-muted-foreground"
-            }`}
-          >
-            <LayoutGrid size={16} strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={() => setView("neural")}
-            className={`p-2.5 rounded-xl border transition-all ${
-              view === "neural"
-                ? "border-primary/30 bg-primary/5 text-primary"
-                : "border-border text-muted-foreground"
-            }`}
-          >
-            <Network size={16} strokeWidth={1.5} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("places")}
-            className={`p-2.5 rounded-xl border transition-all ${
-              view === "places"
-                ? "border-primary/30 bg-primary/5 text-primary"
-                : "border-border text-muted-foreground"
-            }`}
-            title={t("people.placesTab")}
-          >
-            <MapPin size={16} strokeWidth={1.5} />
-          </button>
+      {/* Horizon / Period selector */}
+      <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-2">
+        <span className="font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          Horizon
+        </span>
+        <div className="flex overflow-x-auto gap-1" style={{ scrollbarWidth: "none" }}>
+          {(Object.keys(MAP_PERIOD_KEYS) as MapPeriod[]).map((id) => {
+            const k = MAP_PERIOD_KEYS[id];
+            const label = t(k as TranslationKey);
+            const isSelected = mapPeriod === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setMapPeriod(id)}
+                className={cn(
+                  "rounded-lg px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.12em] transition-all",
+                  isSelected
+                    ? "bg-[#c9a24b]/20 text-[#c9a24b] border border-[#c9a24b]/40 shadow-[0_0_10px_rgba(201,162,75,0.15)]"
+                    : "text-muted-foreground hover:text-foreground border border-transparent hover:border-white/10",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Neural Map 3D Stage */}
+      <div className="aegis-dock-tile relative rounded-2xl overflow-hidden flex-1 min-h-[380px] sm:min-h-[440px] flex flex-col justify-center shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
+        <Suspense
+          fallback={
+            <div className="flex w-full h-full flex-1 items-center justify-center min-h-[380px] bg-black/40">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+            </div>
+          }
+        >
+          <NeuralMap
+            people={people}
+            proximityById={localProximities}
+            qualityById={localQualities}
+            onPersonClick={openHistory}
+            showFilters={false}
+            period={mapPeriod}
+            onPeriodChange={setMapPeriod}
+            immersive={false}
+          />
+        </Suspense>
+      </div>
+
+      {/* Action Footer */}
+      <div className="flex items-center gap-2 pt-1">
+        {hasUnsavedChanges && (
+          <motion.button
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            onClick={() => void saveAllChanges()}
+            disabled={saving}
+            className="btn-solaire flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-cinzel uppercase tracking-[0.16em] font-semibold transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer shadow-lg"
+          >
+            {saving ? (
+              <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+            ) : (
+              <Send size={13} />
+            )}
+            {saving ? t("people.saving") : t("people.syncRelations")}
+          </motion.button>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowAddSheet(true)}
+          className={cn(
+            "flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-cinzel uppercase tracking-[0.16em] font-semibold transition-all active:scale-[0.98] cursor-pointer",
+            hasUnsavedChanges
+              ? "w-12 shrink-0 border border-white/10 bg-white/5 text-muted-foreground hover:text-foreground"
+              : "btn-solaire w-full",
+          )}
+        >
+          <Plus size={15} />
+          {!hasUnsavedChanges && <span>{t("people.addContact")}</span>}
+        </button>
+      </div>
+    </div>
+  );
+
+  const rightPane = (
+    <div className="space-y-4">
+      {/* Header with View Toggle Tabs */}
+      <div className="flex flex-col gap-2.5 pb-1 lg:pr-48">
+        <div className="flex items-center gap-2.5">
+          <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Écosystème Relationnel
+          </h2>
+          <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-black/25 text-[#c9a24b] border border-white/5">
+            {people.length} {people.length > 1 ? "relations" : "relation"}
+          </span>
+        </div>
+
+        {/* Segmented View Switcher: Contacts vs Lieux - Left-aligned, 100% clear of logout dock */}
+        <div className="flex items-center gap-2">
+          <div className="inline-flex p-1 rounded-xl bg-black/30 border border-white/10 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setRightTab("contacts")}
+              className={cn(
+                "px-3.5 py-1.5 rounded-lg transition-all text-xs font-cinzel uppercase tracking-wider flex items-center gap-1.5 cursor-pointer",
+                rightTab === "contacts"
+                  ? "bg-[#c9a24b] text-[#0b0b0a] font-semibold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              title="Cartes des relations"
+            >
+              <LayoutGrid size={13} strokeWidth={1.5} />
+              <span className="text-[10.5px]">Contacts ({people.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRightTab("places")}
+              className={cn(
+                "px-3.5 py-1.5 rounded-lg transition-all text-xs font-cinzel uppercase tracking-wider flex items-center gap-1.5 cursor-pointer",
+                rightTab === "places"
+                  ? "bg-[#c9a24b] text-[#0b0b0a] font-semibold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              title={t("people.placesTab")}
+            >
+              <MapPin size={13} strokeWidth={1.5} />
+              <span className="text-[10.5px]">{t("people.placesTab")}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Strip */}
       <StatsStrip people={people} />
 
-      {/* Loading */}
+      {/* Main Content */}
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <div className="space-y-3" aria-busy="true">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="aegis-dock-tile h-24 animate-pulse rounded-2xl" />
+          ))}
         </div>
+      ) : rightTab === "places" ? (
+        <PeoplePlacesPanel contacts={people.map((p) => ({ id: p.id, name: p.name }))} />
       ) : people.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center justify-center gap-4 py-20 rounded-3xl border border-white/[0.05]"
-          style={{ background: "hsl(220 15% 8% / 0.5)" }}
-        >
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style={{ background: "hsl(220 15% 12%)", border: "1px solid hsl(220 15% 18%)" }}
-          >
-            <Users size={24} strokeWidth={1} className="text-white/20" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-white/40 mb-1">{t("common.noContactsHint")}</p>
-            <p className="text-xs text-white/20">{t("people.noContactsCTA")}</p>
-          </div>
+        <div className="aegis-dock-tile rounded-2xl text-center py-12 px-6 space-y-3">
+          <Users size={32} strokeWidth={1} className="mx-auto text-primary/30" />
+          <p className="font-cormorant text-lg text-muted-foreground italic">
+            {t("common.noContactsHint")}
+          </p>
           <button
+            type="button"
             onClick={() => setShowAddSheet(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm transition-all active:scale-95"
-            style={{
-              background: "hsl(176 70% 48% / 0.1)",
-              border: "1px solid hsl(176 70% 48% / 0.25)",
-              color: "hsl(176 70% 48%)",
-            }}
+            className="btn-solaire px-4 py-2 text-xs uppercase font-cinzel"
           >
-            <Plus size={14} />
             {t("people.addContact")}
           </button>
-        </motion.div>
-      ) : view === "places" ? (
-        <PeoplePlacesPanel contacts={people.map((p) => ({ id: p.id, name: p.name }))} />
-      ) : view === "neural" ? (
-        <div className="flex flex-col gap-4 md:min-h-[min(720px,calc(100vh-12rem))] md:flex-row md:items-stretch">
-          <div className="flex flex-1 min-h-[min(520px,70vh)] min-w-0 flex-col md:min-h-[min(640px,calc(100vh-14rem))]">
-            <div
-              className="flex overflow-x-auto border-b border-white/[0.06]"
-              style={{ scrollbarWidth: "none" }}
-            >
-              {(Object.keys(MAP_PERIOD_KEYS) as MapPeriod[]).map((id) => {
-                const k = MAP_PERIOD_KEYS[id];
-                const label = t(k as TranslationKey);
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setMapPeriod(id)}
-                    className={[
-                      "flex-shrink-0 whitespace-nowrap border-r border-white/[0.05] bg-transparent px-3 py-2 font-sans text-[9px] uppercase tracking-[0.14em] transition-colors",
-                      mapPeriod === id
-                        ? "border-b border-white/60 bg-white/[0.03] text-white/90"
-                        : "text-white/20 hover:text-white/45",
-                    ].join(" ")}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            <Suspense
-              fallback={
-                <div
-                  className="flex w-full items-center justify-center rounded-2xl border border-white/[0.06] bg-black"
-                  style={{ minHeight: 480 }}
-                >
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-                </div>
-              }
-            >
-              <NeuralMap
-                people={people}
-                proximityById={localProximities}
-                qualityById={localQualities}
-                onPersonClick={openHistory}
-                showFilters={false}
-                period={mapPeriod}
-                onPeriodChange={setMapPeriod}
-                immersive
-              />
-            </Suspense>
-          </div>
-          <NeuralRelationsSidebar
-            people={people}
-            localQualities={localQualities}
-            localProximities={localProximities}
-            logsByContact={neuralLogsByContact}
-            onOpenHistory={openHistory}
-          />
         </div>
       ) : (
         <div className="space-y-3">
@@ -1045,9 +1075,9 @@ export default function PeopleBoard() {
             return (
               <motion.div
                 key={person.id}
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
+                transition={{ delay: i * 0.03 }}
               >
                 <PersonCard
                   person={person}
@@ -1066,65 +1096,134 @@ export default function PeopleBoard() {
           })}
         </div>
       )}
+    </div>
+  );
 
-      {/* Floating bottom bar — sticky action buttons */}
-      <AnimatePresence>
-        {(hasUnsavedChanges || true) && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className={
-              isMobile
-                ? "fixed left-0 right-0 z-30 flex items-center gap-3 px-4 py-3 bottom-[calc(3.5rem+var(--safe-bottom))]"
-                : "fixed bottom-0 left-0 right-0 z-50 flex items-center gap-3 px-4 py-3 pb-safe"
-            }
-            style={{
-              background: "linear-gradient(to top, hsl(220 15% 6%) 60%, transparent)",
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            {hasUnsavedChanges && (
-              <motion.button
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                onClick={saveAllChanges}
-                disabled={saving}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-60"
-                style={{
-                  background: "linear-gradient(135deg, hsl(176 70% 38%), hsl(176 60% 30%))",
-                  color: "hsl(176 70% 90%)",
-                  boxShadow: "0 8px 32px hsl(176 70% 48% / 0.25)",
-                }}
-              >
-                {saving ? (
-                  <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                ) : (
-                  <Send size={14} />
-                )}
-                {saving ? t("people.saving") : t("people.syncRelations")}
-              </motion.button>
+  return (
+    <MemberPageScaffold width="wide" viewport className="min-w-0 overflow-x-hidden">
+      {/* Mobile-only Segmented Bar (<lg) */}
+      <div className="lg:hidden px-4 pt-3 pb-1">
+        <div className="flex items-center justify-between gap-1 p-1 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md member-top-dock-margin-end">
+          <button
+            type="button"
+            onClick={() => setMobileTab("contacts")}
+            className={cn(
+              "flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-cinzel text-[9.5px] font-semibold uppercase tracking-wider transition-all",
+              mobileTab === "contacts"
+                ? "bg-[#c9a24b] text-[#0b0b0a] shadow-sm font-bold"
+                : "text-muted-foreground hover:text-foreground",
             )}
-            <button
-              onClick={() => setShowAddSheet(true)}
-              className={`flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-medium transition-all active:scale-[0.97] ${
-                hasUnsavedChanges ? "w-14 shrink-0" : "flex-1"
-              }`}
-              style={{
-                background: hasUnsavedChanges
-                  ? "hsl(220 15% 14%)"
-                  : "linear-gradient(135deg, hsl(176 70% 38%), hsl(176 60% 30%))",
-                border: hasUnsavedChanges ? "1px solid hsl(220 15% 20%)" : "none",
-                color: hasUnsavedChanges ? "hsl(220 10% 55%)" : "hsl(176 70% 90%)",
-                boxShadow: hasUnsavedChanges ? "none" : "0 8px 32px hsl(176 70% 48% / 0.25)",
-              }}
-            >
-              <Plus size={16} />
-              {!hasUnsavedChanges && t("people.addContact")}
-            </button>
-          </motion.div>
+          >
+            <LayoutGrid size={12} strokeWidth={1.5} />
+            <span className="truncate">Contacts ({people.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("map")}
+            className={cn(
+              "flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-cinzel text-[9.5px] font-semibold uppercase tracking-wider transition-all",
+              mobileTab === "map"
+                ? "bg-[#c9a24b] text-[#0b0b0a] shadow-sm font-bold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Sparkles size={12} strokeWidth={1.5} />
+            <span>Carte 3D</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("places")}
+            className={cn(
+              "flex-1 min-h-[36px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-cinzel text-[9.5px] font-semibold uppercase tracking-wider transition-all",
+              mobileTab === "places"
+                ? "bg-[#c9a24b] text-[#0b0b0a] shadow-sm font-bold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <MapPin size={12} strokeWidth={1.5} />
+            <span>Lieux</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Split View (>=lg) */}
+      <div className="hidden lg:contents">
+        <MemberSplitLayout
+          left={leftPane}
+          right={rightPane}
+          leftColSpan={6}
+          rightColSpan={6}
+          scrollRight={true}
+          scrollLeft={true}
+        />
+      </div>
+
+      {/* Mobile Views (<lg) */}
+      <div className="lg:hidden px-4 pb-[calc(var(--mobile-dock-padding,5rem)+1.5rem)]">
+        {mobileTab === "map" && <div className="pt-2">{leftPane}</div>}
+        {mobileTab === "contacts" && (
+          <div className="pt-2 space-y-4">
+            <StatsStrip people={people} />
+            {loading ? (
+              <div className="space-y-3" aria-busy="true">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="aegis-dock-tile h-24 animate-pulse rounded-2xl" />
+                ))}
+              </div>
+            ) : people.length === 0 ? (
+              <div className="aegis-dock-tile p-8 text-center rounded-2xl space-y-3">
+                <Users size={32} className="mx-auto text-muted-foreground/40" />
+                <p className="text-sm font-medium text-foreground">{t("people.emptyTitle")}</p>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">{t("people.emptyDesc")}</p>
+                <button
+                  type="button"
+                  onClick={() => setShowAddSheet(true)}
+                  className="btn-solaire px-4 py-2 text-xs uppercase font-cinzel"
+                >
+                  {t("people.addContact")}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {people.map((person, i) => {
+                  const localQ = localQualities[person.id] ?? person.quality;
+                  const localPx = localProximities[person.id] ?? normalizeContactProximity(person.proximity);
+                  const localNote = localNotes[person.id] ?? "";
+                  const changed = localQ !== person.quality;
+                  const proxChanged = localPx !== normalizeContactProximity(person.proximity);
+                  const hasChanges = changed || proxChanged || localNote.trim().length > 0;
+                  return (
+                    <motion.div
+                      key={person.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                    >
+                      <PersonCard
+                        person={person}
+                        localQ={localQ}
+                        localPx={localPx}
+                        localNote={localNote}
+                        hasChanges={hasChanges}
+                        onQualityChange={(v) => handleLocalQualityChange(person.id, v)}
+                        onProximityChange={(v) => handleLocalProximityChange(person.id, v)}
+                        onNoteChange={(v) => handleLocalNoteChange(person.id, v)}
+                        onHistory={() => openHistory(person)}
+                        onDelete={() => handleDelete(person.id)}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
-      </AnimatePresence>
+        {mobileTab === "places" && (
+          <div className="pt-2">
+            <PeoplePlacesPanel contacts={people.map((p) => ({ id: p.id, name: p.name }))} />
+          </div>
+        )}
+      </div>
 
       {/* Add sheet */}
       <AddPersonSheet
@@ -1144,6 +1243,6 @@ export default function PeopleBoard() {
         history={history}
         periodLabels={periodLabels}
       />
-    </div>
+    </MemberPageScaffold>
   );
 }

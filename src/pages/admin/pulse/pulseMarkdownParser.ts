@@ -4,7 +4,13 @@
  */
 
 import type { PulseCardImportPayload } from "./pulseAdminService";
-import { isValidPrinciple, parseArchetypeTargets, VALID_ARCHETYPES } from "./pulsePrinciples";
+import {
+  isValidPrinciple,
+  looksLikePrincipleCode,
+  parseArchetypeTargets,
+  resolvePrincipleCode,
+  VALID_ARCHETYPES,
+} from "./pulsePrinciples";
 
 const ARCHETYPE_SLUGS = new Set<string>(VALID_ARCHETYPES);
 const REQUIRED_LOCALES = ["fr", "en"];
@@ -107,12 +113,31 @@ function consolidatedErrors(source: string, meta: Record<string, unknown> | null
 /** Vrai segment carte (pas un en-tête de lot type pulse_batch_header_bypass). */
 function isPulseCardMeta(meta: Record<string, unknown> | null): boolean {
   if (!meta?.external_key) return false;
-  const principle = typeof meta.principle === "string" ? meta.principle : "";
-  if (!isValidPrinciple(principle)) return false;
+  const principle = resolvePrincipleCode(meta ?? {});
+  if (!principle || (!isValidPrinciple(principle) && !looksLikePrincipleCode(principle))) {
+    return false;
+  }
   const title = meta.title;
   if (!title || typeof title !== "object") return false;
   const t = title as Record<string, string>;
   return Boolean(t.fr && t.en);
+}
+
+/**
+ * `archetype_targets` reste strict ; `targets` (format Jung) ignore les slugs
+ * hors catalogue archétype sans bloquer l'import.
+ */
+function resolveCardArchetypeTargets(meta: Record<string, unknown>): {
+  slugs: string[];
+  invalidStrict: string[];
+} {
+  const fromArchetypes = parseArchetypeTargets(meta.archetype_targets);
+  const fromTargets = parseArchetypeTargets(meta.targets);
+  const slugs: string[] = [];
+  for (const slug of [...fromArchetypes.slugs, ...fromTargets.slugs]) {
+    if (!slugs.includes(slug)) slugs.push(slug);
+  }
+  return { slugs, invalidStrict: fromArchetypes.invalid };
 }
 
 /** En-tête de lot en tête de fichier (métadonnées sans principle/title carte). */
@@ -389,10 +414,13 @@ function validateAndBuild(
   }
 
   const errors: string[] = [];
+  const principleCode = resolvePrincipleCode(meta);
 
-  if (!meta.principle || !isValidPrinciple(meta.principle as string)) {
+  if (!principleCode || (!isValidPrinciple(principleCode) && !looksLikePrincipleCode(principleCode))) {
     errors.push(
-      `${source}: principle invalide (${String(meta.principle)}) — attendu: Kybalion (MENTALISM, …), Myss (REBEL, …), Echols (SHIELDING, …) ou Tolle (PRESENCE, …)`,
+      `${source}: principle/rune invalide (${String(meta.principle)}${meta.rune ? ` / rune=${String(meta.rune)}` : ""}) — ` +
+        `attendu: code rune (ex. MENTALISM, REBEL, DYNAMIQUE_COMPLEXES). ` +
+        `Format Jung: renseigner \`rune\` (code DB) ; \`principle\` peut être un axe thématique.`,
     );
   }
 
@@ -427,12 +455,12 @@ function validateAndBuild(
     }
   }
 
-  const { slugs: archetypes, invalid: invalidArchetypes } = parseArchetypeTargets(meta.archetype_targets);
+  const { slugs: archetypes, invalidStrict } = resolveCardArchetypeTargets(meta);
   const slug = slugFromFileName(source);
   if (archetypes.length === 0 && ARCHETYPE_SLUGS.has(slug)) {
     archetypes.push(slug);
   }
-  for (const a of invalidArchetypes) {
+  for (const a of invalidStrict) {
     errors.push(`${source}: archetype invalide '${a}' (utiliser minuscules : sovereign, creator, …)`);
   }
 
@@ -454,10 +482,16 @@ function validateAndBuild(
 
   if (errors.length > 0) return { card: null, errors };
 
+  const glyph =
+    typeof meta.glyph === "string" && meta.glyph.trim()
+      ? meta.glyph.trim().toUpperCase()
+      : undefined;
+
   return {
     card: {
       external_key: meta.external_key as string,
-      principle: meta.principle as string,
+      principle: principleCode,
+      glyph,
       archetype_targets: archetypes,
       target_user_ids: targetUserIds,
       content_type: contentType,

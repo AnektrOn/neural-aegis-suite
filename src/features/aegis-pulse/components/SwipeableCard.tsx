@@ -86,7 +86,7 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
   }, [isTop, triggerSwipe]);
 
   let swipeTransform = `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0) rotate(${dragOffset.x * ROTATION_MULTIPLIER}deg)`;
-  let transition = isDragging ? "none" : "transform 0.3s ease-out";
+  const transition = isDragging ? "none" : "transform 0.3s ease-out";
 
   if (exitDirection === "right") {
     swipeTransform = `translate3d(150vw, ${dragOffset.y}px, 0) rotate(30deg)`;
@@ -133,7 +133,7 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
         onClick={handleFlip}
       >
         <div
-          className="w-full h-full transition-transform duration-500 rounded-[18px] relative"
+          className="w-full h-full transition-transform duration-500 rounded-[22px] relative"
           style={{
             transformStyle: "preserve-3d",
             transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
@@ -141,10 +141,9 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
         >
           {/* ── RECTO ── */}
           <div
-            className="absolute inset-0 w-full h-full rounded-[18px] overflow-hidden flex flex-col bg-bg-surface border border-border-subtle select-none"
+            className="absolute inset-0 w-full h-full rounded-[22px] overflow-hidden flex flex-col aegis-dock-tile border border-border/25 select-none shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
             style={{
               backfaceVisibility: "hidden",
-              boxShadow: `0 4px 28px hsl(0 0% 0% / 0.32), 0 0 24px hsla(${accent} / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.04)`,
             }}
           >
             {isTop && (
@@ -215,7 +214,7 @@ export function SwipeableCard({ card, onSwipe, isTop }: SwipeableCardProps) {
 
           {/* ── VERSO ── */}
           <div
-            className="absolute inset-0 w-full h-full rounded-[18px] overflow-hidden flex flex-col bg-bg-surface border border-border-subtle select-none"
+            className="absolute inset-0 w-full h-full rounded-[22px] overflow-hidden flex flex-col aegis-dock-tile border border-border/25 select-none shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
             style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           >
             <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 flex justify-between items-start border-b border-border-subtle bg-bg-base/50">

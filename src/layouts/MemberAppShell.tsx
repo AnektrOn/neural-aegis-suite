@@ -60,7 +60,13 @@ export function MemberAppShell({
           "px-0",
         )}
         style={{
-          paddingTop: mobile ? "var(--safe-top)" : online ? 0 : undefined,
+          paddingTop: mobile
+            ? online
+              ? "var(--mobile-main-padding-top)"
+              : "var(--mobile-main-padding-top-offline)"
+            : online
+              ? 0
+              : undefined,
           paddingBottom: "var(--mobile-dock-padding)",
         }}
         onTouchStart={onTouchStart}
