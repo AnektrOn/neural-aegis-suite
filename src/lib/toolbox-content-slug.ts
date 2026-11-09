@@ -1,9 +1,12 @@
+import { BUILTIN_TOOLBOX_SLUG_ALIASES } from "@/lib/toolbox-content-type-definitions";
+
 /** Resolve legacy / alias content_type values to a native widget slug. */
 export function resolveToolboxContentSlug(
   contentType: string,
   widgetConfig?: Record<string, unknown> | null,
 ): string {
-  const slug = (contentType || "").trim().toLowerCase();
+  const rawSlug = (contentType || "").trim().toLowerCase();
+  const slug = BUILTIN_TOOLBOX_SLUG_ALIASES[rawSlug] ?? rawSlug;
   const cfg = widgetConfig && typeof widgetConfig === "object" ? widgetConfig : {};
 
   if (slug === "meditation") {
