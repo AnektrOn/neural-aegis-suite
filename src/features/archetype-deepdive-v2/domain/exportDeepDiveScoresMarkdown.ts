@@ -116,7 +116,7 @@ export function buildDeepDiveScoresMarkdown(opts: {
     lines.push("");
     lines.push(`#### ${L("breakdown")}`);
     lines.push("");
-    const entries = Object.entries(h.archetypeBreakdown as Record<string, { light: number; shadow: number }>).sort(
+    const entries = (Object.entries(h.archetypeBreakdown) as [string, { light: number; shadow: number }][]).sort(
       (a, b) => b[1].light + b[1].shadow - (a[1].light + a[1].shadow),
     );
     if (entries.length === 0) {

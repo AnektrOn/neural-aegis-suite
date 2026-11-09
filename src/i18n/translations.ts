@@ -2047,6 +2047,8 @@ export const translations = {
   "people.period30d": { fr: "30 jours", en: "30 days" },
   "people.period90d": { fr: "90 jours", en: "90 days" },
   "people.periodQuarter": { fr: "Trimestre", en: "Quarter" },
+  "people.emptyTitle": { fr: "Aucun contact pour le moment", en: "No contacts yet" },
+  "people.emptyDesc": { fr: "Ajoutez votre premier contact pour commencer à cartographier votre cercle relationnel.", en: "Add your first contact to start mapping your relationship circle." },
   "people.periodSemester": { fr: "Semestre", en: "Semester" },
   "people.periodYear": { fr: "Année", en: "Year" },
   "people.contactAdded": { fr: "Contact ajouté", en: "Contact added" },

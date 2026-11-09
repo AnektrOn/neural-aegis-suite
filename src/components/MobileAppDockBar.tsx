@@ -63,6 +63,7 @@ export function MobileAppDockBar({
       if (dockPaths.has(def.to) || overflowPaths.has(def.to)) continue;
       overflowPaths.add(def.to);
       overflowItems.push({
+        id,
         to: def.to,
         Icon: def.icon,
         label: t(def.labelKey),
@@ -74,6 +75,7 @@ export function MobileAppDockBar({
       ? [
           ...overflowItems,
           {
+            id: "admin",
             to: "/admin",
             Icon: Shield,
             label: t("nav.admin"),

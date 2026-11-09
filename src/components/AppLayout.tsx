@@ -176,6 +176,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useSessionTracking();
   useHesitationTracking();
   const { online } = useNetwork();
+  /** Legacy chrome only (unreachable while MEMBER_SHELL_V2 is true). */
+  const immersiveDashboard = false;
 
   const openCommandPalette = useCallback(() => {
     setCommandOpen(true);

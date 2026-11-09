@@ -69,7 +69,7 @@ export default function InstallApp() {
                 : "border-white/5 bg-black/25 text-muted-foreground hover:border-white/15 hover:text-foreground",
             )}
           >
-            {item.icon && <item.icon size={12} />}
+            {"icon" in item && item.icon && <item.icon size={12} />}
             <span>{item.label}</span>
           </button>
         ))}
