@@ -48,7 +48,7 @@
         "textAlign": "right",
         "typography": {
           "fontPreset": "quattrocento",
-          "fontSizePx": 44,
+          "fontSizePx": 34,
           "fontWeight": 600,
           "lineHeight": 1.2,
           "letterSpacingEm": 0.09,
@@ -258,7 +258,7 @@
         "textAlign": "left",
         "typography": {
           "fontPreset": "barlow",
-          "fontSizePx": 28,
+          "fontSizePx": 22,
           "fontWeight": 600,
           "lineHeight": 1.15,
           "letterSpacingEm": 0,
@@ -468,7 +468,7 @@
         "textAlign": "right",
         "typography": {
           "fontPreset": "barlow",
-          "fontSizePx": 28,
+          "fontSizePx": 22,
           "fontWeight": 600,
           "lineHeight": 1.15,
           "letterSpacingEm": 0,
@@ -679,7 +679,7 @@
         "textAlign": "right",
         "typography": {
           "fontPreset": "barlow",
-          "fontSizePx": 28,
+          "fontSizePx": 22,
           "fontWeight": 600,
           "lineHeight": 1.15,
           "letterSpacingEm": 0,
@@ -890,7 +890,7 @@
         "textAlign": "left",
         "typography": {
           "fontPreset": "barlow",
-          "fontSizePx": 28,
+          "fontSizePx": 22,
           "fontWeight": 600,
           "lineHeight": 1.15,
           "letterSpacingEm": 0,
