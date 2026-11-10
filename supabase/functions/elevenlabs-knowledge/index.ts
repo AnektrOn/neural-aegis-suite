@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { collectDriveTree, ensureDriveFolder, withDriveRootFolder } from "./drive-sync.ts";
+import logosTemplate from "./logos-workflow.json" with { type: "json" };
 import {
   createVoiceConversationToken,
   mapVoiceSessionError,
@@ -354,6 +355,38 @@ Deno.serve(async (req) => {
     if (u.user.is_anonymous || rolesError || !roles?.length) return json({ error: "Forbidden" }, 403);
 
     switch (action) {
+      case "install_logos_workflow": {
+        if (!userId) return json({ error: "user_id requis" }, 400);
+        const { data: p, error } = await admin.from("profiles")
+          .select("elevenlabs_agent_id, display_name").eq("id", userId).maybeSingle();
+        if (error) throw error;
+        if (!p?.elevenlabs_agent_id) return json({ error: "Cet utilisateur n'a pas d'agent ElevenLabs" }, 400);
+        const agentId = p.elevenlabs_agent_id;
+        const before = await elJson(`/convai/agents/${agentId}`);
+        await elJson(`/convai/agents/${agentId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workflow: logosTemplate.workflow,
+            conversation_config: { agent: {
+              first_message: logosTemplate.first_message,
+              dynamic_variables: { dynamic_variable_placeholders: {
+                ...before?.conversation_config?.agent?.dynamic_variables?.dynamic_variable_placeholders,
+                first_name: String(p.display_name || "").trim().split(/\s+/)[0] || "toi",
+              } },
+            } },
+          }),
+        });
+        const after = await elJson(`/convai/agents/${agentId}`);
+        const expectedNodes = Object.keys(logosTemplate.workflow.nodes).sort();
+        const actualNodes = Object.keys(after?.workflow?.nodes ?? {}).sort();
+        if (JSON.stringify(expectedNodes) !== JSON.stringify(actualNodes) ||
+            JSON.stringify(Object.keys(logosTemplate.workflow.edges).sort()) !==
+            JSON.stringify(Object.keys(after?.workflow?.edges ?? {}).sort())) {
+          throw new Error("ElevenLabs : le workflow n'a pas été confirmé après installation.");
+        }
+        return json({ ok: true, agent_id: agentId, nodes: actualNodes, sources_pending: true });
+      }
       case "create_agent": {
         if (!userId) return json({ error: "user_id requis" }, 400);
         const { data: p } = await admin.from("profiles").select("display_name, elevenlabs_agent_id").eq("id", userId).maybeSingle();

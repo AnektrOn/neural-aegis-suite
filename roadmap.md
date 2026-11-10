@@ -11,6 +11,7 @@
 - [x] Repair pre-existing preview compile errors; eight menu regressions and three live release checks pass, installation page renders, build OK.
 
 ## ElevenLabs Drive sync
+- [x] Install and read back the personal LOGOS workflow without placeholder document IDs; nine nodes, eleven edges and seven empty KB overrides confirmed through ElevenLabs; two tests pass.
 - [x] Attach the personal Drive root folder to the agent, including resumed batches; nine tests pass and a live authenticated batch confirms the folder locator by reading the agent back from ElevenLabs.
 - [x] Preserve real per-user ElevenLabs folders and reclassify unchanged documents; seven tests pass, function deployed, ten folders and one unchanged document verified in ElevenLabs, repeated batch reuses folders.
 - [x] Include Markdown from nested folders using the linked Drive connection and report empty syncs as errors.

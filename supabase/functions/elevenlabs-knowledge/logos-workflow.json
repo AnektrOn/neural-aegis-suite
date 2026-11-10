@@ -1,0 +1,305 @@
+{
+  "first_message": "LOGOS en ligne. Qu'est-ce que je traite pour toi, {{first_name}} ?",
+  "workflow": {
+    "prevent_subagent_loops": false,
+    "nodes": {
+      "start_node": {
+        "type": "start",
+        "position": {
+          "x": 0,
+          "y": 200
+        },
+        "edge_order": [
+          "start_node__greeting"
+        ]
+      },
+      "triage": {
+        "type": "override_agent",
+        "label": "Triage",
+        "entry_behavior": "wait_for_user",
+        "additional_prompt": "RÔLE : routage. Tu identifies en une phrase ce que {{first_name}} veut traiter, sans analyser ni commenter. Si la demande est ambiguë, pose UNE seule question de précision, courte. Requêtes possibles : exécuter un protocole ou une pratique, faire le relevé du jour (humeur, sommeil, stress), analyser une situation, une relation, un rêve ou une décision, ou terminer. Tu n'as accès à aucune base de connaissances dans ce nœud : ne cite aucun fait sur {{first_name}}. Réponses de 1 à 2 phrases, sans liste ni balise lue à voix haute.",
+        "conversation_config": {
+          "agent": {
+            "prompt": {
+              "knowledge_base": []
+            }
+          }
+        },
+        "position": {
+          "x": 600,
+          "y": 200
+        },
+        "edge_order": [
+          "triage__guide_somatique",
+          "triage__checkin",
+          "triage__analyse",
+          "triage__end_node"
+        ]
+      },
+      "guide_somatique": {
+        "type": "override_agent",
+        "label": "Protocoles",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "RÔLE : exécution de protocoles. Tu n'inventes AUCUN exercice, rituel, protocole ni astuce : tu puises uniquement dans la base de connaissances 04_GRIMOIRE_PRATIQUE_VOCAL. Annonce le titre exact du protocole, sa durée estimée et son intention, puis déroule les consignes officielles une étape à la fois, en laissant {{first_name}} suivre. Pour une Pulse, fais répéter les affirmations mot pour mot. Si rien ne correspond dans la base, dis-le et propose le protocole le plus proche. Phrases courtes, rythme posé, aucune liste à puces ni balise lue à voix haute.",
+        "conversation_config": {
+          "agent": {
+            "prompt": {
+              "knowledge_base": []
+            }
+          }
+        },
+        "position": {
+          "x": 950,
+          "y": 100
+        },
+        "edge_order": [
+          "triage__guide_somatique"
+        ]
+      },
+      "checkin": {
+        "type": "override_agent",
+        "label": "Relevé du jour",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "RÔLE : relevé du jour. Collecte l'état actuel de {{first_name}} (humeur, sommeil, stress), une question à la fois. Appuie-toi sur 01_MEMOIRE_VIVE_RAW uniquement pour rapprocher le relevé de tendances réelles (moyennes, derniers relevés), jamais pour inventer. Restitue sous forme de constat factuel et de variation par rapport aux tendances, puis propose UNE action concrète ou un protocole du grimoire si {{first_name}} le demande. 2 à 4 phrases par tour.",
+        "conversation_config": {
+          "agent": {
+            "prompt": {
+              "knowledge_base": []
+            }
+          }
+        },
+        "position": {
+          "x": 950,
+          "y": 300
+        },
+        "edge_order": [
+          "triage__checkin"
+        ]
+      },
+      "analyse": {
+        "type": "override_agent",
+        "label": "Analyse",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "RÔLE : analyse de situation. Tu fais apparaître les schémas, les liens et les angles morts dans ce que {{first_name}} décrit, en croisant 01_MEMOIRE_VIVE_RAW (faits déclarés) et 02_SYNTHESES_ET_AXIOMES_CLINIQUES (axiomes). Règle épistémique : les données sont un instantané déclaratif et incomplet. Tu n'inventes jamais de souvenirs, de faits biographiques ni de causes absents de la base. Toute interprétation est présentée comme une hypothèse à valider par {{first_name}}, avec la source utilisée. Si {{first_name}} demande explicitement la lecture d'un auteur (Jung, Myss, Blavatsky), laisse le nœud correspondant prendre le relais ; sinon réponds toi-même. 2 à 4 phrases par tour.",
+        "conversation_config": {
+          "agent": {
+            "prompt": {
+              "knowledge_base": []
+            }
+          }
+        },
+        "position": {
+          "x": 950,
+          "y": 500
+        },
+        "edge_order": [
+          "analyse__jung",
+          "analyse__myss",
+          "analyse__blavatsky",
+          "triage__analyse"
+        ]
+      },
+      "jung": {
+        "type": "override_agent",
+        "label": "Lecture Jung",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "RÔLE : grille de lecture jungienne (L'Homme à la découverte de son âme) appliquée aux données de {{first_name}}. Cadre : fonction transcendante, complexes autonomes, Ombre, projection, Imagination Active, rêves (question téléologique : vers quoi tend ce symbole ?). Applique la grille aux faits présents dans la base, sans extrapoler. Toute lecture est une hypothèse, jamais un fait biographique : n'affirme rien qui ne figure pas dans la base. Ton précis et sobre, 2 à 4 phrases par tour.",
+        "conversation_config": {
+          "agent": {
+            "prompt": {
+              "knowledge_base": []
+            }
+          }
+        },
+        "position": {
+          "x": 1300,
+          "y": 400
+        },
+        "edge_order": [
+          "analyse__jung",
+          "jung__triage"
+        ]
+      },
+      "myss": {
+        "type": "override_agent",
+        "label": "Lecture Myss",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "RÔLE : grille de lecture de Caroline Myss (Archétypes et Contrats Sacrés) appliquée aux données de {{first_name}}. Cadre : Survival Family (Saboteur, Victime, Prostitué·e, Enfant), Tétrade supérieure (Souverain, Sage, Guérisseur, Mystique), maisons, Point Zéro, règle des 70 %. Cite les scores et les maisons réellement présents dans la base, avec leur modèle et leur date. Toute lecture est une hypothèse, rien d'inventé sur la biographie. Ton précis et sobre, 2 à 4 phrases par tour.",
+        "conversation_config": {
+          "agent": {
+            "prompt": {
+              "knowledge_base": []
+            }
+          }
+        },
+        "position": {
+          "x": 1300,
+          "y": 550
+        },
+        "edge_order": [
+          "analyse__myss",
+          "myss__triage"
+        ]
+      },
+      "blavatsky": {
+        "type": "override_agent",
+        "label": "Lecture Blavatsky",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "RÔLE : grille de lecture de la Doctrine Secrète d'Helena Blavatsky appliquée aux données de {{first_name}}. Cadre exclusif : cosmogenèse, septénaire (Atma, Buddhi, Manas, Kama-Manas, Prana, Linga Sharira, Sthula Sharira), Antahkarana, Manvantara et Pralaya, Sutratma, karma et dharma. Dans CE nœud uniquement, n'emploie pas le jargon de la psychologie moderne (pas de « archétype », « ombre », « complexe ») ni de références à d'autres auteurs. Toute lecture est une hypothèse, rien d'inventé sur la biographie de {{first_name}}. Ton sobre et précis, 2 à 4 phrases par tour.",
+        "conversation_config": {
+          "agent": {
+            "prompt": {
+              "knowledge_base": []
+            }
+          }
+        },
+        "position": {
+          "x": 1300,
+          "y": 700
+        },
+        "edge_order": [
+          "analyse__blavatsky",
+          "blavatsky__triage"
+        ]
+      },
+      "end_node": {
+        "type": "end",
+        "outcome": "success",
+        "position": {
+          "x": 1300,
+          "y": 250
+        }
+      }
+    },
+    "edges": {
+      "start_node__greeting": {
+        "source": "start_node",
+        "target": "triage",
+        "forward_condition": {
+          "type": "unconditional",
+          "label": "Démarrage"
+        }
+      },
+      "triage__guide_somatique": {
+        "source": "triage",
+        "target": "guide_somatique",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Protocole",
+          "condition": "L'utilisateur demande un exercice, un protocole, une pratique somatique, une respiration, un rituel, une pulse, ou veut être guidé en direct."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Protocole terminé",
+          "condition": "Le protocole est terminé, ou l'utilisateur change de sujet ou veut autre chose."
+        }
+      },
+      "triage__checkin": {
+        "source": "triage",
+        "target": "checkin",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Relevé du jour",
+          "condition": "L'utilisateur veut faire un relevé de sa journée, son humeur, son sommeil, son stress ou son niveau d'énergie."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Relevé terminé",
+          "condition": "Le relevé est terminé, ou l'utilisateur change de sujet ou veut autre chose."
+        }
+      },
+      "triage__analyse": {
+        "source": "triage",
+        "target": "analyse",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Analyser",
+          "condition": "L'utilisateur veut analyser une situation, une relation, un schéma récurrent, un rêve, ou prendre une décision."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Analyse terminée",
+          "condition": "L'analyse est terminée, ou l'utilisateur change de sujet ou veut autre chose."
+        }
+      },
+      "triage__end_node": {
+        "source": "triage",
+        "target": "end_node",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Fin",
+          "condition": "L'utilisateur dit explicitement qu'il veut terminer la conversation ou dit au revoir."
+        }
+      },
+      "analyse__jung": {
+        "source": "analyse",
+        "target": "jung",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Grille Jung",
+          "condition": "L'utilisateur demande explicitement la lecture ou la grille de Jung (inconscient, complexes, ombre, rêves)."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Autre grille",
+          "condition": "L'utilisateur veut un autre auteur, une autre lecture, ou revenir à l'analyse générale."
+        }
+      },
+      "analyse__myss": {
+        "source": "analyse",
+        "target": "myss",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Grille Myss",
+          "condition": "L'utilisateur demande explicitement la lecture ou la grille de Caroline Myss (archétypes, contrats sacrés, survival family)."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Autre grille",
+          "condition": "L'utilisateur veut un autre auteur, une autre lecture, ou revenir à l'analyse générale."
+        }
+      },
+      "analyse__blavatsky": {
+        "source": "analyse",
+        "target": "blavatsky",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Grille Blavatsky",
+          "condition": "L'utilisateur demande explicitement la lecture ou la grille de Blavatsky (doctrine secrète, cosmogenèse, septénaire, karma)."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Autre grille",
+          "condition": "L'utilisateur veut un autre auteur, une autre lecture, ou revenir à l'analyse générale."
+        }
+      },
+      "jung__triage": {
+        "source": "jung",
+        "target": "triage",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Autre besoin",
+          "condition": "La lecture est terminée, ou l'utilisateur veut passer à un autre type de besoin (protocole, relevé du jour, fin)."
+        }
+      },
+      "myss__triage": {
+        "source": "myss",
+        "target": "triage",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Autre besoin",
+          "condition": "La lecture est terminée, ou l'utilisateur veut passer à un autre type de besoin (protocole, relevé du jour, fin)."
+        }
+      },
+      "blavatsky__triage": {
+        "source": "blavatsky",
+        "target": "triage",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Autre besoin",
+          "condition": "La lecture est terminée, ou l'utilisateur veut passer à un autre type de besoin (protocole, relevé du jour, fin)."
+        }
+      }
+    }
+  }
+}

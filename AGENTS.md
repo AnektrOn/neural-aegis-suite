@@ -5,6 +5,7 @@
 - Members download published APKs through release signed URLs; direct app-releases storage access is reserved for non-guest platform admins to avoid exposing unrelated files.
 
 - ElevenLabs knowledge calls go only through the `elevenlabs-knowledge` edge function (admin-checked); per-user agent IDs live on `profiles`, the main agent ID in `elevenlabs_settings` — keeps the API key server-side and each user's documents attached only to their own agent.
+- Install personal workflows through the same admin guard with profile-resolved agent IDs; empty node KB overrides allow installation before sources exist without inheriting unrelated documents.
 - ElevenLabs Drive sync uses the linked Google Drive gateway connection and traverses only descendants of the selected profile's folder; empty Markdown syncs fail explicitly to avoid false successes.
 - Personal Drive sync runs in short client-driven batches and enables agent RAG when attaching Drive documents, avoiding HTTP timeouts and full-prompt capacity limits; indexing-not-ready failures retry briefly.
 - Drive folder mappings are scoped by user, agent and Drive root; sync folder units before document units and move unchanged documents into their mapped folders to preserve hierarchy without sharing knowledge across users.
