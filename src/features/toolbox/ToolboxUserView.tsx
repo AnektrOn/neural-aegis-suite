@@ -51,7 +51,7 @@ import {
   type ToolboxExocortexOrgan,
 } from "@/lib/toolbox-content-type-definitions";
 import { extractWhyThisForYou } from "@/features/toolbox/ui/ToolboxPrescriptionBanner";
-import { resolveToolboxAccent } from "@/features/toolbox/ui/resolveToolboxAccent";
+import { resolveToolboxAccent } from "@/features/toolbox/ui/toolboxPhaseColors";
 
 interface ToolboxItem {
   id: string;
