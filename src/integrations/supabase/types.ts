@@ -3793,10 +3793,17 @@ export type Database = {
           content_md: string
           created_at: string
           glyph: string | null
+          has_safeguard: boolean | null
           id: string
           imported_by: string | null
+          level: number | null
+          level_code: string | null
+          metadata: Json | null
           orientation: string | null
+          pack_files: Json | null
+          prism_code: string | null
           read_at: string | null
+          scope: string | null
           slug: string
           tags: string[]
           tier: string | null
@@ -3808,10 +3815,17 @@ export type Database = {
           content_md: string
           created_at?: string
           glyph?: string | null
+          has_safeguard?: boolean | null
           id?: string
           imported_by?: string | null
+          level?: number | null
+          level_code?: string | null
+          metadata?: Json | null
           orientation?: string | null
+          pack_files?: Json | null
+          prism_code?: string | null
           read_at?: string | null
+          scope?: string | null
           slug: string
           tags?: string[]
           tier?: string | null
@@ -3823,10 +3837,17 @@ export type Database = {
           content_md?: string
           created_at?: string
           glyph?: string | null
+          has_safeguard?: boolean | null
           id?: string
           imported_by?: string | null
+          level?: number | null
+          level_code?: string | null
+          metadata?: Json | null
           orientation?: string | null
+          pack_files?: Json | null
+          prism_code?: string | null
           read_at?: string | null
+          scope?: string | null
           slug?: string
           tags?: string[]
           tier?: string | null
