@@ -245,10 +245,12 @@ Deno.serve(async (req) => {
         for (const [table, rows] of Object.entries(data)) {
           if (!rows.length) continue;
           const category = categoryForTable(table);
+          // Large accounts can be exported one category per call to stay under the request time limit.
+          if (Array.isArray(body.categories) && !body.categories.includes(category)) continue;
           docs.push([category, `${today}_${table}.md`, `# ${category} — ${table} — ${clientName}\n\nExporté le ${new Date().toISOString()}\n\nUser ID: ${p.id}\n\n## ${table} (${rows.length})\n\n` + "```json\n" + JSON.stringify(rows, null, 2) + "\n```\n"]);
         }
         // Maisons answers are only interpretable with the scoring grid alongside them.
-        if (data.houses72_responses?.length) docs.push(["Quizz", `${today}_houses72_bareme.md`, HOUSES72_BAREME_MD]);
+        if (data.houses72_responses?.length && (!Array.isArray(body.categories) || body.categories.includes("Quizz"))) docs.push(["Quizz", `${today}_houses72_bareme.md`, HOUSES72_BAREME_MD]);
         for (const [category, filename, md] of docs) {
           const catId = await findOrCreateFolder(admin, clientId, category);
           const dateId = await findOrCreateFolder(admin, catId, today);
