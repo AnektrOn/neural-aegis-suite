@@ -252,6 +252,11 @@ Deno.serve(async (req) => {
         for (const [category, filename, md] of docs) {
           const catId = await findOrCreateFolder(admin, clientId, category);
           const dateId = await findOrCreateFolder(admin, catId, today);
+          // Re-running the export replaces same-day files instead of duplicating them.
+          const q = `name='${filename.replace(/'/g, "\\'")}' and '${dateId}' in parents and trashed=false`;
+          const existing = await fetch(`${GATEWAY}/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true`, { headers: gwHeaders() });
+          if (!existing.ok) throw new Error(`Drive list failed ${existing.status}: ${await existing.text()}`);
+          for (const f of (await existing.json()).files ?? []) await trashDriveFolder(f.id);
           const fileId = await uploadMarkdown(dateId, filename, md);
           const verify = await fetch(`${GATEWAY}/drive/v3/files/${fileId}?fields=id,parents,size&supportsAllDrives=true`, { headers: gwHeaders() });
           if (!verify.ok) throw new Error(`Drive readback failed ${verify.status}: ${await verify.text()}`);
