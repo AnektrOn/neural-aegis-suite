@@ -313,7 +313,6 @@ export default function AuthPage() {
         <ThemeToggle collapsed />
       </div>
 
-      <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary/6 blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full bg-neural-accent/4 blur-3xl pointer-events-none" />
 
