@@ -9,6 +9,7 @@ export const BODY_MOVE_NEBULA_SLUGS = new Set([
   "cold_exposure_prep",
   "posture_reset",
   "energy_activation",
+  "micro_practice",
 ]);
 
 export const BODY_NEBULA_SLUGS = new Set([

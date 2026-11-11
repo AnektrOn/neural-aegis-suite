@@ -1,24 +1,27 @@
 import type { ParsedReportFrontmatter } from "./types";
 
-/** Very small YAML frontmatter parser (strings, numbers, and simple `[a, b]` arrays). */
-export function parseFrontmatter(md: string): {
-  frontmatter: ParsedReportFrontmatter;
-  body: string;
-} {
-  const m = md.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
-  if (!m) return { frontmatter: {}, body: md };
-  const [, raw, body] = m;
+/** Parses key-value YAML strings (strings, numbers, booleans, and simple `[a, b]` arrays). */
+function parseYamlKeyValues(raw: string): ParsedReportFrontmatter {
   const fm: Record<string, unknown> = {};
   for (const line of raw.split("\n")) {
-    const kv = line.match(/^([\w-]+)\s*:\s*(.*)$/);
+    const trimmed = line.trim();
+    if (!trimmed || (trimmed.startsWith("#") && !trimmed.startsWith("# "))) continue;
+    const kv = trimmed.match(/^([a-zA-Z0-9_-]+)\s*:\s*(.*)$/);
     if (!kv) continue;
     const key = kv[1];
     let value: unknown = kv[2].trim();
     if (typeof value === "string") {
       // strip surrounding quotes
       value = value.replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
-      // array literal
-      if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
+      // numeric check
+      if (/^-?\d+(\.\d+)?$/.test(value)) {
+        value = Number(value);
+      } else if (value.toLowerCase() === "true") {
+        value = true;
+      } else if (value.toLowerCase() === "false") {
+        value = false;
+      } else if (value.startsWith("[") && value.endsWith("]")) {
+        // array literal
         value = value
           .slice(1, -1)
           .split(",")
@@ -28,7 +31,112 @@ export function parseFrontmatter(md: string): {
     }
     fm[key] = value;
   }
-  return { frontmatter: fm as ParsedReportFrontmatter, body };
+  return fm as ParsedReportFrontmatter;
+}
+
+/** 
+ * YAML frontmatter parser supporting:
+ * 1. Standard `---` fences
+ * 2. ````yaml ... ```` fences
+ * 3. Unfenced key-value pairs at the beginning of the file (e.g. `user: "note" \n nom_affiche: "Note" ...`)
+ */
+export function parseFrontmatter(md: string): {
+  frontmatter: ParsedReportFrontmatter;
+  body: string;
+} {
+  if (!md) return { frontmatter: {}, body: "" };
+  const cleanMd = md.replace(/^\uFEFF/, "");
+
+  // 1. Standard --- fence
+  const mFenced = cleanMd.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
+  if (mFenced) {
+    return {
+      frontmatter: parseYamlKeyValues(mFenced[1]),
+      body: mFenced[2],
+    };
+  }
+
+  // 2. Code-fenced ```yaml ... ```
+  const mCode = cleanMd.match(/^```(?:yaml|yml)?\s*\n([\s\S]*?)\n```\s*\n?([\s\S]*)$/i);
+  if (mCode) {
+    return {
+      frontmatter: parseYamlKeyValues(mCode[1]),
+      body: mCode[2],
+    };
+  }
+
+  // 3. Unfenced key-value pairs at the beginning of the file
+  const lines = cleanMd.split("\n");
+  const kvLines: string[] = [];
+  let bodyStartIndex = 0;
+  let inKv = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    if (!inKv && trimmed === "") {
+      bodyStartIndex = i + 1;
+      continue;
+    }
+
+    // Comment before or within KV block
+    if (trimmed.startsWith("#") && !trimmed.startsWith("# ") && !trimmed.startsWith("##")) {
+      kvLines.push(trimmed);
+      continue;
+    }
+
+    // Markdown heading or horizontal rule ends frontmatter
+    if (/^(?:#{1,6}\s+|---|\*\*\*|___)/.test(trimmed)) {
+      bodyStartIndex = i;
+      break;
+    }
+
+    // Match key: value
+    const kvMatch = trimmed.match(/^([a-zA-Z0-9_-]+)\s*:\s*(.*)$/);
+    if (kvMatch) {
+      const key = kvMatch[1];
+      // Avoid false positive on narrative sentences
+      if (key.length <= 40) {
+        inKv = true;
+        kvLines.push(trimmed);
+        bodyStartIndex = i + 1;
+        continue;
+      }
+    }
+
+    if (inKv && trimmed === "") {
+      // Look ahead to see if more KV follows
+      let nextIsKv = false;
+      for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+        const next = lines[j].trim();
+        if (!next) continue;
+        if (/^([a-zA-Z0-9_-]+)\s*:\s*(.*)$/.test(next) && !/^(?:#{1,6}\s+)/.test(next)) {
+          nextIsKv = true;
+        }
+        break;
+      }
+      if (nextIsKv) {
+        continue;
+      }
+    }
+
+    // Non-KV line encountered: stop
+    if (inKv) {
+      bodyStartIndex = i;
+    }
+    break;
+  }
+
+  if (inKv && kvLines.length >= 2) {
+    const body = lines.slice(bodyStartIndex).join("\n").trim();
+    return {
+      frontmatter: parseYamlKeyValues(kvLines.join("\n")),
+      body,
+    };
+  }
+
+  return { frontmatter: {}, body: cleanMd };
 }
 
 /**
@@ -139,13 +247,6 @@ export function filterMarkdownByLocale(md: string, locale: "fr" | "en"): string 
       continue;
     }
 
-
-    if (raw.trim() === "") {
-      out.push(raw);
-      i++;
-      continue;
-    }
-
     if (mode && mode !== locale) {
       i++;
       continue;
@@ -177,6 +278,51 @@ export function filterMarkdownByLocale(md: string, locale: "fr" | "en"): string 
   }
 
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+export interface BilingualContent {
+  fr: string;
+  en: string;
+  hasBilingual: boolean;
+  hasFr: boolean;
+  hasEn: boolean;
+}
+
+/**
+ * Extracts and separates bilingual content from markdown text.
+ * Used for 01_RESUME.md, 02_BULLET_POINTS.md, 04_PROMPT_AI.md and companion notes.
+ */
+export function extractBilingualContent(md: string): BilingualContent {
+  if (!md || !md.trim()) {
+    return { fr: "", en: "", hasBilingual: false, hasFr: false, hasEn: false };
+  }
+
+  const { body } = parseFrontmatter(md);
+  const text = (body || md).trim();
+
+  const hasFrMarker = /🇫🇷|\(FR\)|\bFR\s*[:\/\)]|Français|Francais/i.test(text);
+  const hasEnMarker = /🇬🇧|🇺🇸|\(EN\)|\bEN\s*[:\/\)]|English/i.test(text);
+  const hasSplitHeading = /^#{1,6}\s+.*?\s+\/\s+/m.test(text);
+
+  const cleanFr = filterMarkdownByLocale(text, "fr");
+  const cleanEn = filterMarkdownByLocale(text, "en");
+
+  const hasFrContent = cleanFr.trim().length > 0;
+  const hasEnContent = cleanEn.trim().length > 0;
+
+  const isDistinct = cleanFr.trim() !== cleanEn.trim();
+  const hasBilingual =
+    (hasFrMarker && hasEnMarker) ||
+    (hasSplitHeading && isDistinct) ||
+    (hasFrContent && hasEnContent && isDistinct);
+
+  return {
+    fr: cleanFr,
+    en: cleanEn,
+    hasBilingual,
+    hasFr: hasFrContent,
+    hasEn: hasBilingual && hasEnContent,
+  };
 }
 
 

@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import {
   BookOpen,
   Zap,
@@ -32,8 +30,18 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { UserReport } from "../types";
-import { parseBilingualMirrorSections, checkHasSafeguard } from "../utils/parseLevelPack";
+import {
+  parseBilingualMirrorSections,
+  checkHasSafeguard,
+  parseMermaidDiagrams,
+  filterMermaidByLocale,
+  cleanBilingualTitle,
+  type ParsedDiagramEntry,
+} from "../utils/parseLevelPack";
+import { extractBilingualContent } from "../parseReportMd";
 import { MermaidDiagram } from "@/components/archetype-balance/MermaidDiagram";
+import { ClinicalMermaidViewer } from "./ClinicalMermaidViewer";
+import { MarkdownBody } from "./MarkdownBody";
 import { openMdPdfPrintWindow } from "@/features/md-pdf/exportMarkdownPdf";
 
 interface ClinicalReportReaderProps {
@@ -44,6 +52,7 @@ interface ClinicalReportReaderProps {
 
 type TabKey = "report" | "summary" | "actions" | "visuals" | "ai_console";
 type LangMode = "fr" | "en" | "split";
+type PromptLangMode = "fr" | "en" | "all";
 
 export function ClinicalReportReader({
   report,
@@ -56,13 +65,26 @@ export function ClinicalReportReader({
 
   const [activeTab, setActiveTab] = useState<TabKey>("report");
   const [langMode, setLangMode] = useState<LangMode>(isGlobalFR ? "fr" : "en");
+  const [aiPromptLang, setAiPromptLang] = useState<PromptLangMode>(isGlobalFR ? "fr" : "en");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState<string>("");
   const [readingProgress, setReadingProgress] = useState(0);
   const [diagramScale, setDiagramScale] = useState(1);
+  const [selectedDiagramId, setSelectedDiagramId] = useState<string>("all");
+  const [expandedDiagram, setExpandedDiagram] = useState<ParsedDiagramEntry | null>(null);
+  const [copiedDiagramId, setCopiedDiagramId] = useState<string | null>(null);
 
   const articleScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Synchronise le prompt IA avec la langue générale
+  useEffect(() => {
+    if (langMode === "en") {
+      setAiPromptLang("en");
+    } else if (langMode === "fr") {
+      setAiPromptLang("fr");
+    }
+  }, [langMode]);
 
   // Détection du mode V3.2 vs Legacy
   const isV3 = Boolean(report?.pack_files && report.pack_files.rapport_md);
@@ -79,7 +101,28 @@ export function ClinicalReportReader({
     return "";
   }, [graphiqueMd, rawRapportMd]);
 
-  // Analyse et découpage miroir des sections
+  // Découpage et extraction bilingue de chaque pilier
+  const summaryContent = useMemo(() => extractBilingualContent(resumeMd), [resumeMd]);
+  const actionsContent = useMemo(() => extractBilingualContent(bulletPointsMd), [bulletPointsMd]);
+  const aiPromptContent = useMemo(() => extractBilingualContent(promptAiMd), [promptAiMd]);
+  const allParsedDiagrams = useMemo(() => parseMermaidDiagrams(effectiveDiagramMd), [effectiveDiagramMd]);
+
+  // Filtrage intelligent des diagrammes selon la langue active
+  const parsedDiagrams = useMemo(() => {
+    if (allParsedDiagrams.length === 0) return [];
+    if (langMode === "fr") {
+      const frDiagrams = allParsedDiagrams.filter((d) => d.lang === "fr" || d.lang === "neutral");
+      return frDiagrams.length > 0 ? frDiagrams : allParsedDiagrams;
+    }
+    if (langMode === "en") {
+      const enDiagrams = allParsedDiagrams.filter((d) => d.lang === "en" || d.lang === "neutral");
+      return enDiagrams.length > 0 ? enDiagrams : allParsedDiagrams;
+    }
+    // Mode split : conserve tous les diagrammes pour comparaison miroir
+    return allParsedDiagrams;
+  }, [allParsedDiagrams, langMode]);
+
+  // Analyse et découpage miroir des sections pour 00_RAPPORT.md
   const { sectionPairs, safeguardSection, cleanFr, cleanEn } = useMemo(() => {
     if (!rawRapportMd) {
       return { sectionPairs: [], safeguardSection: null, cleanFr: "", cleanEn: "" };
@@ -88,6 +131,17 @@ export function ClinicalReportReader({
   }, [rawRapportMd]);
 
   const hasSafeguard = Boolean(report?.has_safeguard || safeguardSection || checkHasSafeguard(rawRapportMd));
+
+  // Texte actif du Prompt IA selon la langue choisie
+  const activePromptText = useMemo(() => {
+    if (aiPromptLang === "fr") return aiPromptContent.fr || promptAiMd;
+    if (aiPromptLang === "en") return aiPromptContent.hasEn ? aiPromptContent.en : promptAiMd;
+    return promptAiMd;
+  }, [aiPromptLang, aiPromptContent, promptAiMd]);
+
+  const activePromptTokens = useMemo(() => {
+    return Math.round((activePromptText.length || 0) / 3.8);
+  }, [activePromptText]);
 
   // Métadonnées et compteurs
   const levelLabel = report?.level_code || (report?.tier ? `LEVEL_${report.tier}` : "LEVEL_1");
@@ -99,7 +153,6 @@ export function ClinicalReportReader({
   }, [rawRapportMd]);
 
   const estimatedReadingTime = Math.max(3, Math.ceil(wordCount / 220));
-  const estimatedTokens = Math.round((rawRapportMd.length + (promptAiMd.length || 0)) / 3.8);
 
   // Suivi de la progression de lecture au défilement
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -131,14 +184,15 @@ export function ClinicalReportReader({
   };
 
   const handleCopyPrompt = async () => {
-    if (!promptAiMd) return;
+    if (!activePromptText) return;
     try {
-      await navigator.clipboard.writeText(promptAiMd);
+      await navigator.clipboard.writeText(activePromptText);
       setCopiedPrompt(true);
+      const langName = aiPromptLang === "fr" ? "Français" : aiPromptLang === "en" ? "English" : "Complet";
       toast({
-        title: isGlobalFR ? "Méta-Prompt copié !" : "Meta-Prompt copied!",
+        title: isGlobalFR ? `Méta-Prompt (${langName}) copié !` : `Meta-Prompt (${langName}) copied!`,
         description: isGlobalFR
-          ? "Colle ce prompt dans ton assistant Claude ou ChatGPT pour explorer ton bilan."
+          ? "Colle ce prompt dans ton assistant Claude ou ChatGPT pour dialoguer avec ton diagnostic."
           : "Paste this prompt into Claude or ChatGPT to interrogate your diagnostic.",
       });
       setTimeout(() => setCopiedPrompt(false), 3000);
@@ -146,6 +200,27 @@ export function ClinicalReportReader({
       toast({
         title: isGlobalFR ? "Erreur de copie" : "Copy error",
         description: isGlobalFR ? "Impossible d'accéder au presse-papier." : "Clipboard access failed.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyDiagramSource = async (diag: ParsedDiagramEntry) => {
+    try {
+      const activeLocale = langMode === "en" ? "en" : "fr";
+      const localizedCode = filterMermaidByLocale(diag.mermaidSource, activeLocale);
+      await navigator.clipboard.writeText(localizedCode);
+      setCopiedDiagramId(diag.id);
+      toast({
+        title: isGlobalFR ? "Code Mermaid copié !" : "Mermaid code copied!",
+        description: isGlobalFR
+          ? `Code source du diagramme #${diag.index} (${activeLocale.toUpperCase()}) copié dans le presse-papier.`
+          : `Source code for diagram #${diag.index} (${activeLocale.toUpperCase()}) copied to clipboard.`,
+      });
+      setTimeout(() => setCopiedDiagramId(null), 3000);
+    } catch {
+      toast({
+        title: isGlobalFR ? "Erreur de copie" : "Copy error",
         variant: "destructive",
       });
     }
@@ -476,11 +551,9 @@ export function ClinicalReportReader({
                             <h2 className="font-cormorant-display text-xl sm:text-2xl text-amber-100 font-normal">
                               {langMode === "en" ? safeguardSection.title_en : safeguardSection.title_fr}
                             </h2>
-                            <div className="mt-3 font-body text-sm leading-relaxed text-amber-200/90 [&_p]:mb-2">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {langMode === "en" ? safeguardSection.content_en : safeguardSection.content_fr}
-                              </ReactMarkdown>
-                            </div>
+                            <MarkdownBody size="sm" className="mt-3 text-amber-200/90">
+                              {langMode === "en" ? safeguardSection.content_en : safeguardSection.content_fr}
+                            </MarkdownBody>
                           </div>
                         </div>
                       </div>
@@ -513,11 +586,9 @@ export function ClinicalReportReader({
                                     <span className="text-base">🇫🇷</span>
                                     {pair.title_fr}
                                   </h3>
-                                  <article className="prose prose-invert max-w-none text-foreground/90 font-body text-sm leading-relaxed [&_p]:mb-3">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                      {pair.content_fr}
-                                    </ReactMarkdown>
-                                  </article>
+                                  <MarkdownBody size="sm">
+                                    {pair.content_fr}
+                                  </MarkdownBody>
                                 </div>
 
                                 {/* Colonne EN */}
@@ -526,11 +597,9 @@ export function ClinicalReportReader({
                                     <span className="text-base">🇬🇧</span>
                                     {pair.title_en}
                                   </h3>
-                                  <article className="prose prose-invert max-w-none text-foreground/90 font-body text-sm leading-relaxed [&_p]:mb-3">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                      {pair.content_en}
-                                    </ReactMarkdown>
-                                  </article>
+                                  <MarkdownBody size="sm">
+                                    {pair.content_en}
+                                  </MarkdownBody>
                                 </div>
                               </div>
                             </section>
@@ -556,11 +625,9 @@ export function ClinicalReportReader({
                                   </h2>
                                 </header>
 
-                                <div className="font-body text-[15px] leading-[1.8] text-foreground/90 space-y-4 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/50 [&_blockquote]:pl-4 [&_blockquote]:italic [&_strong]:text-foreground [&_h3]:font-display [&_h3]:text-sm [&_h3]:uppercase [&_h3]:tracking-wider [&_h3]:text-primary [&_h3]:mt-6 [&_h3]:mb-2">
-                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {content}
-                                  </ReactMarkdown>
-                                </div>
+                                <MarkdownBody size="base">
+                                  {content}
+                                </MarkdownBody>
                               </section>
                             );
                           })}
@@ -573,49 +640,113 @@ export function ClinicalReportReader({
 
             {/* 01. SYNTHÈSE EXÉCUTIVE */}
             {activeTab === "summary" && (
-              <div className="mx-auto max-w-3xl space-y-6">
-                <header className="border-b border-white/10 pb-4">
-                  <div className="flex items-center gap-2 text-amber-400 font-display text-xs uppercase tracking-widest mb-1">
-                    <Zap size={14} />
-                    {isGlobalFR ? "Synthèse Haute Résolution" : "Executive High-Res Summary"}
+              <div className="mx-auto max-w-4xl space-y-6">
+                <header className="border-b border-white/10 pb-4 flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-amber-400 font-display text-xs uppercase tracking-widest mb-1">
+                      <Zap size={14} />
+                      {isGlobalFR ? "Synthèse Haute Résolution" : "Executive High-Res Summary"}
+                    </div>
+                    <h2 className="font-cormorant-display text-3xl text-foreground font-normal">
+                      {report.title} — {isGlobalFR ? "Vue Stratégique" : "Strategic Overview"}
+                    </h2>
                   </div>
-                  <h2 className="font-cormorant-display text-3xl text-foreground font-normal">
-                    {report.title} — {isGlobalFR ? "Vue Stratégique" : "Strategic Overview"}
-                  </h2>
+                  <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-300 font-display text-[10px] tracking-widest uppercase">
+                    {langMode === "fr" ? "🇫🇷 VERSION FR" : langMode === "en" ? "🇬🇧 VERSION EN" : "⧉ SPLIT FR / EN"}
+                  </Badge>
                 </header>
 
-                <div className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 sm:p-8 font-body text-[15px] leading-relaxed text-foreground/90 space-y-4">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {resumeMd || (isGlobalFR ? "Synthèse en cours de génération..." : "Summary being processed...")}
-                  </ReactMarkdown>
-                </div>
+                {langMode === "split" && summaryContent.hasBilingual ? (
+                  <div className="grid md:grid-cols-2 gap-6 divide-y md:divide-y-0 md:divide-x divide-white/10">
+                    <div className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 sm:p-7 space-y-4">
+                      <div className="flex items-center gap-2 pb-2 border-b border-white/10 text-xs font-display uppercase tracking-wider text-primary">
+                        <span>🇫🇷</span>
+                        <span>Synthèse Exécutive</span>
+                      </div>
+                      <MarkdownBody size="sm">{summaryContent.fr}</MarkdownBody>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 sm:p-7 space-y-4 pt-4 md:pt-6 pl-0 md:pl-6">
+                      <div className="flex items-center gap-2 pb-2 border-b border-white/10 text-xs font-display uppercase tracking-wider text-primary">
+                        <span>🇬🇧</span>
+                        <span>Executive Summary</span>
+                      </div>
+                      <MarkdownBody size="sm">{summaryContent.en}</MarkdownBody>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 sm:p-8 space-y-4">
+                    {langMode === "en" && !summaryContent.hasEn && (
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200/90 flex items-center gap-2 mb-4">
+                        <span>🇬🇧</span>
+                        <span>{isGlobalFR ? "Version anglaise non incluse dans cette synthèse (version française affichée)." : "English version not included in this summary (displaying original French version)."}</span>
+                      </div>
+                    )}
+                    <MarkdownBody size="base">
+                      {langMode === "en"
+                        ? (summaryContent.hasEn ? summaryContent.en : summaryContent.fr || resumeMd)
+                        : (summaryContent.fr || resumeMd || (isGlobalFR ? "Synthèse en cours de génération..." : "Summary being processed..."))}
+                    </MarkdownBody>
+                  </div>
+                )}
               </div>
             )}
 
             {/* 02. AXIOMES & LEVIERS */}
             {activeTab === "actions" && (
-              <div className="mx-auto max-w-3xl space-y-6">
-                <header className="border-b border-white/10 pb-4">
-                  <div className="flex items-center gap-2 text-emerald-400 font-display text-xs uppercase tracking-widest mb-1">
-                    <Target size={14} />
-                    {isGlobalFR ? "Axiomes Cliniques & Leviers d'Action" : "Diagnostic Axioms & Action Levers"}
+              <div className="mx-auto max-w-4xl space-y-6">
+                <header className="border-b border-white/10 pb-4 flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-emerald-400 font-display text-xs uppercase tracking-widest mb-1">
+                      <Target size={14} />
+                      {isGlobalFR ? "Axiomes Cliniques & Leviers d'Action" : "Diagnostic Axioms & Action Levers"}
+                    </div>
+                    <h2 className="font-cormorant-display text-3xl text-foreground font-normal">
+                      {isGlobalFR ? "Applications & Recommandations Immédiates" : "Immediate Applications & Practices"}
+                    </h2>
                   </div>
-                  <h2 className="font-cormorant-display text-3xl text-foreground font-normal">
-                    {isGlobalFR ? "Applications & Recommandations Immédiates" : "Immediate Applications & Practices"}
-                  </h2>
+                  <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-display text-[10px] tracking-widest uppercase">
+                    {langMode === "fr" ? "🇫🇷 VERSION FR" : langMode === "en" ? "🇬🇧 VERSION EN" : "⧉ SPLIT FR / EN"}
+                  </Badge>
                 </header>
 
-                <div className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 sm:p-8 font-body text-[15px] leading-relaxed text-foreground/90 space-y-4">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {bulletPointsMd || (isGlobalFR ? "Aucun axiome renseigné." : "No action points specified.")}
-                  </ReactMarkdown>
-                </div>
+                {langMode === "split" && actionsContent.hasBilingual ? (
+                  <div className="grid md:grid-cols-2 gap-6 divide-y md:divide-y-0 md:divide-x divide-white/10">
+                    <div className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 sm:p-7 space-y-4">
+                      <div className="flex items-center gap-2 pb-2 border-b border-white/10 text-xs font-display uppercase tracking-wider text-emerald-400">
+                        <span>🇫🇷</span>
+                        <span>Axiomes & Leviers</span>
+                      </div>
+                      <MarkdownBody size="sm">{actionsContent.fr}</MarkdownBody>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 sm:p-7 space-y-4 pt-4 md:pt-6 pl-0 md:pl-6">
+                      <div className="flex items-center gap-2 pb-2 border-b border-white/10 text-xs font-display uppercase tracking-wider text-emerald-400">
+                        <span>🇬🇧</span>
+                        <span>Axioms & Action Points</span>
+                      </div>
+                      <MarkdownBody size="sm">{actionsContent.en}</MarkdownBody>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 sm:p-8 space-y-4">
+                    {langMode === "en" && !actionsContent.hasEn && (
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200/90 flex items-center gap-2 mb-4">
+                        <span>🇬🇧</span>
+                        <span>{isGlobalFR ? "Version anglaise non disponible pour ces axiomes (version française affichée)." : "English version not available for these axioms (displaying original French below)."}</span>
+                      </div>
+                    )}
+                    <MarkdownBody size="base">
+                      {langMode === "en"
+                        ? (actionsContent.hasEn ? actionsContent.en : actionsContent.fr || bulletPointsMd)
+                        : (actionsContent.fr || bulletPointsMd || (isGlobalFR ? "Aucun axiome renseigné." : "No action points specified."))}
+                    </MarkdownBody>
+                  </div>
+                )}
               </div>
             )}
 
             {/* 03. MODÉLISATION VISUELLE (MERMAID) */}
             {activeTab === "visuals" && (
-              <div className="mx-auto max-w-4xl space-y-6">
+              <div className="mx-auto max-w-5xl space-y-6">
                 <header className="border-b border-white/10 pb-4 flex items-center justify-between flex-wrap gap-4">
                   <div>
                     <div className="flex items-center gap-2 text-cyan-400 font-display text-xs uppercase tracking-widest mb-1">
@@ -662,53 +793,267 @@ export function ClinicalReportReader({
                   </div>
                 </header>
 
-                {/* Compilation des Blocs Mermaid */}
-                <div
-                  className="space-y-8 transition-transform duration-150 origin-top"
-                  style={{ transform: `scale(${diagramScale})` }}
-                >
-                  {effectiveDiagramMd ? (
-                    <div className="space-y-6">
-                      {/* Extraction des blocs mermaid */}
-                      {effectiveDiagramMd.split(/```\s*mermaid/gi).map((part, idx) => {
-                        if (idx === 0) {
-                          // Texte précédant le 1er mermaid
-                          return part.trim() ? (
-                            <div key={idx} className="font-body text-sm text-foreground/80 mb-4">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{part}</ReactMarkdown>
-                            </div>
-                          ) : null;
-                        }
-                        const endFenceIdx = part.indexOf("```");
-                        const mermaidSource = endFenceIdx !== -1 ? part.slice(0, endFenceIdx).trim() : part.trim();
-                        const trailingText = endFenceIdx !== -1 ? part.slice(endFenceIdx + 3).trim() : "";
+                {/* Quick-Nav Pills si plusieurs diagrammes */}
+                {parsedDiagrams.length > 1 && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDiagramId("all")}
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl font-display text-xs uppercase tracking-wider transition-all whitespace-nowrap",
+                        selectedDiagramId === "all"
+                          ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                          : "bg-black/30 border border-white/10 text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {isGlobalFR ? "Tous les diagrammes" : "All diagrams"} ({parsedDiagrams.length})
+                    </button>
+                    {parsedDiagrams.map((d) => {
+                      const pillTitle = cleanBilingualTitle(d.title, isGlobalFR ? "fr" : "en");
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setSelectedDiagramId(d.id)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-xl font-display text-xs uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5",
+                            selectedDiagramId === d.id
+                              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                              : "bg-black/30 border border-white/10 text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          <span className="text-[10px] opacity-70">#{d.index}</span>
+                          <span className="truncate max-w-[180px]">{pillTitle}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
-                        return (
-                          <div key={idx} className="space-y-4">
-                            <div className="rounded-2xl border border-cyan-500/25 bg-black/40 p-4 sm:p-6 shadow-[0_0_30px_-10px_rgba(6,182,212,0.2)]">
-                              <MermaidDiagram source={mermaidSource} />
+                {/* Liste des Cartes de Diagrammes */}
+                {parsedDiagrams.length > 0 ? (
+                  <div className="space-y-8">
+                    {parsedDiagrams
+                      .filter((d) => selectedDiagramId === "all" || selectedDiagramId === d.id)
+                      .map((d) => {
+                        const activeTitle = cleanBilingualTitle(d.title, langMode === "en" ? "en" : "fr");
+                        const companion = langMode === "en" ? (d.companionTextEn || d.companionTextFr) : (d.companionTextFr || d.companionTextEn);
+
+                        if (langMode === "split") {
+                          const companionFr = d.companionTextFr || d.companionTextEn;
+                          const companionEn = d.companionTextEn || d.companionTextFr;
+                          const titleFr = cleanBilingualTitle(d.title, "fr");
+                          const titleEn = cleanBilingualTitle(d.title, "en");
+
+                          return (
+                            <div
+                              key={d.id}
+                              className="rounded-2xl border border-cyan-500/25 bg-black/40 backdrop-blur-xl overflow-hidden shadow-[0_0_30px_-10px_rgba(6,182,212,0.15)] transition-all"
+                            >
+                              {/* En-tête statutaire */}
+                              <div className="border-b border-white/10 px-5 py-3.5 bg-black/40 flex items-center justify-between flex-wrap gap-2">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-cyan-500/40 bg-cyan-500/15 font-display text-[10px] font-bold text-cyan-300">
+                                    #{d.index}
+                                  </span>
+                                  <h3 className="font-cormorant-display text-xl text-foreground font-normal">
+                                    {titleFr} <span className="text-muted-foreground text-sm font-sans mx-2">/</span> {titleEn}
+                                  </h3>
+                                  <Badge
+                                    variant="outline"
+                                    className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300 font-display text-[9px] tracking-widest uppercase hidden sm:inline-flex"
+                                  >
+                                    {d.typeLabel}
+                                  </Badge>
+                                </div>
+
+                                <div className="flex items-center gap-1.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleCopyDiagramSource(d)}
+                                    className="h-7 px-2 text-xs gap-1 border border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+                                    title="Copier le code Mermaid"
+                                  >
+                                    {copiedDiagramId === d.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                    <span className="text-[10px] font-display uppercase tracking-wider hidden sm:inline">
+                                      {copiedDiagramId === d.id ? (isGlobalFR ? "Copié !" : "Copied!") : "Mermaid"}
+                                    </span>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setExpandedDiagram(d)}
+                                    className="h-7 w-7 p-0 border border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+                                    title="Agrandir / Plein écran"
+                                  >
+                                    <Maximize2 size={13} />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Grille Miroir Split Côte-à-Côte */}
+                              <div className="grid grid-cols-1 xl:grid-cols-2 divide-y xl:divide-y-0 xl:divide-x divide-white/10">
+                                {/* Colonne FR */}
+                                <div className="p-4 sm:p-5 flex flex-col space-y-3 bg-black/20">
+                                  <div className="flex items-center gap-1.5 text-xs text-cyan-300 font-display uppercase tracking-wider">
+                                    <span>🇫🇷</span>
+                                    <span>Version Française</span>
+                                  </div>
+                                  <ClinicalMermaidViewer
+                                    code={d.mermaidSource}
+                                    title={`${titleFr} (FR)`}
+                                    height={460}
+                                    locale="fr"
+                                    className="border border-white/5 shadow-inner"
+                                  />
+                                  {companionFr ? (
+                                    <div className="border-t border-white/10 pt-3">
+                                      <div className="text-[10px] font-display uppercase tracking-widest text-cyan-400/80 mb-1">
+                                        Lecture Clinique (FR)
+                                      </div>
+                                      <MarkdownBody size="sm">{companionFr}</MarkdownBody>
+                                    </div>
+                                  ) : null}
+                                </div>
+
+                                {/* Colonne EN */}
+                                <div className="p-4 sm:p-5 flex flex-col space-y-3 bg-black/20">
+                                  <div className="flex items-center gap-1.5 text-xs text-cyan-300 font-display uppercase tracking-wider">
+                                    <span>🇬🇧</span>
+                                    <span>English Version</span>
+                                  </div>
+                                  <ClinicalMermaidViewer
+                                    code={d.mermaidSource}
+                                    title={`${titleEn} (EN)`}
+                                    height={460}
+                                    locale="en"
+                                    className="border border-white/5 shadow-inner"
+                                  />
+                                  {companionEn ? (
+                                    <div className="border-t border-white/10 pt-3">
+                                      <div className="text-[10px] font-display uppercase tracking-widest text-cyan-400/80 mb-1">
+                                        Clinical Reading (EN)
+                                      </div>
+                                      <MarkdownBody size="sm">{companionEn}</MarkdownBody>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
                             </div>
-                            {trailingText ? (
-                              <div className="font-body text-sm text-foreground/80 mt-3">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{trailingText}</ReactMarkdown>
+                          );
+                        }
+
+                        // Mode Unilingue (FR ou EN)
+                        return (
+                          <div
+                            key={d.id}
+                            className="rounded-2xl border border-cyan-500/25 bg-black/40 backdrop-blur-xl overflow-hidden shadow-[0_0_30px_-10px_rgba(6,182,212,0.15)] transition-all"
+                          >
+                            {/* En-tête de carte du diagramme */}
+                            <div className="border-b border-white/10 px-5 py-3.5 bg-black/40 flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-2.5">
+                                <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-cyan-500/40 bg-cyan-500/15 font-display text-[10px] font-bold text-cyan-300">
+                                  #{d.index}
+                                </span>
+                                <h3 className="font-cormorant-display text-xl text-foreground font-normal">
+                                  {activeTitle}
+                                </h3>
+                                <Badge
+                                  variant="outline"
+                                  className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300 font-display text-[9px] tracking-widest uppercase hidden sm:inline-flex"
+                                >
+                                  {d.typeLabel}
+                                </Badge>
+                              </div>
+
+                              <div className="flex items-center gap-1.5">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopyDiagramSource(d)}
+                                  className="h-7 px-2 text-xs gap-1 border border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+                                  title="Copier le code Mermaid"
+                                >
+                                  {copiedDiagramId === d.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                  <span className="text-[10px] font-display uppercase tracking-wider hidden sm:inline">
+                                    {copiedDiagramId === d.id ? (isGlobalFR ? "Copié !" : "Copied!") : "Mermaid"}
+                                  </span>
+                                </Button>
+
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setExpandedDiagram(d)}
+                                  className="h-7 w-7 p-0 border border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+                                  title="Agrandir / Plein écran"
+                                >
+                                  <Maximize2 size={13} />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Corps du diagramme interactif (react-super-mermaid + toolbar AEGIS) */}
+                            <div className="p-3 sm:p-5 bg-black/20">
+                              <ClinicalMermaidViewer
+                                code={d.mermaidSource}
+                                title={activeTitle}
+                                height={480}
+                                locale={langMode === "en" ? "en" : "fr"}
+                                className="border border-white/5 shadow-inner"
+                              />
+                            </div>
+
+                            {/* Légende et Notes Cliniques */}
+                            {companion ? (
+                              <div className="border-t border-white/10 px-5 py-4 bg-white/[0.02]">
+                                <div className="text-[10px] font-display uppercase tracking-widest text-cyan-400/80 mb-1.5">
+                                  {isGlobalFR ? "Lecture Clinique & Topologie" : "Clinical Reading & Topology"}
+                                </div>
+                                <MarkdownBody size="sm">{companion}</MarkdownBody>
                               </div>
                             ) : null}
                           </div>
                         );
                       })}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-8 text-center text-muted-foreground text-sm">
+                    {isGlobalFR ? "Aucun diagramme spécifique dans ce niveau." : "No visual diagram available for this level."}
+                  </div>
+                )}
+
+                {/* MODAL D'AGRANDISSEMENT DU DIAGRAMME */}
+                <Dialog open={expandedDiagram !== null} onOpenChange={(o) => { if (!o) setExpandedDiagram(null); }}>
+                  <DialogContent className="max-w-6xl w-[95vw] h-[90vh] bg-background/95 border-cyan-500/30 p-6 flex flex-col">
+                    <DialogTitle className="font-cormorant-display text-2xl flex items-center justify-between">
+                      <span>{cleanBilingualTitle(expandedDiagram?.title || "", langMode === "en" ? "en" : "fr")}</span>
+                      <Badge variant="outline" className="border-cyan-500/40 text-cyan-300 font-display text-[10px] tracking-widest uppercase">
+                        {expandedDiagram?.typeLabel}
+                      </Badge>
+                    </DialogTitle>
+                    <DialogDescription className="sr-only">
+                      Vue agrandie haute résolution du diagramme #{expandedDiagram?.index}
+                    </DialogDescription>
+                    <div className="flex-1 overflow-hidden p-2 bg-black/40 rounded-xl border border-white/10 my-4">
+                      {expandedDiagram ? (
+                        <ClinicalMermaidViewer
+                          code={expandedDiagram.mermaidSource}
+                          title={cleanBilingualTitle(expandedDiagram.title, langMode === "en" ? "en" : "fr")}
+                          height="100%"
+                          locale={langMode === "en" ? "en" : "fr"}
+                          className="h-full border-none shadow-none"
+                        />
+                      ) : null}
                     </div>
-                  ) : (
-                    <div className="rounded-2xl border border-white/10 bg-black/30 p-8 text-center text-muted-foreground text-sm">
-                      {isGlobalFR ? "Aucun diagramme spécifique dans ce niveau." : "No visual diagram available for this level."}
-                    </div>
-                  )}
-                </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             )}
 
             {/* 04. CONSOLE PROMPT IA COMPAGNON */}
             {activeTab === "ai_console" && (
-              <div className="mx-auto max-w-3xl space-y-6">
+              <div className="mx-auto max-w-4xl space-y-6">
                 <header className="border-b border-white/10 pb-4">
                   <div className="flex items-center gap-2 text-purple-400 font-display text-xs uppercase tracking-widest mb-1">
                     <Bot size={14} />
@@ -719,21 +1064,66 @@ export function ClinicalReportReader({
                   </h2>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {isGlobalFR
-                      ? `Ce prompt encapsule ton diagnostic complet, ton niveau ${levelLabel} et tes garde-fous épistémiques (~${estimatedTokens.toLocaleString("fr-FR")} tokens).`
-                      : `This prompt embeds your full diagnostic, your ${levelLabel} level and safeguards (~${estimatedTokens.toLocaleString("en-US")} tokens).`}
+                      ? `Ce prompt encapsule ton diagnostic complet, ton niveau ${levelLabel} et tes garde-fous épistémiques (~${activePromptTokens.toLocaleString("fr-FR")} tokens).`
+                      : `This prompt embeds your full diagnostic, your ${levelLabel} level and safeguards (~${activePromptTokens.toLocaleString("en-US")} tokens).`}
                   </p>
                 </header>
 
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <Button
-                    onClick={handleCopyPrompt}
-                    className="bg-purple-600 hover:bg-purple-500 text-white gap-2 font-display uppercase tracking-wider text-xs px-4 py-2 h-9 shadow-[0_0_20px_-5px_rgba(168,85,247,0.5)]"
-                  >
-                    {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
-                    {copiedPrompt
-                      ? isGlobalFR ? "Copié !" : "Copied!"
-                      : isGlobalFR ? "Copier le Méta-Prompt Complet" : "Copy Full Meta-Prompt"}
-                  </Button>
+                  {/* Sélecteur de Langue du Prompt */}
+                  <div className="flex items-center rounded-xl border border-white/15 bg-black/40 p-1 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setAiPromptLang("fr")}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg font-display text-[11px] uppercase tracking-wider transition-all",
+                        aiPromptLang === "fr"
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      🇫🇷 Prompt FR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiPromptLang("en")}
+                      disabled={!aiPromptContent.hasEn}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg font-display text-[11px] uppercase tracking-wider transition-all disabled:opacity-40",
+                        aiPromptLang === "en"
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                      title={!aiPromptContent.hasEn ? "Version anglaise non disponible pour ce prompt" : "Prompt en anglais"}
+                    >
+                      🇬🇧 Prompt EN
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiPromptLang("all")}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg font-display text-[11px] uppercase tracking-wider transition-all",
+                        aiPromptLang === "all"
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      📄 Intégral
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      onClick={handleCopyPrompt}
+                      className="bg-purple-600 hover:bg-purple-500 text-white gap-2 font-display uppercase tracking-wider text-xs px-4 py-2 h-9 shadow-[0_0_20px_-5px_rgba(168,85,247,0.5)]"
+                    >
+                      {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
+                      {copiedPrompt
+                        ? isGlobalFR ? "Copié !" : "Copied!"
+                        : isGlobalFR
+                          ? `Copier le Méta-Prompt (${aiPromptLang.toUpperCase()})`
+                          : `Copy Meta-Prompt (${aiPromptLang.toUpperCase()})`}
+                    </Button>
 
                   <div className="flex items-center gap-2">
                     <a
@@ -756,10 +1146,11 @@ export function ClinicalReportReader({
                     </a>
                   </div>
                 </div>
+              </div>
 
                 {/* Console Code Box */}
                 <div className="rounded-2xl border border-purple-500/30 bg-black/60 p-5 font-mono text-xs text-purple-200/90 max-h-[50vh] overflow-y-auto space-y-2 whitespace-pre-wrap leading-relaxed shadow-inner">
-                  {promptAiMd || (isGlobalFR ? "Prompt IA non généré pour ce rapport." : "AI Prompt not generated for this report.")}
+                  {activePromptText || (isGlobalFR ? "Prompt IA non généré pour ce rapport." : "AI Prompt not generated for this report.")}
                 </div>
               </div>
             )}
