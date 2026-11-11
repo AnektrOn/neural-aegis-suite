@@ -163,7 +163,7 @@ export function ClinicalReportReader({
           subtitleOverride: `${levelLabel} · ${prismLabel} · AEGIS V3.2`,
         },
       ],
-      theme: "executive",
+      theme: "ivoire",
       showCover: true,
       locale: langMode === "en" ? "en" : "fr",
       contentLang: langMode === "en" ? "en" : "fr",
