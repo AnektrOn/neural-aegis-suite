@@ -1,6 +1,6 @@
 # Project rules
 
-- Complete Drive exports use an explicit credential-free per-user table allowlist, paginated reads and linked report sections; synchronous per-user results enable verified resumable backfills instead of unobserved background success.
+- Complete Drive exports use an explicit credential-free per-user table allowlist, paginated reads and linked report sections, filed per table into the same per-user category folders as live exports (Maisons answers carry a generated scoring-grid file); synchronous per-user results enable verified resumable backfills instead of unobserved background success.
 
 - Activity emails resolve platform operators from admin/superadmin roles, defer client calls outside auth callbacks, and persist event/recipient delivery keys; this avoids missing owners, auth-lock stalls and duplicate retries.
 
