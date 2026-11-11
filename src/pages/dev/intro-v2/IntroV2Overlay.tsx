@@ -34,6 +34,7 @@ type Props = {
   narrateLineMs: number;
   audioPrefs: IntroAudioPrefs;
   onToggleMusic: () => void;
+  onMusicVolume: (volume: number) => void;
   onEnter: () => void;
   onNext: () => void;
   onSkipChapter: () => void;
@@ -134,6 +135,30 @@ function AudioToggle({
       {compact ? <span className="sr-only">{label}</span> : label}
       <span className="sr-only">{pick(on ? INTRO_UI.on : INTRO_UI.off, isFR)}</span>
     </button>
+  );
+}
+
+function VolumeSlider({
+  value,
+  isFR,
+  onChange,
+  large = false,
+}: {
+  value: number;
+  isFR: boolean;
+  onChange: (volume: number) => void;
+  large?: boolean;
+}) {
+  return (
+    <input
+      type="range"
+      min={0}
+      max={100}
+      value={Math.round(value * 100)}
+      onChange={(e) => onChange(Number(e.target.value) / 100)}
+      aria-label={isFR ? "Volume de la bande son" : "Soundtrack volume"}
+      className={`pointer-events-auto cursor-pointer accent-[hsl(38_72%_64%)] ${large ? "w-28" : "w-16 sm:w-20"}`}
+    />
   );
 }
 
@@ -359,6 +384,7 @@ export default function IntroV2Overlay({
   narrateLineMs,
   audioPrefs,
   onToggleMusic,
+  onMusicVolume,
   onEnter,
   onNext,
   onSkipChapter,
@@ -380,13 +406,18 @@ export default function IntroV2Overlay({
         <div className="flex max-w-[min(100%,22rem)] flex-wrap items-center justify-end gap-2 sm:max-w-none sm:gap-5 md:gap-7">
           <LanguageToggle isFR={isFR} />
           {state.phase !== "entry" ? (
-            <AudioToggle
-              compact={isTouch}
-              label={pick(INTRO_UI.soundtrack, isFR)}
-              on={audioPrefs.music}
-              isFR={isFR}
-              onToggle={onToggleMusic}
-            />
+            <>
+              <AudioToggle
+                compact={isTouch}
+                label={pick(INTRO_UI.soundtrack, isFR)}
+                on={audioPrefs.music}
+                isFR={isFR}
+                onToggle={onToggleMusic}
+              />
+              {audioPrefs.music ? (
+                <VolumeSlider value={audioPrefs.musicVolume} isFR={isFR} onChange={onMusicVolume} />
+              ) : null}
+            </>
           ) : null}
           {state.phase !== "end" ? (
             <button
@@ -496,6 +527,9 @@ export default function IntroV2Overlay({
             >
               <LanguageToggle large isFR={isFR} />
               <AudioToggle large label={pick(INTRO_UI.soundtrack, isFR)} on={audioPrefs.music} isFR={isFR} onToggle={onToggleMusic} />
+              {audioPrefs.music ? (
+                <VolumeSlider large value={audioPrefs.musicVolume} isFR={isFR} onChange={onMusicVolume} />
+              ) : null}
             </motion.div>
             <motion.button
               type="button"
