@@ -7,6 +7,21 @@ import { listUserReports, markUserReportRead } from "./service";
 import type { UserReport } from "./types";
 import { UserReportModal } from "./UserReportModal";
 
+function formatDateSafe(val: unknown, locale: string): string {
+  if (!val) return "—";
+  try {
+    const d = new Date(String(val));
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
 interface Props {
   userId: string;
 }
@@ -95,11 +110,7 @@ export function UserReportsSection({ userId }: Props) {
 
                   <span className="flex items-center gap-2 text-[11px] text-muted-foreground uppercase tracking-[0.12em] flex-wrap">
                     <span>
-                      {new Date(r.created_at).toLocaleDateString(isFR ? "fr-FR" : "en-US", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      {formatDateSafe(r.created_at, isFR ? "fr" : "en")}
                     </span>
 
                     {levelCode ? (

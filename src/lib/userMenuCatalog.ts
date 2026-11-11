@@ -21,12 +21,14 @@ import {
   ScanFace,
   Inbox,
   ClipboardList,
+  Orbit,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
 export type AppHubId = "capture" | "portrait" | "pratiques" | "messages";
 
 export const MENU_PANEL_ORDER = [
+  "welcome",
   "home",
   "capture_hub",
   "mood",
@@ -72,6 +74,16 @@ export type MenuPanelDef = {
 };
 
 const PANELS: Record<MenuPanelId, MenuPanelDef> = {
+  welcome: {
+    id: "welcome",
+    to: "/welcome",
+    icon: Orbit,
+    labelKey: "nav.welcome",
+    dockEligible: true,
+    overflowEligible: true,
+    hideable: true,
+    commandPaletteEligible: true,
+  },
   home: {
     id: "home",
     to: "/dashboard",
@@ -341,22 +353,13 @@ export const HUB_SIDEBAR_ROUTES = HUB_SIDEBAR_PANEL_IDS.map((id) => PANELS[id].t
 
 export const DEFAULT_DOCK_PANEL_IDS: MenuPanelId[] = ["home", "mood", "decisions", "habits"];
 
+/** Baseline radial (« Plus ») for new users — hubs + account essentials. */
 export const DEFAULT_OVERFLOW_PANEL_IDS: MenuPanelId[] = [
-  "persona",
   "pratiques_hub",
-  "messages",
-  "toolbox",
-  "pulse",
-  "bibliotheque",
-  "people",
-  "journal",
-  "analytics",
-  "calendar",
-  "newsletter",
   "capture_hub",
   "messages_hub",
-  "portrait_hub",
-  "install",
+  "persona",
+  "profile",
   "settings",
 ];
 
@@ -409,6 +412,9 @@ export function panelPathIsActive(pathname: string, to: string): boolean {
   }
   if (to === "/dashboard") {
     return pathname === "/dashboard";
+  }
+  if (to === "/welcome") {
+    return pathname === "/welcome" || pathname.startsWith("/welcome/");
   }
   return pathname === to || pathname.startsWith(`${to}/`);
 }

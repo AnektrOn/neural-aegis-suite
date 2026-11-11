@@ -84,7 +84,7 @@ export function MemberAppShell({
 
       <MemberTopDockBar onLogout={onLogout} online={online} />
       <FreePreviewToggle />
-      <MobileAppDockBar previewOnDesktop={!mobile} onLogout={onLogout} />
+      <MobileAppDockBar previewOnDesktop={!mobile} />
 
       <AppCommandPalette open={commandOpen} onOpenChange={onCommandOpenChange} onQuickLog={onQuickLog} />
       <QuickLogModal open={quickLogOpen} onClose={onQuickLogClose} />

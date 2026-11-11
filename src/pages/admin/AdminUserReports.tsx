@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, Component, type ReactNode } from "react";
 import JSZip from "jszip";
 import {
   Upload,
@@ -16,6 +16,7 @@ import {
   BarChart3,
   Bot,
   Zap,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,13 +31,13 @@ import {
   deleteUserReport,
 } from "@/features/user-reports/service";
 import type { UserReport } from "@/features/user-reports/types";
-import { parseFrontmatter } from "@/features/user-reports/parseReportMd";
 import {
   parseLevelPack,
   type ParsedLevelPackResult,
   type LevelPackFileEntry,
 } from "@/features/user-reports/utils/parseLevelPack";
 import { UserReportModal } from "@/features/user-reports/UserReportModal";
+import { cn } from "@/lib/utils";
 
 interface StagedPack {
   id: string;
@@ -45,67 +46,98 @@ interface StagedPack {
   parsed: ParsedLevelPackResult;
 }
 
-// Helper récursif webkitGetAsEntry pour dossiers
+function formatDateSafe(val: unknown, locale: string): string {
+  if (!val) return "—";
+  try {
+    const d = new Date(String(val));
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+// Helper récursif webkitGetAsEntry pour dossiers (résilient aux erreurs de lecture et fichiers cachés)
 async function readEntryRecursively(
   entry: FileSystemEntry,
   path = "",
 ): Promise<Array<{ filename: string; path: string; file: File }>> {
+  if (!entry || entry.name.startsWith(".") || entry.name.startsWith("__MACOSX")) {
+    return [];
+  }
   if (entry.isFile) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       (entry as FileSystemFileEntry).file(
         (f) => resolve([{ filename: f.name, path: path ? `${path}/${f.name}` : f.name, file: f }]),
-        reject,
+        (err) => {
+          console.warn("[readEntryRecursively] skip unreadable file", entry.name, err);
+          resolve([]);
+        },
       );
     });
   }
   if (!entry.isDirectory) return [];
 
   const reader = (entry as FileSystemDirectoryEntry).createReader();
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const acc: Array<{ filename: string; path: string; file: File }> = [];
     const readBatch = () => {
-      reader.readEntries(async (entries) => {
-        if (entries.length === 0) {
+      reader.readEntries(
+        async (entries) => {
+          if (!entries || entries.length === 0) {
+            resolve(acc);
+            return;
+          }
+          try {
+            const subResults = await Promise.all(
+              entries.map((e) =>
+                readEntryRecursively(e, path ? `${path}/${entry.name}` : entry.name),
+              ),
+            );
+            acc.push(...subResults.flat());
+            readBatch();
+          } catch (err) {
+            console.warn("[readEntryRecursively] batch error", err);
+            resolve(acc);
+          }
+        },
+        (err) => {
+          console.warn("[readEntryRecursively] reader error", err);
           resolve(acc);
-          return;
-        }
-        try {
-          const subResults = await Promise.all(
-            entries.map((e) =>
-              readEntryRecursively(e, path ? `${path}/${entry.name}` : entry.name),
-            ),
-          );
-          acc.push(...subResults.flat());
-          readBatch();
-        } catch (err) {
-          reject(err);
-        }
-      }, reject);
+        },
+      );
     };
     readBatch();
   });
 }
 
-function stagedPackToUserReport(staged: StagedPack, userId: string): UserReport {
+function stagedPackToUserReport(staged: StagedPack, userId?: string | null): UserReport {
   const p = staged.parsed;
   const now = new Date().toISOString();
+  const safeLevelCode = p.levelCode || `LEVEL_${p.level ?? 0}`;
+  const safeScope = p.scope === "trans" ? "trans" : "intra";
+
   return {
     id: `preview-${staged.id}`,
-    user_id: userId,
-    slug: `preview-${p.levelCode.toLowerCase()}-${Date.now()}`,
-    title: p.title,
-    glyph: p.glyph,
-    tier: String(p.level),
-    orientation: p.scope === "intra" ? "Intra-Prisme" : "Trans-Prisme",
-    tags: [p.levelCode, p.prismCode],
-    content_md: p.packFiles.rapport_md,
-    level: p.level,
-    level_code: p.levelCode,
-    prism_code: p.prismCode,
-    scope: p.scope,
-    has_safeguard: p.hasSafeguard,
-    pack_files: p.packFiles,
-    metadata: p.metadata,
+    user_id: userId || "",
+    slug: `preview-${safeLevelCode.toLowerCase()}-${Date.now()}`,
+    title: p.title || "Diagnostic Clinique",
+    glyph: p.glyph || "⚖️",
+    tier: String(p.level ?? 0),
+    orientation: safeScope === "intra" ? "Intra-Prisme" : "Trans-Prisme",
+    tags: [safeLevelCode, p.prismCode || "MYSS"],
+    content_md: p.packFiles?.rapport_md || "",
+    level: p.level ?? 0,
+    level_code: safeLevelCode,
+    prism_code: p.prismCode || "MYSS",
+    scope: safeScope,
+    has_safeguard: Boolean(p.hasSafeguard),
+    pack_files: p.packFiles || { rapport_md: "" },
+    metadata: p.metadata || {},
     imported_by: null,
     created_at: now,
     updated_at: now,
@@ -113,7 +145,7 @@ function stagedPackToUserReport(staged: StagedPack, userId: string): UserReport 
   };
 }
 
-export default function AdminUserReports() {
+function AdminUserReportsView() {
   const { locale } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -137,7 +169,7 @@ export default function AdminUserReports() {
     try {
       setReports(await listUserReports(targetUserId));
     } catch (e) {
-      console.error(e);
+      console.error("[AdminUserReports] refresh failed", e);
       toast({
         title: isFR ? "Erreur" : "Error",
         description: e instanceof Error ? e.message : String(e),
@@ -162,43 +194,66 @@ export default function AdminUserReports() {
   const processFilesIntoPacks = async (
     items: Array<{ filename: string; path: string; content: string }>,
   ) => {
-    // Filtrer uniquement les .md
-    const mdItems = items.filter((f) => /\.md$/i.test(f.filename));
-    if (mdItems.length === 0) return;
-
-    // Regrouper par sous-dossier ou traiter comme pack global
-    const groups: Record<string, LevelPackFileEntry[]> = {};
-
-    for (const item of mdItems) {
-      const parts = item.path.replace(/\\/g, "/").split("/");
-      let groupName = "LEVEL_PACK";
-      if (parts.length > 1) {
-        // Le dossier parent immédiat ou racine (ex: LEVEL_2)
-        groupName = parts[parts.length - 2] || parts[0];
-      } else {
-        // Fichier unitaire à la racine
-        groupName = item.filename.replace(/\.md$/i, "");
+    try {
+      // Filtrer uniquement les .md
+      const mdItems = items.filter((f) => /\.md$/i.test(f.filename));
+      if (mdItems.length === 0) {
+        toast({
+          title: isFR ? "Aucun fichier Markdown" : "No Markdown files",
+          description: isFR ? "Aucun fichier .md n'a été détecté." : "No .md files found.",
+          variant: "destructive",
+        });
+        return;
       }
-      if (!groups[groupName]) groups[groupName] = [];
-      groups[groupName].push({
-        filename: item.filename,
-        content: item.content,
-        relativePath: item.path,
+
+      // Regrouper par sous-dossier ou traiter comme pack global
+      const groups: Record<string, LevelPackFileEntry[]> = {};
+
+      for (const item of mdItems) {
+        const parts = item.path.replace(/\\/g, "/").split("/");
+        let groupName = "LEVEL_PACK";
+        if (parts.length > 1) {
+          // Le dossier parent immédiat ou racine (ex: LEVEL_2 ou BALANCE)
+          groupName = parts[parts.length - 2] || parts[0];
+        } else {
+          // Fichier unitaire à la racine
+          groupName = item.filename.replace(/\.md$/i, "");
+        }
+        if (!groups[groupName]) groups[groupName] = [];
+        groups[groupName].push({
+          filename: item.filename,
+          content: item.content,
+          relativePath: item.path,
+        });
+      }
+
+      const nextPacks: StagedPack[] = [];
+      for (const [folderName, files] of Object.entries(groups)) {
+        const parsed = parseLevelPack(files, folderName);
+        nextPacks.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          folderName,
+          files,
+          parsed,
+        });
+      }
+
+      setStagedPacks((prev) => [...prev, ...nextPacks]);
+
+      toast({
+        title: isFR ? "Packs analysés" : "Packs parsed",
+        description: isFR
+          ? `${nextPacks.length} dossier(s) / pack(s) prêt(s) pour validation.`
+          : `${nextPacks.length} pack(s) ready for validation.`,
+      });
+    } catch (err) {
+      console.error("[AdminUserReports] processFilesIntoPacks error", err);
+      toast({
+        title: isFR ? "Erreur d'analyse" : "Parsing error",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
       });
     }
-
-    const nextPacks: StagedPack[] = [];
-    for (const [folderName, files] of Object.entries(groups)) {
-      const parsed = parseLevelPack(files, folderName);
-      nextPacks.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        folderName,
-        files,
-        parsed,
-      });
-    }
-
-    setStagedPacks((prev) => [...prev, ...nextPacks]);
   };
 
   /**
@@ -218,14 +273,8 @@ export default function AdminUserReports() {
       }
 
       await processFilesIntoPacks(items);
-      toast({
-        title: isFR ? "Archive ZIP analysée" : "ZIP archive parsed",
-        description: isFR
-          ? `${items.length} fichier(s) markdown détecté(s).`
-          : `${items.length} markdown file(s) found.`,
-      });
     } catch (err) {
-      console.error(err);
+      console.error("[AdminUserReports] handleZipFile error", err);
       toast({
         title: isFR ? "Erreur ZIP" : "ZIP Error",
         description: isFR ? "Impossible de lire l'archive ZIP." : "Failed to parse ZIP archive.",
@@ -240,70 +289,88 @@ export default function AdminUserReports() {
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (!targetUserId) return;
 
-    const dt = e.dataTransfer;
-    const items = dt.items;
+    try {
+      const dt = e.dataTransfer;
+      const items = dt.items;
 
-    if (items && items.length > 0) {
-      const rawEntries: Array<{ filename: string; path: string; file: File }> = [];
+      if (items && items.length > 0) {
+        const rawEntries: Array<{ filename: string; path: string; file: File }> = [];
 
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item.kind === "file") {
-          const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
-          if (entry) {
-            const nested = await readEntryRecursively(entry);
-            rawEntries.push(...nested);
-          } else {
-            const f = item.getAsFile();
-            if (f) rawEntries.push({ filename: f.name, path: f.name, file: f });
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.kind === "file") {
+            const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+            if (entry) {
+              const nested = await readEntryRecursively(entry);
+              rawEntries.push(...nested);
+            } else {
+              const f = item.getAsFile();
+              if (f) rawEntries.push({ filename: f.name, path: f.name, file: f });
+            }
           }
         }
-      }
 
-      // Traiter les archives ZIP séparément
-      const zipEntries = rawEntries.filter((e) => /\.zip$/i.test(e.filename));
-      for (const z of zipEntries) {
-        await handleZipFile(z.file);
-      }
+        // Traiter les archives ZIP séparément
+        const zipEntries = rawEntries.filter((e) => /\.zip$/i.test(e.filename));
+        for (const z of zipEntries) {
+          await handleZipFile(z.file);
+        }
 
-      // Traiter les .md
-      const textPromises = rawEntries
-        .filter((e) => /\.md$/i.test(e.filename))
-        .map(async (e) => ({
-          filename: e.filename,
-          path: e.path,
-          content: await e.file.text(),
-        }));
+        // Traiter les .md
+        const textPromises = rawEntries
+          .filter((e) => /\.md$/i.test(e.filename))
+          .map(async (e) => ({
+            filename: e.filename,
+            path: e.path,
+            content: await e.file.text(),
+          }));
 
-      const resolved = await Promise.all(textPromises);
-      if (resolved.length > 0) {
-        await processFilesIntoPacks(resolved);
+        const resolved = await Promise.all(textPromises);
+        if (resolved.length > 0) {
+          await processFilesIntoPacks(resolved);
+        }
+      } else if (dt.files && dt.files.length > 0) {
+        await handleStandardFiles(dt.files);
       }
-    } else if (dt.files && dt.files.length > 0) {
-      void handleStandardFiles(dt.files);
+    } catch (err) {
+      console.error("[AdminUserReports] handleDrop error", err);
+      toast({
+        title: isFR ? "Erreur de lecture" : "Read error",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
     }
   };
 
   /**
-   * File input standard
+   * File input standard (sélection de fichiers ou dossiers)
    */
   const handleStandardFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0 || !targetUserId) return;
-    const items: Array<{ filename: string; path: string; content: string }> = [];
+    if (!files || files.length === 0) return;
+    try {
+      const items: Array<{ filename: string; path: string; content: string }> = [];
 
-    for (const f of Array.from(files)) {
-      if (/\.zip$/i.test(f.name)) {
-        await handleZipFile(f);
-      } else if (/\.md$/i.test(f.name)) {
-        const content = await f.text();
-        items.push({ filename: f.name, path: f.name, content });
+      for (const f of Array.from(files)) {
+        if (/\.zip$/i.test(f.name)) {
+          await handleZipFile(f);
+        } else if (/\.md$/i.test(f.name)) {
+          const content = await f.text();
+          const relativePath = (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name;
+          items.push({ filename: f.name, path: relativePath, content });
+        }
       }
-    }
 
-    if (items.length > 0) {
-      await processFilesIntoPacks(items);
+      if (items.length > 0) {
+        await processFilesIntoPacks(items);
+      }
+    } catch (err) {
+      console.error("[AdminUserReports] handleStandardFiles error", err);
+      toast({
+        title: isFR ? "Erreur de lecture" : "Read error",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
     }
   };
 
@@ -311,7 +378,16 @@ export default function AdminUserReports() {
    * Confirmation & Envoi en base Supabase
    */
   const confirmImport = async () => {
-    if (!targetUserId || stagedPacks.length === 0) return;
+    if (!targetUserId) {
+      toast({
+        title: isFR ? "Membre manquant" : "Member missing",
+        description: isFR ? "Veuillez sélectionner un membre à l'étape 1 avant de publier." : "Please select a member before publishing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (stagedPacks.length === 0) return;
+
     setImporting(true);
     let ok = 0;
     let fail = 0;
@@ -323,56 +399,69 @@ export default function AdminUserReports() {
           // Import V3.2 Pack enrichi
           await importUserReportV3Pack({
             userId: targetUserId,
-            title: p.title,
-            glyph: p.glyph,
-            tier: String(p.level),
-            orientation: p.scope === "intra" ? "Intra-Prisme" : "Trans-Prisme",
-            level: p.level,
-            levelCode: p.levelCode,
-            prismCode: p.prismCode,
-            scope: p.scope,
-            hasSafeguard: p.hasSafeguard,
-            packFiles: p.packFiles,
-            metadata: p.metadata,
-            tags: [p.levelCode, p.prismCode],
+            title: p.title || "Diagnostic Clinique",
+            glyph: p.glyph || "⚖️",
+            tier: String(p.level ?? 0),
+            orientation: (p.scope || "intra") === "intra" ? "Intra-Prisme" : "Trans-Prisme",
+            level: p.level ?? 0,
+            levelCode: p.levelCode || "LEVEL_0",
+            prismCode: p.prismCode || "MYSS",
+            scope: p.scope || "intra",
+            hasSafeguard: Boolean(p.hasSafeguard),
+            packFiles: p.packFiles || { rapport_md: "" },
+            metadata: p.metadata || {},
+            tags: [p.levelCode || "LEVEL_0", p.prismCode || "MYSS"],
             importedBy: user?.id ?? null,
           });
         } else {
           // Mode Legacy monocanal
           await importUserReport({
             userId: targetUserId,
-            filename: staged.files[0]?.filename || `${p.levelCode}.md`,
-            contentMd: p.packFiles.rapport_md,
+            filename: staged.files[0]?.filename || `${p.levelCode || "LEVEL_0"}.md`,
+            contentMd: p.packFiles.rapport_md || "",
             importedBy: user?.id ?? null,
           });
         }
         ok++;
       } catch (err) {
-        console.error("[AdminUserReports] import failed", staged.folderName, err);
+        console.error("[AdminUserReports] import row error", err);
         fail++;
       }
     }
 
     setImporting(false);
     setStagedPacks([]);
-    toast({
-      title: isFR ? "Publication effectuée" : "Reports published",
-      description: isFR
-        ? `${ok} pack(s) clinique(s) publié(s) pour le membre${fail ? `, ${fail} échec(s)` : ""}.`
-        : `${ok} clinical pack(s) published${fail ? `, ${fail} failed` : ""}.`,
-    });
     await refresh();
+
+    if (ok > 0) {
+      toast({
+        title: isFR ? "Importation réussie" : "Import successful",
+        description: isFR
+          ? `${ok} dossier(s) clinique(s) publié(s) pour le membre.`
+          : `${ok} report(s) published.`,
+      });
+    }
+    if (fail > 0) {
+      toast({
+        title: isFR ? "Avertissement" : "Warning",
+        description: isFR ? `${fail} dossier(s) n'ont pas pu être importés.` : `${fail} dossier(s) failed.`,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(isFR ? "Supprimer ce rapport ?" : "Delete this report?")) return;
+    if (!window.confirm(isFR ? "Supprimer ce dossier clinique ?" : "Delete this clinical report?")) {
+      return;
+    }
     try {
       await deleteUserReport(id);
-      await refresh();
       toast({
-        title: isFR ? "Rapport supprimé" : "Report deleted",
+        title: isFR ? "Dossier supprimé" : "Report deleted",
       });
+      await refresh();
     } catch (e) {
+      console.error("[AdminUserReports] delete failed", e);
       toast({
         title: isFR ? "Erreur" : "Error",
         description: e instanceof Error ? e.message : String(e),
@@ -398,24 +487,43 @@ export default function AdminUserReports() {
         </h2>
         <p className="max-w-2xl text-sm text-muted-foreground">
           {isFR
-            ? "Dépose un dossier de niveau (ex: LEVEL_2/) ou un fichier .ZIP contenant les 5 fichiers standardisés. Le système valide automatiquement les quotas, le safeguard et compile les graphes Mermaid."
-            : "Drop a level folder (e.g. LEVEL_2/) or a .ZIP file containing the 5 standardized files. The system checks quotas, safeguards and compiles Mermaid diagrams."}
+            ? "Dépose un dossier de niveau (ex: LEVEL_2/ ou ⚖️ BALANCE/), une archive .ZIP ou des fichiers .MD. Le système valide automatiquement les quotas, le safeguard et compile les graphes Mermaid."
+            : "Drop a level folder (e.g. LEVEL_2/ or ⚖️ BALANCE/), a .ZIP archive or .MD files. The system checks quotas, safeguards and compiles Mermaid diagrams."}
         </p>
       </header>
 
       {/* SÉLECTEUR MEMBRE & ZONE DE DROP */}
       <div className="rounded-2xl border border-border/30 bg-card/40 p-5 space-y-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-display">
-            {isFR ? "Membre / Patient Cible" : "Target Member / Patient"}
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-display">
+              {isFR ? "1. Membre / Patient Cible" : "1. Target Member / Patient"}
+            </p>
+            {targetUserId ? (
+              <span className="text-[11px] text-emerald-400 font-display uppercase tracking-wider flex items-center gap-1">
+                <Check size={12} />
+                {isFR ? "Membre sélectionné" : "Member selected"}
+              </span>
+            ) : (
+              <span className="text-[11px] text-amber-400 font-display uppercase tracking-wider">
+                {isFR ? "Sélection requise pour publier" : "Selection required to publish"}
+              </span>
+            )}
+          </div>
           <UserPicker
             selected={selectedIds}
             onChange={(ids) => setSelectedIds(ids.slice(-1))}
           />
         </div>
 
-        {targetUserId ? (
+        {/* DROPZONE UNIVERSELLE : TOUJOURS ACCESSIBLE */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-display">
+              {isFR ? "2. Fichiers Cliniques & Dossiers" : "2. Clinical Files & Dossiers"}
+            </p>
+          </div>
+
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -439,22 +547,22 @@ export default function AdminUserReports() {
             <div className="space-y-1">
               <p className="text-base font-medium text-foreground">
                 {isFR
-                  ? "Glisse un dossier LEVEL_X, une archive .ZIP ou des fichiers .MD"
-                  : "Drop a LEVEL_X folder, .ZIP archive or .MD files"}
+                  ? "Glisse un dossier LEVEL_X, un dossier Myss, une archive .ZIP ou des .MD"
+                  : "Drop a LEVEL_X folder, Myss folder, .ZIP archive or .MD files"}
               </p>
               <p className="text-xs text-muted-foreground max-w-md mx-auto">
                 {isFR
-                  ? "Reconnaissance automatique : 00_RAPPORT, 01_RESUME, 02_BULLET_POINTS, 03_GRAPHIQUE, 04_PROMPT_AI."
-                  : "Automatic detection of all 5 clinical files and epistemic safeguards."}
+                  ? "Détection universelle : packs 5 fichiers V3.2, cartographies d'archétypes Myss, ou diagnostics unitaires."
+                  : "Universal support: V3.2 5-file packs, Myss archetype cartography, or individual diagnostics."}
               </p>
             </div>
 
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-3 mt-2 flex-wrap justify-center">
               <label className="cursor-pointer">
                 <Button variant="outline" size="sm" asChild className="gap-2 text-xs">
                   <span>
                     <Upload size={14} />
-                    {isFR ? "Parcourir des fichiers / ZIP" : "Browse files / ZIP"}
+                    {isFR ? "Fichiers .MD ou .ZIP" : "MD or ZIP Files"}
                   </span>
                 </Button>
                 <input
@@ -468,17 +576,34 @@ export default function AdminUserReports() {
                   }}
                 />
               </label>
+
+              <label className="cursor-pointer">
+                <Button variant="outline" size="sm" asChild className="gap-2 text-xs">
+                  <span>
+                    <Folder size={14} />
+                    {isFR ? "Sélectionner un dossier" : "Select folder"}
+                  </span>
+                </Button>
+                <input
+                  type="file"
+                  // @ts-expect-error webkitdirectory
+                  webkitdirectory=""
+                  directory=""
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    void handleStandardFiles(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
             </div>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            {isFR ? "Sélectionne un utilisateur pour activer l'ingestion." : "Pick a user to activate ingestion."}
-          </p>
-        )}
+        </div>
       </div>
 
       {/* TABLEAU DE STAGING V3.2 AVEC BADGES DE CONFORMITÉ */}
-      {targetUserId && stagedPacks.length > 0 ? (
+      {stagedPacks.length > 0 ? (
         <div className="rounded-2xl border border-primary/40 bg-gradient-to-b from-primary/10 to-transparent p-5 space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap border-b border-primary/20 pb-3">
             <div>
@@ -509,7 +634,7 @@ export default function AdminUserReports() {
               <Button
                 size="sm"
                 onClick={() => void confirmImport()}
-                disabled={importing}
+                disabled={importing || !targetUserId}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs shadow-md"
               >
                 {importing ? (
@@ -517,21 +642,32 @@ export default function AdminUserReports() {
                 ) : (
                   <Check size={14} className="mr-1.5" />
                 )}
-                {isFR
-                  ? `Publier pour le membre (${stagedPacks.length})`
-                  : `Publish to member (${stagedPacks.length})`}
+                {targetUserId
+                  ? isFR
+                    ? `Publier pour le membre (${stagedPacks.length})`
+                    : `Publish to member (${stagedPacks.length})`
+                  : isFR
+                    ? "Sélectionner un membre pour publier"
+                    : "Select a member to publish"}
               </Button>
             </div>
           </div>
+
+          {!targetUserId && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 flex items-center gap-2">
+              <AlertTriangle size={15} className="text-amber-400 shrink-0" />
+              <span>
+                {isFR
+                  ? "Attention : Choisis un membre à l'étape 1 ci-dessus pour activer le bouton de publication."
+                  : "Note: Pick a member above in step 1 to enable the publish button."}
+              </span>
+            </div>
+          )}
 
           <div className="space-y-3">
             {stagedPacks.map((staged, idx) => {
               const p = staged.parsed;
               const preview = stagedPackToUserReport(staged, targetUserId);
-              const filesCount = staged.files.length;
-              const has5Files =
-                filesCount >= 5 ||
-                Boolean(p.packFiles.resume_md && p.packFiles.bullet_points_md && p.packFiles.graphique_md && p.packFiles.prompt_ai_md);
 
               return (
                 <div
@@ -541,15 +677,15 @@ export default function AdminUserReports() {
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-xl">
-                        {p.glyph}
+                        {p.glyph || "⚖️"}
                       </span>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge className="bg-primary/20 text-primary border-primary/40 text-[10px] uppercase font-display">
-                            {p.levelCode} · {p.scope.toUpperCase()}
+                            {p.levelCode || "LEVEL_0"} · {(p.scope || "intra").toUpperCase()}
                           </Badge>
                           <Badge variant="outline" className="border-white/15 text-[10px] uppercase font-display">
-                            PRISME {p.prismCode}
+                            PRISME {p.prismCode || "MYSS"}
                           </Badge>
                           {p.hasSafeguard ? (
                             <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/30 text-[10px] uppercase font-display flex items-center gap-1">
@@ -564,7 +700,7 @@ export default function AdminUserReports() {
                           )}
                         </div>
                         <h4 className="font-cormorant-display text-xl text-foreground font-medium mt-1">
-                          {p.title}
+                          {p.title || "Diagnostic Clinique"}
                         </h4>
                       </div>
                     </div>
@@ -594,29 +730,29 @@ export default function AdminUserReports() {
 
                   {/* Badges de contrôle des 5 fichiers */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-white/5 text-[11px]">
-                    <div className={cn("p-2 rounded-lg border", p.packFiles.rapport_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-red-500/30 bg-red-500/5 text-red-300")}>
+                    <div className={cn("p-2 rounded-lg border", p.packFiles?.rapport_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-red-500/30 bg-red-500/5 text-red-300")}>
                       <span className="block font-display text-[9px] uppercase tracking-wider text-muted-foreground">00. Rapport</span>
-                      <span>{p.packFiles.rapport_md ? "✓ Présent" : "✗ Manquant"}</span>
+                      <span>{p.packFiles?.rapport_md ? "✓ Présent" : "✗ Manquant"}</span>
                     </div>
 
-                    <div className={cn("p-2 rounded-lg border", p.packFiles.resume_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-white/10 bg-white/5 text-muted-foreground")}>
+                    <div className={cn("p-2 rounded-lg border", p.packFiles?.resume_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-white/10 bg-white/5 text-muted-foreground")}>
                       <span className="block font-display text-[9px] uppercase tracking-wider text-muted-foreground">01. Synthèse</span>
-                      <span>{p.packFiles.resume_md ? "✓ Présent" : "Optionnel"}</span>
+                      <span>{p.packFiles?.resume_md ? "✓ Présent" : "Optionnel"}</span>
                     </div>
 
-                    <div className={cn("p-2 rounded-lg border", p.packFiles.bullet_points_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-white/10 bg-white/5 text-muted-foreground")}>
+                    <div className={cn("p-2 rounded-lg border", p.packFiles?.bullet_points_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-white/10 bg-white/5 text-muted-foreground")}>
                       <span className="block font-display text-[9px] uppercase tracking-wider text-muted-foreground">02. Leviers</span>
-                      <span>{p.packFiles.bullet_points_md ? "✓ Présent" : "Optionnel"}</span>
+                      <span>{p.packFiles?.bullet_points_md ? "✓ Présent" : "Optionnel"}</span>
                     </div>
 
-                    <div className={cn("p-2 rounded-lg border", p.packFiles.graphique_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-white/10 bg-white/5 text-muted-foreground")}>
+                    <div className={cn("p-2 rounded-lg border", p.packFiles?.graphique_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-white/10 bg-white/5 text-muted-foreground")}>
                       <span className="block font-display text-[9px] uppercase tracking-wider text-muted-foreground">03. Graphes</span>
-                      <span>{p.metadata.detected_diagrams_count ? `✓ ${p.metadata.detected_diagrams_count} diagramme(s)` : "Optionnel"}</span>
+                      <span>{(p.metadata?.detected_diagrams_count ?? 0) > 0 ? `✓ ${p.metadata?.detected_diagrams_count} diagramme(s)` : "Optionnel"}</span>
                     </div>
 
-                    <div className={cn("p-2 rounded-lg border", p.packFiles.prompt_ai_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-white/10 bg-white/5 text-muted-foreground")}>
+                    <div className={cn("p-2 rounded-lg border", p.packFiles?.prompt_ai_md ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300" : "border-white/10 bg-white/5 text-muted-foreground")}>
                       <span className="block font-display text-[9px] uppercase tracking-wider text-muted-foreground">04. Prompt IA</span>
-                      <span>{p.packFiles.prompt_ai_md ? `✓ ~${p.metadata.estimated_tokens} tok.` : "Optionnel"}</span>
+                      <span>{p.packFiles?.prompt_ai_md ? `✓ ~${p.metadata?.estimated_tokens ?? 0} tok.` : "Optionnel"}</span>
                     </div>
                   </div>
 
@@ -624,20 +760,20 @@ export default function AdminUserReports() {
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
                     <span>
                       {isFR ? "Volume total :" : "Total chars:"}{" "}
-                      <strong className={p.quotaCheck.passed ? "text-emerald-400" : "text-amber-400"}>
-                        {p.quotaCheck.actualChars.toLocaleString(isFR ? "fr-FR" : "en-US")}
+                      <strong className={p.quotaCheck?.passed ? "text-emerald-400" : "text-amber-400"}>
+                        {(p.quotaCheck?.actualChars ?? 0).toLocaleString(isFR ? "fr-FR" : "en-US")}
                       </strong>{" "}
-                      / {p.quotaCheck.requiredMinChars.toLocaleString(isFR ? "fr-FR" : "en-US")} car. min
+                      / {(p.quotaCheck?.requiredMinChars ?? 20000).toLocaleString(isFR ? "fr-FR" : "en-US")} car. min
                     </span>
 
                     <span>
-                      {p.sectionPairs.length} section(s) miroir détectée(s)
+                      {(p.sectionPairs || []).length} section(s) miroir détectée(s)
                     </span>
                   </div>
 
-                  {p.warnings.length > 0 ? (
+                  {(p.warnings || []).length > 0 ? (
                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 text-xs text-amber-200/90 space-y-1">
-                      {p.warnings.map((w, wi) => (
+                      {(p.warnings || []).map((w, wi) => (
                         <p key={wi} className="flex items-center gap-1.5">
                           <AlertTriangle size={13} className="shrink-0 text-amber-400" />
                           {w}
@@ -681,7 +817,7 @@ export default function AdminUserReports() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
                         <p className="text-base text-foreground font-cormorant-display font-medium truncate">
-                          {r.title}
+                          {r.title || "Diagnostic Clinique"}
                         </p>
                         {levelCode && (
                           <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary text-[9px] uppercase px-1.5 py-0">
@@ -701,7 +837,7 @@ export default function AdminUserReports() {
                       </div>
 
                       <p className="text-[11px] text-muted-foreground uppercase tracking-[0.12em]">
-                        {r.slug} · {new Date(r.updated_at).toLocaleDateString(isFR ? "fr-FR" : "en-US", { day: "2-digit", month: "short", year: "numeric" })}
+                        {r.slug || "dossier"} · {formatDateSafe(r.updated_at || r.created_at, isFR ? "fr" : "en")}
                         {r.orientation ? ` · ${r.orientation}` : ""}
                       </p>
                     </div>
@@ -755,5 +891,64 @@ export default function AdminUserReports() {
         }}
       />
     </div>
+  );
+}
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class AdminUserReportsErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: unknown) {
+    console.error("[AdminUserReportsErrorBoundary] caught error:", error, errorInfo);
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="mx-auto w-full max-w-3xl rounded-2xl border border-destructive/40 bg-destructive/10 p-6 space-y-4 my-8 text-center">
+          <div className="flex justify-center text-destructive">
+            <AlertTriangle size={36} />
+          </div>
+          <h3 className="font-cormorant-display text-2xl text-foreground font-medium">
+            Une erreur est survenue lors du chargement des rapports
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            {this.state.error?.message || "Erreur inattendue dans l'interface de gestion."}
+          </p>
+          <Button onClick={this.handleReset} variant="outline" className="gap-2">
+            <RotateCcw size={15} />
+            Réinitialiser le module
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function AdminUserReports() {
+  return (
+    <AdminUserReportsErrorBoundary>
+      <AdminUserReportsView />
+    </AdminUserReportsErrorBoundary>
   );
 }

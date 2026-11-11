@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import AdminHubShell from "@/components/admin/AdminHubShell";
+import { AppRouteErrorBoundary } from "@/components/AppRouteErrorBoundary";
 
 const DeepDiveSampleReport = lazy(
   () => import("@/features/archetype-deepdive-v2/pages/DeepDiveSampleReport"),
@@ -22,24 +23,32 @@ export default function AdminDeepDiveHub() {
       pathname="/admin/deep-dive"
       panels={{
         report: (
-          <Suspense fallback={<HubPanelLoader />}>
-            <DeepDiveSampleReport />
-          </Suspense>
+          <AppRouteErrorBoundary label="admin-deep-dive-report">
+            <Suspense fallback={<HubPanelLoader />}>
+              <DeepDiveSampleReport />
+            </Suspense>
+          </AppRouteErrorBoundary>
         ),
         scores: (
-          <Suspense fallback={<HubPanelLoader />}>
-            <AdminDeepDive />
-          </Suspense>
+          <AppRouteErrorBoundary label="admin-deep-dive-scores">
+            <Suspense fallback={<HubPanelLoader />}>
+              <AdminDeepDive />
+            </Suspense>
+          </AppRouteErrorBoundary>
         ),
         reportV2: (
-          <Suspense fallback={<HubPanelLoader />}>
-            <AdminDeepDiveV2 />
-          </Suspense>
+          <AppRouteErrorBoundary label="admin-deep-dive-report-v2">
+            <Suspense fallback={<HubPanelLoader />}>
+              <AdminDeepDiveV2 />
+            </Suspense>
+          </AppRouteErrorBoundary>
         ),
         userReports: (
-          <Suspense fallback={<HubPanelLoader />}>
-            <AdminUserReports />
-          </Suspense>
+          <AppRouteErrorBoundary label="admin-deep-dive-user-reports">
+            <Suspense fallback={<HubPanelLoader />}>
+              <AdminUserReports />
+            </Suspense>
+          </AppRouteErrorBoundary>
         ),
       }}
     />

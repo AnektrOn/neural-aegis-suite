@@ -129,13 +129,29 @@ Extended English text...`,
 
   it("handles legacy Myss folder files without crashing", () => {
     const files = [
-      { filename: "00-Cartographie-Integrale-Myss.md", content: "# Cartographie Integrale" },
-      { filename: "GLOBAL-MYSS-ANALYSE.md", content: "# Global Myss" },
-      { filename: "P01·ARC-12-MAISONS.md", content: "# P01 Maisons" },
+      { filename: "00-Cartographie-Integrale-Myss.md", content: "# Cartographie Integrale\nContenu 00" },
+      { filename: "GLOBAL-MYSS-ANALYSE-BALANCE.md", content: "# Global Myss\n```mermaid\ngraph TD\nA-->B\n```" },
+      { filename: "P01·ARC-1·⚖️-BALANCE.md", content: "# P01 Maisons\nActions et leviers" },
+      { filename: "P02·ARC-2·⚖️-BALANCE.md", content: "# P02\nActions" },
     ];
 
-    const result = parseLevelPack(files, "Myss");
-    expect(result.sectionPairs).toBeDefined();
-    expect(result.packFiles).toBeDefined();
+    const result = parseLevelPack(files, "⚖️ BALANCE");
+    expect(result.valid).toBe(true);
+    expect(result.packFiles.rapport_md).toContain("Cartographie Integrale");
+    expect(result.packFiles.resume_md).toContain("Global Myss");
+    expect(result.packFiles.graphique_md).toContain("```mermaid");
+    expect(result.metadata.detected_diagrams_count).toBe(1);
+  });
+
+  it("falls back to largest file if no 00 or rapport prefix exists", () => {
+    const files = [
+      { filename: "notes.md", content: "Short note" },
+      { filename: "analytique-dense.md", content: "# Grand Rapport Clinique\n".repeat(50) },
+    ];
+
+    const result = parseLevelPack(files, "DOSSIER_AUTONOME");
+    expect(result.valid).toBe(true);
+    expect(result.packFiles.rapport_md).toContain("Grand Rapport Clinique");
+    expect(result.warnings.some((w) => w.includes("analytique-dense.md"))).toBe(true);
   });
 });

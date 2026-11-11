@@ -2,14 +2,14 @@ import { supabase } from "@/integrations/supabase/client";
 import type { UserReport, UserReportV3PackFiles, UserReportMetadata } from "./types";
 import { parseFrontmatter } from "./parseReportMd";
 
-export function slugify(input: string): string {
-  return input
+export function slugify(input?: string | null): string {
+  return String(input || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
+    .slice(0, 80) || "report";
 }
 
 export async function listUserReports(userId: string): Promise<UserReport[]> {
@@ -76,31 +76,35 @@ export interface ImportUserReportV3PackInput {
 }
 
 export async function importUserReportV3Pack(input: ImportUserReportV3PackInput): Promise<UserReport> {
-  const slug = input.slug || slugify(`${input.levelCode}-${input.title}`);
+  const safeLevelCode = input.levelCode || `LEVEL_${input.level ?? 0}`;
+  const safeTitle = input.title || "Diagnostic Clinique";
+  const slug = input.slug || slugify(`${safeLevelCode}-${safeTitle}-${Date.now()}`);
   const tags = input.tags ?? [];
-  if (input.levelCode && !tags.includes(input.levelCode)) {
-    tags.push(input.levelCode);
+  if (safeLevelCode && !tags.includes(safeLevelCode)) {
+    tags.push(safeLevelCode);
   }
   if (input.prismCode && !tags.includes(input.prismCode)) {
     tags.push(input.prismCode);
   }
 
+  const safeScope = input.scope === "trans" ? "trans" : "intra";
+
   const row = {
     user_id: input.userId,
     slug,
-    title: input.title,
-    glyph: input.glyph ?? "🛡️",
-    tier: input.tier ?? String(input.level),
-    orientation: input.orientation ?? (input.scope === "intra" ? "Intra-Prisme" : "Trans-Prisme"),
+    title: safeTitle,
+    glyph: input.glyph ?? "⚖️",
+    tier: input.tier ?? String(input.level ?? 0),
+    orientation: input.orientation ?? (safeScope === "intra" ? "Intra-Prisme" : "Trans-Prisme"),
     tags,
-    content_md: input.packFiles.rapport_md, // Guaranteed fallback for legacy readers
+    content_md: input.packFiles?.rapport_md || "", // Guaranteed fallback for legacy readers & NOT NULL constraint
     imported_by: input.importedBy ?? null,
-    level: input.level,
-    level_code: input.levelCode,
+    level: typeof input.level === "number" && !isNaN(input.level) ? input.level : 0,
+    level_code: safeLevelCode,
     prism_code: input.prismCode ?? null,
-    scope: input.scope,
-    has_safeguard: input.hasSafeguard,
-    pack_files: input.packFiles,
+    scope: safeScope,
+    has_safeguard: Boolean(input.hasSafeguard),
+    pack_files: input.packFiles || { rapport_md: "" },
     metadata: input.metadata ?? {},
     read_at: null, // Unread by default for client notification
   };

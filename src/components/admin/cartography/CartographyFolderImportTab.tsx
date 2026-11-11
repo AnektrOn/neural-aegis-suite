@@ -82,6 +82,13 @@ export default function CartographyFolderImportTab({
       setLoadingPreview(true);
       try {
         setPreview(previewCartographyFolder(entries, { mode: importMode }));
+      } catch (err) {
+        console.error("[CartographyFolderImportTab] preview error", err);
+        toast({
+          title: isFR ? "Erreur d'analyse" : "Preview error",
+          description: err instanceof Error ? err.message : String(err),
+          variant: "destructive",
+        });
       } finally {
         setLoadingPreview(false);
       }

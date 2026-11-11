@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useAegisMotion } from "@/hooks/useAegisMotion";
-import { ArrowRight, Mic } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { ArrowRight, Languages, Mic } from "lucide-react";
 import aegisLogo from "@/assets/aegis-logo.png";
 import { WelcomeQuantumNebula } from "./WelcomeQuantumNebula";
 
@@ -18,10 +19,13 @@ export function WelcomeHudScreen({
   onVoiceAgent,
 }: WelcomeHudScreenProps) {
   const { fadeUp } = useAegisMotion();
+  const { locale, setLocale } = useLanguage();
 
   const title = firstName
     ? t("welcome.hud.title", { name: firstName })
     : t("welcome.hud.titleNoName");
+
+  const toggleLanguage = () => setLocale(locale === "fr" ? "en" : "fr");
 
   return (
     <div className="welcome-hud relative flex min-h-[100dvh] flex-col overflow-hidden">
@@ -29,6 +33,20 @@ export function WelcomeHudScreen({
       <div className="welcome-hud-bg" aria-hidden />
 
       <div className="relative z-10 flex min-h-[100dvh] w-full flex-col items-center px-5 sm:px-6">
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          aria-label={locale === "fr" ? "Switch to English" : "Passer en Français"}
+          title={locale === "fr" ? "Switch to English" : "Passer en Français"}
+          className="pointer-events-auto absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-20 inline-flex h-11 min-w-[50px] items-center justify-center gap-1.5 rounded-xl border border-border/25 bg-background/40 px-2 text-muted-foreground/80 backdrop-blur-[14px] transition-colors hover:bg-background/55 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:right-6"
+          style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
+        >
+          <Languages size={15} strokeWidth={1.5} aria-hidden />
+          <span className="font-cinzel text-[11px] font-bold uppercase tracking-wider text-foreground">
+            {locale}
+          </span>
+        </button>
+
         <header className="flex w-full max-w-md flex-col items-center pt-[max(1.5rem,env(safe-area-inset-top))]">
           <img
             src={aegisLogo}
