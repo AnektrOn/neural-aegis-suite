@@ -2,6 +2,15 @@ export type Locale = "fr" | "en";
 
 export const translations = {
   // Navigation
+  "nav.welcome": { fr: "Bienvenue", en: "Welcome" },
+  "nav.topDockExpand": {
+    fr: "Ouvrir les actions rapides",
+    en: "Open quick actions",
+  },
+  "nav.topDockCollapse": {
+    fr: "Réduire les actions rapides",
+    en: "Collapse quick actions",
+  },
   "nav.dashboard": { fr: "Tableau de bord", en: "Dashboard" },
   "nav.progressEvolution": { fr: "Évolution Myss", en: "Myss Evolution" },
   "nav.mood": { fr: "Humeur", en: "Mood" },

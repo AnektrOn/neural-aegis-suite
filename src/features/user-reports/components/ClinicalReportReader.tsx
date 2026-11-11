@@ -24,7 +24,7 @@ import {
   Columns,
   ChevronUp,
 } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -71,6 +71,13 @@ export function ClinicalReportReader({
   const bulletPointsMd = report?.pack_files?.bullet_points_md || "";
   const graphiqueMd = report?.pack_files?.graphique_md || "";
   const promptAiMd = report?.pack_files?.prompt_ai_md || "";
+
+  // Détection des diagrammes (fichier dédié ou extrait du rapport)
+  const effectiveDiagramMd = useMemo(() => {
+    if (graphiqueMd) return graphiqueMd;
+    if (rawRapportMd.includes("```mermaid")) return rawRapportMd;
+    return "";
+  }, [graphiqueMd, rawRapportMd]);
 
   // Analyse et découpage miroir des sections
   const { sectionPairs, safeguardSection, cleanFr, cleanEn } = useMemo(() => {
@@ -169,6 +176,11 @@ export function ClinicalReportReader({
             : "max-w-6xl w-[95vw] h-[92vh] max-h-[94vh] rounded-2xl overflow-hidden flex flex-col",
         )}
       >
+        <DialogTitle className="sr-only">{report.title || "Rapport Clinique"}</DialogTitle>
+        <DialogDescription className="sr-only">
+          {levelLabel} · {prismLabel} · AEGIS V3.2
+        </DialogDescription>
+
         {/* Glow atmosphérique arrière-plan */}
         <div
           aria-hidden
@@ -344,7 +356,7 @@ export function ClinicalReportReader({
 
                   <TabsTrigger
                     value="visuals"
-                    disabled={!graphiqueMd && !rawRapportMd.includes("```mermaid")}
+                    disabled={!effectiveDiagramMd}
                     className="data-[state=active]:bg-white/10 text-xs font-display tracking-wider uppercase gap-1.5 py-1.5 px-3 disabled:opacity-40"
                   >
                     <BarChart3 size={14} className="text-cyan-400" />
@@ -649,10 +661,10 @@ export function ClinicalReportReader({
                   className="space-y-8 transition-transform duration-150 origin-top"
                   style={{ transform: `scale(${diagramScale})` }}
                 >
-                  {graphiqueMd ? (
+                  {effectiveDiagramMd ? (
                     <div className="space-y-6">
                       {/* Extraction des blocs mermaid */}
-                      {graphiqueMd.split(/```\s*mermaid/gi).map((part, idx) => {
+                      {effectiveDiagramMd.split(/```\s*mermaid/gi).map((part, idx) => {
                         if (idx === 0) {
                           // Texte précédant le 1er mermaid
                           return part.trim() ? (

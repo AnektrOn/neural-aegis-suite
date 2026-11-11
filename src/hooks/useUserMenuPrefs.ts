@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/use-admin";
 import type { Json } from "@/integrations/supabase/types";
 import {
+  applyMemberOverflowBaseline,
   cacheUserMenuPrefs,
+  MEMBER_OVERFLOW_BASELINE,
   normalizeUserMenuPrefs,
   parseStoredMenuPrefs,
   readCachedUserMenuPrefs,
@@ -13,10 +16,11 @@ import {
 
 export function useUserMenuPrefs() {
   const { user } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const [prefs, setPrefs] = useState<UserMenuPrefsV2>(() => readCachedUserMenuPrefs());
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (!user || adminLoading) return;
     const { data, error } = await supabase
       .from("profiles")
       .select("mobile_radial_menu, sidebar_items")
@@ -24,10 +28,16 @@ export function useUserMenuPrefs() {
       .maybeSingle();
     if (error) return;
     const row = data as { mobile_radial_menu?: unknown; sidebar_items?: unknown } | null;
-    const next = parseStoredMenuPrefs(row?.mobile_radial_menu, row?.sidebar_items);
+    const parsed = parseStoredMenuPrefs(row?.mobile_radial_menu, row?.sidebar_items);
+    const { prefs: next, migrated } = applyMemberOverflowBaseline(parsed, isAdmin);
     cacheUserMenuPrefs(next);
     setPrefs(next);
-  }, [user]);
+    if (!migrated) return;
+    await supabase
+      .from("profiles")
+      .update({ mobile_radial_menu: next as unknown as Json })
+      .eq("id", user.id);
+  }, [user, isAdmin, adminLoading]);
 
   useEffect(() => {
     void load();
@@ -41,7 +51,10 @@ export function useUserMenuPrefs() {
 
   const savePrefs = useCallback(
     async (next: UserMenuPrefsV2) => {
-      const normalized = normalizeUserMenuPrefs(next);
+      const normalized = normalizeUserMenuPrefs({
+        ...next,
+        overflowBaseline: MEMBER_OVERFLOW_BASELINE,
+      });
       if (!user) throw new Error("Not signed in");
       const { error } = await supabase
         .from("profiles")

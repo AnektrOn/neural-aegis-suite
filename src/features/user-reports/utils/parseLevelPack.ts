@@ -300,27 +300,65 @@ export function parseLevelPack(
     const rawName = file.filename;
     const norm = normalizeFileName(rawName);
 
-    if (norm.includes("rapport") || /^00/.test(rawName) || norm === "report") {
-      rapportMd = file.content;
-    } else if (norm.includes("resume") || norm.includes("synth") || /^01/.test(rawName) || norm === "summary") {
-      resumeMd = file.content;
-    } else if (norm.includes("bullet") || norm.includes("axiome") || norm.includes("levier") || /^02/.test(rawName)) {
-      bulletPointsMd = file.content;
-    } else if (norm.includes("graph") || norm.includes("mermaid") || /^03/.test(rawName) || norm === "diagram") {
-      graphiqueMd = file.content;
-    } else if (norm.includes("prompt") || norm.includes("ai") || /^04/.test(rawName) || norm === "console") {
-      promptAiMd = file.content;
+    if (
+      norm.includes("rapport") ||
+      /^00/.test(rawName) ||
+      norm === "report" ||
+      norm.includes("cartographie") ||
+      /diag/i.test(norm)
+    ) {
+      if (!rapportMd) rapportMd = file.content;
+    } else if (
+      norm.includes("resume") ||
+      norm.includes("synth") ||
+      /^01/.test(rawName) ||
+      norm === "summary" ||
+      norm.includes("global")
+    ) {
+      if (!resumeMd) resumeMd = file.content;
+    } else if (
+      norm.includes("bullet") ||
+      norm.includes("axiome") ||
+      norm.includes("levier") ||
+      /^02/.test(rawName) ||
+      norm.includes("action")
+    ) {
+      if (!bulletPointsMd) bulletPointsMd = file.content;
+    } else if (
+      norm.includes("graph") ||
+      norm.includes("mermaid") ||
+      /^03/.test(rawName) ||
+      norm === "diagram" ||
+      norm.includes("visuel")
+    ) {
+      if (!graphiqueMd) graphiqueMd = file.content;
+    } else if (
+      norm.includes("prompt") ||
+      norm.includes("ai") ||
+      /^04/.test(rawName) ||
+      norm === "console"
+    ) {
+      if (!promptAiMd) promptAiMd = file.content;
     }
   }
 
-  // Fallback : si un seul fichier .md est fourni, on l'utilise comme rapport principal
+  // Fallback 1 : si un seul fichier .md est fourni, on l'utilise comme rapport principal
   if (!rapportMd && files.length === 1 && files[0].filename.endsWith(".md")) {
     rapportMd = files[0].content;
     warnings.push("Un seul fichier Markdown fourni : utilisé comme 00_RAPPORT.md (mode partiel).");
   }
 
+  // Fallback 2 : si aucun fichier 'rapport' explicite, prendre le plus dense en caractères
+  if (!rapportMd && files.length > 0) {
+    const sorted = [...files].sort((a, b) => (b.content?.length || 0) - (a.content?.length || 0));
+    rapportMd = sorted[0]?.content || "";
+    if (sorted[0]?.filename) {
+      warnings.push(`Rapport principal assigné au fichier le plus dense : ${sorted[0].filename}.`);
+    }
+  }
+
   if (!rapportMd) {
-    errors.push("Fichier obligatoire '00_RAPPORT.md' introuvable dans le pack.");
+    errors.push("Fichier principal '00_RAPPORT.md' introuvable dans le pack.");
   }
 
   // Frontmatter parsing sur 00_RAPPORT.md
@@ -358,6 +396,19 @@ export function parseLevelPack(
   // Découpage Miroir
   const { sectionPairs, safeguardSection, cleanFr, cleanEn } = parseBilingualMirrorSections(mainMarkdown);
 
+  // Détection des diagrammes Mermaid sur l'ensemble des fichiers du dossier
+  const combinedAllContent = files.map((f) => f.content).join("\n\n");
+  const mermaidMatches = combinedAllContent.match(/```\s*mermaid/gi) || [];
+  const detectedDiagramsCount = mermaidMatches.length;
+
+  // Si graphiqueMd est vide mais des diagrammes existent dans le pack, on les extrait
+  if (!graphiqueMd && detectedDiagramsCount > 0) {
+    const mermaidBlocks = combinedAllContent.match(/```\s*mermaid[\s\S]*?```/gi);
+    if (mermaidBlocks) {
+      graphiqueMd = mermaidBlocks.join("\n\n");
+    }
+  }
+
   // Quotas & Métriques
   const totalChars = (rapportMd + resumeMd + bulletPointsMd + graphiqueMd + promptAiMd).length;
   const wordCount = mainMarkdown.trim().split(/\s+/).filter(Boolean).length;
@@ -369,11 +420,6 @@ export function parseLevelPack(
       `Le volume de caractères (${totalChars.toLocaleString("fr-FR")} car.) est inférieur au quota standard pour ${levelCode} (${requiredMinChars.toLocaleString("fr-FR")} car. min).`,
     );
   }
-
-  // Détection des diagrammes Mermaid dans graphiqueMd ou rapportMd
-  const combinedForMermaid = (graphiqueMd || "") + "\n" + mainMarkdown;
-  const mermaidMatches = combinedForMermaid.match(/```\s*mermaid/gi) || [];
-  const detectedDiagramsCount = mermaidMatches.length;
 
   // Pack Files consolidé
   const packFiles: UserReportV3PackFiles = {

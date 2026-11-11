@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyMemberOverflowBaseline,
   defaultUserMenuPrefs,
+  MEMBER_OVERFLOW_BASELINE,
   migrateLegacyRadialArray,
   normalizeUserMenuPrefs,
   parseStoredMenuPrefs,
@@ -24,6 +26,7 @@ describe("userMenuPreferences", () => {
     expect(migrated.hidden).toContain("journal");
     expect(migrated.hidden).not.toContain("dien_chan");
   });
+
   it("defaults dock to daily panels with home on /dashboard", () => {
     const prefs = defaultUserMenuPrefs();
     expect(prefs.dock).toHaveLength(4);
@@ -52,5 +55,50 @@ describe("userMenuPreferences", () => {
       hidden: ["journal"],
     });
     expect(prefs.hidden).toEqual(["journal"]);
+  });
+
+  it("defaults radial overflow to hubs plus persona, account, and settings", () => {
+    expect(defaultUserMenuPrefs().overflow).toEqual([
+      "pratiques_hub",
+      "capture_hub",
+      "messages_hub",
+      "persona",
+      "profile",
+      "settings",
+    ]);
+    expect(defaultUserMenuPrefs().overflowBaseline).toBe(MEMBER_OVERFLOW_BASELINE);
+  });
+
+  it("rewrites saved member overflow to the baseline once", () => {
+    const saved = normalizeUserMenuPrefs({
+      v: 2,
+      dock: ["home", "mood", "decisions", "habits"],
+      overflow: ["journal", "toolbox", "pulse", "bibliotheque"],
+      hidden: [],
+    });
+    const { prefs, migrated } = applyMemberOverflowBaseline(saved, false);
+    expect(migrated).toBe(true);
+    expect(prefs.overflow).toEqual([
+      "pratiques_hub",
+      "capture_hub",
+      "messages_hub",
+      "persona",
+      "profile",
+      "settings",
+    ]);
+    expect(prefs.overflowBaseline).toBe(MEMBER_OVERFLOW_BASELINE);
+    expect(applyMemberOverflowBaseline(prefs, false).migrated).toBe(false);
+  });
+
+  it("does not rewrite overflow for admins", () => {
+    const saved = normalizeUserMenuPrefs({
+      v: 2,
+      dock: ["home", "mood", "decisions", "habits"],
+      overflow: ["journal", "toolbox"],
+      hidden: [],
+    });
+    const { prefs, migrated } = applyMemberOverflowBaseline(saved, true);
+    expect(migrated).toBe(false);
+    expect(prefs.overflow).toEqual(["journal", "toolbox"]);
   });
 });

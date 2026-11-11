@@ -13,10 +13,17 @@ export type UserMenuPrefsV2 = {
   dock: MenuPanelId[];
   overflow: MenuPanelId[];
   hidden: MenuPanelId[];
+  /**
+   * Member radial baseline stamp. Missing/older values are rewritten once to
+   * `DEFAULT_OVERFLOW_PANEL_IDS` for non-admins; admins are never rewritten.
+   */
+  overflowBaseline?: number;
 };
 
 export const USER_MENU_PREFS_EVENT = "aegis:user-menu-updated";
 export const USER_MENU_PREFS_STORAGE_KEY = "aegis-user-menu-prefs";
+/** Bump when the default member radial set changes and saved accounts should follow. */
+export const MEMBER_OVERFLOW_BASELINE = 1;
 
 const MAX_DOCK = 4;
 const MAX_OVERFLOW = 20;
@@ -27,6 +34,27 @@ export function defaultUserMenuPrefs(): UserMenuPrefsV2 {
     dock: [...DEFAULT_DOCK_PANEL_IDS],
     overflow: [...DEFAULT_OVERFLOW_PANEL_IDS],
     hidden: [],
+    overflowBaseline: MEMBER_OVERFLOW_BASELINE,
+  };
+}
+
+/** Force the member radial baseline onto saved prefs (admins unchanged). */
+export function applyMemberOverflowBaseline(
+  prefs: UserMenuPrefsV2,
+  isAdmin: boolean,
+): { prefs: UserMenuPrefsV2; migrated: boolean } {
+  if (isAdmin) return { prefs, migrated: false };
+  if (prefs.overflowBaseline === MEMBER_OVERFLOW_BASELINE) {
+    return { prefs, migrated: false };
+  }
+  const dockSet = new Set(prefs.dock);
+  return {
+    prefs: normalizeUserMenuPrefs({
+      ...prefs,
+      overflow: DEFAULT_OVERFLOW_PANEL_IDS.filter((id) => !dockSet.has(id)),
+      overflowBaseline: MEMBER_OVERFLOW_BASELINE,
+    }),
+    migrated: true,
   };
 }
 
@@ -94,15 +122,21 @@ function normalizeHidden(raw: unknown): MenuPanelId[] {
   return stripLockedHidden(dedupe(out));
 }
 
+function normalizeOverflowBaseline(raw: unknown): number | undefined {
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+}
+
 export function normalizeUserMenuPrefs(raw: unknown): UserMenuPrefsV2 {
   if (raw && typeof raw === "object" && !Array.isArray(raw) && (raw as UserMenuPrefsV2).v === 2) {
     const o = raw as UserMenuPrefsV2;
     const dock = normalizeDock(o.dock);
+    const overflowBaseline = normalizeOverflowBaseline(o.overflowBaseline);
     return {
       v: 2,
       dock,
       overflow: normalizeOverflow(o.overflow, dock),
       hidden: normalizeHidden(o.hidden),
+      ...(overflowBaseline !== undefined ? { overflowBaseline } : {}),
     };
   }
 

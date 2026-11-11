@@ -8,6 +8,7 @@ const db = vi.hoisted(() => ({
   error: null as { message: string } | null,
 }));
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: db.user }) }));
+vi.mock("@/hooks/use-admin", () => ({ useAdmin: () => ({ isAdmin: false, loading: false }) }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: () => {
     let patch: Record<string, unknown> | undefined;

@@ -222,7 +222,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const logoutDialog = (
     <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-      <AlertDialogContent className="z-[120] max-w-[min(100vw-1.5rem,24rem)]">
+      <AlertDialogContent className="max-w-[min(100vw-1.5rem,24rem)]">
         <AlertDialogHeader>
           <AlertDialogTitle>{t("layout.logoutConfirmTitle")}</AlertDialogTitle>
           <AlertDialogDescription>{t("layout.logoutConfirmBody")}</AlertDialogDescription>
@@ -481,7 +481,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <QuickLogModal open={quickLogOpen} onClose={() => setQuickLogOpen(false)} />
 
         <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-          <AlertDialogContent className="z-[120] max-w-[min(100vw-1.5rem,24rem)]">
+          <AlertDialogContent className="max-w-[min(100vw-1.5rem,24rem)]">
             <AlertDialogHeader>
               <AlertDialogTitle>{t("layout.logoutConfirmTitle")}</AlertDialogTitle>
               <AlertDialogDescription>{t("layout.logoutConfirmBody")}</AlertDialogDescription>
