@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { ArrowRight, Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import AegisLogo from "@/components/AegisLogo";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -187,27 +186,6 @@ export default function AuthPage() {
     } catch (err: unknown) {
       showAuthError(err);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogle = async () => {
-    setLoading(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/`,
-      });
-      if (result?.error) throw result.error;
-      if (!result?.redirected) {
-        // Session set in-page: navigate explicitly (the auth-state effect may
-        // not re-run if the tab/mode didn't change). RequireQuizOnboarding
-        // sends new users to /onboarding from here if needed.
-        const { data } = await supabase.auth.getUser();
-        navigate(postLoginPath(false, data.user?.id), { replace: true });
-        setLoading(false);
-      }
-    } catch (err: unknown) {
-      showAuthError(err);
       setLoading(false);
     }
   };
@@ -493,52 +471,13 @@ export default function AuthPage() {
 
               {(mode === "signin" || mode === "signup") && (
                 <>
-                  <div className="relative my-5">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-border/40" />
-                    </div>
-                    <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
-                      <span className="bg-bg-elevated px-2 text-text-tertiary">{t("auth.or")}</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleGoogle}
-                    disabled={loading}
-                    className="w-full min-h-[44px] py-2.5 mb-3 rounded-lg font-medium text-sm border border-border-active text-text-primary hover:bg-bg-elevated/60 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
-                      <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z" />
-                      <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z" />
-                      <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.8l4-3.1z" />
-                      <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8z" />
-                    </svg>
-                    {t("auth.google")}
-                  </button>
                   <button
                     type="button"
                     onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-                    className="w-full min-h-[44px] py-2.5 mb-3 rounded-lg font-medium text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
+                    className="mt-5 w-full min-h-[44px] py-2.5 rounded-lg font-medium text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
                   >
                     {mode === "signin" ? t("auth.signUp.cta") : t("auth.signUp.hasAccount")}
                   </button>
-                  {mode === "signin" && !signupFromUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => setMode("guest")}
-                      className="w-full min-h-[44px] py-2.5 rounded-lg font-medium text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Sparkles size={14} aria-hidden />
-                      {t("auth.guest.cta")}
-                    </button>
-                  ) : null}
-                  <Link
-                    to="/newsletter"
-                    className="w-full min-h-[44px] py-2.5 rounded-lg font-medium text-sm border border-border-active text-text-primary hover:bg-bg-elevated/60 transition-all duration-200 flex items-center justify-center gap-2"
-                  >
-                    <Mail size={14} aria-hidden />
-                    {t("auth.newsletter.cta")}
-                  </Link>
                 </>
               )}
 
@@ -561,14 +500,6 @@ export default function AuthPage() {
           </motion.div>
         </div>
       </div>
-      <p className="text-center pb-4">
-        <Link
-          to="/newsletter"
-          className="text-[10px] tracking-[0.15em] uppercase text-text-tertiary hover:text-text-secondary transition-colors duration-200 font-display"
-        >
-          {t("nav.newsletter")}
-        </Link>
-      </p>
       <PublicFooter />
     </div>
   );

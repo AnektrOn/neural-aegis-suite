@@ -14,6 +14,7 @@ export type AegisLandingCopy = {
     faq: string;
     cta: string;
     langFr: string;
+    signUpFree: string;
     langEn: string;
     audienceIndividuel: string;
     audienceEntreprise: string;
@@ -163,6 +164,7 @@ const navFr = {
   menuClose: "Fermer le menu",
   lang: "Langue",
   signIn: "Se connecter",
+  signUpFree: "S’inscrire gratuitement",
 } as const;
 
 const navEn = {
@@ -181,6 +183,7 @@ const navEn = {
   menuClose: "Close menu",
   lang: "Language",
   signIn: "Sign in",
+  signUpFree: "Sign up for free",
 } as const;
 
 const individuelFr: AegisLandingCopy = {
@@ -195,7 +198,7 @@ const individuelFr: AegisLandingCopy = {
     title: "Vous décidez seul. Vous reprenez les mêmes décisions. Vous le savez.",
     subtitle:
       "AEGIS est l'exocortex qui lit chaque semaine ce que vous faites réellement, le compare à la trajectoire que vous avez choisie, et vous dit où vous dérivez.",
-    cta: "Demander mon accès · 150 €/mois",
+    cta: "Demander mon accès · Sur devis",
     caption: "Réponse sous 24 h",
     scrollLabel: "Défiler vers le contenu",
     ghostWordmark: "AEGIS",
@@ -313,8 +316,8 @@ const individuelFr: AegisLandingCopy = {
     label: "TARIF",
     title: "Un abonnement. Un rapport chaque semaine.",
     chip: "ACCÈS PRIORITAIRE",
-    price: "150 €",
-    period: "/ mois",
+    price: "Sur devis",
+    period: "",
     features: [
       "Rapport hebdomadaire personnalisé",
       "Connexion des sources que vous choisissez",
@@ -372,7 +375,7 @@ const individuelEn: AegisLandingCopy = {
     title: "You decide alone. You make the same calls again. You know it.",
     subtitle:
       "AEGIS is the exocortex that reads what you actually do each week, compares it to the trajectory you chose, and tells you where you drift.",
-    cta: "Request access · €150/month",
+    cta: "Request access · On request",
     caption: "Reply within 24 hours",
     scrollLabel: "Scroll to content",
     ghostWordmark: "AEGIS",
@@ -489,8 +492,8 @@ const individuelEn: AegisLandingCopy = {
     label: "PRICING",
     title: "One subscription. One report every week.",
     chip: "PRIORITY ACCESS",
-    price: "€150",
-    period: "/ month",
+    price: "On request",
+    period: "",
     features: [
       "Personalised weekly report",
       "Connect the sources you choose",
