@@ -1,13 +1,18 @@
 import type { IntroChapterId } from "./intro.copy";
+import soundtrackAsset from "@/assets/bensound-birthofahero.mp3.asset.json";
 
 export type IntroVoiceId = IntroChapterId | "asteroids" | "sculpture" | "flow" | "neural";
 
-/** Files live in `public/audio/intro/`. Set a path to `null` to disable that track. */
+/**
+ * Soundtrack: "Birth of a Hero" — Music by Bensound.com, Artist: Benjamin Tissot.
+ * License code: I7JBR57FQ3ATQ5FP.
+ * Voice-over files live in `public/audio/intro/`. Set a path to `null` to disable that track.
+ */
 export const INTRO_AUDIO: {
   soundtrack: string | null;
   voiceOver: Record<IntroVoiceId, string | null>;
 } = {
-  soundtrack: "/audio/intro/soundtrack.mp3",
+  soundtrack: soundtrackAsset.url,
   voiceOver: {
     storm: "/audio/intro/vo-en-1-storm.mp3",
     current: "/audio/intro/vo-en-2-current.mp3",
