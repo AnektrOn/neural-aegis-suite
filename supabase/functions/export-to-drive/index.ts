@@ -4,6 +4,7 @@
 // massively parallel pg_net calls.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders as sdkCorsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { HOUSES72_BAREME_MD } from "./houses72-bareme.ts";
 import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows, categoryForTable } from "./full-export.ts";
 
 const corsHeaders = {
@@ -240,18 +241,22 @@ Deno.serve(async (req) => {
         const counts = Object.fromEntries(Object.entries(data).map(([table, rows]) => [table, rows.length]));
         const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
         const files: Array<{ path: string; fileId: string }> = [];
+        const docs: Array<[string, string, string]> = [];
         for (const [table, rows] of Object.entries(data)) {
           if (!rows.length) continue;
           const category = categoryForTable(table);
+          docs.push([category, `${today}_${table}.md`, `# ${category} — ${table} — ${clientName}\n\nExporté le ${new Date().toISOString()}\n\nUser ID: ${p.id}\n\n## ${table} (${rows.length})\n\n` + "```json\n" + JSON.stringify(rows, null, 2) + "\n```\n"]);
+        }
+        // Maisons answers are only interpretable with the scoring grid alongside them.
+        if (data.houses72_responses?.length) docs.push(["Quizz", `${today}_houses72_bareme.md`, HOUSES72_BAREME_MD]);
+        for (const [category, filename, md] of docs) {
           const catId = await findOrCreateFolder(admin, clientId, category);
           const dateId = await findOrCreateFolder(admin, catId, today);
-          const md = `# ${category} — ${table} — ${clientName}\n\nExporté le ${new Date().toISOString()}\n\nUser ID: ${p.id}\n\n## ${table} (${rows.length})\n\n` + "```json\n" + JSON.stringify(rows, null, 2) + "\n```\n";
-          const filename = `${today}_${table}.md`;
           const fileId = await uploadMarkdown(dateId, filename, md);
           const verify = await fetch(`${GATEWAY}/drive/v3/files/${fileId}?fields=id,parents,size&supportsAllDrives=true`, { headers: gwHeaders() });
           if (!verify.ok) throw new Error(`Drive readback failed ${verify.status}: ${await verify.text()}`);
           const saved = await verify.json();
-          if (!saved.parents?.includes(dateId) || Number(saved.size) !== new TextEncoder().encode(md).length) throw new Error(`Drive export readback mismatch for ${table}`);
+          if (!saved.parents?.includes(dateId) || Number(saved.size) !== new TextEncoder().encode(md).length) throw new Error(`Drive export readback mismatch for ${filename}`);
           files.push({ path: `${clientName}/${category}/${today}/${filename}`, fileId });
         }
         // Remove the previous single-file "BDD" layout for this user.
