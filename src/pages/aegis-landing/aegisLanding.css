@@ -74,29 +74,7 @@
 
 .aegis-landing__hero-stage {
   background:
-    radial-gradient(ellipse 78% 70% at 72% 38%, #ebe4dc 0%, #f3eeec 52%, #f3eeec 100%);
-}
-
-/* JPEG still is a full-page capture; veil hides baked nav/copy so HTML sits on cream. */
-.aegis-landing__hero-veil {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background:
-    linear-gradient(
-      180deg,
-      var(--aegis-page) 0%,
-      var(--aegis-page) 9%,
-      transparent 16%
-    ),
-    linear-gradient(
-      90deg,
-      var(--aegis-page) 0%,
-      var(--aegis-page) 32%,
-      color-mix(in srgb, var(--aegis-page) 40%, transparent) 42%,
-      transparent 50%
-    );
+    radial-gradient(ellipse 70% 68% at 78% 48%, #ebe4dc 0%, #f3eeec 55%, #f3eeec 100%);
 }
 
 .aegis-landing__headline {

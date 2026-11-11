@@ -33,30 +33,23 @@ export const ARMILLARY_TEXTURES = {
   normal: "/aegis-landing/textures/Gun_Metal_normal.webp",
 } as const;
 
-/** Hero still used below `LANDING_CANVAS_MIN_WIDTH` and as WebGL fallback. */
-export const LANDING_HERO_STILL = {
-  src: "/aegis-landing/hero-scene-800.jpg",
-  srcSet:
-    "/aegis-landing/hero-scene-800.jpg 800w, /aegis-landing/hero-scene.jpg 1024w, /aegis-landing/hero-scene-1440.jpg 1440w",
-} as const;
-
-/** WebGL hero mounts from this viewport width up (sphere is cropped below). */
+/** WebGL hero mounts from this viewport width up (hidden on mobile). */
 export const LANDING_CANVAS_MIN_WIDTH = 1024;
 
-/** Locked hero framing at ~1440×760. Narrower aspects lerp toward a closer, less offset pose. */
+/** Centered side-column framing — close so the sphere fills the hero row. */
 export const LANDING_CAM = {
-  az: 0.52,
-  pol: 1.14,
-  dist: 30,
-  target: [-7.55, -5.22, 0] as [number, number, number],
+  az: 0.38,
+  pol: 1.08,
+  dist: 7.1,
+  target: [0, 0.2, 0] as [number, number, number],
 };
 
 export function landingCamForAspect(aspect: number): { dist: number; targetX: number; targetY: number } {
-  const t = Math.min(1, Math.max(0, (aspect - 1.15) / 0.75));
+  const t = Math.min(1, Math.max(0, (aspect - 0.85) / 0.55));
   return {
-    dist: 24 + 6 * t,
-    targetX: -3.4 + (LANDING_CAM.target[0] + 3.4) * t,
-    targetY: -3.4 + (LANDING_CAM.target[1] + 3.4) * t,
+    dist: LANDING_CAM.dist + 0.9 * (1 - t),
+    targetX: LANDING_CAM.target[0],
+    targetY: LANDING_CAM.target[1],
   };
 }
 

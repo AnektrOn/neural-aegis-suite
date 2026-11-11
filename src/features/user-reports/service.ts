@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { UserReport } from "./types";
+import type { UserReport, UserReportV3PackFiles, UserReportMetadata } from "./types";
 import { parseFrontmatter } from "./parseReportMd";
 
-function slugify(input: string): string {
+export function slugify(input: string): string {
   return input
     .toLowerCase()
     .normalize("NFD")
@@ -46,6 +46,63 @@ export async function importUserReport(input: ImportUserReportInput): Promise<Us
     tags,
     content_md: input.contentMd,
     imported_by: input.importedBy ?? null,
+  };
+
+  const { data, error } = await supabase
+    .from("user_reports" as any)
+    .upsert(row, { onConflict: "user_id,slug" })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as unknown as UserReport;
+}
+
+export interface ImportUserReportV3PackInput {
+  userId: string;
+  slug?: string;
+  title: string;
+  glyph?: string | null;
+  tier?: string | null;
+  orientation?: string | null;
+  level: number;
+  levelCode: string;
+  prismCode?: string | null;
+  scope: "intra" | "trans";
+  hasSafeguard: boolean;
+  packFiles: UserReportV3PackFiles;
+  metadata?: UserReportMetadata;
+  tags?: string[];
+  importedBy?: string | null;
+}
+
+export async function importUserReportV3Pack(input: ImportUserReportV3PackInput): Promise<UserReport> {
+  const slug = input.slug || slugify(`${input.levelCode}-${input.title}`);
+  const tags = input.tags ?? [];
+  if (input.levelCode && !tags.includes(input.levelCode)) {
+    tags.push(input.levelCode);
+  }
+  if (input.prismCode && !tags.includes(input.prismCode)) {
+    tags.push(input.prismCode);
+  }
+
+  const row = {
+    user_id: input.userId,
+    slug,
+    title: input.title,
+    glyph: input.glyph ?? "🛡️",
+    tier: input.tier ?? String(input.level),
+    orientation: input.orientation ?? (input.scope === "intra" ? "Intra-Prisme" : "Trans-Prisme"),
+    tags,
+    content_md: input.packFiles.rapport_md, // Guaranteed fallback for legacy readers
+    imported_by: input.importedBy ?? null,
+    level: input.level,
+    level_code: input.levelCode,
+    prism_code: input.prismCode ?? null,
+    scope: input.scope,
+    has_safeguard: input.hasSafeguard,
+    pack_files: input.packFiles,
+    metadata: input.metadata ?? {},
+    read_at: null, // Unread by default for client notification
   };
 
   const { data, error } = await supabase
