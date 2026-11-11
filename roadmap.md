@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Complete Drive re-export
+- [x] Include 62 retained per-user data sections, including Maisons answers and report sections, with pagination and explicit failures; four tests pass.
+- [x] Send all 32 user exports under USER AEGIS RAW DATA and verify destination and byte size; read Massimiliano's file back through Drive: 119 choices, 48 questions, eight houses. Existing automatic Maisons exports remain outside this backfill request.
+
 ## Activity email alerts
 - [x] Send 73 individual retained alerts from 17 October 2026 onward to the owner: 70 tracked visits clearly distinguished from logins, two quizzes and one tool; each accepted by SMTP and recorded sent.
 - [x] Restore login, completed quiz and completed tool emails with event/recipient deduplication; resolve superadmin recipients and defer auth callback work.

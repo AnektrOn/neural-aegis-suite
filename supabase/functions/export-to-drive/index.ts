@@ -3,15 +3,17 @@
 // Uses a DB cache (drive_folder_cache) to guarantee unique folders even under
 // massively parallel pg_net calls.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders as sdkCorsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows } from "./full-export.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  ...sdkCorsHeaders,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-secret",
 };
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
-const ROOT_FOLDER_ID = "1dVrAm_xlKF9pt5WX-7yomm63JpiZyi75";
+const ROOT_FOLDER_ID = EXPORT_ROOT;
 
 function gwHeaders(extra: Record<string, string> = {}): HeadersInit {
   const lov = Deno.env.get("LOVABLE_API_KEY");
@@ -100,9 +102,11 @@ async function findOrCreateFolder(
       // we created a stray folder, trash it
       await trashDriveFolder(driveId);
     }
-    return winner!.drive_id;
+    if (!winner?.drive_id) throw new Error("Folder cache claim failed");
+    return winner.drive_id;
   }
-  return inserted!.drive_id;
+  if (!inserted?.drive_id) throw new Error("Folder cache insert failed");
+  return inserted.drive_id;
 }
 
 async function uploadMarkdown(parentId: string, filename: string, content: string): Promise<string> {
@@ -212,59 +216,62 @@ Deno.serve(async (req) => {
         { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    if (body?.action === "export_all") {
-      // Full export: one markdown file per user with all their data tables.
-      // Runs in background; respond immediately to avoid client timeout.
-      const EXPORT_TABLES: Array<{ table: string; label: string; userCol: string }> = [
-        { table: "profiles", label: "Profil", userCol: "id" },
-        { table: "subscriptions", label: "Abonnement", userCol: "user_id" },
-        { table: "mood_entries", label: "Humeur / Sommeil / Stress", userCol: "user_id" },
-        { table: "decisions", label: "Décisions", userCol: "user_id" },
-        { table: "habit_completions", label: "Habitudes (complétions)", userCol: "user_id" },
-        { table: "journal_entries", label: "Journal", userCol: "user_id" },
-        { table: "toolbox_completions", label: "Toolbox (complétions)", userCol: "user_id" },
-        { table: "people_contacts", label: "Contacts / Relations", userCol: "user_id" },
-        { table: "user_places", label: "Lieux", userCol: "user_id" },
-        { table: "user_sessions", label: "Sessions utilisateur", userCol: "user_id" },
-        { table: "notifications", label: "Notifications", userCol: "user_id" },
-        { table: "audit_calls", label: "Audit calls", userCol: "user_id" },
-        { table: "assessment_sessions", label: "Assessments (sessions)", userCol: "user_id" },
-        { table: "assessment_responses", label: "Assessments (réponses)", userCol: "user_id" },
-        { table: "archetype_profile_snapshots", label: "Snapshots Deep Dive", userCol: "user_id" },
-      ];
+    if (body?.action === "export_user_full" || body?.action === "export_all") {
+      if (body.action === "export_user_full" &&
+          (typeof body.user_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.user_id))) {
+        return new Response(JSON.stringify({ error: "Valid user_id required" }), { status: 400, headers: corsHeaders });
+      }
       const today = new Date().toISOString().slice(0, 10);
-      const runAll = async () => {
-        const { data: profiles, error: pErr } = await admin.from("profiles").select("id, display_name");
-        if (pErr) throw pErr;
-        let ok = 0, failed = 0;
-        for (const p of profiles ?? []) {
-          try {
-            const clientName = sanitize(p.display_name || p.id);
-            let md = `# Export complet — ${clientName}\n\nExporté le ${new Date().toISOString()}\n\nUser ID: ${p.id}\n`;
-            for (const t of EXPORT_TABLES) {
-              const { data, error } = await admin.from(t.table).select("*").eq(t.userCol, p.id);
-              md += `\n## ${t.label} (${data?.length ?? 0})\n\n`;
-              if (error) md += `_Erreur: ${error.message}_\n`;
-              else if (data && data.length > 0) md += "```json\n" + JSON.stringify(data, null, 2) + "\n```\n";
-              else md += "_Aucune donnée_\n";
-            }
-            const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
-            const catId = await findOrCreateFolder(admin, clientId, "BDD");
-            const dateId = await findOrCreateFolder(admin, catId, today);
-            await uploadMarkdown(dateId, `${today}-export-complet.md`, md);
-            ok++;
-            console.log(`export_all: ${clientName} done`);
-          } catch (e) {
-            failed++;
-            console.error(`export_all: failed for ${p.id}:`, e instanceof Error ? e.message : e);
-          }
+      const exportUser = async (p: { id: string; display_name: string | null }) => {
+        const data: Record<string, unknown[]> = { profiles: [p] };
+        data.profiles = await readAllRows((from, to) => admin.from("profiles").select("*").eq("id", p.id).order("id").range(from, to));
+        for (const table of USER_EXPORT_TABLES) {
+          data[table] = await readAllRows((from, to) => admin.from(table).select("*").eq("user_id", p.id).order("user_id").range(from, to));
         }
-        console.log(`export_all finished: ok=${ok} failed=${failed}`);
+        data.admin_messages = await readAllRows((from, to) => admin.from("admin_messages").select("*").or(`sender_id.eq.${p.id},recipient_id.eq.${p.id}`).order("id").range(from, to));
+        const bundleIds = (data.cartography_bundles as { id: string }[]).map(row => row.id);
+        data.cartography_bundle_sections = bundleIds.length ? await readAllRows((from, to) => admin.from("cartography_bundle_sections").select("*").in("bundle_id", bundleIds).order("id").range(from, to)) : [];
+        // Lease tokens are internal concurrency credentials, not user content.
+        data.elevenlabs_drive_folders = data.elevenlabs_drive_folders.map(row => {
+          const { sync_claim_token, ...safe } = row as Record<string, unknown>;
+          return safe;
+        });
+        const clientName = sanitize(p.display_name || p.id);
+        const counts = Object.fromEntries(Object.entries(data).map(([table, rows]) => [table, rows.length]));
+        let md = `# Export complet — ${clientName}\n\nExporté le ${new Date().toISOString()}\n\nUser ID: ${p.id}\n`;
+        for (const [table, rows] of Object.entries(data)) {
+          md += `\n## ${table} (${rows.length})\n\n` + (rows.length ? "```json\n" + JSON.stringify(rows, null, 2) + "\n```\n" : "_Aucune donnée_\n");
+        }
+        const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
+        const catId = await findOrCreateFolder(admin, clientId, "BDD");
+        const dateId = await findOrCreateFolder(admin, catId, today);
+        // Stable user-specific filename keeps users with identical names separate.
+        const filename = `${today}-export-complet-${p.id}.md`;
+        const fileId = await uploadMarkdown(dateId, filename, md);
+        const verify = await fetch(`${GATEWAY}/drive/v3/files/${fileId}?fields=id,name,parents,size&supportsAllDrives=true`, { headers: gwHeaders() });
+        if (!verify.ok) throw new Error(`Drive readback failed ${verify.status}: ${await verify.text()}`);
+        const saved = await verify.json();
+        if (!saved.parents?.includes(dateId) || Number(saved.size) !== new TextEncoder().encode(md).length) throw new Error("Drive export readback mismatch");
+        return { user_id: p.id, display_name: p.display_name, fileId, path: `${clientName}/BDD/${today}/${filename}`, counts, verified: true };
+      };
+      let query = admin.from("profiles").select("id, display_name").order("id");
+      if (body.action === "export_user_full") query = query.eq("id", body.user_id);
+      const { data: profiles, error } = await query;
+      if (error) throw error;
+      if (!profiles?.length) return new Response(JSON.stringify({ error: "No profiles found" }), { status: 404, headers: corsHeaders });
+      if (body.action === "export_user_full") {
+        const result = await exportUser(profiles[0]);
+        return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const runAll = async () => {
+        for (const profile of profiles) {
+          try { console.log("export_all verified:", JSON.stringify(await exportUser(profile))); }
+          catch (error) { console.error(`export_all failed for ${profile.id}:`, error); }
+        }
       };
       // @ts-ignore EdgeRuntime is available in Supabase edge runtime
-      EdgeRuntime.waitUntil(runAll().catch((e) => console.error("export_all crashed:", e)));
-      return new Response(JSON.stringify({ success: true, started: true }),
-        { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      EdgeRuntime.waitUntil(runAll());
+      return new Response(JSON.stringify({ success: true, started: true }), { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { user_id, category, filename, content_md } = body;
