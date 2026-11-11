@@ -177,7 +177,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const loginFingerprint = `${session.user.id}:${session.access_token.slice(-12)}`;
           if (lastNotifiedLogin.current !== loginFingerprint) {
             lastNotifiedLogin.current = loginFingerprint;
-            void notifyAdminOnLogin(session.user);
+            // Auth callbacks run while the client auth lock is held. Defer calls
+            // that retrieve a session until the callback has returned.
+            setTimeout(() => { void notifyAdminOnLogin(session.user); }, 0);
           }
         }
       }

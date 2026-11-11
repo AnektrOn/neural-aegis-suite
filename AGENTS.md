@@ -1,5 +1,7 @@
 # Project rules
 
+- Activity emails resolve platform operators from admin/superadmin roles, defer client calls outside auth callbacks, and persist event/recipient delivery keys; this avoids missing owners, auth-lock stalls and duplicate retries.
+
 - Render application branding through the shared AegisLogo component, with theme-aware variants and explicit overrides for fixed-color surfaces; this keeps all screens consistent without image filters.
 
 - Saved V2 member menu preferences are authoritative; apply exclusions only from the frozen legacy sidebar route list during migration, so restored and newly introduced pages remain available.
