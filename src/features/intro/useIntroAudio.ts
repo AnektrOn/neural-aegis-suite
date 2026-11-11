@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { INTRO_AUDIO, MUSIC_DUCKED_VOLUME, MUSIC_VOLUME, VOICE_VOLUME, type IntroVoiceId } from "./intro.audio";
 
-export type IntroAudioPrefs = { music: boolean; voice: boolean };
+export type IntroAudioPrefs = { music: boolean; voice: boolean; musicVolume: number };
 
 function fadeTo(el: HTMLAudioElement, target: number, ms: number, onDone?: () => void): () => void {
   const from = el.volume;
@@ -22,7 +22,7 @@ function fadeTo(el: HTMLAudioElement, target: number, ms: number, onDone?: () =>
  * Playback must start from a user gesture (the "Enter" click), browsers block autoplay otherwise.
  */
 export function useIntroAudio() {
-  const [prefs, setPrefs] = useState<IntroAudioPrefs>({ music: true, voice: true });
+  const [prefs, setPrefs] = useState<IntroAudioPrefs>({ music: true, voice: true, musicVolume: 1 });
   const prefsRef = useRef(prefs);
 
   const music = useRef<HTMLAudioElement | null>(null);
@@ -30,7 +30,8 @@ export function useIntroAudio() {
   const cancelMusicFade = useRef<() => void>(() => {});
   const started = useRef(false);
 
-  const musicTarget = () => (voice.current && !voice.current.paused ? MUSIC_DUCKED_VOLUME : MUSIC_VOLUME);
+  const musicTarget = () =>
+    (voice.current && !voice.current.paused ? MUSIC_DUCKED_VOLUME : MUSIC_VOLUME) * prefsRef.current.musicVolume;
 
   const fadeMusic = useCallback((target: number, ms: number, onDone?: () => void) => {
     const el = music.current;
@@ -98,6 +99,17 @@ export function useIntroAudio() {
     [fadeMusic, playMusic],
   );
 
+  const setMusicVolume = useCallback(
+    (volume: number) => {
+      const clamped = Math.min(1, Math.max(0, volume));
+      prefsRef.current = { ...prefsRef.current, musicVolume: clamped };
+      setPrefs(prefsRef.current);
+      const el = music.current;
+      if (started.current && el && !el.paused) fadeMusic(musicTarget(), 200);
+    },
+    [fadeMusic],
+  );
+
   const setVoice = useCallback(
     (on: boolean) => {
       prefsRef.current = { ...prefsRef.current, voice: on };
@@ -118,5 +130,5 @@ export function useIntroAudio() {
     [],
   );
 
-  return { prefs, start, setMusic, setVoice, playVoice, stopVoice };
+  return { prefs, start, setMusic, setMusicVolume, setVoice, playVoice, stopVoice };
 }

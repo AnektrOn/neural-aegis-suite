@@ -271,6 +271,7 @@ export default function IntroV2Page({ variant = "lab" }: { variant?: IntroV2Vari
         narrateLineMs={NARRATE_LINE_MS}
         audioPrefs={audio.prefs}
         onToggleMusic={() => audio.setMusic(!audio.prefs.music)}
+        onMusicVolume={audio.setMusicVolume}
         onEnter={enter}
         onNext={() => dispatch({ type: "NARRATE_DONE" })}
         onSkipChapter={() => dispatch({ type: "SKIP_CHAPTER" })}
