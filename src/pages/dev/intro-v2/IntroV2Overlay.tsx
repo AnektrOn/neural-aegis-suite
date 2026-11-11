@@ -631,6 +631,12 @@ export default function IntroV2Overlay({
       ) : null}
 
       {state.phase === "interact" && !isTouch ? <HoldIndicator hold={hold} /> : null}
+
+      <p
+        className={`pointer-events-none absolute bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] left-[max(1rem,env(safe-area-inset-left,0px))] font-display text-[8px] uppercase tracking-[0.18em] text-white/30 sm:text-[9px]`}
+      >
+        Music by Bensound.com — Benjamin Tissot
+      </p>
     </div>
   );
 }
