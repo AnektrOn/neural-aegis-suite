@@ -1,6 +1,11 @@
 export const OPERATOR_ROLES = ['admin', 'superadmin'];
 export const OWNER_EMAIL = 'humancatalystnote@gmail.com';
 export const RECOVERY_START = '2026-10-17T16:37:39.147808Z';
+export const INDIVIDUAL_RECOVERY_START = '2026-10-17T00:00:00Z';
+
+export function isInRecoveryPeriod(date: string) {
+  return Date.parse(date) >= Date.parse(INDIVIDUAL_RECOVERY_START);
+}
 
 export function isRecentLogin(loginAt: string, now = Date.now()) {
   const age = now - Date.parse(loginAt);

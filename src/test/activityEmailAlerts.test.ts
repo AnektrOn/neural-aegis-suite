@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { OPERATOR_ROLES, isCompletionEvent, escapeHtml, isRecentLogin } from '../../supabase/functions/send-email-notification/activity-rules';
+import { OPERATOR_ROLES, isCompletionEvent, escapeHtml, isRecentLogin, isInRecoveryPeriod } from '../../supabase/functions/send-email-notification/activity-rules';
 
 describe('requested activity email alerts', () => {
+  it('includes the whole 17 October but excludes earlier events', () => {
+    expect(isInRecoveryPeriod('2026-10-17T00:00:00Z')).toBe(true);
+    expect(isInRecoveryPeriod('2026-10-16T23:59:59Z')).toBe(false);
+  });
   it('does not label a restored old session as a new login', () => {
     const now = Date.parse('2026-11-11T05:00:00Z');
     expect(isRecentLogin('2026-11-11T04:59:00Z',now)).toBe(true);
