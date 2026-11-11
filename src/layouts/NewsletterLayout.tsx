@@ -1,5 +1,5 @@
 import { Link, Outlet } from "react-router-dom";
-import aegisLogo from "@/assets/aegis-logo.png";
+import AegisLogo from "@/components/AegisLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import AppFooter from "@/components/AppFooter";
@@ -32,8 +32,7 @@ export default function NewsletterLayout() {
       <header className="sticky top-0 z-40 border-b border-border/40 bg-bg-base/80 backdrop-blur-md">
         <div className="max-w-3xl lg:max-w-[44rem] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           <Link to="/newsletter" className="flex items-center gap-2 shrink-0 min-h-[44px]">
-            <img
-              src={aegisLogo}
+            <AegisLogo
               alt="Aegis"
               className="w-8 h-8 rounded-lg object-contain"
             />

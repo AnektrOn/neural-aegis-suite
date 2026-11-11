@@ -7,7 +7,7 @@ import {
   RADIAL_CATALOG,
   radialPathIsActive,
 } from "@/lib/mobileRadialMenuCatalog";
-import aegisLogo from "@/assets/aegis-logo.png";
+import AegisLogo from "@/components/AegisLogo";
 import { PROMOTE_USER } from "./promoteDemoData";
 import { PATH_TO_PROMOTE_SLUG } from "./promoteScenes";
 import { usePromotePlayer } from "./PromotePlayerContext";
@@ -55,7 +55,7 @@ export function PromotePhoneChrome({ children }: { children: React.ReactNode }) 
             aria-label={t("nav.dashboard")}
             className="inline-flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl"
           >
-            <img src={aegisLogo} alt="" className="h-8 w-8 rounded-lg object-contain" />
+            <AegisLogo alt="" className="h-8 w-8 rounded-lg object-contain" />
           </NavLink>
           <div className="pointer-events-none absolute left-1/2 top-1/2 flex max-w-[55%] -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center">
             <span className="font-barlow text-[10px] font-medium uppercase leading-tight tracking-[0.22em] text-text-tertiary/80">

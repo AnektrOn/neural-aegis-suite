@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { ArrowRight, Eye, EyeOff, Mail, Sparkles } from "lucide-react";
-import aegisLogo from "@/assets/aegis-logo.png";
+import AegisLogo from "@/components/AegisLogo";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -324,7 +324,7 @@ export default function AuthPage() {
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="flex flex-col items-center mb-8"
           >
-            <img src={aegisLogo} alt="Neural Aegis platform logo" className="w-40 h-40 sm:w-52 sm:h-52 rounded-2xl mb-4 object-contain" />
+            <AegisLogo alt="Neural Aegis platform logo" className="w-40 h-40 sm:w-52 sm:h-52 rounded-2xl mb-4 object-contain" />
             <h1 className="font-display text-sm tracking-[0.25em] uppercase text-text-secondary">Neural Aegis — Personal Archetype Platform</h1>
             <p className="font-cormorant text-lg font-light italic text-primary/70 mt-1 tracking-wide">{t("auth.tagline")}</p>
           </motion.div>

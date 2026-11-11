@@ -5,7 +5,7 @@ import { Eye, EyeOff, KeyRound, Loader2, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { NeuralCard } from "@/components/ui/neural-card";
-import aegisLogo from "@/assets/aegis-logo.png";
+import AegisLogo from "@/components/AegisLogo";
 import { signupPasswordIssues } from "@/lib/passwordPolicy";
 
 const inputCls =
@@ -178,7 +178,7 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
         className="w-full max-w-md"
       >
         <div className="flex justify-center mb-8">
-          <img src={aegisLogo} alt="Aegis" className="h-16 w-auto opacity-90" />
+          <AegisLogo alt="Aegis" className="h-16 w-auto opacity-90" />
         </div>
 
         <NeuralCard className="p-6 space-y-5">

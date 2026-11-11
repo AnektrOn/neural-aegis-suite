@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useAegisMotion } from "@/hooks/useAegisMotion";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { ArrowRight, Languages, Mic } from "lucide-react";
-import aegisLogo from "@/assets/aegis-logo.png";
+import AegisLogo from "@/components/AegisLogo";
 import { WelcomeQuantumNebula } from "./WelcomeQuantumNebula";
 
 interface WelcomeHudScreenProps {
@@ -48,8 +48,7 @@ export function WelcomeHudScreen({
         </button>
 
         <header className="flex w-full max-w-md flex-col items-center pt-[max(1.5rem,env(safe-area-inset-top))]">
-          <img
-            src={aegisLogo}
+          <AegisLogo
             alt="AEGIS"
             className="h-10 w-10 rounded-lg object-contain"
             width={40}

@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Application logos
+- [x] Replace all existing application logo images and the member welcome shortcut with supplied light/dark variants; update favicon, home-screen and notification icons.
+- [x] Verify light/dark rendering at 1280px and 393px, five menu tests and build OK; hosted CDN returns image/webp (localhost rendering checked with downloaded CDN bytes).
+
 - [x] Restore member logout through the shared dock and existing confirmation.
 - [x] Keep saved V2 menu choices authoritative, report save errors, and preserve legacy migration.
 - [x] Verify practice pin finding: stale; hosted column and types exist, current hub has no pin control.

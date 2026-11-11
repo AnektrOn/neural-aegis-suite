@@ -1,5 +1,5 @@
 import { ArrowRight, Mail } from "lucide-react";
-import aegisLogo from "@/assets/aegis-logo.png";
+import AegisLogo from "@/components/AegisLogo";
 import { NeuralCard } from "@/components/ui/neural-card";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -14,7 +14,7 @@ export function AuthScene() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-background px-5 pb-10 pt-[max(1.25rem,env(safe-area-inset-top))]">
       <header className="flex items-center justify-between">
-        <img src={aegisLogo} alt="" className="h-9 w-9 rounded-lg object-contain" />
+        <AegisLogo alt="" className="h-9 w-9 rounded-lg object-contain" />
         <div className="flex items-center gap-2">
           <LanguageSwitcher collapsed />
           <ThemeToggle collapsed />

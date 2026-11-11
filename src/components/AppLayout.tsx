@@ -19,7 +19,7 @@ import QuickLogModal from "@/components/QuickLogModal";
 import { APP_NAV_SECTIONS, panelPathIsActive } from "@/lib/appNavConfig";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { MobileAppDockBar } from "@/components/MobileAppDockBar";
-import aegisLogo from "@/assets/aegis-logo.png";
+import AegisLogo from "@/components/AegisLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -65,7 +65,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   return (
     <>
       <div className="h-14 flex items-center px-4 border-b border-border-subtle shrink-0">
-        <img src={aegisLogo} alt="Aegis" className="w-7 h-7 rounded-lg object-contain" />
+        <AegisLogo alt="Aegis" className="w-7 h-7 rounded-lg object-contain" />
         {!collapsed && (
           <span className="ml-3 font-display text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
             Neural Aegis
@@ -326,7 +326,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   } as React.CSSProperties
                 }
               >
-                <img src={aegisLogo} alt="" className="h-8 w-8 rounded-lg object-contain" />
+                <AegisLogo alt="" className="h-8 w-8 rounded-lg object-contain" />
               </NavLink>
             </div>
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none text-center max-w-[55%]">

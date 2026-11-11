@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Moon, Sun, Languages, LogOut, Orbit } from "lucide-react";
+import { Moon, Sun, Languages, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { applyTheme, getStoredThemeIsDark } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import AegisLogo from "@/components/AegisLogo";
 
 export interface MemberTopDockBarProps {
   onLogout?: () => void;
@@ -142,7 +143,7 @@ export function MemberTopDockBar({
                 className={actionClass}
                 style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
               >
-                <Orbit size={15} strokeWidth={1.5} className="text-[#c9a24b] sm:w-[17px] sm:h-[17px]" />
+                <AegisLogo alt="" className="h-8 w-8 object-contain" />
               </Link>
 
               <button
