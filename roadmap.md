@@ -35,4 +35,4 @@
 - [x] Preserve real per-user ElevenLabs folders and reclassify unchanged documents; seven tests pass, function deployed, ten folders and one unchanged document verified in ElevenLabs, repeated batch reuses folders.
 - [x] Include Markdown from nested folders using the linked Drive connection and report empty syncs as errors.
 - [x] Four regression tests pass; real admin sync reaches the personal agent in batches with RAG (349 files discovered, first 55 processed).
-- [ ] Complete the existing 349-document import via the admin sync; not launched in this task, which verifies only small batches as approved.
+- [ ] Complete the existing 349-document import via the admin sync; not launched in this task, which verifies only small batches as approved.- [ ] Export Drive : fichier supplémentaire avec le barème du quiz Maisons (Quizz/)

@@ -1,5 +1,6 @@
+import { HOUSES72_BAREME_MD } from "../../supabase/functions/export-to-drive/houses72-bareme";
 import { describe, expect, it } from "vitest";
-import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows } from "../../supabase/functions/export-to-drive/full-export";
+import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows, categoryForTable } from "../../supabase/functions/export-to-drive/full-export";
 
 describe("complete user Drive exports", () => {
   it("uses the user's requested Drive root", () => {
@@ -19,5 +20,19 @@ describe("complete user Drive exports", () => {
   });
   it("fails rather than declaring an incomplete export successful", async () => {
     await expect(readAllRows(async () => ({ data: null, error: { message: "unavailable" } }))).rejects.toThrow("unavailable");
+  });
+  it("routes each table into its per-user category folder", () => {
+    expect(categoryForTable("houses72_responses")).toBe("Quizz");
+    expect(categoryForTable("mood_entries")).toBe("Mood");
+    expect(categoryForTable("decisions")).toBe("Decisions");
+    expect(categoryForTable("habit_completions")).toBe("Habits");
+    expect(categoryForTable("toolbox_completions")).toBe("Toolbox");
+    expect(categoryForTable("journal_entries")).toBe("Journal");
+    expect(categoryForTable("people_contacts")).toBe("People");
+    expect(categoryForTable("user_reports")).toBe("Rapport");
+  });
+  it("ships the full Maisons scoring grid for all 72 questions", () => {
+    expect(HOUSES72_BAREME_MD.match(/^### Q\d+\.\d+/gm)).toHaveLength(72);
+    expect(HOUSES72_BAREME_MD).toContain("sovereign lumière +2");
   });
 });

@@ -4,7 +4,8 @@
 // massively parallel pg_net calls.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders as sdkCorsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows } from "./full-export.ts";
+import { HOUSES72_BAREME_MD } from "./houses72-bareme.ts";
+import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows, categoryForTable } from "./full-export.ts";
 
 const corsHeaders = {
   ...sdkCorsHeaders,
@@ -238,21 +239,38 @@ Deno.serve(async (req) => {
         });
         const clientName = sanitize(p.display_name || p.id);
         const counts = Object.fromEntries(Object.entries(data).map(([table, rows]) => [table, rows.length]));
-        let md = `# Export complet — ${clientName}\n\nExporté le ${new Date().toISOString()}\n\nUser ID: ${p.id}\n`;
-        for (const [table, rows] of Object.entries(data)) {
-          md += `\n## ${table} (${rows.length})\n\n` + (rows.length ? "```json\n" + JSON.stringify(rows, null, 2) + "\n```\n" : "_Aucune donnée_\n");
-        }
         const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
-        const catId = await findOrCreateFolder(admin, clientId, "BDD");
-        const dateId = await findOrCreateFolder(admin, catId, today);
-        // Stable user-specific filename keeps users with identical names separate.
-        const filename = `${today}-export-complet-${p.id}.md`;
-        const fileId = await uploadMarkdown(dateId, filename, md);
-        const verify = await fetch(`${GATEWAY}/drive/v3/files/${fileId}?fields=id,name,parents,size&supportsAllDrives=true`, { headers: gwHeaders() });
-        if (!verify.ok) throw new Error(`Drive readback failed ${verify.status}: ${await verify.text()}`);
-        const saved = await verify.json();
-        if (!saved.parents?.includes(dateId) || Number(saved.size) !== new TextEncoder().encode(md).length) throw new Error("Drive export readback mismatch");
-        return { user_id: p.id, display_name: p.display_name, fileId, path: `${clientName}/BDD/${today}/${filename}`, counts, verified: true };
+        const files: Array<{ path: string; fileId: string }> = [];
+        const docs: Array<[string, string, string]> = [];
+        for (const [table, rows] of Object.entries(data)) {
+          if (!rows.length) continue;
+          const category = categoryForTable(table);
+          // Large accounts can be exported one category per call to stay under the request time limit.
+          if (Array.isArray(body.categories) && !body.categories.includes(category)) continue;
+          docs.push([category, `${today}_${table}.md`, `# ${category} — ${table} — ${clientName}\n\nExporté le ${new Date().toISOString()}\n\nUser ID: ${p.id}\n\n## ${table} (${rows.length})\n\n` + "```json\n" + JSON.stringify(rows, null, 2) + "\n```\n"]);
+        }
+        // Maisons answers are only interpretable with the scoring grid alongside them.
+        if (data.houses72_responses?.length && (!Array.isArray(body.categories) || body.categories.includes("Quizz"))) docs.push(["Quizz", `${today}_houses72_bareme.md`, HOUSES72_BAREME_MD]);
+        for (const [category, filename, md] of docs) {
+          const catId = await findOrCreateFolder(admin, clientId, category);
+          const dateId = await findOrCreateFolder(admin, catId, today);
+          // Re-running the export replaces same-day files instead of duplicating them.
+          const q = `name='${filename.replace(/'/g, "\\'")}' and '${dateId}' in parents and trashed=false`;
+          const existing = await fetch(`${GATEWAY}/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true`, { headers: gwHeaders() });
+          if (!existing.ok) throw new Error(`Drive list failed ${existing.status}: ${await existing.text()}`);
+          for (const f of (await existing.json()).files ?? []) await trashDriveFolder(f.id);
+          const fileId = await uploadMarkdown(dateId, filename, md);
+          const verify = await fetch(`${GATEWAY}/drive/v3/files/${fileId}?fields=id,parents,size&supportsAllDrives=true`, { headers: gwHeaders() });
+          if (!verify.ok) throw new Error(`Drive readback failed ${verify.status}: ${await verify.text()}`);
+          const saved = await verify.json();
+          if (!saved.parents?.includes(dateId) || Number(saved.size) !== new TextEncoder().encode(md).length) throw new Error(`Drive export readback mismatch for ${filename}`);
+          files.push({ path: `${clientName}/${category}/${today}/${filename}`, fileId });
+        }
+        // Remove the previous single-file "BDD" layout for this user.
+        const legacy = await listChildFolders(clientId, "BDD");
+        for (const id of legacy) await trashDriveFolder(id);
+        if (legacy.length) await admin.from("drive_folder_cache").delete().eq("parent_id", clientId).eq("name", "BDD");
+        return { user_id: p.id, display_name: p.display_name, files, counts, removed_bdd: legacy.length, verified: true };
       };
       let query = admin.from("profiles").select("id, display_name").order("id");
       if (body.action === "export_user_full") query = query.eq("id", body.user_id);
