@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { OPERATOR_ROLES, OWNER_EMAIL, RECOVERY_START, escapeHtml, isRecentLogin } from './activity-rules.ts';
+import { OPERATOR_ROLES, OWNER_EMAIL, RECOVERY_START, escapeHtml, isRecentLogin, isInRecoveryPeriod } from './activity-rules.ts';
 
 
 async function sendWithResend({
@@ -144,14 +144,43 @@ serve(async (req) => {
     if (!body || typeof body.type !== 'string') return new Response(JSON.stringify({ error: 'Invalid type' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     const { type, user_id, data } = body;
 
-    if (type === 'activity_event' || type === 'activity_catchup' || type === 'admin_login_alert') {
+    if (type === 'activity_event' || type === 'activity_catchup' || type === 'activity_recovery_event' || type === 'admin_login_alert') {
       const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
       const { data: caller } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
       let key = '';
       let subject = '';
       let html = '';
       let recipients = await getAdminEmails(supabase);
-      if (type === 'activity_catchup') {
+      if (type === 'activity_recovery_event') {
+        if (!caller.user) return new Response(JSON.stringify({ error:'Unauthorized' }), { status:401, headers:corsHeaders });
+        const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id',caller.user.id).in('role',OPERATOR_ROLES);
+        if (!roles?.length) return new Response(JSON.stringify({ error:'Forbidden' }), { status:403, headers:corsHeaders });
+        if (!['user_sessions','assessment_sessions','toolbox_completions'].includes(body.table) || typeof body.event_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.event_id)) return new Response(JSON.stringify({ error:'Invalid event' }), { status:400, headers:corsHeaders });
+        const { data:event,error } = await supabase.from(body.table).select('*').eq('id',body.event_id).single();
+        const date = event?.submitted_at || event?.completed_at || event?.started_at;
+        if (error || !event || !date || !isInRecoveryPeriod(date) || (body.table === 'assessment_sessions' && event.status !== 'submitted') || (body.table === 'toolbox_completions' && event.status !== 'completed')) return new Response(JSON.stringify({ error:'Event outside requested recovery' }), { status:400, headers:corsHeaders });
+        const { data:person } = await supabase.auth.admin.getUserById(event.user_id);
+        if (body.table === 'user_sessions' && person?.user?.email?.toLowerCase() === OWNER_EMAIL) return new Response(JSON.stringify({ success:true,skipped:true }), { headers:corsHeaders });
+        const { data:profile } = await supabase.from('profiles').select('display_name').eq('id',event.user_id).single();
+        const name = escapeHtml(profile?.display_name || person?.user?.email || 'Utilisateur');
+        recipients = [OWNER_EMAIL];
+        let detail = '';
+        if (body.table === 'user_sessions') {
+          key = `visit:${event.id}`;
+          subject = 'Aegis — Rattrapage : visite enregistrée';
+          detail = `${name} a visité l’application. Cette visite enregistrée n’est pas une preuve de nouvelle connexion.`;
+        } else if (body.table === 'assessment_sessions') {
+          key = `quiz:${event.id}`;
+          subject = 'Aegis — Rattrapage : quiz terminé';
+          detail = `${name} a terminé un quiz.`;
+        } else {
+          key = `tool:${event.id}:${date}`;
+          subject = 'Aegis — Rattrapage : outil terminé';
+          const { data:assignment } = await supabase.from('toolbox_assignments').select('title').eq('id',event.assignment_id).single();
+          detail = `${name} a terminé l’outil « ${escapeHtml(assignment?.title || 'Outil')} ».`;
+        }
+        html = `<h2>${escapeHtml(subject)}</h2><p>${detail}</p><p>Date de l’événement : ${escapeHtml(date)} (UTC).</p><p>Alerte historique renvoyée à votre demande ; il ne s’agit pas d’une activité survenue aujourd’hui.</p>`;
+      } else if (type === 'activity_catchup') {
         if (!caller.user) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
         const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', caller.user.id).in('role', OPERATOR_ROLES);
         if (!roles?.length) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });

@@ -1,6 +1,7 @@
 # Monitoring fixes
 
 ## Activity email alerts
+- [x] Send 73 individual retained alerts from 17 October 2026 onward to the owner: 70 tracked visits clearly distinguished from logins, two quizzes and one tool; each accepted by SMTP and recorded sent.
 - [x] Restore login, completed quiz and completed tool emails with event/recipient deduplication; resolve superadmin recipients and defer auth callback work.
 - [x] Establish last recorded login alert (17 October 2026 16:37 UTC); send the owner a historical summary of 70 tracked visits, 22 retained quizzes and 28 retained tool completions, clearly noting missing delivery evidence and deleted history.
 - [x] Verify SMTP acceptance and persisted sent state from an authenticated owner session; five rule tests pass. New real member quiz/tool completion has not been exercised during this task.
