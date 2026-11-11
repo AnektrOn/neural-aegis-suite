@@ -17,7 +17,7 @@ import {
   useConversationStatus,
 } from "@elevenlabs/react";
 import { ArrowLeft, Mic, MicOff, PhoneOff, Loader2 } from "lucide-react";
-import aegisLogo from "@/assets/aegis-logo.png";
+import AegisLogo from "@/components/AegisLogo";
 import QuantumNebula, {
   type QuantumNebulaDrive,
   type QuantumNebulaExternalAudio,
@@ -365,8 +365,7 @@ function VoiceAgentWelcomeHud({
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
             {t("welcome.voiceAgent.back")}
           </Link>
-          <img
-            src={aegisLogo}
+          <AegisLogo
             alt="AEGIS"
             className="h-10 w-10 rounded-lg object-contain"
             width={40}

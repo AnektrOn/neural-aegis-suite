@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
-import aegisLogo from "@/assets/aegis-logo.png";
+import AegisLogo from "@/components/AegisLogo";
 import { copy } from "../promoteDemoData";
 import { usePromotePlayer } from "../PromotePlayerContext";
 
@@ -11,7 +11,7 @@ export function LandingScene() {
     <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-background px-6 pb-10 pt-[max(1.25rem,env(safe-area-inset-top))]">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <img src={aegisLogo} alt="" className="h-8 w-8 rounded-lg object-contain" />
+          <AegisLogo alt="" className="h-8 w-8 rounded-lg object-contain" />
           <span className="font-display text-sm uppercase tracking-[0.24em] text-foreground">Aegis</span>
         </div>
         <div className="flex items-center gap-2">
