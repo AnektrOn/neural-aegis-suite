@@ -1,6 +1,6 @@
 import { ClinicalMermaidViewer } from "@/features/user-reports/components/ClinicalMermaidViewer";
 import type { MermaidTheme, RsmPattern } from "react-super-mermaid";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export interface MermaidDiagramProps {
   source: string;
