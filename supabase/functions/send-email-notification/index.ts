@@ -1,12 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { OPERATOR_ROLES, OWNER_EMAIL, RECOVERY_START, escapeHtml, isRecentLogin } from './activity-rules.ts';
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 async function sendWithResend({
   to,
@@ -95,7 +92,7 @@ async function getAdminEmails(supabase: SupabaseClient): Promise<string[]> {
   const { data: admins, error } = await supabase
     .from("user_roles")
     .select("user_id")
-    .eq("role", "admin");
+    .in("role", OPERATOR_ROLES);
   if (error || !admins?.length) return [];
   const emails: string[] = [];
   for (const a of admins) {
@@ -114,7 +111,7 @@ async function insertNotificationsForAllAdmins(
   const { data: admins, error: roleError } = await supabase
     .from("user_roles")
     .select("user_id")
-    .eq("role", "admin");
+    .in("role", OPERATOR_ROLES);
   if (roleError) {
     console.error("insertNotificationsForAllAdmins: user_roles", roleError.message);
     return;
@@ -138,11 +135,84 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) throw new Error('Missing server configuration');
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const { type, user_id, data } = await req.json();
+    const body = await req.json();
+    if (!body || typeof body.type !== 'string') return new Response(JSON.stringify({ error: 'Invalid type' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const { type, user_id, data } = body;
+
+    if (type === 'activity_event' || type === 'activity_catchup' || type === 'admin_login_alert') {
+      const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
+      const { data: caller } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
+      let key = '';
+      let subject = '';
+      let html = '';
+      let recipients = await getAdminEmails(supabase);
+      if (type === 'activity_catchup') {
+        if (!caller.user) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
+        const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', caller.user.id).in('role', OPERATOR_ROLES);
+        if (!roles?.length) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
+        recipients = [OWNER_EMAIL];
+        key = `activity-catchup:${RECOVERY_START}:2026-11-11`;
+        const { data: visits, error: vErr } = await supabase.from('user_sessions').select('user_id,started_at').gt('started_at', RECOVERY_START).lt('started_at', '2026-11-11T04:58:00Z').order('started_at');
+        const { data: quizzes, error: qErr } = await supabase.from('assessment_sessions').select('user_id,submitted_at').eq('status','submitted').order('submitted_at');
+        const { data: tools, error: tErr } = await supabase.from('toolbox_completions').select('user_id,completed_at,assignment_id').eq('status','completed').order('completed_at');
+        if (vErr || qErr || tErr) throw new Error('Unable to read catch-up history');
+        const { data: profiles } = await supabase.from('profiles').select('id,display_name');
+        const names = new Map((profiles ?? []).map(p => [p.id, p.display_name]));
+        const line = (id: string, date: string) => `<li>${escapeHtml(names.get(id) || 'Utilisateur')} — ${escapeHtml(date)}</li>`;
+        const { data: ownerProfile } = await supabase.from('profiles').select('id').eq('id','25d80046-d3f4-43f2-933a-ade961f20e28').single();
+        const realVisits = (visits ?? []).filter(v => v.user_id !== ownerProfile?.id);
+        subject = 'Aegis — rattrapage des alertes d’activité';
+        html = `<h2>Rattrapage des alertes</h2><p>Dernière alerte de connexion enregistrée : 17 octobre 2026 à 16:37 UTC. Cette date ne prouve pas une livraison en boîte mail. Les quiz et outils ne déclenchaient pas d’email dans le code examiné ; voici tout leur historique encore disponible.</p><h3>${realVisits.length} visites enregistrées depuis cette date</h3><p>Il s’agit de visites avec suivi accepté, pas de connexions authentifiées prouvées ; les visites sans suivi ne sont pas récupérables.</p><ul>${realVisits.map(v => line(v.user_id,v.started_at)).join('')}</ul><h3>${quizzes?.length ?? 0} quiz terminés conservés</h3><ul>${(quizzes ?? []).map(q => line(q.user_id,q.submitted_at)).join('')}</ul><h3>${tools?.length ?? 0} outils terminés conservés</h3><ul>${(tools ?? []).map(t => line(t.user_id,t.completed_at)).join('')}</ul><p>Aucun historique d’envoi antérieur ne permet de certifier quels emails avaient été reçus. Les données supprimées et anciennes répétitions d’un même outil ne sont pas récupérables.</p>`;
+      } else if (type === 'activity_event') {
+        if (!['assessment_sessions','toolbox_completions'].includes(body.table) || typeof body.event_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.event_id)) return new Response(JSON.stringify({ error: 'Invalid event' }), { status: 400, headers: corsHeaders });
+        // Webhooks carry no user JWT: only accept a persisted, recently completed
+        // event and resolve its user, content and recipients exclusively server-side.
+        const { data: event, error } = await supabase.from(body.table).select('*').eq('id',body.event_id).single();
+        if (error || !event || !['completed','submitted'].includes(event.status)) return new Response(JSON.stringify({ error: 'Event not completed' }), { status: 400, headers: corsHeaders });
+        const date = event.submitted_at || event.completed_at;
+        if (!date || Math.abs(Date.now()-Date.parse(date)) > 300_000) return new Response(JSON.stringify({ error: 'Event outside delivery window' }), { status: 403, headers: corsHeaders });
+        const { data: profile } = await supabase.from('profiles').select('display_name').eq('id',event.user_id).single();
+        key = body.table === 'assessment_sessions' ? `quiz:${event.id}` : `tool:${event.id}:${date}`;
+        subject = body.table === 'assessment_sessions' ? 'Aegis — Quiz terminé' : 'Aegis — Outil terminé';
+        let title = '';
+        if (event.assignment_id) { const { data: assignment } = await supabase.from('toolbox_assignments').select('title').eq('id',event.assignment_id).single(); title = assignment?.title ?? ''; }
+        html = `<h2>${subject}</h2><p>${escapeHtml(profile?.display_name || 'Utilisateur')} a terminé ${body.table === 'assessment_sessions' ? 'un quiz' : `l’outil ${escapeHtml(title)}`}.</p><p>${escapeHtml(date)}</p>`;
+      } else {
+        if (!caller.user || caller.user.id !== user_id || caller.user.is_anonymous) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        if (caller.user.email?.toLowerCase() === OWNER_EMAIL) return new Response(JSON.stringify({ success: true, skipped: true }), { headers: corsHeaders });
+        const loginAt = caller.user.last_sign_in_at;
+        if (!loginAt) throw new Error('Missing login timestamp');
+        if (!isRecentLogin(loginAt)) return new Response(JSON.stringify({ success:true, skipped:true, reason:'restored_session' }), { headers:corsHeaders });
+        key = `login:${user_id}:${loginAt}`;
+        subject = 'Aegis — Connexion utilisateur';
+        html = `<h2>Connexion utilisateur</h2><p>${escapeHtml(caller.user.email)} s’est connecté.</p><p>${escapeHtml(loginAt)}</p>`;
+      }
+      const results = [];
+      for (const to of recipients) {
+        const { error: claimError } = await supabase.from('activity_email_deliveries').insert({ event_key:key,recipient_email:to });
+        if (claimError) {
+          if (claimError.code === '23505') { results.push({ recipient:to, duplicate:true }); continue; }
+          throw claimError;
+        }
+        try {
+          const result = await sendEmail({ to,subject,html });
+          if (!result.sent) throw new Error('Email transport unavailable');
+          const { error: recordError } = await supabase.from('activity_email_deliveries').update({ status:'sent',sent_at:new Date().toISOString() }).eq('event_key',key).eq('recipient_email',to);
+          if (recordError) throw recordError;
+          results.push({ recipient:to,sent:true });
+        } catch (error) {
+          await supabase.from('activity_email_deliveries').update({ status:'failed',error_message:error instanceof Error ? error.message : 'Delivery failed' }).eq('event_key',key).eq('recipient_email',to);
+          throw error;
+        }
+      }
+      if (type === 'admin_login_alert' && results.some(r => r.sent)) await insertNotificationsForAllAdmins(supabase,{ title:subject,message:'Un utilisateur s’est connecté.',type:'admin_login',link:'/admin/analytics' });
+      return new Response(JSON.stringify({ success:true,event_key:key,results }), { headers: { ...corsHeaders,'Content-Type':'application/json' } });
+    }
 
     const adminEmailTypes = new Set([
       "admin_login_alert",

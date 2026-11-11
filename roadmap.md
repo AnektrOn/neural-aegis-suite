@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## Activity email alerts
+- [x] Restore login, completed quiz and completed tool emails with event/recipient deduplication; resolve superadmin recipients and defer auth callback work.
+- [x] Establish last recorded login alert (17 October 2026 16:37 UTC); send the owner a historical summary of 70 tracked visits, 22 retained quizzes and 28 retained tool completions, clearly noting missing delivery evidence and deleted history.
+- [x] Verify SMTP acceptance and persisted sent state from an authenticated owner session; five rule tests pass. New real member quiz/tool completion has not been exercised during this task.
+
 ## Public access presentation
 - [x] Hide Google, guest and newsletter entry buttons and bottom newsletter link on auth.
 - [x] Add free signup on the landing and replace its paid price with quote-only presentation in French and English.

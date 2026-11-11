@@ -35,6 +35,33 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_email_deliveries: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_key: string
+          recipient_email: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_key: string
+          recipient_email: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_key?: string
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       admin_alerts: {
         Row: {
           alert_type: string

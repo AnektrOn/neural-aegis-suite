@@ -43,6 +43,20 @@
       "when": 1794114336458,
       "tag": "0005_elevenlabs_folder_sync_lease",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794373264833,
+      "tag": "0006_activity_email_delivery_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794373291163,
+      "tag": "0007_event_driven_activity_email_webhooks",
+      "breakpoints": true
     }
   ]
 }
