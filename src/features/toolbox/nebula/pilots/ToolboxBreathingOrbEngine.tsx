@@ -179,6 +179,8 @@ export function ToolboxBreathingOrbEngine({
       renderer.render(scene, camera);
     };
 
+    const ro = new ResizeObserver(onResize);
+    ro.observe(container);
     window.addEventListener("resize", onResize);
     window.addEventListener("mousemove", onMouseMove);
     onResize();
@@ -186,6 +188,7 @@ export function ToolboxBreathingOrbEngine({
 
     return () => {
       cancelAnimationFrame(raf);
+      ro.disconnect();
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mousemove", onMouseMove);
       particleGeometry.dispose();

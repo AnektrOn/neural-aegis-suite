@@ -43,7 +43,7 @@ export type ArmillarySphereCanvasProps = {
   autoCameraSpeed?: number;
   /** Lower quality: no MSAA, two halo passes, DPR cap 1.5. */
   quality?: "high" | "low";
-  /** Called once if WebGL or textures fail. Parent should keep a still underneath. */
+  /** Called once if WebGL or textures fail. */
   onError?: () => void;
   /** Called once after the first successful frame. */
   onReady?: () => void;
