@@ -155,11 +155,17 @@ export function ClinicalReportReader({
     if (!report) return;
     const content = langMode === "fr" ? cleanFr : langMode === "en" ? cleanEn : rawRapportMd;
     openMdPdfPrintWindow({
-      markdown: content,
-      title: report.title,
-      subtitle: `${levelLabel} · ${prismLabel} · AEGIS V3.2`,
-      themeId: "executive",
-      lang: langMode === "en" ? "en" : "fr",
+      sources: [
+        {
+          filename: report.title || "rapport",
+          markdown: content,
+          titleOverride: report.title,
+          subtitleOverride: `${levelLabel} · ${prismLabel} · AEGIS V3.2`,
+        },
+      ],
+      theme: "executive",
+      showCover: true,
+      locale: langMode === "en" ? "en" : "fr",
       contentLang: langMode === "en" ? "en" : "fr",
     });
   };
