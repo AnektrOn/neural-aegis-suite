@@ -1,3 +1,4 @@
+import { HOUSES72_BAREME_MD } from "../../supabase/functions/export-to-drive/houses72-bareme";
 import { describe, expect, it } from "vitest";
 import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows, categoryForTable } from "../../supabase/functions/export-to-drive/full-export";
 
@@ -29,5 +30,9 @@ describe("complete user Drive exports", () => {
     expect(categoryForTable("journal_entries")).toBe("Journal");
     expect(categoryForTable("people_contacts")).toBe("People");
     expect(categoryForTable("user_reports")).toBe("Rapport");
+  });
+  it("ships the full Maisons scoring grid for all 72 questions", () => {
+    expect(HOUSES72_BAREME_MD.match(/^### Q\d+\.\d+/gm)).toHaveLength(72);
+    expect(HOUSES72_BAREME_MD).toContain("sovereign lumière +2");
   });
 });
