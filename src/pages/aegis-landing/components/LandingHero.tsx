@@ -42,6 +42,9 @@ export function LandingHero() {
                 {copy.hero.subtitle}
               </p>
               <div className="mt-8 flex flex-col items-stretch gap-3 sm:items-start">
+                <LandingButton href="/auth?signup=1" variant="bronze" className="w-full sm:w-auto">
+                  {copy.nav.signUpFree}
+                </LandingButton>
                 <LandingButton href="#tarif" variant="dark" className="w-full sm:w-auto">
                   {copy.hero.cta}
                 </LandingButton>

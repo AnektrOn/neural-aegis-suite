@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## Public access presentation
+- [x] Hide Google, guest and newsletter entry buttons and bottom newsletter link on auth.
+- [x] Add free signup on the landing and replace its paid price with quote-only presentation in French and English.
+- [x] Verify signup navigation to the account form and simplified auth at 1280px and 393px; no page errors, payment and provider settings unchanged.
+
 ## Application logos
 - [x] Replace all existing application logo images and the member welcome shortcut with supplied light/dark variants; update favicon, home-screen and notification icons.
 - [x] Verify light/dark rendering at 1280px and 393px, five menu tests and build OK; hosted CDN returns image/webp (localhost rendering checked with downloaded CDN bytes).
