@@ -57,7 +57,7 @@ export function rowsFromScores(
       raw: Math.round(Number(s.raw_score) || 0),
       normalized: Math.round(Number(s.normalized_score) || 0),
     }))
-    .toSorted((a, b) => a.rank - b.rank || b.normalized - a.normalized);
+    .sort((a, b) => a.rank - b.rank || b.normalized - a.normalized);
 }
 
 interface RadarColors {
