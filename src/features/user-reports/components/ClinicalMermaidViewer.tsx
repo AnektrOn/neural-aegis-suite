@@ -232,7 +232,7 @@ export function ClinicalMermaidViewer({
     }
   };
 
-  const handleDownloadPng = async (scale: number = 2) => {
+  const handleDownloadPng = async (scale: 1 | 2 | 4 = 2) => {
     try {
       setExporting(true);
       await viewerRef.current?.downloadPng(`${safeFilename}_${scale}x.png`, { scale });

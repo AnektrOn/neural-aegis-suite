@@ -10,19 +10,19 @@ function parseYamlKeyValues(raw: string): ParsedReportFrontmatter {
     if (!kv) continue;
     const key = kv[1];
     let value: unknown = kv[2].trim();
-    if (typeof value === "string") {
-      // strip surrounding quotes
-      value = value.replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
+    {
+      const str = (kv[2].trim()).replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
+      value = str;
       // numeric check
-      if (/^-?\d+(\.\d+)?$/.test(value)) {
-        value = Number(value);
-      } else if (value.toLowerCase() === "true") {
+      if (/^-?\d+(\.\d+)?$/.test(str)) {
+        value = Number(str);
+      } else if (str.toLowerCase() === "true") {
         value = true;
-      } else if (value.toLowerCase() === "false") {
+      } else if (str.toLowerCase() === "false") {
         value = false;
-      } else if (value.startsWith("[") && value.endsWith("]")) {
+      } else if (str.startsWith("[") && str.endsWith("]")) {
         // array literal
-        value = value
+        value = str
           .slice(1, -1)
           .split(",")
           .map((s) => s.trim().replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1"))
