@@ -14,7 +14,6 @@ describe("MemberPageScaffold", () => {
     expect(el).toBeTruthy();
     expect(el.className).toContain("mx-auto");
     expect(el.className).toContain("max-w-5xl");
-    expect(el.className).toContain("pl-3");
   });
 
   it.each([

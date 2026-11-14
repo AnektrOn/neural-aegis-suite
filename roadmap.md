@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Page access and mobile width
+- [x] Restore clickable dialogs above their overlays; authenticated Maisons dismissal and mobile dock navigation verified, no runtime errors.
+- [x] Remove full-page mobile dock clearance from member scaffolds; fourteen pages checked at 393px and 1280px without horizontal overflow; six scaffold tests pass and build OK.
+
 ## Complete Drive re-export
 - [x] Include 62 retained per-user data sections, including Maisons answers and report sections, with pagination and explicit failures; four tests pass.
 - [x] Send all 32 user exports under USER AEGIS RAW DATA and verify destination and byte size; read Massimiliano's file back through Drive: 119 choices, 48 questions, eight houses. Existing automatic Maisons exports remain outside this backfill request.
