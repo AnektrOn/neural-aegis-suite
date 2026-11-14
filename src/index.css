@@ -1481,12 +1481,8 @@ input[type="range"]::-moz-range-thumb {
    sidebar to stay hidden under 768px CSS-px viewport.
    ============================================================ */
 @media (max-width: 767px) {
-  /* Make sure no transform/overflow ancestor breaks fixed positioning
-     of the mobile top bar or the sheet overlay. */
-  [data-radix-popper-content-wrapper],
-  [data-state="open"][role="dialog"] {
-    z-index: 70 !important;
-  }
+  /* Dialogs, sheets and popovers keep their component stacking order.
+     A global override would put their controls below their own overlays. */
   /* Guarantee tap targets on the mobile header */
   header button,
   nav button,

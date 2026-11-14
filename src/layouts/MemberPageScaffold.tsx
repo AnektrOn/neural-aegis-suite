@@ -42,12 +42,12 @@ export function MemberPageScaffold({
       className={cn(
         "w-full min-h-0",
         viewport
-          ? // Immersive on lg+; on mobile/tablet reserve top-dock horizontal clearance.
-            "max-w-none mx-0 flex flex-col lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden max-lg:pl-3 sm:max-lg:pl-5 max-lg:pr-[var(--member-top-dock-clearance)] lg:p-0"
+          ? // The shell reserves the top dock vertically on mobile; panes own their insets.
+            "max-w-none mx-0 flex flex-col lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden lg:p-0"
           : cn(
               "mx-auto",
               !bleed &&
-                "py-4 lg:py-5 pl-3 sm:pl-5 lg:px-6 max-lg:pr-[var(--member-top-dock-clearance)] lg:pr-6",
+                 "py-4 lg:py-5 px-3 sm:px-5 lg:px-6",
               WIDTHS[width],
             ),
         className,
