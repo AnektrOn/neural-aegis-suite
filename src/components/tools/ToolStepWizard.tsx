@@ -84,33 +84,38 @@ export function ToolStepWizard({
       )}
       aria-label="Formulaire par étapes"
     >
-      <div className="border-b border-[color:var(--aegis-cardline)] px-4 py-3 md:px-6">
+      <div className="border-b border-border/40 bg-background/40 px-4 py-3 backdrop-blur-md md:px-6">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
-          <span className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--aegis-ink-subtle)]">
+          <span className="font-display text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
             {isResult ? "Synthèse" : `Étape ${index + 1} / ${steps.length}`}
           </span>
-          <span className="font-display text-xs tabular-nums text-[color:var(--aegis-gold)]">
+          <span className="font-display text-xs tabular-nums text-primary">
             {Math.round(progressPct)} %
           </span>
         </div>
         <MotionWS
-          className="mx-auto mt-2 h-1 max-w-lg overflow-hidden rounded-full bg-[color:var(--aegis-surface-elevated)]"
+          className="mx-auto mt-2 h-1 max-w-lg overflow-hidden rounded-full bg-muted"
           role="progressbar"
           aria-valuenow={Math.round(progressPct)}
           aria-valuemin={0}
           aria-valuemax={100}
         >
           <div
-            className="h-full rounded-full bg-[color:var(--aegis-gold)] transition-all duration-300"
+            className="h-full rounded-full bg-primary transition-all duration-300"
             style={{ width: `${progressPct}%` }}
           />
         </MotionWS>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 py-10 md:px-6">
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-8 md:px-6 md:py-10",
+          isResult ? "justify-center" : "justify-start",
+        )}
+      >
         <div className="mx-auto w-full max-w-lg">
           {(isResult ? resultStep : current) && (
-            <header className="mb-10 text-center md:mb-12 md:text-left">
+            <header className="mb-6 text-center md:mb-8 md:text-left">
               <p className={toolsKicker}>
                 {isResult ? resultStep.kicker ?? "Résultats" : current?.kicker ?? "Votre contexte"}
               </p>
@@ -157,13 +162,13 @@ function UnconditionalFooterNav({
   onRestart: () => void;
 }) {
   return (
-    <footer className="sticky bottom-0 border-t border-[color:var(--aegis-cardline)] bg-[color:var(--aegis-bg)] px-4 py-4 md:px-6">
+    <footer className="sticky bottom-0 border-t border-border/40 bg-background/85 px-4 py-4 backdrop-blur-md md:px-6">
       <CardinalFlex className="mx-auto flex max-w-lg items-center justify-between gap-3">
         <button
           type="button"
           onClick={onBack}
           className={cn(
-            "inline-flex min-h-[44px] max-w-[50%] items-center gap-2 rounded-xl border border-[color:var(--aegis-cardline)] bg-[color:var(--aegis-surface-elevated)] px-3 font-cinzel text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--aegis-ink-muted)] transition hover:border-[color:var(--aegis-cardline-hover)] sm:max-w-none sm:px-4 sm:tracking-[0.14em]",
+            "inline-flex min-h-[44px] max-w-[50%] items-center gap-2 rounded-xl border border-border/50 bg-card/70 px-3 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground transition hover:border-primary/40 hover:text-foreground sm:max-w-none sm:px-4",
           )}
         >
           <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />

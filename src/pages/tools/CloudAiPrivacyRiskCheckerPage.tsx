@@ -61,14 +61,14 @@ export default function CloudAiPrivacyRiskCheckerPage() {
       {items.map((t) => (
         <li
           key={t.id}
-          className="flex min-h-[52px] items-center gap-4 rounded-xl border border-[color:var(--aegis-cardline)] bg-[color:var(--aegis-surface-elevated)] px-4"
+          className="flex min-h-[52px] items-center gap-4 rounded-xl border border-border/50 bg-muted/40 px-4"
         >
           <Checkbox
             id={t.id}
             checked={state[t.id]}
             onCheckedChange={(c) => setState((prev) => ({ ...prev, [t.id]: c === true }))}
           />
-          <Label htmlFor={t.id} className="flex-1 cursor-pointer font-body text-sm text-[color:var(--aegis-ink)]">
+          <Label htmlFor={t.id} className="flex-1 cursor-pointer text-sm text-foreground">
             {t.label}
           </Label>
         </li>

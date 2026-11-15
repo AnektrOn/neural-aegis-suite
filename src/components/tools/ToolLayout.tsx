@@ -17,6 +17,10 @@ import {
 } from "./toolsDesign";
 import type { HTMLAttributes, ReactNode } from "react";
 import { ToolsBackToHubLink } from "./ToolsBackToHubLink";
+import { ToolGuidePanel } from "./ToolGuidePanel";
+import { CeoProfileBanner } from "./CeoProfileBanner";
+import { CeoProfileDialog } from "./CeoProfileDialog";
+import { useState } from "react";
 import "./tools-shell.css";
 
 interface ToolLayoutProps {
@@ -38,9 +42,18 @@ export function ToolLayout({
   wizardResultsVisible = false,
 }: ToolLayoutProps) {
   const others = getOtherTools(tool.id);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   return (
-    <div className={`tools-obsidian-shell ${toolsPageShell}`}>
+    <div className={`tools-route ${toolsPageShell}`}>
+      <div
+        className="pointer-events-none absolute top-1/4 left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-primary/6 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute bottom-1/4 right-1/4 h-64 w-64 rounded-full bg-neural-accent/5 blur-3xl"
+        aria-hidden
+      />
       <ToolSeoHelmet
         path={tool.path}
         seo={tool.seo}
@@ -53,13 +66,22 @@ export function ToolLayout({
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <Link to="/" className="flex shrink-0 items-center gap-3">
               <AegisLogo variant="white" alt="AEGIS" className="h-9 w-9 rounded-lg object-contain" />
-              <span className="hidden font-cinzel text-[10px] font-semibold uppercase tracking-[0.22em] text-[color:var(--aegis-gold)] sm:inline">
+              <span className="hidden font-display text-[10px] font-medium uppercase tracking-[0.22em] text-primary sm:inline">
                 AEGIS
               </span>
             </Link>
-            {variant === "wizard" && <ToolsBackToHubLink className="hidden sm:inline-flex" />}
+            {variant === "wizard" ? (
+              <Link
+                to={tool.path}
+                className="hidden text-xs font-medium text-muted-foreground hover:text-primary sm:inline"
+              >
+                Fiche outil
+              </Link>
+            ) : null}
+            {variant === "wizard" && <ToolsBackToHubLink className="hidden md:inline-flex" />}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <CeoProfileBanner className="hidden md:inline-flex" onEdit={() => setProfileDialogOpen(true)} />
             {variant === "wizard" && <ToolsBackToHubLink className="sm:hidden" />}
             <LanguageSwitcher />
           </div>
@@ -77,22 +99,23 @@ export function ToolLayout({
           <>
             <nav
               aria-label="Fil d'Ariane"
-              className="mb-8 flex flex-wrap items-center gap-1 font-body text-sm text-[color:var(--aegis-ink-subtle)]"
+              className="mb-8 flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
             >
-              <Link to="/" className="hover:text-[color:var(--aegis-gold)]">
+              <Link to="/" className="hover:text-primary">
                 Accueil
               </Link>
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-              <Link to="/tools" className="hover:text-[color:var(--aegis-gold)]">
+              <Link to="/tools" className="hover:text-primary">
                 Outils
               </Link>
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-              <span className="text-[color:var(--aegis-ink-muted)]">{tool.title}</span>
+              <span className="text-foreground/80">{tool.title}</span>
             </nav>
 
             <p className={toolsKicker}>{kicker}</p>
             <h1 className={`${toolsTitle} mt-3`}>{tool.title}</h1>
             <p className={`${toolsLead} mt-4 max-w-3xl`}>{tool.shortDescription}</p>
+            <ToolGuidePanel guide={tool.guide} variant="compact" className="mt-6" />
 
             <div className={`${toolsBento} mt-10`} role="region" aria-label="Calculateur interactif">
               {children}
@@ -115,16 +138,16 @@ export function ToolLayout({
             <section
               className={`${toolsBento} ${variant === "wizard" ? "mx-4 md:mx-auto md:max-w-5xl" : ""} mt-12`}
             >
-              <h2 className="font-cormorant text-2xl font-light text-[color:var(--aegis-ink)]">
+              <h2 className="font-display text-2xl font-semibold text-foreground">
                 Questions fréquentes
               </h2>
               <dl className="mt-6 space-y-6">
                 {tool.faq.map((item) => (
                   <div key={item.question}>
-                    <dt className="font-barlow text-sm font-semibold text-[color:var(--aegis-ink)]">
+                    <dt className="text-sm font-semibold text-foreground">
                       {item.question}
                     </dt>
-                    <dd className="mt-2 font-body text-sm leading-relaxed text-[color:var(--aegis-ink-muted)]">
+                    <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">
                       {item.answer}
                     </dd>
                   </div>
@@ -140,6 +163,7 @@ export function ToolLayout({
       </main>
 
       {variant === "document" || wizardResultsVisible ? <PublicFooter /> : null}
+      <CeoProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
     </div>
   );
 }

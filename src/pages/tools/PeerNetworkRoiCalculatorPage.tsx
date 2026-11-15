@@ -74,9 +74,9 @@ export default function PeerNetworkRoiCalculatorPage() {
             onValueChange={([v]) => setAnnualDues(v ?? annualDues)}
             className={toolsSlider}
           />
-          <div className="flex justify-between font-display text-xs text-[color:var(--aegis-ink-subtle)]">
+          <div className="flex justify-between font-display text-xs text-muted-foreground">
             <span>10 k€</span>
-            <span className="text-[color:var(--aegis-gold)]">{formatEuro(annualDues)}</span>
+            <span className="text-primary">{formatEuro(annualDues)}</span>
             <span>40 k€</span>
           </div>
         </div>
@@ -107,7 +107,7 @@ export default function PeerNetworkRoiCalculatorPage() {
       description: "Réunions, préparation, déplacements et événements obligatoires.",
       content: (
         <div className="space-y-6">
-          <p className="text-center font-display text-3xl tabular-nums text-[color:var(--aegis-gold)]">
+          <p className="text-center font-display text-3xl tabular-nums text-primary">
             {hoursPerYear} h
           </p>
           <Slider
