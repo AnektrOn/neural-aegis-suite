@@ -1,32 +1,3 @@
-import { useMemo, useState } from "react";
-import { Eye, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/i18n/LanguageContext";
-import type { Locale } from "@/i18n/translations";
-import {
-  pickCatalogTemplateDescription,
-  pickCatalogTemplateDisplayTitle,
-} from "@/lib/catalog-i18n";
-import type { ToolboxContentTypeDefinition } from "@/lib/toolbox-content-type-definitions";
-import { ToolboxNebulaExerciseView } from "@/features/toolbox/nebula/ToolboxNebulaExerciseView";
-
-interface PreviewArgs {
-  contentType: string;
-  title?: string;
-  title_i18n?: unknown;
-  description?: string | null;
-  description_i18n?: unknown;
-  widgetConfig: Record<string, unknown> | null;
-  externalUrl?: string | null;
-  definitionsBySlug?: Record<string, ToolboxContentTypeDefinition>;
-  contentTypeSlug?: string | null;
-}
-
 import { Component, useMemo, useState, type ErrorInfo, type ReactNode } from "react";
 import { Eye, Layers, Sparkles, X, AlertCircle } from "lucide-react";
 import {

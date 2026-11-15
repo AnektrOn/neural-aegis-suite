@@ -113,7 +113,7 @@ export function LogosToolHostProvider({ children }: { children: ReactNode }) {
   const proposePulseAndWait = useCallback(async (locale: Locale, cardId?: string): Promise<string> => {
     pulseLocaleRef.current = locale;
     const deck = await fetchPulseDeck(locale, 15);
-    if (!deck.ok) return `error:${deck.error}`;
+    if ("error" in deck) return `error:${deck.error}`;
     const card =
       (cardId ? deck.cards.find((c) => c.id === cardId) : null) ?? deck.cards[0] ?? null;
     if (!card) return "error:no_pulse_card";
