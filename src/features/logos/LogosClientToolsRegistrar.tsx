@@ -92,7 +92,7 @@ export function LogosClientToolsRegistrar() {
       priority: asNumber(params.priority),
       responsibility: asNumber(params.responsibility),
     });
-    return res.ok ? "ok" : `error:${res.error}`;
+    return "error" in res ? `error:${res.error}` : "ok";
   });
 
   useConversationClientTool("write_journal_entry", async (params) => {
@@ -108,7 +108,7 @@ export function LogosClientToolsRegistrar() {
     }
     if (!title || !content) return "error:title_and_content_required";
     const res = await logosWriteJournalEntry(userId, { title, content, tags });
-    return res.ok ? "ok" : `error:${res.error}`;
+    return "error" in res ? `error:${res.error}` : "ok";
   });
 
   useConversationClientTool("write_mood_entry", async (params) => {
@@ -120,7 +120,7 @@ export function LogosClientToolsRegistrar() {
       sleep: asNumber(params.sleep),
       stress: asNumber(params.stress),
     });
-    return res.ok ? "ok" : `error:${res.error}`;
+    return "error" in res ? `error:${res.error}` : "ok";
   });
 
   useConversationClientTool("write_relation_note", async (params) => {
@@ -131,7 +131,7 @@ export function LogosClientToolsRegistrar() {
       quality: asNumber(params.quality),
       note: asString(params.note),
     });
-    return res.ok ? "ok" : `error:${res.error}`;
+    return "error" in res ? `error:${res.error}` : "ok";
   });
 
   return null;
