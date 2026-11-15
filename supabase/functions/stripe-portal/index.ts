@@ -45,7 +45,8 @@ Deno.serve(async (req) => {
       : 'https://aegis.humancatalystbeacon.com';
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-      apiVersion: '2025-08-27.basil',
+      // stripe@17 only types its own latest API version; the account runs Basil.
+      apiVersion: '2025-08-27.basil' as unknown as Stripe.StripeConfig['apiVersion'],
     });
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,

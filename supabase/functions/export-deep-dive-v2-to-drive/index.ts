@@ -167,14 +167,14 @@ async function fetchFullDeepDiveData(admin: any, userId: string, assessmentId?: 
   const deepdiveResponses = await safe(admin.from("deepdive_responses").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
 
   const sessionsQ = admin.from("assessment_sessions").select("*").eq("user_id", userId).order("created_at", { ascending: false });
-  const sessions = await safe(sessionsQ);
+  const sessions = (await safe(sessionsQ)) as Array<Record<string, any>> | null;
 
   const sessionIds = (sessions ?? []).map((s: any) => s.id);
   const targetSessionId = assessmentId && sessionIds.includes(assessmentId) ? assessmentId : sessionIds[0];
 
-  const responses = sessionIds.length
+  const responses = (sessionIds.length
     ? await safe(admin.from("assessment_responses").select("*").in("session_id", sessionIds))
-    : [];
+    : []) as Array<Record<string, any>> | null;
   const questionIds = Array.from(new Set((responses ?? []).map((r: any) => r.question_id)));
   const optionIds = Array.from(new Set((responses ?? []).flatMap((r: any) => r.selected_option_ids ?? [])));
 

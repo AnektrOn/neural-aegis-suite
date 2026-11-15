@@ -60,14 +60,14 @@ export function ToolGuidePanel({ guide, variant = "full", className = "" }: Tool
         ) : null}
 
         <CollapsibleContent className="data-[state=closed]:animate-out data-[state=open]:animate-in">
-          <motionBlock className="mt-4 space-y-4 rounded-xl border border-border/35 bg-muted/15 p-4">
+          <MotionBlock className="mt-4 space-y-4 rounded-xl border border-border/35 bg-muted/15 p-4">
             <div>
               <p className={toolsKicker}>En clair</p>
               <p className="mt-2 text-sm leading-relaxed text-foreground">{guide.plainExplain}</p>
             </div>
 
             <GuideGrid guide={guide} />
-          </motionBlock>
+          </MotionBlock>
         </CollapsibleContent>
       </Collapsible>
     );
@@ -80,9 +80,9 @@ export function ToolGuidePanel({ guide, variant = "full", className = "" }: Tool
     >
       <p className={toolsKicker}>Avant de commencer — en clair</p>
       <p className="mt-3 text-sm leading-relaxed text-foreground">{guide.plainExplain}</p>
-      <motionBlock className="mt-5">
+      <MotionBlock className="mt-5">
         <GuideMetaRow guide={guide} />
-      </motionBlock>
+      </MotionBlock>
       <GuideGrid guide={guide} className="mt-5" />
     </aside>
   );
@@ -138,6 +138,6 @@ function GuideGrid({ guide, className = "" }: { guide: ToolGuide; className?: st
   );
 }
 
-function motionBlock({ className, children }: { className?: string; children: ReactNode }) {
+function MotionBlock({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={className}>{children}</div>;
 }
