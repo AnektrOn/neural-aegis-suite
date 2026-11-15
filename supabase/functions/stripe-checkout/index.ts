@@ -1,19 +1,27 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { PLANS, isPlanKey, type PlanDef } from '../_shared/stripe-plans.ts';
+import { PLANS, isPlanKey, type PlanDef, type PlanKey } from '../_shared/stripe-plans.ts';
 import {
   countActiveFounders,
   FOUNDERS_LIFETIME_MAX,
   FOUNDERS_PRODUCT_ID,
 } from '../_shared/founders-lifetime.ts';
 
-function catalogStripePriceId(plan: PlanDef, stripeSecretKey: string): string | undefined {
-  const envKey = `STRIPE_PRICE_${plan.productId.toUpperCase()}`;
-  const fromEnv = Deno.env.get(envKey);
-  if (fromEnv) return fromEnv;
-  if (stripeSecretKey.startsWith('sk_test_') && plan.stripePriceIdTest) {
-    return plan.stripePriceIdTest;
-  }
+function catalogStripePriceId(
+  planKey: PlanKey,
+  plan: PlanDef,
+  stripeSecretKey: string,
+): string | undefined {
+  const fromPlanEnv = Deno.env.get(`STRIPE_PRICE_ID_${planKey.toUpperCase()}`)?.trim();
+  if (fromPlanEnv) return fromPlanEnv;
+
+  const fromProductEnv = Deno.env.get(`STRIPE_PRICE_${plan.productId.toUpperCase()}`)?.trim();
+  if (fromProductEnv) return fromProductEnv;
+
+  const isTest = stripeSecretKey.startsWith('sk_test_');
+  const isLive = stripeSecretKey.startsWith('sk_live_');
+  if (isTest && plan.stripePriceIdTest) return plan.stripePriceIdTest;
+  if (isLive && plan.stripePriceIdLive) return plan.stripePriceIdLive;
   return undefined;
 }
 
@@ -95,7 +103,7 @@ Deno.serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2025-08-27.basil',
     });
-    const catalogPriceId = catalogStripePriceId(plan, stripeSecretKey);
+    const catalogPriceId = catalogStripePriceId(priceId, plan, stripeSecretKey);
 
     // Réutilise le client Stripe existant si l'email est déjà connu.
     let customerId: string | undefined;

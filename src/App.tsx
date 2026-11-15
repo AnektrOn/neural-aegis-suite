@@ -60,18 +60,10 @@ const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const ToolsHubPage = lazy(() => import("./pages/tools/ToolsHubPage"));
-const ExecutiveCoachingCostCalculatorPage = lazy(
-  () => import("./pages/tools/ExecutiveCoachingCostCalculatorPage"),
-);
-const PeerNetworkRoiCalculatorPage = lazy(
-  () => import("./pages/tools/PeerNetworkRoiCalculatorPage"),
-);
-const SecondBrainWasteAuditPage = lazy(() => import("./pages/tools/SecondBrainWasteAuditPage"));
-const CloudAiPrivacyRiskCheckerPage = lazy(
-  () => import("./pages/tools/CloudAiPrivacyRiskCheckerPage"),
-);
-const ExecutiveSaasRunrateCalculatorPage = lazy(
-  () => import("./pages/tools/ExecutiveSaasRunrateCalculatorPage"),
+const ToolIntroPage = lazy(() => import("./pages/tools/ToolIntroPage"));
+const ToolRunDispatcher = lazy(() => import("./pages/tools/ToolRunDispatcher"));
+const ExecutiveDecisionProfilePage = lazy(
+  () => import("./pages/tools/ExecutiveDecisionProfilePage"),
 );
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 const PublicAssessmentFlow = lazy(
@@ -410,42 +402,26 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/tools/executive-coaching-cost-calculator"
+                  path="/tools/profile"
                   element={
                     <Suspense fallback={<PageLoader />}>
-                      <ExecutiveCoachingCostCalculatorPage />
+                      <ExecutiveDecisionProfilePage />
                     </Suspense>
                   }
                 />
                 <Route
-                  path="/tools/peer-network-roi-calculator"
+                  path="/tools/:toolId/run"
                   element={
                     <Suspense fallback={<PageLoader />}>
-                      <PeerNetworkRoiCalculatorPage />
+                      <ToolRunDispatcher />
                     </Suspense>
                   }
                 />
                 <Route
-                  path="/tools/second-brain-waste-audit"
+                  path="/tools/:toolId"
                   element={
                     <Suspense fallback={<PageLoader />}>
-                      <SecondBrainWasteAuditPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/tools/cloud-ai-privacy-risk-checker"
-                  element={
-                    <Suspense fallback={<PageLoader />}>
-                      <CloudAiPrivacyRiskCheckerPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/tools/executive-saas-runrate-calculator"
-                  element={
-                    <Suspense fallback={<PageLoader />}>
-                      <ExecutiveSaasRunrateCalculatorPage />
+                      <ToolIntroPage />
                     </Suspense>
                   }
                 />

@@ -1,11 +1,38 @@
-import type { ToolFaqItem, ToolSeoMeta } from "./types";
+import type { ToolFaqItem, ToolGuide, ToolSeoMeta } from "./types";
+import { TOOL_GUIDES } from "./toolsGuide";
+
+const TOOL_ID_SET = new Set<string>([
+  "executive-coaching-cost-calculator",
+  "peer-network-roi-calculator",
+  "second-brain-waste-audit",
+  "cloud-ai-privacy-risk-checker",
+  "executive-saas-runrate-calculator",
+  "ceo-decision-fatigue-index",
+  "decision-bias-reframe-tool",
+  "cost-of-delayed-decision-calculator",
+  "founder-prioritization-matrix",
+  "executive-context-switching-calculator",
+]);
+
+export function isToolId(id: string): id is ToolId {
+  return TOOL_ID_SET.has(id);
+}
+
+export function getToolRunPath(id: ToolId): `/tools/${ToolId}/run` {
+  return `/tools/${id}/run`;
+}
 
 export type ToolId =
   | "executive-coaching-cost-calculator"
   | "peer-network-roi-calculator"
   | "second-brain-waste-audit"
   | "cloud-ai-privacy-risk-checker"
-  | "executive-saas-runrate-calculator";
+  | "executive-saas-runrate-calculator"
+  | "ceo-decision-fatigue-index"
+  | "decision-bias-reframe-tool"
+  | "cost-of-delayed-decision-calculator"
+  | "founder-prioritization-matrix"
+  | "executive-context-switching-calculator";
 
 export interface ToolRegistryEntry {
   id: ToolId;
@@ -13,12 +40,15 @@ export interface ToolRegistryEntry {
   title: string;
   shortDescription: string;
   hubBlurb: string;
+  guide: ToolGuide;
   seo: ToolSeoMeta;
   faq: ToolFaqItem[];
   webAppName: string;
 }
 
-export const TOOLS_REGISTRY: ToolRegistryEntry[] = [
+type ToolRegistryCore = Omit<ToolRegistryEntry, "guide">;
+
+export const TOOLS_REGISTRY: ToolRegistryCore[] = [
   {
     id: "executive-coaching-cost-calculator",
     path: "/tools/executive-coaching-cost-calculator",
@@ -174,14 +204,182 @@ export const TOOLS_REGISTRY: ToolRegistryEntry[] = [
       },
     ],
   },
+  {
+    id: "ceo-decision-fatigue-index",
+    path: "/tools/ceo-decision-fatigue-index",
+    title: "Indice de fatigue décisionnelle CEO",
+    shortDescription:
+      "Mesurez l'épuisement cognitif en fin de journée : reports, choix par défaut, saturation et brouillard mental.",
+    hubBlurb: "Combien d'arbitrages repoussez-vous après 18 h ?",
+    webAppName: "CEO Decision Fatigue Index",
+    seo: {
+      title: "CEO Decision Fatigue Test (2026) | Founder Mental Fog Assessment",
+      description:
+        "Test gratuit de fatigue décisionnelle pour dirigeants : décisions repoussées, choix par défaut et saturation cognitive en fin de journée.",
+    },
+    faq: [
+      {
+        question: "Qu'est-ce que la fatigue décisionnelle chez un CEO ?",
+        answer:
+          "C'est la baisse de qualité de jugement après une longue série d'arbitrages : on reporte, on choisit par défaut ou on évite les sujets structurants — souvent en fin de journée.",
+      },
+      {
+        question: "Le mental fog du fondateur est-il mesurable ?",
+        answer:
+          "Des signaux comportementaux (reports, défaut, saturation perçue) permettent un indice relatif et de comparer des semaines, même sans capture biométrique.",
+      },
+      {
+        question: "Comment réduire la charge sans arrêter de décider ?",
+        answer:
+          "Externaliser le contexte (registre, états, synthèses) libère la mémoire vive pour les arbitrages qui exigent encore votre jugement.",
+      },
+    ],
+  },
+  {
+    id: "decision-bias-reframe-tool",
+    path: "/tools/decision-bias-reframe-tool",
+    title: "Détecteur de biais — Friend Reframe",
+    shortDescription:
+      "Trois filtres d'inversion pour débloquer un arbitrage stratégique figé (pair, successeur, enjeux réduits).",
+    hubBlurb: "Que conseilleriez-vous à un pair sur cette décision ?",
+    webAppName: "Decision Bias Reframe Tool",
+    seo: {
+      title: "Decision Making Framework for Leaders | Unstick Hard Decisions",
+      description:
+        "Outil Friend Reframe : trois questions pour débloquer une décision difficile — conseil à un pair, lentille successeur, enjeux divisés par deux.",
+    },
+    faq: [
+      {
+        question: "Pourquoi conseiller à un pair aide-t-il à décider ?",
+        answer:
+          "La distance psychologique réduit l'identification au résultat et fait émerger des options ignorées sous pression ou attachement émotionnel.",
+      },
+      {
+        question: "Qu'est-ce que la lentille « successeur demain matin » ?",
+        answer:
+          "Imaginer ce que ferait votre remplaçant demain force la clarté sur l'action minimale responsable, sans l'historique émotionnel du poste.",
+      },
+      {
+        question: "Faut-il journaliser après le reframe ?",
+        answer:
+          "Oui : noter la décision, le contexte et les filtres utilisés permet de mesurer les retombées et d'éviter de re-stucker sur le même schéma.",
+      },
+    ],
+  },
+  {
+    id: "cost-of-delayed-decision-calculator",
+    path: "/tools/cost-of-delayed-decision-calculator",
+    title: "Coût de l'inaction et procrastination stratégique",
+    shortDescription:
+      "Quantifiez trésorerie, opportunités et flottement d'équipe quand un arbitrage glisse de 1 à 3 mois.",
+    hubBlurb: "1 à 3 mois de retard : quel est le vrai prix ?",
+    webAppName: "Cost of Delayed Decision Calculator",
+    seo: {
+      title: "Cost of Delayed Decision Calculator | Cost of Inaction Formula",
+      description:
+        "Calculez la perte financière et opérationnelle d'une décision repoussée : burn, revenus en jeu, équipe en attente.",
+    },
+    faq: [
+      {
+        question: "Comment estimer le coût d'une décision repoussée ?",
+        answer:
+          "Additionnez le burn supplémentaire, une fraction des revenus ou deals en suspens, et le coût d'opportunité du temps d'équipe bloqué.",
+      },
+      {
+        question: "La procrastination stratégique coûte-t-elle plus qu'une erreur ?",
+        answer:
+          "Souvent oui à l'échelle de l'entreprise : le flottement consomme du cash, fatigue l'équipe et laisse la place aux concurrents.",
+      },
+      {
+        question: "Comment lever les blocages intérieurs au report ?",
+        answer:
+          "Un parcours d'onboarding structuré (profil archétypal, traces de décision) nomme les résistances et accélère le passage à l'acte.",
+      },
+    ],
+  },
+  {
+    id: "founder-prioritization-matrix",
+    path: "/tools/founder-prioritization-matrix",
+    title: "Matrice « Saying No » fondateur",
+    shortDescription:
+      "Filtre en trois étapes pour rejeter ou accepter une opportunité sans diluer le cap stratégique.",
+    hubBlurb: "Cette sollicitation mérite-t-elle un oui ?",
+    webAppName: "Founder Prioritization Matrix",
+    seo: {
+      title: "Founder Prioritization Matrix Generator | Saying No Framework for CEOs",
+      description:
+        "Générateur de matrice de priorisation : alignement stratégique, charge cachée et verdict dire non / peut-être / oui.",
+    },
+    faq: [
+      {
+        question: "Pourquoi les CEOs doivent-ils formaliser le « non » ?",
+        answer:
+          "Sans filtre explicite, les opportunités rentrantes captent le temps du fondateur et déplacent la stratégie par défaut.",
+      },
+      {
+        question: "Alignement vs urgence : que privilégier ?",
+        answer:
+          "Un alignement faible doit conduire au rejet même si l'urgence perçue est haute — l'urgence est souvent celle du demandeur, pas du cap.",
+      },
+      {
+        question: "Où piloter ses priorités après le filtre ?",
+        answer:
+          "Un dashboard qui relie décisions, habitudes et suivi évite que les « oui » orphelins ne reviennent sous une autre forme la semaine suivante.",
+      },
+    ],
+  },
+  {
+    id: "executive-context-switching-calculator",
+    path: "/tools/executive-context-switching-calculator",
+    title: "Perte par changement de contexte",
+    shortDescription:
+      "Heures perdues chaque semaine à reconstituer le fil entre board, investisseurs, équipe et opérationnel.",
+    hubBlurb: "Combien coûtent vos bascules de contexte ?",
+    webAppName: "Executive Context Switching Calculator",
+    seo: {
+      title: "Executive Context Switching Cost | CEO Cognitive Overload Calculator",
+      description:
+        "Calculez les heures perdues en reconstitution mentale entre réunions d'associés, investisseurs et équipes — overload cognitif dirigeant.",
+    },
+    faq: [
+      {
+        question: "Combien de temps pour retrouver le contexte après une réunion ?",
+        answer:
+          "Les études sur le context switching citent souvent 15 à 25 minutes ; pour un dirigeant, le coût monte avec la sensibilité et le nombre de bascules.",
+      },
+      {
+        question: "Qu'est-ce que l'overload cognitif du CEO ?",
+        answer:
+          "C'est l'empilement de fils décisionnels incompatibles (cap table, produit, RH) sans mémoire externe — chaque switch efface une partie du précédent.",
+      },
+      {
+        question: "Un vault privé réduit-il les pertes ?",
+        answer:
+          "Consolidé decisionnel : décisions, personnes, états — le contexte est là en secondes au lieu d'être reconstruit de zéro.",
+      },
+    ],
+  },
 ];
+
+function attachGuide(entry: ToolRegistryCore): ToolRegistryEntry {
+  const guide = TOOL_GUIDES[entry.id];
+  if (!guide) throw new Error(`Missing guide for tool: ${entry.id}`);
+  return { ...entry, guide };
+}
 
 export function getToolById(id: ToolId): ToolRegistryEntry {
   const entry = TOOLS_REGISTRY.find((t) => t.id === id);
   if (!entry) throw new Error(`Unknown tool id: ${id}`);
-  return entry;
+  return attachGuide(entry);
 }
 
-export function getOtherTools(currentId: ToolId): ToolRegistryEntry[] {
-  return TOOLS_REGISTRY.filter((t) => t.id !== currentId);
+export function getAllTools(): ToolRegistryEntry[] {
+  return TOOLS_REGISTRY.map(attachGuide);
+}
+
+export function getOtherTools(currentId: ToolId, limit = 4): ToolRegistryEntry[] {
+  const pool = TOOLS_REGISTRY.filter((t) => t.id !== currentId);
+  const start = pool.findIndex((t) => t.id > currentId);
+  const rotated = start === -1 ? pool : [...pool.slice(start), ...pool.slice(0, start)];
+  return rotated.slice(0, limit).map(attachGuide);
 }

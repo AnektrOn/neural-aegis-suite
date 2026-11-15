@@ -24,8 +24,12 @@ export interface PlanDef {
   installments?: number;
   /** Accès perpétuel (cohorte fondateurs). */
   lifetime?: boolean;
-  /** Price ID Stripe (mode test) — utilisé au checkout si défini. */
+  /** Price ID Stripe (mode test) — repli checkout si secret absent. */
   stripePriceIdTest?: string;
+  /** Price ID Stripe (mode live) — repli checkout si secret absent (préférer secrets Supabase). */
+  stripePriceIdLive?: string;
+  /** ID produit Stripe test (référence ops). */
+  stripeProductIdTest?: string;
 }
 
 export const PLANS: Record<PlanKey, PlanDef> = {
@@ -36,6 +40,7 @@ export const PLANS: Record<PlanKey, PlanDef> = {
     currency: 'eur',
     interval: 'month',
     stripePriceIdTest: 'price_1Ubz2WA6HEQaWZIm9F1iwW5a',
+    stripeProductIdTest: 'prod_VdFXcbmKlXrDg9',
   },
   aegis_solo_logos_monthly: {
     productId: 'aegis_solo_logos',
@@ -44,6 +49,7 @@ export const PLANS: Record<PlanKey, PlanDef> = {
     currency: 'eur',
     interval: 'month',
     stripePriceIdTest: 'price_1Ubz2dA6HEQaWZImFPwAf04p',
+    stripeProductIdTest: 'prod_VdFXEu9cr1cDfe',
   },
   aegis_founders_lifetime: {
     productId: 'aegis_founders_lifetime',
@@ -53,6 +59,7 @@ export const PLANS: Record<PlanKey, PlanDef> = {
     interval: null,
     lifetime: true,
     stripePriceIdTest: 'price_1Ubz2hA6HEQaWZImWgJpNa0N',
+    stripeProductIdTest: 'prod_VdFXhUkYAjTbhk',
   },
   aegis_matrix_monthly: {
     productId: 'aegis_matrix',

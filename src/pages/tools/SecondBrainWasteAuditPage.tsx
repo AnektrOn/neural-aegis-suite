@@ -13,6 +13,9 @@ import {
   ToolResultStat,
 } from "@/components/tools/ToolField";
 import { toolsSlider } from "@/components/tools/toolsDesign";
+import { ToolCrossInsights } from "@/components/tools/ToolCrossInsights";
+import { ToolNextStep } from "@/components/tools/ToolNextStep";
+import { useToolSessionPersistence } from "@/hooks/useToolSession";
 
 export default function SecondBrainWasteAuditPage() {
   const tool = getToolById("second-brain-waste-audit");
@@ -33,6 +36,21 @@ export default function SecondBrainWasteAuditPage() {
     return { wastePct, hoursLostYear, cognitiveIndex };
   }, [notesPerMonth, reusePct, maintenanceHours, fastRetrieval]);
 
+  const sessionOutputs = useMemo(
+    () => ({
+      cognitiveIndex: results.cognitiveIndex,
+      wastePct: results.wastePct,
+    }),
+    [results],
+  );
+
+  useToolSessionPersistence(
+    "second-brain-waste-audit",
+    resultsVisible,
+    { notesPerMonth, reusePct, maintenanceHours, fastRetrieval },
+    sessionOutputs,
+  );
+
   const retrievalOptions = [
     { id: "yes" as const, label: "Oui, en moins de 30 secondes" },
     { id: "sometimes" as const, label: "Parfois, avec recherche" },
@@ -46,7 +64,7 @@ export default function SecondBrainWasteAuditPage() {
       title: "Combien de notes créez-vous par mois ?",
       content: (
         <div className="space-y-6">
-          <p className="text-center font-display text-3xl text-[color:var(--aegis-gold)]">{notesPerMonth}</p>
+          <p className="text-center font-display text-3xl text-primary">{notesPerMonth}</p>
           <Slider
             min={5}
             max={200}
@@ -64,7 +82,7 @@ export default function SecondBrainWasteAuditPage() {
       title: "Quel pourcentage est relu ou exploité ?",
       content: (
         <div className="space-y-6">
-          <p className="text-center font-display text-3xl text-[color:var(--aegis-gold)]">{reusePct} %</p>
+          <p className="text-center font-display text-3xl text-primary">{reusePct} %</p>
           <Slider
             min={0}
             max={80}
@@ -83,7 +101,7 @@ export default function SecondBrainWasteAuditPage() {
       description: "Par mois, en moyenne.",
       content: (
         <div className="space-y-6">
-          <p className="text-center font-display text-3xl text-[color:var(--aegis-gold)]">{maintenanceHours} h</p>
+          <p className="text-center font-display text-3xl text-primary">{maintenanceHours} h</p>
           <Slider
             min={0}
             max={20}
@@ -156,6 +174,8 @@ export default function SecondBrainWasteAuditPage() {
                 La prise de notes passive stocke sans décider. Un exocortex actif relie capture, arbitrage et
                 synthèse.
               </ToolDiagnostic>
+              <ToolCrossInsights />
+              <ToolNextStep toolId="second-brain-waste-audit" outputs={sessionOutputs} />
               <AegisConversionCard problemKind="waste" className="mt-8" />
             </>
           ),

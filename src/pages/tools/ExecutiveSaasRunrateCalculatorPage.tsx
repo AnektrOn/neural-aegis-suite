@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label";
 import { ToolDiagnostic, ToolResultGrid, ToolResultStat, formatEuro } from "@/components/tools/ToolField";
 import { ToolGauge } from "@/components/tools/ToolGauge";
 import { toolsBentoElevated } from "@/components/tools/toolsDesign";
+import { ToolCrossInsights } from "@/components/tools/ToolCrossInsights";
+import { ToolNextStep } from "@/components/tools/ToolNextStep";
+import { useToolSessionPersistence } from "@/hooks/useToolSession";
 
 const STACK_ITEMS = [
   { id: "notion", label: "Notion", defaultPrice: 12, step: 1 },
@@ -58,6 +61,18 @@ export default function ExecutiveSaasRunrateCalculatorPage() {
     };
   }, [enabled, prices]);
 
+  const sessionOutputs = useMemo(
+    () => ({ monthly, annual, dispersionIndex, activeCount }),
+    [monthly, annual, dispersionIndex, activeCount],
+  );
+
+  useToolSessionPersistence(
+    "executive-saas-runrate-calculator",
+    resultsVisible,
+    { enabled, prices },
+    sessionOutputs,
+  );
+
   const renderStackStep = (step: 1 | 2 | 3) => {
     const items = STACK_ITEMS.filter((i) => i.step === step);
     return (
@@ -73,7 +88,7 @@ export default function ExecutiveSaasRunrateCalculatorPage() {
                 checked={enabled[item.id]}
                 onCheckedChange={(c) => setEnabled((prev) => ({ ...prev, [item.id]: c === true }))}
               />
-              <Label htmlFor={`stack-${item.id}`} className="cursor-pointer font-body text-sm text-[color:var(--aegis-ink)]">
+              <Label htmlFor={`stack-${item.id}`} className="cursor-pointer text-sm text-foreground">
                 {item.label}
               </Label>
             </div>
@@ -89,7 +104,7 @@ export default function ExecutiveSaasRunrateCalculatorPage() {
                   [item.id]: Number(e.target.value) || 0,
                 }))
               }
-              className="w-full rounded-xl border-[color:var(--aegis-cardline)] bg-[color:var(--aegis-surface)] font-display text-right text-[color:var(--aegis-ink)] sm:w-28"
+              className="w-full rounded-xl border-border/50 bg-card/70 font-display text-right text-foreground sm:w-28"
               aria-label={`Prix mensuel ${item.label}`}
             />
           </li>
@@ -141,7 +156,7 @@ export default function ExecutiveSaasRunrateCalculatorPage() {
             <>
               <MotionWrap className="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <ToolGauge value={dispersionIndex} label="Indice de dispersion" tone="gold" />
-                <p className="max-w-xs text-center font-body text-sm text-[color:var(--aegis-ink-muted)] sm:text-left">
+                <p className="max-w-xs text-center text-sm text-muted-foreground sm:text-left">
                   {activeCount} outils actifs — silos de contexte et recherches redondantes.
                 </p>
               </MotionWrap>
@@ -153,6 +168,8 @@ export default function ExecutiveSaasRunrateCalculatorPage() {
                 Unifier sous un exocortex souverain relie décisions, synthèses et toolbox au lieu de multiplier
                 les abonnements.
               </ToolDiagnostic>
+              <ToolCrossInsights />
+              <ToolNextStep toolId="executive-saas-runrate-calculator" outputs={sessionOutputs} />
               <AegisConversionCard problemKind="dispersion" className="mt-8" />
             </>
           ),

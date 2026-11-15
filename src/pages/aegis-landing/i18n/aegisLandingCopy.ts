@@ -15,6 +15,7 @@ export type AegisLandingCopy = {
     pourQui: string;
     tarif: string;
     faq: string;
+    tools: string;
     cta: string;
     langFr: string;
     signUpFree: string;
@@ -160,6 +161,7 @@ const navFr = {
   pourQui: "Pour qui",
   tarif: "Tarif",
   faq: "FAQ",
+  tools: "Outils CEO",
   langFr: "FR",
   langEn: "EN",
   audienceIndividuel: "Individuel",
@@ -179,6 +181,7 @@ const navEn = {
   pourQui: "Who it's for",
   tarif: "Pricing",
   faq: "FAQ",
+  tools: "CEO tools",
   langFr: "FR",
   langEn: "EN",
   audienceIndividuel: "Individual",

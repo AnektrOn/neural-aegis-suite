@@ -78,6 +78,9 @@ export function LandingNav() {
             {copy.nav[l.key]}
           </a>
         ))}
+        <Link to="/tools" className={linkClass}>
+          {copy.nav.tools}
+        </Link>
       </nav>
       <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
         <LandingButton href="/auth" variant="ghost" className="inline-flex px-3 sm:hidden">
@@ -147,6 +150,9 @@ export function LandingNav() {
             {copy.nav[l.key]}
           </a>
         ))}
+        <Link to="/tools" className={linkClass} onClick={() => setOpen(false)}>
+          {copy.nav.tools}
+        </Link>
         <LandingButton
           href="/auth"
           variant="ghost"

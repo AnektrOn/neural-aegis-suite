@@ -22,9 +22,9 @@ export function ToolField({
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <Label className="font-barlow text-sm font-medium text-[color:var(--aegis-ink)]">{label}</Label>
+        <Label className="text-sm font-medium text-foreground">{label}</Label>
         {hint ? (
-          <span className="font-display text-sm tabular-nums text-[color:var(--aegis-gold)]">{hint}</span>
+          <span className="font-display text-sm tabular-nums text-primary">{hint}</span>
         ) : null}
       </div>
       {children}
@@ -73,10 +73,10 @@ export function ToolResultStat({
 }) {
   const valueClass =
     accent === "gold"
-      ? "text-[color:var(--aegis-gold)]"
+      ? "text-primary"
       : accent === "copper"
-        ? "text-[color:var(--aegis-copper)]"
-        : "text-[color:var(--aegis-ink)]";
+        ? "text-secondary"
+        : "text-foreground";
   return (
     <div>
       <p className={toolsMetricLabel}>{label}</p>
@@ -94,15 +94,10 @@ export function ToolDiagnostic({
 }) {
   const border =
     variant === "warning"
-      ? "border-[color:var(--aegis-copper)]/40 bg-[color:var(--aegis-copper)]/8"
-      : "border-[color:var(--aegis-cardline-hover)] bg-[color:var(--aegis-surface-elevated)]";
+      ? "border-secondary/40 bg-secondary/10"
+      : "border-primary/30 bg-muted/40";
   return (
-    <p
-      className={cn(
-        "mt-6 rounded-xl border px-4 py-3 font-body text-sm leading-relaxed text-[color:var(--aegis-ink-muted)]",
-        border,
-      )}
-    >
+    <p className={cn("mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed text-muted-foreground", border)}>
       {children}
     </p>
   );

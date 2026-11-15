@@ -9,7 +9,7 @@ interface RelatedToolsProps {
 
 export function RelatedTools({ tools }: RelatedToolsProps) {
   return (
-    <section className="mt-16 border-t border-[color:var(--aegis-cardline)] pt-12" aria-labelledby="related-tools-heading">
+    <section className="mt-16 border-t border-border/40 pt-12" aria-labelledby="related-tools-heading">
       <p className={toolsKicker}>Continuer l&apos;audit</p>
       <h2 id="related-tools-heading" className={`${toolsTitle} mt-2 text-2xl`}>
         Autres outils décisionnels recommandés
@@ -19,15 +19,15 @@ export function RelatedTools({ tools }: RelatedToolsProps) {
           <li key={tool.id}>
             <Link
               to={tool.path}
-              className={`group flex items-center justify-between rounded-2xl border border-[color:var(--aegis-cardline)] bg-[color:var(--aegis-surface)] p-4 ${toolsBentoHover}`}
+              className={`group flex items-center justify-between rounded-2xl border border-border/40 bg-card/70 p-4 ${toolsBentoHover}`}
             >
               <div>
-                <p className="font-barlow text-sm font-semibold text-[color:var(--aegis-ink)] group-hover:text-[color:var(--aegis-gold)]">
+                <p className="text-sm font-semibold text-foreground group-hover:text-primary">
                   {tool.title}
                 </p>
-                <p className="mt-1 font-body text-sm text-[color:var(--aegis-ink-subtle)]">{tool.hubBlurb}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{tool.hubBlurb}</p>
               </div>
-              <ChevronRight className="h-5 w-5 shrink-0 text-[color:var(--aegis-ink-subtle)] group-hover:text-[color:var(--aegis-gold)]" />
+              <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground group-hover:text-primary" />
             </Link>
           </li>
         ))}
