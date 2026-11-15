@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## Live Stripe webhook — 15 November 2026
+- [ ] Subscribe the live Aegis endpoint to payment-failure and refund events.
+- [ ] Normalize subscription periods and invoice subscription references across legacy and Basil payloads; test and deploy.
+- [ ] Verify a Stripe-signed delivery against the saved signing secret without exposing credentials.
+
 ## Requested deployment — 15 November 2026
 - [x] Deploy founders-availability, stripe-checkout, stripe-webhook and agent-session with existing configuration and unchanged logic; public availability returns 200, protected endpoints reject unauthenticated requests and webhook rejects an unsigned request.
 - [x] Resolve existing frontend compilation blockers; build OK, four LOGOS tests pass and Pricing renders without browser errors. Security verification completed with six informational findings and no critical finding.
