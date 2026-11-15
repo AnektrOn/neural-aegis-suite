@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import ThemeToggle from "@/components/ThemeToggle";
 import {
   Sheet,
   SheetContent,
@@ -292,7 +291,6 @@ export default function DienChanMap({ variant = "dev" }: DienChanMapProps) {
               </Badge>
             ) : null}
           </div>
-          <ThemeToggle />
         </div>
         <div className="border-t border-border/30 bg-background/50 px-4 py-3 lg:px-6">
           <div className="mx-auto flex max-w-[1600px] flex-col gap-3 lg:gap-4">

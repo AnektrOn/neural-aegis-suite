@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export const decisionFieldClass =
-  "flex h-11 w-full rounded-xl border border-white/10 bg-black/30 dark:bg-black/40 px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 transition-colors focus:outline-none focus:border-[#c9a24b]/50 shadow-sm";
+  "flex h-11 w-full rounded-xl border border-border bg-card px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 shadow-sm transition-colors focus:outline-none focus:border-[color:var(--aegis-gold)]/55 dark:border-white/10 dark:bg-black/40";
 
-export const decisionLabelClass = "font-cinzel text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground";
+export const decisionLabelClass =
+  "font-cinzel text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground";
 
-const panelClass = "aegis-dock-tile rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.25)]";
+const panelClass =
+  "aegis-dock-tile rounded-2xl shadow-[0_8px_28px_rgba(20,20,18,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.25)]";
 
 export function DecisionPageStat({
   label,

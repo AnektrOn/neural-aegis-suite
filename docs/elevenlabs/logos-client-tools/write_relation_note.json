@@ -1,0 +1,56 @@
+{
+  "type": "client",
+  "name": "write_relation_note",
+  "description": "Note et/ou qualité relationnelle sur un contact People.",
+  "expects_response": true,
+  "response_timeout_secs": 20,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "contact_id",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "UUID contact si connu.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    },
+    {
+      "id": "contact_name",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "Prénom ou nom, ex. Sophie.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    },
+    {
+      "id": "quality",
+      "type": "number",
+      "value_type": "llm_prompt",
+      "description": "Qualité 1 à 10.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    },
+    {
+      "id": "note",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "Note courte.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    }
+  ]
+}

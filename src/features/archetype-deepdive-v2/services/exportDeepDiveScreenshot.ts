@@ -5,7 +5,7 @@ import jsPDF from "jspdf";
 const DESKTOP_EXPORT_WIDTH_PX = 1280;
 const EXPORT_SCALE = 2;
 const MAX_CANVAS_TILE_HEIGHT_PX = 8000;
-const REFLOW_MS = 500;
+const REFLOW_MS = 700;
 
 const CAPTURE_STYLE_ID = "deep-dive-jpeg-capture-styles";
 /** Matches :root dark theme — hsl(200 35% 7%) */
@@ -20,12 +20,13 @@ const CAPTURE_CSS = `
   #deep-dive-report-export.deep-dive-jpeg-capture-active {
     --background: 200 35% 7%;
     --foreground: 24 48% 95%;
-    --card: 201 28% 12%;
-    --card-foreground: 24 48% 90%;
+    --card: 201 28% 14%;
+    --card-foreground: 24 48% 92%;
     --popover: 201 28% 15%;
     --popover-foreground: 24 48% 95%;
-    --muted-foreground: 24 10% 60%;
-    --border: 201 28% 20%;
+    --muted-foreground: 24 12% 78%;
+    --muted-foreground-subtle: 24 10% 68%;
+    --border: 201 28% 28%;
     --primary: 24 48% 65%;
     --primary-foreground: 200 35% 7%;
     --warning: 35 90% 60%;
@@ -36,26 +37,63 @@ const CAPTURE_CSS = `
     padding: 32px 36px 48px !important;
     box-sizing: border-box !important;
     background: ${EXPORT_DARK_BG} !important;
-    color: hsl(24 48% 95%) !important;
+    color: #f5ebe0 !important;
   }
 
   #deep-dive-report-export.deep-dive-jpeg-capture-active [data-export-hide],
-  #deep-dive-report-export.deep-dive-jpeg-capture-active .flip-export-hide {
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .flip-export-hide,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .deep-dive-radar-tooltip,
+  body.deep-dive-jpeg-capture-active [data-export-hide],
+  body.deep-dive-jpeg-capture-active .visitor-report-sticky-bar {
     display: none !important;
   }
 
   #deep-dive-report-export.deep-dive-jpeg-capture-active * {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
+    /* html2canvas paints box-shadow as opaque dark rectangles */
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
+  /* Force readable body copy — hsl(var()) often collapses in html2canvas */
+  #deep-dive-report-export.deep-dive-jpeg-capture-active,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active p,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active li,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active span,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active strong {
+    color: #e8dccf !important;
+  }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active h1,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active h2,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active h3,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active h4 {
+    color: #f7f0e6 !important;
+  }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .text-text-tertiary,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-text-tertiary"] {
+    color: #b9a994 !important;
+  }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .text-text-secondary,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-text-secondary"] {
+    color: #d8cbb8 !important;
+  }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .text-text-primary,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="text-text-primary"] {
+    color: #f7f0e6 !important;
   }
 
   /* Glass cards — solid dark surfaces (blur cannot be rasterized) */
-  #deep-dive-report-export.deep-dive-jpeg-capture-active .neural-card:not([class*="from-"]),
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .neural-card,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .neural-card:hover,
   #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="backdrop-blur"]:not([class*="from-"]),
   #deep-dive-report-export.deep-dive-jpeg-capture-active [class*="bg-white/"]:not([class*="from-"]) {
-    background: hsl(201 28% 13% / 0.96) !important;
-    border-color: hsl(201 28% 22% / 0.9) !important;
-    box-shadow: 0 4px 24px hsl(200 35% 4% / 0.45) !important;
+    background: #161f28 !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    will-change: auto !important;
   }
 
   /* Archetype gradient cards — preserve accent glow on dark base */
@@ -143,28 +181,39 @@ const CAPTURE_CSS = `
     font-family: system-ui, sans-serif;
   }
 
-  /* Recharts — fixed box, no responsive scaling that breaks html2canvas */
-  #deep-dive-report-export.deep-dive-jpeg-capture-active .recharts-responsive-container {
+  /* Radar host — full export width, no transform layer */
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .deep-dive-radar-host {
     width: ${DESKTOP_EXPORT_WIDTH_PX - 120}px !important;
     height: 420px !important;
     max-width: none !important;
+    overflow: visible !important;
   }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .recharts-responsive-container,
   #deep-dive-report-export.deep-dive-jpeg-capture-active .recharts-wrapper {
     width: ${DESKTOP_EXPORT_WIDTH_PX - 120}px !important;
     height: 420px !important;
     max-width: none !important;
     margin: 0 auto !important;
+    overflow: visible !important;
   }
   #deep-dive-report-export.deep-dive-jpeg-capture-active .recharts-surface {
     overflow: visible !important;
   }
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .recharts-polar-grid-angle line,
+  #deep-dive-report-export.deep-dive-jpeg-capture-active .recharts-polar-grid-concentric path {
+    stroke: rgba(255, 255, 255, 0.22) !important;
+  }
 
-  /* Tab panels — show all sections in PDF/PNG export */
-  #deep-dive-report-export.deep-dive-jpeg-capture-active [role="tabpanel"][hidden] {
+  /* Tab panels — show all sections when still in tabs mode */
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [role="tabpanel"][hidden],
+  #deep-dive-report-export.deep-dive-jpeg-capture-active [role="tabpanel"][data-state="inactive"] {
     display: block !important;
     margin-top: 2.5rem !important;
     padding-top: 1.5rem !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    opacity: 1 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 `;
 
@@ -238,22 +287,26 @@ function stackFlipCardFaces(root: HTMLElement): void {
 /** Sync Recharts SVG dimensions to avoid polygon/grid misalignment in html2canvas. */
 function syncRechartsDimensions(root: HTMLElement): void {
   const chartWidth = DESKTOP_EXPORT_WIDTH_PX - 120;
-  root.querySelectorAll(".recharts-responsive-container").forEach((el) => {
-    const container = el as HTMLElement;
-    container.style.width = `${chartWidth}px`;
-    container.style.height = "420px";
+  root.querySelectorAll(".deep-dive-radar-host").forEach((el) => {
+    const host = el as HTMLElement;
+    host.style.width = `${chartWidth}px`;
+    host.style.height = "420px";
   });
-  root.querySelectorAll(".recharts-wrapper").forEach((el) => {
-    const wrapper = el as HTMLElement;
-    wrapper.style.width = `${chartWidth}px`;
-    wrapper.style.height = "420px";
+  root.querySelectorAll(".recharts-responsive-container, .recharts-wrapper").forEach((el) => {
+    const box = el as HTMLElement;
+    box.style.width = `${chartWidth}px`;
+    box.style.height = "420px";
+    box.style.maxWidth = "none";
+    box.style.overflow = "visible";
   });
   root.querySelectorAll(".recharts-surface").forEach((el) => {
     const svg = el as SVGSVGElement;
-    const w = svg.getBoundingClientRect().width || chartWidth;
-    const h = svg.getBoundingClientRect().height || 420;
-    svg.setAttribute("width", String(Math.round(w)));
-    svg.setAttribute("height", String(Math.round(h)));
+    const rect = svg.getBoundingClientRect();
+    const w = Math.round(rect.width || chartWidth);
+    const h = Math.round(rect.height || 420);
+    svg.setAttribute("width", String(w));
+    svg.setAttribute("height", String(h));
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
     svg.style.width = `${w}px`;
     svg.style.height = `${h}px`;
     svg.style.maxWidth = "none";
@@ -265,6 +318,7 @@ function applyCloneExportPrep(doc: Document): void {
   const cloneStyle = doc.createElement("style");
   cloneStyle.textContent = CAPTURE_CSS;
   doc.head.appendChild(cloneStyle);
+  doc.body?.classList.add("deep-dive-jpeg-capture-active");
   const root = doc.getElementById("deep-dive-report-export");
   if (!root) return;
   root.classList.add("deep-dive-jpeg-capture-active");
@@ -298,6 +352,7 @@ function unlockParentLayout(source: HTMLElement): (() => void) | null {
 
 async function captureReport(source: HTMLElement): Promise<HTMLCanvasElement> {
   injectCaptureStyles();
+  document.body.classList.add("deep-dive-jpeg-capture-active");
   source.classList.add("deep-dive-jpeg-capture-active");
   stackFlipCardFaces(source);
   syncRechartsDimensions(source);
@@ -323,13 +378,23 @@ async function captureReport(source: HTMLElement): Promise<HTMLCanvasElement> {
       allowTaint: false,
       scrollX: 0,
       scrollY: -window.scrollY,
+      x: 0,
+      y: 0,
       width,
       height,
+      windowWidth: width,
+      windowHeight: height,
       onclone: applyCloneExportPrep,
+      ignoreElements: (el) =>
+        el instanceof HTMLElement &&
+        (el.hasAttribute("data-export-hide") ||
+          el.classList.contains("visitor-report-sticky-bar") ||
+          el.classList.contains("deep-dive-radar-tooltip")),
     });
   } finally {
     restoreParent?.();
     source.classList.remove("deep-dive-jpeg-capture-active");
+    document.body.classList.remove("deep-dive-jpeg-capture-active");
     removeCaptureStyles();
     window.scrollTo(0, scrollY);
   }
@@ -337,6 +402,7 @@ async function captureReport(source: HTMLElement): Promise<HTMLCanvasElement> {
 
 async function captureReportTiled(source: HTMLElement): Promise<HTMLCanvasElement[]> {
   injectCaptureStyles();
+  document.body.classList.add("deep-dive-jpeg-capture-active");
   source.classList.add("deep-dive-jpeg-capture-active");
   stackFlipCardFaces(source);
   syncRechartsDimensions(source);
@@ -364,11 +430,19 @@ async function captureReportTiled(source: HTMLElement): Promise<HTMLCanvasElemen
         logging: false,
         allowTaint: false,
         scrollX: 0,
-        scrollY: y,
+        scrollY: -window.scrollY,
+        x: 0,
+        y,
         width,
         height: tileHeight,
-        y,
+        windowWidth: width,
+        windowHeight: totalHeight,
         onclone: applyCloneExportPrep,
+        ignoreElements: (el) =>
+          el instanceof HTMLElement &&
+          (el.hasAttribute("data-export-hide") ||
+            el.classList.contains("visitor-report-sticky-bar") ||
+            el.classList.contains("deep-dive-radar-tooltip")),
       });
       tiles.push(tile);
     }
@@ -376,6 +450,7 @@ async function captureReportTiled(source: HTMLElement): Promise<HTMLCanvasElemen
   } finally {
     restoreParent?.();
     source.classList.remove("deep-dive-jpeg-capture-active");
+    document.body.classList.remove("deep-dive-jpeg-capture-active");
     removeCaptureStyles();
     window.scrollTo(0, scrollY);
   }

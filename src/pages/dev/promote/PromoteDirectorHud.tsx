@@ -1,5 +1,4 @@
 import { ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { cn } from "@/lib/utils";
 import { PROMOTE_SCENES } from "./promoteScenes";
@@ -58,7 +57,6 @@ export function PromoteDirectorHud({
           {filmMode ? <EyeOff size={13} /> : <Eye size={13} />}
           Film
         </button>
-        <ThemeToggle collapsed />
         <LanguageSwitcher collapsed />
       </div>
     </div>

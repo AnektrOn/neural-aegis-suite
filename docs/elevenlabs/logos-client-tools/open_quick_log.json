@@ -1,0 +1,11 @@
+{
+  "type": "client",
+  "name": "open_quick_log",
+  "description": "Ouvre le tiroir humeur / sommeil / stress. Préférer write_mood_entry si l'utilisateur a déjà donné les chiffres.",
+  "expects_response": true,
+  "response_timeout_secs": -1,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": []
+}

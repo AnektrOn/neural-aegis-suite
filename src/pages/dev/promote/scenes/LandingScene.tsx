@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeToggle from "@/components/ThemeToggle";
 import AegisLogo from "@/components/AegisLogo";
 import { copy } from "../promoteDemoData";
 import { usePromotePlayer } from "../PromotePlayerContext";
@@ -16,7 +15,6 @@ export function LandingScene() {
         </div>
         <div className="flex items-center gap-2">
           <LanguageSwitcher collapsed />
-          <ThemeToggle collapsed />
         </div>
       </header>
       <main className="flex flex-1 flex-col justify-center py-10 text-center">

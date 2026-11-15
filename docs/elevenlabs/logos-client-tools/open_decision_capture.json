@@ -1,0 +1,11 @@
+{
+  "type": "client",
+  "name": "open_decision_capture",
+  "description": "Rappel UI décision ; enregistrement via write_decision.",
+  "expects_response": true,
+  "response_timeout_secs": 120,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": []
+}

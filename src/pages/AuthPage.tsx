@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeToggle from "@/components/ThemeToggle";
 import { NeuralCard } from "@/components/ui/neural-card";
 import PublicFooter from "@/components/public/PublicFooter";
 import BackendHealthBanner from "@/components/BackendHealthBanner";
@@ -57,15 +56,24 @@ export default function AuthPage() {
   const signupFromUrl =
     searchParams.get("signup") === "1" || searchParams.get("mode") === "signup";
 
-  const [mode, setMode] = useState<AuthMode>(signupFromUrl ? "signup" : "signin");
+  const [mode, setMode] = useState<AuthMode>(() => {
+    if (upgradeFromUrl) return "upgrade";
+    if (signupFromUrl) return "signup";
+    if (guestFromUrl) return "guest";
+    return "signin";
+  });
 
   useEffect(() => {
-    if (upgradeFromUrl && (isGuest || isAnonymousUser(user))) {
+    // Guests who finished the quiz must upgrade (email prefilled), not hit
+    // signup — signup mode redirects logged-in guests back to /quiz.
+    if ((upgradeFromUrl || signupFromUrl) && (isGuest || isAnonymousUser(user))) {
       setMode("upgrade");
     } else if (guestFromUrl) {
       setMode("guest");
     } else if (signupFromUrl) {
       setMode("signup");
+    } else if (upgradeFromUrl) {
+      setMode("upgrade");
     }
   }, [upgradeFromUrl, guestFromUrl, signupFromUrl, isGuest, user]);
 
@@ -83,8 +91,13 @@ export default function AuthPage() {
     if (mode === "guest" || mode === "upgrade") return;
 
     const guestAccount = isAnonymousUser(user) || isGuestUser(user);
-
     const path = redirectParam?.trim();
+
+    // Guest on "Créer mon compte" (?signup=1 or ?upgrade=1): stay on upgrade form.
+    if (guestAccount && (signupFromUrl || upgradeFromUrl)) {
+      setMode("upgrade");
+      return;
+    }
 
     // Guests never go through Guardian onboarding, even via ?redirect=/onboarding.
     if (guestAccount) {
@@ -107,7 +120,7 @@ export default function AuthPage() {
 
     navigate(target, { replace: true });
 
-  }, [user, authLoading, redirectParam, navigate, mode]);
+  }, [user, authLoading, redirectParam, navigate, mode, signupFromUrl, upgradeFromUrl]);
 
 
   const showAuthError = (err: unknown) => {
@@ -260,7 +273,11 @@ export default function AuthPage() {
         title: t("visitor.upgrade.successTitle"),
         description: t("visitor.upgrade.successDesc"),
       });
-      navigate(postLoginPath(false, user.id));
+      const path = redirectParam?.trim();
+      navigate(
+        path?.startsWith("/") ? path : postLoginPath(false, user.id),
+        { replace: true },
+      );
     } catch (err: unknown) {
       showAuthError(err);
     } finally {
@@ -282,13 +299,14 @@ export default function AuthPage() {
     mode === "signin" ||
     mode === "signup" ||
     mode === "guest" ||
-    (mode === "upgrade" && isAnonymousUser(user));
+    mode === "upgrade";
+  const emailReadOnly =
+    mode === "upgrade" && !!(isGuest || isAnonymousUser(user)) && !!user?.email;
 
   return (
     <div className="min-h-screen bg-aegis-gradient flex flex-col p-4 relative overflow-hidden">
       <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
         <LanguageSwitcher />
-        <ThemeToggle collapsed />
       </div>
 
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary/6 blur-3xl pointer-events-none" />
@@ -379,9 +397,20 @@ export default function AuthPage() {
                       placeholder={t("auth.email")}
                       required
                       autoComplete="email"
-                      readOnly={mode === "upgrade" && isGuest && !!user?.email}
+                      readOnly={emailReadOnly}
                       className={inputCls}
                     />
+                    {mode === "guest" && !newsletterIntent ? (
+                      <p className="text-[11px] leading-relaxed text-text-tertiary pt-1">
+                        {t("auth.guest.privacyNote")}{" "}
+                        <Link
+                          to="/legal/privacy"
+                          className="underline underline-offset-2 hover:text-text-secondary"
+                        >
+                          {t("auth.guest.privacyLink")}
+                        </Link>
+                      </p>
+                    ) : null}
                   </div>
                 )}
 

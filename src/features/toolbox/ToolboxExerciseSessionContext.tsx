@@ -44,6 +44,7 @@ import {
   type ToolboxAssignmentStats,
 } from "@/features/toolbox/ToolboxAssignmentStatsStrip";
 import { cn } from "@/lib/utils";
+import { LOGOS_TOOLBOX_SESSION_END } from "@/features/logos/constants";
 
 interface ToolboxAssignmentRow {
   id: string;
@@ -198,6 +199,11 @@ function ToolboxExerciseModalLayer({
         .maybeSingle();
 
       const currentItem = itemRef.current;
+      window.dispatchEvent(
+        new CustomEvent(LOGOS_TOOLBOX_SESSION_END, {
+          detail: { assignmentId, status },
+        }),
+      );
       onClose();
       setCompletionDialog({
         open: true,
@@ -230,9 +236,14 @@ function ToolboxExerciseModalLayer({
     if (hasActiveToolboxSession()) {
       void recordCompletion("abandoned");
     } else {
+      window.dispatchEvent(
+        new CustomEvent(LOGOS_TOOLBOX_SESSION_END, {
+          detail: { assignmentId, status: "closed" },
+        }),
+      );
       onClose();
     }
-  }, [recordCompletion, onClose]);
+  }, [recordCompletion, onClose, assignmentId]);
 
   const getTypeLabel = (type: string) =>
     TOOLBOX_TYPE_META[type] ? t(TOOLBOX_TYPE_META[type].labelKey as any) : type;

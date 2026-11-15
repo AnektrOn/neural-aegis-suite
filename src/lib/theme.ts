@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 
+/** App is dark-only for now; ignore stored / system preference. */
 export function getStoredThemeIsDark(): boolean {
-  if (typeof window === "undefined") return true;
-  const stored = localStorage.getItem("theme");
-  return (
-    stored === "dark" ||
-    (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)
-  );
+  return true;
 }
 
 /** Bumps when `html` light/dark classes or stored theme change (for WebGL/CSS resync). */
@@ -29,20 +25,20 @@ export function useThemeClassRevision(): number {
   return revision;
 }
 
-/** Apply dark/light classes on <html> — must run before first paint. */
-export function applyTheme(dark: boolean): void {
+/** Apply dark theme on <html> — must run before first paint. */
+export function applyTheme(): void {
   const root = document.documentElement;
-  root.classList.toggle("dark", dark);
-  root.classList.toggle("light", !dark);
+  root.classList.add("dark");
+  root.classList.remove("light");
 
   try {
-    localStorage.setItem("theme", dark ? "dark" : "light");
+    localStorage.setItem("theme", "dark");
   } catch {
     /* private browsing */
   }
 
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute("content", dark ? "#08090D" : "#FFFFFF");
+    meta.setAttribute("content", "#0b0b0a");
   }
 }

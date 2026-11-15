@@ -1,0 +1,34 @@
+{
+  "type": "client",
+  "name": "list_actionable_content",
+  "description": "Liste les assignations toolbox et cartes Pulse ouvrables pour l'utilisateur connecté (hors liens externes et vidéos). Utilise AVANT de proposer 2 à 3 choix à voix haute.",
+  "expects_response": true,
+  "response_timeout_secs": 20,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "intent",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "Intention optionnelle : regulation, protocol, pulse, checkin, analyse.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    },
+    {
+      "id": "limit",
+      "type": "number",
+      "value_type": "llm_prompt",
+      "description": "Nombre max d'éléments par catégorie (1 à 8, défaut 5).",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    }
+  ]
+}

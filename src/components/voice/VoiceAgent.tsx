@@ -30,9 +30,31 @@ import { createAgentVoiceSession } from "@/services/agentSessionService";
 import { cn } from "@/lib/utils";
 import { synthesizeSpectrumFromVolume } from "@/components/voice/voiceAgentSpectrum";
 import { getVoiceAgentNebulaVisualTuning } from "@/components/voice/voiceAgentNebulaPresets";
+import { LogosClientToolsRegistrar } from "@/features/logos/LogosClientToolsRegistrar";
+import { useAuth } from "@/contexts/AuthContext";
 
 type UiPhase = "idle" | "connecting" | "connected" | "error";
 type VoiceAgentLayout = "card" | "welcome";
+type VoiceDynamicVariables = Record<string, string | number | boolean>;
+
+function resolveFirstName(
+  user: NonNullable<ReturnType<typeof useAuth>["user"]> | null | undefined,
+  override?: string,
+): string {
+  if (override?.trim()) return override.trim();
+  if (!user) return "toi";
+  const meta = user.user_metadata as Record<string, unknown> | undefined;
+  const candidates = [
+    meta?.["first_name"],
+    typeof meta?.["full_name"] === "string" ? (meta["full_name"] as string).split(/\s+/)[0] : undefined,
+    typeof meta?.["name"] === "string" ? (meta["name"] as string).split(/\s+/)[0] : undefined,
+    user.email?.split("@")[0],
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim() && !c.includes("@")) return c.trim();
+  }
+  return "toi";
+}
 
 const welcomeCtaClass =
   "group inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border px-5 py-2.5 font-display text-[10px] uppercase tracking-[0.22em] backdrop-blur-sm transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50";
@@ -164,10 +186,12 @@ function VoiceAgentControls({
   onPhase,
   layout,
   errorMessage,
+  dynamicVariables,
 }: {
   onPhase: (p: UiPhase, message?: string) => void;
   layout: VoiceAgentLayout;
   errorMessage?: string | null;
+  dynamicVariables: VoiceDynamicVariables;
 }) {
   const { t } = useLanguage();
   const { startSession, endSession } = useConversationControls();
@@ -175,6 +199,8 @@ function VoiceAgentControls({
   const { isSpeaking, isListening, isMuted, setMuted } = useConversation();
   const [busy, setBusy] = useState(false);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const dynamicVariablesRef = useRef(dynamicVariables);
+  dynamicVariablesRef.current = dynamicVariables;
 
   const end = useCallback(async () => {
     setBusy(true);
@@ -196,8 +222,14 @@ function VoiceAgentControls({
       stream.getTracks().forEach((track) => track.stop());
 
       const { conversation_token } = await createAgentVoiceSession();
-      await startSession({
+      const vars = {
+        first_name: "toi",
+        ...dynamicVariablesRef.current,
+      };
+      if (!String(vars.first_name || "").trim()) vars.first_name = "toi";
+      startSession({
         conversationToken: conversation_token,
+        dynamicVariables: vars,
       });
       onPhase("connected");
     } catch (e) {
@@ -330,6 +362,7 @@ function VoiceAgentWelcomeHud({
   showHero,
   onPhase,
   errorMessage,
+  dynamicVariables,
 }: {
   title: string;
   debugFooter?: ReactNode;
@@ -337,6 +370,7 @@ function VoiceAgentWelcomeHud({
   showHero: boolean;
   onPhase: (p: UiPhase, message?: string) => void;
   errorMessage?: string | null;
+  dynamicVariables: VoiceDynamicVariables;
 }) {
   const { t } = useLanguage();
   const { reduceMotion } = useAegisMotion();
@@ -416,7 +450,12 @@ function VoiceAgentWelcomeHud({
           {showHero && debugFooter ? (
             <div className="w-full max-w-sm px-1 text-center">{debugFooter}</div>
           ) : null}
-          <VoiceAgentControls onPhase={onPhase} layout="welcome" errorMessage={!showHero ? errorMessage : null} />
+          <VoiceAgentControls
+            onPhase={onPhase}
+            layout="welcome"
+            errorMessage={!showHero ? errorMessage : null}
+            dynamicVariables={dynamicVariables}
+          />
         </footer>
       </div>
     </div>
@@ -427,10 +466,12 @@ function VoiceAgentCard({
   className,
   onPhase,
   errorMessage,
+  dynamicVariables,
 }: {
   className?: string;
   onPhase: (p: UiPhase, message?: string) => void;
   errorMessage?: string | null;
+  dynamicVariables: VoiceDynamicVariables;
 }) {
   const { t } = useLanguage();
   const externalAudioRef = useRef<QuantumNebulaExternalAudio>({
@@ -456,7 +497,7 @@ function VoiceAgentCard({
         <VoiceAgentNebula externalAudioRef={externalAudioRef} driveRef={driveRef} fullscreen={false} />
       </div>
       <div className="mt-4">
-        <VoiceAgentControls onPhase={onPhase} layout="card" />
+        <VoiceAgentControls onPhase={onPhase} layout="card" dynamicVariables={dynamicVariables} />
       </div>
     </section>
   );
@@ -470,6 +511,8 @@ export type VoiceAgentProps = {
   backHref?: string;
   /** Shown above the start CTA while hero is visible (e.g. dev agent id). */
   debugFooter?: ReactNode;
+  /** Optional override; VoiceAgent always resolves first_name itself as fallback. */
+  dynamicVariables?: VoiceDynamicVariables;
 };
 
 export function VoiceAgent({
@@ -478,8 +521,10 @@ export function VoiceAgent({
   welcomeTitle,
   backHref = "/welcome",
   debugFooter,
+  dynamicVariables,
 }: VoiceAgentProps) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [phase, setPhase] = useState<UiPhase>("idle");
   const [phaseMessage, setPhaseMessage] = useState<string | null>(null);
 
@@ -488,16 +533,35 @@ export function VoiceAgent({
     setPhaseMessage(message ?? null);
   }, []);
 
+  const resolvedDynamicVariables = useMemo<VoiceDynamicVariables>(() => {
+    const fromProp =
+      typeof dynamicVariables?.first_name === "string"
+        ? dynamicVariables.first_name
+        : undefined;
+    return {
+      ...dynamicVariables,
+      first_name: resolveFirstName(user, fromProp),
+    };
+  }, [dynamicVariables, user]);
+
   const title = welcomeTitle ?? t("voiceAgent.title");
   const showHero = phase === "idle" || phase === "error";
 
   return (
     <ConversationProvider
+      dynamicVariables={resolvedDynamicVariables}
       onError={(error) => {
         setPhase("error");
-        setPhaseMessage(error ?? t("voiceAgent.errorGeneric"));
+        const msg =
+          typeof error === "string"
+            ? error
+            : error instanceof Error
+              ? error.message
+              : t("voiceAgent.errorGeneric");
+        setPhaseMessage(msg);
       }}
     >
+      <LogosClientToolsRegistrar />
       {layout === "welcome" ? (
         <VoiceAgentWelcomeHud
           title={title}
@@ -506,12 +570,14 @@ export function VoiceAgent({
           showHero={showHero}
           onPhase={onPhase}
           errorMessage={phase === "error" ? phaseMessage : null}
+          dynamicVariables={resolvedDynamicVariables}
         />
       ) : (
         <VoiceAgentCard
           className={className}
           onPhase={onPhase}
           errorMessage={phase === "error" ? phaseMessage : null}
+          dynamicVariables={resolvedDynamicVariables}
         />
       )}
     </ConversationProvider>

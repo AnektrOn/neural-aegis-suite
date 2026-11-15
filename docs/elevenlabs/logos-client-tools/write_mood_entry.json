@@ -1,0 +1,45 @@
+{
+  "type": "client",
+  "name": "write_mood_entry",
+  "description": "Enregistre humeur (1-10) et optionnellement sommeil/stress sans ouvrir l'UI.",
+  "expects_response": true,
+  "response_timeout_secs": 20,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "value",
+      "type": "number",
+      "value_type": "llm_prompt",
+      "description": "Humeur entière 1 à 10.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": true
+    },
+    {
+      "id": "sleep",
+      "type": "number",
+      "value_type": "llm_prompt",
+      "description": "Sommeil (échelle app).",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    },
+    {
+      "id": "stress",
+      "type": "number",
+      "value_type": "llm_prompt",
+      "description": "Stress (échelle app).",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    }
+  ]
+}

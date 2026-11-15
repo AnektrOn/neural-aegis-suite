@@ -1,7 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Loader2, Monitor, Sparkles, Smartphone, X } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -249,7 +248,6 @@ export default function ToolboxNebulaDemo() {
               DEV ONLY
             </Badge>
           </div>
-          <ThemeToggle />
         </div>
       </header>
 

@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceAgent } from "@/components/voice/VoiceAgent";
+import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
 import {
   Dialog,
   DialogContent,
@@ -121,22 +122,19 @@ export default function WelcomeVoiceAgent() {
     );
   }
 
-  const debugFooter = (
-    <p className="font-mono text-[9px] leading-relaxed tracking-wide text-muted-foreground/65">
-      {t("welcome.voiceAgent.testAgentId")}{" "}
-      <span className="text-muted-foreground/85 break-all">{agentId ?? "—"}</span>
-      {loadError ? (
-        <span className="mt-1 block text-destructive">{loadError}</span>
-      ) : null}
-    </p>
-  );
-
   return (
-    <VoiceAgent
-      layout="welcome"
-      welcomeTitle={welcomeTitle}
-      debugFooter={debugFooter}
-      backHref="/welcome"
-    />
+    <LogosVoiceShell>
+      {loadError ? (
+        <p className="sr-only" role="status">
+          {loadError}
+        </p>
+      ) : null}
+      <VoiceAgent
+        layout="welcome"
+        welcomeTitle={welcomeTitle}
+        backHref="/welcome"
+        dynamicVariables={{ first_name: firstName || "toi" }}
+      />
+    </LogosVoiceShell>
   );
 }

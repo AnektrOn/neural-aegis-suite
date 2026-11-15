@@ -4,7 +4,7 @@ import { defaultUserMenuPrefs, USER_MENU_PREFS_STORAGE_KEY } from "@/lib/userMen
 
 const db = vi.hoisted(() => ({
   user: { id: "member-id" },
-  row: { mobile_radial_menu: { v: 2, dock: ["home", "mood", "decisions", "habits"], overflow: ["journal"], hidden: [] }, sidebar_items: ["/dashboard"] } as Record<string, unknown>,
+  row: { mobile_radial_menu: { v: 2, dock: ["home", "mood", "decisions", "people"], overflow: ["journal"], hidden: [], overflowBaseline: 2 }, sidebar_items: ["/dashboard"] } as Record<string, unknown>,
   error: null as { message: string } | null,
 }));
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: db.user }) }));

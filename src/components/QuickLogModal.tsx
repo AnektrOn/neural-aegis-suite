@@ -24,9 +24,10 @@ const frequencyKeys: TranslationKey[] = [
 interface QuickLogModalProps {
   open: boolean;
   onClose: () => void;
+  onSaved?: () => void;
 }
 
-export default function QuickLogModal({ open, onClose }: QuickLogModalProps) {
+export default function QuickLogModal({ open, onClose, onSaved }: QuickLogModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t, locale } = useLanguage();
@@ -56,6 +57,7 @@ export default function QuickLogModal({ open, onClose }: QuickLogModalProps) {
         toast({ title: t("toast.error"), description: error.message, variant: "destructive" });
       } else {
         toast({ title: t("mood.saved"), description: moodLabel });
+        onSaved?.();
         onClose();
       }
     } catch {

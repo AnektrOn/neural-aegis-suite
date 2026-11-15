@@ -26,12 +26,10 @@ import { useSubscription } from "@/hooks/useSubscription";
 
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
-import ThemeToggle from "@/components/ThemeToggle";
 import FreePreviewToggle from "@/components/FreePreviewToggle";
 import NotificationBell from "@/components/NotificationBell";
 import PopupAnnouncement from "@/components/PopupAnnouncement";
 import AccountPausedModal from "@/components/AccountPausedModal";
-import { Houses72ResumeModal } from "@/features/houses72/components/Houses72ResumeModal";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { PageWrapper } from "@/components/PageWrapper";
 import AppFooter from "@/components/AppFooter";
@@ -43,6 +41,7 @@ import { usePushKeepAlive } from "@/hooks/usePushKeepAlive";
 import { Z_INDEX } from "@/lib/zIndex";
 import { MEMBER_SHELL_V2 } from "@/layouts/memberShellConfig";
 import { MemberAppShell } from "@/layouts/MemberAppShell";
+import { LogosToolHostProvider } from "@/features/logos/LogosToolHostContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -144,7 +143,6 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
         <NotificationBell />
       </div>
       <div className="shrink-0">
-        <ThemeToggle collapsed={collapsed} />
         <LanguageSwitcher collapsed={collapsed} />
       </div>
       <button
@@ -248,9 +246,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (MEMBER_SHELL_V2) {
     return (
       <ToolboxExerciseSessionProvider userId={user?.id}>
+      <LogosToolHostProvider>
         <PopupAnnouncement />
         <AccountPausedModal />
-        <Houses72ResumeModal />
         {!online ? (
           <div
             className="fixed inset-x-0 top-0 z-[200] bg-warning py-1.5 text-center text-xs font-medium text-warning-foreground"
@@ -276,6 +274,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </MemberAppShell>
         {logoutDialog}
+      </LogosToolHostProvider>
       </ToolboxExerciseSessionProvider>
     );
   }
@@ -291,7 +290,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <ToolboxExerciseSessionProvider userId={user?.id}>
       <PopupAnnouncement />
       <AccountPausedModal />
-      <Houses72ResumeModal />
       <div className="min-h-screen w-full relative z-10 flex flex-col bg-bg-base">
         {!immersiveDashboard ? (
         <div
@@ -410,7 +408,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         {t("settings.appearance")}
                       </span>
                       <div className="flex items-center gap-2">
-                        <ThemeToggle collapsed={false} />
                         <LanguageSwitcher collapsed={false} />
                       </div>
                     </div>
@@ -507,9 +504,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ToolboxExerciseSessionProvider userId={user?.id}>
+    <LogosToolHostProvider>
     <PopupAnnouncement />
     <AccountPausedModal />
-    <Houses72ResumeModal />
     <div className="flex min-h-screen w-full relative z-10 bg-bg-base">
       {!online && (
         <div
@@ -564,6 +561,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       />
       <QuickLogModal open={quickLogOpen} onClose={() => setQuickLogOpen(false)} />
     </div>
+    </LogosToolHostProvider>
     </ToolboxExerciseSessionProvider>
   );
 }

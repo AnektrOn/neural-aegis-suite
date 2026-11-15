@@ -4,7 +4,7 @@ import type { QuantumNebulaVisualTuning } from "@/components/ui/quantum-nebula";
 export function getVoiceAgentNebulaVisualTuning(): Partial<QuantumNebulaVisualTuning> {
   const mobile = typeof window !== "undefined" && window.innerWidth < 768;
   return {
-    particleCount: mobile ? 13_000 : 24_000,
+    particleCount: mobile ? 23_000 : 54_000,
     sphereRadius: mobile ? 1.1 : 1.45,
     cameraDistance: mobile ? 3.6 : 3.0,
     noiseSpeed: 0.082,

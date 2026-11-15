@@ -359,7 +359,7 @@ function normalizeSilhouette(raw: Partial<HeroSilhouetteLayout> | undefined, fal
   return {
     widthPct: clampNum(raw?.widthPct ?? fallback.widthPct, 20, 140),
     leftPct: clampNum(raw?.leftPct ?? fallback.leftPct, 0, 100),
-    bottomPct: clampNum(raw?.bottomPct ?? fallback.bottomPct, -35, 55),
+    bottomPct: clampNum(raw?.bottomPct ?? fallback.bottomPct, -50, 55),
   };
 }
 
@@ -419,7 +419,7 @@ function buildDefaultHeroLabConfig(): HeroLabConfig {
     desktop: slice({ widthPct: 50.5, leftPct: 24.5, bottomPct: -2 }, DESKTOP_OVERLAY),
     tabletLandscape: slice({ widthPct: 66.5, leftPct: 25, bottomPct: 7.5 }, MOBILE_TABLET_OVERLAY),
     tabletPortrait: slice({ widthPct: 56, leftPct: 50, bottomPct: 2 }, MOBILE_TABLET_OVERLAY),
-    mobilePortrait: slice({ widthPct: 58, leftPct: 50, bottomPct: 1 }, MOBILE_TABLET_OVERLAY),
+    mobilePortrait: slice({ widthPct: 70.5, leftPct: 36, bottomPct: 0.5 }, MOBILE_TABLET_OVERLAY),
     mobileLandscape: slice({ widthPct: 56.5, leftPct: 25.5, bottomPct: -2.5 }, MOBILE_TABLET_OVERLAY),
   };
 

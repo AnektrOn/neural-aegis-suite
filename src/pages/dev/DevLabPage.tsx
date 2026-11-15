@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import ThemeToggle from "@/components/ThemeToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
 
@@ -243,6 +242,17 @@ const FEATURES: DevFeature[] = [
     accent: "from-violet-500/20 to-fuchsia-500/5",
   },
   {
+    path: "/dev/logos-choices",
+    title: "LOGOS — choix UI",
+    titleEn: "LOGOS — choice UI",
+    blurb: "Cover-flow Persona (Myss / Jung / Blavatsky) pour propose_actionable_choices.",
+    blurbEn: "Persona cover-flow (Myss / Jung / Blavatsky) for propose_actionable_choices.",
+    status: "playground",
+    tags: ["logos", "cover-flow", "persona"],
+    icon: ListChecks,
+    accent: "from-amber-500/20 to-stone-500/10",
+  },
+  {
     path: "/dev/aegis-core",
     title: "Aegis Core",
     titleEn: "Aegis Core",
@@ -290,7 +300,6 @@ export default function DevLabPage() {
           <Badge variant="outline" className="hidden sm:inline-flex font-mono text-[10px]">
             {FEATURES.length} previews
           </Badge>
-          <ThemeToggle />
         </div>
       </header>
 

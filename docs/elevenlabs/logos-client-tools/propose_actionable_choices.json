@@ -1,0 +1,24 @@
+{
+  "type": "client",
+  "name": "propose_actionable_choices",
+  "description": "Ouvre immédiatement un modal UI avec 2–3 choix (toolbox/pulse). L'utilisateur peut cliquer pour court-circuiter la voix. Attend la sélection puis la fermeture de l'exercice. À appeler dès qu'on propose des options — pas de longue liste parlée.",
+  "expects_response": true,
+  "response_timeout_secs": -1,
+  "execution_mode": "immediate",
+  "pre_tool_speech": "force",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "limit",
+      "type": "number",
+      "value_type": "llm_prompt",
+      "description": "Nombre de choix à afficher (2 ou 3, défaut 3).",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    }
+  ]
+}

@@ -1,9 +1,11 @@
 import { useAegisLandingLocale } from "../i18n/AegisLandingLocaleProvider";
 import { LandingButton } from "../components/LandingButton";
 import { RevealOnScroll } from "../components/RevealOnScroll";
+import { LIEN_PAIEMENT_LECTURE } from "../landingCtaHrefs";
 
 export function FinalCtaSection() {
-  const { copy } = useAegisLandingLocale();
+  const { copy, audience } = useAegisLandingLocale();
+  const ctaHref = audience === "individuel" ? LIEN_PAIEMENT_LECTURE : "#tarif";
   return (
     <section className="relative overflow-hidden bg-[color:var(--aegis-dark)] py-20 md:py-28">
       <div
@@ -20,7 +22,7 @@ export function FinalCtaSection() {
             {copy.finalCta.title}
           </h2>
           <div className="mt-10 flex flex-col items-center gap-3">
-            <LandingButton href="#tarif" variant="bronze">
+            <LandingButton href={ctaHref} variant="bronze">
               {copy.finalCta.cta}
             </LandingButton>
             <a

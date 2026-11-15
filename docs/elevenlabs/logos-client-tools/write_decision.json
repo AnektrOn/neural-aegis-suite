@@ -1,0 +1,45 @@
+{
+  "type": "client",
+  "name": "write_decision",
+  "description": "Crée une décision dans AEGIS.",
+  "expects_response": true,
+  "response_timeout_secs": 20,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "name",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "Intitulé de la décision.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": true
+    },
+    {
+      "id": "priority",
+      "type": "number",
+      "value_type": "llm_prompt",
+      "description": "Priorité 1 à 10.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    },
+    {
+      "id": "responsibility",
+      "type": "number",
+      "value_type": "llm_prompt",
+      "description": "Responsabilité 1 à 10.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    }
+  ]
+}

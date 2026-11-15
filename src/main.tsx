@@ -3,12 +3,12 @@ import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
 import "./index.css";
 import { initNativeApp } from "./lib/capacitor";
-import { applyTheme, getStoredThemeIsDark } from "@/lib/theme";
+import { applyTheme } from "@/lib/theme";
 import { CHUNK_RELOAD_KEY } from "@/lib/lazyWithRetry";
 import { installWidgetLifecycleGuards } from "@/lib/widget-lifecycle";
 import { initErrorMonitoring } from "@/lib/errorMonitoring";
 
-applyTheme(getStoredThemeIsDark());
+applyTheme();
 installWidgetLifecycleGuards();
 void initErrorMonitoring();
 

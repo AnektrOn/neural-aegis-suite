@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { checkAndAwardBadges } from "@/lib/badge-engine";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useHeroBreakpoint, isBioExecutiveDesktopLayout } from "@/hooks/useHeroBreakpoint";
 import { useAegisHealthScore } from "@/hooks/useAegisHealthScore";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,7 +13,7 @@ import { WELCOME_DISMISSED_KEY } from "@/components/WelcomeExperience";
 import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMaturity";
 import { DashboardMobile } from "@/pages/dashboard/DashboardMobile";
 import { usePersonaTrackingStats } from "@/features/persona/hooks/usePersonaTrackingStats";
-import { PULL_REFRESH_HINT_KEY, type MobileHabit } from "@/pages/dashboard/dashboard-shared";
+import type { MobileHabit } from "@/pages/dashboard/dashboard-shared";
 
 class DashboardRenderBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -43,7 +43,8 @@ export default function Dashboard() {
   const resolvedUserId = user?.id ?? session?.user?.id;
   const { t, locale } = useLanguage();
   const { toast } = useToast();
-  const isMobile = useIsMobile();
+  const heroBreakpoint = useHeroBreakpoint();
+  const desktopLayout = isBioExecutiveDesktopLayout(heroBreakpoint);
   const navigate = useNavigate();
   const location = useLocation();
   const today = new Date().toISOString().split("T")[0];
@@ -81,13 +82,6 @@ export default function Dashboard() {
     try { return localStorage.getItem(WELCOME_DISMISSED_KEY) === "1"; } catch { return false; }
   });
   const [showPostAssessment, setShowPostAssessment] = useState(false);
-  const [pullHintVisible, setPullHintVisible] = useState(() => {
-    try {
-      return localStorage.getItem(PULL_REFRESH_HINT_KEY) !== "1";
-    } catch {
-      return true;
-    }
-  });
 
   useEffect(() => {
     if (!user) return;
@@ -243,9 +237,7 @@ export default function Dashboard() {
         showPostAssessment={showPostAssessment}
         onWelcomeDismiss={() => setWelcomeDismissed(true)}
         onPostAssessmentClose={() => setShowPostAssessment(false)}
-        pullHintVisible={isMobile && pullHintVisible}
-        onPullHintDismiss={() => setPullHintVisible(false)}
-        desktopLayout={!isMobile}
+        desktopLayout={desktopLayout}
         toolboxTodo={toolboxTodo}
         toolboxFocusId={toolboxFocusId}
         aegisScore={aegisScore}

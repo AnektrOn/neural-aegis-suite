@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import EmployerDataConsentCard from "@/components/EmployerDataConsentCard";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
@@ -225,7 +224,7 @@ export default function Settings() {
   const leftPane = (
     <div className="space-y-4">
       <div>
-        <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
+        <p className="mb-1.5 font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.24em] text-[color:var(--aegis-gold)]">
           {t("settings.sectionLabel")} · CONTRÔLE SYSTÈME
         </p>
         <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
@@ -237,29 +236,23 @@ export default function Settings() {
       </div>
 
       {/* Apparence : Theme & Language */}
-      <div className="aegis-dock-tile p-5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] space-y-4">
-        <div className="flex items-center gap-2 border-b border-white/[0.08] pb-3">
-          <Settings2 size={16} strokeWidth={1.5} className="text-[#c9a24b]" />
+      <div className="aegis-dock-tile space-y-4 rounded-2xl p-5 shadow-[0_8px_28px_rgba(20,20,18,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+        <div className="flex items-center gap-2 border-b border-border pb-3 dark:border-white/[0.08]">
+          <Settings2 size={16} strokeWidth={1.5} className="text-[color:var(--aegis-gold)]" />
           <h2 className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {t("settings.appearance")}
           </h2>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{t("settings.theme")}</span>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-1">
-            <ThemeToggle collapsed={false} />
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{t("settings.language")}</span>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-1">
+          <div className="rounded-xl border border-border bg-muted/40 p-1 dark:border-white/10 dark:bg-black/20">
             <LanguageSwitcher collapsed={false} />
           </div>
         </div>
       </div>
 
       {/* Push Notifications */}
-      <div className="aegis-dock-tile p-5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] space-y-3">
+      <div className="aegis-dock-tile space-y-3 rounded-2xl p-5 shadow-[0_8px_28px_rgba(20,20,18,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
         <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {t("settings.notifications")}
         </p>
@@ -269,19 +262,19 @@ export default function Settings() {
       <EmployerDataConsentCard />
 
       {/* Data Export & RGPD */}
-      <div className="aegis-dock-tile p-5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] space-y-3">
+      <div className="aegis-dock-tile space-y-3 rounded-2xl p-5 shadow-[0_8px_28px_rgba(20,20,18,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
         <div className="flex items-center gap-2">
-          <FileText size={16} strokeWidth={1.5} className="text-[#c9a24b]" />
+          <FileText size={16} strokeWidth={1.5} className="text-[color:var(--aegis-gold)]" />
           <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {t("profile.dataExport")}
           </p>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">{t("profile.exportDescription")}</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">{t("profile.exportDescription")}</p>
         <button
           type="button"
           onClick={() => void exportData()}
           disabled={exporting}
-          className="w-full flex min-h-[40px] items-center justify-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 font-cinzel text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-all hover:text-foreground hover:border-[#c9a24b]/40 hover:bg-[#c9a24b]/10 disabled:opacity-40 cursor-pointer"
+          className="flex min-h-[40px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-muted/40 px-3 font-cinzel text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-all hover:border-[color:var(--aegis-gold)]/40 hover:bg-[color:var(--aegis-gold)]/10 hover:text-foreground disabled:opacity-40 dark:border-white/10 dark:bg-black/30"
         >
           <Download size={13} />
           {exporting ? t("profile.exporting") : t("profile.exportButton")}
@@ -289,11 +282,11 @@ export default function Settings() {
       </div>
 
       {/* Account Deletion */}
-      <div className="aegis-dock-tile p-5 rounded-2xl border border-destructive/20 shadow-sm space-y-3">
+      <div className="aegis-dock-tile space-y-3 rounded-2xl border border-destructive/20 p-5 shadow-sm">
         <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-destructive/80">
           {locale === "fr" ? "Zone de Danger · Suppression" : "Danger Zone · Deletion"}
         </p>
-        <p className="text-xs text-muted-foreground leading-relaxed">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           {locale === "fr"
             ? "Suppression définitive (RGPD). Tapez DELETE pour confirmer."
             : "Permanent deletion (GDPR). Type DELETE to confirm."}
@@ -302,7 +295,7 @@ export default function Settings() {
           value={deleteConfirm}
           onChange={(e) => setDeleteConfirm(e.target.value)}
           placeholder="DELETE"
-          className="w-full min-h-[40px] rounded-xl border border-white/10 bg-black/40 px-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-destructive/40"
+          className="min-h-[40px] w-full rounded-xl border border-border bg-card px-3 font-mono text-xs text-foreground placeholder:text-muted-foreground/40 focus:border-destructive/40 focus:outline-none dark:border-white/10 dark:bg-black/40"
         />
         <button
           type="button"
@@ -321,20 +314,20 @@ export default function Settings() {
   const rightPane = (
     <div className="space-y-4">
       {/* Menu Architecture Tile */}
-      <div className="aegis-dock-tile p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] space-y-5">
-        <div className="flex items-center gap-3 border-b border-white/[0.08] pb-3">
-          <LayoutGrid size={18} strokeWidth={1.5} className="text-[#c9a24b]" />
+      <div className="aegis-dock-tile space-y-5 rounded-2xl p-6 shadow-[0_8px_28px_rgba(20,20,18,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+        <div className="flex items-center gap-3 border-b border-border pb-3 dark:border-white/[0.08]">
+          <LayoutGrid size={18} strokeWidth={1.5} className="text-[color:var(--aegis-gold)]" />
           <div>
             <h2 className="font-cinzel text-xs font-semibold uppercase tracking-[0.16em] text-foreground">
               {t("settings.myMenuTitle")}
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">{t("settings.myMenuHint")}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("settings.myMenuHint")}</p>
           </div>
         </div>
 
         {/* Dock Slots Config */}
         <div className="space-y-3">
-          <p className="font-cinzel text-[10px] uppercase tracking-[0.2em] text-[#c9a24b]">
+          <p className="font-cinzel text-[10px] uppercase tracking-[0.2em] text-[color:var(--aegis-gold)]">
             {t("settings.myMenuDock")}
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -344,12 +337,12 @@ export default function Settings() {
                   {t("nav.dockSlot")} {index + 1}
                 </span>
                 <select
-                  className="rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-xs text-foreground focus:outline-none focus:border-[#c9a24b]/50 cursor-pointer"
+                  className="cursor-pointer rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-foreground focus:border-[color:var(--aegis-gold)]/50 focus:outline-none dark:border-white/10 dark:bg-black/30"
                   value={slotId}
                   onChange={(e) => setDockSlot(index, e.target.value as MenuPanelId)}
                 >
                   {dockEligiblePanels.map((p) => (
-                    <option key={p.id} value={p.id} className="bg-[#161614] text-foreground">
+                    <option key={p.id} value={p.id} className="bg-card text-foreground">
                       {t(p.labelKey)}
                     </option>
                   ))}
@@ -360,7 +353,7 @@ export default function Settings() {
         </div>
 
         {/* Overflow Menu Config */}
-        <div className="space-y-3 pt-2 border-t border-white/[0.08]">
+        <div className="space-y-3 border-t border-border pt-2 dark:border-white/[0.08]">
           <p className="font-cinzel text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             {t("settings.myMenuOverflow")}
           </p>
@@ -369,10 +362,10 @@ export default function Settings() {
               const checked = menuDraft.overflow.includes(p.id);
               return (
                 <li key={p.id}>
-                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-2.5 hover:border-white/15 transition-all">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-muted/35 px-3 py-2.5 transition-all hover:border-[color:var(--aegis-gold)]/35 dark:border-white/5 dark:bg-black/20 dark:hover:border-white/15">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 accent-[#c9a24b] rounded"
+                      className="h-4 w-4 rounded accent-[color:var(--aegis-gold)]"
                       checked={checked}
                       onChange={() => toggleOverflow(p.id)}
                     />
@@ -385,7 +378,7 @@ export default function Settings() {
         </div>
 
         {/* Hidden Items Config */}
-        <div className="space-y-3 pt-2 border-t border-white/[0.08]">
+        <div className="space-y-3 border-t border-border pt-2 dark:border-white/[0.08]">
           <p className="font-cinzel text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             {t("settings.myMenuHidden")}
           </p>
@@ -394,10 +387,10 @@ export default function Settings() {
               const checked = menuDraft.hidden.includes(p.id);
               return (
                 <li key={p.id}>
-                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-2.5 hover:border-white/15 transition-all">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-muted/35 px-3 py-2.5 transition-all hover:border-[color:var(--aegis-gold)]/35 dark:border-white/5 dark:bg-black/20 dark:hover:border-white/15">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 accent-[#c9a24b] rounded"
+                      className="h-4 w-4 rounded accent-[color:var(--aegis-gold)]"
                       checked={checked}
                       onChange={() => toggleHidden(p.id)}
                     />
@@ -410,11 +403,11 @@ export default function Settings() {
         </div>
 
         {/* Save & Reset Buttons */}
-        <div className="flex flex-col sm:flex-row gap-2.5 pt-2 border-t border-white/[0.08]">
+        <div className="flex flex-col gap-2.5 border-t border-border pt-2 sm:flex-row dark:border-white/[0.08]">
           <button
             type="button"
             onClick={() => setMenuDraft(defaultUserMenuPrefs())}
-            className="flex-1 py-2.5 rounded-xl border border-white/10 bg-black/25 text-xs font-cinzel uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground hover:border-white/20 transition-all cursor-pointer"
+            className="flex-1 cursor-pointer rounded-xl border border-border bg-muted/40 py-2.5 font-cinzel text-xs uppercase tracking-[0.14em] text-muted-foreground transition-all hover:border-[color:var(--aegis-gold)]/30 hover:text-foreground dark:border-white/10 dark:bg-black/25"
           >
             {t("settings.myMenuReset")}
           </button>
@@ -422,7 +415,7 @@ export default function Settings() {
             type="button"
             onClick={() => void saveMenu()}
             disabled={savingMenu}
-            className="btn-solaire flex-1 py-2.5 rounded-xl text-xs font-cinzel uppercase tracking-[0.16em] font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+            className="btn-solaire flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl py-2.5 font-cinzel text-xs font-semibold uppercase tracking-[0.16em] shadow-md disabled:opacity-50"
           >
             <Save size={13} />
             <span>{savingMenu ? t("settings.myMenuSaving") : t("settings.myMenuSave")}</span>
@@ -431,39 +424,39 @@ export default function Settings() {
       </div>
 
       {/* Mobile PWA & Android Installation */}
-      <div className="aegis-dock-tile p-5 rounded-2xl shadow-sm flex items-center justify-between gap-4">
+      <div className="aegis-dock-tile flex items-center justify-between gap-4 rounded-2xl p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <Smartphone size={18} strokeWidth={1.5} className="text-[#c9a24b] shrink-0 mt-0.5" />
+          <Smartphone size={18} strokeWidth={1.5} className="mt-0.5 shrink-0 text-[color:var(--aegis-gold)]" />
           <div>
             <h3 className="font-cinzel text-xs font-semibold uppercase tracking-wider text-foreground">
               {t("install.title")}
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{t("install.onboardingDesc")}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("install.onboardingDesc")}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => navigate("/install-android")}
-          className="shrink-0 px-4 py-2 rounded-xl border border-white/10 bg-black/30 text-xs font-cinzel uppercase tracking-wider text-[#c9a24b] hover:border-[#c9a24b]/40 hover:bg-[#c9a24b]/10 transition-all cursor-pointer"
+          className="shrink-0 cursor-pointer rounded-xl border border-border bg-muted/40 px-4 py-2 font-cinzel text-xs uppercase tracking-wider text-[color:var(--aegis-gold)] transition-all hover:border-[color:var(--aegis-gold)]/40 hover:bg-[color:var(--aegis-gold)]/10 dark:border-white/10 dark:bg-black/30"
         >
           Installer
         </button>
       </div>
 
       {/* Newsletter */}
-      <div className="aegis-dock-tile p-5 rounded-2xl shadow-sm flex items-center justify-between gap-4">
+      <div className="aegis-dock-tile flex items-center justify-between gap-4 rounded-2xl p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <Mail size={18} strokeWidth={1.5} className="text-[#6ba4f8] shrink-0 mt-0.5" />
+          <Mail size={18} strokeWidth={1.5} className="mt-0.5 shrink-0 text-info" />
           <div>
             <h3 className="font-cinzel text-xs font-semibold uppercase tracking-wider text-foreground">
               {t("nav.newsletter")}
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{t("newsletter.subtitle")}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("newsletter.subtitle")}</p>
           </div>
         </div>
         <Link
           to="/newsletter"
-          className="shrink-0 px-4 py-2 rounded-xl border border-white/10 bg-black/30 text-xs font-cinzel uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-white/25 transition-all"
+          className="shrink-0 rounded-xl border border-border bg-muted/40 px-4 py-2 font-cinzel text-xs uppercase tracking-wider text-muted-foreground transition-all hover:border-[color:var(--aegis-gold)]/30 hover:text-foreground dark:border-white/10 dark:bg-black/30"
         >
           {t("newsletter.submit")}
         </Link>

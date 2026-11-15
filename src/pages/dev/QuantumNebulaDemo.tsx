@@ -15,7 +15,6 @@ import GenerativeArtSceneV3, {
 } from "@/components/ui/quantum-nebula";
 import { QuantumNebulaReflexionSettingsModal } from "@/components/ui/QuantumNebulaReflexionSettingsModal";
 import { Button } from "@/components/ui/button";
-import ThemeToggle from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const tuningSliders: Array<{
@@ -189,9 +188,6 @@ export default function QuantumNebulaDemo() {
                 }}
               />
             ) : null}
-            <div className="rounded-xl border border-border/20 bg-secondary/10 p-1">
-              <ThemeToggle collapsed={false} />
-            </div>
           </div>
         </div>
       </header>

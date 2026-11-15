@@ -387,8 +387,8 @@ export const translations = {
   },
   "deepDive.overlapCount": { fr: "Recouvrement: {{count}}/3", en: "Overlap: {{count}}/3" },
   "deepDive.archetypeWithArticle": { fr: "Le {{name}}", en: "The {{name}}" },
-  "deepDive.flipCard": { fr: "Retourne la carte", en: "Flip the card" },
-  "deepDive.whatItGives": { fr: "Ce que ça t'apporte", en: "What it gives you" },
+  "deepDive.flipCard": { fr: "Retournez la carte", en: "Flip the card" },
+  "deepDive.whatItGives": { fr: "Ce que cela vous apporte", en: "What it gives you" },
   "deepDive.watchOut": { fr: "À surveiller", en: "Watch out for" },
   "deepDive.tabCartography": { fr: "Cartographie", en: "Cartography" },
   "deepDive.tabOverview": { fr: "Vue d'ensemble", en: "Overview" },
@@ -396,7 +396,7 @@ export const translations = {
   "deepDive.tabSurvival": { fr: "Survie", en: "Survival" },
   "deepDive.tabNarrative": { fr: "Récit", en: "Narrative" },
   "deepDive.tabPractices": { fr: "Pratiques", en: "Practices" },
-  "deepDive.landscapeTitle": { fr: "Ton paysage archétypal", en: "Your archetypal landscape" },
+  "deepDive.landscapeTitle": { fr: "Votre paysage archétypal", en: "Your archetypal landscape" },
   "deepDive.lightAlliance": { fr: "Alliance de Lumière", en: "Light Alliance" },
   "deepDive.dominantShadow": { fr: "Ombre dominante", en: "Dominant shadow" },
   "deepDive.shadowIntroPrefix": {
@@ -408,17 +408,17 @@ export const translations = {
     en: ": a need to stay in control of what matters, both internally (meaning, coherence) and externally (frame, trajectories).",
   },
   "deepDive.majorArchetypesKicker": { fr: "Archétypes majeurs", en: "Major archetypes" },
-  "deepDive.neuralDeckTitle": { fr: "Ton deck neural", en: "Your neural deck" },
+  "deepDive.neuralDeckTitle": { fr: "Votre deck neural", en: "Your neural deck" },
   "deepDive.neuralDeckDesc": {
-    fr: "Touche une carte pour retourner et lire le détail clinique.",
-    en: "Tap a card to flip and read the clinical detail.",
+    fr: "Touchez une carte pour la retourner et lire le détail.",
+    en: "Tap a card to flip and read the detail.",
   },
   "deepDive.interactive": { fr: "Interactif", en: "Interactive" },
   "deepDive.survivalShadowsKicker": { fr: "Ombres de survie", en: "Survival shadows" },
   "deepDive.shadowCouncil": { fr: "Conseil de l'Ombre", en: "Shadow Council" },
   "deepDive.narrativeKicker": { fr: "Récit archétypal", en: "Archetypal narrative" },
   "deepDive.crossDiagnosticTitle": { fr: "Diagnostic clinique croisé", en: "Cross-clinical diagnostic" },
-  "deepDive.strengthsToLean": { fr: "Forces sur lesquelles t'appuyer", en: "Strengths to lean on" },
+  "deepDive.strengthsToLean": { fr: "Forces sur lesquelles vous appuyer", en: "Strengths to lean on" },
   "deepDive.watchPoints": { fr: "Points de vigilance", en: "Watch points" },
   "deepDive.recommendedExercises": { fr: "Exercices recommandés", en: "Recommended exercises" },
   "pulse.diagSwiped": { fr: "déjà swipées:", en: "already swiped:" },
@@ -503,7 +503,7 @@ export const translations = {
 
   "assessmentCta.title": { fr: "Découvrez vos archétypes", en: "Discover your archetypes" },
   "assessmentCta.body": {
-    fr: "30 questions · ~10 min pour révéler tes archétypes dominants et ton profil personnalisé.",
+    fr: "30 questions · environ dix minutes pour révéler vos archétypes dominants et votre profil personnalisé.",
     en: "30 questions · ~10 min to reveal your dominant archetypes and personalized profile.",
   },
   "assessmentCta.start": { fr: "Commencer", en: "Start" },
@@ -1123,35 +1123,40 @@ export const translations = {
   "auth.guest.cta": { fr: "Continuer en tant qu'invité", en: "Continue as guest" },
   "auth.guest.badge": { fr: "Accès invité", en: "Guest access" },
   "auth.guest.intro": {
-    fr: "30 questions pour découvrir ton profil archétypal — entre ton email pour commencer.",
-    en: "30 questions to discover your archetypal profile — enter your email to get started.",
+    fr: "30 questions sur la façon dont vous décidez. Environ dix minutes. Votre profil s'affiche à la fin.",
+    en: "30 questions about how you decide. About ten minutes. Your profile appears at the end.",
   },
+  "auth.guest.privacyNote": {
+    fr: "Votre e-mail sert à vous envoyer votre profil. Vous pouvez supprimer votre compte à tout moment dans les réglages.",
+    en: "Your email is used to send you your profile. You can delete your account at any time in settings.",
+  },
+  "auth.guest.privacyLink": { fr: "Confidentialité", en: "Privacy" },
   "auth.guest.firstName": { fr: "Prénom", en: "First name" },
   "auth.guest.lastName": { fr: "Nom", en: "Last name" },
   "auth.guest.instagram": { fr: "Instagram", en: "Instagram" },
   "auth.guest.linkedin": { fr: "LinkedIn", en: "LinkedIn" },
   "auth.guest.or": { fr: "ou", en: "or" },
   "auth.guest.socialHint": {
-    fr: "Renseigne au moins Instagram ou LinkedIn.",
+    fr: "Renseignez au moins Instagram ou LinkedIn.",
     en: "Provide at least Instagram or LinkedIn.",
   },
   "auth.guest.socialRequired": {
-    fr: "Indique ton Instagram ou ton LinkedIn pour continuer.",
+    fr: "Indiquez votre Instagram ou votre LinkedIn pour continuer.",
     en: "Enter your Instagram or LinkedIn to continue.",
   },
   "auth.guest.submit": { fr: "Commencer le quiz gratuit", en: "Start free quiz" },
   "auth.guest.hasAccount": { fr: "Déjà un compte ? Se connecter", en: "Already have an account? Sign in" },
   "auth.guest.successTitle": { fr: "Bienvenue", en: "Welcome" },
   "auth.guest.successDesc": {
-    fr: "Ton espace invité est prêt. Bon quiz !",
-    en: "Your guest space is ready. Enjoy the quiz!",
+    fr: "Votre espace invité est prêt. Vous pouvez commencer le questionnaire.",
+    en: "Your guest space is ready. You can start the questionnaire.",
   },
   "auth.guest.emailExists": {
-    fr: "Cet email est déjà utilisé. Connecte-toi avec ton mot de passe.",
+    fr: "Cet e-mail est déjà utilisé. Connectez-vous avec votre mot de passe.",
     en: "This email is already registered. Sign in with your password.",
   },
   "auth.guest.successDescNewsletter": {
-    fr: "Tu peux t'inscrire à la newsletter et lire les éditions dans l'app.",
+    fr: "Vous pouvez vous inscrire à la newsletter et lire les éditions dans l'app.",
     en: "You can subscribe to the newsletter and read editions in the app.",
   },
   "auth.newsletter.badge": { fr: "Newsletter", en: "Newsletter" },
@@ -1181,7 +1186,7 @@ export const translations = {
   "visitor.loading": { fr: "Chargement…", en: "Loading…" },
   "visitor.retry": { fr: "Réessayer", en: "Retry" },
   "visitor.authErrorHint": {
-    fr: "Connecte-toi ou crée un accès invité depuis la page d'authentification.",
+    fr: "Connectez-vous ou créez un accès invité depuis la page d'authentification.",
     en: "Sign in or create guest access from the authentication page.",
   },
   "visitor.backToSpace": { fr: "Retour à mon espace", en: "Back to my space" },
@@ -1192,7 +1197,7 @@ export const translations = {
   "visitor.nav.report": { fr: "Rapport", en: "Report" },
   "visitor.nav.app": { fr: "Application", en: "App" },
   "visitor.dashboard.badge": { fr: "Espace visiteur", en: "Visitor space" },
-  "visitor.dashboard.title": { fr: "Ton tableau de bord", en: "Your dashboard" },
+  "visitor.dashboard.title": { fr: "Votre tableau de bord", en: "Your dashboard" },
   "visitor.dashboard.subtitle": {
     fr: "Quiz archétypal gratuit, rapport personnalisé et prochaines étapes.",
     en: "Free archetype quiz, personalized report and next steps.",
@@ -1208,15 +1213,31 @@ export const translations = {
     fr: "Lecture personnalisée de tes archétypes, ombres et pratiques.",
     en: "Personalized reading of your archetypes, shadows and practices.",
   },
-  "visitor.report.kicker": { fr: "Ton rapport archétypes", en: "Your archetype report" },
+  "visitor.report.kicker": { fr: "Votre rapport archétypes", en: "Your archetype report" },
   "visitor.report.subtitle": {
-    fr: "Basé sur tes 30 réponses au quiz — archétypes dominants et ombres.",
-    en: "Based on your 30 quiz answers — dominant archetypes and shadows.",
+    fr: "Basé sur vos 30 réponses au questionnaire — votre archétype dominant.",
+    en: "Based on your 30 questionnaire answers — your dominant archetype.",
   },
   "visitor.report.loading": {
-    fr: "Construction de ton profil archétypal…",
-    en: "Building your archetypal profile…",
+    fr: "Construction de votre profil…",
+    en: "Building your profile…",
   },
+  "visitor.report.shadowTeaserTitle": {
+    fr: "Ce que le questionnaire situe",
+    en: "What the questionnaire locates",
+  },
+  "visitor.report.shadowTeaser": {
+    fr: "Une part de votre profil décide à votre place quand vous décidez seul. Le questionnaire la situe. La Lecture la nomme.",
+    en: "A part of your profile decides for you when you decide alone. The questionnaire locates it. The Reading names it.",
+  },
+  "visitor.report.lectureTitle": { fr: "Aller plus loin : la Lecture", en: "Go further: the Reading" },
+  "visitor.report.lectureBody": {
+    fr: "Une personne lit votre dossier complet, vous écrit un rapport et vous en parle trente minutes en visio. 149 € HT, remboursée sous 30 jours sur simple e-mail.",
+    en: "A person reads your full file, writes you a report, and speaks with you for thirty minutes on video. €149 excl. tax, refundable within 30 days on a simple email.",
+  },
+  "visitor.report.lectureCta": { fr: "Réserver ma Lecture — 149 €", en: "Book my Reading — €149" },
+  "visitor.report.createAccount": { fr: "Créer mon compte gratuit", en: "Create my free account" },
+  "visitor.report.deepDiveLink": { fr: "Questionnaire approfondi", en: "In-depth questionnaire" },
   "visitor.report.exportPdf": { fr: "Exporter PDF", en: "Export PDF" },
   "visitor.report.exportPng": { fr: "Exporter PNG", en: "Export PNG" },
   "visitor.report.exportPdfSuccess": { fr: "PDF téléchargé", en: "PDF downloaded" },
@@ -1274,20 +1295,20 @@ export const translations = {
   // Public quiz
   "quiz.public.title": { fr: "Quiz archétypal", en: "Archetype quiz" },
   "quiz.public.description": {
-    fr: "30 questions pour cartographier tes 32 pôles archétypaux — lumière, ombre et survie (intensité 1 à 3 par réponse).",
+    fr: "30 questions pour cartographier vos 32 pôles archétypaux — lumière, ombre et survie (intensité 1 à 3 par réponse).",
     en: "30 questions to map your 32 archetypal poles — light, shadow and survival (intensity 1 to 3 per answer).",
   },
-  "quiz.public.badge": { fr: "Gratuit · ~10 min", en: "Free · ~10 min" },
+  "quiz.public.badge": { fr: "Gratuit · environ 10 min", en: "Free · ~10 min" },
   "quiz.public.bullet1": {
     fr: "Résultat immédiat : rapport personnalisé",
     en: "Instant result: personalized report",
   },
   "quiz.public.bullet2": {
-    fr: "Tes données restent dans ton espace visiteur",
+    fr: "Vos données restent dans votre espace visiteur",
     en: "Your data stays in your visitor space",
   },
   "quiz.public.bullet3": {
-    fr: "Crée un compte plus tard pour débloquer l'app complète",
+    fr: "Créez un compte plus tard pour débloquer l'app complète",
     en: "Create an account later to unlock the full app",
   },
   "quiz.public.start": { fr: "Commencer gratuitement", en: "Start for free" },
@@ -1306,7 +1327,7 @@ export const translations = {
     en: "{count} questions to map your 32 archetypal poles (light & shadow).",
   },
   "assessment.bulletPoles": {
-    fr: "30 questions pour cartographier tes 32 pôles (lumière & ombre)",
+    fr: "30 questions pour cartographier vos 32 pôles (lumière & ombre)",
     en: "30 questions to map your 32 poles (light & shadow)",
   },
   "assessment.bulletResults": {
@@ -1361,11 +1382,11 @@ export const translations = {
   "assessment.dominantArchetype": { fr: "Archétype dominant", en: "Dominant archetype" },
   "assessment.growthArchetype": { fr: "Archétype de croissance", en: "Growth archetype" },
   "assessment.partialProfile": {
-    fr: "Ton profil est partiel. Réponds à plus de questions pour affiner tes archétypes.",
+    fr: "Votre profil est partiel. Répondez à plus de questions pour affiner vos archétypes.",
     en: "Your profile is partial. Answer more questions to refine your archetypes.",
   },
   "assessment.contradictoryResponses": {
-    fr: "Certaines réponses semblent contradictoires — explore cette tension, elle est souvent révélatrice.",
+    fr: "Certaines réponses semblent contradictoires — explorez cette tension, elle est souvent révélatrice.",
     en: "Some responses seem contradictory — explore this tension, it is often revealing.",
   },
   "assessment.polarityTooltip": {
@@ -1382,7 +1403,7 @@ export const translations = {
   "assessment.v4SysReq": { fr: "SYS.REQ // V4", en: "SYS.REQ // V4" },
   "assessment.v4SelectNode": { fr: "Sélectionner un nœud", en: "Select a node" },
   "assessment.v4HoverHint": {
-    fr: "Alliance en haut, Ombre en bas — survole un nœud pour éclairer ses connexions et lire son score.",
+    fr: "Alliance en haut, Ombre en bas — survolez un nœud pour éclairer ses connexions et lire son score.",
     en: "Alliance above, Shadow below — hover a node to light its connections and read its score.",
   },
   "assessment.v4InspectHint": {
@@ -1404,7 +1425,7 @@ export const translations = {
   "assessment.radarPreviousSession": { fr: "Session précédente", en: "Previous session" },
   "assessment.radarLightProfile": { fr: "Profil lumière", en: "Light profile" },
   "assessment.radarShadowProfile": { fr: "Profil ombre", en: "Shadow profile" },
-  "assessment.profileEmerging": { fr: "Ton profil émerge…", en: "Your profile is emerging…" },
+  "assessment.profileEmerging": { fr: "Votre profil émerge…", en: "Your profile is emerging…" },
   "assessment.waitingSignals": { fr: "En attente de signaux…", en: "Waiting for signals…" },
   "assessment.v4TotalScoreShort": { fr: "{total} pts", en: "{total} pts" },
   "assessment.v4TotalScore": {
@@ -2285,6 +2306,15 @@ export const translations = {
     fr: "Habitude : {name}. Appuyer pour cocher ou décocher.",
     en: "Habit: {name}. Press to toggle completion.",
   },
+  "dashboard.decisionAging.title": {
+    fr: "Décision en attente depuis {days} jours",
+    en: "Decision pending for {days} days",
+  },
+  "dashboard.decisionAging.body": {
+    fr: "Une décision non résolue peut créer de la charge mentale.",
+    en: "An unresolved decision can add mental load.",
+  },
+  "dashboard.decisionAging.cta": { fr: "Résoudre", en: "Resolve" },
   "dashboard.pullRefreshHint": {
     fr: "En haut de la page, tirez vers le bas pour actualiser les données.",
     en: "At the top of the page, pull down to refresh your data.",

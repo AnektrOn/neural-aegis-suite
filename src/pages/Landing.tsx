@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Brain, LineChart, ListChecks, Users, Sparkles } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -124,23 +123,23 @@ export default function Landing() {
     },
   ];
 
-  const description = isFR
-    ? "AEGIS, par Protocole NOMOS, aide à relire ses décisions sous pression : un espace privé pour noter les arbitrages, l’état, les habitudes et les relations, sans diagnostic et sans décider à votre place."
-    : "AEGIS, by Protocole NOMOS, helps you review decisions made under pressure: a private space to note trade-offs, state, habits and relationships, without diagnosis and without deciding for you.";
+  const description =
+    "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.";
+  const pageTitle = "AEGIS — 30 questions sur la personne qui décide";
+  const ogTitle = "AEGIS — Vous décidez seul. Personne ne relit vos décisions.";
 
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>
-          {isFR
-            ? "AEGIS — Comprendre ce qui influence vos décisions | Protocole NOMOS"
-            : "AEGIS — Understand what influences your decisions | Protocole NOMOS"}
-        </title>
+        <title>{pageTitle}</title>
         <meta name="description" content={description} />
-        <meta property="og:title" content="Aegis — Protocole Nomos" />
+        <meta property="og:title" content={ogTitle} />
         <meta property="og:description" content={description} />
+        <meta property="og:locale" content="fr_FR" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={description} />
         <link rel="canonical" href="https://aegis.humancatalystbeacon.com/" />
       </Helmet>
 
@@ -162,7 +161,6 @@ export default function Landing() {
             {isFR ? "Tarifs" : "Pricing"}
           </Link>
           <LanguageSwitcher />
-          <ThemeToggle />
         </div>
       </header>
 

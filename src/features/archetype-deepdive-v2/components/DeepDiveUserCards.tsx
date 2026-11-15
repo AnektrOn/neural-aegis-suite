@@ -82,9 +82,17 @@ interface ArchetypeFlipCardProps {
   tagline: string;
   gives: string;
   watchOut: string;
+  hideWatchOut?: boolean;
 }
 
-function ArchetypeFlipCard({ archetype, rank, tagline, gives, watchOut }: ArchetypeFlipCardProps) {
+function ArchetypeFlipCard({
+  archetype,
+  rank,
+  tagline,
+  gives,
+  watchOut,
+  hideWatchOut = false,
+}: ArchetypeFlipCardProps) {
   const { locale, t } = useLanguage();
   const [flipped, setFlipped] = useState(false);
   const a = ARCH_ACCENT[archetype] ?? DEFAULT_ACCENT;
@@ -159,12 +167,14 @@ function ArchetypeFlipCard({ archetype, rank, tagline, gives, watchOut }: Archet
                 </div>
                 <p className="text-sm text-text-secondary leading-relaxed">{gives}</p>
               </div>
-              <div className="border-t border-white/5 pt-3">
-                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-accent-warning/80 mb-1">
-                  <AlertTriangle size={11} strokeWidth={1.5} /> {t("deepDive.watchOut")}
+              {!hideWatchOut ? (
+                <div className="border-t border-white/5 pt-3">
+                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-accent-warning/80 mb-1">
+                    <AlertTriangle size={11} strokeWidth={1.5} /> {t("deepDive.watchOut")}
+                  </div>
+                  <p className="text-sm text-text-secondary leading-relaxed">{watchOut}</p>
                 </div>
-                <p className="text-sm text-text-secondary leading-relaxed">{watchOut}</p>
-              </div>
+              ) : null}
             </div>
           </Card>
         </div>
@@ -181,12 +191,15 @@ export function DeepDiveUserCards({
   v4Analysis = null,
   showV4Cartography = true,
   layout = "tabs",
+  visitorResultMode = false,
 }: {
   profile: SampleProfile;
   hidePractices?: boolean;
   v4Analysis?: V4PoleAnalysis | null;
   showV4Cartography?: boolean;
   layout?: "tabs" | "stack";
+  /** Visitor post-quiz: hide survival names/% and shadow naming blocks. */
+  visitorResultMode?: boolean;
 }) {
   const { locale, t } = useLanguage();
   const n = profile.narrative;
@@ -215,11 +228,13 @@ export function DeepDiveUserCards({
     step: padStep(stepNum++),
     label: t("deepDive.tabSurvival"),
   });
-  tabDefs.push({
-    id: "narrative",
-    step: padStep(stepNum++),
-    label: t("deepDive.tabNarrative"),
-  });
+  if (!visitorResultMode) {
+    tabDefs.push({
+      id: "narrative",
+      step: padStep(stepNum++),
+      label: t("deepDive.tabNarrative"),
+    });
+  }
   if (!hidePractices) {
     tabDefs.push({
       id: "practices",
@@ -272,12 +287,14 @@ export function DeepDiveUserCards({
                   );
                 })}
               </ul>
-              <div className="mt-5 pt-4 border-t border-white/10">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-accent-warning/80 font-display mb-1">
-                  {t("deepDive.dominantShadow")}
-                </p>
-                <p className="text-sm font-medium text-text-primary">{n.primaryShadowTheme}</p>
-              </div>
+              {!visitorResultMode ? (
+                <div className="mt-5 pt-4 border-t border-white/10">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-accent-warning/80 font-display mb-1">
+                    {t("deepDive.dominantShadow")}
+                  </p>
+                  <p className="text-sm font-medium text-text-primary">{n.primaryShadowTheme}</p>
+                </div>
+              ) : null}
             </div>
 
             <div className="p-6 sm:p-8 space-y-4">
@@ -285,11 +302,13 @@ export function DeepDiveUserCards({
                 className="text-text-secondary leading-relaxed text-[15px]"
                 dangerouslySetInnerHTML={{ __html: narrativeInlineHtml(n.overviewLead) }}
               />
-              <p className="text-sm text-text-secondary leading-relaxed deep-dive-clinical-panel">
-                {t("deepDive.shadowIntroPrefix")}
-                <span className="text-text-primary font-medium">{n.primaryShadowTheme}</span>
-                {t("deepDive.shadowIntroSuffix")}
-              </p>
+              {!visitorResultMode ? (
+                <p className="text-sm text-text-secondary leading-relaxed deep-dive-clinical-panel">
+                  {t("deepDive.shadowIntroPrefix")}
+                  <span className="text-text-primary font-medium">{n.primaryShadowTheme}</span>
+                  {t("deepDive.shadowIntroSuffix")}
+                </p>
+              ) : null}
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 {n.archetypeBlocks.map((b) => {
                   const a = ARCH_ACCENT[b.archetype] ?? DEFAULT_ACCENT;
@@ -329,6 +348,7 @@ export function DeepDiveUserCards({
               tagline={b.tagline}
               gives={b.gives}
               watchOut={b.watchOut}
+              hideWatchOut={visitorResultMode}
             />
           ))}
         </div>
@@ -338,55 +358,68 @@ export function DeepDiveUserCards({
   const survivalSection = (
       <DeepDiveSection
         icon={ShieldAlert}
-        kicker={t("deepDive.survivalShadowsKicker")}
-        title={t("deepDive.shadowCouncil")}
+        kicker={visitorResultMode ? t("deepDive.tabSurvival") : t("deepDive.survivalShadowsKicker")}
+        title={visitorResultMode ? t("visitor.report.shadowTeaserTitle") : t("deepDive.shadowCouncil")}
       >
         <Card className="neural-card p-6 sm:p-8 backdrop-blur-3xl bg-white/[0.03] border border-white/10">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            {profile.survival.map((s) => {
-              const pct = Math.round(s.intensity * 100);
-              const isHot = s.intensity >= 0.5;
-              return (
-                <div
-                  key={s.archetype}
-                  className={cn(
-                    "rounded-xl border p-3 transition-all duration-300",
-                    isHot
-                      ? "border-accent-warning/35 bg-accent-warning/[0.06] shadow-[0_0_24px_-8px_hsl(var(--accent-warning)/0.35)]"
-                      : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]",
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-2 gap-2">
-                    <span className="text-[11px] uppercase tracking-wider text-text-secondary font-display truncate">
-                      {archLabel(s.archetype, locale)}
-                    </span>
-                    <span className={cn("text-xs tabular-nums shrink-0", isHot ? "text-accent-warning font-medium" : "text-text-tertiary")}>
-                      {pct}%
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+          {visitorResultMode ? (
+            <p className="text-sm text-text-secondary leading-relaxed">{t("visitor.report.shadowTeaser")}</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                {profile.survival.map((s) => {
+                  const pct = Math.round(s.intensity * 100);
+                  const isHot = s.intensity >= 0.5;
+                  return (
                     <div
+                      key={s.archetype}
                       className={cn(
-                        "h-full rounded-full transition-all duration-700",
-                        isHot ? "bg-gradient-to-r from-accent-warning/50 to-accent-warning" : "bg-white/25",
+                        "rounded-xl border p-3 transition-all duration-300",
+                        isHot
+                          ? "border-accent-warning/35 bg-accent-warning/[0.06] shadow-[0_0_24px_-8px_hsl(var(--accent-warning)/0.35)]"
+                          : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]",
                       )}
-                      style={{ width: `${pct}%` }}
-                      role="progressbar"
-                      aria-valuenow={pct}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-label={`${archLabel(s.archetype, locale)} ${pct}%`}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                    >
+                      <div className="flex items-center justify-between mb-2 gap-2">
+                        <span className="text-[11px] uppercase tracking-wider text-text-secondary font-display truncate">
+                          {archLabel(s.archetype, locale)}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs tabular-nums shrink-0",
+                            isHot ? "text-accent-warning font-medium" : "text-text-tertiary",
+                          )}
+                        >
+                          {pct}%
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all duration-700",
+                            isHot
+                              ? "bg-gradient-to-r from-accent-warning/50 to-accent-warning"
+                              : "bg-white/25",
+                          )}
+                          style={{ width: `${pct}%` }}
+                          role="progressbar"
+                          aria-valuenow={pct}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-label={`${archLabel(s.archetype, locale)} ${pct}%`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-          <div
-            className="text-sm text-text-secondary leading-relaxed deep-dive-clinical-panel"
-            dangerouslySetInnerHTML={{ __html: narrativeInlineHtml(n.survivalUser) }}
-          />
+              <div
+                className="text-sm text-text-secondary leading-relaxed deep-dive-clinical-panel"
+                dangerouslySetInnerHTML={{ __html: narrativeInlineHtml(n.survivalUser) }}
+              />
+            </>
+          )}
         </Card>
       </DeepDiveSection>
   );
@@ -403,7 +436,12 @@ export function DeepDiveUserCards({
             dangerouslySetInnerHTML={{ __html: narrativeInlineHtml(n.closingNarrativeUser) }}
           />
 
-          <div className="grid md:grid-cols-2 gap-5 mt-8 pt-6 border-t border-white/10">
+          <div
+            className={cn(
+              "grid gap-5 mt-8 pt-6 border-t border-white/10",
+              visitorResultMode ? "md:grid-cols-1" : "md:grid-cols-2",
+            )}
+          >
           <div>
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-emerald-300/80 mb-2 font-display">
               <Flame size={11} strokeWidth={1.5} /> {t("deepDive.strengthsToLean")}
@@ -417,19 +455,21 @@ export function DeepDiveUserCards({
               ))}
             </ul>
           </div>
-          <div>
-            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-accent-warning/80 mb-2 font-display">
-              <Eye size={11} strokeWidth={1.5} /> {t("deepDive.watchPoints")}
+          {!visitorResultMode ? (
+            <div>
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-accent-warning/80 mb-2 font-display">
+                <Eye size={11} strokeWidth={1.5} /> {t("deepDive.watchPoints")}
+              </div>
+              <ul className="space-y-2">
+                {n.vigilance.map((v, i) => (
+                  <li key={i} className="text-sm text-text-secondary leading-relaxed flex gap-2">
+                    <span className="text-accent-warning/60 mt-1.5 shrink-0 size-1 rounded-full bg-current" />
+                    <span>{v}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-2">
-              {n.vigilance.map((v, i) => (
-                <li key={i} className="text-sm text-text-secondary leading-relaxed flex gap-2">
-                  <span className="text-accent-warning/60 mt-1.5 shrink-0 size-1 rounded-full bg-current" />
-                  <span>{v}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          ) : null}
           </div>
         </Card>
       </DeepDiveSection>

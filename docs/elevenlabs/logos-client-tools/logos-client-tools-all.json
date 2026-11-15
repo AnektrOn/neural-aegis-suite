@@ -1,0 +1,245 @@
+{
+  "pilot_agent_id": "agent_5601m6tdhgsbftsvtkz20d9grfvj",
+  "expects_response_true": [
+    "propose_actionable_choices",
+    "open_toolbox_item",
+    "propose_pulse_card",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture"
+  ],
+  "tools": [
+    {
+      "type": "client",
+      "name": "propose_actionable_choices",
+      "description": "Ouvre immédiatement un modal UI avec 2–3 choix (toolbox/pulse). L'utilisateur peut cliquer pour court-circuiter la voix. Attend la sélection puis la fermeture de l'exercice. À appeler dès qu'on propose des options — pas de longue liste parlée.",
+      "expects_response": true,
+      "response_timeout_secs": -1,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "description": "Nombre de choix à afficher (2 ou 3, défaut 3)."
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "type": "client",
+      "name": "list_actionable_content",
+      "description": "Liste les assignations toolbox et cartes Pulse ouvrables pour l'utilisateur connecté (hors liens externes et vidéos). Utilise cet outil AVANT de proposer 2 à 3 choix à voix haute, ou pour prendre une initiative éclairée.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "intent": {
+            "type": "string",
+            "description": "Intention optionnelle : regulation, protocol, pulse, checkin, analyse."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max 1–8 par catégorie."
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "type": "client",
+      "name": "open_toolbox_item",
+      "description": "Ouvre un exercice toolbox dans AEGIS ; l'utilisateur fait la pratique seul dans l'UI. Attendre la fermeture du modal.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "assignment_id": {
+            "type": "string",
+            "description": "UUID assignation toolbox."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Fragment du titre si pas d'UUID."
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "type": "client",
+      "name": "propose_pulse_card",
+      "description": "Modal Pulse : assimilate ou ignore ; ne pas lire la carte à la voix.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "card_id": {
+            "type": "string",
+            "description": "UUID carte Pulse optionnel."
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "type": "client",
+      "name": "record_pulse_swipe",
+      "description": "Swipe Pulse direct assimilated|ignored.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "card_id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "description": "assimilated or ignored"
+          }
+        },
+        "required": [
+          "card_id",
+          "action"
+        ]
+      }
+    },
+    {
+      "type": "client",
+      "name": "open_quick_log",
+      "description": "Tiroir humeur/sommeil/stress.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "type": "client",
+      "name": "open_people_checkin",
+      "description": "Formulaire qualité relation People board.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          },
+          "contact_name": {
+            "type": "string"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "type": "client",
+      "name": "open_decision_capture",
+      "description": "Rappel UI décision ; préférer write_decision pour persister.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "type": "client",
+      "name": "write_decision",
+      "description": "Crée une décision.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "number"
+          },
+          "responsibility": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "type": "client",
+      "name": "write_journal_entry",
+      "description": "Écrit une entrée journal.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "content"
+        ]
+      }
+    },
+    {
+      "type": "client",
+      "name": "write_mood_entry",
+      "description": "Relevé mood 1–10 + sleep/stress optionnels.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "sleep": {
+            "type": "number"
+          },
+          "stress": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      }
+    },
+    {
+      "type": "client",
+      "name": "write_relation_note",
+      "description": "Note/qualité sur un contact People.",
+      "expects_response": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string"
+          },
+          "contact_name": {
+            "type": "string"
+          },
+          "quality": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": []
+      }
+    }
+  ]
+}

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Moon, Sun, Languages, LogOut } from "lucide-react";
+import { Languages, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { applyTheme, getStoredThemeIsDark } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import AegisLogo from "@/components/AegisLogo";
 
@@ -19,14 +18,9 @@ export function MemberTopDockBar({
   className,
 }: MemberTopDockBarProps) {
   const { locale, setLocale, t } = useLanguage();
-  const [dark, setDark] = useState(getStoredThemeIsDark);
   const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    applyTheme(dark);
-  }, [dark]);
 
   useEffect(() => {
     if (!pinned) return;
@@ -40,7 +34,6 @@ export function MemberTopDockBar({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [pinned]);
 
-  const toggleTheme = () => setDark((prev) => !prev);
   const toggleLanguage = () => setLocale(locale === "fr" ? "en" : "fr");
 
   const open = () => setExpanded(true);
@@ -108,7 +101,7 @@ export function MemberTopDockBar({
               style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
             >
               <span
-                className="h-2 w-2 rounded-full bg-[#c9a24b] shadow-[0_0_10px_rgba(201,162,75,0.55)]"
+                className="h-2 w-2 rounded-full bg-[color:var(--aegis-gold)] shadow-[0_0_10px_color-mix(in_srgb,var(--aegis-gold)_55%,transparent)]"
                 aria-hidden
               />
             </motion.button>
@@ -131,7 +124,7 @@ export function MemberTopDockBar({
                 style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
               >
                 <span
-                  className="h-1.5 w-1.5 rounded-full bg-[#c9a24b] shadow-[0_0_8px_rgba(201,162,75,0.45)]"
+                  className="h-1.5 w-1.5 rounded-full bg-[color:var(--aegis-gold)] shadow-[0_0_8px_color-mix(in_srgb,var(--aegis-gold)_45%,transparent)]"
                   aria-hidden
                 />
               </button>
@@ -145,32 +138,6 @@ export function MemberTopDockBar({
               >
                 <AegisLogo alt="" className="h-8 w-8 object-contain" />
               </Link>
-
-              <button
-                type="button"
-                onClick={toggleTheme}
-                aria-label={t("settings.theme")}
-                title={dark ? "Activer le mode clair" : "Activer le mode sombre"}
-                className={cn(actionClass, "cursor-pointer")}
-                style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={dark ? "moon" : "sun"}
-                    initial={{ rotate: -90, opacity: 0, scale: 0.8 }}
-                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                    exit={{ rotate: 90, opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-center justify-center"
-                  >
-                    {dark ? (
-                      <Moon size={16} strokeWidth={1.5} className="text-[#c9a24b] sm:w-[18px] sm:h-[18px]" />
-                    ) : (
-                      <Sun size={16} strokeWidth={1.5} className="text-[#c9a24b] sm:w-[18px] sm:h-[18px]" />
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </button>
 
               <button
                 type="button"

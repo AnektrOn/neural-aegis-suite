@@ -44,6 +44,7 @@ export function MemberAppShell({
   mobile = false,
 }: MemberAppShellProps) {
   const location = useLocation();
+  const isDashboard = location.pathname === "/dashboard";
 
   return (
     <div
@@ -62,7 +63,9 @@ export function MemberAppShell({
         style={{
           paddingTop: mobile
             ? online
-              ? "var(--mobile-main-padding-top)"
+              ? isDashboard
+                ? 0
+                : "var(--mobile-main-padding-top)"
               : "var(--mobile-main-padding-top-offline)"
             : online
               ? 0

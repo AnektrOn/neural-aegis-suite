@@ -32,6 +32,11 @@ import {
   type HeroSilhouetteOverlay,
   type HeroTextAlign,
 } from "./bioExecutiveHeroLabConfig";
+import {
+  MOBILE_DEVICE_GABARITS,
+  type HeroMobileDeviceGabaritKey,
+} from "./bioExecutiveMobileDeviceGabarits";
+import { BioExecutiveMobileGabaritChecklist } from "./BioExecutiveMobileGabaritChecklist";
 import { patchElement, patchOverlay, patchSilhouette, type DragTarget } from "./bioExecutiveHeroLabDrag";
 import { LabSection, LabSegmented, LabSelect, LabSlider, LabToggle } from "./heroLabEditorUi";
 
@@ -43,6 +48,8 @@ type BioExecutiveHeroLabProps = {
   onEditBreakpoint: (key: HeroBreakpointKey) => void;
   viewportDisplay: HeroLabViewportDisplay;
   onViewportDisplay: (display: HeroLabViewportDisplay) => void;
+  mobileDeviceGabarit: HeroMobileDeviceGabaritKey;
+  onMobileDeviceGabarit: (key: HeroMobileDeviceGabaritKey) => void;
   onConfigChange: (config: HeroLabConfig) => void;
   selectedTarget: DragTarget;
   onSelectedTarget: (target: DragTarget) => void;
@@ -56,6 +63,8 @@ export function BioExecutiveHeroLab({
   onEditBreakpoint,
   viewportDisplay,
   onViewportDisplay,
+  mobileDeviceGabarit,
+  onMobileDeviceGabarit,
   onConfigChange,
   selectedTarget,
   onSelectedTarget,
@@ -231,6 +240,30 @@ export function BioExecutiveHeroLab({
                 Cadre : {HERO_BREAKPOINT_LABELS[activeConfigKey]}
                 {viewportDisplay === "auto" ? " · suit l’onglet breakpoint" : null}
               </p>
+              {activeConfigKey === "mobilePortrait" || activeConfigKey === "mobileLandscape" ? (
+                <div className="mt-2.5 border-t border-[color:var(--bio-frame-border)] pt-2.5">
+                  <LabSegmented
+                    label="Gabarit physique"
+                    value={mobileDeviceGabarit}
+                    onChange={onMobileDeviceGabarit}
+                    options={MOBILE_DEVICE_GABARITS.map((g) => ({
+                      value: g.key,
+                      label: `${g.widthPx}×${g.heightPx}`,
+                    }))}
+                  />
+                  <p className="mt-1 text-[9px] leading-snug opacity-55">
+                    {MOBILE_DEVICE_GABARITS.find((g) => g.key === mobileDeviceGabarit)?.usage}
+                    {" · "}
+                    {MOBILE_DEVICE_GABARITS.find((g) => g.key === mobileDeviceGabarit)?.testFocus}
+                  </p>
+                  <BioExecutiveMobileGabaritChecklist
+                    mobileDeviceGabarit={mobileDeviceGabarit}
+                    onMobileDeviceGabarit={onMobileDeviceGabarit}
+                    onEditBreakpoint={onEditBreakpoint}
+                    activeConfigKey={activeConfigKey}
+                  />
+                </div>
+              ) : null}
             </div>
           </header>
 

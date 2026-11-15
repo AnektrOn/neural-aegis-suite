@@ -37,7 +37,7 @@ export function MobileAppDockBar({
   const { prefs } = useUserMenuPrefs();
   const { isAdmin } = useAdmin();
 
-  const { dockItems, radialItems, overflowHasActive } = useMemo(() => {
+  const { leftDock, rightDock, radialItems, overflowHasActive } = useMemo(() => {
     const dockIds = visibleDockPanels(prefs);
     const dockItems = dockIds.map((id) => {
       const def = getMenuPanel(id);
@@ -49,6 +49,10 @@ export function MobileAppDockBar({
         isActive: panelPathIsActive(location.pathname, def.to),
       };
     });
+
+    const mid = Math.ceil(dockItems.length / 2);
+    const leftDock = dockItems.slice(0, mid);
+    const rightDock = dockItems.slice(mid);
 
     const dockPaths = new Set(dockItems.map((item) => item.to));
     const overflowPaths = new Set<string>();
@@ -82,7 +86,7 @@ export function MobileAppDockBar({
 
     const overflowHasActive = radialItems.some((item) => item.isActive);
 
-    return { dockItems, radialItems, overflowHasActive };
+    return { leftDock, rightDock, radialItems, overflowHasActive };
   }, [prefs, location.pathname, t, isAdmin]);
 
   return (
@@ -97,8 +101,8 @@ export function MobileAppDockBar({
         className,
       )}
     >
-      <div className="pointer-events-auto flex max-w-[min(100vw-1rem,420px)] items-end justify-center gap-1 rounded-2xl border-0 bg-[hsl(var(--background)/0.72)] px-2 pb-[max(0.5rem,var(--safe-bottom))] pt-1 shadow-[0_-8px_24px_hsl(0_0%_0%/0.18)] backdrop-blur-[12px]">
-        {dockItems.map((item) => (
+      <div className="pointer-events-auto flex max-w-[min(100vw-1rem,420px)] items-end justify-center gap-1.5 rounded-2xl border-0 bg-[hsl(var(--background)/0.72)] px-2.5 pb-[max(0.5rem,var(--safe-bottom))] pt-1.5 shadow-[0_-8px_24px_hsl(0_0%_0%/0.18)] backdrop-blur-[12px]">
+        {leftDock.map((item) => (
           <NavLink
             key={item.id}
             to={item.to}
@@ -120,7 +124,24 @@ export function MobileAppDockBar({
           menuTitle={t("nav.dockMoreTitle")}
           hasActiveShortcut={overflowHasActive}
           onOpenChange={setRadialOpen}
+          emphasize
         />
+        {rightDock.map((item) => (
+          <NavLink
+            key={item.id}
+            to={item.to}
+            aria-label={item.label}
+            className={cn(
+              "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 flex-col items-center justify-center rounded-xl transition-colors active:scale-[0.98]",
+              item.isActive
+                ? "bg-accent-primary/12 text-accent-primary ring-1 ring-accent-primary/35"
+                : "text-muted-foreground/80 hover:bg-bg-elevated/70 hover:text-foreground",
+            )}
+            style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" } as React.CSSProperties}
+          >
+            <item.Icon size={20} strokeWidth={1.5} aria-hidden />
+          </NavLink>
+        ))}
       </div>
     </div>
   );

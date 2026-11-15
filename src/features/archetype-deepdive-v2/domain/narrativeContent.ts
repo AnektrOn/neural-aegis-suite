@@ -53,7 +53,7 @@ const ARCH_LABEL: Record<ArchKey, Bi> = {
   child:      { fr: "Child",      en: "Child"      },
   victim:     { fr: "Victim",     en: "Victim"     },
   saboteur:   { fr: "Saboteur",   en: "Saboteur"   },
-  prostitute: { fr: "Prostitute", en: "Prostitute" },
+  prostitute: { fr: "Prostituée", en: "Prostitute" },
 };
 
 export function archLabel(arch: ArchKey, locale: Locale): string {
@@ -632,7 +632,7 @@ export const phrases = {
         : "Your archetypal profile is still taking shape.";
     }
     if (locale === "fr") {
-      return `Ta cartographie révèle une dynamique portée par le **${l1 || "?"}** et le **${l2 || "?"}**. C'est ton **Alliance de Lumière**, ta structure identitaire la plus saine et ta façon la plus naturelle d'impacter le monde.`;
+      return `Votre cartographie révèle une dynamique portée par le **${l1 || "?"}** et le **${l2 || "?"}**. C'est votre **Alliance de Lumière**, votre structure identitaire la plus claire et votre façon la plus naturelle d'agir dans le monde.`;
     }
     return `Your cartography reveals a dynamic driven by the **${l1 || "?"}** and the **${l2 || "?"}**. This is your **Light Alliance**, your healthiest identity structure and your most natural way to impact the world.`;
   },

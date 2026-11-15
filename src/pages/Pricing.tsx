@@ -4,8 +4,6 @@ import { motion } from "framer-motion";
 import { Check, Crown, Sparkles, Loader2, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
-import { isAnonymousUser } from "@/lib/authVisitor";
-import { postLoginPath } from "@/lib/welcomeHud";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
@@ -16,18 +14,24 @@ import { Badge } from "@/components/ui/badge";
 import PaymentTestModeBanner from "@/components/PaymentTestModeBanner";
 import PublicFooter from "@/components/public/PublicFooter";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
+import { LIEN_PAIEMENT_LECTURE } from "@/pages/aegis-landing/landingCtaHrefs";
 
 import { toast } from "sonner";
 
 type Billing = "monthly" | "yearly";
 
+/** Réactiver Matrice / Ultra / le toggle mensuel-annuel en passant à `true`. */
+const SHOW_PRICING_BILLING_TOGGLE = false;
+const SHOW_MATRIX_PLAN = false;
+const SHOW_ULTRA_PLAN = false;
+const SHOW_LECTURE_PLAN = true;
+
 export default function Pricing() {
   const { locale } = useLanguage();
-  const { user, isGuest } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { tier, subscription, refetch } = useSubscription();
+  const { tier, subscription } = useSubscription();
 
   const { openCheckout, loading } = useStripeCheckout();
   const [billing, setBilling] = useState<Billing>("monthly");
@@ -44,25 +48,25 @@ export default function Pricing() {
       monthly: isFR ? "Mensuel" : "Monthly",
       yearly: isFR ? "Annuel" : "Yearly",
       current: isFR ? "Forfait actuel" : "Current plan",
+      afterLecture:
+        "Après votre Lecture, un suivi mensuel vous est proposé si vous le souhaitez.",
       free: {
         name: isFR ? "Initiation" : "Initiation",
         price: isFR ? "Gratuit" : "Free",
         note: isFR ? "Accès découverte" : "Discovery access",
-        cta: isFR ? "Commencer" : "Get started",
-        features: isFR
-          ? [
-              "Quiz des archétypes & rapport de synthèse",
-              "Suivi quotidien : humeur, décisions, habitudes",
-              "Historique illimité de vos saisies",
-              "Newsletter & contenus publics",
-            ]
-          : [
-              "Archetype quiz & synthesis report",
-              "Daily logging: mood, decisions, habits",
-              "Unlimited history of your entries",
-              "Newsletter & public content",
-            ],
-
+        cta: "Faire le questionnaire",
+        features: [
+          "Le questionnaire de 30 questions et votre profil parmi 16 archétypes.",
+        ],
+      },
+      lecture: {
+        name: "La Lecture",
+        price: "149 € HT — une fois",
+        note: "Lecture humaine de votre profil",
+        cta: "Réserver ma Lecture",
+        features: [
+          "Questionnaire complet · rapport écrit par une personne · 30 minutes de visio · remboursée sous 30 jours sur simple e-mail",
+        ],
       },
       matrix: {
         name: "Matrice",
@@ -197,7 +201,6 @@ export default function Pricing() {
 
       <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
         <LanguageSwitcher />
-        <ThemeToggle collapsed />
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-16">
@@ -233,23 +236,29 @@ export default function Pricing() {
         </motion.header>
 
 
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex rounded-full border border-border p-1 bg-background/40 backdrop-blur">
-            {(["monthly", "yearly"] as Billing[]).map((b) => (
-              <button
-                key={b}
-                onClick={() => setBilling(b)}
-                className={`px-5 py-2 text-xs uppercase tracking-widest rounded-full transition-colors ${
-                  billing === b ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                }`}
-              >
-                {b === "monthly" ? copy.monthly : copy.yearly}
-              </button>
-            ))}
+        {SHOW_PRICING_BILLING_TOGGLE ? (
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex rounded-full border border-border p-1 bg-background/40 backdrop-blur">
+              {(["monthly", "yearly"] as Billing[]).map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBilling(b)}
+                  className={`px-5 py-2 text-xs uppercase tracking-widest rounded-full transition-colors ${
+                    billing === b ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {b === "monthly" ? copy.monthly : copy.yearly}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="grid gap-6 md:grid-cols-3 items-start">
+        <div
+          className={`grid gap-6 items-start ${
+            SHOW_MATRIX_PLAN || SHOW_ULTRA_PLAN ? "md:grid-cols-3" : "md:grid-cols-2 max-w-3xl mx-auto"
+          }`}
+        >
           {/* Free */}
           <NeuralCard variant="elevated" className="p-6 space-y-5">
             <div className="space-y-1">
@@ -266,120 +275,156 @@ export default function Pricing() {
               ))}
             </ul>
             <Button asChild variant="outline" className="w-full min-h-[44px]">
-              <Link
-                to={
-                  !user
-                    ? "/auth?signup=1"
-                    : isGuest || isAnonymousUser(user)
-                      ? "/auth?upgrade=1"
-                      : postLoginPath(false, user.id)
-                }
-              >
-                {copy.free.cta}
-              </Link>
+              <Link to="/quiz">{copy.free.cta}</Link>
             </Button>
           </NeuralCard>
 
-          {/* Matrix */}
-          <NeuralCard variant="elevated" glow="blue" className="p-6 space-y-5 border-primary/30">
-            <div className="flex items-start justify-between gap-2">
+          {SHOW_LECTURE_PLAN ? (
+            <NeuralCard
+              variant="elevated"
+              glow="blue"
+              className="p-6 space-y-5 border-primary/40 ring-1 ring-primary/20 order-first md:order-none md:scale-[1.02]"
+            >
               <div className="space-y-1">
                 <h2 className="font-serif text-xl flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary" aria-hidden />
-                  {copy.matrix.name}
+                  {copy.lecture.name}
                 </h2>
-                <p className="text-xs text-muted-foreground">{copy.matrix.note}</p>
+                <p className="text-xs text-muted-foreground">{copy.lecture.note}</p>
               </div>
-              {tier === "matrix" && <Badge variant="secondary">{copy.current}</Badge>}
-            </div>
-            <p className="font-display text-3xl">
-              {billing === "monthly" ? "39 €" : "299 €"}
-              <span className="text-sm text-muted-foreground font-sans">
-                {billing === "monthly" ? (isFR ? " HT / mois" : " excl. tax / month") : isFR ? " HT / an" : " excl. tax / year"}
-              </span>
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              {isFR
-                ? "Prix hors taxes. La TVA applicable est calculée au checkout selon votre pays (Stripe Tax)."
-                : "Prices exclude tax. Applicable VAT is calculated at checkout based on your country (Stripe Tax)."}
-            </p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              {copy.matrix.features.map((f) => (
-                <li key={f} className="flex gap-2">
-                  <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-            <Button
-              className="w-full min-h-[44px]"
-              disabled={busy(billing === "monthly" ? "aegis_matrix_monthly" : "aegis_matrix_yearly")}
-              onClick={() =>
-                handleCheckout(billing === "monthly" ? "aegis_matrix_monthly" : "aegis_matrix_yearly")
-              }
-            >
-              {busy(billing === "monthly" ? "aegis_matrix_monthly" : "aegis_matrix_yearly") && (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />
-              )}
-              {copy.matrix.cta}
-            </Button>
-          </NeuralCard>
+              <p className="font-display text-3xl">{copy.lecture.price}</p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {copy.lecture.features.map((f) => (
+                  <li key={f} className="flex gap-2">
+                    <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button asChild className="w-full min-h-[44px]">
+                <a href={LIEN_PAIEMENT_LECTURE}>{copy.lecture.cta}</a>
+              </Button>
+            </NeuralCard>
+          ) : null}
 
-          {/* Ultra */}
-          <NeuralCard variant="elevated" glow="warm" className="p-6 space-y-5 border-accent-primary/30">
-            <div className="flex items-start justify-between gap-2">
-              <div className="space-y-1">
-                <h2 className="font-serif text-xl flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-accent-primary" aria-hidden />
-                  {copy.ultra.name}
-                </h2>
-                <p className="text-xs text-muted-foreground">{copy.ultra.note}</p>
+          {/* Matrix — code et produits Stripe conservés ; réactiver via SHOW_MATRIX_PLAN */}
+          {SHOW_MATRIX_PLAN ? (
+            <NeuralCard variant="elevated" glow="blue" className="p-6 space-y-5 border-primary/30">
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1">
+                  <h2 className="font-serif text-xl flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" aria-hidden />
+                    {copy.matrix.name}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">{copy.matrix.note}</p>
+                </div>
+                {tier === "matrix" && <Badge variant="secondary">{copy.current}</Badge>}
               </div>
-              {tier === "ultra" && <Badge variant="secondary">{copy.current}</Badge>}
-            </div>
-            <div className="space-y-1">
               <p className="font-display text-3xl">
-                8 000 €
-                <span className="text-sm text-muted-foreground font-sans">{isFR ? " HT" : " excl. tax"}</span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {copy.upfrontLabel} · {copy.installmentLabel} : 1 500 € {isFR ? "HT" : "excl. tax"}
+                {billing === "monthly" ? "39 €" : "299 €"}
+                <span className="text-sm text-muted-foreground font-sans">
+                  {billing === "monthly"
+                    ? isFR
+                      ? " HT / mois"
+                      : " excl. tax / month"
+                    : isFR
+                      ? " HT / an"
+                      : " excl. tax / year"}
+                </span>
               </p>
               <p className="text-[11px] text-muted-foreground">
                 {isFR
-                  ? "Montants hors taxes. TVA calculée au checkout (Stripe Tax)."
-                  : "Amounts exclude tax. VAT calculated at checkout (Stripe Tax)."}
+                  ? "Prix hors taxes. La TVA applicable est calculée au checkout selon votre pays (Stripe Tax)."
+                  : "Prices exclude tax. Applicable VAT is calculated at checkout based on your country (Stripe Tax)."}
               </p>
-            </div>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              {copy.ultra.features.map((f) => (
-                <li key={f} className="flex gap-2">
-                  <Check className="w-4 h-4 text-accent-primary shrink-0 mt-0.5" aria-hidden />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="space-y-2">
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {copy.matrix.features.map((f) => (
+                  <li key={f} className="flex gap-2">
+                    <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
               <Button
                 className="w-full min-h-[44px]"
-                disabled={busy("aegis_ultra_upfront")}
-                onClick={() => handleCheckout("aegis_ultra_upfront")}
+                disabled={busy(billing === "monthly" ? "aegis_matrix_monthly" : "aegis_matrix_yearly")}
+                onClick={() =>
+                  handleCheckout(billing === "monthly" ? "aegis_matrix_monthly" : "aegis_matrix_yearly")
+                }
               >
-                {busy("aegis_ultra_upfront") && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
-                {copy.ultra.cta} — {copy.upfrontLabel}
+                {busy(billing === "monthly" ? "aegis_matrix_monthly" : "aegis_matrix_yearly") && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />
+                )}
+                {copy.matrix.cta}
               </Button>
-              <Button
-                variant="outline"
-                className="w-full min-h-[44px]"
-                disabled={busy("aegis_ultra_monthly")}
-                onClick={() => handleCheckout("aegis_ultra_monthly")}
-              >
-                {busy("aegis_ultra_monthly") && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
-                {copy.installmentLabel}
-              </Button>
-            </div>
-          </NeuralCard>
+            </NeuralCard>
+          ) : null}
+
+          {/* Ultra — code et produits Stripe conservés ; réactiver via SHOW_ULTRA_PLAN */}
+          {SHOW_ULTRA_PLAN ? (
+            <NeuralCard variant="elevated" glow="warm" className="p-6 space-y-5 border-accent-primary/30">
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1">
+                  <h2 className="font-serif text-xl flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-accent-primary" aria-hidden />
+                    {copy.ultra.name}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">{copy.ultra.note}</p>
+                </div>
+                {tier === "ultra" && <Badge variant="secondary">{copy.current}</Badge>}
+              </div>
+              <div className="space-y-1">
+                <p className="font-display text-3xl">
+                  8 000 €
+                  <span className="text-sm text-muted-foreground font-sans">
+                    {isFR ? " HT" : " excl. tax"}
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {copy.upfrontLabel} · {copy.installmentLabel} : 1 500 € {isFR ? "HT" : "excl. tax"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {isFR
+                    ? "Montants hors taxes. TVA calculée au checkout (Stripe Tax)."
+                    : "Amounts exclude tax. VAT calculated at checkout (Stripe Tax)."}
+                </p>
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {copy.ultra.features.map((f) => (
+                  <li key={f} className="flex gap-2">
+                    <Check className="w-4 h-4 text-accent-primary shrink-0 mt-0.5" aria-hidden />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-2">
+                <Button
+                  className="w-full min-h-[44px]"
+                  disabled={busy("aegis_ultra_upfront")}
+                  onClick={() => handleCheckout("aegis_ultra_upfront")}
+                >
+                  {busy("aegis_ultra_upfront") && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />
+                  )}
+                  {copy.ultra.cta} — {copy.upfrontLabel}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full min-h-[44px]"
+                  disabled={busy("aegis_ultra_monthly")}
+                  onClick={() => handleCheckout("aegis_ultra_monthly")}
+                >
+                  {busy("aegis_ultra_monthly") && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />
+                  )}
+                  {copy.installmentLabel}
+                </Button>
+              </div>
+            </NeuralCard>
+          ) : null}
         </div>
+
+        <p className="mt-8 text-center text-sm text-muted-foreground">{copy.afterLecture}</p>
 
         {/* Feature comparison */}
         <motion.div

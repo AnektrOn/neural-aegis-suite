@@ -31,13 +31,14 @@
 
   /* MemberTopDockBar (fixed top-right): height + horizontal clearance for titles */
     --member-top-dock-height: 2.75rem;
-    --member-top-dock-clearance: 8.5rem;
+    /* Compact clearance for the top-right dock cluster (was 8.5rem — starved content width). */
+    --member-top-dock-clearance: 4.25rem;
     --mobile-offline-banner-height: 36px;
     /* Scroll area clearance above fixed circle dock */
     --mobile-dock-padding: calc(5rem + var(--safe-bottom));
     /* Clearance below MemberTopDockBar (top = max(0.75rem, safe-top)) */
     --mobile-main-padding-top: calc(
-      max(0.75rem, var(--safe-top)) + var(--member-top-dock-height) + 0.75rem
+      max(0.5rem, var(--safe-top)) + var(--member-top-dock-height) + 0.35rem
     );
     --mobile-main-padding-top-offline: calc(
       var(--mobile-main-padding-top) + var(--mobile-offline-banner-height)
@@ -114,8 +115,8 @@
     /* Warm premium accent (wellness gold — not fintech yellow) */
     --aegis-warm: 38 72% 58%;
     --aegis-warm-muted: 38 45% 22%;
-    /* Brand copper (CTA / score) — aligned with --primary in dark */
-    --aegis-copper: 24 48% 65%;
+    /* Brand copper — HSL triplet for hsl(var(--aegis-copper-hsl)); hex lives on --aegis-copper */
+    --aegis-copper-hsl: 24 48% 65%;
     /*
      * Dashboard & bio metrics — distinct hues on dark surfaces.
      * (Do not collapse to --success alone: 150 53% 23% is too dark for washes.)
@@ -161,101 +162,99 @@
 
   html.light {
     color-scheme: light;
-    /* Clinical Apple — neutrals for chrome; chromatic tokens below for wellness / dashboards */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 7%;
-    --card: 240 5% 96%;
-    --card-foreground: 0 0% 7%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
-    --primary: 0 0% 0%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 0 0% 20%;
-    --primary-muted: 240 5% 94%;
-    --secondary: 240 4% 92%;
-    --secondary-foreground: 0 0% 7%;
-    --secondary-hover: 240 4% 88%;
-    --muted: 240 6% 96%;
-    --muted-foreground: 240 2% 40%;
-    --muted-foreground-subtle: 240 2% 52%;
-    --accent: 0 0% 20%;
-    --accent-foreground: 0 0% 100%;
-    --accent-hover: 0 0% 12%;
-    --accent-muted: 240 5% 94%;
-    --destructive: 0 72% 51%;
+    /* Albâtre / Craie — miroir DA (.stitch/DESIGN.md light-*) */
+    --background: 42 33% 94%; /* #f5f2eb */
+    --foreground: 60 5% 7%; /* #141412 */
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 60 5% 7%;
+    --popover: 36 33% 97%; /* #faf8f5 */
+    --popover-foreground: 60 5% 7%;
+    --primary: 41 60% 39%; /* #9e7828 or solaire profond */
+    --primary-foreground: 60 5% 4%; /* #0b0b0a */
+    --primary-hover: 40 62% 31%; /* #82611e */
+    --primary-muted: 41 40% 92%;
+    --secondary: 42 18% 90%;
+    --secondary-foreground: 60 5% 7%;
+    --secondary-hover: 42 14% 84%;
+    --muted: 42 20% 92%;
+    --muted-foreground: 42 8% 32%; /* ~#58544c — labels / secondary */
+    --muted-foreground-subtle: 41 7% 42%; /* ~#736e64 — placeholders still legible */
+    --accent: 41 60% 39%;
+    --accent-foreground: 60 5% 4%;
+    --accent-hover: 40 62% 31%;
+    --accent-muted: 41 40% 92%;
+    --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
     --destructive-muted: 0 60% 96%;
-    --success: 142 71% 45%;
+    --success: 142 55% 36%;
     --success-foreground: 0 0% 100%;
     --success-muted: 142 40% 94%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 7%;
-    --warning-muted: 40 60% 94%;
-    --info: 211 100% 50%;
+    --warning: 38 80% 42%;
+    --warning-foreground: 60 5% 7%;
+    --warning-muted: 40 55% 93%;
+    --info: 211 85% 42%;
     --info-foreground: 0 0% 100%;
     --info-muted: 211 60% 95%;
-    --border: 240 4% 75%;
-    --input: 240 4% 90%;
-    --ring: 0 0% 0%;
+    --border: 42 12% 78%;
+    --input: 36 20% 94%;
+    --ring: 41 60% 39%;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 7%;
-    --sidebar-primary: 0 0% 0%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 0 0% 7%;
-    --sidebar-border: 240 4% 83%;
-    --sidebar-ring: 0 0% 0%;
+    --sidebar-background: 42 33% 94%;
+    --sidebar-foreground: 60 5% 7%;
+    --sidebar-primary: 41 60% 39%;
+    --sidebar-primary-foreground: 60 5% 4%;
+    --sidebar-accent: 36 33% 97%;
+    --sidebar-accent-foreground: 60 5% 7%;
+    --sidebar-border: 42 12% 82%;
+    --sidebar-ring: 41 60% 39%;
 
-    --neural-glow: 211 85% 48%;
-    --neural-accent: 262 48% 52%;
-    --neural-warm: 38 55% 48%;
-    --void: 0 0% 100%;
+    --neural-glow: 41 60% 39%;
+    --neural-accent: 24 63% 37%;
+    --neural-warm: 41 60% 39%;
+    --void: 42 27% 90%; /* #ede9e0 */
 
-    /* Data viz — chromatic (not grayscale); pairs with clinical neutrals above */
-    --chart-1: 211 85% 48%;
-    --chart-2: 262 48% 52%;
-    --chart-3: 38 88% 46%;
-    --chart-4: 142 58% 38%;
-    --chart-5: 240 3% 46%;
+    --chart-1: 41 60% 39%;
+    --chart-2: 24 63% 37%;
+    --chart-3: 211 70% 42%;
+    --chart-4: 142 45% 36%;
+    --chart-5: 42 8% 46%;
 
-    /* Wellness accents on white (--primary stays ink black for UI chrome) */
-    --aegis-warm: 38 55% 48%;
-    --aegis-warm-muted: 38 42% 92%;
-    --aegis-copper: 24 38% 42%;
-    --metric-mind: 211 85% 48%;
-    --metric-body: 142 58% 38%;
-    --metric-energy: 38 88% 46%;
-    --metric-calm: 262 48% 52%;
-    --metric-neutral: 240 3% 46%;
-    --success-display: 142 71% 45%;
+    --aegis-warm: 41 60% 39%;
+    --aegis-warm-muted: 41 35% 92%;
+    --aegis-copper-hsl: 24 63% 37%; /* #9c5323 */
+    --metric-mind: 211 70% 42%;
+    --metric-body: 142 45% 36%;
+    --metric-energy: 41 60% 39%;
+    --metric-calm: 24 45% 42%;
+    --metric-neutral: 42 8% 46%;
+    --success-display: 142 55% 36%;
     --success-display-muted: 142 40% 94%;
-    --aegis-s1: 240 5% 97%;
-    --aegis-border: 240 4% 88%;
-    --aegis-border-ice: 240 4% 78%;
-    --aegis-hero-bg: 240 5% 96%;
-    --aegis-hero-fade: 0 0% 100%;
-    --v4-constellation-surface: 240 5% 94%;
-    --v4-constellation-surface-end: 240 4% 90%;
-    --v4-constellation-glow-shadow: 240 3% 75%;
+    --aegis-s1: 42 25% 96%;
+    --aegis-border: 42 12% 82%;
+    --aegis-border-ice: 42 10% 74%;
+    --aegis-hero-bg: 42 27% 90%;
+    --aegis-hero-fade: 42 33% 94%;
+    --v4-constellation-surface: 36 28% 95%;
+    --v4-constellation-surface-end: 42 22% 90%;
+    --v4-constellation-glow-shadow: 41 30% 70%;
 
-    --tile-green-start: 88 58% 72%;
-    --tile-green-end: 145 45% 38%;
-    --tile-amber-start: 45 85% 60%;
-    --tile-amber-end: 38 75% 48%;
-    --tile-coral-start: 12 78% 68%;
-    --tile-coral-end: 8 65% 55%;
-    --tile-blue-start: 211 75% 52%;
-    --tile-blue-end: 230 50% 38%;
-    --tile-warm-blur: 38 55% 52%;
+    --tile-green-start: 88 45% 68%;
+    --tile-green-end: 145 35% 36%;
+    --tile-amber-start: 45 75% 58%;
+    --tile-amber-end: 38 65% 42%;
+    --tile-coral-start: 12 65% 62%;
+    --tile-coral-end: 8 55% 48%;
+    --tile-blue-start: 211 60% 52%;
+    --tile-blue-end: 230 40% 38%;
+    --tile-warm-blur: 41 55% 48%;
 
-    /* DA Member Shell v2 — Light Mode (Craie, Albâtre, Or Solaire profond, Obsidienne) */
+    /* DA Member Shell v2 — Light Mode (Craie, Albâtre, Or Solaire profond) */
     --aegis-abyss: #ede9e0;
     --aegis-bg: #f5f2eb;
     --aegis-surface: #ffffff;
     --aegis-surface-elevated: #faf8f5;
-    --aegis-cardline: rgba(22, 22, 20, 0.08);
-    --aegis-cardline-hover: rgba(158, 120, 40, 0.40);
+    --aegis-cardline: rgba(22, 22, 20, 0.1);
+    --aegis-cardline-hover: rgba(158, 120, 40, 0.4);
     --aegis-gold: #9e7828;
     --aegis-gold-light: #b88d32;
     --aegis-gold-deep: #82611e;
@@ -351,11 +350,21 @@
 html.light .glass-card,
 html.light .aegis-dock-tile,
 html.light .aegis-bento-tile {
-  background: hsl(var(--background) / 0.78);
-  border-color: rgba(20, 20, 18, 0.08);
+  background: var(--aegis-surface);
+  border-color: var(--aegis-cardline);
   box-shadow:
-    0 8px 24px hsl(0 0% 0% / 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 8px 28px hsl(42 20% 20% / 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+html.light .glass-card:hover,
+html.light .aegis-dock-tile:hover,
+html.light .aegis-bento-tile:hover {
+  border-color: var(--aegis-cardline-hover);
+  box-shadow:
+    0 12px 32px hsl(42 20% 20% / 0.1),
+    0 0 16px rgba(158, 120, 40, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .aegis-bento-tile-interactive:hover {
@@ -382,8 +391,10 @@ html.light .aegis-bento-tile {
 }
 
 html.light .btn-solaire {
-  color: #ffffff;
-  box-shadow: 0 2px 12px rgba(158, 120, 40, 0.22);
+  /* Or plus clair pour garder l’encre obsidienne lisible (DA on-primary) */
+  background: linear-gradient(135deg, var(--aegis-gold-light) 0%, var(--aegis-gold) 100%);
+  color: #0b0b0a;
+  box-shadow: 0 2px 14px rgba(158, 120, 40, 0.28);
 }
 
 .btn-solaire:hover {
@@ -1218,6 +1229,13 @@ input[type="range"]::-moz-range-thumb {
     transform: translateY(-3px);
     box-shadow: 0 18px 50px -25px rgba(255, 255, 255, 0.25);
     border-color: rgba(255, 255, 255, 0.18);
+  }
+  /* Radar SVG misaligns when a transform containing block is created */
+  .deep-dive-radar.neural-card,
+  .deep-dive-radar.neural-card:hover {
+    transform: none;
+    will-change: auto;
+    box-shadow: none;
   }
   @media (hover: none) {
     .neural-card:active {

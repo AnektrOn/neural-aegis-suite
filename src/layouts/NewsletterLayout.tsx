@@ -1,7 +1,6 @@
 import { Link, Outlet } from "react-router-dom";
 import AegisLogo from "@/components/AegisLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeToggle from "@/components/ThemeToggle";
 import AppFooter from "@/components/AppFooter";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -76,7 +75,6 @@ export default function NewsletterLayout() {
 
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
-            <ThemeToggle collapsed />
           </div>
         </div>
       </header>

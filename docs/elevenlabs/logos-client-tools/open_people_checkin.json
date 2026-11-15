@@ -1,0 +1,34 @@
+{
+  "type": "client",
+  "name": "open_people_checkin",
+  "description": "Ouvre le formulaire People board (qualité + note sur un contact).",
+  "expects_response": true,
+  "response_timeout_secs": -1,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "contact_id",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "UUID du contact si connu.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    },
+    {
+      "id": "contact_name",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "Prénom ou nom, ex. Sophie.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    }
+  ]
+}

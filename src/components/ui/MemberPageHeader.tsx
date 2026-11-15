@@ -40,16 +40,16 @@ export function MemberPageHeader({
         )}
       >
         <div className={cn("space-y-1.5", centered && "max-w-2xl mx-auto")}>
-          <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-accent-primary dark:text-[#c9a24b] text-[#9e7828]">
+          <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.24em] text-[color:var(--aegis-gold)]">
             {kicker}
           </p>
-          <h1 className="font-cormorant text-3xl sm:text-4xl font-light tracking-tight text-foreground dark:text-[#e9e4d8] text-[#141412]">
+          <h1 className="font-cormorant text-3xl font-light tracking-tight text-foreground sm:text-4xl">
             {title}
           </h1>
           {subtitle && (
             <p
               className={cn(
-                "font-sans text-sm text-muted-foreground dark:text-[#9a968b] text-[#615d54] leading-relaxed",
+                "font-sans text-sm leading-relaxed text-muted-foreground",
                 centered ? "max-w-md mx-auto" : "max-w-2xl",
               )}
             >

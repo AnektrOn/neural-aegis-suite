@@ -11,6 +11,11 @@ import {
   type HeroLabConfig,
   type HeroLabViewportDisplay,
 } from "./bioExecutiveHeroLabConfig";
+import {
+  loadHeroLabMobileDeviceGabarit,
+  saveHeroLabMobileDeviceGabarit,
+  type HeroMobileDeviceGabaritKey,
+} from "./bioExecutiveMobileDeviceGabarits";
 
 /**
  * Prod (`enabled=false`) → committed golden only (`DEFAULT_HERO_LAB_CONFIG` + mobile presets).
@@ -25,6 +30,9 @@ export function useHeroLabConfig(enabled: boolean) {
   const [editBreakpoint, setEditBreakpoint] = useState<HeroBreakpointKey>(() => detectHeroBreakpoint());
   const [viewportDisplay, setViewportDisplayState] = useState<HeroLabViewportDisplay>(() =>
     loadHeroLabViewportDisplay(),
+  );
+  const [mobileDeviceGabarit, setMobileDeviceGabaritState] = useState<HeroMobileDeviceGabaritKey>(() =>
+    loadHeroLabMobileDeviceGabarit(),
   );
 
   useEffect(() => {
@@ -60,6 +68,11 @@ export function useHeroLabConfig(enabled: boolean) {
 
   const previewBreakpoint = enabled ? editBreakpoint : liveBreakpoint;
 
+  const setMobileDeviceGabarit = useCallback((next: HeroMobileDeviceGabaritKey) => {
+    setMobileDeviceGabaritState(next);
+    saveHeroLabMobileDeviceGabarit(next);
+  }, []);
+
   return {
     config,
     persist,
@@ -69,6 +82,8 @@ export function useHeroLabConfig(enabled: boolean) {
     previewBreakpoint,
     viewportDisplay,
     setViewportDisplay,
+    mobileDeviceGabarit,
+    setMobileDeviceGabarit,
   };
 }
 

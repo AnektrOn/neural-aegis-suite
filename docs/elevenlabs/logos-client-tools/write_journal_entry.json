@@ -1,0 +1,45 @@
+{
+  "type": "client",
+  "name": "write_journal_entry",
+  "description": "Écrit une entrée journal (titre + contenu) pour ancrer un insight.",
+  "expects_response": true,
+  "response_timeout_secs": 20,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "title",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "Titre de l'entrée.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": true
+    },
+    {
+      "id": "content",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "Corps du journal.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": true
+    },
+    {
+      "id": "tags",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "Tags optionnels, séparés par des virgules.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    }
+  ]
+}

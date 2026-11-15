@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, ChevronLeft, ChevronRight, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  coverFlowCardStyle,
+  useCoverFlowDragSwipe,
+} from "@/components/ui/cover-flow/coverFlowShelf";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { SampleProfile } from "@/features/archetype-deepdive-v2/domain/sampleProfile";
@@ -138,103 +142,6 @@ function lensStatusBadge(
   return statusLabel(lens.status, locale);
 }
 
-const COVER_FLOW_MAX_VISIBLE_OFFSET = 4;
-const COVER_FLOW_SPACING_PX = 148;
-const COVER_FLOW_ROTATE_DEG = 50;
-const COVER_FLOW_SWIPE_PX = 44;
-
-/** Horizontal drag — touch + souris (événements pointeur, capture sur toute la section). */
-function useCoverFlowDragSwipe(
-  containerRef: React.RefObject<HTMLElement | null>,
-  onPrev: () => void,
-  onNext: () => void,
-) {
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    let startX = 0;
-    let startY = 0;
-    let tracking = false;
-    let axis: "x" | "y" | null = null;
-    let pointerId: number | null = null;
-
-    const reset = () => {
-      tracking = false;
-      axis = null;
-      pointerId = null;
-      el.classList.remove("persona-cover-flow--dragging");
-    };
-
-    const suppressNextClick = () => {
-      const block = (ev: Event) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        el.removeEventListener("click", block, true);
-      };
-      el.addEventListener("click", block, true);
-      window.setTimeout(() => el.removeEventListener("click", block, true), 400);
-    };
-
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.button !== 0) return;
-      startX = e.clientX;
-      startY = e.clientY;
-      tracking = true;
-      axis = null;
-      pointerId = e.pointerId;
-      try {
-        el.setPointerCapture(e.pointerId);
-      } catch {
-        /* already captured */
-      }
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!tracking || e.pointerId !== pointerId) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      if (axis == null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
-        axis = Math.abs(dx) >= Math.abs(dy) ? "x" : "y";
-      }
-      if (axis === "x" && Math.abs(dx) > 10) {
-        e.preventDefault();
-        el.classList.add("persona-cover-flow--dragging");
-      }
-    };
-
-    const onPointerUp = (e: PointerEvent) => {
-      if (!tracking || e.pointerId !== pointerId) return;
-      try {
-        el.releasePointerCapture(e.pointerId);
-      } catch {
-        /* */
-      }
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      const swiped =
-        axis === "x" && Math.abs(dx) >= COVER_FLOW_SWIPE_PX && Math.abs(dx) >= Math.abs(dy);
-      reset();
-      if (!swiped) return;
-      suppressNextClick();
-      if (dx > 0) onPrev();
-      else onNext();
-    };
-
-    el.addEventListener("pointerdown", onPointerDown);
-    el.addEventListener("pointermove", onPointerMove);
-    el.addEventListener("pointerup", onPointerUp);
-    el.addEventListener("pointercancel", onPointerUp);
-    return () => {
-      el.removeEventListener("pointerdown", onPointerDown);
-      el.removeEventListener("pointermove", onPointerMove);
-      el.removeEventListener("pointerup", onPointerUp);
-      el.removeEventListener("pointercancel", onPointerUp);
-      reset();
-    };
-  }, [containerRef, onPrev, onNext]);
-}
-
 /** Detail shelf only for shipped Myss / Tao questionnaires — not Jung, Blavatsky, etc. */
 function showCoverFlowDetailPanel(
   lens: PortraitLensCard,
@@ -247,29 +154,6 @@ function showCoverFlowDetailPanel(
   }
   if (lens.detailKind === "myss") return true;
   return false;
-}
-
-function coverFlowCardStyle(offset: number, reduceMotion: boolean) {
-  const abs = Math.abs(offset);
-  if (abs > COVER_FLOW_MAX_VISIBLE_OFFSET) {
-    return {
-      opacity: 0,
-      pointerEvents: "none" as const,
-      transform: "translate(-50%, -50%) scale(0.5)",
-      zIndex: 0,
-    };
-  }
-  const scale = Math.max(0.58, 1 - abs * 0.1);
-  const translateX = offset * COVER_FLOW_SPACING_PX;
-  const rotateY = offset * -COVER_FLOW_ROTATE_DEG;
-  const translateZ = -abs * 96;
-  return {
-    opacity: Math.max(0.35, 1 - abs * 0.14),
-    pointerEvents: "auto" as const,
-    zIndex: 40 - abs,
-    transform: `translate(-50%, -50%) translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
-    transition: reduceMotion ? "none" : "transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease",
-  };
 }
 
 function PortraitLensActivePanel({

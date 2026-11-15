@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAegisLandingLocale } from "../i18n/AegisLandingLocaleProvider";
+import { LIEN_PAIEMENT_LECTURE } from "../landingCtaHrefs";
 import { LandingButton } from "./LandingButton";
 
 const links = [
@@ -40,9 +41,10 @@ function AudienceToggle({ className }: { className?: string }) {
 }
 
 export function LandingNav() {
-  const { copy, locale, setLocale } = useAegisLandingLocale();
+  const { copy, locale, setLocale, audience } = useAegisLandingLocale();
   const [open, setOpen] = useState(false);
   const menuId = useId();
+  const navCtaHref = audience === "individuel" ? LIEN_PAIEMENT_LECTURE : "#tarif";
 
   useEffect(() => {
     if (!open) return;
@@ -100,7 +102,7 @@ export function LandingNav() {
         <LandingButton href="/auth" variant="ghost" className="hidden sm:inline-flex">
           {copy.nav.signIn}
         </LandingButton>
-        <LandingButton href="#tarif" variant="dark" className="hidden sm:inline-flex">
+        <LandingButton href={navCtaHref} variant="dark" className="hidden sm:inline-flex">
           {copy.nav.cta}
         </LandingButton>
         <div
