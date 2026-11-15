@@ -1,4 +1,5 @@
 import { Eye, EyeOff } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { useFreePreview } from "@/hooks/useFreePreview";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -11,7 +12,9 @@ export default function FreePreviewToggle() {
   const { isAdmin } = useAdmin();
   const { enabled, toggle } = useFreePreview();
   const { locale } = useLanguage();
+  const { pathname } = useLocation();
   const isFR = locale === "fr";
+  const onImmersiveDashboard = pathname === "/dashboard";
 
   if (!isAdmin) return null;
 
@@ -20,7 +23,11 @@ export default function FreePreviewToggle() {
       type="button"
       onClick={toggle}
       aria-pressed={enabled}
-      className={`fixed bottom-24 right-4 z-[80] inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[11px] font-medium uppercase tracking-[0.12em] shadow-lg backdrop-blur-xl transition-colors md:bottom-6 ${
+      className={`fixed z-[80] inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[11px] font-medium uppercase tracking-[0.12em] shadow-lg backdrop-blur-xl transition-colors ${
+        onImmersiveDashboard
+          ? "max-lg:left-4 max-lg:right-auto max-lg:bottom-[calc(var(--mobile-dock-padding)+1rem)] lg:bottom-6 lg:right-4"
+          : "bottom-24 right-4 md:bottom-6"
+      } ${
         enabled
           ? "border-primary/50 bg-primary/15 text-primary"
           : "border-border/50 bg-background/70 text-muted-foreground hover:text-foreground"

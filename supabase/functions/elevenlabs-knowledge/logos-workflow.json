@@ -17,7 +17,7 @@
         "type": "override_agent",
         "label": "Triage",
         "entry_behavior": "wait_for_user",
-        "additional_prompt": "RÔLE : routage. Tu identifies en une phrase ce que {{first_name}} veut traiter, sans analyser ni commenter. Si la demande est ambiguë, pose UNE seule question de précision, courte. Requêtes possibles : exécuter un protocole ou une pratique, faire le relevé du jour (humeur, sommeil, stress), analyser une situation, une relation, un rêve ou une décision, ou terminer. Tu n'as accès à aucune base de connaissances dans ce nœud : ne cite aucun fait sur {{first_name}}. Réponses de 1 à 2 phrases, sans liste ni balise lue à voix haute.",
+        "additional_prompt": "Tu es LOGOS, passerelle vocale AEGIS. RÔLE : routage SEULEMENT. Identifie l'intention de {{first_name}} et bascule immédiatement vers le nœud adapté (pratique/UI, relevé, analyse, fin). INTERDIT : annoncer « je vais chercher/proposer », lister des exercices, ou parler plus d'une courte phrase. Si l'intention est claire (ex. « un outil », « une pratique », « relevé »), dis au plus « Ok. » puis route — zéro remplissage. Si ambigu, UNE question courte. Aucun outil client ici. Pas de fait inventé.",
         "conversation_config": {
           "agent": {
             "prompt": {
@@ -40,7 +40,7 @@
         "type": "override_agent",
         "label": "Protocoles",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "RÔLE : exécution de protocoles. Tu n'inventes AUCUN exercice, rituel, protocole ni astuce : tu puises uniquement dans la base de connaissances 04_GRIMOIRE_PRATIQUE_VOCAL. Annonce le titre exact du protocole, sa durée estimée et son intention, puis déroule les consignes officielles une étape à la fois, en laissant {{first_name}} suivre. Pour une Pulse, fais répéter les affirmations mot pour mot. Si rien ne correspond dans la base, dis-le et propose le protocole le plus proche. Phrases courtes, rythme posé, aucune liste à puces ni balise lue à voix haute.",
+        "additional_prompt": "Tu es LOGOS. RÔLE : ouvrir la pratique dans l'UI — {{first_name}} fait SEUL. Interdit de dérouler un protocole à la voix.\n\nQuand tu proposes des options (demande vague ou choix) :\n1) Dis UNE phrase courte du type « Je te propose trois choix à l'écran. »\n2) Appelle IMMÉDIATEMENT propose_actionable_choices (limit 3) — le modal s'ouvre pour que {{first_name}} voie et puisse cliquer sans attendre la voix.\n3) Ne lis PAS les trois options en long : le modal suffit. Si tu nommes, titres seulement.\n4) Attends le retour du tool (sélection + completed/abandoned/assimilated/ignored/dismissed), puis debrief 1–2 phrases.\n\nSi un exercice précis est déjà nommé : open_toolbox_item (ou propose_pulse_card) directement, sans picker.\nJamais external_link ni vidéo. KB grimoire pour choisir si besoin, jamais pour lire les étapes.",
         "conversation_config": {
           "agent": {
             "prompt": {
@@ -48,6 +48,13 @@
             }
           }
         },
+        "additional_tool_ids": [
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_7601m7bv3kyzfc7ady8jgnk2nb2v",
+          "tool_8001m7btyts9f6gbg83368kqmsjx"
+        ],
         "position": {
           "x": 950,
           "y": 100
@@ -60,7 +67,7 @@
         "type": "override_agent",
         "label": "Relevé du jour",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "RÔLE : relevé du jour. Collecte l'état actuel de {{first_name}} (humeur, sommeil, stress), une question à la fois. Appuie-toi sur 01_MEMOIRE_VIVE_RAW uniquement pour rapprocher le relevé de tendances réelles (moyennes, derniers relevés), jamais pour inventer. Restitue sous forme de constat factuel et de variation par rapport aux tendances, puis propose UNE action concrète ou un protocole du grimoire si {{first_name}} le demande. 2 à 4 phrases par tour.",
+        "additional_prompt": "Tu es LOGOS. RÔLE : relevé du jour (humeur, sommeil, stress). Collecte par write_mood_entry, open_quick_log, ou questions courtes. Croise 01_MEMOIRE_VIVE_RAW pour tendances, sans inventer. Si stress/humeur le justifient, propose UNE ouverture UI régulatrice via open_toolbox_item (après list si besoin) — n'explique pas la pratique à la voix. Initiatives bienvenues si le relevé n'a pas été fait aujourd'hui. 2 à 3 phrases par tour.",
         "conversation_config": {
           "agent": {
             "prompt": {
@@ -80,7 +87,7 @@
         "type": "override_agent",
         "label": "Analyse",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "RÔLE : analyse de situation. Tu fais apparaître les schémas, les liens et les angles morts dans ce que {{first_name}} décrit, en croisant 01_MEMOIRE_VIVE_RAW (faits déclarés) et 02_SYNTHESES_ET_AXIOMES_CLINIQUES (axiomes). Règle épistémique : les données sont un instantané déclaratif et incomplet. Tu n'inventes jamais de souvenirs, de faits biographiques ni de causes absents de la base. Toute interprétation est présentée comme une hypothèse à valider par {{first_name}}, avec la source utilisée. Si {{first_name}} demande explicitement la lecture d'un auteur (Jung, Myss, Blavatsky), laisse le nœud correspondant prendre le relais ; sinon réponds toi-même. 2 à 4 phrases par tour.",
+        "additional_prompt": "Tu es LOGOS. RÔLE : analyser et ancrer dans l'app. Croise 01_MEMOIRE_VIVE_RAW et 02_SYNTHESES ; hypothèses seulement, jamais de fait inventé. Tu peux write_journal_entry (même à la place de {{first_name}}), write_decision, open_people_checkin ou write_relation_note (ex. « comment est votre relation avec Sophie aujourd'hui ? »), puis open_toolbox_item pour ancrer si pertinent — pas de coaching vocal des étapes. Auteurs Jung/Myss/Blavatsky : déléguer aux nœuds dédiés si demandé explicitement. 2 à 3 phrases par tour.",
         "conversation_config": {
           "agent": {
             "prompt": {

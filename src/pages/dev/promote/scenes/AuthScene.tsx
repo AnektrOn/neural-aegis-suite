@@ -2,7 +2,6 @@ import { ArrowRight, Mail } from "lucide-react";
 import AegisLogo from "@/components/AegisLogo";
 import { NeuralCard } from "@/components/ui/neural-card";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeToggle from "@/components/ThemeToggle";
 import { copy, PROMOTE_USER } from "../promoteDemoData";
 import { usePromotePlayer } from "../PromotePlayerContext";
 
@@ -17,7 +16,6 @@ export function AuthScene() {
         <AegisLogo alt="" className="h-9 w-9 rounded-lg object-contain" />
         <div className="flex items-center gap-2">
           <LanguageSwitcher collapsed />
-          <ThemeToggle collapsed />
         </div>
       </header>
       <div className="mx-auto mt-10 w-full max-w-sm">

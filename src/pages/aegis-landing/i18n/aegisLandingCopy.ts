@@ -1,3 +1,5 @@
+import { LANDING_QUIZ_HREF, LIEN_PAIEMENT_LECTURE } from "../landingCtaHrefs";
+
 /** Landing-only catalog (not `src/i18n/translations.ts`). */
 export type AegisLandingLocale = "fr" | "en";
 export type AegisLandingAudience = "individuel" | "entreprise";
@@ -5,6 +7,7 @@ export type AegisLandingAudience = "individuel" | "entreprise";
 export type AegisLandingCopy = {
   meta: {
     title: string;
+    ogTitle: string;
     description: string;
   };
   nav: {
@@ -101,10 +104,14 @@ export type AegisLandingCopy = {
     label: string;
     title: string;
     chip: string;
+    body?: string;
     price: string;
     period: string;
     features: string[];
     cta: string;
+    ctaHref?: string;
+    secondaryCta?: string;
+    secondaryCtaHref?: string;
   };
   faq: {
     label: string;
@@ -188,17 +195,22 @@ const navEn = {
 
 const individuelFr: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — Exocortex pour dirigeants",
+    title: "AEGIS — 30 questions sur la personne qui décide",
+    ogTitle: "AEGIS — Vous décidez seul. Personne ne relit vos décisions.",
     description:
-      "AEGIS lit chaque semaine ce que vous faites réellement, le compare à votre trajectoire, et vous dit où vous dérivez.",
+      "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.",
   },
-  nav: { ...navFr, cta: "Demander mon accès" },
+  nav: {
+    ...navFr,
+    cta: "Réserver ma Lecture — 149 €",
+    signUpFree: "Faire le questionnaire — 30 questions, gratuit",
+  },
   hero: {
-    chip: "AEGIS · EXOCORTEX POUR DIRIGEANTS",
+    chip: "AEGIS · POUR CELUI QUI DÉCIDE SEUL",
     title: "Vous décidez seul. Vous reprenez les mêmes décisions. Vous le savez.",
     subtitle:
       "AEGIS est l'exocortex qui lit chaque semaine ce que vous faites réellement, le compare à la trajectoire que vous avez choisie, et vous dit où vous dérivez.",
-    cta: "Demander mon accès · Sur devis",
+    cta: "Réserver ma Lecture — 149 €",
     caption: "Réponse sous 24 h",
     scrollLabel: "Défiler vers le contenu",
     ghostWordmark: "AEGIS",
@@ -283,7 +295,7 @@ const individuelFr: AegisLandingCopy = {
     title: "Un produit pour les personnes qui portent la décision finale.",
     cards: [
       {
-        title: "Dirigeants et founders",
+        title: "Celui qui décide seul",
         bullets: [
           "Vous portez seul des arbitrages que personne ne voit en entier.",
           "Vous voulez un miroir hebdomadaire, pas un outil de plus.",
@@ -314,17 +326,20 @@ const individuelFr: AegisLandingCopy = {
   },
   tarif: {
     label: "TARIF",
-    title: "Un abonnement. Un rapport chaque semaine.",
-    chip: "ACCÈS PRIORITAIRE",
-    price: "Sur devis",
+    title: "La Lecture",
+    chip: "",
+    body:
+      "Vous passez le questionnaire complet. Une personne lit votre dossier, vous écrit un rapport, puis vous en parle trente minutes en visio. Elle vous dit ce qu'elle voit, pas quoi faire.",
+    price: "149 € HT, une fois",
     period: "",
     features: [
-      "Rapport hebdomadaire personnalisé",
-      "Connexion des sources que vous choisissez",
-      "Historique de vos trajectoires et écarts",
-      "Support par email sous 24 h",
+      "Remboursée dans les 30 jours sur simple e-mail, sans justification.",
+      "Une suite vous sera proposée en fin de rendez-vous, sans obligation.",
     ],
-    cta: "Demander mon accès",
+    cta: "Réserver ma Lecture — 149 €",
+    ctaHref: LIEN_PAIEMENT_LECTURE,
+    secondaryCta: "Commencer par le questionnaire gratuit",
+    secondaryCtaHref: LANDING_QUIZ_HREF,
   },
   faq: {
     label: "FAQ",
@@ -352,30 +367,36 @@ const individuelFr: AegisLandingCopy = {
       },
       {
         q: "Qui peut demander un accès ?",
-        a: "Le produit cible les dirigeants et membres de boards. Chaque demande est revue manuellement.",
+        a: "Le produit cible celui qui décide seul et les membres de boards. Chaque demande est revue manuellement.",
       },
     ],
   },
   finalCta: {
     title: "Dans trois mois, vous aurez soit changé, soit répété.",
-    cta: "Demander mon accès",
+    cta: "Réserver ma Lecture — 149 €",
   },
   footer: { ...footerFr, links: [...footerFr.links] },
 };
 
 const individuelEn: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — Exocortex for executives",
+    title: "AEGIS — 30 questions sur la personne qui décide",
+    ogTitle: "AEGIS — Vous décidez seul. Personne ne relit vos décisions.",
     description:
-      "Each week AEGIS reads what you actually do, compares it to the trajectory you chose, and tells you where you drift.",
+      "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.",
   },
-  nav: { ...navEn, cta: "Request access" },
+  nav: {
+    ...navEn,
+    cta: "Réserver ma Lecture — 149 €",
+    signUpFree: "Faire le questionnaire — 30 questions, gratuit",
+    signIn: "Se connecter",
+  },
   hero: {
-    chip: "AEGIS · EXOCORTEX FOR EXECUTIVES",
+    chip: "AEGIS · POUR CELUI QUI DÉCIDE SEUL",
     title: "You decide alone. You make the same calls again. You know it.",
     subtitle:
       "AEGIS is the exocortex that reads what you actually do each week, compares it to the trajectory you chose, and tells you where you drift.",
-    cta: "Request access · On request",
+    cta: "Réserver ma Lecture — 149 €",
     caption: "Reply within 24 hours",
     scrollLabel: "Scroll to content",
     ghostWordmark: "AEGIS",
@@ -460,7 +481,7 @@ const individuelEn: AegisLandingCopy = {
     title: "A product for people who carry the final call.",
     cards: [
       {
-        title: "Founders and executives",
+        title: "Celui qui décide seul",
         bullets: [
           "You carry calls no one else sees in full.",
           "You want a weekly mirror, not another tool.",
@@ -490,17 +511,20 @@ const individuelEn: AegisLandingCopy = {
   },
   tarif: {
     label: "PRICING",
-    title: "One subscription. One report every week.",
-    chip: "PRIORITY ACCESS",
-    price: "On request",
+    title: "La Lecture",
+    chip: "",
+    body:
+      "Vous passez le questionnaire complet. Une personne lit votre dossier, vous écrit un rapport, puis vous en parle trente minutes en visio. Elle vous dit ce qu'elle voit, pas quoi faire.",
+    price: "149 € HT, une fois",
     period: "",
     features: [
-      "Personalised weekly report",
-      "Connect the sources you choose",
-      "History of trajectories and gaps",
-      "Email support within 24 hours",
+      "Remboursée dans les 30 jours sur simple e-mail, sans justification.",
+      "Une suite vous sera proposée en fin de rendez-vous, sans obligation.",
     ],
-    cta: "Request access",
+    cta: "Réserver ma Lecture — 149 €",
+    ctaHref: LIEN_PAIEMENT_LECTURE,
+    secondaryCta: "Commencer par le questionnaire gratuit",
+    secondaryCtaHref: LANDING_QUIZ_HREF,
   },
   faq: {
     label: "FAQ",
@@ -528,22 +552,23 @@ const individuelEn: AegisLandingCopy = {
       },
       {
         q: "Who can request access?",
-        a: "The product is for executives and board members. Each request is reviewed manually.",
+        a: "The product is for the person who decides alone and for board members. Each request is reviewed manually.",
       },
     ],
   },
   finalCta: {
     title: "In three months you will have either changed, or repeated.",
-    cta: "Request access",
+    cta: "Réserver ma Lecture — 149 €",
   },
   footer: { ...footerEn, links: [...footerEn.links] },
 };
 
 const entrepriseFr: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — Exocortex pour entreprises",
+    title: "AEGIS — 30 questions sur la personne qui décide",
+    ogTitle: "AEGIS — Vous décidez seul. Personne ne relit vos décisions.",
     description:
-      "AEGIS lit chaque semaine ce que l'organisation fait réellement, le compare à sa trajectoire, et vous dit où elle dérive.",
+      "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.",
   },
   nav: { ...navFr, cta: "Demander un accès" },
   hero: {
@@ -736,9 +761,10 @@ const entrepriseFr: AegisLandingCopy = {
 
 const entrepriseEn: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — Exocortex for companies",
+    title: "AEGIS — 30 questions sur la personne qui décide",
+    ogTitle: "AEGIS — Vous décidez seul. Personne ne relit vos décisions.",
     description:
-      "Each week AEGIS reads what the organisation actually does, compares it to its trajectory, and tells you where it drifts.",
+      "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.",
   },
   nav: { ...navEn, cta: "Request access" },
   hero: {

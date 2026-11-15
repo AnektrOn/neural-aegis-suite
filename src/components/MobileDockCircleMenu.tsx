@@ -46,6 +46,8 @@ type MobileDockCircleMenuProps = {
   hasActiveShortcut: boolean;
   /** Parent can lift nav z-index above the dim layer */
   onOpenChange?: (open: boolean) => void;
+  /** Larger, accent-filled hub — primary dock action */
+  emphasize?: boolean;
 };
 
 export function MobileDockCircleMenu({
@@ -54,6 +56,7 @@ export function MobileDockCircleMenu({
   menuTitle,
   hasActiveShortcut,
   onOpenChange,
+  emphasize = false,
 }: MobileDockCircleMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -194,7 +197,12 @@ export function MobileDockCircleMenu({
 
   return (
     <>
-      <div className="relative flex h-14 w-[52px] shrink-0 flex-col items-center justify-center overflow-visible">
+      <div
+        className={cn(
+          "relative flex shrink-0 flex-col items-center justify-center overflow-visible",
+          emphasize ? "h-16 w-[60px] -mt-2" : "h-14 w-[52px]",
+        )}
+      >
         <motion.button
           type="button"
           onClick={toggle}
@@ -202,13 +210,19 @@ export function MobileDockCircleMenu({
           aria-expanded={open}
           aria-haspopup="dialog"
           className={cn(
-            "relative z-[2] flex h-11 w-11 items-center justify-center rounded-full border shadow-[0_4px_18px_hsl(0_0%_0%/0.1)] outline-none transition-all duration-200 active:scale-95",
+            "relative z-[2] flex items-center justify-center rounded-full border outline-none transition-all duration-200 active:scale-95",
+            emphasize ? "h-14 w-14 shadow-[0_6px_22px_hsl(var(--primary)/0.28)]" : "h-11 w-11 shadow-[0_4px_18px_hsl(0_0%_0%/0.1)]",
             open
               ? "border-accent-primary bg-accent-primary text-primary-foreground shadow-[0_0_26px_hsl(var(--primary)/0.28)]"
-              : cn(
-                  "border-border-subtle bg-bg-elevated text-accent-primary hover:border-accent-primary/45 hover:bg-accent-primary/12",
-                  hasActiveShortcut && "ring-1 ring-accent-primary/40 ring-offset-2 ring-offset-background",
-                ),
+              : emphasize
+                ? cn(
+                    "border-accent-primary/55 bg-accent-primary text-primary-foreground hover:brightness-110",
+                    hasActiveShortcut && "ring-2 ring-accent-primary/50 ring-offset-2 ring-offset-background",
+                  )
+                : cn(
+                    "border-border-subtle bg-bg-elevated text-accent-primary hover:border-accent-primary/45 hover:bg-accent-primary/12",
+                    hasActiveShortcut && "ring-1 ring-accent-primary/40 ring-offset-2 ring-offset-background",
+                  ),
           )}
           style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" } as React.CSSProperties}
         >
@@ -222,7 +236,7 @@ export function MobileDockCircleMenu({
                 transition={{ duration: 0.17 }}
                 className="flex items-center justify-center"
               >
-                <X size={20} strokeWidth={1.75} aria-hidden />
+                <X size={emphasize ? 22 : 20} strokeWidth={1.75} aria-hidden />
               </motion.span>
             ) : (
               <motion.span
@@ -233,7 +247,7 @@ export function MobileDockCircleMenu({
                 transition={{ duration: 0.17 }}
                 className="flex items-center justify-center"
               >
-                <LayoutGrid size={19} strokeWidth={1.5} aria-hidden />
+                <LayoutGrid size={emphasize ? 22 : 19} strokeWidth={1.5} aria-hidden />
               </motion.span>
             )}
           </AnimatePresence>

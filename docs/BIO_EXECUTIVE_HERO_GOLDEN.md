@@ -36,6 +36,33 @@ Assets de référence (même conversation) :
 
 Fichier unique : `bioExecutiveHeroLabPresets.json` (tous les breakpoints + elements) → `buildDefaultHeroLabConfig()` dans `bioExecutiveHeroLabConfig.ts`.
 
+### Gabarits shell (hors canvas hero)
+
+Les **5 mêmes breakpoints** pilotent aussi footer / carousel / bento :
+
+- Détection partagée : `detectHeroBreakpoint()` + hook `useHeroBreakpoint()` (layout prod : **desktop uniquement si `≥1024px`**, plus `useIsMobile` à 768).
+- Tokens : `bioExecutiveShellPresets.ts` → variables CSS `--bio-shell-*` sur la racine `.aegis-bio-exec-lab--bp-<breakpoint>`.
+- Classes utilitaires : `aegis-bio-exec-lab__shell-*` dans `bioExecutiveDashboard.css`.
+
+Ajuster typo / touch targets par breakpoint dans `BIO_EXECUTIVE_SHELL_PRESETS`, pas des `text-[10px]` épars dans le JSX.
+
+### Gabarits physiques mobile (5 cadres QA)
+
+Distinct des 5 breakpoints layout (`desktop` … `mobileLandscape`) — tailles **viewport portrait** :
+
+| Clé | Px | Usage |
+|-----|-----|--------|
+| `compact` | 320×568 | WCAG / petits écrans |
+| `ios-standard` | 375×812 | SE / 8 / X |
+| `ios-modern` | 390×844 | **Défaut** · iPhone 12–16 (393→ bucket `ios-modern`) |
+| `android-standard` | 360×800 | Android courant |
+| `phablet` | 414×896 | Plus / Max |
+
+- Fichier : `bioExecutiveMobileDeviceGabarits.ts`
+- Lab : Hero Builder → onglets **Mob. portrait/paysage** → **Gabarit physique** (persisté session)
+- Prod : classe `aegis-bio-exec-lab--hero-device-*` + patch shell selon `innerWidth`
+- **Checklist 5×2** : Hero Builder (onglet Mob. *) → **QA gabarits · X/10** — cocher **P** (portrait) et **L** (paysage) par gabarit · `→` ouvre le cadre · persisté `localStorage` `aegis_bio_hero_gabarit_checklist_v1`
+
 ---
 
 ## Règles inébranlables

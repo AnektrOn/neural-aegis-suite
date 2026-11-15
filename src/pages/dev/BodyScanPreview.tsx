@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Scan, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import ThemeToggle from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale } from "@/i18n/translations";
@@ -110,7 +109,6 @@ export default function BodyScanPreview() {
               DEV ONLY
             </Badge>
           </div>
-          <ThemeToggle />
         </div>
       </header>
 

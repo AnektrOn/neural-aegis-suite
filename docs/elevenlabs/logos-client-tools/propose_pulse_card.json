@@ -1,0 +1,23 @@
+{
+  "type": "client",
+  "name": "propose_pulse_card",
+  "description": "Affiche une carte Pulse : assimilate (grimoire) ou ignore. Ne pas lire le contenu à la voix.",
+  "expects_response": true,
+  "response_timeout_secs": -1,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "card_id",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "UUID card_id de list_actionable_content ; si omis, première carte du deck.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    }
+  ]
+}

@@ -403,7 +403,7 @@ const ARCH_LABEL_FR: Record<AnyArchetypeKey, string> = {
   sovereign: "Sovereign", warrior: "Warrior", lover: "Lover", caregiver: "Caregiver",
   creator: "Creator", explorer: "Explorer", rebel: "Rebel", sage: "Sage",
   mystic: "Mystic", healer: "Healer", magician: "Magician", jester: "Jester",
-  child: "Child", victim: "Victim", saboteur: "Saboteur", prostitute: "Prostitute",
+  child: "Child", victim: "Victim", saboteur: "Saboteur", prostitute: "Prostituée",
 };
 
 function fmt(n: number): string {

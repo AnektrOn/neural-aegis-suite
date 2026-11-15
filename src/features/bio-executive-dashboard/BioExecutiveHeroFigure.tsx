@@ -34,6 +34,8 @@ type BioExecutiveHeroFigureProps = {
   setSelectedBioNode: (id: BioNodeId) => void;
   selectedNode: BioExecutiveViewModel["bioNodes"][BioNodeId];
   exocortexUi?: ExocortexHeroUi | null;
+  /** Prod mobile immersive: footer owns metrics — hide canvas panaches */
+  prodMobileChrome?: boolean;
 };
 
 type HeroNodeId = "nodeBrain" | "nodeHeart" | "nodeSolar";
@@ -61,6 +63,7 @@ export function BioExecutiveHeroFigure({
   setSelectedBioNode,
   selectedNode,
   exocortexUi = null,
+  prodMobileChrome = false,
 }: BioExecutiveHeroFigureProps) {
   const { locale } = useLanguage();
   const isFr = locale === "fr";
@@ -141,6 +144,7 @@ export function BioExecutiveHeroFigure({
         className={cn(
           "aegis-bio-exec-lab__hotspot touch-none",
           !heroLab && "aegis-bio-exec-lab__hotspot--mobile-hidden hidden lg:block",
+          prodMobileChrome && "hidden",
           labRing(labTarget === id, heroLab),
           heroLab && "cursor-grab active:cursor-grabbing",
           active && "aegis-bio-exec-lab__hotspot--active",
@@ -265,7 +269,7 @@ export function BioExecutiveHeroFigure({
         })}
       </div>
 
-      {!exocortexUi ? (
+      {!exocortexUi && !prodMobileChrome ? (
       <button
         type="button"
         onClick={() => onLabTargetSelect("sleepStats")}
@@ -291,7 +295,11 @@ export function BioExecutiveHeroFigure({
         onClick={() => onLabTargetSelect("metricCallout")}
         onPointerDown={onPointerDown("metricCallout")}
         {...boxProps("metricCallout")}
-        className={cn("relative z-20 aegis-bio-exec-lab__hero-metric flex flex-col items-end max-w-[45%]", boxClass("metricCallout"))}
+        className={cn(
+          "relative z-20 aegis-bio-exec-lab__hero-metric flex flex-col items-end max-w-[45%]",
+          boxClass("metricCallout"),
+          prodMobileChrome && "hidden",
+        )}
       >
         <button
           ref={metricRef}

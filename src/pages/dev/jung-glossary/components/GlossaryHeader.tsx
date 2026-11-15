@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Search, Layers, BookOpen, Grid, Upload, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ThemeToggle from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { DoctrinalFrontmatter } from "../doctrinalGlossaryTypes";
@@ -171,7 +170,6 @@ export default function GlossaryHeader({
             <Upload className="h-4 w-4" />
           </Button>
 
-          <ThemeToggle />
         </div>
       </div>
 

@@ -34,18 +34,22 @@ type TabId = "dashboard" | "journal";
 type FilterId = "all" | "pending" | "decided" | "deferred";
 
 const priorityTone = (p: number) => {
-  if (p >= 5) return "text-[#c9a24b] border-[#c9a24b]/40 bg-[#c9a24b]/10 font-mono";
-  if (p >= 3) return "text-amber-300 border-amber-400/30 bg-amber-400/10 font-mono";
-  return "text-muted-foreground border-white/5 bg-white/5 font-mono";
+  if (p >= 5)
+    return "font-mono text-[color:var(--aegis-gold)] border-[color:var(--aegis-gold)]/40 bg-[color:var(--aegis-gold)]/10";
+  if (p >= 3)
+    return "font-mono text-amber-800 border-amber-700/30 bg-amber-500/10 dark:text-amber-300 dark:border-amber-400/30 dark:bg-amber-400/10";
+  return "font-mono text-muted-foreground border-border bg-muted/40 dark:border-white/5 dark:bg-white/5";
 };
 
 function statusButtonClass(status: string, active: boolean) {
   if (!active) {
-    return "border-transparent bg-transparent text-muted-foreground/50 hover:border-white/10 hover:text-muted-foreground";
+    return "border-transparent bg-transparent text-muted-foreground/60 hover:border-border hover:text-muted-foreground dark:hover:border-white/10";
   }
-  if (status === "decided") return "border-[#c9a24b]/50 bg-[#c9a24b]/20 text-[#c9a24b] font-semibold shadow-sm";
-  if (status === "pending") return "border-amber-400/40 bg-amber-400/15 text-amber-300 font-semibold";
-  return "border-white/20 bg-white/10 text-foreground font-semibold";
+  if (status === "decided")
+    return "border-[color:var(--aegis-gold)]/50 bg-[color:var(--aegis-gold)]/15 text-[color:var(--aegis-gold)] font-semibold shadow-sm";
+  if (status === "pending")
+    return "border-amber-700/35 bg-amber-500/15 text-amber-900 font-semibold dark:border-amber-400/40 dark:bg-amber-400/15 dark:text-amber-300";
+  return "border-border bg-muted/50 text-foreground font-semibold dark:border-white/20 dark:bg-white/10";
 }
 
 export default function DecisionLog() {
@@ -166,8 +170,8 @@ export default function DecisionLog() {
     cn(
       "min-h-11 flex-1 rounded-xl border px-3 py-2.5 font-cinzel text-xs font-semibold uppercase tracking-[0.12em] transition-all duration-200",
       activeTab === id
-        ? "border-[#9e7828]/40 bg-[#9e7828]/10 text-[#9e7828] dark:border-[#c9a24b]/40 dark:bg-[#c9a24b]/15 dark:text-[#c9a24b]"
-        : "border-black/8 dark:border-white/8 bg-black/[0.02] dark:bg-white/[0.02] text-muted-foreground hover:border-[#c9a24b]/25",
+        ? "border-[color:var(--aegis-gold)]/45 bg-[color:var(--aegis-gold)]/12 text-[color:var(--aegis-gold)]"
+        : "border-border bg-card text-muted-foreground hover:border-[color:var(--aegis-gold)]/30",
     );
 
   if (isLoading && decisions.length === 0) {
@@ -191,7 +195,7 @@ export default function DecisionLog() {
       {/* Decision Telemetry Strip */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="aegis-dock-tile rounded-2xl p-3.5 text-center shadow-md">
-          <p className="font-cormorant text-2xl font-light text-amber-400 tabular-nums">
+          <p className="font-cormorant text-2xl font-light tabular-nums text-amber-800 dark:text-amber-400">
             {analytics.pendingCount}
           </p>
           <p className="font-cinzel text-[8.5px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">
@@ -199,7 +203,7 @@ export default function DecisionLog() {
           </p>
         </div>
         <div className="aegis-dock-tile rounded-2xl p-3.5 text-center shadow-md">
-          <p className="font-cormorant text-2xl font-light text-[#c9a24b] tabular-nums">
+          <p className="font-cormorant text-2xl font-light tabular-nums text-[color:var(--aegis-gold)]">
             {analytics.decidedThisWeek}
           </p>
           <p className="font-cinzel text-[8.5px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">
@@ -240,7 +244,7 @@ export default function DecisionLog() {
   const desktopRightPane = (
     <div className="space-y-4">
       {/* Filter pills */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 dark:border-white/[0.08]">
         <div className="flex flex-wrap gap-2">
           {filterPills.map((pill) => (
             <button
@@ -249,10 +253,10 @@ export default function DecisionLog() {
               onClick={() => setFilter(pill.id)}
               aria-pressed={filter === pill.id}
               className={cn(
-                "min-h-9 rounded-xl border px-3.5 py-1.5 font-cinzel text-[10px] font-semibold tracking-[0.14em] uppercase transition-all cursor-pointer",
+                "min-h-9 cursor-pointer rounded-xl border px-3.5 py-1.5 font-cinzel text-[10px] font-semibold uppercase tracking-[0.14em] transition-all",
                 filter === pill.id
-                  ? "border-[#c9a24b]/50 bg-[#c9a24b]/20 text-[#c9a24b] shadow-sm"
-                  : "border-white/5 bg-black/25 text-muted-foreground hover:border-white/15 hover:text-foreground",
+                  ? "border-[color:var(--aegis-gold)]/50 bg-[color:var(--aegis-gold)]/15 text-[color:var(--aegis-gold)] shadow-sm"
+                  : "border-border bg-muted/40 text-muted-foreground hover:border-[color:var(--aegis-gold)]/30 hover:text-foreground dark:border-white/5 dark:bg-black/25 dark:hover:border-white/15",
               )}
             >
               {pill.label}
@@ -339,9 +343,12 @@ export default function DecisionLog() {
 
   return (
     <MemberPageScaffold
-      width={isMobile ? "default" : "wide"}
+      width="full"
       viewport={!isMobile}
-      className={cn("space-y-6 md:space-y-8", !isMobile && "min-w-0 overflow-x-hidden")}
+      className={cn(
+        "space-y-6 md:space-y-8 max-lg:!pr-3 sm:max-lg:!pr-5",
+        !isMobile && "min-w-0 overflow-x-hidden",
+      )}
     >
       {isMobile ? (
         <>

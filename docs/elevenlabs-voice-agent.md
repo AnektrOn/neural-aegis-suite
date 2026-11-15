@@ -26,6 +26,13 @@ import { VoiceAgent } from "@/components/voice/VoiceAgent";
 
 Uses `@elevenlabs/react` with a WebRTC `conversationToken` from `agent-session`.
 
+## LOGOS client tools (pilote)
+
+- Agent pilote : `agent_5601m6tdhgsbftsvtkz20d9grfvj`
+- Spec outils : [`logos-client-tools-spec.md`](./logos-client-tools-spec.md)
+- Sync workflow : [`logos-workflow-pilot-sync.md`](./logos-workflow-pilot-sync.md)
+- Routes : `/welcome/voice-agent`, `/logos` (membre)
+
 ## Deploy
 
 1. Apply migration `20261107130000_user_agents_voice_session.sql`.

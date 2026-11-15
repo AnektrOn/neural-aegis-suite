@@ -1,0 +1,34 @@
+{
+  "type": "client",
+  "name": "open_toolbox_item",
+  "description": "Ouvre un exercice toolbox dans AEGIS. L'utilisateur fait la pratique seul dans l'UI — ne pas dérouler les étapes à la voix. Attend la fermeture du modal.",
+  "expects_response": true,
+  "response_timeout_secs": -1,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "assignment_id",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "UUID assignment_id retourné par list_actionable_content.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    },
+    {
+      "id": "slug",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "Fragment du titre si UUID inconnu.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": false
+    }
+  ]
+}

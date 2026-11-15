@@ -123,7 +123,7 @@ export default {
         },
         aegis: {
           warm: "hsl(var(--aegis-warm))",
-          copper: "hsl(var(--aegis-copper))",
+          copper: "hsl(var(--aegis-copper-hsl))",
           s1: "hsl(var(--aegis-s1))",
         },
         metric: {

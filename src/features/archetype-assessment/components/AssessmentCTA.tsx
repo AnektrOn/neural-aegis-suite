@@ -7,7 +7,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { getLatestSubmittedSessionForUser } from "@/features/archetype-assessment/services/assessmentService";
 
-export function AssessmentCTA() {
+export function AssessmentCTA({
+  suppressIfOnboarding = false,
+}: {
+  suppressIfOnboarding?: boolean;
+}) {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [done, setDone] = useState<boolean | null>(null);
@@ -30,7 +34,7 @@ export function AssessmentCTA() {
     };
   }, [user?.id]);
 
-  if (done) return null;
+  if (done || suppressIfOnboarding) return null;
 
   return (
     <Card className="p-5 backdrop-blur-3xl bg-card/40 border-border/40">

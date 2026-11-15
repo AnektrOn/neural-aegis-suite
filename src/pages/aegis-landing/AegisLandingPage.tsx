@@ -46,8 +46,11 @@ function LandingHelmet() {
     <Helmet>
       <title>{copy.meta.title}</title>
       <meta name="description" content={copy.meta.description} />
-      <meta property="og:title" content={copy.meta.title} />
+      <meta property="og:title" content={copy.meta.ogTitle} />
       <meta property="og:description" content={copy.meta.description} />
+      <meta property="og:locale" content="fr_FR" />
+      <meta name="twitter:title" content={copy.meta.ogTitle} />
+      <meta name="twitter:description" content={copy.meta.description} />
       <meta name="theme-color" content="#f3eeec" />
     </Helmet>
   );

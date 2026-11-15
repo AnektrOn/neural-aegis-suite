@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Plus, Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Save } from "lucide-react";
 import { decisionFieldClass, decisionLabelClass } from "@/components/decisions/DecisionLogUi";
 import { cn } from "@/lib/utils";
 
@@ -32,10 +31,13 @@ export function DecisionQuickForm({ onSubmit, isPending, labels }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="aegis-dock-tile space-y-4 rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
-      <div className="flex items-center gap-2 border-b border-white/[0.08] pb-2.5">
-        <div className="w-1.5 h-3.5 rounded-full bg-[#c9a24b]" />
-        <h2 className="font-cinzel text-[10.5px] font-semibold tracking-[0.2em] uppercase text-[#c9a24b]">
+    <form
+      onSubmit={handleSubmit}
+      className="aegis-dock-tile space-y-4 rounded-2xl p-5 shadow-[0_8px_28px_rgba(20,20,18,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
+    >
+      <div className="flex items-center gap-2 border-b border-border pb-2.5 dark:border-white/[0.08]">
+        <div className="h-3.5 w-1.5 rounded-full bg-[color:var(--aegis-gold)]" />
+        <h2 className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.2em] text-[color:var(--aegis-gold)]">
           {labels.title}
         </h2>
       </div>
@@ -64,10 +66,10 @@ export function DecisionQuickForm({ onSubmit, isPending, labels }: Props) {
               onClick={() => setPriority(p)}
               aria-pressed={priority === p}
               className={cn(
-                "min-h-10 min-w-10 rounded-xl border px-3 text-xs font-mono font-semibold tabular-nums transition-all cursor-pointer",
+                "min-h-10 min-w-10 cursor-pointer rounded-xl border px-3 font-mono text-xs font-semibold tabular-nums transition-all",
                 priority === p
-                  ? "border-[#c9a24b]/60 bg-[#c9a24b]/20 text-[#c9a24b] shadow-[0_0_12px_rgba(201,162,75,0.2)]"
-                  : "border-white/10 bg-black/25 text-muted-foreground hover:border-white/20 hover:text-foreground",
+                  ? "border-[color:var(--aegis-gold)]/60 bg-[color:var(--aegis-gold)]/15 text-[color:var(--aegis-gold)] shadow-sm"
+                  : "border-border bg-muted/40 text-muted-foreground hover:border-[color:var(--aegis-gold)]/35 hover:text-foreground dark:border-white/10 dark:bg-black/25",
               )}
             >
               P{p}
@@ -78,7 +80,7 @@ export function DecisionQuickForm({ onSubmit, isPending, labels }: Props) {
       <button
         type="submit"
         disabled={isPending || !name.trim()}
-        className="btn-solaire w-full py-2.5 rounded-xl font-cinzel text-xs uppercase tracking-[0.16em] font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+        className="btn-solaire flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl py-2.5 font-cinzel text-xs font-semibold uppercase tracking-[0.16em] shadow-md disabled:opacity-50"
       >
         <Save className="size-3.5" aria-hidden />
         <span>{labels.save}</span>
@@ -98,10 +100,10 @@ export function DecisionQuickAddFab({
     <button
       type="button"
       onClick={onClick}
+      className="btn-solaire fixed bottom-[calc(var(--mobile-dock-padding)+0.75rem)] right-4 z-[55] min-h-12 rounded-full px-4 shadow-lg md:hidden"
       aria-label={label}
-      className="fixed bottom-[calc(var(--safe-bottom)+5.5rem)] right-4 z-30 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_24px_hsl(var(--primary)/0.45)] transition-transform hover:scale-105 active:scale-95 md:hidden"
     >
-      <Plus className="size-6" aria-hidden />
+      {label}
     </button>
   );
 }

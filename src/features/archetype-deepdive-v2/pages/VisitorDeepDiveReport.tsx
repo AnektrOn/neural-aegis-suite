@@ -19,6 +19,7 @@ import { DeepDiveUserCards } from "../components/DeepDiveUserCards";
 import { useDeepDiveProfile } from "../hooks/useDeepDiveProfile";
 import { buildUserReport } from "../domain/sampleProfile";
 import { exportDeepDiveVisualPdf, exportDeepDivePng } from "../services/exportDeepDiveScreenshot";
+import { LIEN_PAIEMENT_LECTURE } from "@/pages/aegis-landing/landingCtaHrefs";
 
 export default function VisitorDeepDiveReport() {
   const { user } = useAuth();
@@ -29,6 +30,38 @@ export default function VisitorDeepDiveReport() {
   const exportRef = useRef<HTMLDivElement>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingPng, setExportingPng] = useState(false);
+  /** Stack all sections for capture so tabs don't overlap / hide content. */
+  const [captureLayout, setCaptureLayout] = useState(false);
+
+  const waitForCaptureLayout = async () => {
+    setCaptureLayout(true);
+    const root = exportRef.current;
+    const parent = root?.parentElement;
+    if (parent) {
+      parent.dataset.exportPrevMaxWidth = parent.style.maxWidth;
+      parent.dataset.exportPrevWidth = parent.style.width;
+      parent.style.maxWidth = "none";
+      parent.style.width = "1280px";
+    }
+    if (root) root.classList.add("deep-dive-jpeg-capture-active");
+    document.body.classList.add("deep-dive-jpeg-capture-active");
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    await new Promise<void>((r) => setTimeout(r, 700));
+  };
+
+  const restoreCaptureLayoutShell = () => {
+    const root = exportRef.current;
+    const parent = root?.parentElement;
+    if (parent) {
+      parent.style.maxWidth = parent.dataset.exportPrevMaxWidth ?? "";
+      parent.style.width = parent.dataset.exportPrevWidth ?? "";
+      delete parent.dataset.exportPrevMaxWidth;
+      delete parent.dataset.exportPrevWidth;
+    }
+    root?.classList.remove("deep-dive-jpeg-capture-active");
+    document.body.classList.remove("deep-dive-jpeg-capture-active");
+    setCaptureLayout(false);
+  };
 
   useEffect(() => {
     guardian?.markQuizComplete();
@@ -40,12 +73,15 @@ export default function VisitorDeepDiveReport() {
     locale,
   });
 
-  const reportSubject = profile?.label || (isFR ? "Ton profil" : "Your profile");
+  const reportSubject = profile?.label || (isFR ? "Votre profil" : "Your profile");
   const userReport = useMemo(() => {
     if (!profile) return "";
     const full = buildUserReport(profile, locale);
     // Strip "Recommended practices" / "Pratiques recommandées" section (hidden for visitors)
-    return full.replace(/\n## (?:Pratiques recommandées|Recommended practices)[\s\S]*$/m, "\n").trimEnd();
+    // Also strip survival archetype name lines for visitor exports (names stay off-screen).
+    return full
+      .replace(/\n## (?:Pratiques recommandées|Recommended practices)[\s\S]*$/m, "\n")
+      .trimEnd();
   }, [profile, locale]);
 
   const handleExportPdf = async () => {
@@ -53,6 +89,7 @@ export default function VisitorDeepDiveReport() {
     if (!el || !profile || exportingPdf || exportingPng) return;
     setExportingPdf(true);
     try {
+      await waitForCaptureLayout();
       await exportDeepDiveVisualPdf(el, reportSubject, { kind: "user", isFR });
       toast({
         title: t("visitor.report.exportPdfSuccess"),
@@ -66,6 +103,7 @@ export default function VisitorDeepDiveReport() {
         variant: "destructive",
       });
     } finally {
+      restoreCaptureLayoutShell();
       setExportingPdf(false);
     }
   };
@@ -75,6 +113,7 @@ export default function VisitorDeepDiveReport() {
     if (!el || !profile || exportingPdf || exportingPng) return;
     setExportingPng(true);
     try {
+      await waitForCaptureLayout();
       await exportDeepDivePng(el, reportSubject, { kind: "user", isFR });
       toast({
         title: t("visitor.report.exportPngSuccess"),
@@ -88,14 +127,15 @@ export default function VisitorDeepDiveReport() {
         variant: "destructive",
       });
     } finally {
+      restoreCaptureLayoutShell();
       setExportingPng(false);
     }
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 pb-28 space-y-6">
+    <div className="mx-auto max-w-4xl px-4 py-8 pb-36 space-y-6">
       {/* Fixed warning banner */}
-      <div className="fixed top-14 left-0 right-0 z-30 bg-accent-warning/10 border-b border-accent-warning/30 backdrop-blur-md">
+      <div className="fixed top-14 left-0 right-0 z-30 bg-accent-warning/10 border-b border-accent-warning/30 backdrop-blur-md" data-export-hide>
         <div className="max-w-4xl mx-auto px-4 py-2 flex items-center gap-2 text-accent-warning text-[11px] sm:text-xs">
           <AlertTriangle size={14} strokeWidth={1.5} className="shrink-0" />
           <span className="leading-snug">
@@ -185,13 +225,47 @@ export default function VisitorDeepDiveReport() {
       )}
 
       {!loading && !error && profile && (
-        <DeepDiveUserCards profile={profile} hidePractices />
+        <DeepDiveUserCards
+          profile={profile}
+          hidePractices
+          visitorResultMode
+          layout={captureLayout ? "stack" : "tabs"}
+        />
       )}
       </div>
 
+      {!loading && !error && profile ? (
+        <Card
+          data-export-hide
+          className="p-6 sm:p-8 space-y-4 backdrop-blur-3xl bg-white/[0.04] border border-primary/25"
+        >
+          <h2 className="font-display text-xl tracking-[0.12em] uppercase text-text-primary">
+            {t("visitor.report.lectureTitle")}
+          </h2>
+          <p className="text-sm text-text-secondary leading-relaxed">{t("visitor.report.lectureBody")}</p>
+          <Button className="w-full min-h-[44px]" asChild>
+            <a href={LIEN_PAIEMENT_LECTURE}>{t("visitor.report.lectureCta")}</a>
+          </Button>
+          <Button variant="outline" className="w-full min-h-[44px]" asChild>
+            <Link to="/auth?upgrade=1&redirect=%2Fvisitor%2Freport">
+              {t("visitor.report.createAccount")}
+            </Link>
+          </Button>
+          <p className="text-center pt-1">
+            <Link
+              to="/deep-dive"
+              className="text-[11px] text-text-tertiary underline-offset-4 hover:text-text-secondary hover:underline"
+            >
+              {t("visitor.report.deepDiveLink")}
+            </Link>
+          </p>
+        </Card>
+      ) : null}
+
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-bg-base/95 backdrop-blur-md p-4"
+        className="visitor-report-sticky-bar fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-bg-base p-4"
         style={{ paddingBottom: "calc(var(--safe-bottom, 0px) + 1rem)" }}
+        data-export-hide
       >
         <div className="max-w-4xl mx-auto">
           <Button variant="outline" className="w-full" asChild>

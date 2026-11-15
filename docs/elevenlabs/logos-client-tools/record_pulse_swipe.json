@@ -1,0 +1,34 @@
+{
+  "type": "client",
+  "name": "record_pulse_swipe",
+  "description": "Enregistre assimilated ou ignored sans modal complet.",
+  "expects_response": true,
+  "response_timeout_secs": 20,
+  "execution_mode": "immediate",
+  "assignments": [],
+  "dynamic_variables": { "dynamic_variable_placeholders": {} },
+  "parameters": [
+    {
+      "id": "card_id",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "UUID de la carte Pulse.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": true
+    },
+    {
+      "id": "action",
+      "type": "string",
+      "value_type": "llm_prompt",
+      "description": "assimilated ou ignored exactement.",
+      "dynamic_variable": "",
+      "constant_value": "",
+      "enum": null,
+      "is_system_provided": false,
+      "required": true
+    }
+  ]
+}

@@ -7,7 +7,6 @@ import {
   Check,
   ChevronRight,
   Heart,
-  Leaf,
   ShieldCheck,
   Sparkles,
   Zap,
@@ -43,6 +42,18 @@ import {
 import { useBioExecutiveCarouselPointer } from "./useBioExecutiveCarouselPointer";
 import type { BioExecutiveHabitRow, BioExecutiveViewModel, BioNodeId } from "./types";
 import type { HeroBreakpointKey } from "./bioExecutiveHeroLabConfig";
+import {
+  BIO_EXECUTIVE_SHELL_PRESETS,
+  shellBreakpointClassName,
+  shellPresetToStyle,
+} from "./bioExecutiveShellPresets";
+import {
+  detectMobileDeviceGabaritKey,
+  getMobileDeviceGabarit,
+  heroMobileDeviceGabaritClassName,
+  mobileDeviceGabaritPreviewStyle,
+  resolveMobileShellPreset,
+} from "./bioExecutiveMobileDeviceGabarits";
 
 const CALM_STORAGE_KEY = "aegis_bio_exec_calm_v1";
 
@@ -66,6 +77,8 @@ export type BioExecutiveMobileDashboardProps = {
   exocortexUi?: ExocortexHeroUi | null;
   /** Prod `/dashboard` : plein viewport (pas de carte 1480) ; sans header lab legacy */
   immersiveAppShell?: boolean;
+  /** Progressive disclosure: metrics carousel from 40%, habits bento from 60% (mobile). */
+  maturityCompletionScore?: number;
 };
 
 export function BioExecutiveMobileDashboard({
@@ -83,6 +96,7 @@ export function BioExecutiveMobileDashboard({
   silhouetteLab = false,
   exocortexUi = null,
   immersiveAppShell = false,
+  maturityCompletionScore = 100,
 }: BioExecutiveMobileDashboardProps) {
   const { locale, t } = useLanguage();
   const heroLocale = locale === "fr" ? "fr" : "en";
@@ -108,8 +122,30 @@ export function BioExecutiveMobileDashboard({
   const heroFigureRef = useRef<HTMLDivElement>(null);
   const [labTarget, setLabTarget] = useState<DragTarget>("silhouette");
   const [heroBuilderOpen, setHeroBuilderOpen] = useState(loadHeroLabEditorOpen);
-  const { config, persist, editBreakpoint, setEditBreakpoint, previewBreakpoint, viewportDisplay, setViewportDisplay } =
-    useHeroLabConfig(heroLabEnabled);
+  const {
+    config,
+    persist,
+    editBreakpoint,
+    setEditBreakpoint,
+    previewBreakpoint,
+    viewportDisplay,
+    setViewportDisplay,
+    mobileDeviceGabarit,
+    setMobileDeviceGabarit,
+  } = useHeroLabConfig(heroLabEnabled);
+  const [viewportWidthPx, setViewportWidthPx] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 390,
+  );
+  useEffect(() => {
+    const sync = () => setViewportWidthPx(window.innerWidth);
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
+  }, []);
   const heroPreviewFrameKey =
     heroLabEnabled && heroBuilderOpen ? resolveHeroLabPreviewFrameKey(viewportDisplay, editBreakpoint) : null;
   const heroPreviewDeviceFrameKey =
@@ -137,6 +173,28 @@ export function BioExecutiveMobileDashboard({
     [setEditBreakpoint, setViewportDisplay],
   );
   const heroSlice = config[heroLabConfigKey];
+  const layoutUsesMobileGabarit =
+    heroLabConfigKey === "mobilePortrait" || heroLabConfigKey === "mobileLandscape";
+  const activeMobileDeviceGabarit = heroLabEnabled
+    ? mobileDeviceGabarit
+    : detectMobileDeviceGabaritKey(viewportWidthPx);
+  const shellPreset = resolveMobileShellPreset(
+    heroLabConfigKey,
+    BIO_EXECUTIVE_SHELL_PRESETS[heroLabConfigKey],
+    heroLabEnabled ? getMobileDeviceGabarit(activeMobileDeviceGabarit).widthPx : viewportWidthPx,
+  );
+  const labDevicePreviewStyle =
+    heroLabEnabled &&
+    heroBuilderOpen &&
+    layoutUsesMobileGabarit &&
+    heroPreviewFrameKey != null &&
+    (heroPreviewFrameKey === "mobilePortrait" || heroPreviewFrameKey === "mobileLandscape")
+      ? mobileDeviceGabaritPreviewStyle(
+          mobileDeviceGabarit,
+          heroPreviewFrameKey === "mobileLandscape" ? "landscape" : "portrait",
+        )
+      : undefined;
+  const shellStyle = { ...shellPresetToStyle(shellPreset), ...labDevicePreviewStyle };
   const heroOverlayVisualActive =
     heroSlice.overlay.enabled || (heroLabEnabled && labTarget === "overlay");
   const heroOverlayBackdropActive =
@@ -298,6 +356,9 @@ export function BioExecutiveMobileDashboard({
     viewModel.levelDeltaLabel ??
     (progressPercentage > 0 ? `+${progressPercentage}% auj.` : null);
 
+  const showMetricsCarousel = desktopLayout || maturityCompletionScore >= 40;
+  const showHabitsBentoGrid = desktopLayout || maturityCompletionScore >= 60;
+
   const bioGlowVar =
     selectedBioNode === "brain"
       ? "var(--bio-glow-brain)"
@@ -314,10 +375,17 @@ export function BioExecutiveMobileDashboard({
         calmMode && "aegis-bio-exec-lab--calm",
         desktopLayout && "aegis-bio-exec-lab--desktop aegis-bio-exec-lab--neka",
         immersiveAppShell && "aegis-bio-exec-lab--immersive-viewport",
-        immersiveAppShell && !embedInFrame && "min-h-[100dvh]",
+        immersiveAppShell && !embedInFrame && "lg:min-h-[100dvh]",
         heroLabEnabled && heroBuilderOpen && "aegis-bio-exec-lab--hero-builder-open",
+        shellBreakpointClassName(heroLabConfigKey),
+        immersiveAppShell &&
+          shellPreset.prodMobileHeroChrome &&
+          !heroLabEnabled &&
+          "aegis-bio-exec-lab--prod-mobile-chrome",
+        layoutUsesMobileGabarit && heroMobileDeviceGabaritClassName(activeMobileDeviceGabarit),
         ...(heroPreviewFrameKey ? heroLabPreviewFrameClassNames(heroPreviewFrameKey) : []),
       )}
+      style={shellStyle}
     >
       <div
         ref={previewFrameRef}
@@ -326,7 +394,7 @@ export function BioExecutiveMobileDashboard({
           embedInFrame ? "max-w-[1440px] mx-auto rounded-[28px] sm:rounded-[36px] aegis-bio-exec-lab__embed-shadow" : "rounded-none border-0 shadow-none",
           heroPreviewSplitChrome && "aegis-bio-exec-lab__frame--preview-split max-w-none mx-0",
           desktopLayout && !embedInFrame && !immersiveAppShell && "lg:max-w-[1480px] lg:mx-auto lg:my-4 lg:rounded-[32px] lg:border lg:border-[color:var(--bio-frame-border)] lg:shadow-[0_28px_90px_hsl(var(--foreground)/0.07)]",
-          immersiveAppShell && !embedInFrame && "h-[100dvh] min-h-[100dvh] w-full max-w-none rounded-none border-0 shadow-none lg:mx-0 lg:my-0",
+          immersiveAppShell && !embedInFrame && "w-full max-w-none rounded-none border-0 shadow-none lg:h-[100dvh] lg:min-h-[100dvh] lg:mx-0 lg:my-0",
         )}
       >
         {!immersiveAppShell || heroLabEnabled ? (
@@ -410,6 +478,7 @@ export function BioExecutiveMobileDashboard({
               className={cn(
                 "aegis-bio-exec-lab__hero-canvas relative flex flex-col flex-1 min-h-0 overflow-visible",
                 immersiveAppShell && desktopLayout && "lg:absolute lg:inset-0",
+                immersiveAppShell && !desktopLayout && "max-lg:flex-1 max-lg:min-h-0",
               )}
             >
               <BioExecutiveHeroTitles
@@ -424,6 +493,9 @@ export function BioExecutiveMobileDashboard({
                 exocortexConstatTitle={desktopLayout ? exocortexUi?.constatTitle : null}
                 showAiTransparency={showAiTransparency}
                 onToggleAiTransparency={() => setShowAiTransparency(!showAiTransparency)}
+                prodMobileChrome={
+                  immersiveAppShell && shellPreset.prodMobileHeroChrome && !heroLabEnabled
+                }
               />
 
               {showAiTransparency && (
@@ -452,7 +524,9 @@ export function BioExecutiveMobileDashboard({
                   "aegis-bio-exec-lab__hero-stage relative flex flex-1 min-h-0 items-center justify-center overflow-visible",
                   immersiveAppShell && desktopLayout
                     ? "my-0 min-h-[min(62dvh,640px)] h-full lg:min-h-0"
-                    : "my-1 sm:my-6 min-h-[290px] sm:min-h-[380px]",
+                    : immersiveAppShell && !desktopLayout
+                      ? "my-0 max-lg:min-h-0"
+                      : "my-1 sm:my-6 min-h-[290px] sm:min-h-[380px]",
                   heroPreviewStackedChrome && "aegis-bio-exec-lab__hero-stage--preview-compact",
                   heroPreviewSplitChrome && "aegis-bio-exec-lab__hero-stage--preview-split min-h-0 sm:min-h-0",
                 )}
@@ -471,6 +545,9 @@ export function BioExecutiveMobileDashboard({
                   setSelectedBioNode={setSelectedBioNode}
                   selectedNode={selectedNode}
                   exocortexUi={desktopLayout ? exocortexUi : null}
+                  prodMobileChrome={
+                    immersiveAppShell && shellPreset.prodMobileHeroChrome && !heroLabEnabled
+                  }
                 />
               </div>
             </div>
@@ -480,8 +557,8 @@ export function BioExecutiveMobileDashboard({
             <div
               className={cn(
                 "aegis-bio-exec-lab__hero-footer-chrome z-20 space-y-2.5 pt-2 sm:pt-3 lg:border-t-0 border-t border-[color:var(--bio-frame-border)] lg:mb-2",
-                immersiveAppShell && desktopLayout
-                  ? "relative lg:absolute lg:inset-x-0 lg:bottom-0 lg:mb-0 lg:border-t-0"
+                immersiveAppShell
+                  ? "relative max-lg:mt-auto max-lg:border-t-0 lg:absolute lg:inset-x-0 lg:bottom-0 lg:mb-0 lg:border-t-0"
                   : "relative",
               )}
             >
@@ -493,8 +570,16 @@ export function BioExecutiveMobileDashboard({
                 />
               ) : (
                 <div className="flex flex-col gap-2">
+                  {immersiveAppShell && !heroLabEnabled ? (
+                    <div className="px-1 text-center" aria-live="polite">
+                      <p className="m-0 font-light text-[2rem] leading-none tabular-nums tracking-tight">
+                        {selectedNode.metric}
+                        <span className="ml-0.5 text-base opacity-45">{selectedNode.unit}</span>
+                      </p>
+                    </div>
+                  ) : null}
                   {/* Clean Mobile Bio-Node Switcher */}
-                  <div className="flex items-center justify-between p-1 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md shadow-sm">
+                  <div className="flex items-center justify-between rounded-xl border border-border bg-card/90 p-1 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-black/40">
                     {(
                       [
                         ["brain", "Cognition", Brain],
@@ -509,13 +594,16 @@ export function BioExecutiveMobileDashboard({
                           type="button"
                           onClick={() => setSelectedBioNode(id)}
                           className={cn(
-                            "flex-1 py-1.5 px-2 rounded-lg text-xs font-cinzel uppercase tracking-[0.12em] font-medium transition-all text-center flex items-center justify-center gap-1.5 min-h-[38px]",
+                            "aegis-bio-exec-lab__shell-footer-bionode flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center font-cinzel font-medium uppercase tracking-[0.12em] transition-all",
                             active
-                              ? "bg-[#c9a24b]/20 text-[#c9a24b] border border-[#c9a24b]/40 shadow-sm font-semibold"
+                              ? "border border-[color:var(--aegis-gold)]/40 bg-[color:var(--aegis-gold)]/15 font-semibold text-[color:var(--aegis-gold)] shadow-sm"
                               : "text-muted-foreground hover:text-foreground",
                           )}
                         >
-                          <Icon size={14} className={active ? "text-[#c9a24b]" : "text-muted-foreground"} />
+                          <Icon
+                            size={14}
+                            className={active ? "text-[color:var(--aegis-gold)]" : "text-muted-foreground"}
+                          />
                           <span>{label}</span>
                         </button>
                       );
@@ -524,13 +612,13 @@ export function BioExecutiveMobileDashboard({
 
                   {/* Cadence Status & Quick Action */}
                   <div className="flex items-center justify-between gap-3 px-1">
-                    <p className="font-sans text-[11px] text-muted-foreground leading-relaxed flex-1 line-clamp-2">
+                    <p className="aegis-bio-exec-lab__shell-footer-detail line-clamp-2 flex-1 font-sans leading-relaxed text-muted-foreground">
                       {heroDetailDesc}
                     </p>
                     <button
                       type="button"
                       onClick={onQuickLogOpen}
-                      className="shrink-0 px-2.5 py-1.5 rounded-lg border border-[#c9a24b]/30 bg-[#c9a24b]/10 text-[#c9a24b] font-cinzel text-[10px] uppercase tracking-wider font-semibold hover:bg-[#c9a24b]/20 transition-all flex items-center gap-1 min-h-[32px]"
+                      className="aegis-bio-exec-lab__shell-footer-quicklog flex shrink-0 items-center gap-1 rounded-lg border border-[color:var(--aegis-gold)]/35 bg-[color:var(--aegis-gold)]/10 px-2.5 py-1.5 font-cinzel font-semibold uppercase tracking-wider text-[color:var(--aegis-gold)] transition-all hover:bg-[color:var(--aegis-gold)]/20"
                     >
                       <Sparkles size={11} />
                       <span>{t("dashboard.mobileLogNow") || "Quick-Log"}</span>
@@ -581,38 +669,12 @@ export function BioExecutiveMobileDashboard({
                   : "gap-3",
               )}
             >
-            {!heroPreviewStackedChrome ? (
-            <div className="lg:hidden px-1 pb-2 pt-1">
-              <button
-                type="button"
-                onClick={onQuickLogOpen}
-                className="dashboard-cta w-full select-none min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--bio-warm)_14%,transparent)]">
-                    <span className="h-2 w-2 rounded-full bg-[var(--bio-warm)]" />
-                  </div>
-                  <div className="min-w-0 text-left">
-                    <p className="font-barlow text-[14px] font-medium leading-snug">{quickLogTitle}</p>
-                    <p className="mt-1 font-barlow text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80">
-                      {quickLogSubtitle}
-                    </p>
-                  </div>
-                </div>
-                <span className="shrink-0 text-2xl font-light text-primary/45" aria-hidden>
-                  ›
-                </span>
-              </button>
-            </div>
-            ) : null}
-
             {desktopLayout && !heroPreviewStackedChrome && !heroPreviewSplitChrome ? (
               <BioExecutiveSignalBanner viewModel={viewModel} className="px-1 lg:px-0" />
             ) : null}
 
-            {!heroPreviewCompactChrome ? (
-              <div className="aegis-bio-exec-lab__lab-mobile-carousel-label flex lg:hidden items-center justify-between px-1 pt-0.5 text-[10px] uppercase tracking-widest opacity-50 font-semibold">
+            {showMetricsCarousel && !heroPreviewCompactChrome ? (
+              <div className="aegis-bio-exec-lab__lab-mobile-carousel-label aegis-bio-exec-lab__shell-carousel-label flex lg:hidden items-center justify-between px-1 pt-0.5 uppercase tracking-widest opacity-50 font-semibold">
                 <span>Métriques clés (glisser →)</span>
                 <span>
                   {carouselIndex + 1} / {carouselSlideCount}
@@ -620,7 +682,7 @@ export function BioExecutiveMobileDashboard({
               </div>
             ) : null}
 
-            {!desktopLayout || heroPreviewStackedChrome ? (
+            {showMetricsCarousel && (!desktopLayout || heroPreviewStackedChrome) ? (
             <div
               className={cn(
                 "aegis-bio-exec-lab__metrics-carousel-shell relative min-h-0 min-w-0",
@@ -645,7 +707,9 @@ export function BioExecutiveMobileDashboard({
                       habits,
                       calmMode,
                       slideProps: { "data-bento-slide": index },
-                      className: heroPreviewStackedChrome ? previewCarouselTileClass : "min-w-[82vw] snap-center",
+                      className: heroPreviewStackedChrome
+                        ? previewCarouselTileClass
+                        : "aegis-bio-exec-lab__shell-carousel-slide snap-center",
                     }),
                   )}
                 </>
@@ -658,7 +722,11 @@ export function BioExecutiveMobileDashboard({
                     scoreChartPoints={scoreChartPoints}
                     calmMode={calmMode}
                     slideProps={{ "data-bento-slide": 0 }}
-                    className={heroPreviewStackedChrome ? previewCarouselTileClass : "min-w-[82vw] snap-center"}
+                    className={
+                      heroPreviewStackedChrome
+                        ? previewCarouselTileClass
+                        : "aegis-bio-exec-lab__shell-carousel-slide snap-center"
+                    }
                   />
                   <BioExecutiveScoreTile
                     viewModel={viewModel}
@@ -667,7 +735,11 @@ export function BioExecutiveMobileDashboard({
                     scoreChartPoints={scoreChartPoints}
                     calmMode={calmMode}
                     slideProps={{ "data-bento-slide": 1 }}
-                    className={heroPreviewStackedChrome ? previewCarouselTileClass : "min-w-[82vw] snap-center"}
+                    className={
+                      heroPreviewStackedChrome
+                        ? previewCarouselTileClass
+                        : "aegis-bio-exec-lab__shell-carousel-slide snap-center"
+                    }
                   />
                   <BioExecutiveDecisionTile
                     viewModel={viewModel}
@@ -676,7 +748,11 @@ export function BioExecutiveMobileDashboard({
                     scoreChartPoints={scoreChartPoints}
                     calmMode={calmMode}
                     slideProps={{ "data-bento-slide": 2 }}
-                    className={heroPreviewStackedChrome ? previewCarouselTileClass : "min-w-[82vw] snap-center"}
+                    className={
+                      heroPreviewStackedChrome
+                        ? previewCarouselTileClass
+                        : "aegis-bio-exec-lab__shell-carousel-slide snap-center"
+                    }
                   />
                 </>
               )}
@@ -713,12 +789,12 @@ export function BioExecutiveMobileDashboard({
               </div>
             ) : null}
 
-            {!desktopLayout ? (
+            {showHabitsBentoGrid && !desktopLayout ? (
             <div className="grid grid-cols-2 lg:grid-cols-2 gap-2.5 lg:gap-4">
-              <div className="aegis-bio-exec-lab__bento aegis-bio-exec-lab__bento-habits col-span-1 rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between min-h-[175px] sm:min-h-[195px] lg:min-h-[160px] shadow-sm transition-all duration-500">
+              <div className="aegis-bio-exec-lab__bento aegis-bio-exec-lab__bento-habits aegis-bio-exec-lab__shell-bento-card col-span-1 rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between shadow-sm transition-all duration-500">
                 <div className="flex items-center justify-between text-xs aegis-bio-exec-lab__bento-subtle">
                   <span className="font-medium">Habitudes</span>
-                  <span className="font-mono text-[10px] sm:text-[11px] bg-primary-muted px-1.5 sm:px-2 py-0.5 rounded-full">
+                  <span className="aegis-bio-exec-lab__shell-bento-chip font-mono bg-primary-muted px-1.5 sm:px-2 py-0.5 rounded-full">
                     {completedHabitsCount}/{habits.length}
                   </span>
                 </div>
@@ -729,7 +805,7 @@ export function BioExecutiveMobileDashboard({
                       key={h.id}
                       type="button"
                       onClick={() => onToggleHabit(h.id)}
-                      className="w-full flex items-center justify-between text-left text-[10px] sm:text-[11px] py-1 px-1.5 sm:px-2 rounded-lg aegis-bio-exec-lab__bento-chip hover:opacity-90 backdrop-blur-sm transition-all"
+                      className="aegis-bio-exec-lab__shell-bento-chip w-full flex items-center justify-between text-left py-1 px-1.5 sm:px-2 rounded-lg aegis-bio-exec-lab__bento-chip hover:opacity-90 backdrop-blur-sm transition-all"
                     >
                       <span className={`truncate pr-1 ${h.done ? "line-through opacity-65" : "font-medium"}`}>
                         {h.name}
@@ -745,17 +821,17 @@ export function BioExecutiveMobileDashboard({
                   ))}
                 </div>
 
-                <div className="text-[10px] aegis-bio-exec-lab__bento-muted flex items-center justify-between pt-1 border-t aegis-bio-exec-lab__bento-divider">
+                <div className="aegis-bio-exec-lab__shell-bento-chip aegis-bio-exec-lab__bento-muted flex items-center justify-between pt-1 border-t aegis-bio-exec-lab__bento-divider">
                   <span>Jour</span>
                   <span className="font-semibold">{progressPercentage}%</span>
                 </div>
               </div>
 
-              <div className="aegis-bio-exec-lab__bento aegis-bio-exec-lab__bento-sessions col-span-1 rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between min-h-[175px] sm:min-h-[195px] lg:min-h-[160px] shadow-sm transition-all duration-500">
+              <div className="aegis-bio-exec-lab__bento aegis-bio-exec-lab__bento-sessions aegis-bio-exec-lab__shell-bento-card col-span-1 rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between shadow-sm transition-all duration-500">
                 <div className="flex items-center justify-between text-xs aegis-bio-exec-lab__bento-subtle z-10">
                   <div>
                     <span className="text-xl sm:text-2xl font-light block leading-none">{viewModel.sessionsCount}</span>
-                    <span className="text-[10px] opacity-80">Sessions</span>
+                    <span className="aegis-bio-exec-lab__shell-bento-chip opacity-80">Sessions</span>
                   </div>
                   <ArrowUpRight size={14} className="opacity-80" />
                 </div>
@@ -780,35 +856,41 @@ export function BioExecutiveMobileDashboard({
                   </svg>
                 </div>
 
-                <div className="text-[10px] aegis-bio-exec-lab__bento-subtle flex items-center justify-between z-10">
+                <div className="aegis-bio-exec-lab__shell-bento-chip aegis-bio-exec-lab__bento-subtle flex items-center justify-between z-10">
                   <span>Régularité</span>
                   <span className="font-medium">{viewModel.regularityPct}%</span>
                 </div>
               </div>
 
-              <div className="aegis-bio-exec-lab__pulse aegis-bio-exec-lab__pulse--insights col-span-2 rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between min-h-[115px] sm:min-h-[195px] lg:min-h-[140px] border shadow-sm transition-all duration-500">
+              <div className="aegis-bio-exec-lab__pulse aegis-bio-exec-lab__pulse--insights aegis-bio-exec-lab__shell-bento-card aegis-bio-exec-lab__shell-bento-card--pulse col-span-2 rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between border shadow-sm transition-all duration-500">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[10px] uppercase tracking-widest font-semibold aegis-bio-exec-lab__accent-text">
+                  <span className="aegis-bio-exec-lab__shell-bento-title uppercase tracking-widest font-semibold aegis-bio-exec-lab__accent-text">
                     Décision en attente
                   </span>
                   <Sparkles size={13} className="aegis-bio-exec-lab__warm-text" />
                 </div>
 
                 <div className="my-auto py-1.5 sm:py-2 flex flex-col sm:block sm:space-y-1">
-                  <p className="text-xs font-medium leading-snug">
+                  <p className="aegis-bio-exec-lab__shell-bento-body font-medium leading-snug">
                     {viewModel.pendingDecision?.name ?? viewModel.pulsePendingTitle}
                   </p>
                   {viewModel.journalSnippet ? (
-                  <p className="text-[11px] opacity-65 mt-0.5 sm:mt-1 leading-normal line-clamp-2 sm:line-clamp-none">
+                  <p className="aegis-bio-exec-lab__shell-bento-chip opacity-65 mt-0.5 sm:mt-1 leading-normal line-clamp-2 sm:line-clamp-none">
                     « {viewModel.journalSnippet} »
                   </p>
                   ) : null}
                 </div>
 
                 <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-[color:var(--bio-frame-border)]">
-                  <span className="text-[10px] opacity-50 flex items-center gap-1">
-                    <Leaf size={11} className="aegis-bio-exec-lab__accent-text" /> Éco-UX
-                  </span>
+                  {viewModel.pendingDecision && viewModel.pendingDecision.ageDays > 0 ? (
+                    <span className="aegis-bio-exec-lab__shell-bento-chip opacity-50 tabular-nums">
+                      {locale === "fr"
+                        ? `Depuis ${viewModel.pendingDecision.ageDays} j`
+                        : `${viewModel.pendingDecision.ageDays}d pending`}
+                    </span>
+                  ) : (
+                    <span aria-hidden className="w-px opacity-0" />
+                  )}
                   <NavLink
                     to="/decisions"
                     className="text-[11px] font-semibold flex items-center gap-1 aegis-bio-exec-lab__accent-text hover:translate-x-0.5 transition-transform no-underline min-h-[44px] items-center"
@@ -843,6 +925,8 @@ export function BioExecutiveMobileDashboard({
           onEditBreakpoint={handleEditBreakpoint}
           viewportDisplay={viewportDisplay}
           onViewportDisplay={setViewportDisplay}
+          mobileDeviceGabarit={mobileDeviceGabarit}
+          onMobileDeviceGabarit={setMobileDeviceGabarit}
           onConfigChange={persist}
           selectedTarget={labTarget}
           onSelectedTarget={setLabTarget}

@@ -22,8 +22,8 @@ export type UserMenuPrefsV2 = {
 
 export const USER_MENU_PREFS_EVENT = "aegis:user-menu-updated";
 export const USER_MENU_PREFS_STORAGE_KEY = "aegis-user-menu-prefs";
-/** Bump when the default member radial set changes and saved accounts should follow. */
-export const MEMBER_OVERFLOW_BASELINE = 1;
+/** Bump when the default member dock/radial set changes and saved accounts should follow. */
+export const MEMBER_OVERFLOW_BASELINE = 2;
 
 const MAX_DOCK = 4;
 const MAX_OVERFLOW = 20;
@@ -38,7 +38,7 @@ export function defaultUserMenuPrefs(): UserMenuPrefsV2 {
   };
 }
 
-/** Force the member radial baseline onto saved prefs (admins unchanged). */
+/** Force the member dock + radial baseline onto saved prefs (admins unchanged). */
 export function applyMemberOverflowBaseline(
   prefs: UserMenuPrefsV2,
   isAdmin: boolean,
@@ -47,10 +47,12 @@ export function applyMemberOverflowBaseline(
   if (prefs.overflowBaseline === MEMBER_OVERFLOW_BASELINE) {
     return { prefs, migrated: false };
   }
-  const dockSet = new Set(prefs.dock);
+  const dock = [...DEFAULT_DOCK_PANEL_IDS];
+  const dockSet = new Set(dock);
   return {
     prefs: normalizeUserMenuPrefs({
       ...prefs,
+      dock,
       overflow: DEFAULT_OVERFLOW_PANEL_IDS.filter((id) => !dockSet.has(id)),
       overflowBaseline: MEMBER_OVERFLOW_BASELINE,
     }),

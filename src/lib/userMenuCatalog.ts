@@ -1,8 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard,
-  Brain,
-  Target,
+  Home,
+  SmilePlus,
+  Scale,
   ListChecks,
   Headphones,
   Users,
@@ -22,6 +22,7 @@ import {
   Inbox,
   ClipboardList,
   Orbit,
+  UserRound,
 } from "lucide-react";
 import type { TranslationKey } from "@/i18n/translations";
 
@@ -87,7 +88,7 @@ const PANELS: Record<MenuPanelId, MenuPanelDef> = {
   home: {
     id: "home",
     to: "/dashboard",
-    icon: LayoutDashboard,
+    icon: Home,
     labelKey: "nav.dashboard",
     dockEligible: true,
     overflowEligible: true,
@@ -109,7 +110,7 @@ const PANELS: Record<MenuPanelId, MenuPanelDef> = {
   mood: {
     id: "mood",
     to: "/mood",
-    icon: Brain,
+    icon: SmilePlus,
     labelKey: "nav.mood",
     hub: "capture",
     dockEligible: true,
@@ -142,7 +143,7 @@ const PANELS: Record<MenuPanelId, MenuPanelDef> = {
   decisions: {
     id: "decisions",
     to: "/decisions",
-    icon: Target,
+    icon: Scale,
     labelKey: "nav.decisions",
     hub: "capture",
     dockEligible: true,
@@ -164,7 +165,7 @@ const PANELS: Record<MenuPanelId, MenuPanelDef> = {
   portrait_hub: {
     id: "portrait_hub",
     to: "/persona",
-    icon: Sparkles,
+    icon: UserRound,
     labelKey: "menu.hub.portrait",
     hub: "portrait",
     isHubIndex: true,
@@ -176,7 +177,7 @@ const PANELS: Record<MenuPanelId, MenuPanelDef> = {
   persona: {
     id: "persona",
     to: "/persona",
-    icon: Sparkles,
+    icon: UserRound,
     labelKey: "nav.profile",
     hub: "portrait",
     dockEligible: true,
@@ -351,14 +352,16 @@ export const HUB_SIDEBAR_PANEL_IDS: MenuPanelId[] = [
 
 export const HUB_SIDEBAR_ROUTES = HUB_SIDEBAR_PANEL_IDS.map((id) => PANELS[id].to);
 
-export const DEFAULT_DOCK_PANEL_IDS: MenuPanelId[] = ["home", "mood", "decisions", "habits"];
+/** Dock order: Home · Mood · (radial center) · Decisions · People */
+export const DEFAULT_DOCK_PANEL_IDS: MenuPanelId[] = ["home", "mood", "decisions", "people"];
 
-/** Baseline radial (« Plus ») for new users — hubs + account essentials. */
+/** Baseline radial (« Plus ») — no Toolbox / Pratiques (reachable via hubs when useful). */
 export const DEFAULT_OVERFLOW_PANEL_IDS: MenuPanelId[] = [
-  "pratiques_hub",
   "capture_hub",
+  "portrait_hub",
   "messages_hub",
-  "persona",
+  "journal",
+  "habits",
   "profile",
   "settings",
 ];

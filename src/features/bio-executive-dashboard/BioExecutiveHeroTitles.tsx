@@ -18,6 +18,8 @@ type BioExecutiveHeroTitlesProps = {
   exocortexConstatTitle?: string | null;
   showAiTransparency: boolean;
   onToggleAiTransparency: () => void;
+  /** Prod mobile dashboard: hide IA info chip + center session kicker */
+  prodMobileChrome?: boolean;
 };
 
 function titleShell(
@@ -50,6 +52,7 @@ export function BioExecutiveHeroTitles({
   exocortexConstatTitle = null,
   showAiTransparency,
   onToggleAiTransparency,
+  prodMobileChrome = false,
 }: BioExecutiveHeroTitlesProps) {
   const sessionText = exocortexStatusLine ?? viewModel.sessionLabel;
   const heroTitle = exocortexConstatTitle ?? nodeTitle;
@@ -62,7 +65,11 @@ export function BioExecutiveHeroTitles({
         {...sessionShell}
         onPointerDown={onPointerDown("sessionLabel")}
         onClick={() => onLabTargetSelect("sessionLabel")}
-        className={cn(sessionShell.className, !heroLab && "max-w-[calc(100%-48px)] pr-2")}
+        className={cn(
+          sessionShell.className,
+          !heroLab && !prodMobileChrome && "max-w-[calc(100%-48px)] pr-2",
+          prodMobileChrome && "aegis-bio-exec-lab__hero-session-kicker",
+        )}
       >
         <span className="block" {...heroTypographyProps(slice.elements.sessionLabel.typography)}>
           {sessionText}
@@ -80,20 +87,22 @@ export function BioExecutiveHeroTitles({
         </h2>
       </div>
 
-      <div className="absolute right-0 top-0 z-40 flex gap-1.5">
-        <button
-          type="button"
-          onClick={onToggleAiTransparency}
-          title="Transparence IA"
-          className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${
-            showAiTransparency
-              ? "aegis-bio-exec-lab__chip-active border-transparent"
-              : "border-[color:var(--bio-frame-border)] bg-[color:var(--bio-chip)] shadow-sm"
-          }`}
-        >
-          <Info size={14} />
-        </button>
-      </div>
+      {!prodMobileChrome ? (
+        <div className="absolute right-0 top-0 z-40 flex gap-1.5">
+          <button
+            type="button"
+            onClick={onToggleAiTransparency}
+            title="Transparence IA"
+            className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${
+              showAiTransparency
+                ? "aegis-bio-exec-lab__chip-active border-transparent"
+                : "border-[color:var(--bio-frame-border)] bg-[color:var(--bio-chip)] shadow-sm"
+            }`}
+          >
+            <Info size={14} />
+          </button>
+        </div>
+      ) : null}
     </>
   );
 }

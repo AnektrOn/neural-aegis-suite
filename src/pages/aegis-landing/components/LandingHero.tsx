@@ -4,6 +4,7 @@ import {
   LANDING_CANVAS_MIN_WIDTH,
 } from "../armillary/armillaryConstants";
 import { useAegisLandingLocale } from "../i18n/AegisLandingLocaleProvider";
+import { LANDING_QUIZ_HREF, LIEN_PAIEMENT_LECTURE } from "../landingCtaHrefs";
 import { LandingButton } from "./LandingButton";
 import { LandingPill } from "./LandingPill";
 import { useMediaQuery } from "./useMediaQuery";
@@ -42,10 +43,18 @@ export function LandingHero() {
                 {copy.hero.subtitle}
               </p>
               <div className="mt-8 flex flex-col items-stretch gap-3 sm:items-start">
-                <LandingButton href="/auth?signup=1" variant="bronze" className="w-full sm:w-auto">
+                <LandingButton
+                  href={audience === "individuel" ? LANDING_QUIZ_HREF : "/auth?signup=1"}
+                  variant="bronze"
+                  className="w-full sm:w-auto"
+                >
                   {copy.nav.signUpFree}
                 </LandingButton>
-                <LandingButton href="#tarif" variant="dark" className="w-full sm:w-auto">
+                <LandingButton
+                  href={audience === "individuel" ? LIEN_PAIEMENT_LECTURE : "#tarif"}
+                  variant="dark"
+                  className="w-full sm:w-auto"
+                >
                   {copy.hero.cta}
                 </LandingButton>
                 <LandingButton href="/auth" variant="ghost" className="w-full sm:w-auto">

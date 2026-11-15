@@ -1,10 +1,14 @@
 import { NavLink } from "react-router-dom";
 import { Sparkles, ArrowUpRight } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { usePremiumLocked } from "@/components/PremiumSection";
 
 /** Entrée Dashboard vers la feature Pulse Cards. */
 export default function PulseFeatureButton({ className = "" }: { className?: string }) {
   const { t } = useLanguage();
+  const locked = usePremiumLocked();
+
+  if (locked) return null;
 
   return (
     <NavLink

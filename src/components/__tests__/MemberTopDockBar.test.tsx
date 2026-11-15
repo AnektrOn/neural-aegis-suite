@@ -32,11 +32,10 @@ describe("MemberTopDockBar", () => {
     expect(queryByTitle(/déconnecter/i)).toBeNull();
   });
 
-  it("expands on click and shows welcome, theme, language, and logout", () => {
+  it("expands on click and shows welcome, language, and logout", () => {
     const utils = renderTopDock();
     expandDock(utils);
     expect(utils.getByTitle(/bienvenue|welcome/i)).toBeTruthy();
-    expect(utils.getByLabelText(/thème/i)).toBeTruthy();
     expect(utils.getByTitle(/english|français/i)).toBeTruthy();
     expect(utils.getByTitle(/déconnecter/i)).toBeTruthy();
   });
@@ -57,13 +56,4 @@ describe("MemberTopDockBar", () => {
     expect(utils.getByText("en")).toBeTruthy();
   });
 
-  it("toggles theme between dark and light mode on click", () => {
-    const utils = renderTopDock();
-    expandDock(utils);
-    fireEvent.click(utils.getByLabelText(/thème/i));
-    expect(
-      document.documentElement.classList.contains("light") ||
-        document.documentElement.classList.contains("dark"),
-    ).toBe(true);
-  });
 });

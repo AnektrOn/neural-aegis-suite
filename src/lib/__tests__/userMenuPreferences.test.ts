@@ -27,9 +27,9 @@ describe("userMenuPreferences", () => {
     expect(migrated.hidden).not.toContain("dien_chan");
   });
 
-  it("defaults dock to daily panels with home on /dashboard", () => {
+  it("defaults dock to home · mood · decisions · people", () => {
     const prefs = defaultUserMenuPrefs();
-    expect(prefs.dock).toHaveLength(4);
+    expect(prefs.dock).toEqual(["home", "mood", "decisions", "people"]);
     expect(getMenuPanel(prefs.dock[0]).to).toBe("/dashboard");
   });
 
@@ -50,26 +50,27 @@ describe("userMenuPreferences", () => {
   it("normalizes v2 payload", () => {
     const prefs = normalizeUserMenuPrefs({
       v: 2,
-      dock: ["home", "mood", "decisions", "habits"],
+      dock: ["home", "mood", "decisions", "people"],
       overflow: ["persona"],
       hidden: ["journal"],
     });
     expect(prefs.hidden).toEqual(["journal"]);
   });
 
-  it("defaults radial overflow to hubs plus persona, account, and settings", () => {
+  it("defaults radial overflow without pratiques/toolbox hubs", () => {
     expect(defaultUserMenuPrefs().overflow).toEqual([
-      "pratiques_hub",
       "capture_hub",
+      "portrait_hub",
       "messages_hub",
-      "persona",
+      "journal",
+      "habits",
       "profile",
       "settings",
     ]);
     expect(defaultUserMenuPrefs().overflowBaseline).toBe(MEMBER_OVERFLOW_BASELINE);
   });
 
-  it("rewrites saved member overflow to the baseline once", () => {
+  it("rewrites saved member dock + overflow to the baseline once", () => {
     const saved = normalizeUserMenuPrefs({
       v: 2,
       dock: ["home", "mood", "decisions", "habits"],
@@ -78,11 +79,13 @@ describe("userMenuPreferences", () => {
     });
     const { prefs, migrated } = applyMemberOverflowBaseline(saved, false);
     expect(migrated).toBe(true);
+    expect(prefs.dock).toEqual(["home", "mood", "decisions", "people"]);
     expect(prefs.overflow).toEqual([
-      "pratiques_hub",
       "capture_hub",
+      "portrait_hub",
       "messages_hub",
-      "persona",
+      "journal",
+      "habits",
       "profile",
       "settings",
     ]);
