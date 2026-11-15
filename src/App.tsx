@@ -147,9 +147,9 @@ const PrismLayoutPage = import.meta.env.DEV
 const PrismLandingR3fPage = import.meta.env.DEV
   ? lazy(() => import("./pages/dev/prism-landing-r3f/pages/PrismLandingR3fPage"))
   : () => null;
-const PrismR3fLandingPage = lazy(
-  () => import("./pages/dev/prism-landing-r3f/pages/PrismR3fLandingPage"),
-);
+const PrismR3fLandingPage = import.meta.env.DEV
+  ? lazy(() => import("./pages/dev/prism-landing-r3f/pages/PrismR3fLandingPage"))
+  : () => null;
 const AegisLandingPage = lazy(() => import("./pages/aegis-landing/AegisLandingPage"));
 const MobileReleases = lazy(() => import("./pages/admin/MobileReleases"));
 const AdminMarkdownPdf = lazy(() => import("./pages/admin/AdminMarkdownPdf"));
