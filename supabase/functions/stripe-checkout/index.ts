@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       typeof seatQuantity === 'number' && Number.isFinite(seatQuantity) && seatQuantity > 0
         ? Math.floor(seatQuantity)
         : 1;
-    const companyMeta =
+    const companyMeta: Record<string, string> =
       typeof companyId === 'string' && companyId.length > 0
         ? { companyId, seatQuantity: String(seats) }
         : {};
@@ -101,7 +101,8 @@ Deno.serve(async (req) => {
 
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-08-27.basil',
+      // stripe@17 only types its own latest API version; the account runs Basil.
+      apiVersion: '2025-08-27.basil' as unknown as Stripe.StripeConfig['apiVersion'],
     });
     const catalogPriceId = catalogStripePriceId(priceId, plan, stripeSecretKey);
 

@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## Preview build and backend type checks — 15 November 2026
+- [x] Rename the lowercase guide-panel wrapper component so the preview build compiles; build OK.
+- [x] Clear every backend type-check error across all 24 functions: Stripe API-version typing (5 files), newsletter queue client typing, web-push import typing, Deep Dive query result typing, playback signature buffer typing; Stripe library installed locally so the payment functions resolve it during checks.
+- [x] Make the body nebula guard state its deliberate content-type route and the level-pack test self-contained (its fixture lived in gitignored exports/); full suite passes, one import test only needs isolation under load.
+
 ## Live Stripe webhook — 15 November 2026
 - [x] Subscribe the live Aegis endpoint to payment-failure and refund events; final six-event list read back from Stripe.
 - [x] Normalize subscription periods and invoice subscription references across legacy and Basil payloads; five tests pass, deployed and preview build OK.
@@ -50,5 +55,6 @@
 - [x] Preserve real per-user ElevenLabs folders and reclassify unchanged documents; seven tests pass, function deployed, ten folders and one unchanged document verified in ElevenLabs, repeated batch reuses folders.
 - [x] Include Markdown from nested folders using the linked Drive connection and report empty syncs as errors.
 - [x] Four regression tests pass; real admin sync reaches the personal agent in batches with RAG (349 files discovered, first 55 processed).
-- [ ] Complete the existing 349-document import via the admin sync; not launched in this task, which verifies only small batches as approved.- [ ] Export Drive : fichier supplémentaire avec le barème du quiz Maisons (Quizz/)
+- [ ] Complete the existing 349-document import via the admin sync; not launched in this task, which verifies only small batches as approved.
+- [x] Export Drive : fichier supplémentaire avec le barème du quiz Maisons (Quizz/)
 - [x] Envoi automatique au Drive des réponses Maisons + barème

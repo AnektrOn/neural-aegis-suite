@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// @ts-expect-error web-push ships CJS types (export =) while esm.sh serves a default export
 import webpush from "https://esm.sh/web-push@3.6.7";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type StripeNS from "npm:stripe@17";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,7 +56,8 @@ Deno.serve(async (req) => {
         if (stripeKey && stripeId?.startsWith("sub_")) {
           try {
             const Stripe = (await import("npm:stripe@17")).default;
-            const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+            // stripe@17 only types its own latest API version; the account runs Basil.
+            const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" as unknown as StripeNS.StripeConfig["apiVersion"] });
             await stripe.subscriptions.cancel(stripeId);
             await adminClient
               .from("subscriptions")
@@ -196,7 +198,8 @@ Deno.serve(async (req) => {
         if (stripeKey && stripeId?.startsWith("sub_")) {
           try {
             const Stripe = (await import("npm:stripe@17")).default;
-            const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+            // stripe@17 only types its own latest API version; the account runs Basil.
+            const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" as unknown as StripeNS.StripeConfig["apiVersion"] });
             await stripe.subscriptions.cancel(stripeId);
             await adminClient
               .from("subscriptions")

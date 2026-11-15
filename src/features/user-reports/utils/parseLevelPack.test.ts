@@ -120,8 +120,25 @@ Extended English text...`,
   });
 
   it("handles a single diagnostic file like DIAG-BALANCE-elena.md without crashing", () => {
-    const fs = require("fs");
-    const content = fs.readFileSync("exports/diagnostics/DIAG-BALANCE-elena.md", "utf8");
+    // Self-contained sample: the real DIAG-BALANCE-elena.md lives under exports/,
+    // which is gitignored, so the same parser path is exercised on an equivalent file.
+    const content = `---
+title: "DIAGNOSTIC NIVEAU 2 · BALANCE"
+tier: "2"
+level: 2
+prisme: "BALANCE"
+---
+## 0. Safeguard Épistémique
+### 🇫🇷 Avertissement Déontologique (FR)
+Ceci est une analyse herméneutique et non un acte médical.
+### 🇬🇧 Ethical Notice (EN)
+This is an interpretative analysis and not a medical diagnosis.
+
+## 1. Nœuds Fondamentaux
+### 🇫🇷 Analyse (FR)
+Le pôle Ombre structure la dynamique de la personne.
+### 🇬🇧 Analysis (EN)
+The Shadow pole structures the person's dynamics.`;
     const files = [{ filename: "DIAG-BALANCE-elena.md", content }];
 
     const result = parseLevelPack(files, "DIAG-BALANCE-elena");
