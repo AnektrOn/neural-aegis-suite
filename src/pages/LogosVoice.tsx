@@ -1,19 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceAgent } from "@/components/voice/VoiceAgent";
 import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { LogosSubscriptionGate } from "@/features/logos/LogosSubscriptionGate";
 
 function pickFirstName(displayName: string | null, email: string | undefined) {
   if (displayName?.trim() && !displayName.includes("@")) {
@@ -27,7 +18,6 @@ function pickFirstName(displayName: string | null, email: string | undefined) {
 export default function LogosVoice() {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [agentId, setAgentId] = useState<string | null>(null);
   const [accessChecked, setAccessChecked] = useState(false);
@@ -63,32 +53,22 @@ export default function LogosVoice() {
 
   if (!user) return null;
 
-  if (accessChecked && !agentId) {
-    return (
-      <Dialog open onOpenChange={() => navigate("/dashboard")}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("voiceAgent.noAccessTitle")}</DialogTitle>
-            <DialogDescription>{t("voiceAgent.noAccessBody")}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => navigate("/dashboard")}>{t("voiceAgent.noAccessCta")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
-    <LogosVoiceShell>
-      <div className="mx-auto max-w-lg py-2">
-        <VoiceAgent
-          layout="card"
-          welcomeTitle={title}
-          className="border-none shadow-none"
-          dynamicVariables={{ first_name: firstName || "toi" }}
-        />
-      </div>
-    </LogosVoiceShell>
+    <LogosSubscriptionGate
+      agentChecked={accessChecked}
+      agentReady={Boolean(agentId)}
+      exitPath="/dashboard"
+    >
+      <LogosVoiceShell>
+        <div className="mx-auto max-w-lg py-2">
+          <VoiceAgent
+            layout="card"
+            welcomeTitle={title}
+            className="border-none shadow-none"
+            dynamicVariables={{ first_name: firstName || "toi" }}
+          />
+        </div>
+      </LogosVoiceShell>
+    </LogosSubscriptionGate>
   );
 }

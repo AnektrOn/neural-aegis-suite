@@ -1557,9 +1557,18 @@ export const translations = {
     en: "Access not activated yet",
   },
   "voiceAgent.noAccessBody": {
-    fr: "Vous n'avez pas encore accès à votre agent vocal. Contactez votre coach pour qu'il l'active pour vous.",
-    en: "You don't have access to your voice agent yet. Ask your coach to activate it for you.",
+    fr: "Votre agent LOGOS n'est pas encore provisionné sur ce compte. Réessayez dans quelques minutes ou contactez le support.",
+    en: "Your LOGOS agent is not provisioned on this account yet. Try again in a few minutes or contact support.",
   },
+  "voiceAgent.noSubscriptionTitle": {
+    fr: "LOGOS réservé à AEGIS + LOGOS Solo",
+    en: "LOGOS requires AEGIS + LOGOS Solo",
+  },
+  "voiceAgent.noSubscriptionBody": {
+    fr: "L'agent vocal LOGOS est inclus uniquement dans l'abonnement AEGIS + LOGOS Solo (110 € HT / mois).",
+    en: "The LOGOS voice agent is only included with the AEGIS + LOGOS Solo plan (€110 excl. tax / month).",
+  },
+  "voiceAgent.noSubscriptionCta": { fr: "Voir les tarifs", en: "View pricing" },
   "voiceAgent.noAccessCta": { fr: "Retour à l'accueil", en: "Back to home" },
   "voiceAgent.errorGeneric": {
     fr: "Impossible de démarrer la conversation.",

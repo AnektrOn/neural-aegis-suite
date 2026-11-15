@@ -1,3 +1,5 @@
+import { userHasLogosEntitlement } from './logos-entitlement.ts';
+
 const EL = "https://api.elevenlabs.io/v1";
 const EL_FETCH_TIMEOUT_MS = 15_000;
 const RATE_LIMIT_PER_HOUR = 40;
@@ -76,6 +78,13 @@ export async function createVoiceConversationToken(
     throw err;
   }
 
+  const entitled = await userHasLogosEntitlement(admin, userId);
+  if (!entitled) {
+    const err = new Error("Abonnement AEGIS + LOGOS Solo requis");
+    (err as Error & { status?: number }).status = 403;
+    throw err;
+  }
+
   const agentId = await resolveVoiceAgentId(admin, userId);
   if (!agentId) {
     const err = new Error("Aucun agent vocal configuré pour ce compte");
@@ -90,6 +99,7 @@ export async function createVoiceConversationToken(
 export function mapVoiceSessionError(e: unknown): { message: string; status: number } {
   const msg = e instanceof Error ? e.message : String(e);
   const status = (e as Error & { status?: number }).status;
+  if (status === 403) return { message: "Abonnement AEGIS + LOGOS Solo requis", status: 403 };
   if (status === 404) return { message: "Agent introuvable", status: 404 };
   if (status === 429) return { message: "Too many requests", status: 429 };
   if (status === 422) return { message: "Configuration agent invalide", status: 502 };

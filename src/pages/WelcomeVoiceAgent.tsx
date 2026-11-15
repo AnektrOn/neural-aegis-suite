@@ -5,15 +5,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceAgent } from "@/components/voice/VoiceAgent";
 import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { LogosSubscriptionGate } from "@/features/logos/LogosSubscriptionGate";
 
 function pickFirstName(displayName: string | null, user: NonNullable<ReturnType<typeof useAuth>["user"]>) {
   if (displayName?.trim() && !displayName.includes("@")) {
@@ -104,26 +96,13 @@ export default function WelcomeVoiceAgent() {
 
   if (!user) return null;
 
-  if (accessChecked && !agentId) {
-    return (
-      <Dialog open onOpenChange={() => navigate("/welcome")}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("voiceAgent.noAccessTitle")}</DialogTitle>
-            <DialogDescription>{t("voiceAgent.noAccessBody")}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => navigate("/welcome")}>
-              {t("voiceAgent.noAccessCta")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
-    <LogosVoiceShell>
+    <LogosSubscriptionGate
+      agentChecked={accessChecked}
+      agentReady={Boolean(agentId)}
+      exitPath="/welcome"
+    >
+      <LogosVoiceShell>
       {loadError ? (
         <p className="sr-only" role="status">
           {loadError}
@@ -135,6 +114,7 @@ export default function WelcomeVoiceAgent() {
         backHref="/welcome"
         dynamicVariables={{ first_name: firstName || "toi" }}
       />
-    </LogosVoiceShell>
+      </LogosVoiceShell>
+    </LogosSubscriptionGate>
   );
 }

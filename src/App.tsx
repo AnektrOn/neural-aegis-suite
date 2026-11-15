@@ -59,6 +59,20 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Pricing = lazy(() => import("./pages/Pricing"));
+const ToolsHubPage = lazy(() => import("./pages/tools/ToolsHubPage"));
+const ExecutiveCoachingCostCalculatorPage = lazy(
+  () => import("./pages/tools/ExecutiveCoachingCostCalculatorPage"),
+);
+const PeerNetworkRoiCalculatorPage = lazy(
+  () => import("./pages/tools/PeerNetworkRoiCalculatorPage"),
+);
+const SecondBrainWasteAuditPage = lazy(() => import("./pages/tools/SecondBrainWasteAuditPage"));
+const CloudAiPrivacyRiskCheckerPage = lazy(
+  () => import("./pages/tools/CloudAiPrivacyRiskCheckerPage"),
+);
+const ExecutiveSaasRunrateCalculatorPage = lazy(
+  () => import("./pages/tools/ExecutiveSaasRunrateCalculatorPage"),
+);
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 const PublicAssessmentFlow = lazy(
   () => import("./features/archetype-assessment/pages/PublicAssessmentFlow")
@@ -340,7 +354,16 @@ const App = () => (
                     <Route path="/dev/dien-chan" element={<DevGate><DienChanMap variant="dev" /></DevGate>} />
                     {/* Mixamo Xbot additive-skinning playground */}
                     <Route path="/dev/body-scan" element={<DevGate><BodyScanPreview /></DevGate>} />
-                    <Route path="/dev/aegis-dashboard" element={<DevGate><AegisBioExecutiveDevPage /></DevGate>} />
+                    <Route
+                      path="/dev/aegis-dashboard"
+                      element={
+                        <AppRouteErrorBoundary label="aegis-dashboard-dev">
+                          <DevGate>
+                            <AegisBioExecutiveDevPage />
+                          </DevGate>
+                        </AppRouteErrorBoundary>
+                      }
+                    />
                     <Route path="/dev/storytelling" element={<DevGate><StorytellingPage /></DevGate>} />
                     <Route path="/dev/promote" element={<DevGate><PromotePage /></DevGate>} />
                     <Route path="/dev/promote/:scene" element={<DevGate><PromotePage /></DevGate>} />
@@ -378,6 +401,54 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/create-password" element={<ResetPassword setupOnly />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route
+                  path="/tools"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <ToolsHubPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/tools/executive-coaching-cost-calculator"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <ExecutiveCoachingCostCalculatorPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/tools/peer-network-roi-calculator"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <PeerNetworkRoiCalculatorPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/tools/second-brain-waste-audit"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <SecondBrainWasteAuditPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/tools/cloud-ai-privacy-risk-checker"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <CloudAiPrivacyRiskCheckerPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/tools/executive-saas-runrate-calculator"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <ExecutiveSaasRunrateCalculatorPage />
+                    </Suspense>
+                  }
+                />
                 <Route path="/legal/privacy" element={<PrivacyPolicy />} />
                 <Route path="/legal/terms" element={<TermsOfService />} />
                 <Route path="/legal/refund" element={<RefundPolicy />} />

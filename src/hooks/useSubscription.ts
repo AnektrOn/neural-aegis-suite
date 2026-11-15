@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { isLogosProduct } from "@/lib/logosEntitlement";
 
 
 export type PlanTier = "free" | "matrix" | "ultra";
@@ -17,7 +18,14 @@ export interface SubscriptionRow {
 
 function tierFromProduct(productId?: string | null): PlanTier {
   if (productId === "aegis_ultra") return "ultra";
-  if (productId === "aegis_matrix") return "matrix";
+  if (
+    productId === "aegis_matrix" ||
+    productId === "aegis_solo" ||
+    productId === "aegis_solo_logos" ||
+    productId === "aegis_founders_lifetime"
+  ) {
+    return "matrix";
+  }
   return "free";
 }
 
@@ -39,25 +47,36 @@ function computeActive(row: SubscriptionRow | null): boolean {
 export function useSubscription() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
+  const [logosSubscription, setLogosSubscription] = useState<SubscriptionRow | null>(null);
   const [planOverride, setPlanOverride] = useState<PlanTier | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchSubscription = useCallback(async () => {
     if (!user?.id) {
       setSubscription(null);
+      setLogosSubscription(null);
       setPlanOverride(null);
       setLoading(false);
       return;
     }
 
-    const [{ data: sub }, { data: profile }] = await Promise.all([
+    const [{ data: sub }, { data: logosSub }, { data: profile }] = await Promise.all([
       supabase
         .from("subscriptions")
         .select(
           "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
         )
         .eq("user_id", user.id)
-        
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("subscriptions")
+        .select(
+          "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
+        )
+        .eq("user_id", user.id)
+        .eq("product_id", "aegis_solo_logos")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -65,6 +84,7 @@ export function useSubscription() {
     ]);
 
     setSubscription((sub as SubscriptionRow) ?? null);
+    setLogosSubscription((logosSub as SubscriptionRow) ?? null);
     const override = (profile as { plan_override?: string | null } | null)?.plan_override;
     setPlanOverride(
       override === "ultra" || override === "matrix" ? (override as PlanTier) : null,
@@ -95,9 +115,15 @@ export function useSubscription() {
   const paidTier: PlanTier = paidActive ? tierFromProduct(subscription?.product_id) : "free";
   const tier: PlanTier = paidTier !== "free" ? paidTier : (planOverride ?? "free");
   const isPastDue = subscription?.status === "past_due";
+  const logosPaidActive = computeActive(logosSubscription);
+  const hasLogos =
+    logosPaidActive ||
+    (paidActive && isLogosProduct(subscription?.product_id));
 
   return {
     subscription,
+    logosSubscription,
+    hasLogos,
     loading,
     /** Paid access is currently valid (Paddle or admin override). */
     isActive: tier !== "free",
