@@ -1,6 +1,7 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { PLANS, isPlanKey } from '../_shared/stripe-plans.ts';
+import { subscriptionPeriod, invoiceSubscriptionId } from './payload.ts';
 import {
   countActiveFounders,
   FOUNDERS_LIFETIME_MAX,
@@ -176,7 +177,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const subId = session.subscription as string | null;
   if (!subId) return;
   const sub = await stripe.subscriptions.retrieve(subId);
-  const item = sub.items.data[0];
   await upsertSubscription({
     user_id: userId,
     paddle_subscription_id: sub.id,
@@ -184,12 +184,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     product_id: plan.productId,
     price_id: priceId,
     status: sub.status,
-    current_period_start: item?.current_period_start
-      ? new Date(item.current_period_start * 1000).toISOString()
-      : null,
-    current_period_end: item?.current_period_end
-      ? new Date(item.current_period_end * 1000).toISOString()
-      : null,
+    ...subscriptionPeriod(sub),
     cancel_at_period_end: sub.cancel_at_period_end,
     installments_total: plan.installments ?? null,
   }, session.livemode !== false);
@@ -216,12 +211,7 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
     .update({
       status: sub.status,
       ...(newPriceId ? { price_id: newPriceId } : {}),
-      current_period_start: item?.current_period_start
-        ? new Date(item.current_period_start * 1000).toISOString()
-        : null,
-      current_period_end: item?.current_period_end
-        ? new Date(item.current_period_end * 1000).toISOString()
-        : null,
+      ...subscriptionPeriod(sub),
       cancel_at_period_end: sub.cancel_at_period_end,
       updated_at: new Date().toISOString(),
     })
@@ -292,7 +282,7 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
 
 /** Facilité de paiement Ultra : 6 prélèvements puis arrêt automatique, accès 12 mois. */
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  const subId = (invoice as unknown as { subscription?: string }).subscription;
+  const subId = invoiceSubscriptionId(invoice);
   if (!subId) return;
 
   const { data: sub } = await supabase
@@ -385,7 +375,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-  const subId = (invoice as unknown as { subscription?: string }).subscription;
+  const subId = invoiceSubscriptionId(invoice);
   if (!subId) return;
   const { data: existing } = await supabase
     .from('subscriptions')
@@ -466,18 +456,22 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
   const signature = req.headers.get('stripe-signature');
+  const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+  if (!signature) return new Response('Invalid signature', { status: 400 });
+  if (!webhookSecret) return new Response('Webhook not configured', { status: 503 });
   const body = await req.text();
   let event: Stripe.Event;
   try {
     event = await stripe.webhooks.constructEventAsync(
       body,
-      signature!,
-      Deno.env.get('STRIPE_WEBHOOK_SECRET')!,
+      signature,
+      webhookSecret,
     );
   } catch (e) {
-    console.error('signature verification failed:', e);
+    console.error('signature verification failed');
     return new Response('Invalid signature', { status: 400 });
   }
+  console.log('Stripe signature verified', JSON.stringify({ event_id: event.id, event_type: event.type, livemode: event.livemode }));
 
   // Idempotency: skip already-processed Stripe event ids
   const { error: ledgerErr } = await supabase.from('stripe_webhook_events').insert({
