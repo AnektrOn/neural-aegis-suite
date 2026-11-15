@@ -34,3 +34,23 @@ android/keystore/*.jks
 *.njsproj
 *.sln
 *.sw?
+
+.tmp-ui-shots/
+
+# Local exports / screenshots (keep on disk, never push)
+exports/
+
+# Heavy binary archives
+*.zip
+
+# Prism landing 3D assets — stay on your Mac, not on GitHub
+# (textures, models, HDRIs). Code + ASSETS.md stay tracked.
+src/pages/dev/prism-landing/assets/textures/
+src/pages/dev/prism-landing/assets/gltf/
+src/pages/dev/prism-landing/assets/hdri/
+src/pages/dev/prism-landing-r3f/assets/textures/
+src/pages/dev/prism-landing-r3f/assets/hdri/
+
+# Other large 3D models
+*.glb
+*.hdr
