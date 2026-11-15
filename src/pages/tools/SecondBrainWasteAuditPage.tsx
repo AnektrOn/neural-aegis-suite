@@ -137,13 +137,13 @@ export default function SecondBrainWasteAuditPage() {
           title: "Indice de déchet cognitif",
           content: (
             <>
-              <motionWrap className="mb-8 flex justify-center">
+              <MotionWrap className="mb-8 flex justify-center">
                 <ToolGauge
                   value={results.cognitiveIndex}
                   label="Indice de déchet cognitif"
                   tone={results.cognitiveIndex > 60 ? "danger" : "gold"}
                 />
-              </motionWrap>
+              </MotionWrap>
               <ToolResultGrid>
                 <ToolResultStat
                   label="Notes « mortes » estimées"
@@ -165,6 +165,6 @@ export default function SecondBrainWasteAuditPage() {
   );
 }
 
-function motionWrap({ className, children }: { className?: string; children: React.ReactNode }) {
+function MotionWrap({ className, children }: { className?: string; children: React.ReactNode }) {
   return <div className={className}>{children}</div>;
 }
