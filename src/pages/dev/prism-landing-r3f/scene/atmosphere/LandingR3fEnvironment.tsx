@@ -1,5 +1,5 @@
 import { Environment } from "@react-three/drei";
-import hdriUrl from "../../assets/hdri/moonless_golf_1k.hdr?url";
+import hdriAsset from "../../assets/hdri/moonless_golf_1k.hdr.asset.json";
 import { useR3fSceneConfig } from "../../config/r3fSceneConfigContext";
 
 export function LandingR3fEnvironment() {
@@ -8,7 +8,7 @@ export function LandingR3fEnvironment() {
 
   return (
     <Environment
-      files={hdriUrl}
+      files={hdriAsset.url}
       environmentIntensity={environmentIntensity}
       background={false}
     />
