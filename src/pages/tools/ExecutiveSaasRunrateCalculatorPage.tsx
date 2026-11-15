@@ -139,12 +139,12 @@ export default function ExecutiveSaasRunrateCalculatorPage() {
           title: "Run-rate de votre stack",
           content: (
             <>
-              <motionWrap className="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <MotionWrap className="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <ToolGauge value={dispersionIndex} label="Indice de dispersion" tone="gold" />
                 <p className="max-w-xs text-center font-body text-sm text-[color:var(--aegis-ink-muted)] sm:text-left">
                   {activeCount} outils actifs — silos de contexte et recherches redondantes.
                 </p>
-              </motionWrap>
+              </MotionWrap>
               <ToolResultGrid>
                 <ToolResultStat label="Facture mensuelle" value={formatEuro(monthly)} />
                 <ToolResultStat label="Facture annuelle" value={formatEuro(annual)} accent="gold" />
@@ -162,6 +162,6 @@ export default function ExecutiveSaasRunrateCalculatorPage() {
   );
 }
 
-function motionWrap({ className, children }: { className?: string; children: React.ReactNode }) {
+function MotionWrap({ className, children }: { className?: string; children: React.ReactNode }) {
   return <div className={className}>{children}</div>;
 }

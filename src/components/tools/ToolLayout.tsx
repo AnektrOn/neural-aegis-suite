@@ -99,9 +99,9 @@ export function ToolLayout({
             </div>
           </>
         ) : (
-          <motionFull role="region" aria-label="Calculateur interactif">
+          <MotionFull role="region" aria-label="Calculateur interactif">
             {children}
-          </motionFull>
+          </MotionFull>
         )}
 
         {variant === "document" || wizardResultsVisible ? (
@@ -144,7 +144,7 @@ export function ToolLayout({
   );
 }
 
-function motionFull({
+function MotionFull({
   children,
   ...rest
 }: HTMLAttributes<HTMLDivElement>) {

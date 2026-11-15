@@ -15,8 +15,8 @@ void initErrorMonitoring();
 // After deploy, cached index.js may reference removed chunk hashes — reload once.
 window.addEventListener("vite:preloadError", (event) => {
   event.preventDefault();
-  const payload = (event as CustomEvent<{ payload?: Error }>).detail?.payload;
-  const message = payload?.message ?? "preload failed";
+  const payload: unknown = event.payload;
+  const message = payload instanceof Error ? payload.message : "preload failed";
   try {
     if (sessionStorage.getItem(CHUNK_RELOAD_KEY) !== "1") {
       sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
@@ -60,7 +60,9 @@ window.addEventListener("load", () => {
 });
 
 void initNativeApp().finally(() => {
-  createRoot(document.getElementById("root")!).render(
+  const root = document.getElementById("root");
+  if (!root) return;
+  createRoot(root).render(
     <HelmetProvider>
       <App />
     </HelmetProvider>,

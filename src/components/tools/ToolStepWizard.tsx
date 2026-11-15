@@ -38,7 +38,7 @@ export function ToolStepWizard({
   const navigate = useNavigate();
   const onResults = onResultsVisible;
   const isResult = index === steps.length;
-  const current = isResult ? null : steps[index]!;
+  const current = isResult ? null : steps[index];
 
   useEffect(() => {
     if (isResult) onResults?.();
@@ -77,7 +77,7 @@ export function ToolStepWizard({
   const progressPct = ((index + 1) / totalScreens) * 100;
 
   return (
-    <motionWS
+    <MotionWS
       className={cn(
         "flex min-h-[calc(100dvh-4.25rem)] flex-col",
         className,
@@ -93,7 +93,7 @@ export function ToolStepWizard({
             {Math.round(progressPct)} %
           </span>
         </div>
-        <motionWS
+        <MotionWS
           className="mx-auto mt-2 h-1 max-w-lg overflow-hidden rounded-full bg-[color:var(--aegis-surface-elevated)]"
           role="progressbar"
           aria-valuenow={Math.round(progressPct)}
@@ -104,7 +104,7 @@ export function ToolStepWizard({
             className="h-full rounded-full bg-[color:var(--aegis-gold)] transition-all duration-300"
             style={{ width: `${progressPct}%` }}
           />
-        </motionWS>
+        </MotionWS>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 py-10 md:px-6">
@@ -112,20 +112,20 @@ export function ToolStepWizard({
           {(isResult ? resultStep : current) && (
             <header className="mb-10 text-center md:mb-12 md:text-left">
               <p className={toolsKicker}>
-                {isResult ? resultStep.kicker ?? "Résultats" : current!.kicker ?? "Votre contexte"}
+                {isResult ? resultStep.kicker ?? "Résultats" : current?.kicker ?? "Votre contexte"}
               </p>
               <h2 className={`${toolsTitle} mt-3 text-[clamp(1.5rem,5vw,2.25rem)]`}>
-                {isResult ? resultStep.title : current!.title}
+                {isResult ? resultStep.title : current?.title}
               </h2>
-              {(isResult ? resultStep.description : current!.description) ? (
+              {(isResult ? resultStep.description : current?.description) ? (
                 <p className={`${toolsLead} mt-4`}>
-                  {isResult ? resultStep.description : current!.description}
+                  {isResult ? resultStep.description : current?.description}
                 </p>
               ) : null}
             </header>
           )}
 
-          <div className="w-full">{isResult ? resultStep.content : current!.content}</div>
+          <div className="w-full">{isResult ? resultStep.content : current?.content}</div>
         </div>
       </div>
 
@@ -137,7 +137,7 @@ export function ToolStepWizard({
         onNext={goNext}
         onRestart={() => setIndex(0)}
       />
-    </motionWS>
+    </MotionWS>
   );
 }
 
@@ -190,7 +190,7 @@ function UnconditionalFooterNav({
   );
 }
 
-function motionWS({ className, children, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
+function MotionWS({ className, children, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div className={className} {...rest}>
       {children}

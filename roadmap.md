@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## Requested deployment — 15 November 2026
+- [x] Deploy founders-availability, stripe-checkout, stripe-webhook and agent-session with existing configuration and unchanged logic; public availability returns 200, protected endpoints reject unauthenticated requests and webhook rejects an unsigned request.
+- [x] Resolve existing frontend compilation blockers; build OK, four LOGOS tests pass and Pricing renders without browser errors. Security verification completed with six informational findings and no critical finding.
+- [ ] Request publication of the existing Pricing / LOGOS app.
+
 ## Page access and mobile width
 - [x] Restore clickable dialogs above their overlays; authenticated Maisons dismissal and mobile dock navigation verified, no runtime errors.
 - [x] Remove full-page mobile dock clearance from member scaffolds; fourteen pages checked at 393px and 1280px without horizontal overflow; six scaffold tests pass and build OK.
