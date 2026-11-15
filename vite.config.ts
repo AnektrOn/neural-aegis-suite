@@ -22,9 +22,13 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      {
+        find: /^(?:\.\.\/)+assets\/hdri\/moonless_golf_1k\.hdr\?url$/,
+        replacement: path.resolve(__dirname, "./src/assets/moonless-golf-url.ts"),
+      },
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+    ],
   },
   assetsInclude: ["**/*.glb", "**/*.gltf", "**/*.fbx"],
   optimizeDeps: {
