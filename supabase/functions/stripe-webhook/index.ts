@@ -1,6 +1,11 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { PLANS, isPlanKey } from '../_shared/stripe-plans.ts';
+import {
+  countActiveFounders,
+  FOUNDERS_LIFETIME_MAX,
+  FOUNDERS_PRODUCT_ID,
+} from '../_shared/founders-lifetime.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -12,9 +17,14 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
 });
 
 const PLAN_LABEL: Record<string, string> = {
+  aegis_solo: 'AEGIS Solo',
+  aegis_solo_logos: 'AEGIS + LOGOS Solo',
+  aegis_founders_lifetime: 'Membres Fondateurs',
   aegis_matrix: 'Matrice',
   aegis_ultra: 'Ultra',
 };
+
+const LIFETIME_PERIOD_END = '2099-12-31T23:59:59.000Z';
 
 async function notifyUser(userId: string, title: string, message: string, link: string) {
   const { error } = await supabase
@@ -74,6 +84,15 @@ async function onPurchaseActivated(userId: string, productId: string, priceId: s
       `${email} a rejoint l'Inner Circle (${priceId}). Planifier l'audit.`,
       '/admin/calls',
     );
+  } else if (productId === FOUNDERS_PRODUCT_ID) {
+    const sold = await countActiveFounders(supabase);
+    await notifyAdmins(
+      'Nouveau Membre Fondateur',
+      `${email} a rejoint la cohorte lifetime (${sold}/${FOUNDERS_LIFETIME_MAX}).`,
+      '/admin/users',
+    );
+  } else if (productId === 'aegis_solo' || productId === 'aegis_solo_logos') {
+    await notifyAdmins(`Nouvelle vente ${plan}`, `${email} — ${priceId}.`, '/admin/users');
   } else {
     await notifyAdmins('🥈 Nouvelle vente Matrice', `${email} a activé ${plan} (${priceId}).`, '/admin/users');
   }
@@ -119,6 +138,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const customerId = (session.customer as string) ?? '';
 
   if (session.mode === 'payment') {
+    if (plan.productId === FOUNDERS_PRODUCT_ID) {
+      const sold = await countActiveFounders(supabase);
+      if (sold >= FOUNDERS_LIFETIME_MAX) {
+        const { data: userData } = await supabase.auth.admin.getUserById(userId);
+        const email = userData?.user?.email ?? userId;
+        await notifyAdmins(
+          'Cohorte fondateurs — capacité dépassée',
+          `${email} a réglé le lifetime alors que les ${FOUNDERS_LIFETIME_MAX} places sont prises. Remboursement manuel à prévoir.`,
+          '/admin/users',
+        );
+        return;
+      }
+    }
     const start = new Date();
     await upsertSubscription({
       user_id: userId,
@@ -128,7 +160,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       price_id: priceId,
       status: 'active',
       current_period_start: start.toISOString(),
-      current_period_end: months(start, 12),
+      current_period_end: plan.lifetime ? LIFETIME_PERIOD_END : months(start, 12),
     }, session.livemode !== false);
     await recordAffiliateCommission(
       userId,

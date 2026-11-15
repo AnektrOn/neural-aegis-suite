@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Activity,
@@ -26,7 +26,9 @@ import {
 } from "./BioExecutiveMetricTiles";
 import "./bioExecutiveDashboard.css";
 import { BioExecutiveHeroFigure } from "./BioExecutiveHeroFigure";
-import { BioExecutiveHeroLab } from "./BioExecutiveHeroLab";
+const BioExecutiveHeroLab = lazy(() =>
+  import("./BioExecutiveHeroLab").then((m) => ({ default: m.BioExecutiveHeroLab })),
+);
 import { BioExecutiveHeroQuickActions } from "./BioExecutiveHeroQuickActions";
 import { BioExecutiveHeroTitles } from "./BioExecutiveHeroTitles";
 import type { ExocortexHeroUi } from "./bioExecutiveHeroPresentation";
@@ -918,20 +920,22 @@ export function BioExecutiveMobileDashboard({
         ) : null}
       </div>
       {heroLabEnabled ? (
-        <BioExecutiveHeroLab
-          config={config}
-          editBreakpoint={editBreakpoint}
-          activeConfigKey={heroLabConfigKey}
-          onEditBreakpoint={handleEditBreakpoint}
-          viewportDisplay={viewportDisplay}
-          onViewportDisplay={setViewportDisplay}
-          mobileDeviceGabarit={mobileDeviceGabarit}
-          onMobileDeviceGabarit={setMobileDeviceGabarit}
-          onConfigChange={persist}
-          selectedTarget={labTarget}
-          onSelectedTarget={setLabTarget}
-          onEditorOpenChange={setHeroBuilderOpen}
-        />
+        <Suspense fallback={null}>
+          <BioExecutiveHeroLab
+            config={config}
+            editBreakpoint={editBreakpoint}
+            activeConfigKey={heroLabConfigKey}
+            onEditBreakpoint={handleEditBreakpoint}
+            viewportDisplay={viewportDisplay}
+            onViewportDisplay={setViewportDisplay}
+            mobileDeviceGabarit={mobileDeviceGabarit}
+            onMobileDeviceGabarit={setMobileDeviceGabarit}
+            onConfigChange={persist}
+            selectedTarget={labTarget}
+            onSelectedTarget={setLabTarget}
+            onEditorOpenChange={setHeroBuilderOpen}
+          />
+        </Suspense>
       ) : null}
     </div>
   );

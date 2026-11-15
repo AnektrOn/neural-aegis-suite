@@ -1,6 +1,21 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { PLANS, isPlanKey } from '../_shared/stripe-plans.ts';
+import { PLANS, isPlanKey, type PlanDef } from '../_shared/stripe-plans.ts';
+import {
+  countActiveFounders,
+  FOUNDERS_LIFETIME_MAX,
+  FOUNDERS_PRODUCT_ID,
+} from '../_shared/founders-lifetime.ts';
+
+function catalogStripePriceId(plan: PlanDef, stripeSecretKey: string): string | undefined {
+  const envKey = `STRIPE_PRICE_${plan.productId.toUpperCase()}`;
+  const fromEnv = Deno.env.get(envKey);
+  if (fromEnv) return fromEnv;
+  if (stripeSecretKey.startsWith('sk_test_') && plan.stripePriceIdTest) {
+    return plan.stripePriceIdTest;
+  }
+  return undefined;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,6 +54,23 @@ Deno.serve(async (req) => {
     if (!isPlanKey(priceId)) return json({ error: 'Invalid priceId' }, 400);
     const plan = PLANS[priceId];
 
+    if (priceId === 'aegis_founders_lifetime') {
+      const sold = await countActiveFounders(supabase);
+      if (sold >= FOUNDERS_LIFETIME_MAX) {
+        return json({ error: 'FOUNDERS_SOLD_OUT' }, 409);
+      }
+      const { data: existingFounder } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('product_id', FOUNDERS_PRODUCT_ID)
+        .in('status', ['active', 'trialing'])
+        .maybeSingle();
+      if (existingFounder) {
+        return json({ error: 'FOUNDERS_ALREADY_OWNED' }, 409);
+      }
+    }
+
     const seats =
       typeof seatQuantity === 'number' && Number.isFinite(seatQuantity) && seatQuantity > 0
         ? Math.floor(seatQuantity)
@@ -59,9 +91,11 @@ Deno.serve(async (req) => {
       ? origin.replace(/\/$/, '')
       : 'https://aegis.humancatalystbeacon.com';
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2025-08-27.basil',
     });
+    const catalogPriceId = catalogStripePriceId(plan, stripeSecretKey);
 
     // Réutilise le client Stripe existant si l'email est déjà connu.
     let customerId: string | undefined;
@@ -83,16 +117,18 @@ Deno.serve(async (req) => {
         ? { customer_update: { address: 'auto', name: 'auto' } }
         : {}),
       line_items: [
-        {
-          quantity: seats,
-          price_data: {
-            currency: plan.currency,
-            unit_amount: plan.amount,
-            tax_behavior: 'exclusive',
-            product_data: { name: plan.label },
-            ...(plan.interval ? { recurring: { interval: plan.interval } } : {}),
-          },
-        },
+        catalogPriceId
+          ? { quantity: seats, price: catalogPriceId }
+          : {
+              quantity: seats,
+              price_data: {
+                currency: plan.currency,
+                unit_amount: plan.amount,
+                tax_behavior: 'exclusive',
+                product_data: { name: plan.label },
+                ...(plan.interval ? { recurring: { interval: plan.interval } } : {}),
+              },
+            },
       ],
       metadata: { userId: user.id, priceId, productId: plan.productId, ...companyMeta },
       ...(plan.interval

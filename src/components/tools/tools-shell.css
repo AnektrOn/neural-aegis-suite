@@ -1,0 +1,19 @@
+/* Force Palette Obsidienne on /tools/* regardless of html.light (.stitch/DESIGN.md) */
+.tools-obsidian-shell {
+  color-scheme: dark;
+  --aegis-abyss: #070707;
+  --aegis-bg: #0b0b0a;
+  --aegis-surface: #161614;
+  --aegis-surface-elevated: #1e1e1c;
+  --aegis-cardline: rgba(233, 228, 216, 0.08);
+  --aegis-cardline-hover: rgba(201, 162, 75, 0.35);
+  --aegis-gold: #c9a24b;
+  --aegis-gold-light: #d2ae5e;
+  --aegis-gold-deep: #a67f2e;
+  --aegis-copper: #ba6f3c;
+  --aegis-ink: #e9e4d8;
+  --aegis-ink-muted: #9a968b;
+  --aegis-ink-subtle: #6e6a61;
+  background-color: var(--aegis-bg);
+  color: var(--aegis-ink);
+}

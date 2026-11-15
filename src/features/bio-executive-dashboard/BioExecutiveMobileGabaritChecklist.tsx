@@ -15,7 +15,7 @@ import {
   saveMobileGabaritChecklist,
   type MobileGabaritChecklistState,
   type MobileGabaritOrientation,
-} from "./bioExecutiveMobileGabaritChecklist";
+} from "./mobileGabaritChecklistStorage";
 
 type Props = {
   mobileDeviceGabarit: HeroMobileDeviceGabaritKey;

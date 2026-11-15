@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Check, Crown, Sparkles, Loader2, X } from "lucide-react";
+import { Check, Crown, Loader2, Mic, Sparkles, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -25,7 +25,13 @@ type Billing = "monthly" | "yearly";
 const SHOW_PRICING_BILLING_TOGGLE = false;
 const SHOW_MATRIX_PLAN = false;
 const SHOW_ULTRA_PLAN = false;
-const SHOW_LECTURE_PLAN = true;
+const SHOW_LECTURE_PLAN = false;
+
+const PLAN_SOLO = "aegis_solo_monthly";
+const PLAN_SOLO_LOGOS = "aegis_solo_logos_monthly";
+const PLAN_FOUNDERS = "aegis_founders_lifetime";
+
+type FoundersAvailability = { remaining: number; open: boolean; sold: number; max: number };
 
 export default function Pricing() {
   const { locale } = useLanguage();
@@ -36,15 +42,103 @@ export default function Pricing() {
   const { openCheckout, loading } = useStripeCheckout();
   const [billing, setBilling] = useState<Billing>("monthly");
   const [pending, setPending] = useState<string | null>(null);
+  const [founders, setFounders] = useState<FoundersAvailability | null>(null);
 
   const isFR = locale === "fr";
+
+  useEffect(() => {
+    void supabase.functions.invoke("founders-availability").then(({ data, error }) => {
+      if (error || !data) return;
+      const row = data as FoundersAvailability;
+      if (typeof row.remaining === "number" && typeof row.open === "boolean") {
+        setFounders(row);
+      }
+    });
+  }, []);
 
   const copy = useMemo(
     () => ({
       title: isFR ? "Choisissez votre voie" : "Choose your path",
       subtitle: isFR
-        ? "Trois niveaux d'accès à l'écosystème AEGIS."
-        : "Three levels of access to the AEGIS ecosystem.",
+        ? "Exocortex décisionnel pour dirigeants solo — plateforme web, registre d'arbitrages et, en option, l'agent vocal LOGOS."
+        : "Decision exocortex for solo leaders — web platform, decision registry, and optional LOGOS voice agent.",
+      taxNote: isFR
+        ? "Prix HT. TVA calculée au checkout selon votre pays (Stripe Tax)."
+        : "Prices exclude tax. VAT is calculated at checkout (Stripe Tax).",
+      solo: {
+        name: "AEGIS Solo",
+        note: isFR ? "Exocortex décisionnel complet" : "Full decision exocortex",
+        price: "35 €",
+        cta: isFR ? "Activer AEGIS Solo" : "Activate AEGIS Solo",
+        features: isFR
+          ? [
+              "Bilan d'onboarding archétypal inclus",
+              "Dashboard de pilotage",
+              "People Board 3D",
+              "Registre des décisions",
+              "10 toolbox items / semaine",
+              "50 interactions RAG / semaine (min.)",
+            ]
+          : [
+              "Archetypal onboarding report included",
+              "Executive dashboard",
+              "3D People Board",
+              "Decision registry",
+              "10 toolbox items / week",
+              "50 RAG interactions / week (min.)",
+            ],
+      },
+      soloLogos: {
+        name: "AEGIS + LOGOS Solo",
+        note: isFR ? "Exocortex + sparring vocal 24/7" : "Exocortex + 24/7 voice sparring",
+        price: "110 €",
+        cta: isFR ? "Activer Solo + LOGOS" : "Activate Solo + LOGOS",
+        features: isFR
+          ? [
+              "Tout AEGIS Solo",
+              "Agent vocal IA LOGOS intégré",
+              "Débriefing oral & préparation vocale",
+              "Connexion Vault & historique décisionnel",
+              "10 toolbox items / semaine",
+              "50 interactions RAG / semaine (min.)",
+            ]
+          : [
+              "Everything in AEGIS Solo",
+              "Integrated LOGOS voice agent",
+              "Oral debrief & voice prep for negotiations",
+              "Vault & decision history connected",
+              "10 toolbox items / week",
+              "50 RAG interactions / week (min.)",
+            ],
+      },
+      founders: {
+        name: isFR ? "Membres Fondateurs" : "Founding Members",
+        note: isFR ? "AEGIS Solo à vie — 20 places" : "Lifetime AEGIS Solo — 20 seats",
+        price: "350 €",
+        priceSuffix: isFR ? " HT — paiement unique" : " excl. tax — one-time",
+        cta: isFR ? "Rejoindre la cohorte" : "Join the cohort",
+        ctaSoldOut: isFR ? "Cohorte complète" : "Cohort full",
+        guarantee: isFR
+          ? "Garantie sérénité 30 jours · LOGOS en option (abonnement séparé)"
+          : "30-day serenity guarantee · LOGOS optional (separate subscription)",
+        features: isFR
+          ? [
+              "Accès à vie à AEGIS Solo",
+              "Rapport d'onboarding inclus",
+              "Mises à jour majeures incluses",
+              "Équivalent ~10 mois d'abonnement",
+              "10 toolbox items / semaine",
+              "50 interactions RAG / semaine (min.)",
+            ]
+          : [
+              "Lifetime AEGIS Solo access",
+              "Onboarding report included",
+              "Major updates included",
+              "Roughly 10 months of subscription value",
+              "10 toolbox items / week",
+              "50 RAG interactions / week (min.)",
+            ],
+      },
       monthly: isFR ? "Mensuel" : "Monthly",
       yearly: isFR ? "Annuel" : "Yearly",
       current: isFR ? "Forfait actuel" : "Current plan",
@@ -113,33 +207,27 @@ export default function Pricing() {
       upfrontLabel: isFR ? "Comptant" : "Upfront",
       installmentLabel: isFR ? "6 × mensualités" : "6 monthly payments",
       compare: {
-        title: isFR ? "Ce qui est inclus" : "What's included",
+        title: isFR ? "Comparatif des offres" : "Plan comparison",
         subtitle: isFR
-          ? "Initiation couvre la saisie quotidienne et l'historique personnel. La Matrice débloque les analyses, exports et outils avancés."
-          : "Initiation covers daily logging and personal history. Matrix unlocks analytics, exports, and advanced tools.",
+          ? "Initiation = découverte gratuite. Les offres Solo débloquent la plateforme décisionnelle complète."
+          : "Initiation = free discovery. Solo plans unlock the full decision platform.",
         feature: isFR ? "Fonctionnalité" : "Feature",
         free: isFR ? "Initiation" : "Initiation",
-        matrix: "Matrice",
-        ultra: "Ultra",
+        solo: "Solo",
+        soloLogos: "Solo + LOGOS",
+        founders: isFR ? "Fondateurs" : "Founders",
         footnote: isFR
-          ? "Ultra = Matrice + accès Inner Circle. L'expérience produit reste la même ; la différence est humaine."
-          : "Ultra = Matrix + Inner Circle access. The product experience is the same; the difference is human.",
+          ? "LOGOS n'est pas inclus dans l'offre Fondateurs. Offres entreprise (équipes) : sur devis."
+          : "LOGOS is not included in Founders. Team plans: contact us.",
         rows: [
-          { key: "account", free: "full", matrix: "full", ultra: "full" },
-          { key: "dailyLogs", free: "enter", matrix: "enter", ultra: "enter" },
-          { key: "history", free: "full", matrix: "full", ultra: "full" },
-          { key: "archetypeQuiz", free: "full", matrix: "full", ultra: "full" },
-          { key: "dashboard", free: "none", matrix: "full", ultra: "full" },
-          { key: "deepDive", free: "none", matrix: "full", ultra: "full" },
-          { key: "analytics", free: "none", matrix: "full", ultra: "full" },
-          { key: "toolbox", free: "none", matrix: "full", ultra: "full" },
-          { key: "pulse", free: "none", matrix: "full", ultra: "full" },
-          { key: "people", free: "none", matrix: "full", ultra: "full" },
-          { key: "calendar", free: "none", matrix: "full", ultra: "full" },
-          { key: "journal", free: "none", matrix: "full", ultra: "full" },
-          { key: "exports", free: "none", matrix: "full", ultra: "full" },
-          { key: "personalReports", free: "none", matrix: "full", ultra: "full" },
-          { key: "humanCoaching", free: "none", matrix: "none", ultra: "full" },
+          { key: "onboarding", free: "none", solo: "full", soloLogos: "full", founders: "full" },
+          { key: "dashboard", free: "none", solo: "full", soloLogos: "full", founders: "full" },
+          { key: "peopleBoard", free: "none", solo: "full", soloLogos: "full", founders: "full" },
+          { key: "decisions", free: "none", solo: "full", soloLogos: "full", founders: "full" },
+          { key: "toolboxQuota", free: "none", solo: "full", soloLogos: "full", founders: "full" },
+          { key: "ragQuota", free: "none", solo: "full", soloLogos: "full", founders: "full" },
+          { key: "logos", free: "none", solo: "none", soloLogos: "full", founders: "none" },
+          { key: "lifetime", free: "none", solo: "none", soloLogos: "none", founders: "full" },
         ],
       },
     }),
@@ -155,8 +243,15 @@ export default function Pricing() {
     setPending(priceId);
     try {
       await openCheckout(priceId);
-    } catch {
-      toast.error(isFR ? "Paiement indisponible." : "Payment unavailable.");
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "";
+      if (code === "FOUNDERS_SOLD_OUT") {
+        toast.error(isFR ? "Les 20 places fondateurs sont prises." : "All 20 founder seats are taken.");
+      } else if (code === "FOUNDERS_ALREADY_OWNED") {
+        toast.error(isFR ? "Vous avez déjà l'accès fondateur." : "You already have founder access.");
+      } else {
+        toast.error(isFR ? "Paiement indisponible." : "Payment unavailable.");
+      }
     } finally {
       setPending(null);
     }
@@ -181,6 +276,17 @@ export default function Pricing() {
 
   const busy = (priceId: string) => loading && pending === priceId;
 
+  const activeProductId = tier !== "free" ? subscription?.product_id : null;
+  const foundersOpen = founders?.open !== false;
+  const foundersPlacesLabel =
+    founders != null
+      ? isFR
+        ? `${founders.remaining} place${founders.remaining > 1 ? "s" : ""} restante${founders.remaining > 1 ? "s" : ""}`
+        : `${founders.remaining} seat${founders.remaining === 1 ? "" : "s"} left`
+      : isFR
+        ? "20 places max"
+        : "20 seats max";
+
 
   return (
     <div className="min-h-screen bg-aegis-gradient">
@@ -190,8 +296,8 @@ export default function Pricing() {
           name="description"
           content={
             isFR
-              ? "Découvrez les trois forfaits AEGIS : Initiation gratuite, Matrice et Ultra."
-              : "Discover the three AEGIS plans: free Initiation, Matrix and Ultra."
+              ? "AEGIS Solo, AEGIS + LOGOS et offre Fondateurs — tarifs HT pour dirigeants solo."
+              : "AEGIS Solo, AEGIS + LOGOS, and Founders lifetime — ex-tax pricing for solo leaders."
           }
         />
         <link rel="canonical" href="https://aegis.humancatalystbeacon.com/pricing" />
@@ -254,13 +360,9 @@ export default function Pricing() {
           </div>
         ) : null}
 
-        <div
-          className={`grid gap-6 items-start ${
-            SHOW_MATRIX_PLAN || SHOW_ULTRA_PLAN ? "md:grid-cols-3" : "md:grid-cols-2 max-w-3xl mx-auto"
-          }`}
-        >
+        <div className="grid gap-6 items-start md:grid-cols-2 lg:grid-cols-4">
           {/* Free */}
-          <NeuralCard variant="elevated" className="p-6 space-y-5">
+          <NeuralCard variant="elevated" className="p-6 space-y-5 lg:col-span-1">
             <div className="space-y-1">
               <h2 className="font-serif text-xl">{copy.free.name}</h2>
               <p className="text-xs text-muted-foreground">{copy.free.note}</p>
@@ -306,6 +408,118 @@ export default function Pricing() {
               </Button>
             </NeuralCard>
           ) : null}
+
+          <NeuralCard variant="elevated" glow="blue" className="p-6 space-y-5 border-primary/30">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1">
+                <h2 className="font-serif text-xl flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" aria-hidden />
+                  {copy.solo.name}
+                </h2>
+                <p className="text-xs text-muted-foreground">{copy.solo.note}</p>
+              </div>
+              {activeProductId === "aegis_solo" && <Badge variant="secondary">{copy.current}</Badge>}
+            </div>
+            <p className="font-display text-3xl">
+              {copy.solo.price}
+              <span className="text-sm text-muted-foreground font-sans">
+                {isFR ? " HT / mois" : " excl. tax / mo"}
+              </span>
+            </p>
+            <p className="text-[11px] text-muted-foreground">{copy.taxNote}</p>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {copy.solo.features.map((f) => (
+                <li key={f} className="flex gap-2">
+                  <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              className="w-full min-h-[44px]"
+              disabled={busy(PLAN_SOLO)}
+              onClick={() => handleCheckout(PLAN_SOLO)}
+            >
+              {busy(PLAN_SOLO) && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
+              {copy.solo.cta}
+            </Button>
+          </NeuralCard>
+
+          <NeuralCard variant="elevated" className="p-6 space-y-5 border-primary/40 ring-1 ring-primary/20">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1">
+                <h2 className="font-serif text-xl flex items-center gap-2">
+                  <Mic className="w-4 h-4 text-primary" aria-hidden />
+                  {copy.soloLogos.name}
+                </h2>
+                <p className="text-xs text-muted-foreground">{copy.soloLogos.note}</p>
+              </div>
+              {activeProductId === "aegis_solo_logos" && <Badge variant="secondary">{copy.current}</Badge>}
+            </div>
+            <p className="font-display text-3xl">
+              {copy.soloLogos.price}
+              <span className="text-sm text-muted-foreground font-sans">
+                {isFR ? " HT / mois" : " excl. tax / mo"}
+              </span>
+            </p>
+            <p className="text-[11px] text-muted-foreground">{copy.taxNote}</p>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {copy.soloLogos.features.map((f) => (
+                <li key={f} className="flex gap-2">
+                  <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              className="w-full min-h-[44px]"
+              disabled={busy(PLAN_SOLO_LOGOS)}
+              onClick={() => handleCheckout(PLAN_SOLO_LOGOS)}
+            >
+              {busy(PLAN_SOLO_LOGOS) && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
+              {copy.soloLogos.cta}
+            </Button>
+          </NeuralCard>
+
+          <NeuralCard variant="elevated" glow="warm" className="p-6 space-y-5 border-accent-primary/30">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1">
+                <h2 className="font-serif text-xl flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-accent-primary" aria-hidden />
+                  {copy.founders.name}
+                </h2>
+                <p className="text-xs text-muted-foreground">{copy.founders.note}</p>
+              </div>
+              {activeProductId === "aegis_founders_lifetime" && (
+                <Badge variant="secondary">{copy.current}</Badge>
+              )}
+            </div>
+            <Badge variant="outline" className="text-[10px] uppercase tracking-wider w-fit">
+              {foundersPlacesLabel}
+            </Badge>
+            <p className="font-display text-3xl">
+              {copy.founders.price}
+              <span className="text-sm text-muted-foreground font-sans">{copy.founders.priceSuffix}</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground">{copy.taxNote}</p>
+            <p className="text-xs text-muted-foreground">{copy.founders.guarantee}</p>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {copy.founders.features.map((f) => (
+                <li key={f} className="flex gap-2">
+                  <Check className="w-4 h-4 text-accent-primary shrink-0 mt-0.5" aria-hidden />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              className="w-full min-h-[44px]"
+              disabled={!foundersOpen || busy(PLAN_FOUNDERS)}
+              onClick={() => handleCheckout(PLAN_FOUNDERS)}
+            >
+              {busy(PLAN_FOUNDERS) && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
+              {foundersOpen ? copy.founders.cta : copy.founders.ctaSoldOut}
+            </Button>
+          </NeuralCard>
 
           {/* Matrix — code et produits Stripe conservés ; réactiver via SHOW_MATRIX_PLAN */}
           {SHOW_MATRIX_PLAN ? (
@@ -424,7 +638,9 @@ export default function Pricing() {
           ) : null}
         </div>
 
-        <p className="mt-8 text-center text-sm text-muted-foreground">{copy.afterLecture}</p>
+        {SHOW_LECTURE_PLAN ? (
+          <p className="mt-8 text-center text-sm text-muted-foreground">{copy.afterLecture}</p>
+        ) : null}
 
         {/* Feature comparison */}
         <motion.div
@@ -448,35 +664,31 @@ export default function Pricing() {
                     <th className="text-left px-6 py-4 font-medium text-foreground w-[45%]">
                       {copy.compare.feature}
                     </th>
-                    <th className="text-center px-4 py-4 font-medium text-muted-foreground w-[18%]">
+                    <th className="text-center px-3 py-4 font-medium text-muted-foreground w-[14%]">
                       {copy.compare.free}
                     </th>
-                    <th className="text-center px-4 py-4 font-medium text-primary w-[18%]">
-                      {copy.compare.matrix}
+                    <th className="text-center px-3 py-4 font-medium text-primary w-[14%]">
+                      {copy.compare.solo}
                     </th>
-                    <th className="text-center px-4 py-4 font-medium text-accent-foreground w-[18%]">
-                      {copy.compare.ultra}
+                    <th className="text-center px-3 py-4 font-medium text-primary w-[14%]">
+                      {copy.compare.soloLogos}
+                    </th>
+                    <th className="text-center px-3 py-4 font-medium text-accent-foreground w-[14%]">
+                      {copy.compare.founders}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {copy.compare.rows.map((row, i) => {
                     const label = {
-                      account: isFR ? "Compte, profil, réglages, app Android" : "Account, profile, settings, Android app",
-                      dailyLogs: isFR ? "Humeur, décisions, habitudes" : "Mood, decisions, habits",
-                      history: isFR ? "Historique illimité de ses propres données" : "Unlimited history of own data",
-                      archetypeQuiz: isFR ? "Quiz archétypes & rapport de synthèse" : "Archetype quiz & synthesis report",
-                      dashboard: isFR ? "Dashboard personnalisé avec insights" : "Personalized dashboard with insights",
-                      deepDive: isFR ? "Deep Dive & cartographie d'archétypes" : "Deep Dive & archetype cartography",
-                      analytics: isFR ? "Analyses, corrélations et insights IA" : "Analytics, correlations, AI insights",
-                      toolbox: isFR ? "Toolbox (breathwork, body scan, affirmations)" : "Toolbox (breathwork, body scan, affirmations)",
-                      pulse: isFR ? "Pulse cards — micro-apprentissage" : "Pulse cards — micro-learning",
-                      people: isFR ? "Tableau de relations & proximité" : "Relationship board & proximity",
-                      calendar: isFR ? "Calendrier (mood, habitudes, décisions, journal)" : "Calendar (mood, habits, decisions, journal)",
-                      journal: isFR ? "Journal avec tags d'humeur" : "Journal with mood tags",
-                      exports: isFR ? "Exports rapports, PDF et données" : "Reports, PDF and data exports",
-                      personalReports: isFR ? "Rapports personnels admin" : "Admin personal reports",
-                      humanCoaching: isFR ? "Accompagnement humain, audit, appels" : "Human coaching, audit, calls",
+                      onboarding: isFR ? "Rapport initial archétypal" : "Initial archetypal report",
+                      dashboard: isFR ? "Dashboard de pilotage" : "Executive dashboard",
+                      peopleBoard: isFR ? "People Board 3D" : "3D People Board",
+                      decisions: isFR ? "Registre des décisions" : "Decision registry",
+                      toolboxQuota: isFR ? "10 toolbox items / semaine" : "10 toolbox items / week",
+                      ragQuota: isFR ? "50 interactions RAG / semaine" : "50 RAG interactions / week",
+                      logos: isFR ? "Agent vocal LOGOS" : "LOGOS voice agent",
+                      lifetime: isFR ? "Accès à vie (Fondateurs)" : "Lifetime access (Founders)",
                     }[row.key];
 
                     const cell = (value: string) => {
@@ -495,9 +707,10 @@ export default function Pricing() {
                         className={`border-b border-border/30 last:border-0 ${i % 2 === 1 ? "bg-background/20" : ""}`}
                       >
                         <td className="px-6 py-3 text-foreground">{label}</td>
-                        <td className="px-4 py-3 text-center">{cell(row.free)}</td>
-                        <td className="px-4 py-3 text-center">{cell(row.matrix)}</td>
-                        <td className="px-4 py-3 text-center">{cell(row.ultra)}</td>
+                        <td className="px-3 py-3 text-center">{cell(row.free)}</td>
+                        <td className="px-3 py-3 text-center">{cell(row.solo)}</td>
+                        <td className="px-3 py-3 text-center">{cell(row.soloLogos)}</td>
+                        <td className="px-3 py-3 text-center">{cell(row.founders)}</td>
                       </tr>
                     );
                   })}

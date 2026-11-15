@@ -1,20 +1,59 @@
 /** Catalogue AEGIS — source de vérité côté serveur (aucun prix ne vient du client). */
 export type PlanKey =
+  | 'aegis_solo_monthly'
+  | 'aegis_solo_logos_monthly'
+  | 'aegis_founders_lifetime'
   | 'aegis_matrix_monthly'
   | 'aegis_matrix_yearly'
   | 'aegis_ultra_upfront'
   | 'aegis_ultra_monthly';
 
+export type ProductId =
+  | 'aegis_solo'
+  | 'aegis_solo_logos'
+  | 'aegis_founders_lifetime'
+  | 'aegis_matrix'
+  | 'aegis_ultra';
+
 export interface PlanDef {
-  productId: 'aegis_matrix' | 'aegis_ultra';
+  productId: ProductId;
   label: string;
-  amount: number; // centimes
+  amount: number; // centimes HT
   currency: 'eur';
   interval: 'month' | 'year' | null; // null = paiement unique
   installments?: number;
+  /** Accès perpétuel (cohorte fondateurs). */
+  lifetime?: boolean;
+  /** Price ID Stripe (mode test) — utilisé au checkout si défini. */
+  stripePriceIdTest?: string;
 }
 
 export const PLANS: Record<PlanKey, PlanDef> = {
+  aegis_solo_monthly: {
+    productId: 'aegis_solo',
+    label: 'AEGIS Solo — mensuel',
+    amount: 3500,
+    currency: 'eur',
+    interval: 'month',
+    stripePriceIdTest: 'price_1Ubz2WA6HEQaWZIm9F1iwW5a',
+  },
+  aegis_solo_logos_monthly: {
+    productId: 'aegis_solo_logos',
+    label: 'AEGIS + LOGOS Solo — mensuel',
+    amount: 11000,
+    currency: 'eur',
+    interval: 'month',
+    stripePriceIdTest: 'price_1Ubz2dA6HEQaWZImFPwAf04p',
+  },
+  aegis_founders_lifetime: {
+    productId: 'aegis_founders_lifetime',
+    label: 'AEGIS Solo — Membres Fondateurs (Lifetime)',
+    amount: 35000,
+    currency: 'eur',
+    interval: null,
+    lifetime: true,
+    stripePriceIdTest: 'price_1Ubz2hA6HEQaWZImWgJpNa0N',
+  },
   aegis_matrix_monthly: {
     productId: 'aegis_matrix',
     label: 'AEGIS Matrice — mensuel',
