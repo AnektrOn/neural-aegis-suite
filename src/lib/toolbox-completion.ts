@@ -51,6 +51,7 @@ export async function upsertToolboxCompletion(params: {
           ? Math.floor(params.payload.elapsedSec)
           : null,
       duration_budget_min: budgetMin,
+      post_state: params.payload?.postState ?? null,
     };
 
     let upsertResult = await supabase.from("toolbox_completions" as never).upsert(
@@ -85,6 +86,27 @@ export async function upsertToolboxCompletion(params: {
     return { error: null };
   } catch (err) {
     console.error("[toolbox-completion] critical error:", err);
+    return { error: "unexpected_error" };
+  }
+}
+
+/** Edit only the feedback on an existing completed exercise, never its event or counters. */
+export async function updateToolboxPostState(params: {
+  assignmentId: string;
+  userId: string;
+  postState: ToolboxPostState;
+}): Promise<{ error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("toolbox_completions" as never)
+      .update({ post_state: params.postState } as never)
+      .eq("assignment_id", params.assignmentId)
+      .eq("user_id", params.userId)
+      .eq("status", "completed")
+      .select("id")
+      .maybeSingle();
+    return { error: error?.message ?? (data ? null : "completion_not_found") };
+  } catch {
     return { error: "unexpected_error" };
   }
 }

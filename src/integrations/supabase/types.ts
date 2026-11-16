@@ -3202,6 +3202,7 @@ export type Database = {
           elapsed_sec: number | null
           feedback: string | null
           id: string
+          post_state: string | null
           status: string
           user_id: string
         }
@@ -3213,6 +3214,7 @@ export type Database = {
           elapsed_sec?: number | null
           feedback?: string | null
           id?: string
+          post_state?: string | null
           status: string
           user_id: string
         }
@@ -3224,6 +3226,7 @@ export type Database = {
           elapsed_sec?: number | null
           feedback?: string | null
           id?: string
+          post_state?: string | null
           status?: string
           user_id?: string
         }

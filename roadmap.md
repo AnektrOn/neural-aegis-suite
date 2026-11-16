@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Post-exercise feeling — 16 November 2026
+- [x] Persist post-exercise selections independently of completion counts in both toolbox views; live post_state column confirmed, completion timestamp and counters untouched by feedback updates.
+- [x] Four regression tests verify two feeling selections keep both counters at one, a genuine repeat counts twice, scoped updates and save failures. Authenticated browser check reached Toolbox but the requesting account has no assignments and Initiation-only access, so an actual exercise could not be completed without changing account access or data.
+
 ## Preview build and backend type checks — 15 November 2026
 - [x] Rename the lowercase guide-panel wrapper component so the preview build compiles; build OK.
 - [x] Clear every backend type-check error across all 24 functions: Stripe API-version typing (5 files), newsletter queue client typing, web-push import typing, Deep Dive query result typing, playback signature buffer typing; Stripe library installed locally so the payment functions resolve it during checks.

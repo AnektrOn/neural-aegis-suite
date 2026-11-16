@@ -1,5 +1,7 @@
 # Project rules
 
+- Save toolbox post-exercise feelings with an update-only helper scoped to the user and completed assignment; never re-record a completion or bump lifetime statistics for feedback edits.
+
 - Normalize Stripe snapshot subscription periods and invoice subscription references at the webhook boundary for both pre-Basil and Basil formats; this preserves renewal dates without changing the existing endpoint version or signing secret.
 
 - Complete Drive exports use an explicit credential-free per-user table allowlist, paginated reads and linked report sections, filed per table into the same per-user category folders as live exports (Maisons answers carry a generated scoring-grid file); synchronous per-user results enable verified resumable backfills instead of unobserved background success.
