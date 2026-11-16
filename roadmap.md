@@ -1,5 +1,11 @@
 # Monitoring fixes
 
+## Solo live catalogue deployment — 16 November 2026
+- [x] Confirm the existing Cloud binding and deploy founders-availability, stripe-checkout, stripe-webhook and agent-session without rewriting application logic.
+- [x] Save the three supplied live price-ID environment overrides; Stripe and ElevenLabs credentials already exist. Stripe readback confirms active live EUR prices at 3500 / 11000 monthly and 35000 one-time, tax-exclusive.
+- [x] Authenticated Pricing opens all three real Stripe checkout pages with HTTP 200 and correct amounts, without purchase; LOGOS shows the subscription-required dialog. Public availability reports 20/20 remaining, unsigned webhook returns 400, existing live webhook retains its six enabled events. Seven Stripe/LOGOS regression tests pass.
+- [x] Request publication on the unchanged primary custom domain; served Pricing responds HTTP 200 and displays all three offers. Deployment scheduling confirmed, exact release completion not independently identified. Agent-session returns 403 for the authenticated non-LOGOS account.
+
 ## Post-exercise feeling — 16 November 2026
 - [x] Persist post-exercise selections independently of completion counts in both toolbox views; live post_state column confirmed, completion timestamp and counters untouched by feedback updates.
 - [x] Four regression tests verify two feeling selections keep both counters at one, a genuine repeat counts twice, scoped updates and save failures. Authenticated browser check reached Toolbox but the requesting account has no assignments and Initiation-only access, so an actual exercise could not be completed without changing account access or data.
