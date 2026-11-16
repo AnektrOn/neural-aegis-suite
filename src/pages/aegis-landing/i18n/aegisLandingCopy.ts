@@ -329,7 +329,7 @@ const individuelFr: AegisLandingCopy = {
   },
   tarif: {
     label: "TARIF",
-    title: "La Lecture",
+    title: "Les offres AEGIS Solo",
     chip: "",
     body:
       "Vous passez le questionnaire complet. Une personne lit votre dossier, vous écrit un rapport, puis vous en parle trente minutes en visio. Elle vous dit ce qu'elle voit, pas quoi faire.",
@@ -514,7 +514,7 @@ const individuelEn: AegisLandingCopy = {
   },
   tarif: {
     label: "PRICING",
-    title: "La Lecture",
+    title: "AEGIS Solo plans",
     chip: "",
     body:
       "Vous passez le questionnaire complet. Une personne lit votre dossier, vous écrit un rapport, puis vous en parle trente minutes en visio. Elle vous dit ce qu'elle voit, pas quoi faire.",

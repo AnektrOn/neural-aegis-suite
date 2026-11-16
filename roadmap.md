@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Homepage pricing — 16 November 2026
+- [x] Point desktop and mobile Pricing navigation to /pricing and replace the individual homepage pricing card with Solo, Solo + LOGOS and Founders offers; preserve enterprise quotes and existing checkout.
+- [x] Three amount tests pass; mobile (393px) and desktop (1280px) pricing cards and navigation to /pricing verified; update the mobile pricing shortcut to remove the obsolete Lecture price.
+
 ## Solo live catalogue deployment — 16 November 2026
 - [x] Confirm the existing Cloud binding and deploy founders-availability, stripe-checkout, stripe-webhook and agent-session without rewriting application logic.
 - [x] Save the three supplied live price-ID environment overrides; Stripe and ElevenLabs credentials already exist. Stripe readback confirms active live EUR prices at 3500 / 11000 monthly and 35000 one-time, tax-exclusive.
