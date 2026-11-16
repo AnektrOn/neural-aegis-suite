@@ -12,17 +12,36 @@ dist
 dist-ssr
 *.local
 
-# Env & signing (mobile / production)
+# ── Secrets & env (never commit real values) ─────────────────────────
 .env
-.env.local
-.env.production
-.env.production.local
+.env.*
+!.env.example
+!.env.*.example
+!.env.production.example
+!.env.staging.example
+
+# Local secret dumps / AppSumo codes / scratch
+.tmp-appsumo/
+.tmp*/
+supabase/.temp/
+*.pem
+*.p12
+*.p8
+*service-account*.json
+*firebase-adminsdk*.json
+credentials.json
+secrets/
+
+# Android signing (also covered under android/.gitignore)
 android/keystore.properties
 android/keystore/*.keystore
 android/keystore/*.jks
+android/app/google-services.json
+android/app/google-services.json.backup
 
 # Built Android packages (keep locally; use CI artifacts for sharing)
 *.apk
+*.aab
 
 # Editor directories and files
 .vscode/*
@@ -34,6 +53,10 @@ android/keystore/*.jks
 *.njsproj
 *.sln
 *.sw?
+.cursor/
+
+# TypeScript incremental
+*.tsbuildinfo
 
 .tmp-ui-shots/
 
