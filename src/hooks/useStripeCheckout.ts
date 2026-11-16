@@ -21,7 +21,8 @@ export function useStripeCheckout() {
         const win = window.open(url, "_blank", "noopener,noreferrer");
         if (!win) {
           try {
-            window.top!.location.href = url;
+            if (window.top) window.top.location.href = url;
+            else window.location.href = url;
           } catch {
             window.location.href = url;
           }

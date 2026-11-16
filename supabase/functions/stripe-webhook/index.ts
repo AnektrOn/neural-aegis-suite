@@ -2,6 +2,7 @@ import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { PLANS, isPlanKey } from '../_shared/stripe-plans.ts';
 import { subscriptionPeriod, invoiceSubscriptionId } from './payload.ts';
+import { canProvisionPaidAccount, resolvePaidAccount } from '../_shared/payment-first.ts';
 import {
   countActiveFounders,
   FOUNDERS_LIFETIME_MAX,
@@ -116,12 +117,34 @@ async function upsertSubscription(row: Record<string, unknown>, livemode = true)
     }, {
       onConflict: 'paddle_subscription_id',
     });
-  if (error) console.error('subscription upsert:', error.message);
+  if (error) throw new Error(`subscription upsert: ${error.message}`);
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const md = session.metadata ?? {};
-  const userId = (md.userId as string) || (session.client_reference_id ?? '');
+  let userId = (md.userId as string) || (session.client_reference_id ?? '');
+  if (md.accountFlow === 'payment_first') {
+    if (!canProvisionPaidAccount(session)) return;
+    userId = await resolvePaidAccount(session, {
+      find: async (email) => {
+        for (let page = 1; ; page++) {
+          const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+          if (error) throw error;
+          const found = data.users.find(user => user.email?.toLowerCase() === email);
+          if (found) return found.id;
+          if (data.users.length < 1000) return null;
+        }
+      },
+      invite: async (email) => {
+        const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+          redirectTo: 'https://aegis.humancatalystbeacon.com/reset-password',
+          data: { account_type: 'member' },
+        });
+        if (error || !data.user) throw error ?? new Error('Account invitation failed');
+        return data.user.id;
+      },
+    });
+  }
   const priceId = md.priceId as string;
   const companyId = md.companyId as string | undefined;
   const seatQuantity = Number(md.seatQuantity ?? '');
@@ -172,6 +195,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       plan.productId,
     );
     await onPurchaseActivated(userId, plan.productId, priceId);
+    if (md.accountFlow === 'payment_first') {
+      await stripe.checkout.sessions.update(session.id, { metadata: { ...md, userId } });
+    }
     return;
   }
 
@@ -191,6 +217,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }, session.livemode !== false);
   if (sub.status === 'active' || sub.status === 'trialing') {
     await onPurchaseActivated(userId, plan.productId, priceId);
+  }
+  if (md.accountFlow === 'payment_first') {
+    await stripe.checkout.sessions.update(session.id, { metadata: { ...md, userId } });
   }
 }
 
