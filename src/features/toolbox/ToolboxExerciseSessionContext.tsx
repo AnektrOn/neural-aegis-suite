@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   upsertToolboxCompletion,
+  updateToolboxPostState,
   resetToolboxCompletionForReload,
   type ToolboxCompletionPayload,
   type ToolboxPostState,
@@ -45,6 +46,7 @@ import {
 } from "@/features/toolbox/ToolboxAssignmentStatsStrip";
 import { cn } from "@/lib/utils";
 import { LOGOS_TOOLBOX_SESSION_END } from "@/features/logos/constants";
+import { Button } from "@/components/ui/button";
 
 interface ToolboxAssignmentRow {
   id: string;
@@ -111,7 +113,7 @@ function ToolboxExerciseModalLayer({
   const [reloadKey, setReloadKey] = useState(0);
   const [reloadBusy, setReloadBusy] = useState(false);
   const [selectedPostState, setSelectedPostState] = useState<ToolboxPostState | null>(null);
-  const lastPayloadRef = useRef<ToolboxCompletionPayload | undefined>(undefined);
+  const [postStateSaving, setPostStateSaving] = useState(false);
   const [completionDialog, setCompletionDialog] = useState<{
     open: boolean;
     status: string;
@@ -164,7 +166,6 @@ function ToolboxExerciseModalLayer({
 
   const recordCompletion = useCallback(
     async (status: "completed" | "abandoned", payload?: ToolboxCompletionPayload) => {
-      lastPayloadRef.current = payload;
       setSelectedPostState(payload?.postState ?? null);
       const { error } = await upsertToolboxCompletion({
         assignmentId,
@@ -391,21 +392,24 @@ function ToolboxExerciseModalLayer({
                   ].map((opt) => {
                     const isSelected = selectedPostState === opt.id;
                     return (
-                      <button
+                      <Button
                         key={opt.id}
+                        variant="outline"
                         type="button"
+                        disabled={postStateSaving}
                         onClick={async () => {
-                          setSelectedPostState(opt.id);
-                          await upsertToolboxCompletion({
+                          setPostStateSaving(true);
+                          const { error } = await updateToolboxPostState({
                             assignmentId,
                             userId,
-                            status: "completed",
-                            payload: {
-                              elapsedSec: lastPayloadRef.current?.elapsedSec ?? 0,
-                              durationBudgetSec: lastPayloadRef.current?.durationBudgetSec,
-                              postState: opt.id,
-                            },
+                            postState: opt.id,
                           });
+                          setPostStateSaving(false);
+                          if (error) {
+                            toast({ title: t("toolbox.saveError"), description: error, variant: "destructive" });
+                            return;
+                          }
+                          setSelectedPostState(opt.id);
                         }}
                         className={cn(
                           "flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] transition-all",
@@ -416,7 +420,7 @@ function ToolboxExerciseModalLayer({
                       >
                         <span>{opt.icon}</span>
                         <span>{locale === "en" ? opt.labelEn : opt.labelFr}</span>
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>

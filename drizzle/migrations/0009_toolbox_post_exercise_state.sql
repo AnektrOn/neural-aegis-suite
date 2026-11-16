@@ -1,0 +1,2 @@
+ALTER TABLE public.toolbox_completions ADD COLUMN IF NOT EXISTS post_state text CHECK (post_state IN ('tension_released', 'clarity_restored', 'still_in_resistance'));
+COMMENT ON COLUMN public.toolbox_completions.post_state IS 'Latest selected post-exercise feeling; updating it does not record another completion.';

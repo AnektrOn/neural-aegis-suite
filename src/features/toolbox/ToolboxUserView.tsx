@@ -31,6 +31,7 @@ import {
 } from "@/services/toolboxHabitLinkService";
 import {
   upsertToolboxCompletion,
+  updateToolboxPostState,
   resetToolboxCompletionForReload,
   type ToolboxCompletionPayload,
   type ToolboxPostState,
@@ -52,6 +53,7 @@ import {
 } from "@/lib/toolbox-content-type-definitions";
 import { extractWhyThisForYou } from "@/features/toolbox/ui/ToolboxPrescriptionBanner";
 import { resolveToolboxAccent } from "@/features/toolbox/ui/toolboxPhaseColors";
+import { Button } from "@/components/ui/button";
 
 interface ToolboxItem {
   id: string;
@@ -121,7 +123,7 @@ export function ToolboxUserView({
   const [beginnerOnly, setBeginnerOnly] = useState(false);
   const [contextFilter, setContextFilter] = useState<"all" | "vortex_emergency" | "decision_log" | "people_board" | "somatic_reset">("all");
   const [durationFilter, setDurationFilter] = useState<"all" | "le_2min" | "3_5min" | "gt_5min">("all");
-  const [lastPayload, setLastPayload] = useState<ToolboxCompletionPayload | undefined>(undefined);
+  const [postStateSaving, setPostStateSaving] = useState(false);
   const [selectedPostState, setSelectedPostState] = useState<ToolboxPostState | null>(null);
   const [assignmentStats, setAssignmentStats] = useState<Record<string, ToolboxAssignmentStats>>({});
   const [habitLinkBusy, setHabitLinkBusy] = useState<string | null>(null);
@@ -284,7 +286,6 @@ export function ToolboxUserView({
       return;
     }
 
-    setLastPayload(payload);
     setSelectedPostState(payload?.postState ?? null);
 
     const { error } = await upsertToolboxCompletion({
@@ -1916,22 +1917,26 @@ export function ToolboxUserView({
                   ].map((opt) => {
                     const isSelected = selectedPostState === opt.id;
                     return (
-                      <button
+                      <Button
                         key={opt.id}
+                        variant="outline"
                         type="button"
+                        disabled={postStateSaving || readOnly}
                         onClick={async () => {
+                          if (readOnly) { blockReadOnlyAction(); return; }
                           if (completionDialog.itemId) {
-                            setSelectedPostState(opt.id);
-                            await upsertToolboxCompletion({
+                            setPostStateSaving(true);
+                            const { error } = await updateToolboxPostState({
                               assignmentId: completionDialog.itemId,
                               userId,
-                              status: "completed",
-                              payload: {
-                                elapsedSec: lastPayload?.elapsedSec ?? 0,
-                                durationBudgetSec: lastPayload?.durationBudgetSec,
-                                postState: opt.id,
-                              },
+                              postState: opt.id,
                             });
+                            setPostStateSaving(false);
+                            if (error) {
+                              toast({ title: t("toolbox.saveError"), description: error, variant: "destructive" });
+                              return;
+                            }
+                            setSelectedPostState(opt.id);
                           }
                         }}
                         className={cn(
@@ -1943,7 +1948,7 @@ export function ToolboxUserView({
                       >
                         <span>{opt.icon}</span>
                         <span>{locale === "en" ? opt.labelEn : opt.labelFr}</span>
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
