@@ -86,10 +86,10 @@ export function ToolStepWizard({
     >
       <div className="border-b border-border/40 bg-background/40 px-4 py-3 backdrop-blur-md md:px-6">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
-          <span className="font-display text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--aegis-text-secondary)]">
             {isResult ? "Synthèse" : `Étape ${index + 1} / ${steps.length}`}
           </span>
-          <span className="font-display text-xs tabular-nums text-primary">
+          <span className="font-mono text-xs tabular-nums text-[color:var(--aegis-bronze-ink)]">
             {Math.round(progressPct)} %
           </span>
         </div>

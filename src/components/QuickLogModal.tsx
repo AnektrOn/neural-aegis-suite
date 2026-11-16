@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Drawer } from "vaul";
-import { Brain, Flame, Moon, X } from "lucide-react";
+import { Brain, Flame, Moon, X } from "@/lib/icons/layoutChrome";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";

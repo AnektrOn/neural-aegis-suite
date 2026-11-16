@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import { cn } from "@/lib/utils";
 import { toolboxWidgetHeaderClass } from "./toolboxWidgetClasses";
 
@@ -9,7 +9,7 @@ export function ToolboxWidgetHeader({
   className,
 }: {
   title: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   iconClassName?: string;
   className?: string;
 }) {

@@ -1,5 +1,5 @@
 import { Trash2 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Locale, TranslationKey } from "@/i18n/translations";
 import ToolboxItemPreview from "@/components/admin/ToolboxItemPreview";
@@ -14,7 +14,7 @@ interface Props {
   row: ToolboxTrackingRow;
   locale: Locale;
   dateLocaleTag: string;
-  typeMeta: { icon: LucideIcon; color: string; label: string };
+  typeMeta: { icon: AppIcon; color: string; label: string };
   onDelete: () => void;
   showUserName?: boolean;
 }

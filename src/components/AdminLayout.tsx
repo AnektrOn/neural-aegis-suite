@@ -7,7 +7,7 @@ import {
   LogOut,
   ArrowLeft,
   Menu,
-} from "lucide-react";
+} from "@/lib/icons/layoutChrome";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";

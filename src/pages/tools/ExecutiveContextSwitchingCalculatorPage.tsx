@@ -65,7 +65,7 @@ export default function ExecutiveContextSwitchingCalculatorPage() {
       description: "Board, investisseurs, équipe, clients…",
       content: (
         <div className="space-y-6">
-          <p className="text-center font-display text-3xl text-primary">{switchesPerDay}</p>
+          <p className="text-center font-cormorant-display text-3xl text-[color:var(--aegis-bronze-ink)]">{switchesPerDay}</p>
           <Slider
             min={4}
             max={30}

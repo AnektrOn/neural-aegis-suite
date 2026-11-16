@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { toolsMetricLabel, toolsMetricValue } from "./toolsDesign";
 
 interface ToolGaugeProps {
   value: number;
@@ -44,15 +45,13 @@ export function ToolGauge({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-display text-2xl font-medium tabular-nums text-foreground">
+          <span className={toolsMetricValue}>
             {Math.round(value)}
             {suffix}
           </span>
         </div>
       </GaugeFrame>
-      <p className="text-center font-display text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
-        {label}
-      </p>
+      <p className={`text-center ${toolsMetricLabel}`}>{label}</p>
     </div>
   );
 }

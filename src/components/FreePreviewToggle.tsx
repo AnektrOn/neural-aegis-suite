@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "@/lib/icons/layoutChrome";
 import { useLocation } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { useFreePreview } from "@/hooks/useFreePreview";

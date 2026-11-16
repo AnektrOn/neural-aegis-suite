@@ -1,23 +1,23 @@
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import {
   BookOpen,
-  Sword,
-  Heart,
-  Crown,
   Compass,
-  Sparkles,
-  Shield,
-  Wand2,
+  Crown,
+  Eye,
   Flame,
+  Heart,
   Laugh,
   Leaf,
-  Eye,
-} from "lucide-react";
+  Shield,
+  Sparkles,
+  Sword,
+  Wand2,
+} from "@/lib/icons/archetype";
 import { archetypeMeta } from "@/features/archetype-assessment/services/assessmentService";
 import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types";
 import type { AnyArchetypeKey } from "@/features/archetype-deepdive-v2/domain/types";
 
-const ICONS: Record<ArchetypeKey, LucideIcon> = {
+const ICONS: Record<ArchetypeKey, AppIcon> = {
   sage: BookOpen,
   warrior: Sword,
   lover: Heart,

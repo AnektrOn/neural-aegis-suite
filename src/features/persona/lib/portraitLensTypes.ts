@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import type { TranslationKey } from "@/i18n/translations";
 
 /** Extensible portrait system id — add new lenses in buildPortraitLenses. */
@@ -21,7 +21,7 @@ export interface PortraitLensCard {
   excerpt: string | null;
   eyebrow: string | null;
   accentColor: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   mark?: string;
   progressFilled?: number;
   progressTotal?: number;

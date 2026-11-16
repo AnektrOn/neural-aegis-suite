@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { Shield } from "@/lib/icons/layoutChrome";
 import { MobileDockCircleMenu } from "@/components/MobileDockCircleMenu";
 import type { MobileDockCircleItem } from "@/components/MobileDockCircleMenu";
 import { useAdmin } from "@/hooks/use-admin";

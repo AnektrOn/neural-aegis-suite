@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import {
   Phone,
   Bot,
@@ -29,7 +29,7 @@ import {
   TreePine,
   Smartphone,
   Handshake,
-} from "lucide-react";
+} from "@/lib/icons/adminNav";
 import type { TranslationKey } from "@/i18n/translations";
 
 export type AdminHubTabId =
@@ -59,14 +59,14 @@ export type AdminHubTabId =
 export type AdminNavLinkItem = {
   kind: "link";
   to: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   labelKey: TranslationKey;
 };
 
 export type AdminNavHubItem = {
   kind: "hub";
   to: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   labelKey: TranslationKey;
   titleKey: TranslationKey;
   descriptionKey: TranslationKey;
@@ -81,7 +81,7 @@ export type AdminNavSection = {
   labelKey: TranslationKey;
   overviewKey: TranslationKey;
   overviewDescKey: TranslationKey;
-  icon: LucideIcon;
+  icon: AppIcon;
   items: AdminNavItem[];
 };
 

@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import {
   Home,
   SmilePlus,
@@ -23,7 +23,7 @@ import {
   ClipboardList,
   Orbit,
   UserRound,
-} from "lucide-react";
+} from "@/lib/icons/memberNav";
 import type { TranslationKey } from "@/i18n/translations";
 
 export type AppHubId = "capture" | "portrait" | "pratiques" | "messages";
@@ -60,7 +60,7 @@ export type MenuPanelId = (typeof MENU_PANEL_ORDER)[number];
 export type MenuPanelDef = {
   id: MenuPanelId;
   to: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   labelKey: TranslationKey;
   hub?: AppHubId;
   /** Hub index route (sidebar desktop). */

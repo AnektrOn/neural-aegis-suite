@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search } from "@/lib/icons/layoutChrome";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { getAppPageMeta } from "@/lib/appNavConfig";
 import { cn } from "@/lib/utils";

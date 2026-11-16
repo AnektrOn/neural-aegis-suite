@@ -104,7 +104,7 @@ export default function ExecutiveSaasRunrateCalculatorPage() {
                   [item.id]: Number(e.target.value) || 0,
                 }))
               }
-              className="w-full rounded-xl border-border/50 bg-card/70 font-display text-right text-foreground sm:w-28"
+              className="w-full rounded-xl border-border/50 bg-card/70 font-cormorant-display text-right text-[color:var(--aegis-text)] sm:w-28"
               aria-label={`Prix mensuel ${item.label}`}
             />
           </li>

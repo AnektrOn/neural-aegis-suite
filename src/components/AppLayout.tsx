@@ -12,7 +12,7 @@ import {
   Settings2,
   Smartphone,
   Sparkles,
-} from "lucide-react";
+} from "@/lib/icons/layoutChrome";
 import AppCommandPalette from "@/components/AppCommandPalette";
 import DesktopTopBar from "@/components/DesktopTopBar";
 import QuickLogModal from "@/components/QuickLogModal";

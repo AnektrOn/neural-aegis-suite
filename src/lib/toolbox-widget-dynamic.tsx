@@ -1,5 +1,5 @@
 import { Suspense, lazy, type ComponentType, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/lib/icons/primitives";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
 
 export type DynamicToolboxWidgetKind =

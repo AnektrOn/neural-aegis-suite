@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LIEN_PAIEMENT_LECTURE } from "@/pages/aegis-landing/landingCtaHrefs";
 
 import { toast } from "sonner";
+import "@/pages/aegis-landing/aegisLanding.css";
 
 type Billing = "monthly" | "yearly";
 
@@ -285,7 +286,7 @@ export default function Pricing() {
 
 
   return (
-    <div className="min-h-screen bg-aegis-gradient">
+    <div className="aegis-landing min-h-screen bg-[color:var(--aegis-page)] text-[color:var(--aegis-text)]">
       <Helmet>
         <title>{isFR ? "Forfaits AEGIS — Tarifs" : "AEGIS Plans — Pricing"}</title>
         <meta
@@ -315,7 +316,9 @@ export default function Pricing() {
           <Badge variant="outline" className="border-primary/30 text-primary uppercase tracking-widest text-[10px]">
             AEGIS
           </Badge>
-          <h1 className="font-display text-3xl sm:text-4xl tracking-wide text-foreground">{copy.title}</h1>
+          <h1 className="font-cormorant-display text-3xl font-light sm:text-4xl tracking-tight text-[color:var(--aegis-text)]">
+            {copy.title}
+          </h1>
           <p className="text-sm text-muted-foreground">{copy.subtitle}</p>
           {subscription?.status === "past_due" && (
             <p className="text-sm text-destructive">
@@ -363,7 +366,7 @@ export default function Pricing() {
               <h2 className="font-serif text-xl">{copy.free.name}</h2>
               <p className="text-xs text-muted-foreground">{copy.free.note}</p>
             </div>
-            <p className="font-display text-3xl">{copy.free.price}</p>
+            <p className="font-cormorant-display text-3xl font-light">{copy.free.price}</p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               {copy.free.features.map((f) => (
                 <li key={f} className="flex gap-2">
@@ -390,7 +393,7 @@ export default function Pricing() {
                 </h2>
                 <p className="text-xs text-muted-foreground">{copy.lecture.note}</p>
               </div>
-              <p className="font-display text-3xl">{copy.lecture.price}</p>
+              <p className="font-cormorant-display text-3xl font-light">{copy.lecture.price}</p>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {copy.lecture.features.map((f) => (
                   <li key={f} className="flex gap-2">
@@ -416,7 +419,7 @@ export default function Pricing() {
               </div>
               {activeProductId === "aegis_solo" && <Badge variant="secondary">{copy.current}</Badge>}
             </div>
-            <p className="font-display text-3xl">
+            <p className="font-cormorant-display text-3xl font-light">
               {copy.solo.price}
               <span className="text-sm text-muted-foreground font-sans">
                 {isFR ? " HT / mois" : " excl. tax / mo"}
@@ -452,7 +455,7 @@ export default function Pricing() {
               </div>
               {activeProductId === "aegis_solo_logos" && <Badge variant="secondary">{copy.current}</Badge>}
             </div>
-            <p className="font-display text-3xl">
+            <p className="font-cormorant-display text-3xl font-light">
               {copy.soloLogos.price}
               <span className="text-sm text-muted-foreground font-sans">
                 {isFR ? " HT / mois" : " excl. tax / mo"}
@@ -493,7 +496,7 @@ export default function Pricing() {
             <Badge variant="outline" className="text-[10px] uppercase tracking-wider w-fit">
               {foundersPlacesLabel}
             </Badge>
-            <p className="font-display text-3xl">
+            <p className="font-cormorant-display text-3xl font-light">
               {copy.founders.price}
               <span className="text-sm text-muted-foreground font-sans">{copy.founders.priceSuffix}</span>
             </p>
@@ -530,7 +533,7 @@ export default function Pricing() {
                 </div>
                 {tier === "matrix" && <Badge variant="secondary">{copy.current}</Badge>}
               </div>
-              <p className="font-display text-3xl">
+              <p className="font-cormorant-display text-3xl font-light">
                 {billing === "monthly" ? "39 €" : "299 €"}
                 <span className="text-sm text-muted-foreground font-sans">
                   {billing === "monthly"
@@ -584,7 +587,7 @@ export default function Pricing() {
                 {tier === "ultra" && <Badge variant="secondary">{copy.current}</Badge>}
               </div>
               <div className="space-y-1">
-                <p className="font-display text-3xl">
+                <p className="font-cormorant-display text-3xl font-light">
                   8 000 €
                   <span className="text-sm text-muted-foreground font-sans">
                     {isFR ? " HT" : " excl. tax"}
@@ -647,7 +650,7 @@ export default function Pricing() {
         >
           <NeuralCard variant="elevated" className="overflow-hidden">
             <div className="p-6 border-b border-border/50">
-              <h2 className="font-display text-xl tracking-wide text-foreground mb-1">
+              <h2 className="font-cormorant-display text-xl font-light tracking-tight text-[color:var(--aegis-text)] mb-1">
                 {copy.compare.title}
               </h2>
               <p className="text-sm text-muted-foreground">{copy.compare.subtitle}</p>

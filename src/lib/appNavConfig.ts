@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import type { TranslationKey } from "@/i18n/translations";
 import {
   getAllMenuPanels,
@@ -11,7 +11,7 @@ import {
 
 export type AppNavItem = {
   to: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   labelKey: TranslationKey;
   panelId?: MenuPanelId;
 };
