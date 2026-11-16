@@ -1,11 +1,11 @@
+import type { AppIcon } from "@/lib/icons/appIcon";
 import {
   Headphones,
   Library,
   ListChecks,
   ScanFace,
   Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+} from "@/lib/icons/memberNav";
 import type { TranslationKey } from "@/i18n/translations";
 
 export type PracticesHubTileId = "habits" | "toolbox" | "pulse" | "bibliotheque" | "dien_chan";
@@ -13,7 +13,7 @@ export type PracticesHubTileId = "habits" | "toolbox" | "pulse" | "bibliotheque"
 export type PracticesHubTileDef = {
   id: PracticesHubTileId;
   to: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   nameKey: TranslationKey;
 };
 

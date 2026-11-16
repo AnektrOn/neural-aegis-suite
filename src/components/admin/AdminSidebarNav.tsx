@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search } from "@/lib/icons/layoutChrome";
 import { useLanguage } from "@/i18n/LanguageContext";
 import {
   ADMIN_NAV_SECTIONS,

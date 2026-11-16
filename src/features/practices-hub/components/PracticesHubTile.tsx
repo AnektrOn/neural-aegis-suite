@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/lib/icons/primitives";
 import { memo } from "react";
 import { cn } from "@/lib/utils";
 

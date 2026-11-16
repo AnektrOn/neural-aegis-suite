@@ -24,7 +24,7 @@ export function ToolField({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <Label className="text-sm font-medium text-foreground">{label}</Label>
         {hint ? (
-          <span className="font-display text-sm tabular-nums text-primary">{hint}</span>
+          <span className="font-mono text-sm tabular-nums text-[color:var(--aegis-bronze-ink)]">{hint}</span>
         ) : null}
       </div>
       {children}

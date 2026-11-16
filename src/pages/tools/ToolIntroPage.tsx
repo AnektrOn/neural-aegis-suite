@@ -22,6 +22,8 @@ import {
   toolsPageShell,
   toolsPrimaryButton,
   toolsTitle,
+  publicBrandMark,
+  toolsSectionHeading,
 } from "@/components/tools/toolsDesign";
 import "@/components/tools/tools-shell.css";
 
@@ -38,7 +40,7 @@ export default function ToolIntroPage() {
   const canonical = toolsCanonicalPath(tool.path);
 
   return (
-    <div className={`tools-route ${toolsPageShell}`}>
+    <div className={toolsPageShell}>
       <ToolSeoHelmet
         path={tool.path}
         seo={tool.seo}
@@ -58,9 +60,7 @@ export default function ToolIntroPage() {
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4 md:px-6">
           <Link to="/tools" className="flex items-center gap-3">
             <AegisLogo alt="AEGIS" className="h-9 w-9 rounded-lg object-contain" />
-            <span className="font-display text-[10px] font-medium uppercase tracking-[0.2em] text-primary">
-              Outils
-            </span>
+            <span className={publicBrandMark}>Outils</span>
           </Link>
           <LanguageSwitcher />
         </div>
@@ -100,7 +100,7 @@ export default function ToolIntroPage() {
 
 
         <section className={`${toolsBento} mt-10`}>
-          <h2 className="font-display text-xl font-semibold text-foreground">Questions fréquentes</h2>
+          <h2 className={toolsSectionHeading}>Questions fréquentes</h2>
           <dl className="mt-6 space-y-6">
             {tool.faq.map((item) => (
               <div key={item.question}>

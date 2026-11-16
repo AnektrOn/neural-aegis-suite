@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
-import { X } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
+import { X } from "@/lib/icons/primitives";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ export function ToolboxWidgetProductionPreview({
 }: {
   title: string;
   typeLabel: string;
-  typeIcon: LucideIcon;
+  typeIcon: AppIcon;
   typeIconClassName?: string;
   previewMode: "embedded" | "fullscreen";
   onClose?: () => void;

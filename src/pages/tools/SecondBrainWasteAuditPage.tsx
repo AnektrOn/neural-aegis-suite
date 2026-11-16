@@ -64,7 +64,7 @@ export default function SecondBrainWasteAuditPage() {
       title: "Combien de notes créez-vous par mois ?",
       content: (
         <div className="space-y-6">
-          <p className="text-center font-display text-3xl text-primary">{notesPerMonth}</p>
+          <p className="text-center font-cormorant-display text-3xl text-[color:var(--aegis-bronze-ink)]">{notesPerMonth}</p>
           <Slider
             min={5}
             max={200}
@@ -82,7 +82,7 @@ export default function SecondBrainWasteAuditPage() {
       title: "Quel pourcentage est relu ou exploité ?",
       content: (
         <div className="space-y-6">
-          <p className="text-center font-display text-3xl text-primary">{reusePct} %</p>
+          <p className="text-center font-cormorant-display text-3xl text-[color:var(--aegis-bronze-ink)]">{reusePct} %</p>
           <Slider
             min={0}
             max={80}
@@ -101,7 +101,7 @@ export default function SecondBrainWasteAuditPage() {
       description: "Par mois, en moyenne.",
       content: (
         <div className="space-y-6">
-          <p className="text-center font-display text-3xl text-primary">{maintenanceHours} h</p>
+          <p className="text-center font-cormorant-display text-3xl text-[color:var(--aegis-bronze-ink)]">{maintenanceHours} h</p>
           <Slider
             min={0}
             max={20}

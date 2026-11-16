@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
 import { toolboxFieldClass } from "@/components/admin/toolbox/ToolboxAdminUi";
@@ -142,7 +142,7 @@ export function ToolboxUserDirectoryCard({
   );
 }
 
-export function ToolboxToolRowIcon({ icon: Icon, className }: { icon: LucideIcon; className?: string }) {
+export function ToolboxToolRowIcon({ icon: Icon, className }: { icon: AppIcon; className?: string }) {
   return (
     <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted/50">
       <Icon className={cn("size-4", className)} strokeWidth={1.5} aria-hidden />

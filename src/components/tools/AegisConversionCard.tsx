@@ -116,7 +116,7 @@ function OfferCard({
           </span>
         ) : null}
       </div>
-      <p className="mt-3 font-display text-xl text-primary">{price}</p>
+      <p className="mt-3 font-cormorant-display text-2xl text-[color:var(--aegis-bronze-ink)]">{price}</p>
       {priceNote ? (
         <p className="text-xs text-muted-foreground">{priceNote}</p>
       ) : null}

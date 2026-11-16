@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus } from "@/lib/icons/layoutChrome";
 import {
   CommandDialog,
   CommandEmpty,

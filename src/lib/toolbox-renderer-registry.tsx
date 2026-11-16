@@ -1,5 +1,19 @@
 import type { ReactNode } from "react";
-import { BookOpen, Eye, Headphones, Heart, Link as LinkIcon, Scan, ShieldAlert, Sparkles, Stars, Target, Wind, Zap } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
+import {
+  BookOpen,
+  Eye,
+  Headphones,
+  Heart,
+  Link as LinkIcon,
+  Scan,
+  ShieldAlert,
+  Sparkles,
+  Stars,
+  Target,
+  Wind,
+  Zap,
+} from "@/lib/icons/toolboxMeta";
 import { DynamicToolboxWidget, type DynamicToolboxWidgetKind } from "@/lib/toolbox-widget-dynamic";
 import type { Locale } from "@/i18n/translations";
 import type { ToolboxOnAbandon, ToolboxOnComplete } from "@/lib/toolbox-completion";
@@ -26,7 +40,7 @@ export interface ToolboxRenderableItem {
 
 export const TOOLBOX_TYPE_META: Record<
   string,
-  { icon: typeof Headphones; color: string; labelKey: string }
+  { icon: AppIcon; color: string; labelKey: string }
 > = {
   meditation: { icon: Headphones, color: "text-primary", labelKey: "toolbox.typeMeditation" },
   visualization: { icon: Sparkles, color: "text-neural-accent", labelKey: "toolbox.typeVisualization" },

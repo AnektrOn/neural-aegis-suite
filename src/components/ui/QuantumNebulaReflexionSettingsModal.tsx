@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { HelpCircle, RotateCcw, Settings2, X } from "lucide-react";
+import { HelpCircle, RotateCcw, Settings2, X } from "@/lib/icons/primitives";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {

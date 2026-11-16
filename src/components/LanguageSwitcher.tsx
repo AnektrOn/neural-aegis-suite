@@ -1,5 +1,5 @@
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Globe } from "lucide-react";
+import { Globe } from "@/lib/icons/layoutChrome";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function LanguageSwitcher({ collapsed = false }: { collapsed?: boolean }) {

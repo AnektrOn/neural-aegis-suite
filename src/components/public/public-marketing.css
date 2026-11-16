@@ -1,0 +1,41 @@
+/* Public routes (pricing, tools, blog, legal) — landing warm palette on dark html root */
+.aegis-landing.public-marketing {
+  --foreground: 0 0% 7%;
+  --muted-foreground: 240 2% 38%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 7%;
+  --border: 240 5% 90%;
+  --primary: 22 48% 65%;
+  --primary-foreground: 0 0% 7%;
+  --muted: 30 15% 96%;
+  --background: 24 18% 94%;
+}
+
+.aegis-landing.public-marketing.tools-route {
+  --aegis-ink: var(--aegis-text);
+  --aegis-ink-muted: var(--aegis-text-secondary);
+  --aegis-ink-subtle: var(--aegis-text-secondary);
+  --aegis-surface-elevated: #ffffff;
+  --aegis-gold: var(--aegis-bronze);
+  --aegis-copper: var(--aegis-bronze-hover);
+  --aegis-cardline: var(--aegis-hairline);
+  --aegis-cardline-hover: var(--aegis-bronze);
+}
+
+.aegis-landing.public-marketing .public-footer {
+  border-color: var(--aegis-hairline);
+}
+
+.aegis-landing.public-marketing .public-footer a,
+.aegis-landing.public-marketing .public-footer p {
+  color: var(--aegis-text-secondary);
+}
+
+.aegis-landing.public-marketing .public-footer a:hover {
+  color: var(--aegis-text);
+}
+
+.aegis-landing.public-marketing .glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: var(--aegis-hairline);
+}

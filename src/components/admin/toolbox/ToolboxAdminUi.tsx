@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ export function ToolboxPageStat({
 }: {
   label: string;
   value: number | string;
-  icon: LucideIcon;
+  icon: AppIcon;
 }) {
   return (
     <div className={cn(panelClass, "p-5 md:p-6")}>
@@ -106,7 +106,7 @@ export function ToolboxResourceCard({
   description,
   footer,
 }: {
-  icon: LucideIcon;
+  icon: AppIcon;
   iconClassName?: string;
   title: string;
   badges: ReactNode;
@@ -140,7 +140,7 @@ export function ToolboxEmptyState({
   title,
   hint,
 }: {
-  icon: LucideIcon;
+  icon: AppIcon;
   title: string;
   hint?: string;
 }) {

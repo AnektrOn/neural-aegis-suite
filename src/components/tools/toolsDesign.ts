@@ -1,52 +1,68 @@
-/** Public tools — aligned with Auth, Pricing, and member dashboard tokens. */
+/** Public tools — landing typography + warm page shell. */
+
 export const toolsPageShell =
-  "min-h-screen bg-aegis-gradient text-foreground flex flex-col relative overflow-x-hidden";
+  "aegis-landing tools-route min-h-screen flex flex-col relative overflow-x-hidden bg-[color:var(--aegis-page)] text-[color:var(--aegis-text)]";
 
 export const toolsHeaderShell =
-  "border-b border-border/40 bg-background/50 backdrop-blur-md";
+  "border-b border-[color:var(--aegis-hairline)] bg-[color:var(--aegis-page)]/90 backdrop-blur-md";
 
+/** Nav chip, section labels — DM Mono (matches `.aegis-landing__section-label`). */
 export const toolsKicker =
-  "font-display text-[10px] font-medium uppercase tracking-[0.2em] text-primary";
+  "font-mono text-[11px] font-normal uppercase tracking-[0.14em] text-[color:var(--aegis-text-secondary)]";
 
+/** Page & hero titles — Cormorant (matches `.aegis-landing__headline`). */
 export const toolsTitle =
-  "font-display text-[clamp(1.75rem,4vw,2.5rem)] font-semibold tracking-wide text-foreground";
+  "font-cormorant-display text-[clamp(1.75rem,4vw,2.75rem)] leading-[1.08] text-[color:var(--aegis-text)]";
 
-export const toolsLead = "text-base leading-relaxed text-muted-foreground md:text-lg";
+export const toolsCardTitle =
+  "font-cormorant-display text-xl leading-snug text-[color:var(--aegis-text)]";
+
+export const toolsLead =
+  "text-base leading-relaxed text-[color:var(--aegis-text-secondary)] md:text-lg";
+
+export const publicBrandMark =
+  "font-mono text-xs uppercase tracking-[0.12em] text-[color:var(--aegis-bronze-ink)]";
 
 export const toolsBento =
-  "rounded-2xl glass-card border border-border/25 bg-card/80 p-5 sm:p-6 md:p-8";
+  "rounded-2xl border border-[color:var(--aegis-hairline)] bg-white/70 p-5 shadow-[0_8px_28px_rgba(18,18,18,0.06)] backdrop-blur-sm sm:p-6 md:p-8";
 
 export const toolsBentoHover =
-  "transition-all duration-200 hover:border-primary/35 hover:shadow-[0_8px_32px_hsl(var(--primary)/0.08)]";
+  "transition-all duration-200 hover:border-[color:var(--aegis-bronze)]/35 hover:shadow-[0_8px_32px_rgba(18,18,18,0.1)]";
 
 export const toolsBentoElevated =
-  "rounded-xl border border-border/30 bg-muted/25 p-5 sm:p-6 backdrop-blur-sm";
+  "rounded-xl border border-[color:var(--aegis-hairline)] bg-white/60 p-5 sm:p-6 backdrop-blur-sm";
 
 export const toolsSlider =
-  "[&_[role=slider]]:border-primary [&_[role=slider]]:bg-background [&_.bg-primary]:bg-primary [&_.bg-secondary]:bg-muted";
+  "[&_[role=slider]]:border-[color:var(--aegis-bronze)] [&_[role=slider]]:bg-white [&_.bg-primary]:bg-[color:var(--aegis-bronze)]";
+
+/** Large result numbers in calculators. */
+export const toolsMetricHero =
+  "font-cormorant-display text-3xl tabular-nums leading-none text-[color:var(--aegis-bronze-ink)]";
 
 export const toolsMetricValue =
-  "font-display text-2xl font-medium tabular-nums tracking-wide text-foreground";
+  "font-cormorant-display text-2xl font-light tabular-nums text-[color:var(--aegis-text)]";
 
 export const toolsMetricLabel =
-  "font-display text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground";
+  "font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-[color:var(--aegis-text-secondary)]";
 
 const toolsChipBase =
   "rounded-lg border px-4 py-2 text-sm transition-colors duration-200";
 
-export const toolsChipInactive = `${toolsChipBase} border-border/50 bg-card/60 text-muted-foreground hover:border-primary/40 hover:text-foreground`;
+export const toolsChipInactive = `${toolsChipBase} border-[color:var(--aegis-hairline)] bg-white/60 text-[color:var(--aegis-text-secondary)] hover:border-[color:var(--aegis-bronze)]/40 hover:text-[color:var(--aegis-text)]`;
 
-export const toolsChipActive = `${toolsChipBase} border-primary/45 bg-primary text-primary-foreground shadow-[0_0_18px_hsl(var(--primary)/0.22)]`;
+export const toolsChipActive = `${toolsChipBase} border-[color:var(--aegis-bronze)]/50 bg-[color:var(--aegis-bronze)] text-[color:var(--aegis-text)] shadow-[0_4px_18px_rgba(211,157,123,0.25)]`;
 
 export const toolsProse =
-  "prose prose-neutral dark:prose-invert max-w-none prose-headings:font-display prose-headings:text-foreground prose-p:text-muted-foreground";
+  "prose prose-neutral max-w-none prose-headings:font-cormorant-display prose-headings:font-light prose-headings:text-[color:var(--aegis-text)] prose-p:text-[color:var(--aegis-text-secondary)]";
 
-/** Primary CTA — same family as Auth submit, optional Cinzel variant via btn-solaire elsewhere. */
+export const toolsSectionHeading =
+  "font-cormorant-display text-2xl font-light text-[color:var(--aegis-text)]";
+
 export const toolsPrimaryButton =
-  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)] transition hover:bg-primary/90 disabled:opacity-40";
+  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-[color:var(--aegis-bronze)] px-5 text-sm font-medium text-[color:var(--aegis-text)] shadow-[0_4px_18px_rgba(211,157,123,0.3)] transition hover:bg-[color:var(--aegis-bronze-hover)] disabled:opacity-40";
 
 export const toolsSecondaryButton =
-  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/60 px-4 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground transition hover:border-primary/40 hover:text-foreground";
+  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-[color:var(--aegis-hairline)] bg-white/60 px-4 font-mono text-xs uppercase tracking-[0.12em] text-[color:var(--aegis-text-secondary)] transition hover:border-[color:var(--aegis-bronze)]/40 hover:text-[color:var(--aegis-text)]";
 
 export const toolsInput =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20";
+  "w-full rounded-lg border border-[color:var(--aegis-hairline)] bg-white px-3 py-2.5 text-sm text-[color:var(--aegis-text)] placeholder:text-[color:var(--aegis-text-secondary)] focus:border-[color:var(--aegis-bronze)]/50 focus:outline-none focus:ring-1 focus:ring-[color:var(--aegis-bronze)]/20";

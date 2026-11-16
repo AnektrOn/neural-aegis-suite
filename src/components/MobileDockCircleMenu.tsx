@@ -2,8 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import type { LucideIcon } from "lucide-react";
-import { LayoutGrid, X } from "lucide-react";
+import type { LucideIcon } from "@/lib/icons/layoutChrome";
+import { LayoutGrid, X } from "@/lib/icons/layoutChrome";
 import { cn } from "@/lib/utils";
 import { Z_INDEX } from "@/lib/zIndex";
 
@@ -32,7 +32,7 @@ export type MobileDockCircleItem = {
   id: string;
   to: string;
   label: string;
-  Icon: LucideIcon;
+  Icon: AppIcon;
   isActive: boolean;
 };
 

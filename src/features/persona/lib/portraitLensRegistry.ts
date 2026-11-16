@@ -1,5 +1,5 @@
-import { Flame, Scroll, Sparkles, TreePine, Moon } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
+import { Flame, Moon, Scroll, Sparkles, TreePine } from "@/lib/icons/portraitLens";
 import type { TranslationKey } from "@/i18n/translations";
 import type { PortraitLensCard } from "./portraitLensTypes";
 
@@ -18,7 +18,7 @@ export interface PortraitLensRegistryEntry {
   totalQuestions: number;
   comingSoon?: boolean;
   accentColor: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   detailKind: PortraitLensCard["detailKind"];
   emptyDetailKey: TranslationKey;
   /** Cover Flow shelf art — path under `public/` or absolute URL. */

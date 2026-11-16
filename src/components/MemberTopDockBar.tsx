@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Languages, LogOut } from "lucide-react";
+import { Languages, LogOut } from "@/lib/icons/layoutChrome";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";

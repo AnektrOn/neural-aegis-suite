@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock } from "lucide-react";
 import type { ToolRegistryEntry } from "./toolsRegistry";
-import { toolsBento, toolsBentoHover, toolsKicker } from "./toolsDesign";
+import { toolsBento, toolsBentoHover, toolsCardTitle, toolsKicker } from "./toolsDesign";
 
 interface ToolHubCardProps {
   tool: ToolRegistryEntry;
@@ -14,7 +14,7 @@ export function ToolHubCard({ tool }: ToolHubCardProps) {
     <article className={`flex h-full flex-col ${toolsBento} ${toolsBentoHover}`}>
       <p className={`${toolsKicker} !text-[9px]`}>Gratuit</p>
 
-      <h2 className="mt-2 text-lg font-semibold leading-snug text-foreground">{tool.title}</h2>
+      <h2 className={`mt-2 ${toolsCardTitle}`}>{tool.title}</h2>
       <p className="mt-2 flex-1 text-sm leading-snug text-muted-foreground">{tool.hubBlurb}</p>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/30 pt-4">

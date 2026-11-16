@@ -21,6 +21,7 @@ import {
   toolsPageShell,
   toolsSecondaryButton,
   toolsTitle,
+  publicBrandMark,
 } from "@/components/tools/toolsDesign";
 
 const HUB_TITLE = "10 outils décisionnels gratuits pour CEO & fondateurs | AEGIS";
@@ -39,7 +40,7 @@ export default function ToolsHubPage() {
   }, []);
 
   return (
-    <div className={`tools-route ${toolsPageShell}`}>
+    <div className={toolsPageShell}>
       <Helmet>
         <title>{HUB_TITLE}</title>
         <meta name="description" content={HUB_DESCRIPTION} />
@@ -58,9 +59,7 @@ export default function ToolsHubPage() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 md:px-6">
           <Link to="/" className="flex items-center gap-3">
             <AegisLogo alt="AEGIS" className="h-9 w-9 rounded-lg object-contain" />
-            <span className="font-display text-[10px] font-medium uppercase tracking-[0.2em] text-primary">
-              AEGIS
-            </span>
+            <span className={publicBrandMark}>AEGIS</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link to="/tools/profile" className={toolsSecondaryButton}>

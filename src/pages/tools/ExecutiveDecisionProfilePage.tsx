@@ -56,7 +56,7 @@ export default function ExecutiveDecisionProfilePage() {
   const canonical = toolsCanonicalPath("/tools/profile");
 
   return (
-    <div className={`tools-route ${toolsPageShell}`}>
+    <div className={toolsPageShell}>
       <Helmet>
         <title>Mon profil décisionnel | Outils AEGIS</title>
         <meta
@@ -150,7 +150,7 @@ export default function ExecutiveDecisionProfilePage() {
                   key={s.timestamp}
                   className="rounded-xl border border-border/50 bg-muted/40 px-4 py-3"
                 >
-                  <p className="font-display text-lg text-primary">
+                  <p className="font-cormorant-display text-lg text-[color:var(--aegis-bronze-ink)]">
                     {typeof s.outputs.index === "number" ? s.outputs.index : "—"}
                   </p>
                   <p className="text-xs text-muted-foreground">{formatSessionDate(s.timestamp)}</p>

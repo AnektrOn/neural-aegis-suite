@@ -95,7 +95,7 @@ export default function ExecutiveCoachingCostCalculatorPage() {
             onValueChange={([v]) => setHourlyRate(v ?? hourlyRate)}
             className={toolsSlider}
           />
-          <div className="flex justify-between font-display text-xs text-muted-foreground">
+          <div className="flex justify-between font-mono text-xs text-[color:var(--aegis-text-secondary)]">
             <span>300 €</span>
             <span className="text-primary">{formatEuro(hourlyRate)}</span>
             <span>2 000 €</span>

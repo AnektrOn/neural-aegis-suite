@@ -1,3 +1,10 @@
+@import "../../pages/aegis-landing/aegisLanding.css";
+
+/* Marketing tools/blog — landing typography (Barlow body, Cormorant titles, DM Mono labels). */
+.tools-route.aegis-landing {
+  font-family: Barlow, ui-sans-serif, system-ui, sans-serif;
+}
+
 /* Legacy gauge / SVG strokes — map to app theme (no isolated obsidian stack). */
 .tools-route {
   --aegis-ink: hsl(var(--foreground));

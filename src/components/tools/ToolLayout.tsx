@@ -14,6 +14,8 @@ import {
   toolsPageShell,
   toolsProse,
   toolsTitle,
+  publicBrandMark,
+  toolsSectionHeading,
 } from "./toolsDesign";
 import type { HTMLAttributes, ReactNode } from "react";
 import { ToolsBackToHubLink } from "./ToolsBackToHubLink";
@@ -45,7 +47,7 @@ export function ToolLayout({
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   return (
-    <div className={`tools-route ${toolsPageShell}`}>
+    <div className={toolsPageShell}>
       <div
         className="pointer-events-none absolute top-1/4 left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-primary/6 blur-3xl"
         aria-hidden
@@ -65,10 +67,8 @@ export function ToolLayout({
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 md:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <Link to="/" className="flex shrink-0 items-center gap-3">
-              <AegisLogo variant="white" alt="AEGIS" className="h-9 w-9 rounded-lg object-contain" />
-              <span className="hidden font-display text-[10px] font-medium uppercase tracking-[0.22em] text-primary sm:inline">
-                AEGIS
-              </span>
+              <AegisLogo alt="AEGIS" className="h-9 w-9 rounded-lg object-contain" />
+              <span className={`hidden sm:inline ${publicBrandMark}`}>AEGIS</span>
             </Link>
             {variant === "wizard" ? (
               <Link
@@ -138,9 +138,7 @@ export function ToolLayout({
             <section
               className={`${toolsBento} ${variant === "wizard" ? "mx-4 md:mx-auto md:max-w-5xl" : ""} mt-12`}
             >
-              <h2 className="font-display text-2xl font-semibold text-foreground">
-                Questions fréquentes
-              </h2>
+              <h2 className={toolsSectionHeading}>Questions fréquentes</h2>
               <dl className="mt-6 space-y-6">
                 {tool.faq.map((item) => (
                   <div key={item.question}>

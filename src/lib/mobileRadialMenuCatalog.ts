@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { AppIcon } from "@/lib/icons/appIcon";
 import type { TranslationKey } from "@/i18n/translations";
 import {
   DEFAULT_DOCK_PANEL_IDS,
@@ -45,13 +45,13 @@ export const DEFAULT_MOBILE_RADIAL_MENU_IDS: MenuPanelId[] = [
 
 export const RADIAL_CATALOG: Record<
   MenuPanelId,
-  { to: string; icon: LucideIcon; labelKey: TranslationKey }
+  { to: string; icon: AppIcon; labelKey: TranslationKey }
 > = Object.fromEntries(
   MOBILE_RADIAL_CATALOG_ORDER.map((id) => {
     const p = getMenuPanel(id);
     return [id, { to: p.to, icon: p.icon, labelKey: p.labelKey }];
   }),
-) as Record<MenuPanelId, { to: string; icon: LucideIcon; labelKey: TranslationKey }>;
+) as Record<MenuPanelId, { to: string; icon: AppIcon; labelKey: TranslationKey }>;
 
 const ALLOWED = new Set<string>(MOBILE_RADIAL_CATALOG_ORDER);
 
