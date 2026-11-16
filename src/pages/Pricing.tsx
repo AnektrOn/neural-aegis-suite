@@ -236,10 +236,6 @@ export default function Pricing() {
 
 
   const handleCheckout = async (priceId: string) => {
-    if (!user) {
-      navigate(`/auth?redirect=${encodeURIComponent("/pricing")}`);
-      return;
-    }
     setPending(priceId);
     try {
       await openCheckout(priceId);

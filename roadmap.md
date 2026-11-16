@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Payment-first access — 16 November 2026
+- [x] Open Solo Stripe checkout without a prior account; signed paid events resolve/invite the Stripe email owner, preserving existing accounts. Return page checks payment status without exposing credentials; restore the missing service-only event ledger.
+- [x] Thirteen regression tests pass, three functions deployed and checked; all three signed-out buttons open real Stripe checkout (200), no purchase. Unverified return URL does not claim payment. Paid-account creation and invitation delivery have not been exercised with a real purchase.
+
 ## Homepage pricing — 16 November 2026
 - [x] Point desktop and mobile Pricing navigation to /pricing and replace the individual homepage pricing card with Solo, Solo + LOGOS and Founders offers; preserve enterprise quotes and existing checkout.
 - [x] Three amount tests pass; mobile (393px) and desktop (1280px) pricing cards and navigation to /pricing verified; update the mobile pricing shortcut to remove the obsolete Lecture price.

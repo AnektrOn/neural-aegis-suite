@@ -1,5 +1,7 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { PUBLIC_PAID_PLANS } from '../_shared/payment-first.ts';
 import { PLANS, isPlanKey, type PlanDef, type PlanKey } from '../_shared/stripe-plans.ts';
 import {
   countActiveFounders,
@@ -25,11 +27,6 @@ function catalogStripePriceId(
   return undefined;
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -42,15 +39,16 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return json({ error: 'Unauthorized' }, 401);
-
+    const backendUrl = Deno.env.get('SUPABASE_URL');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!backendUrl || !serviceKey) throw new Error('Backend not configured');
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      backendUrl,
+      serviceKey,
     );
-    const { data: userData } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    const user = userData?.user;
-    if (!user) return json({ error: 'Unauthorized' }, 401);
+    const user = authHeader
+      ? (await supabase.auth.getUser(authHeader.replace('Bearer ', ''))).data?.user
+      : null;
 
     const body = await req.json().catch(() => ({}));
     const { priceId, origin, companyId, seatQuantity } = body as {
@@ -61,19 +59,23 @@ Deno.serve(async (req) => {
     };
     if (!isPlanKey(priceId)) return json({ error: 'Invalid priceId' }, 400);
     const plan = PLANS[priceId];
+    if (!user && !PUBLIC_PAID_PLANS.includes(priceId)) return json({ error: 'Unauthorized' }, 401);
+    if (!user && (companyId || (seatQuantity != null && seatQuantity !== 1))) {
+      return json({ error: 'Public checkout is single-user only' }, 400);
+    }
 
     if (priceId === 'aegis_founders_lifetime') {
       const sold = await countActiveFounders(supabase);
       if (sold >= FOUNDERS_LIFETIME_MAX) {
         return json({ error: 'FOUNDERS_SOLD_OUT' }, 409);
       }
-      const { data: existingFounder } = await supabase
+      const { data: existingFounder } = user ? await supabase
         .from('subscriptions')
         .select('id')
         .eq('user_id', user.id)
         .eq('product_id', FOUNDERS_PRODUCT_ID)
         .in('status', ['active', 'trialing'])
-        .maybeSingle();
+        .maybeSingle() : { data: null };
       if (existingFounder) {
         return json({ error: 'FOUNDERS_ALREADY_OWNED' }, 409);
       }
@@ -99,7 +101,8 @@ Deno.serve(async (req) => {
       ? origin.replace(/\/$/, '')
       : 'https://aegis.humancatalystbeacon.com';
 
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')!;
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) throw new Error('Stripe not configured');
     const stripe = new Stripe(stripeSecretKey, {
       // stripe@17 only types its own latest API version; the account runs Basil.
       apiVersion: '2025-08-27.basil' as unknown as Stripe.StripeConfig['apiVersion'],
@@ -108,7 +111,7 @@ Deno.serve(async (req) => {
 
     // Réutilise le client Stripe existant si l'email est déjà connu.
     let customerId: string | undefined;
-    if (user.email) {
+    if (user?.email) {
       const found = await stripe.customers.list({ email: user.email, limit: 1 });
       customerId = found.data[0]?.id;
     }
@@ -116,8 +119,10 @@ Deno.serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       mode: plan.interval ? 'subscription' : 'payment',
       customer: customerId,
-      customer_email: customerId ? undefined : (user.email ?? undefined),
-      client_reference_id: user.id,
+      customer_email: customerId ? undefined : (user?.email ?? undefined),
+      client_reference_id: user?.id,
+      ...(!user ? { payment_method_types: ['card'] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[] } : {}),
+      ...(plan.interval ? {} : { customer_creation: 'always' as const }),
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       tax_id_collection: { enabled: true },
@@ -139,16 +144,16 @@ Deno.serve(async (req) => {
               },
             },
       ],
-      metadata: { userId: user.id, priceId, productId: plan.productId, ...companyMeta },
+      metadata: { ...(user ? { userId: user.id } : { accountFlow: 'payment_first' }), priceId, productId: plan.productId, ...companyMeta },
       ...(plan.interval
         ? {
             subscription_data: {
-              metadata: { userId: user.id, priceId, productId: plan.productId, ...companyMeta },
+              metadata: { ...(user ? { userId: user.id } : {}), priceId, productId: plan.productId, ...companyMeta },
             },
           }
         : {
             payment_intent_data: {
-              metadata: { userId: user.id, priceId, productId: plan.productId, ...companyMeta },
+              metadata: { ...(user ? { userId: user.id } : {}), priceId, productId: plan.productId, ...companyMeta },
             },
           }),
       invoice_creation: plan.interval ? undefined : { enabled: true },
