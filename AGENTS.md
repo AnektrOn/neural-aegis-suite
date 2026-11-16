@@ -1,5 +1,7 @@
 # Project rules
 
+- Homepage Solo offer summaries use the typed `soloPricing` catalogue and link to `/pricing`; checkout and live availability stay on the dedicated pricing page to avoid duplicating payment logic.
+
 - Save toolbox post-exercise feelings with an update-only helper scoped to the user and completed assignment; never re-record a completion or bump lifetime statistics for feedback edits.
 
 - Normalize Stripe snapshot subscription periods and invoice subscription references at the webhook boundary for both pre-Basil and Basil formats; this preserves renewal dates without changing the existing endpoint version or signing secret.
