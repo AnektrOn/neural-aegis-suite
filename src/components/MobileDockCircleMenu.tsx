@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import type { LucideIcon } from "@/lib/icons/layoutChrome";
+import type { AppIcon } from "@/lib/icons";
 import { LayoutGrid, X } from "@/lib/icons/layoutChrome";
 import { cn } from "@/lib/utils";
 import { Z_INDEX } from "@/lib/zIndex";

@@ -1,3 +1,4 @@
+import type { AppIcon } from "@/lib/icons";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,7 +34,7 @@ import { MOOD_FREQUENCY_KEYS, moodFrequencyIndex } from "@/lib/moodFrequency";
 type CapturePanel = {
   id: string;
   to: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   nameKey: TranslationKey;
   descriptionKey: TranslationKey;
 };

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 export type AppIconProps = SVGProps<SVGSVGElement> & {
   size?: number | string;
-  strokeWidth?: number;
+  strokeWidth?: number | string;
 };
 
 export type AppIcon = ComponentType<AppIconProps>;

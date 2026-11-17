@@ -2,7 +2,6 @@ import {
   BoltIcon,
   BookOpenIcon,
   CloudIcon,
-  CompassIcon,
   EyeIcon,
   FaceSmileIcon,
   FireIcon,
