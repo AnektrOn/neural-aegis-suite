@@ -41,3 +41,4 @@
 - **`three-aegis-core`**: legacy alias for `src/components/aegis-core/` only — not for prism-landing. See `src/pages/dev/prism-landing/docs/PACKAGE_STACK_DECISIONS.md`.
 - R3F environment HDRs use committed Lovable Assets pointers and pass their `.url` to Drei Environment; this keeps binary lighting assets available in clean deployments.
 - Preserve the frozen legacy Prism source by resolving its missing HDR URL import through a Vite alias to an asset-pointer URL adapter; this restores clean builds without refactoring the legacy scene.
+- SEO prerender: a build-only Vite plugin (scripts/seoPrerender.ts) writes static HTML with real content and distinct head tags for /, /pricing, /newsletter; no headless browser is available at build time, so content is authored there and must be kept in sync with the pages.

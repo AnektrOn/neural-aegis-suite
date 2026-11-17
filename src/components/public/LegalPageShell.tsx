@@ -16,6 +16,7 @@ export default function LegalPageShell({ title, description, updated, children }
       <Helmet>
         <title>{`${title} | Protocole Nomos`}</title>
         <meta name="description" content={description} />
+        <meta name="robots" content="noindex" />
         <meta property="og:title" content={`${title} | Protocole Nomos`} />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="article" />

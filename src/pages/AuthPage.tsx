@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import AegisLogo from "@/components/AegisLogo";
@@ -310,6 +311,7 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-aegis-gradient flex flex-col p-4 relative overflow-hidden">
+      <Helmet><meta name="robots" content="noindex" /></Helmet>
       <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
         <LanguageSwitcher />
       </div>
