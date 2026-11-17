@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## AppSumo redemption and language — 17 November 2026
+- [ ] Import 999 supplied codes as valid plus one newly generated code; grant Solo lifetime without LOGOS through authenticated, atomic redemption.
+- [ ] Add discoverable redemption access before and after signup; unify landing and application language persistence.
+- [ ] Test successful redemption, retries and rejection plus desktop/mobile language persistence; deliver corrected 1,000-code CSV.
+
 ## Payment-first access — 16 November 2026
 - [x] Open Solo Stripe checkout without a prior account; signed paid events resolve/invite the Stripe email owner, preserving existing accounts. Return page checks payment status without exposing credentials; restore the missing service-only event ledger.
 - [x] Thirteen regression tests pass, three functions deployed and checked; all three signed-out buttons open real Stripe checkout (200), no purchase. Unverified return URL does not claim payment. Paid-account creation and invitation delivery have not been exercised with a real purchase.

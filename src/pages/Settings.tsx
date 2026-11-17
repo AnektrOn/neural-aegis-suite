@@ -34,6 +34,7 @@ import {
   type MenuPanelId,
 } from "@/lib/userMenuCatalog";
 import { useUserMenuPrefs } from "@/hooks/useUserMenuPrefs";
+import AppSumoRedemption from '@/components/AppSumoRedemption';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -236,6 +237,7 @@ export default function Settings() {
       </div>
 
       {/* Apparence : Theme & Language */}
+      <AppSumoRedemption />
       <div className="aegis-dock-tile space-y-4 rounded-2xl p-5 shadow-[0_8px_28px_rgba(20,20,18,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
         <div className="flex items-center gap-2 border-b border-border pb-3 dark:border-white/[0.08]">
           <Settings2 size={16} strokeWidth={1.5} className="text-[color:var(--aegis-gold)]" />

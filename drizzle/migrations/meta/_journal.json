@@ -78,6 +78,13 @@
       "when": 1794802673974,
       "tag": "0010_payment_first_stripe_event_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794892440129,
+      "tag": "0011_appsumo_lifetime_redemption",
+      "breakpoints": true
     }
   ]
 }

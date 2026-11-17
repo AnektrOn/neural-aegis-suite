@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import PaymentTestModeBanner from "@/components/PaymentTestModeBanner";
 import PublicFooter from "@/components/public/PublicFooter";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import AppSumoRedemption from '@/components/AppSumoRedemption';
 import { supabase } from "@/integrations/supabase/client";
 import { LIEN_PAIEMENT_LECTURE } from "@/pages/aegis-landing/landingCtaHrefs";
 
@@ -339,6 +340,7 @@ export default function Pricing() {
             </Button>
           )}
         </motion.header>
+        <AppSumoRedemption />
 
 
         {SHOW_PRICING_BILLING_TOGGLE ? (

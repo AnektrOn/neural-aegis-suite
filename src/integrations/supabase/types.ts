@@ -803,6 +803,35 @@ export type Database = {
           },
         ]
       }
+      appsumo_codes: {
+        Row: {
+          code_hash: string
+          enabled: boolean
+          redeemed_at: string | null
+          redeemed_by: string | null
+        }
+        Insert: {
+          code_hash: string
+          enabled?: boolean
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Update: {
+          code_hash?: string
+          enabled?: boolean
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appsumo_codes_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       archetype_profile_snapshots: {
         Row: {
           active_principle: string | null
@@ -4349,6 +4378,7 @@ export type Database = {
         Returns: Json
       }
       recycle_pulse_ignored: { Args: never; Returns: Json }
+      redeem_appsumo_code: { Args: { input_code: string }; Returns: Json }
       refresh_archetype_scores_by_user: { Args: never; Returns: undefined }
       remove_habit_from_tracker: {
         Args: { p_assignment_id: string }

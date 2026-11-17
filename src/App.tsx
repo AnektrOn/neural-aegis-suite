@@ -59,6 +59,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Pricing = lazy(() => import("./pages/Pricing"));
+const Redeem = lazy(() => import('./pages/Redeem'));
 const ToolsHubPage = lazy(() => import("./pages/tools/ToolsHubPage"));
 const ToolIntroPage = lazy(() => import("./pages/tools/ToolIntroPage"));
 const ToolRunDispatcher = lazy(() => import("./pages/tools/ToolRunDispatcher"));
@@ -393,6 +394,8 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/create-password" element={<ResetPassword setupOnly />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/redeem" element={<Redeem />} />
+                <Route path="/appsumo" element={<Navigate to="/redeem" replace />} />
                 <Route
                   path="/tools"
                   element={

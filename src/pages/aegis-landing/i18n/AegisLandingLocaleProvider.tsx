@@ -4,7 +4,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from "react";
 import {
@@ -13,8 +12,7 @@ import {
   type AegisLandingCopy,
   type AegisLandingLocale,
 } from "./aegisLandingCopy";
-
-const STORAGE_KEY = "aegis-landing-locale";
+import { useLanguage } from '@/i18n/LanguageContext';
 
 type Ctx = {
   locale: AegisLandingLocale;
@@ -33,23 +31,7 @@ export function AegisLandingLocaleProvider({
   audience: AegisLandingAudience;
   children: ReactNode;
 }) {
-  const [locale, setLocaleState] = useState<AegisLandingLocale>(() => {
-    try {
-      const s = localStorage.getItem(STORAGE_KEY);
-      return s === "en" ? "en" : "fr";
-    } catch {
-      return "fr";
-    }
-  });
-
-  const setLocale = useCallback((l: AegisLandingLocale) => {
-    setLocaleState(l);
-    try {
-      localStorage.setItem(STORAGE_KEY, l);
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const { locale, setLocale } = useLanguage();
 
   const copy = AEGIS_LANDING_COPY[audience][locale];
 

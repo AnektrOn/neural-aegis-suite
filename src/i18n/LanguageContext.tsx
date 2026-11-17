@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { translations, type Locale, type TranslationKey } from "./translations";
+import { readLocalePreference, saveLocalePreference } from './localePreference';
 
 export type { Locale, TranslationKey } from "./translations";
 
@@ -12,14 +13,11 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    const saved = localStorage.getItem("app-locale");
-    return (saved === "en" || saved === "fr") ? saved : "fr";
-  });
+  const [locale, setLocaleState] = useState<Locale>(readLocalePreference);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    localStorage.setItem("app-locale", l);
+    saveLocalePreference(l);
     // Mirror the choice on the user profile so alerts/pop-ups use the right language.
     void (async () => {
       try {

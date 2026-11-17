@@ -45,7 +45,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { user, isGuest, loading: authLoading } = useAuth();
 
   const redirectParam = searchParams.get("redirect");
@@ -108,6 +108,10 @@ export default function AuthPage() {
     }
 
     const target = postLoginPath(false, user.id);
+    if (path === '/redeem' || path === '/appsumo') {
+      navigate('/redeem', { replace: true });
+      return;
+    }
     if (target === GUARDIAN_ONBOARDING_PATH) {
       navigate(target, { replace: true });
       return;
@@ -177,9 +181,10 @@ export default function AuthPage() {
           email: cleanEmail,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/onboarding`,
+            emailRedirectTo: `${window.location.origin}${redirectParam === '/redeem' ? '/redeem' : '/onboarding'}`,
             data: {
               account_type: "member",
+              preferred_language: locale,
               first_name: givenName || undefined,
               display_name: givenName || undefined,
             },
@@ -195,7 +200,7 @@ export default function AuthPage() {
         });
         return;
       }
-      navigate("/onboarding", { replace: true });
+      navigate(redirectParam === '/redeem' ? '/redeem' : '/onboarding', { replace: true });
     } catch (err: unknown) {
       showAuthError(err);
     } finally {
@@ -497,6 +502,9 @@ export default function AuthPage() {
                   )}
                 </button>
               </form>
+              <Link to="/redeem" className="mt-4 block text-center text-sm text-primary">
+                {locale === 'fr' ? 'Vous avez un code AppSumo ?' : 'Have an AppSumo code?'}
+              </Link>
 
               {(mode === "signin" || mode === "signup") && (
                 <>
