@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,15 @@ export default function DeepDiveReportPage({ mode }: DeepDiveReportPageProps) {
   const { user } = useAuth();
   const { locale, t } = useLanguage();
   const isFR = locale === "fr";
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (mode !== "user") return;
+    if (searchParams.get("workflow") === "questionnaire") return;
+    const lensParam = searchParams.get("lens") ?? "myss";
+    navigate(`/persona/portraits?lens=${encodeURIComponent(lensParam)}`, { replace: true });
+  }, [mode, navigate, searchParams]);
 
   // Admin: list of real submitted sessions + selection
   const [sessions, setSessions] = useState<AdminSessionRow[]>([]);

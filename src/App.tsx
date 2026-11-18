@@ -28,13 +28,13 @@ import { useAndroidVersionReporter } from "@/hooks/useAndroidVersionReporter";
 import { useReferralCapture } from "@/hooks/useReferralCapture";
 import { useBackendHealth } from "@/hooks/useBackendHealth";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { isMemberFeatureVisible } from "@/lib/memberFeatureFlags";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 
 const Welcome = lazy(() => import("./pages/Welcome"));
 const WelcomeVoiceAgent = lazy(() => import("./pages/WelcomeVoiceAgent"));
-const LogosVoice = lazy(() => import("./pages/LogosVoice"));
 const GuardianOnboardingPage = lazy(
   () => import("@/features/guardian/pages/GuardianOnboardingPage"),
 );
@@ -121,6 +121,7 @@ const AegisCorePreview = lazy(() => import("./pages/dev/AegisCorePreview"));
 const QuantumNebulaDemo = lazy(() => import("./pages/dev/QuantumNebulaDemo"));
 const ToolboxNebulaDemo = lazy(() => import("./pages/dev/ToolboxNebulaDemo"));
 const LogosChoicesLabPage = lazy(() => import("./pages/dev/logos-choices/LogosChoicesLabPage"));
+const LogosDevPage = lazy(() => import("./pages/dev/logos/LogosDevPage"));
 const DienChanMap = lazy(() => import("./pages/dev/DienChanMap"));
 const BodyScanPreview = lazy(() => import("./pages/dev/BodyScanPreview"));
 const AegisBioExecutiveDevPage = lazy(() => import("./pages/dev/aegis-dashboard/AegisBioExecutiveDevPage"));
@@ -345,6 +346,7 @@ const App = () => (
                     <Route path="/dev/aegis-core" element={<DevGate><AegisCorePreview /></DevGate>} />
                     <Route path="/dev/quantum-nebula" element={<DevGate><QuantumNebulaDemo /></DevGate>} />
                     <Route path="/dev/toolbox-nebula" element={<DevGate><ToolboxNebulaDemo /></DevGate>} />
+                    <Route path="/dev/logos" element={<DevGate><LogosDevPage /></DevGate>} />
                     <Route path="/dev/logos-choices" element={<DevGate><LogosChoicesLabPage /></DevGate>} />
                     <Route path="/dev/dien-chan" element={<DevGate><DienChanMap variant="dev" /></DevGate>} />
                     {/* Mixamo Xbot additive-skinning playground */}
@@ -614,11 +616,28 @@ const App = () => (
                             <Route path="/habits" element={<HabitTracker />} />
                             <Route path="/journal" element={<Journal />} />
                             <Route path="/toolbox" element={<Toolbox />} />
-                            <Route path="/logos" element={<LogosVoice />} />
                             <Route path="/pratiques" element={<PracticesHub />} />
-                            <Route path="/pratiques/dien-chan" element={<DienChanMap variant="user" />} />
+                            <Route
+                              path="/pratiques/dien-chan/*"
+                              element={
+                                isMemberFeatureVisible("dien_chan") ? (
+                                  <DienChanMap variant="user" />
+                                ) : (
+                                  <Navigate to="/pratiques" replace />
+                                )
+                              }
+                            />
                             <Route path="/pulse" element={<PulsePage />} />
-                            <Route path="/bibliotheque" element={<Bibliotheque />} />
+                            <Route
+                              path="/bibliotheque"
+                              element={
+                                isMemberFeatureVisible("bibliotheque") ? (
+                                  <Bibliotheque />
+                                ) : (
+                                  <Navigate to="/pratiques" replace />
+                                )
+                              }
+                            />
                             <Route path="/meditation" element={<MeditationLibraryPage />} />
                             <Route path="/people" element={<PeopleBoard />} />
                             <Route path="/analytics" element={<Analytics />} />

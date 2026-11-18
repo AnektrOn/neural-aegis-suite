@@ -1,6 +1,5 @@
 import type { SampleProfile } from "@/features/archetype-deepdive-v2/domain/sampleProfile";
 import type { TaoPersonaSummary } from "@/features/tao-portrait/lib/buildTaoPersonaSummary";
-import { taoDeepDiveHref } from "@/features/tao-portrait/lib/buildTaoPersonaSummary";
 import { WU_XING_META } from "@/features/tao-portrait/domain/types";
 import { parseProfileLabel } from "./parseProfileLabel";
 import { themeFor } from "./archetypeTheme";
@@ -11,9 +10,23 @@ import {
   PORTRAIT_LENS_SHELF_ORDER,
   type PortraitLensRegistryId,
 } from "./portraitLensRegistry";
+import type { PortraitLensAction } from "./portraitLensTypes";
 
 function humanizeToken(value: string): string {
   return value.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function clinicalLensAction(): PortraitLensAction {
+  return {
+    labelKey: "persona.lens.ctaClinical",
+    href: "",
+    intent: "clinical",
+    variant: "primary",
+  };
+}
+
+function navigateLensAction(labelKey: PortraitLensAction["labelKey"], href: string): PortraitLensAction {
+  return { labelKey, href, intent: "navigate", variant: "primary" };
 }
 
 export function buildPortraitLenses(input: {
@@ -47,13 +60,7 @@ export function buildPortraitLenses(input: {
       coverArtUrl: reg.coverArtUrl,
       progressFilled: myssCompletion?.answered,
       progressTotal: myssCompletion?.total,
-      actions: [
-        {
-          labelKey: reg.ctaOpenKey,
-          href: reg.routeReady,
-          variant: "primary",
-        },
-      ],
+      actions: [clinicalLensAction()],
     });
   } else {
     const reg = PORTRAIT_LENS_REGISTRY.find((e) => e.id === "myss")!;
@@ -74,11 +81,9 @@ export function buildPortraitLenses(input: {
       progressTotal: myssCompletion?.total,
       emptyDetailKey: reg.emptyDetailKey,
       actions: [
-        {
-          labelKey: status === "ready" ? reg.ctaOpenKey : reg.ctaStartKey,
-          href: status === "ready" ? reg.routeReady : reg.routeStart,
-          variant: "primary",
-        },
+        status === "ready"
+          ? clinicalLensAction()
+          : navigateLensAction(reg.ctaStartKey, reg.routeStart),
       ],
     });
   }
@@ -99,27 +104,10 @@ export function buildPortraitLenses(input: {
       ? [tao.t2Stade, tao.t2Domaine].filter(Boolean).map(humanizeToken).join(" · ")
       : null;
 
-  const taoActions: PortraitLensCard["actions"] = [];
-  if (showT2) {
-    taoActions.push({
-      labelKey: "persona.glimpse.ctaTaoT2",
-      href: taoDeepDiveHref({ view: "t2" }),
-      variant: "primary",
-    });
-  }
-  taoActions.push({
-    labelKey: showT2 ? "persona.glimpse.ctaTaoPoles" : "persona.glimpse.ctaTaoDeepDive",
-    href: taoDeepDiveHref(),
-    variant: showT2 ? "outline" : "primary",
-  });
-  if (taoStatus === "empty") {
-    taoActions.length = 0;
-    taoActions.push({
-      labelKey: taoReg.ctaStartKey,
-      href: taoReg.routeStart,
-      variant: "primary",
-    });
-  }
+  const taoActions: PortraitLensCard["actions"] =
+    taoStatus === "empty"
+      ? [navigateLensAction(taoReg.ctaStartKey, taoReg.routeStart)]
+      : [clinicalLensAction()];
 
   const taoAccent =
     tao?.primaryPole && tao.primaryPole !== "transversal"
@@ -175,11 +163,9 @@ export function buildPortraitLenses(input: {
       actions: reg.comingSoon
         ? []
         : [
-            {
-              labelKey: canOpen ? reg.ctaOpenKey : reg.ctaStartKey,
-              href: canOpen ? reg.routeReady : reg.routeStart,
-              variant: "primary",
-            },
+            canOpen
+              ? clinicalLensAction()
+              : navigateLensAction(reg.ctaStartKey, reg.routeStart),
           ],
     });
   }

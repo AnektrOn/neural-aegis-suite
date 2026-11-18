@@ -1053,13 +1053,17 @@ export async function buildSvgTargetsFromRaster(
     img.decoding = "async";
     img.src = url;
     await img.decode();
-    const size = 640;
+    // Higher res for text glyphs and painted silhouettes (embedded <image> artworks).
+    const hasText = /<text[\s>]/i.test(markup);
+    const hasEmbeddedImage = /<image[\s>]/i.test(markup);
+    const hiRes = hasText || hasEmbeddedImage;
+    const size = hiRes ? 1024 : 640;
     const canvas = document.createElement("canvas");
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx || img.width < 1 || img.height < 1) return null;
-    const scale = Math.min(size / img.width, size / img.height);
+    const scale = Math.min(size / img.width, size / img.height) * (hasText ? 0.92 : 1);
     const drawW = Math.max(1, img.width * scale);
     const drawH = Math.max(1, img.height * scale);
     const ox = (size - drawW) * 0.5;
@@ -1076,12 +1080,22 @@ export async function buildSvgTargetsFromRaster(
         a: pixels[i + 3] ?? 0,
       };
     };
-    const bg = corner(0, 0);
+    // Sample bg inside the drawn image — canvas (0,0) is often letterbox alpha=0,
+    // which would treat a painted black backdrop as foreground (filled rectangle).
+    const bg = corner(
+      Math.min(size - 1, Math.max(0, Math.floor(ox) + 2)),
+      Math.min(size - 1, Math.max(0, Math.floor(oy) + 2)),
+    );
     const samples: number[] = [];
     const rand = mulberry32(seed);
-    const step = 2;
-    for (let y = 0; y < size; y += step) {
-      for (let x = 0; x < size; x += step) {
+    const step = hiRes ? 1 : 2;
+    // Inset past letterbox / export fringe so embedded artworks don't grow a frame.
+    const x0 = Math.max(0, Math.floor(ox) + (hasEmbeddedImage ? 3 : 0));
+    const y0 = Math.max(0, Math.floor(oy) + (hasEmbeddedImage ? 3 : 0));
+    const x1 = Math.min(size, Math.ceil(ox + drawW) - (hasEmbeddedImage ? 3 : 0));
+    const y1 = Math.min(size, Math.ceil(oy + drawH) - (hasEmbeddedImage ? 3 : 0));
+    for (let y = y0; y < y1; y += step) {
+      for (let x = x0; x < x1; x += step) {
         const i = (y * size + x) * 4;
         const r = pixels[i] ?? 0;
         const g = pixels[i + 1] ?? 0;
@@ -1112,6 +1126,16 @@ export async function buildSvgTargetsAsync(
   radius = 2.1,
   seed = 23,
 ): Promise<Float32Array | null> {
+  // Geometry sampling skips <text> / embedded <image>; prefer raster so
+  // titles and painted silhouettes (e.g. path-card artworks) become particles.
+  // Dense imagetracer dumps (tens of thousands of <path>) freeze getTotalLength.
+  const pathCount = (svgText.match(/<path[\s>]/gi) ?? []).length;
+  if (/<text[\s>]|<image[\s>]/i.test(svgText) || pathCount > 800) {
+    return (
+      (await buildSvgTargetsFromRaster(svgText, particleCount, radius, seed)) ??
+      (pathCount > 800 ? null : buildSvgTargets(svgText, particleCount, radius, seed))
+    );
+  }
   return (
     buildSvgTargets(svgText, particleCount, radius, seed) ??
     (await buildSvgTargetsFromRaster(svgText, particleCount, radius, seed))

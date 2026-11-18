@@ -3,7 +3,8 @@ version: alpha
 name: AEGIS Member Shell
 description: >-
   Direction artistique officielle AEGIS — minéralité obsidienne, or solaire,
-  typographie impériale. Dark mode par défaut ; light mode en miroir albâtre.
+  typographie impériale. Shell membre bimodal : dark par défaut, light Albâtre
+  (réglage Paramètres → Apparence). Marketing public : coquille aegis-landing.
 colors:
   primary: "#c9a24b"
   on-primary: "#0b0b0a"
@@ -178,7 +179,16 @@ L’identité visuelle s’appuie sur quatre piliers :
 3. **Typographie impériale** — Cinzel (autorité), Cormorant Garamond (littérature), Barlow (UI), DM Mono (instrument).
 4. **Architecture bento** — tuiles géométriques respirantes ; le verre flou bleu/violet est interdit.
 
-Le **dark mode** (Palette Obsidienne) est la référence de génération Stitch et des maquettes. Le light mode (Albâtre / Craie) est le miroir documenté dans `docs/DA_MEMBER_SHELL_V2.md` et `src/index.css`.
+Le **dark mode** (Palette Obsidienne) reste la référence Stitch et le **défaut** à la connexion. Le **light mode** (Albâtre / Craie) est implémenté pour le shell membre connecté :
+
+| Surface | Audience | Thème |
+|---------|----------|--------|
+| Landing, pricing, tools, legal | Public | Coquille `.aegis-landing` (`#f3eeec`, bronze) — indépendante du toggle membre |
+| Dashboard, capture, settings, … | Membre connecté | `html.light` / `html.dark` via `localStorage.theme` |
+
+- **Code** : `src/lib/theme.ts` (`applyTheme`, `useTheme`), `ThemeToggle` dans **Paramètres → Apparence**.
+- **Tokens CSS** : `html.light { … }` dans `src/index.css` (miroir des `--aegis-*` dark).
+- **Spéc complète** : `docs/DA_MEMBER_SHELL_V2.md` §2–4.
 
 Branding produit : toujours via le composant partagé **AegisLogo** (variants theme-aware), jamais un filtre CSS sur une image.
 
@@ -201,7 +211,9 @@ La palette dark est normative pour les agents. Les tokens `light-*` documentent 
 
 **Interdits :** purple-on-white, indigo glow, cream+terracotta broadsheet, néon cyberpunk, glass cards bleutées.
 
-**Light mirror (résumé) :** fond `#f5f2eb`, surface `#ffffff`, ink `#141412`, or `#9e7828`, cuivre `#9c5323`. En light, le chrome UI peut rester ink black ; l’or reste l’accent wellness.
+**Light mirror (membre, actif) :** fond `#f5f2eb`, surface `#ffffff`, ink `#141412`, or `#9e7828`, cuivre `#9c5323`. Chips actifs : ink `#141412` sur fond clair (inversion minérale). Ne pas réutiliser les tokens dark sur les tuiles en `html.light`.
+
+**Marketing landing (hors toggle membre) :** page `#f3eeec`, bronze `#d19d7b`, titres Cormorant — voir `src/pages/aegis-landing/aegisLanding.css`.
 
 ## Typography
 
@@ -260,6 +272,12 @@ Remplace toute `glass-card`. Fond `surface`, bordure `cardline`, hover or. Conte
 
 Inactif : surface + ink-muted. Actif : ink sur neutral (inversion minérale), pas de pill colorée.
 
+**Light :** inactif fond `#f5f2eb` / bordure `black/8%` ; actif fond `#141412`, texte `#ffffff`.
+
+### Thème (membre)
+
+Toggle segmenté **Clair | Sombre** (`ThemeToggle`) — Cinzel, état actif `bg-foreground text-background`. Persistance clé `theme` (`light` | `dark`).
+
 ### Branding
 
 `AegisLogo` partagé, variants theme-aware ; overrides explicites sur surfaces couleur fixe.
@@ -268,7 +286,7 @@ Inactif : surface + ink-muted. Actif : ink sur neutral (inversion minérale), pa
 
 **Do**
 
-- Générer d’abord en dark obsidienne + or solaire.
+- Générer d’abord en dark obsidienne + or solaire ; fournir le miroir light pour les tuiles bento et le chrome Settings.
 - Utiliser Cinzel uniquement pour kickers / CTA solennels, Cormorant pour H1, Barlow pour UI, DM Mono pour chiffres.
 - Préférer bento basalte aux cards glass.
 - Garder un accent métallique unique (or) + cuivre pour l’énergie corporelle.

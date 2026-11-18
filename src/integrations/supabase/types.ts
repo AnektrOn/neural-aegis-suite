@@ -4452,6 +4452,34 @@ export type Database = {
       is_platform_operator: { Args: { _uid?: string }; Returns: boolean }
       is_superadmin: { Args: { _uid?: string }; Returns: boolean }
       leave_company: { Args: { p_user_id?: string }; Returns: Json }
+      logos_consume_path: {
+        Args: { p_prompt_id: string }
+        Returns: Json
+      }
+      logos_favorite_path: {
+        Args: { p_extend_days?: number; p_prompt_id: string }
+        Returns: Json
+      }
+      logos_list_available_paths: {
+        Args: { p_user_id?: string }
+        Returns: {
+          batch_created_at: string
+          batch_id: string
+          category: string
+          days_until_expiry: number
+          expires_at: string
+          first_message: string
+          id: string
+          is_favorited: boolean
+          opening_prompt: string
+          title_en: string
+          title_fr: string
+        }[]
+      }
+      logos_path_effective_expires_at: {
+        Args: { p_prompt_expires: string; p_user_expires: string }
+        Returns: string
+      }
       log_admin_data_access: {
         Args: { p_action: string; p_meta?: Json; p_target_user_id: string }
         Returns: undefined

@@ -3,6 +3,65 @@
 /* Marketing tools/blog — landing typography (Barlow body, Cormorant titles, DM Mono labels). */
 .tools-route.aegis-landing {
   font-family: Barlow, ui-sans-serif, system-ui, sans-serif;
+  --aegis-ink: var(--aegis-text);
+  --aegis-ink-muted: var(--aegis-text-secondary);
+  --aegis-ink-subtle: var(--aegis-text-secondary);
+  --aegis-surface-elevated: #ffffff;
+  --aegis-gold: var(--aegis-bronze);
+  --aegis-copper: var(--aegis-bronze-hover);
+  --aegis-cardline: var(--aegis-hairline);
+  --aegis-cardline-hover: var(--aegis-bronze);
+}
+
+/* Portaled Radix dialogs — must carry landing tokens (not under .tools-route). */
+.aegis-tools-dialog.aegis-landing {
+  --aegis-page: #f3eeec;
+  --aegis-text: #121212;
+  --aegis-muted: #4a4a4f;
+  --aegis-text-secondary: #5c5c61;
+  --aegis-hairline: #e4e4e7;
+  --aegis-bronze: #d19d7b;
+  --aegis-bronze-hover: #c38155;
+  --aegis-bronze-ink: #8a5a3c;
+  border-color: var(--aegis-hairline) !important;
+  background: #fff !important;
+  color: var(--aegis-text) !important;
+  box-shadow: 0 12px 40px rgba(18, 18, 18, 0.12) !important;
+  backdrop-filter: none !important;
+}
+
+.aegis-tools-dialog .text-muted-foreground {
+  color: var(--aegis-text-secondary) !important;
+}
+
+.aegis-tools-dialog .text-foreground {
+  color: var(--aegis-text) !important;
+}
+
+.aegis-tools-dialog [role="slider"] {
+  border-color: var(--aegis-bronze) !important;
+  background: #fff !important;
+}
+
+.aegis-tools-dialog .bg-secondary {
+  background-color: var(--aegis-hairline) !important;
+}
+
+.aegis-tools-dialog .bg-primary {
+  background-color: var(--aegis-bronze) !important;
+}
+
+.aegis-tools-dialog-overlay {
+  background: rgba(18, 18, 18, 0.35) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.aegis-tools-dialog button[class*="absolute"][class*="right-2"] {
+  color: var(--aegis-text-secondary) !important;
+}
+
+.aegis-tools-dialog button[class*="absolute"][class*="right-2"]:hover {
+  color: var(--aegis-text) !important;
 }
 
 /* Legacy gauge / SVG strokes — map to app theme (no isolated obsidian stack). */

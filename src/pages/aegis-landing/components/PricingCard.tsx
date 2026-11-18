@@ -3,6 +3,12 @@ import { LandingButton } from "./LandingButton";
 import { LandingCard } from "./LandingCard";
 import { LandingCheckIcon } from "./LandingCheckIcon";
 import { LandingPill } from "./LandingPill";
+import {
+  SOLO_ACTIVE_PULSE_CARDS,
+  SOLO_LOGOS_ACTIVE_PULSE_CARDS,
+  SOLO_LOGOS_WEEKLY_TOOLBOX_ITEMS,
+  SOLO_WEEKLY_TOOLBOX_ITEMS,
+} from "@/lib/soloPlanQuotas";
 import { SOLO_PRICING } from "../soloPricing";
 
 export function PricingCard() {
@@ -11,14 +17,54 @@ export function PricingCard() {
   if (audience === "individuel") {
     const features = isFR
       ? [
-          ["Bilan archétypal inclus", "Dashboard de pilotage et People Board 3D", "Registre des décisions", "10 outils / semaine", "50 interactions RAG / semaine (min.)"],
-          ["Tout AEGIS Solo", "Agent vocal IA LOGOS intégré", "Débriefing oral et préparation vocale", "Connexion Vault et historique décisionnel"],
-          ["Accès à vie à AEGIS Solo", "Rapport d’onboarding inclus", "Mises à jour majeures incluses", "Garantie sérénité 30 jours", "LOGOS en option, abonnement séparé"],
+          [
+            "Bilan archétypal inclus",
+            "Dashboard de pilotage et People Board 3D",
+            "Registre des décisions",
+            `${SOLO_WEEKLY_TOOLBOX_ITEMS} toolbox / semaine`,
+            `${SOLO_ACTIVE_PULSE_CARDS} cartes Pulse actives`,
+            "50 interactions RAG / semaine (min.)",
+          ],
+          [
+            "Tout AEGIS Solo",
+            "Agent vocal IA LOGOS intégré",
+            `${SOLO_LOGOS_WEEKLY_TOOLBOX_ITEMS} toolbox / semaine (×2)`,
+            `${SOLO_LOGOS_ACTIVE_PULSE_CARDS} cartes Pulse actives (×2)`,
+            "Débriefing oral et préparation vocale",
+            "Connexion Vault et historique décisionnel",
+          ],
+          [
+            "Accès à vie à AEGIS Solo",
+            "Rapport d’onboarding inclus",
+            "Mises à jour majeures incluses",
+            "Garantie sérénité 30 jours",
+            "LOGOS en option, abonnement séparé",
+          ],
         ]
       : [
-          ["Archetypal onboarding report included", "Executive dashboard and 3D People Board", "Decision registry", "10 tools / week", "50 RAG interactions / week (min.)"],
-          ["Everything in AEGIS Solo", "Integrated LOGOS AI voice agent", "Oral debrief and voice preparation", "Vault and decision history connected"],
-          ["Lifetime AEGIS Solo access", "Onboarding report included", "Major updates included", "30-day serenity guarantee", "LOGOS optional, separate subscription"],
+          [
+            "Archetypal onboarding report included",
+            "Executive dashboard and 3D People Board",
+            "Decision registry",
+            `${SOLO_WEEKLY_TOOLBOX_ITEMS} toolbox / week`,
+            `${SOLO_ACTIVE_PULSE_CARDS} active Pulse cards`,
+            "50 RAG interactions / week (min.)",
+          ],
+          [
+            "Everything in AEGIS Solo",
+            "Integrated LOGOS AI voice agent",
+            `${SOLO_LOGOS_WEEKLY_TOOLBOX_ITEMS} toolbox / week (2×)`,
+            `${SOLO_LOGOS_ACTIVE_PULSE_CARDS} active Pulse cards (2×)`,
+            "Oral debrief and voice preparation",
+            "Vault and decision history connected",
+          ],
+          [
+            "Lifetime AEGIS Solo access",
+            "Onboarding report included",
+            "Major updates included",
+            "30-day serenity guarantee",
+            "LOGOS optional, separate subscription",
+          ],
         ];
     return (
       <div className="grid gap-6 lg:grid-cols-3">

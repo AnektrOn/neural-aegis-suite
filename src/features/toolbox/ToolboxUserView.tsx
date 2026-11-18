@@ -9,6 +9,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { isMemberFeatureVisible } from "@/lib/memberFeatureFlags";
 import { isLikelyVideoUrl } from "@/lib/video-links";
 import { pickCatalogTemplateDisplayTitle } from "@/lib/catalog-i18n";
 import { pickWidgetCatalogCopy } from "@/lib/toolbox-widget-i18n";
@@ -107,6 +108,7 @@ export function ToolboxUserView({
   const { t, locale } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
+  const bibliothequeVisible = isMemberFeatureVisible("bibliotheque");
   const [, startTransition] = useTransition();
   const reduceMotion = useReducedMotion();
   const exerciseSession = useToolboxExerciseSessionOptional();
@@ -621,7 +623,11 @@ export function ToolboxUserView({
       const isExternal = item.content_type === "external_link" && item.external_url;
       const isVideoLink = Boolean(isExternal && item.external_url && isLikelyVideoUrl(item.external_url));
       if (isVideoLink) {
-        navigate("/bibliotheque");
+        if (bibliothequeVisible) {
+          navigate("/bibliotheque");
+        } else if (item.external_url) {
+          window.open(item.external_url, "_blank", "noopener,noreferrer");
+        }
         return;
       }
       if (exerciseSession && !readOnly) {
@@ -630,7 +636,7 @@ export function ToolboxUserView({
         setActiveWidget(item.id);
       }
     },
-    [navigate, exerciseSession, readOnly],
+    [bibliothequeVisible, navigate, exerciseSession, readOnly],
   );
 
   useEffect(() => {
@@ -723,7 +729,9 @@ export function ToolboxUserView({
     : null;
   const spotlightWaiting = selectedItem ? (selectedItem.user_delivery_status || "active") === "waiting" : false;
   const spotlightExternal = selectedItem ? selectedItem.content_type === "external_link" && selectedItem.external_url : false;
-  const spotlightVideo = Boolean(spotlightExternal && selectedItem?.external_url && isLikelyVideoUrl(selectedItem.external_url));
+  const spotlightVideo =
+    bibliothequeVisible &&
+    Boolean(spotlightExternal && selectedItem?.external_url && isLikelyVideoUrl(selectedItem.external_url));
   const spotlightHabitLinked = selectedItem ? isInHabits(selectedItem.id) : false;
   const spotlightHabitBusy = selectedItem ? habitLinkBusy === selectedItem.id : false;
 
@@ -903,6 +911,16 @@ export function ToolboxUserView({
                 <Library size={13} />
                 <span>{t("toolbox.openInLibrary")}</span>
               </Link>
+            ) : spotlightExternal && selectedItem?.external_url && isLikelyVideoUrl(selectedItem.external_url) ? (
+              <a
+                href={selectedItem.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full btn-solaire flex min-h-[44px] items-center justify-center gap-2 rounded-xl py-2.5 font-cinzel text-xs font-semibold uppercase tracking-[0.16em]"
+              >
+                <ExternalLink size={13} />
+                <span>{t("toolbox.openLink")}</span>
+              </a>
             ) : (
               <button
                 type="button"
@@ -1516,7 +1534,7 @@ export function ToolboxUserView({
                                     <CheckCircle2 size={11} />
                                     {t("toolbox.confirmDelivery")}
                                   </button>
-                                ) : isVideoLink ? (
+                                ) : isVideoLink && bibliothequeVisible ? (
                                   <Link
                                     to="/bibliotheque"
                                     className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-primary transition-colors hover:bg-primary/15 sm:w-auto"
@@ -1524,6 +1542,16 @@ export function ToolboxUserView({
                                     <Library size={11} />
                                     {t("toolbox.openInLibrary")}
                                   </Link>
+                                ) : isVideoLink && item.external_url ? (
+                                  <a
+                                    href={item.external_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-full border border-primary/35 bg-primary/8 px-3.5 text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.18em] text-primary transition-colors hover:bg-primary/15 sm:w-auto"
+                                  >
+                                    <ExternalLink size={11} />
+                                    {t("toolbox.openLink")}
+                                  </a>
                                 ) : (
                                   <button
                                     type="button"
@@ -1742,13 +1770,22 @@ export function ToolboxUserView({
                         >
                           <Play size={11} /> {t("toolbox.launch")}
                         </button>
-                      ) : isVideoLink ? (
+                      ) : isVideoLink && bibliothequeVisible ? (
                         <Link
                           to="/bibliotheque"
                           className="flex min-h-[34px] items-center gap-1 rounded-full border border-primary/35 bg-primary/8 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-primary transition-colors hover:bg-primary/15"
                         >
                           <Library size={11} /> {t("toolbox.openInLibrary")}
                         </Link>
+                      ) : isVideoLink && item.external_url ? (
+                        <a
+                          href={item.external_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex min-h-[34px] items-center gap-1 rounded-full border border-primary/35 bg-primary/8 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-primary transition-colors hover:bg-primary/15"
+                        >
+                          <ExternalLink size={11} /> {t("toolbox.openLink")}
+                        </a>
                       ) : null}
                     </>
                   ) : (!latestCompletion || isActive) ? (
@@ -1759,13 +1796,22 @@ export function ToolboxUserView({
                       >
                         <Play size={11} /> {isActive ? t("toolbox.inProgress") : t("toolbox.launch")}
                       </button>
-                    ) : isVideoLink ? (
+                    ) : isVideoLink && bibliothequeVisible ? (
                       <Link
                         to="/bibliotheque"
                         className="flex min-h-[34px] items-center gap-1 rounded-full border border-primary/35 bg-primary/8 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-primary transition-colors hover:bg-primary/15"
                       >
                         <Library size={11} /> {t("toolbox.openInLibrary")}
                       </Link>
+                    ) : isVideoLink && item.external_url ? (
+                      <a
+                        href={item.external_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex min-h-[34px] items-center gap-1 rounded-full border border-primary/35 bg-primary/8 px-2 sm:px-3 text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.16em] text-primary transition-colors hover:bg-primary/15"
+                      >
+                        <ExternalLink size={11} /> {t("toolbox.openLink")}
+                      </a>
                     ) : isExternal ? (
                       <div className="flex flex-wrap items-center gap-1.5">
                         <a href={item.external_url!} target="_blank" rel="noopener noreferrer"

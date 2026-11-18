@@ -1,0 +1,74 @@
+/* /pricing — force landing light surface even when html.dark (member theme). */
+.aegis-landing.aegis-pricing {
+  background-color: var(--aegis-page) !important;
+  color: var(--aegis-text) !important;
+  font-family: Barlow, ui-sans-serif, system-ui, sans-serif;
+}
+
+.aegis-landing.aegis-pricing * {
+  /* Shadcn outline/secondary buttons use hsl(background) → dark on public pages. */
+}
+
+.aegis-landing.aegis-pricing [data-slot="badge"],
+.aegis-landing.aegis-pricing .border-border,
+.aegis-landing.aegis-pricing .bg-background,
+.aegis-landing.aegis-pricing .bg-secondary {
+  --tw-border-opacity: 1;
+}
+
+.aegis-landing.aegis-pricing button.border-input,
+.aegis-landing.aegis-pricing a.border-input {
+  border-color: var(--aegis-hairline) !important;
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  color: var(--aegis-text) !important;
+}
+
+.aegis-landing.aegis-pricing .pricing-badge {
+  border: 1px solid var(--aegis-hairline);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--aegis-bronze-ink);
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+}
+
+.aegis-landing.aegis-pricing .pricing-cta-primary {
+  background-color: var(--aegis-bronze) !important;
+  color: var(--aegis-text) !important;
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 18px rgba(211, 157, 123, 0.28);
+}
+
+.aegis-landing.aegis-pricing .pricing-cta-primary:hover {
+  background-color: var(--aegis-bronze-hover) !important;
+}
+
+.aegis-landing.aegis-pricing .pricing-cta-secondary {
+  border: 1px solid var(--aegis-hairline);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--aegis-text-secondary);
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.aegis-landing.aegis-pricing .pricing-cta-secondary:hover {
+  border-color: color-mix(in srgb, var(--aegis-bronze) 45%, var(--aegis-hairline));
+  color: var(--aegis-text);
+}
+
+.aegis-landing.aegis-pricing footer {
+  border-color: var(--aegis-hairline) !important;
+}
+
+.aegis-landing.aegis-pricing footer a,
+.aegis-landing.aegis-pricing footer p {
+  color: var(--aegis-text-secondary) !important;
+}

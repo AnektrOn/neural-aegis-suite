@@ -10,10 +10,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { usePersonaProfile } from "@/features/persona/hooks/usePersonaProfile";
 import { PersonaProfileScreen } from "@/features/persona/components/PersonaProfileScreen";
 import { PersonaDesktopScreen } from "@/features/persona/components/PersonaDesktopScreen";
-import {
-  fetchPersonaTrackingStats,
-  type PersonaTrackingStats,
-} from "@/features/persona/services/personaTrackingStats";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Persona() {
@@ -24,7 +20,6 @@ export default function Persona() {
   const isFR = locale === "fr";
 
   const [displayName, setDisplayName] = useState<string | undefined>();
-  const [tracking, setTracking] = useState<PersonaTrackingStats | null>(null);
 
   const userId = user?.id;
   const { profile, loading: profileLoading, error, reload } = usePersonaProfile(userId, locale);
@@ -42,7 +37,7 @@ export default function Persona() {
   useEffect(() => {
     if (!userId) return;
     let alive = true;
-    (async () => {
+    void (async () => {
       const { data } = await supabase
         .from("profiles")
         .select("display_name")
@@ -56,17 +51,6 @@ export default function Persona() {
       alive = false;
     };
   }, [userId, metaDisplayName]);
-
-  useEffect(() => {
-    if (!userId) return;
-    let alive = true;
-    void fetchPersonaTrackingStats(userId, locale).then((s) => {
-      if (alive) setTracking(s);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [userId, locale]);
 
   const waitingForAuth = authLoading && !userId;
   const showLoading = waitingForAuth || (!!userId && profileLoading);
@@ -154,7 +138,6 @@ export default function Persona() {
   const screenProps = {
     profile,
     displayName,
-    tracking,
   };
 
   return (

@@ -55,9 +55,12 @@ export function PersonaStatsSection({ profile }: PersonaStatsSectionProps) {
 
   return (
     <section className="glass-card rounded-2xl p-4 space-y-4">
-      <h2 className="font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-        {t("persona.glimpse.stats")}
-      </h2>
+      <div>
+        <h2 className="font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          {t("persona.glimpse.stats")}
+        </h2>
+        <p className="mt-1 text-[10px] text-muted-foreground/85 font-body">{t("persona.glimpse.statsMyssLens")}</p>
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <StatTile

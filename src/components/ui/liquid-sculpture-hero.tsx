@@ -47,6 +47,11 @@ interface EngineOptions {
   holdUnifyExponent: number
   /** stabilizeOnHold: never unify past this (1 = full crystal from particles). */
   holdOrderCap: number
+  /**
+   * stabilizeOnHold: when true, crossfade to the crisp image at high order
+   * (path cards). Intro crystal keeps false — particles only.
+   */
+  holdRevealImage: boolean
   /** 0 = off, 1 = log, 2 = cinematic, 3 = aegis */
   colorGradePreset: number
   /** 0 – 1 LUT / grade mix */
@@ -383,7 +388,10 @@ void main(){
   float k = key*e.x*e.y;
   float E = energyAt(rp, uMouse, uRadius, uPresence, fl.b);
   float show = (1.0 - max(E, uRest))*uIntroVis;
-  vec3 mat = uAlphaMode > 0.5 ? col : col*(uBg/max(uImgBg, vec3(0.001)));
+  // Light stages used to re-tint flat JPGs via uBg/uImgBg. On a black stage that
+  // multiplies the whole photo by ~0 (JPG cards looked empty; PNG alphaMode was fine).
+  float bgLum = dot(uBg, vec3(0.2126, 0.7152, 0.0722));
+  vec3 mat = (uAlphaMode > 0.5 || bgLum < 0.08) ? col : col*(uBg/max(uImgBg, vec3(0.001)));
   // premultiplied: empty areas stay transparent so the page (and the backdrop word) shows through
   float A = k*show;
   o = vec4(mat*A, A);
@@ -720,24 +728,41 @@ class LiquidEngine {
     } catch {
       throw new Error("Image is not CORS-readable")
     }
-    // a cut-out (transparent) image is sampled by alpha, a flat one by colour distance
+    // Cut-out PNG → alpha. Flat JPG/PNG → colour distance from border bg.
+    // JPEG noise used to keep ~every pixel (800k+) and kill WebGL — use a
+    // wider key + border ring, then hard-cap particle count.
     let transparent = 0
     for (let i = 3; i < data.length; i += 4 * 7) if (data[i] < 250) transparent++
     this.alphaMode = transparent > data.length / (4 * 7) / 20
     if (this.opts.imgBg) this.imgBg = this.opts.imgBg
     else if (!this.alphaMode) {
-      // flat background: average the four corners
+      // Border ring (not only 4 corners) — stabler against JPEG block noise.
       let r = 0, g = 0, b = 0, n = 0
-      const pw = Math.max(2, Math.round(gw * 0.012))
-      for (const [cx, cy] of [[0, 0], [gw - pw, 0], [0, gh - pw], [gw - pw, gh - pw]]) {
-        for (let y = cy; y < cy + pw; y++)
-          for (let x = cx; x < cx + pw; x++) {
-            const i = (y * gw + x) * 4
-            r += data[i]; g += data[i + 1]; b += data[i + 2]; n++
-          }
+      const band = Math.max(2, Math.round(Math.min(gw, gh) * 0.04))
+      const accum = (x: number, y: number) => {
+        const i = (y * gw + x) * 4
+        r += data[i]
+        g += data[i + 1]
+        b += data[i + 2]
+        n++
       }
-      this.imgBg = [r / n / 255, g / n / 255, b / n / 255]
+      for (let x = 0; x < gw; x++) {
+        for (let t = 0; t < band; t++) {
+          accum(x, t)
+          accum(x, gh - 1 - t)
+        }
+      }
+      for (let y = band; y < gh - band; y++) {
+        for (let t = 0; t < band; t++) {
+          accum(t, y)
+          accum(gw - 1 - t, y)
+        }
+      }
+      this.imgBg = n > 0 ? [r / n / 255, g / n / 255, b / n / 255] : [0, 0, 0]
     }
+    // Opaque JPG/WebP: wider key so compression grain isn't treated as subject.
+    const keyLo = this.alphaMode ? 0.03 : 0.09
+    const keyHi = this.alphaMode ? 0.07 : 0.18
     const home: number[] = []
     const col: number[] = []
     for (let y = 0; y < gh; y++) {
@@ -752,8 +777,8 @@ class LiquidEngine {
           if (a < 0.5 && Math.random() > a * 2) continue
         } else {
           const dev = Math.hypot(r - this.imgBg[0], g - this.imgBg[1], b - this.imgBg[2])
-          if (dev < 0.03) continue
-          if (dev < 0.07 && Math.random() > (dev - 0.03) / 0.04) continue
+          if (dev < keyLo) continue
+          if (dev < keyHi && Math.random() > (dev - keyLo) / (keyHi - keyLo)) continue
         }
         const jx = (Math.random() - 0.5) * 0.6
         const jy = (Math.random() - 0.5) * 0.6
@@ -761,7 +786,30 @@ class LiquidEngine {
         col.push(data[i], data[i + 1], data[i + 2], 255)
       }
     }
-    const n = home.length / 4
+    let n = home.length / 4
+    // Cap so 5 concurrent sculptures (or dense JPGs) don't exhaust WebGL.
+    const maxParticles = this.lowPower ? 90_000 : 160_000
+    if (n > maxParticles) {
+      const keep = maxParticles / n
+      let w = 0
+      for (let i = 0; i < n; i++) {
+        if (Math.random() > keep) continue
+        const i4 = i * 4
+        const o4 = w * 4
+        home[o4] = home[i4]
+        home[o4 + 1] = home[i4 + 1]
+        home[o4 + 2] = home[i4 + 2]
+        home[o4 + 3] = home[i4 + 3]
+        col[o4] = col[i4]
+        col[o4 + 1] = col[i4 + 1]
+        col[o4 + 2] = col[i4 + 2]
+        col[o4 + 3] = col[i4 + 3]
+        w++
+      }
+      home.length = w * 4
+      col.length = w * 4
+      n = w
+    }
     this.n = n
     this.texH = Math.max(1, Math.ceil(n / TEX_W))
     const total = TEX_W * this.texH
@@ -1217,7 +1265,7 @@ class LiquidEngine {
     let particleVis = introVis
     let imagePresence = pres
     if (this.invertedStabilize()) {
-      if (o.stabilizeOnHold) {
+      if (o.stabilizeOnHold && !o.holdRevealImage) {
         // Hold: particle field only — never reveal the crisp image pass.
         imageVis = 0
         particleVis = introVis
@@ -1225,10 +1273,12 @@ class LiquidEngine {
         restPart = rest
         imagePresence = 0
       } else {
+        // Pointer stabilize, or hold+holdRevealImage (path cards → settle on PNG/JPG).
         rest = orderDraw < 0.08 ? 1 : 0
         restPart = rest
         imageVis = smoothstep(0.62, 0.98, orderDraw)
         particleVis = 1 - smoothstep(0.42, 0.9, orderDraw)
+        if (o.stabilizeOnHold && o.holdRevealImage) imagePresence = 0
       }
     }
     const [br, bg, bb] = o.bg
@@ -1419,6 +1469,11 @@ export interface SculptureHeroProps {
   holdUnifyExponent?: number
   /** stabilizeOnHold: cap unification (1 = full layout). */
   holdOrderCap?: number
+  /**
+   * With stabilizeOnHold: crossfade to the crisp source image when order is high.
+   * Intro crystal leaves this off (particles only).
+   */
+  holdRevealImage?: boolean
   ambient?: boolean
   /** 0 – 2 */
   ambientIntensity?: number
@@ -1436,6 +1491,11 @@ export interface SculptureHeroProps {
   getHoldOrder?: () => number
   /** Full-viewport sculpture only (no editorial landing chrome). */
   layoutMode?: "editorial" | "stage"
+  /**
+   * Stage framing: `contain` keeps margins (intro), `cover` fills the root
+   * like CSS object-fit:cover (path cards).
+   */
+  stageFit?: "contain" | "cover"
   /** Never show the static fallback image (intro hold scenes). */
   hideFallbackImage?: boolean
 
@@ -1522,22 +1582,35 @@ function computeRect(
   return { x: cx - rw / 2, y: cy - rh / 2, w: rw, h: rh }
 }
 
-/** Centred sculpture filling most of the viewport (intro / stage). */
+/** Centred sculpture in the stage viewport (`contain` = intro, `cover` = fill card). */
 function computeRectStage(
   w: number,
   h: number,
   aspect: number,
-  p: { scale: number; mobileScale: number; x: number; y: number }
+  p: { scale: number; mobileScale: number; x: number; y: number },
+  fit: "contain" | "cover" = "contain",
 ) {
   const mob = w < 640
   const scale = mob ? p.mobileScale : p.scale
-  const maxH = h * 0.82 * scale
-  const maxW = w * 0.72 * scale
-  let rh = maxH
-  let rw = rh * aspect
-  if (rw > maxW) {
-    rw = maxW
-    rh = rw / aspect
+  let rw: number
+  let rh: number
+  if (fit === "cover") {
+    // object-fit: cover — fill the stage, crop overflow (parent clips).
+    rh = h * scale
+    rw = rh * aspect
+    if (rw < w * scale) {
+      rw = w * scale
+      rh = rw / aspect
+    }
+  } else {
+    const maxH = h * 0.82 * scale
+    const maxW = w * 0.72 * scale
+    rh = maxH
+    rw = rh * aspect
+    if (rw > maxW) {
+      rw = maxW
+      rh = rw / aspect
+    }
   }
   const cx = w * (0.5 + p.x / 100)
   const cy = h * (0.5 + p.y / 100)
@@ -1746,9 +1819,11 @@ export default function SculptureHero(props: SculptureHeroProps) {
     getHoldOrder,
     holdUnifyExponent = 2.35,
     holdOrderCap = 1,
+    holdRevealImage = false,
     colorGrade = "none",
     colorGradeStrength = 0,
     layoutMode = "editorial",
+    stageFit = "contain",
     hideFallbackImage = false,
     height = "100svh",
     backdropText = "forma",
@@ -1758,6 +1833,8 @@ export default function SculptureHero(props: SculptureHeroProps) {
   } = props
 
   const isStage = layoutMode === "stage"
+  const stageFitRef = React.useRef(stageFit)
+  stageFitRef.current = stageFit
 
   const rootRef = React.useRef<HTMLElement>(null)
   const stageRef = React.useRef<HTMLDivElement>(null)
@@ -1767,6 +1844,8 @@ export default function SculptureHero(props: SculptureHeroProps) {
   const contentRef = React.useRef<HTMLDivElement>(null)
   const backdropRef = React.useRef<HTMLDivElement>(null)
   const engineRef = React.useRef<LiquidEngine | null>(null)
+  /** Last decoded sculpture bitmap — re-applied when the engine remounts (Strict Mode / HMR). */
+  const lastImageRef = React.useRef<HTMLImageElement | null>(null)
   const aspectRef = React.useRef(1983 / 793)
   const [isTouch, setIsTouch] = React.useState(false)
 
@@ -1813,6 +1892,7 @@ export default function SculptureHero(props: SculptureHeroProps) {
     returnSpeed: clamp(returnSpeed, 0, 8),
     holdUnifyExponent: clamp(holdUnifyExponent, 1, 7),
     holdOrderCap: clamp(holdOrderCap, 0, 1),
+    holdRevealImage: Boolean(holdRevealImage),
     colorGradePreset: colorGradePresetId(colorGrade),
     colorGradeStrength: clamp(colorGradeStrength, 0, 1),
     ambient,
@@ -1861,7 +1941,7 @@ export default function SculptureHero(props: SculptureHeroProps) {
     // a portrait sculpture on phones dissolves into the top of the copy
     if (!stageLayout && mob && aspectRef.current < 1.3 && content) band.bottom += content.offsetHeight * 0.3
     const rect = stageLayout
-      ? computeRectStage(w, h, aspectRef.current, layout.current)
+      ? computeRectStage(w, h, aspectRef.current, layout.current, stageFitRef.current)
       : computeRect(w, h, aspectRef.current, band, layout.current)
     const bd = backdropRef.current
     if (bd) {
@@ -1905,6 +1985,21 @@ export default function SculptureHero(props: SculptureHeroProps) {
     try {
       engine = new LiquidEngine(canvas, optsRef.current(mq.matches), fail)
       engineRef.current = engine
+      // Image effect may have finished before this engine existed (Strict Mode).
+      const pending = lastImageRef.current
+      if (pending && pending.complete && pending.naturalWidth > 0) {
+        try {
+          engine.onFirstFrame = () => {
+            if (!root.isConnected) return
+            root.dataset.gl = "on"
+            delete root.dataset.swap
+          }
+          engine.setImage(pending)
+          relayout()
+        } catch {
+          fail()
+        }
+      }
     } catch {
       fail()
     }
@@ -1981,7 +2076,6 @@ export default function SculptureHero(props: SculptureHeroProps) {
   // the canvas dips out while the static image covers the swap
   React.useEffect(() => {
     const root = rootRef.current
-    const engine = engineRef.current
     if (!root) return
     let cancelled = false
     const image = new Image()
@@ -1992,15 +2086,28 @@ export default function SculptureHero(props: SculptureHeroProps) {
     image.onload = () => {
       if (cancelled) return
       aspectRef.current = image.naturalWidth / image.naturalHeight || aspectRef.current
+      lastImageRef.current = image
       relayout()
+      // Always read the live engine — do not capture a stale ref from effect start.
+      const engine = engineRef.current
       if (engine && root.dataset.gl !== "off") {
         try {
-          engine.onFirstFrame = () => {
-            if (cancelled) return
+          // Do not gate on `cancelled`: Strict Mode cleanup races the rAF in
+          // firstFrame() and was leaving canvas opacity at 0 forever (JPGs looked "broken").
+          const reveal = () => {
+            if (!root.isConnected) return
             root.dataset.gl = "on"
             delete root.dataset.swap
           }
+          engine.onFirstFrame = reveal
           engine.setImage(image)
+          // If firstFrame rAF is dropped (Strict Mode), reveal only once the engine is ready.
+          window.setTimeout(() => {
+            if (engineRef.current === engine && (engine as unknown as { ready?: boolean }).ready !== false) {
+              // LiquidEngine.ready is private; rely on firstFrame OR a late reveal after setImage.
+              reveal()
+            }
+          }, 200)
           relayout()
         } catch {
           root.dataset.gl = "off"
@@ -2040,6 +2147,7 @@ export default function SculptureHero(props: SculptureHeroProps) {
     returnSpeed,
     holdUnifyExponent,
     holdOrderCap,
+    holdRevealImage,
     colorGrade,
     colorGradeStrength,
     ambient,
@@ -2056,7 +2164,7 @@ export default function SculptureHero(props: SculptureHeroProps) {
 
   React.useEffect(() => {
     relayout()
-  }, [sculptureScale, mobileSculptureScale, sculptureX, sculptureY, relayout])
+  }, [sculptureScale, mobileSculptureScale, sculptureX, sculptureY, stageFit, relayout])
 
   const vars = {
     "--sh-bg": background,

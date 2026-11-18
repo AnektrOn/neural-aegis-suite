@@ -242,6 +242,17 @@ const FEATURES: DevFeature[] = [
     accent: "from-violet-500/20 to-fuchsia-500/5",
   },
   {
+    path: "/dev/logos",
+    title: "LOGOS (lab)",
+    titleEn: "LOGOS (lab)",
+    blurb: "Doublon Welcome → Agent — 3 cartes verre (nébule Welcome / carte) + choix chemin.",
+    blurbEn: "Welcome → Agent duplicate — 3 glass cards (Welcome nebula per tile) + path picker.",
+    status: "playground",
+    tags: ["logos", "welcome", "voice"],
+    icon: Waves,
+    accent: "from-amber-500/25 to-orange-500/10",
+  },
+  {
     path: "/dev/logos-choices",
     title: "LOGOS — choix UI",
     titleEn: "LOGOS — choice UI",

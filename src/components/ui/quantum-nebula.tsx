@@ -1247,7 +1247,9 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       const targetPupil = drive.pupilScale ?? 1;
       smoothPupilScale += (targetPupil - smoothPupilScale) * 0.15;
 
-      const pupilRadius = useTransparent
+      // pupilScale <= 0 disables the black core (figurative SVG silhouettes).
+      const pupilDisabled = useTransparent || targetPupil <= 0;
+      const pupilRadius = pupilDisabled
         ? 0.001
         : Math.max(
             0.02,
@@ -1258,8 +1260,8 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           );
       particleMaterial.uniforms.u_pupilRadius.value = pupilRadius;
       if (!useTransparent) {
-        pupilMesh.scale.setScalar(pupilRadius);
-        pupilOverlayMesh.scale.setScalar(pupilRadius);
+        pupilMesh.scale.setScalar(pupilDisabled ? 0.001 : pupilRadius);
+        pupilOverlayMesh.scale.setScalar(pupilDisabled ? 0.001 : pupilRadius);
       }
 
       // Keep current cloud when entering mouvement — no Metatron flash from ambient/fallback.
@@ -1521,7 +1523,10 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
       // Only snap toward home when breath/morph drive is active — otherwise repos
       // stays an organic curl cloud (lungBlend=0.18 was freezing the calm look).
       const lungBlend = morphActive
-        ? Math.min(0.62, 0.28 + morph.blend * 0.34 + breatheMotion * 0.12)
+        ? Math.min(
+            morph.blend >= 0.95 ? 0.94 : 0.62,
+            0.28 + morph.blend * 0.34 + breatheMotion * 0.12,
+          )
         : breatheMotion > 0.01
           ? Math.min(0.55, 0.18 + breatheMotion * 0.28)
           : 0;
@@ -1667,12 +1672,14 @@ const GenerativeArtSceneV3 = forwardRef<QuantumNebulaHandle, QuantumNebulaProps>
           const mx = figureTargets[i3];
           const my = figureTargets[i3 + 1];
           const mz = figureTargets[i3 + 2];
-          const pull = driveFigureMix * 0.028;
+          const pull = driveFigureMix * (driveFigureMix >= 0.9 ? 0.085 : 0.028);
           velocities[i3] += (mx - p.x) * pull;
           velocities[i3 + 1] += (my - p.y) * pull;
           velocities[i3 + 2] += (mz - p.z) * pull;
           if (driveFigureMix > 0.45) {
-            const snap = (driveFigureMix - 0.45) * 0.08;
+            // Near-full reveal snaps hard so figurative SVG (e.g. path cards) actually reads.
+            const snap =
+              (driveFigureMix - 0.45) * (driveFigureMix >= 0.9 ? 0.28 : 0.08);
             positionArray[i3] += (mx - positionArray[i3]) * snap;
             positionArray[i3 + 1] += (my - positionArray[i3 + 1]) * snap;
             positionArray[i3 + 2] += (mz - positionArray[i3 + 2]) * snap;

@@ -373,6 +373,8 @@ Deno.serve(async (req) => {
               dynamic_variables: { dynamic_variable_placeholders: {
                 ...before?.conversation_config?.agent?.dynamic_variables?.dynamic_variable_placeholders,
                 first_name: String(p.display_name || "").trim().split(/\s+/)[0] || "toi",
+                session_mode: "open",
+                opening_prompt: "",
               } },
             } },
           }),

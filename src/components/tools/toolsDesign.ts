@@ -48,9 +48,9 @@ export const toolsMetricLabel =
 const toolsChipBase =
   "rounded-lg border px-4 py-2 text-sm transition-colors duration-200";
 
-export const toolsChipInactive = `${toolsChipBase} border-[color:var(--aegis-hairline)] bg-white/60 text-[color:var(--aegis-text-secondary)] hover:border-[color:var(--aegis-bronze)]/40 hover:text-[color:var(--aegis-text)]`;
+export const toolsChipInactive = `${toolsChipBase} border border-[#e4e4e7] bg-[#f3eeec]/80 text-[#5c5c61] hover:border-[#d19d7b]/50 hover:text-[#121212]`;
 
-export const toolsChipActive = `${toolsChipBase} border-[color:var(--aegis-bronze)]/50 bg-[color:var(--aegis-bronze)] text-[color:var(--aegis-text)] shadow-[0_4px_18px_rgba(211,157,123,0.25)]`;
+export const toolsChipActive = `${toolsChipBase} border border-[#c38155] bg-[#d19d7b] text-[#121212] font-medium shadow-[0_4px_18px_rgba(211,157,123,0.25)]`;
 
 export const toolsProse =
   "prose prose-neutral max-w-none prose-headings:font-cormorant-display prose-headings:font-light prose-headings:text-[color:var(--aegis-text)] prose-p:text-[color:var(--aegis-text-secondary)]";
@@ -59,10 +59,18 @@ export const toolsSectionHeading =
   "font-cormorant-display text-2xl font-light text-[color:var(--aegis-text)]";
 
 export const toolsPrimaryButton =
-  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-[color:var(--aegis-bronze)] px-5 text-sm font-medium text-[color:var(--aegis-text)] shadow-[0_4px_18px_rgba(211,157,123,0.3)] transition hover:bg-[color:var(--aegis-bronze-hover)] disabled:opacity-40";
+  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-[#d19d7b] px-5 text-sm font-medium text-[#121212] shadow-[0_4px_18px_rgba(211,157,123,0.3)] transition hover:bg-[#c38155] disabled:opacity-40";
 
 export const toolsSecondaryButton =
   "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-[color:var(--aegis-hairline)] bg-white/60 px-4 font-mono text-xs uppercase tracking-[0.12em] text-[color:var(--aegis-text-secondary)] transition hover:border-[color:var(--aegis-bronze)]/40 hover:text-[color:var(--aegis-text)]";
 
 export const toolsInput =
   "w-full rounded-lg border border-[color:var(--aegis-hairline)] bg-white px-3 py-2.5 text-sm text-[color:var(--aegis-text)] placeholder:text-[color:var(--aegis-text-secondary)] focus:border-[color:var(--aegis-bronze)]/50 focus:outline-none focus:ring-1 focus:ring-[color:var(--aegis-bronze)]/20";
+
+/** Modals opened from public tools (portaled to `body`). */
+export const toolsDialogContent =
+  "aegis-landing aegis-tools-dialog max-h-[90dvh] overflow-y-auto border p-6 sm:max-w-lg";
+
+export const toolsDialogOverlay = "aegis-tools-dialog-overlay";
+
+export const toolsSectionLabel = "text-sm font-medium text-[color:var(--aegis-text)]";

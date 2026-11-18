@@ -8,6 +8,9 @@ import { buildPortraitLenses } from "@/features/persona/lib/buildPortraitLenses"
 import { loadLensCompletion, type LensCompletionMap } from "@/features/persona/lib/loadLensCompletion";
 import { getPersonaContent } from "@/features/persona/components/personaParts";
 import { supabase } from "@/integrations/supabase/client";
+import { listUserReports } from "@/features/user-reports/service";
+import type { UserReport } from "@/features/user-reports/types";
+import { useDeepDiveProfile } from "@/features/archetype-deepdive-v2/hooks/useDeepDiveProfile";
 import type { PortraitLensCard } from "@/features/persona/lib/portraitLensTypes";
 import type { SampleProfile } from "@/features/archetype-deepdive-v2/domain/sampleProfile";
 import type { TaoPersonaSummary } from "@/features/tao-portrait/lib/buildTaoPersonaSummary";
@@ -18,9 +21,15 @@ export function usePersonaPortraitLenses(locale: Locale) {
 
   const [displayName, setDisplayName] = useState<string | undefined>();
   const [lensCompletions, setLensCompletions] = useState<LensCompletionMap>({});
+  const [clinicalReports, setClinicalReports] = useState<UserReport[]>([]);
 
   const { profile, loading: profileLoading, error, reload } = usePersonaProfile(userId, locale);
   const { parts: taoParts, loading: taoLoading } = useTaoPortrait(userId);
+  const deepDiveLoad = useDeepDiveProfile({
+    userId,
+    displayName: displayName ?? null,
+    locale,
+  });
 
   const metaDisplayName = useMemo(() => {
     if (!user) return undefined;
@@ -38,6 +47,20 @@ export function usePersonaPortraitLenses(locale: Locale) {
     void loadLensCompletion(userId).then((map) => {
       if (alive) setLensCompletions(map);
     });
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      setClinicalReports([]);
+      return;
+    }
+    let alive = true;
+    void listUserReports(userId)
+      .then((rows) => alive && setClinicalReports(rows))
+      .catch((e) => console.error("[PersonaPortraits] clinical reports", e));
     return () => {
       alive = false;
     };
@@ -92,8 +115,11 @@ export function usePersonaPortraitLenses(locale: Locale) {
     profile: profile as SampleProfile | null,
     displayName,
     taoSummary,
+    taoParts,
     portraitLenses,
-    portraitsLoading: taoLoading,
+    portraitsLoading: taoLoading || deepDiveLoad.loading,
+    v4Analysis: deepDiveLoad.v4Analysis,
+    clinicalReports,
     error,
     reload,
     showLoading,

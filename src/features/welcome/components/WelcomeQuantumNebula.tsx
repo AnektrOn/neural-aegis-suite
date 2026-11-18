@@ -1,6 +1,13 @@
-import QuantumNebula from "@/components/ui/quantum-nebula";
+import QuantumNebula, {
+  type QuantumNebulaVisualTuning,
+} from "@/components/ui/quantum-nebula";
 
 /** Welcome — nuage repos plus grand que le Gardien (plein viewport). */
+export const WELCOME_NEBULA_VISUAL_TUNING: Partial<QuantumNebulaVisualTuning> = {
+  sphereRadius: 1.1,
+  cameraDistance: 3.6,
+};
+
 export function WelcomeQuantumNebula() {
   return (
     <QuantumNebula
@@ -9,10 +16,7 @@ export function WelcomeQuantumNebula() {
       state="repos"
       audioSrc={null}
       autoPlayAudio={false}
-      visualTuning={{
-        sphereRadius: 1.1,
-        cameraDistance: 3.6,
-      }}
+      visualTuning={WELCOME_NEBULA_VISUAL_TUNING}
       className="z-0"
     />
   );

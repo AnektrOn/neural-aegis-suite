@@ -1565,8 +1565,12 @@ export const translations = {
     en: "LOGOS requires AEGIS + LOGOS Solo",
   },
   "voiceAgent.noSubscriptionBody": {
-    fr: "L'agent vocal LOGOS est inclus uniquement dans l'abonnement AEGIS + LOGOS Solo (110 € HT / mois).",
-    en: "The LOGOS voice agent is only included with the AEGIS + LOGOS Solo plan (€110 excl. tax / month).",
+    fr: "L'agent vocal LOGOS est inclus dans AEGIS + LOGOS Solo (110 € HT / mois) : le double d'assignations toolbox et de cartes Pulse actives par rapport à AEGIS Solo.",
+    en: "The LOGOS voice agent is included with AEGIS + LOGOS Solo (€110 excl. tax / month): twice the weekly toolbox assignments and active Pulse cards vs AEGIS Solo.",
+  },
+  "voiceAgent.upgradeLogosCta": {
+    fr: "Passer à AEGIS + LOGOS Solo",
+    en: "Upgrade to AEGIS + LOGOS Solo",
   },
   "voiceAgent.noSubscriptionCta": { fr: "Voir les tarifs", en: "View pricing" },
   "voiceAgent.noAccessCta": { fr: "Retour à l'accueil", en: "Back to home" },
@@ -2048,6 +2052,12 @@ export const translations = {
   },
   "settings.appearance": { fr: "Apparence", en: "Appearance" },
   "settings.theme": { fr: "Thème clair / sombre", en: "Light / dark theme" },
+  "settings.themeLight": { fr: "Clair", en: "Light" },
+  "settings.themeDark": { fr: "Sombre", en: "Dark" },
+  "settings.themeHint": {
+    fr: "Albâtre / craie en clair — obsidienne & or solaire en sombre (shell membre).",
+    en: "Warm alabaster in light — obsidian & solar gold in dark (member shell).",
+  },
   "settings.language": { fr: "Langue", en: "Language" },
   "settings.languageSwitchToEn": { fr: "Passer en anglais", en: "Switch to English" },
   "settings.languageSwitchToFr": { fr: "Passer en français", en: "Switch to French" },
@@ -4739,12 +4749,12 @@ excerpt_fr: email brief
     en: "Drag with finger or mouse, tap a cover, or use the arrows",
   },
   "persona.glimpse.portraitsLink": {
-    fr: "Portraits analytiques",
-    en: "Analytical portraits",
+    fr: "Hub Portrait",
+    en: "Portrait hub",
   },
   "persona.glimpse.portraitsDetail": {
-    fr: "Myss, Tao, Jung, Blavatsky — cartes à débloquer par Deep Dive",
-    en: "Myss, Tao, Jung, Blavatsky — unlockable lens cards via Deep Dive",
+    fr: "Myss, Hall, Wen, Jung, Blavatsky — une carte par auteur",
+    en: "Myss, Hall, Wen, Jung, Blavatsky — one card per author",
   },
   "persona.portraits.selectorLabel": {
     fr: "Sélectionner un portrait analytique",
@@ -4757,6 +4767,14 @@ excerpt_fr: email brief
   "persona.lens.myss.framework": { fr: "Caroline Myss", en: "Caroline Myss" },
   "persona.lens.myss.system": { fr: "Archétypes", en: "Archetypes" },
   "persona.lens.myss.cta": { fr: "Ouvrir le Deep Dive Myss", en: "Open Myss Deep Dive" },
+  "persona.lens.ctaClinical": {
+    fr: "Ouvrir le rapport clinique",
+    en: "Open clinical report",
+  },
+  "persona.lens.ctaClinicalMissing": {
+    fr: "Aucun rapport clinique publié pour ce prisme pour l’instant.",
+    en: "No clinical report published for this lens yet.",
+  },
   "persona.lens.myss.ctaStart": {
     fr: "Commencer le questionnaire Myss",
     en: "Start the Myss questionnaire",
@@ -4911,6 +4929,18 @@ excerpt_fr: email brief
     en: "Persona = your glimpse. Deep Dive holds the detailed report.",
   },
   "persona.glimpse.stats": { fr: "En chiffres", en: "By the numbers" },
+  "persona.glimpse.statsMyssLens": {
+    fr: "Selon Caroline Myss · archétypes",
+    en: "Per Caroline Myss · archetypes",
+  },
+  "userReports.portraitHubCta": {
+    fr: "Ouvrir le Hub Portrait",
+    en: "Open portrait hub",
+  },
+  "userReports.authorLens": {
+    fr: "Prisme · {author}",
+    en: "Lens · {author}",
+  },
   "persona.glimpse.statIntensity": { fr: "Intensité", en: "Intensity" },
   "persona.glimpse.statActive": { fr: "Très actifs", en: "Very active" },
   "persona.glimpse.statActiveSub": { fr: "archétypes sur 12", en: "archetypes of 12" },

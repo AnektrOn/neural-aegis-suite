@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { UserReport, UserReportV3PackFiles, UserReportMetadata } from "./types";
 import { parseFrontmatter } from "./parseReportMd";
+import { normalizeUserReport } from "./normalizeUserReport";
 
 export function slugify(input?: string | null): string {
   return String(input || "")
@@ -19,7 +20,7 @@ export async function listUserReports(userId: string): Promise<UserReport[]> {
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as UserReport[];
+  return ((data ?? []) as unknown as UserReport[]).map(normalizeUserReport);
 }
 
 export interface ImportUserReportInput {

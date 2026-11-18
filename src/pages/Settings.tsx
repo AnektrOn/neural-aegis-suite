@@ -16,6 +16,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import EmployerDataConsentCard from "@/components/EmployerDataConsentCard";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { useAuth } from "@/contexts/AuthContext";
@@ -244,6 +245,13 @@ export default function Settings() {
           <h2 className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {t("settings.appearance")}
           </h2>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="text-xs text-muted-foreground">{t("settings.theme")}</span>
+            <p className="mt-0.5 text-[11px] text-muted-foreground/80">{t("settings.themeHint")}</p>
+          </div>
+          <ThemeToggle />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{t("settings.language")}</span>

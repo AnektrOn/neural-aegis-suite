@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { NeuralCard } from "@/components/ui/neural-card";
 import { Slider } from "@/components/ui/slider";
 import {
   CEO_ARCHETYPE_LABELS,
@@ -17,7 +16,15 @@ import {
   saveCeoProfile,
 } from "@/lib/tools/ceoProfile";
 import { ToolChip, ToolChipStack } from "@/components/tools/ToolField";
-import { toolsKicker, toolsSlider, toolsTitle, toolsPrimaryButton } from "./toolsDesign";
+import {
+  toolsDialogContent,
+  toolsDialogOverlay,
+  toolsKicker,
+  toolsPrimaryButton,
+  toolsSectionLabel,
+  toolsSlider,
+  toolsTitle,
+} from "./toolsDesign";
 
 const ARCHETYPES = Object.entries(CEO_ARCHETYPE_LABELS) as [CeoArchetype, string][];
 const STAGES = Object.entries(CEO_STAGE_LABELS) as [CeoStage, string][];
@@ -59,20 +66,21 @@ export function CeoProfileDialog({
     <Dialog open={open} onOpenChange={dismissible ? onOpenChange : undefined}>
       <DialogContent
         showCloseButton={dismissible}
-        className="max-h-[90dvh] overflow-y-auto border-border/40 bg-card/95 p-0 sm:max-w-lg"
+        overlayClassName={toolsDialogOverlay}
+        className={toolsDialogContent}
       >
-        <NeuralCard variant="elevated" glow="warm" className="glass-card border-0 p-6">
-          <DialogHeader>
-            <p className={toolsKicker}>Profil décisionnel</p>
-            <DialogTitle className={`${toolsTitle} text-left text-2xl`}>Calibrer vos outils</DialogTitle>
-            <DialogDescription className="text-left text-muted-foreground">
-              Deux minutes pour adapter seuils, benchmarks et diagnostics à votre réalité de dirigeant.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogHeader>
+          <p className={toolsKicker}>Profil décisionnel</p>
+          <DialogTitle className={`${toolsTitle} text-left text-2xl font-light`}>Calibrer vos outils</DialogTitle>
+          <DialogDescription className="text-left text-sm text-[#5c5c61]">
+            Deux minutes pour adapter seuils, benchmarks et diagnostics à votre réalité de dirigeant.
+          </DialogDescription>
+        </DialogHeader>
 
-          <div className="mt-4 space-y-8">
-            <section>
-              <h3 className="text-sm font-semibold text-foreground">Archétype de décideur</h3>
+        <div className="mt-4 space-y-8">
+          <section>
+            <h3 className={toolsSectionLabel}>Archétype de décideur</h3>
+            <div className="mt-3">
               <ToolChipStack>
                 {ARCHETYPES.map(([id, label]) => (
                   <ToolChip key={id} fullWidth active={archetype === id} onClick={() => setArchetype(id)}>
@@ -80,10 +88,12 @@ export function CeoProfileDialog({
                   </ToolChip>
                 ))}
               </ToolChipStack>
-            </section>
+            </div>
+          </section>
 
-            <section>
-              <h3 className="text-sm font-semibold text-foreground">Stade de l&apos;entreprise</h3>
+          <section>
+            <h3 className={toolsSectionLabel}>Stade de l&apos;entreprise</h3>
+            <div className="mt-3">
               <ToolChipStack>
                 {STAGES.map(([id, label]) => (
                   <ToolChip key={id} fullWidth active={stage === id} onClick={() => setStage(id)}>
@@ -91,51 +101,49 @@ export function CeoProfileDialog({
                   </ToolChip>
                 ))}
               </ToolChipStack>
-            </section>
+            </div>
+          </section>
 
-            <section className="space-y-4">
-              <p className="text-sm font-semibold text-foreground">Taille d&apos;équipe : {teamSize}</p>
-              <Slider
-                min={1}
-                max={250}
-                step={1}
-                value={[teamSize]}
-                onValueChange={([v]) => setTeamSize(v ?? teamSize)}
-                className={toolsSlider}
-              />
-            </section>
+          <section className="space-y-4">
+            <p className={toolsSectionLabel}>Taille d&apos;équipe : {teamSize}</p>
+            <Slider
+              min={1}
+              max={250}
+              step={1}
+              value={[teamSize]}
+              onValueChange={([v]) => setTeamSize(v ?? teamSize)}
+              className={toolsSlider}
+            />
+          </section>
 
-            <section className="space-y-4">
-              <p className="text-sm font-semibold text-foreground">
-                Arbitrages structurants / semaine : {decisionsPerWeek}
-              </p>
-              <Slider
-                min={5}
-                max={80}
-                step={1}
-                value={[decisionsPerWeek]}
-                onValueChange={([v]) => setDecisionsPerWeek(v ?? decisionsPerWeek)}
-                className={toolsSlider}
-              />
-            </section>
+          <section className="space-y-4">
+            <p className={toolsSectionLabel}>Arbitrages structurants / semaine : {decisionsPerWeek}</p>
+            <Slider
+              min={5}
+              max={80}
+              step={1}
+              value={[decisionsPerWeek]}
+              onValueChange={([v]) => setDecisionsPerWeek(v ?? decisionsPerWeek)}
+              className={toolsSlider}
+            />
+          </section>
 
-            <section className="space-y-4">
-              <p className="text-sm font-semibold text-foreground">Sommeil moyen (h/nuit) : {sleepHours}</p>
-              <Slider
-                min={4}
-                max={9}
-                step={0.5}
-                value={[sleepHours]}
-                onValueChange={([v]) => setSleepHours(v ?? sleepHours)}
-                className={toolsSlider}
-              />
-            </section>
+          <section className="space-y-4">
+            <p className={toolsSectionLabel}>Sommeil moyen (h/nuit) : {sleepHours}</p>
+            <Slider
+              min={4}
+              max={9}
+              step={0.5}
+              value={[sleepHours]}
+              onValueChange={([v]) => setSleepHours(v ?? sleepHours)}
+              className={toolsSlider}
+            />
+          </section>
 
-            <button type="button" onClick={handleSave} className={`${toolsPrimaryButton} w-full`}>
-              Enregistrer le profil
-            </button>
-          </div>
-        </NeuralCard>
+          <button type="button" onClick={handleSave} className={`${toolsPrimaryButton} w-full`}>
+            Enregistrer le profil
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
   );

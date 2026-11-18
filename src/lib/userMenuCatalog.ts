@@ -25,6 +25,7 @@ import {
   UserRound,
 } from "@/lib/icons/memberNav";
 import type { TranslationKey } from "@/i18n/translations";
+import { isMemberFeatureVisible } from "@/lib/memberFeatureFlags";
 
 export type AppHubId = "capture" | "portrait" | "pratiques" | "messages";
 
@@ -251,6 +252,7 @@ const PANELS: Record<MenuPanelId, MenuPanelDef> = {
     overflowEligible: true,
     hideable: true,
     commandPaletteEligible: true,
+    navExcluded: !isMemberFeatureVisible("bibliotheque"),
   },
   dien_chan: {
     id: "dien_chan",
@@ -262,6 +264,7 @@ const PANELS: Record<MenuPanelId, MenuPanelDef> = {
     overflowEligible: true,
     hideable: true,
     commandPaletteEligible: true,
+    navExcluded: !isMemberFeatureVisible("dien_chan"),
   },
   messages_hub: {
     id: "messages_hub",

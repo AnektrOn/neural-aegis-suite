@@ -172,4 +172,21 @@ Le système typographique combine quatre voix complémentaires :
 | **/persona** | Full-Bleed | Portrait impérial, lueur ambrée, verres sombres aux reflets d'ivoire. |
 | **/people** | Scaffold `wide` | Réseau relationnel bento, barre d'action surélevée avec accents or/émeraude. |
 | **/analytics** | Scaffold `wide` | Graphiques unifiés : Or solaire, Émeraude bio, Saphir cognitif, Basalte. |
-| **/settings** | Scaffold `narrow` | Sécurité et préférences en tuiles bento avec toggles or solaire. |
+| **/settings** | Scaffold `narrow` | Sécurité et préférences en tuiles bento ; **Apparence** : bascule Clair/Sombre (`ThemeToggle`) + langue. |
+
+---
+
+## 6. Implémentation thème (membre connecté)
+
+| Élément | Détail |
+|---------|--------|
+| **Stockage** | `localStorage.theme` — valeurs `light` \| `dark` |
+| **Défaut** | `dark` (Palette Obsidienne) |
+| **Application** | Classes `html.light` / `html.dark` ; `applyTheme()` au boot (`main.tsx`, `index.html`) |
+| **Réglage UI** | `src/pages/Settings.tsx` → tuile Apparence → `src/components/ThemeToggle.tsx` |
+| **API React** | `useTheme()`, `setTheme()`, `getStoredThemeIsDark()` dans `src/lib/theme.ts` |
+| **Meta PWA** | `theme-color` : `#f5f2eb` (light) / `#0b0b0a` (dark) |
+
+Les écrans membres consomment les tokens Tailwind / CSS (`--background`, `--foreground`, `aegis-dock-tile`, etc.) déjà déclinés sous `html.light` dans `src/index.css`. Les pages marketing publiques utilisent la coquille **`.aegis-landing`** (palette warm `#f3eeec`) et ne dépendent pas du toggle membre pour leur fond.
+
+**Stitch / agents :** continuer à maquetter le dark en référence ; valider chaque écran clé en light via le toggle Paramètres avant release.

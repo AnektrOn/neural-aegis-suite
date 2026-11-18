@@ -1,5 +1,6 @@
 import type { AppIcon } from "@/lib/icons/appIcon";
 import type { TranslationKey } from "@/i18n/translations";
+import { isMemberFeatureVisible } from "@/lib/memberFeatureFlags";
 import {
   DEFAULT_DOCK_PANEL_IDS,
   DEFAULT_OVERFLOW_PANEL_IDS,
@@ -12,7 +13,7 @@ import {
 /** @deprecated Use MenuPanelId from userMenuCatalog. Kept for gradual migration. */
 export type MobileRadialMenuId = MenuPanelId;
 
-export const MOBILE_RADIAL_CATALOG_ORDER = [
+const MOBILE_RADIAL_CATALOG_ORDER_ALL = [
   "home",
   "capture_hub",
   "mood",
@@ -37,6 +38,12 @@ export const MOBILE_RADIAL_CATALOG_ORDER = [
   "settings",
   "profile",
 ] as const satisfies readonly MenuPanelId[];
+
+export const MOBILE_RADIAL_CATALOG_ORDER = MOBILE_RADIAL_CATALOG_ORDER_ALL.filter((id) => {
+  if (id === "bibliotheque") return isMemberFeatureVisible("bibliotheque");
+  if (id === "dien_chan") return isMemberFeatureVisible("dien_chan");
+  return true;
+});
 
 export const DEFAULT_MOBILE_RADIAL_MENU_IDS: MenuPanelId[] = [
   ...DEFAULT_DOCK_PANEL_IDS,

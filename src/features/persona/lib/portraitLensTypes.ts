@@ -10,6 +10,8 @@ export interface PortraitLensAction {
   labelKey: TranslationKey;
   href: string;
   variant?: "primary" | "outline";
+  /** Primary CTA opens the published clinical dossier for this author prism. */
+  intent?: "clinical" | "navigate";
 }
 
 export interface PortraitLensCard {

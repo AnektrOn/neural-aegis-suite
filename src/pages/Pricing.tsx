@@ -7,19 +7,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
-import { NeuralCard } from "@/components/ui/neural-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 import PaymentTestModeBanner from "@/components/PaymentTestModeBanner";
 import PublicFooter from "@/components/public/PublicFooter";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import AppSumoRedemption from '@/components/AppSumoRedemption';
+import AppSumoRedemption from "@/components/AppSumoRedemption";
+import { PublicMarketingLanguageToggle } from "@/components/public/PublicMarketingLanguageToggle";
+import { LandingCard } from "@/pages/aegis-landing/components/LandingCard";
 import { supabase } from "@/integrations/supabase/client";
 import { LIEN_PAIEMENT_LECTURE } from "@/pages/aegis-landing/landingCtaHrefs";
 
+import {
+  SOLO_ACTIVE_PULSE_CARDS,
+  SOLO_LOGOS_ACTIVE_PULSE_CARDS,
+  SOLO_LOGOS_WEEKLY_TOOLBOX_ITEMS,
+  SOLO_WEEKLY_TOOLBOX_ITEMS,
+} from "@/lib/soloPlanQuotas";
 import { toast } from "sonner";
 import "@/pages/aegis-landing/aegisLanding.css";
+import "@/pages/pricing-page.css";
 
 type Billing = "monthly" | "yearly";
 
@@ -28,6 +35,15 @@ const SHOW_PRICING_BILLING_TOGGLE = false;
 const SHOW_MATRIX_PLAN = false;
 const SHOW_ULTRA_PLAN = false;
 const SHOW_LECTURE_PLAN = false;
+
+const planTitle = "font-cormorant-display text-xl text-[color:var(--aegis-text)]";
+const planPrice = "font-cormorant-display text-3xl font-light text-[color:var(--aegis-text)]";
+const planMuted = "text-[color:var(--aegis-text-secondary)]";
+const pricingKicker = "font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--aegis-bronze-ink)]";
+const pricingBtnPrimary =
+  "pricing-cta-primary inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg disabled:opacity-40";
+const pricingBtnSecondary =
+  "pricing-cta-secondary inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg";
 
 const PLAN_SOLO = "aegis_solo_monthly";
 const PLAN_SOLO_LOGOS = "aegis_solo_logos_monthly";
@@ -62,14 +78,14 @@ export default function Pricing() {
     () => ({
       title: isFR ? "Choisissez votre voie" : "Choose your path",
       subtitle: isFR
-        ? "Exocortex décisionnel pour dirigeants solo — plateforme web, registre d'arbitrages et, en option, l'agent vocal LOGOS."
-        : "Decision exocortex for solo leaders — web platform, decision registry, and optional LOGOS voice agent.",
+        ? "Plateforme de pilotage pour dirigeants solo — dashboard, People Board 3D, registre d'arbitrages et, en option, l'agent vocal LOGOS."
+        : "Leadership platform for solo decision-makers — dashboard, 3D People Board, decision registry, and optional LOGOS voice agent.",
       taxNote: isFR
         ? "Prix HT. TVA calculée au checkout selon votre pays (Stripe Tax)."
         : "Prices exclude tax. VAT is calculated at checkout (Stripe Tax).",
       solo: {
         name: "AEGIS Solo",
-        note: isFR ? "Exocortex décisionnel complet" : "Full decision exocortex",
+        note: isFR ? "Plateforme décisionnelle complète" : "Full decision platform",
         price: "35 €",
         cta: isFR ? "Activer AEGIS Solo" : "Activate AEGIS Solo",
         features: isFR
@@ -78,7 +94,8 @@ export default function Pricing() {
               "Dashboard de pilotage",
               "People Board 3D",
               "Registre des décisions",
-              "10 toolbox items / semaine",
+              `${SOLO_WEEKLY_TOOLBOX_ITEMS} toolbox items / semaine`,
+              `${SOLO_ACTIVE_PULSE_CARDS} cartes Pulse actives`,
               "50 interactions RAG / semaine (min.)",
             ]
           : [
@@ -86,13 +103,14 @@ export default function Pricing() {
               "Executive dashboard",
               "3D People Board",
               "Decision registry",
-              "10 toolbox items / week",
+              `${SOLO_WEEKLY_TOOLBOX_ITEMS} toolbox items / week`,
+              `${SOLO_ACTIVE_PULSE_CARDS} active Pulse cards`,
               "50 RAG interactions / week (min.)",
             ],
       },
       soloLogos: {
         name: "AEGIS + LOGOS Solo",
-        note: isFR ? "Exocortex + sparring vocal 24/7" : "Exocortex + 24/7 voice sparring",
+        note: isFR ? "Plateforme + sparring vocal 24/7" : "Platform + 24/7 voice sparring",
         price: "110 €",
         cta: isFR ? "Activer Solo + LOGOS" : "Activate Solo + LOGOS",
         features: isFR
@@ -101,7 +119,8 @@ export default function Pricing() {
               "Agent vocal IA LOGOS intégré",
               "Débriefing oral & préparation vocale",
               "Connexion Vault & historique décisionnel",
-              "10 toolbox items / semaine",
+              `${SOLO_LOGOS_WEEKLY_TOOLBOX_ITEMS} toolbox items / semaine (×2 Solo)`,
+              `${SOLO_LOGOS_ACTIVE_PULSE_CARDS} cartes Pulse actives (×2 Solo)`,
               "50 interactions RAG / semaine (min.)",
             ]
           : [
@@ -109,7 +128,8 @@ export default function Pricing() {
               "Integrated LOGOS voice agent",
               "Oral debrief & voice prep for negotiations",
               "Vault & decision history connected",
-              "10 toolbox items / week",
+              `${SOLO_LOGOS_WEEKLY_TOOLBOX_ITEMS} toolbox items / week (2× Solo)`,
+              `${SOLO_LOGOS_ACTIVE_PULSE_CARDS} active Pulse cards (2× Solo)`,
               "50 RAG interactions / week (min.)",
             ],
       },
@@ -129,7 +149,8 @@ export default function Pricing() {
               "Rapport d'onboarding inclus",
               "Mises à jour majeures incluses",
               "Équivalent ~10 mois d'abonnement",
-              "10 toolbox items / semaine",
+              `${SOLO_WEEKLY_TOOLBOX_ITEMS} toolbox items / semaine`,
+              `${SOLO_ACTIVE_PULSE_CARDS} cartes Pulse actives`,
               "50 interactions RAG / semaine (min.)",
             ]
           : [
@@ -137,7 +158,8 @@ export default function Pricing() {
               "Onboarding report included",
               "Major updates included",
               "Roughly 10 months of subscription value",
-              "10 toolbox items / week",
+              `${SOLO_WEEKLY_TOOLBOX_ITEMS} toolbox items / week`,
+              `${SOLO_ACTIVE_PULSE_CARDS} active Pulse cards`,
               "50 RAG interactions / week (min.)",
             ],
       },
@@ -226,7 +248,20 @@ export default function Pricing() {
           { key: "dashboard", free: "none", solo: "full", soloLogos: "full", founders: "full" },
           { key: "peopleBoard", free: "none", solo: "full", soloLogos: "full", founders: "full" },
           { key: "decisions", free: "none", solo: "full", soloLogos: "full", founders: "full" },
-          { key: "toolboxQuota", free: "none", solo: "full", soloLogos: "full", founders: "full" },
+          {
+            key: "toolboxQuota",
+            free: "none",
+            solo: `n${SOLO_WEEKLY_TOOLBOX_ITEMS}`,
+            soloLogos: `n${SOLO_LOGOS_WEEKLY_TOOLBOX_ITEMS}`,
+            founders: `n${SOLO_WEEKLY_TOOLBOX_ITEMS}`,
+          },
+          {
+            key: "pulseQuota",
+            free: "none",
+            solo: `n${SOLO_ACTIVE_PULSE_CARDS}`,
+            soloLogos: `n${SOLO_LOGOS_ACTIVE_PULSE_CARDS}`,
+            founders: `n${SOLO_ACTIVE_PULSE_CARDS}`,
+          },
           { key: "ragQuota", free: "none", solo: "full", soloLogos: "full", founders: "full" },
           { key: "logos", free: "none", solo: "none", soloLogos: "full", founders: "none" },
           { key: "lifetime", free: "none", solo: "none", soloLogos: "none", founders: "full" },
@@ -287,7 +322,7 @@ export default function Pricing() {
 
 
   return (
-    <div className="aegis-landing min-h-screen bg-[color:var(--aegis-page)] text-[color:var(--aegis-text)]">
+    <div className="aegis-landing aegis-pricing min-h-screen">
       <Helmet>
         <title>{isFR ? "Forfaits AEGIS — Tarifs" : "AEGIS Plans — Pricing"}</title>
         <meta
@@ -303,24 +338,28 @@ export default function Pricing() {
 
       <PaymentTestModeBanner />
 
-      <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
-        <LanguageSwitcher />
-      </div>
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 md:px-6">
+        <Link
+          to="/"
+          className="font-mono text-xs uppercase tracking-[0.12em] text-[color:var(--aegis-bronze-ink)] hover:text-[color:var(--aegis-text)]"
+        >
+          AEGIS
+        </Link>
+        <PublicMarketingLanguageToggle />
+      </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-16">
+      <div className="mx-auto max-w-6xl px-4 pb-16 pt-2 md:px-6">
         <motion.header
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className="text-center space-y-3 mb-10"
         >
-          <Badge variant="outline" className="border-primary/30 text-primary uppercase tracking-widest text-[10px]">
-            AEGIS
-          </Badge>
-          <h1 className="font-cormorant-display text-3xl font-light sm:text-4xl tracking-tight text-[color:var(--aegis-text)]">
+          <p className={pricingKicker}>AEGIS</p>
+          <h1 className="font-cormorant-display text-3xl font-light tracking-tight sm:text-4xl">
             {copy.title}
           </h1>
-          <p className="text-sm text-muted-foreground">{copy.subtitle}</p>
+          <p className={`text-sm ${planMuted}`}>{copy.subtitle}</p>
           {subscription?.status === "past_due" && (
             <p className="text-sm text-destructive">
               {isFR
@@ -329,15 +368,15 @@ export default function Pricing() {
             </p>
           )}
           {subscription && (
-            <Button
-              variant="outline"
-              className="min-h-[44px]"
+            <button
+              type="button"
+              className={`${pricingBtnSecondary} w-auto px-5`}
               onClick={openPortal}
               disabled={pending === "portal"}
             >
-              {pending === "portal" ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : null}
+              {pending === "portal" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
               {isFR ? "Gérer mon abonnement" : "Manage my subscription"}
-            </Button>
+            </button>
           )}
         </motion.header>
         <AppSumoRedemption />
@@ -363,181 +402,178 @@ export default function Pricing() {
 
         <div className="grid gap-6 items-start md:grid-cols-2 lg:grid-cols-4">
           {/* Free */}
-          <NeuralCard variant="elevated" className="p-6 space-y-5 lg:col-span-1">
+          <LandingCard className="flex flex-col space-y-5 lg:col-span-1">
             <div className="space-y-1">
-              <h2 className="font-serif text-xl">{copy.free.name}</h2>
-              <p className="text-xs text-muted-foreground">{copy.free.note}</p>
+              <h2 className={planTitle}>{copy.free.name}</h2>
+              <p className={`text-xs ${planMuted}`}>{copy.free.note}</p>
             </div>
-            <p className="font-cormorant-display text-3xl font-light">{copy.free.price}</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <p className={planPrice}>{copy.free.price}</p>
+            <ul className={`space-y-2 text-sm ${planMuted}`}>
               {copy.free.features.map((f) => (
                 <li key={f} className="flex gap-2">
-                  <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                   <span>{f}</span>
                 </li>
               ))}
             </ul>
-            <Button asChild variant="outline" className="w-full min-h-[44px]">
-              <Link to="/quiz">{copy.free.cta}</Link>
-            </Button>
-          </NeuralCard>
+            <Link to="/quiz" className={pricingBtnSecondary}>
+              {copy.free.cta}
+            </Link>
+          </LandingCard>
 
           {SHOW_LECTURE_PLAN ? (
-            <NeuralCard
-              variant="elevated"
-              glow="blue"
-              className="p-6 space-y-5 border-primary/40 ring-1 ring-primary/20 order-first md:order-none md:scale-[1.02]"
-            >
+            <LandingCard className="order-first flex flex-col space-y-5 md:order-none md:scale-[1.02] ring-1 ring-[color:var(--aegis-bronze)]/35">
               <div className="space-y-1">
-                <h2 className="font-serif text-xl flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" aria-hidden />
+                <h2 className={`${planTitle} flex items-center gap-2`}>
+                  <Sparkles className="h-4 w-4 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                   {copy.lecture.name}
                 </h2>
-                <p className="text-xs text-muted-foreground">{copy.lecture.note}</p>
+                <p className={`text-xs ${planMuted}`}>{copy.lecture.note}</p>
               </div>
-              <p className="font-cormorant-display text-3xl font-light">{copy.lecture.price}</p>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <p className={planPrice}>{copy.lecture.price}</p>
+              <ul className={`space-y-2 text-sm ${planMuted}`}>
                 {copy.lecture.features.map((f) => (
                   <li key={f} className="flex gap-2">
-                    <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
-              <Button asChild className="w-full min-h-[44px]">
-                <a href={LIEN_PAIEMENT_LECTURE}>{copy.lecture.cta}</a>
-              </Button>
-            </NeuralCard>
+              <a href={LIEN_PAIEMENT_LECTURE} className={pricingBtnPrimary}>
+                {copy.lecture.cta}
+              </a>
+            </LandingCard>
           ) : null}
 
-          <NeuralCard variant="elevated" glow="blue" className="p-6 space-y-5 border-primary/30">
+          <LandingCard className="flex flex-col space-y-5">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
-                <h2 className="font-serif text-xl flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" aria-hidden />
+                <h2 className={`${planTitle} flex items-center gap-2`}>
+                  <Sparkles className="h-4 w-4 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                   {copy.solo.name}
                 </h2>
-                <p className="text-xs text-muted-foreground">{copy.solo.note}</p>
+                <p className={`text-xs ${planMuted}`}>{copy.solo.note}</p>
               </div>
-              {activeProductId === "aegis_solo" && <Badge variant="secondary">{copy.current}</Badge>}
+              {activeProductId === "aegis_solo" && <span className="pricing-badge">{copy.current}</span>}
             </div>
-            <p className="font-cormorant-display text-3xl font-light">
+            <p className={planPrice}>
               {copy.solo.price}
-              <span className="text-sm text-muted-foreground font-sans">
+              <span className={`text-sm font-sans ${planMuted}`}>
                 {isFR ? " HT / mois" : " excl. tax / mo"}
               </span>
             </p>
-            <p className="text-[11px] text-muted-foreground">{copy.taxNote}</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <p className={`text-[11px] ${planMuted}`}>{copy.taxNote}</p>
+            <ul className={`space-y-2 text-sm ${planMuted}`}>
               {copy.solo.features.map((f) => (
                 <li key={f} className="flex gap-2">
-                  <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                   <span>{f}</span>
                 </li>
               ))}
             </ul>
-            <Button
-              className="w-full min-h-[44px]"
+            <button
+              type="button"
+              className={pricingBtnPrimary}
               disabled={busy(PLAN_SOLO)}
               onClick={() => handleCheckout(PLAN_SOLO)}
             >
-              {busy(PLAN_SOLO) && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
+              {busy(PLAN_SOLO) && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />}
               {copy.solo.cta}
-            </Button>
-          </NeuralCard>
+            </button>
+          </LandingCard>
 
-          <NeuralCard variant="elevated" className="p-6 space-y-5 border-primary/40 ring-1 ring-primary/20">
+          <LandingCard className="flex flex-col space-y-5 ring-1 ring-[color:var(--aegis-bronze)]/35">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
-                <h2 className="font-serif text-xl flex items-center gap-2">
-                  <Mic className="w-4 h-4 text-primary" aria-hidden />
+                <h2 className={`${planTitle} flex items-center gap-2`}>
+                  <Mic className="h-4 w-4 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                   {copy.soloLogos.name}
                 </h2>
-                <p className="text-xs text-muted-foreground">{copy.soloLogos.note}</p>
+                <p className={`text-xs ${planMuted}`}>{copy.soloLogos.note}</p>
               </div>
-              {activeProductId === "aegis_solo_logos" && <Badge variant="secondary">{copy.current}</Badge>}
+              {activeProductId === "aegis_solo_logos" && <span className="pricing-badge">{copy.current}</span>}
             </div>
-            <p className="font-cormorant-display text-3xl font-light">
+            <p className={planPrice}>
               {copy.soloLogos.price}
-              <span className="text-sm text-muted-foreground font-sans">
+              <span className={`text-sm font-sans ${planMuted}`}>
                 {isFR ? " HT / mois" : " excl. tax / mo"}
               </span>
             </p>
-            <p className="text-[11px] text-muted-foreground">{copy.taxNote}</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <p className={`text-[11px] ${planMuted}`}>{copy.taxNote}</p>
+            <ul className={`space-y-2 text-sm ${planMuted}`}>
               {copy.soloLogos.features.map((f) => (
                 <li key={f} className="flex gap-2">
-                  <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                   <span>{f}</span>
                 </li>
               ))}
             </ul>
-            <Button
-              className="w-full min-h-[44px]"
+            <button
+              type="button"
+              className={pricingBtnPrimary}
               disabled={busy(PLAN_SOLO_LOGOS)}
               onClick={() => handleCheckout(PLAN_SOLO_LOGOS)}
             >
-              {busy(PLAN_SOLO_LOGOS) && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
+              {busy(PLAN_SOLO_LOGOS) && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />}
               {copy.soloLogos.cta}
-            </Button>
-          </NeuralCard>
+            </button>
+          </LandingCard>
 
-          <NeuralCard variant="elevated" glow="warm" className="p-6 space-y-5 border-accent-primary/30">
+          <LandingCard className="flex flex-col space-y-5">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
-                <h2 className="font-serif text-xl flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-accent-primary" aria-hidden />
+                <h2 className={`${planTitle} flex items-center gap-2`}>
+                  <Crown className="h-4 w-4 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                   {copy.founders.name}
                 </h2>
-                <p className="text-xs text-muted-foreground">{copy.founders.note}</p>
+                <p className={`text-xs ${planMuted}`}>{copy.founders.note}</p>
               </div>
               {activeProductId === "aegis_founders_lifetime" && (
-                <Badge variant="secondary">{copy.current}</Badge>
+                <span className="pricing-badge">{copy.current}</span>
               )}
             </div>
-            <Badge variant="outline" className="text-[10px] uppercase tracking-wider w-fit">
-              {foundersPlacesLabel}
-            </Badge>
-            <p className="font-cormorant-display text-3xl font-light">
+            <span className="pricing-badge w-fit">{foundersPlacesLabel}</span>
+            <p className={planPrice}>
               {copy.founders.price}
-              <span className="text-sm text-muted-foreground font-sans">{copy.founders.priceSuffix}</span>
+              <span className={`text-sm font-sans ${planMuted}`}>{copy.founders.priceSuffix}</span>
             </p>
-            <p className="text-[11px] text-muted-foreground">{copy.taxNote}</p>
-            <p className="text-xs text-muted-foreground">{copy.founders.guarantee}</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <p className={`text-[11px] ${planMuted}`}>{copy.taxNote}</p>
+            <p className={`text-xs ${planMuted}`}>{copy.founders.guarantee}</p>
+            <ul className={`space-y-2 text-sm ${planMuted}`}>
               {copy.founders.features.map((f) => (
                 <li key={f} className="flex gap-2">
-                  <Check className="w-4 h-4 text-accent-primary shrink-0 mt-0.5" aria-hidden />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                   <span>{f}</span>
                 </li>
               ))}
             </ul>
-            <Button
-              className="w-full min-h-[44px]"
+            <button
+              type="button"
+              className={pricingBtnPrimary}
               disabled={!foundersOpen || busy(PLAN_FOUNDERS)}
               onClick={() => handleCheckout(PLAN_FOUNDERS)}
             >
-              {busy(PLAN_FOUNDERS) && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />}
+              {busy(PLAN_FOUNDERS) && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />}
               {foundersOpen ? copy.founders.cta : copy.founders.ctaSoldOut}
-            </Button>
-          </NeuralCard>
+            </button>
+          </LandingCard>
 
           {/* Matrix — code et produits Stripe conservés ; réactiver via SHOW_MATRIX_PLAN */}
           {SHOW_MATRIX_PLAN ? (
-            <NeuralCard variant="elevated" glow="blue" className="p-6 space-y-5 border-primary/30">
+            <LandingCard className="flex flex-col space-y-5">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">
-                  <h2 className="font-serif text-xl flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary" aria-hidden />
+                  <h2 className={`${planTitle} flex items-center gap-2`}>
+                    <Sparkles className="h-4 w-4 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                     {copy.matrix.name}
                   </h2>
-                  <p className="text-xs text-muted-foreground">{copy.matrix.note}</p>
+                  <p className={`text-xs ${planMuted}`}>{copy.matrix.note}</p>
                 </div>
                 {tier === "matrix" && <Badge variant="secondary">{copy.current}</Badge>}
               </div>
-              <p className="font-cormorant-display text-3xl font-light">
+              <p className={planPrice}>
                 {billing === "monthly" ? "39 €" : "299 €"}
-                <span className="text-sm text-muted-foreground font-sans">
+                <span className={`text-sm font-sans ${planMuted}`}>
                   {billing === "monthly"
                     ? isFR
                       ? " HT / mois"
@@ -552,10 +588,10 @@ export default function Pricing() {
                   ? "Prix hors taxes. La TVA applicable est calculée au checkout selon votre pays (Stripe Tax)."
                   : "Prices exclude tax. Applicable VAT is calculated at checkout based on your country (Stripe Tax)."}
               </p>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className={`space-y-2 text-sm ${planMuted}`}>
                 {copy.matrix.features.map((f) => (
                   <li key={f} className="flex gap-2">
-                    <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                     <span>{f}</span>
                   </li>
                 ))}
@@ -572,30 +608,30 @@ export default function Pricing() {
                 )}
                 {copy.matrix.cta}
               </Button>
-            </NeuralCard>
+            </LandingCard>
           ) : null}
 
           {/* Ultra — code et produits Stripe conservés ; réactiver via SHOW_ULTRA_PLAN */}
           {SHOW_ULTRA_PLAN ? (
-            <NeuralCard variant="elevated" glow="warm" className="p-6 space-y-5 border-accent-primary/30">
+            <LandingCard className="flex flex-col space-y-5">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">
-                  <h2 className="font-serif text-xl flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-accent-primary" aria-hidden />
+                  <h2 className={`${planTitle} flex items-center gap-2`}>
+                    <Crown className="h-4 w-4 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                     {copy.ultra.name}
                   </h2>
-                  <p className="text-xs text-muted-foreground">{copy.ultra.note}</p>
+                  <p className={`text-xs ${planMuted}`}>{copy.ultra.note}</p>
                 </div>
                 {tier === "ultra" && <Badge variant="secondary">{copy.current}</Badge>}
               </div>
               <div className="space-y-1">
-                <p className="font-cormorant-display text-3xl font-light">
+                <p className={planPrice}>
                   8 000 €
-                  <span className="text-sm text-muted-foreground font-sans">
+                  <span className={`text-sm font-sans ${planMuted}`}>
                     {isFR ? " HT" : " excl. tax"}
                   </span>
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className={`text-xs ${planMuted}`}>
                   {copy.upfrontLabel} · {copy.installmentLabel} : 1 500 € {isFR ? "HT" : "excl. tax"}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
@@ -604,10 +640,10 @@ export default function Pricing() {
                     : "Amounts exclude tax. VAT calculated at checkout (Stripe Tax)."}
                 </p>
               </div>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className={`space-y-2 text-sm ${planMuted}`}>
                 {copy.ultra.features.map((f) => (
                   <li key={f} className="flex gap-2">
-                    <Check className="w-4 h-4 text-accent-primary shrink-0 mt-0.5" aria-hidden />
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--aegis-bronze-ink)]" aria-hidden />
                     <span>{f}</span>
                   </li>
                 ))}
@@ -635,7 +671,7 @@ export default function Pricing() {
                   {copy.installmentLabel}
                 </Button>
               </div>
-            </NeuralCard>
+            </LandingCard>
           ) : null}
         </div>
 
@@ -650,31 +686,31 @@ export default function Pricing() {
           transition={{ duration: 0.4, delay: 0.15 }}
           className="mt-16"
         >
-          <NeuralCard variant="elevated" className="overflow-hidden">
-            <div className="p-6 border-b border-border/50">
-              <h2 className="font-cormorant-display text-xl font-light tracking-tight text-[color:var(--aegis-text)] mb-1">
+          <LandingCard className="overflow-hidden !p-0 md:!p-0">
+            <div className="border-b border-[color:var(--aegis-hairline)] p-6">
+              <h2 className="mb-1 font-cormorant-display text-xl font-light tracking-tight">
                 {copy.compare.title}
               </h2>
-              <p className="text-sm text-muted-foreground">{copy.compare.subtitle}</p>
+              <p className={`text-sm ${planMuted}`}>{copy.compare.subtitle}</p>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border/50 bg-background/30">
-                    <th className="text-left px-6 py-4 font-medium text-foreground w-[45%]">
+                  <tr className="border-b border-[color:var(--aegis-hairline)] bg-white/50">
+                    <th className="w-[45%] px-6 py-4 text-left font-mono text-[10px] uppercase tracking-[0.12em]">
                       {copy.compare.feature}
                     </th>
-                    <th className="text-center px-3 py-4 font-medium text-muted-foreground w-[14%]">
+                    <th className={`w-[14%] px-3 py-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] ${planMuted}`}>
                       {copy.compare.free}
                     </th>
-                    <th className="text-center px-3 py-4 font-medium text-primary w-[14%]">
+                    <th className="w-[14%] px-3 py-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--aegis-bronze-ink)]">
                       {copy.compare.solo}
                     </th>
-                    <th className="text-center px-3 py-4 font-medium text-primary w-[14%]">
+                    <th className="w-[14%] px-3 py-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--aegis-bronze-ink)]">
                       {copy.compare.soloLogos}
                     </th>
-                    <th className="text-center px-3 py-4 font-medium text-accent-foreground w-[14%]">
+                    <th className="w-[14%] px-3 py-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--aegis-bronze-ink)]">
                       {copy.compare.founders}
                     </th>
                   </tr>
@@ -686,7 +722,8 @@ export default function Pricing() {
                       dashboard: isFR ? "Dashboard de pilotage" : "Executive dashboard",
                       peopleBoard: isFR ? "People Board 3D" : "3D People Board",
                       decisions: isFR ? "Registre des décisions" : "Decision registry",
-                      toolboxQuota: isFR ? "10 toolbox items / semaine" : "10 toolbox items / week",
+                      toolboxQuota: isFR ? "Toolbox items / semaine" : "Toolbox items / week",
+                      pulseQuota: isFR ? "Cartes Pulse actives" : "Active Pulse cards",
                       ragQuota: isFR ? "50 interactions RAG / semaine" : "50 RAG interactions / week",
                       logos: isFR ? "Agent vocal LOGOS" : "LOGOS voice agent",
                       lifetime: isFR ? "Accès à vie (Fondateurs)" : "Lifetime access (Founders)",
@@ -694,20 +731,27 @@ export default function Pricing() {
 
                     const cell = (value: string) => {
                       if (value === "none") {
-                        return <X className="w-4 h-4 text-muted-foreground/50 mx-auto" aria-hidden />;
+                        return <X className="mx-auto h-4 w-4 text-[color:var(--aegis-hairline)]" aria-hidden />;
                       }
                       if (value === "full") {
-                        return <Check className="w-4 h-4 text-primary mx-auto" aria-hidden />;
+                        return <Check className="mx-auto h-4 w-4 text-[color:var(--aegis-bronze-ink)]" aria-hidden />;
                       }
-                      return <span className="text-xs text-muted-foreground">{isFR ? "Saisir" : "Enter"}</span>;
+                      if (value.startsWith("n")) {
+                        return (
+                          <span className="text-xs font-medium text-[color:var(--aegis-bronze-ink)]">
+                            {value.slice(1)}
+                          </span>
+                        );
+                      }
+                      return <span className={`text-xs ${planMuted}`}>{isFR ? "Saisir" : "Enter"}</span>;
                     };
 
                     return (
                       <tr
                         key={row.key}
-                        className={`border-b border-border/30 last:border-0 ${i % 2 === 1 ? "bg-background/20" : ""}`}
+                        className={`border-b border-[color:var(--aegis-hairline)] last:border-0 ${i % 2 === 1 ? "bg-white/40" : ""}`}
                       >
-                        <td className="px-6 py-3 text-foreground">{label}</td>
+                        <td className="px-6 py-3">{label}</td>
                         <td className="px-3 py-3 text-center">{cell(row.free)}</td>
                         <td className="px-3 py-3 text-center">{cell(row.solo)}</td>
                         <td className="px-3 py-3 text-center">{cell(row.soloLogos)}</td>
@@ -719,11 +763,28 @@ export default function Pricing() {
               </table>
             </div>
 
-            <p className="px-6 py-4 text-xs text-muted-foreground border-t border-border/50">
+            <p className={`border-t border-[color:var(--aegis-hairline)] px-6 py-4 text-xs ${planMuted}`}>
               {copy.compare.footnote}
             </p>
-          </NeuralCard>
+          </LandingCard>
         </motion.div>
+
+        <LandingCard className="mt-12 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className={pricingKicker}>{isFR ? "Entreprise" : "Enterprise"}</p>
+            <h2 className="mt-2 font-cormorant-display text-2xl font-light">
+              {isFR ? "COMEX & comités de pilotage" : "Exec teams & steering committees"}
+            </h2>
+            <p className={`mt-2 max-w-xl text-sm ${planMuted}`}>
+              {isFR
+                ? "5 000 € HT déploiement · dès 20 € HT / user / mois (80 € avec LOGOS vocal)."
+                : "€5,000 excl. tax setup · from €20 excl. tax / user / mo (€80 with LOGOS voice)."}
+            </p>
+          </div>
+          <a href="mailto:contact@protocolenomos.com" className={`${pricingBtnSecondary} w-auto shrink-0 px-5`}>
+            {isFR ? "Demander un accès entreprise" : "Request enterprise access"}
+          </a>
+        </LandingCard>
       </div>
       <PublicFooter />
     </div>

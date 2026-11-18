@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { FileText, ScrollText, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, FileText, ScrollText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -24,6 +25,24 @@ function formatDateSafe(val: unknown, locale: string): string {
 
 interface Props {
   userId: string;
+}
+
+const PRISM_AUTHOR: Record<string, { fr: string; en: string }> = {
+  MYSS: { fr: "Caroline Myss", en: "Caroline Myss" },
+  TAO: { fr: "Benebell Wen", en: "Benebell Wen" },
+  WUXIN: { fr: "Benebell Wen", en: "Benebell Wen" },
+  JUNG: { fr: "Carl Jung", en: "Carl Jung" },
+  BLAVATSKY: { fr: "H. P. Blavatsky", en: "H. P. Blavatsky" },
+  HALL: { fr: "Manly P. Hall", en: "Manly P. Hall" },
+  MANLY_HALL: { fr: "Manly P. Hall", en: "Manly P. Hall" },
+};
+
+function authorForPrism(prism: string | null | undefined, isFR: boolean): string | null {
+  if (!prism) return null;
+  const key = prism.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_");
+  const entry = PRISM_AUTHOR[key];
+  if (entry) return isFR ? entry.fr : entry.en;
+  return prism;
 }
 
 export function UserReportsSection({ userId }: Props) {
@@ -68,11 +87,20 @@ export function UserReportsSection({ userId }: Props) {
         </span>
       </div>
 
+      <Link
+        to="/persona/portraits"
+        className="flex items-center justify-between gap-2 rounded-xl border border-border/30 bg-background/35 px-3 py-2.5 text-xs text-muted-foreground hover:border-primary/35 hover:text-foreground transition-colors min-h-[44px]"
+      >
+        <span>{t("userReports.portraitHubCta")}</span>
+        <ArrowUpRight size={14} className="text-primary shrink-0" aria-hidden />
+      </Link>
+
       <ul className="space-y-2">
         {reports.map((r) => {
           const isUnread = !r.read_at;
           const levelCode = r.level_code || (r.tier ? `LEVEL_${r.tier}` : null);
           const hasV3Pack = Boolean(r.pack_files);
+          const author = authorForPrism(r.prism_code || r.orientation, isFR);
 
           return (
             <li key={r.id}>
@@ -122,7 +150,9 @@ export function UserReportsSection({ userId }: Props) {
                       </Badge>
                     ) : null}
 
-                    {r.prism_code || r.orientation ? (
+                    {author ? (
+                      <span>{t("userReports.authorLens", { author })}</span>
+                    ) : r.prism_code || r.orientation ? (
                       <span>· {r.prism_code || r.orientation}</span>
                     ) : null}
 

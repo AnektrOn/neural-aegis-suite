@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
@@ -10,12 +10,18 @@ import { usePersonaPortraitLenses } from "@/features/persona/hooks/usePersonaPor
 export default function PersonaPortraits() {
   const { t, locale } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isFR = locale === "fr";
+  const initialLensId = searchParams.get("lens") ?? undefined;
 
   const {
     profile,
     portraitLenses,
     taoSummary,
+    taoParts,
+    v4Analysis,
+    clinicalReports,
+    displayName,
     portraitsLoading,
     error,
     reload,
@@ -117,8 +123,13 @@ export default function PersonaPortraits() {
         loading={portraitsLoading}
         profile={profile}
         taoSummary={taoSummary}
+        taoParts={taoParts}
+        v4Analysis={v4Analysis}
+        clinicalReports={clinicalReports}
+        displayName={displayName}
         shadowTheme={primaryShadowTheme}
         headingId="persona-portraits-page-heading"
+        initialLensId={initialLensId}
         fullPage
       />
     </MemberPageScaffold>

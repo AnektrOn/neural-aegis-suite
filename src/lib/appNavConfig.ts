@@ -1,5 +1,6 @@
 import type { AppIcon } from "@/lib/icons/appIcon";
 import type { TranslationKey } from "@/i18n/translations";
+import { isMemberFeatureVisible } from "@/lib/memberFeatureFlags";
 import {
   getAllMenuPanels,
   getMenuPanel,
@@ -52,7 +53,16 @@ const EXTRA_ROUTES: { prefix: string; labelKey: TranslationKey; sectionKey?: Tra
   { prefix: "/dashboard", labelKey: "nav.dashboard" },
   { prefix: "/capture", labelKey: "menu.hub.capture", sectionKey: "menu.hub.capture", hub: "capture" },
   { prefix: "/meditation", labelKey: "nav.meditation", hub: "pratiques" },
-  { prefix: "/pratiques/dien-chan", labelKey: "hub.feature.dienchan", sectionKey: "menu.hub.pratiques", hub: "pratiques" },
+  ...(isMemberFeatureVisible("dien_chan")
+    ? [
+        {
+          prefix: "/pratiques/dien-chan",
+          labelKey: "hub.feature.dienchan" as TranslationKey,
+          sectionKey: "menu.hub.pratiques" as TranslationKey,
+          hub: "pratiques" as AppHubId,
+        },
+      ]
+    : []),
   { prefix: "/onboarding/assessment", labelKey: "nav.profile", sectionKey: "menu.hub.portrait", hub: "portrait" },
   { prefix: "/onboarding/results", labelKey: "nav.profile", sectionKey: "menu.hub.portrait", hub: "portrait" },
   { prefix: "/cartographie", labelKey: "cartography.defaultTitle", sectionKey: "menu.hub.portrait", hub: "portrait" },

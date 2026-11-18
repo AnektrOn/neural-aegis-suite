@@ -21,7 +21,9 @@ import AegisLogo from "@/components/AegisLogo";
 import QuantumNebula, {
   type QuantumNebulaDrive,
   type QuantumNebulaExternalAudio,
+  type QuantumNebulaShapeBuilder,
   type QuantumNebulaState,
+  type QuantumNebulaVisualTuning,
 } from "@/components/ui/quantum-nebula";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -30,12 +32,20 @@ import { createAgentVoiceSession } from "@/services/agentSessionService";
 import { cn } from "@/lib/utils";
 import { synthesizeSpectrumFromVolume } from "@/components/voice/voiceAgentSpectrum";
 import { getVoiceAgentNebulaVisualTuning } from "@/components/voice/voiceAgentNebulaPresets";
+import { WELCOME_NEBULA_VISUAL_TUNING } from "@/features/welcome/components/WelcomeQuantumNebula";
 import { LogosClientToolsRegistrar } from "@/features/logos/LogosClientToolsRegistrar";
+import type { LogosOpeningInjection } from "@/features/logos/logosSessionInjection";
 import { useAuth } from "@/contexts/AuthContext";
 
-type UiPhase = "idle" | "connecting" | "connected" | "error";
+type UiPhase = "idle" | "path_choice" | "connecting" | "connected" | "error";
 type VoiceAgentLayout = "card" | "welcome";
 type VoiceDynamicVariables = Record<string, string | number | boolean>;
+
+export type VoiceAgentLiveOverlayHelpers = {
+  endLive: () => void;
+  /** Start ElevenLabs (or lab live) after a path / blank choice. */
+  startWithChoice: (injection?: LogosOpeningInjection) => void;
+};
 
 function resolveFirstName(
   user: NonNullable<ReturnType<typeof useAuth>["user"]> | null | undefined,
@@ -63,10 +73,16 @@ function VoiceAgentNebulaDrive({
   externalAudioRef,
   driveRef,
   idleBreathe,
+  simulateLive,
+  pathCardsMorph,
 }: {
   externalAudioRef: MutableRefObject<QuantumNebulaExternalAudio>;
   driveRef: MutableRefObject<QuantumNebulaDrive>;
   idleBreathe: number;
+  /** Lab: fake “agent speaking” audio drive without ElevenLabs. */
+  simulateLive?: boolean;
+  /** Lab: morph nebula into three path cards instead of free mouvement. */
+  pathCardsMorph?: boolean;
 }) {
   const { status } = useConversationStatus();
   const { isSpeaking, isListening } = useConversationMode();
@@ -79,9 +95,13 @@ function VoiceAgentNebulaDrive({
   const statusRef = useRef(status);
   const speakingRef = useRef(isSpeaking);
   const listeningRef = useRef(isListening);
+  const simulateLiveRef = useRef(Boolean(simulateLive));
+  const pathCardsMorphRef = useRef(Boolean(pathCardsMorph));
   statusRef.current = status;
   speakingRef.current = isSpeaking;
   listeningRef.current = isListening;
+  simulateLiveRef.current = Boolean(simulateLive);
+  pathCardsMorphRef.current = Boolean(pathCardsMorph);
 
   const audioApiRef = useRef({
     getOutputByteFrequencyData,
@@ -96,13 +116,46 @@ function VoiceAgentNebulaDrive({
 
   useEffect(() => {
     let frame = 0;
+    const startedAt = performance.now();
     const tick = () => {
       const connected = statusRef.current === "connected";
       const speaking = speakingRef.current;
       const listening = listeningRef.current;
       const api = audioApiRef.current;
+      const cardsOverlay =
+        simulateLiveRef.current && pathCardsMorphRef.current;
 
-      if (connected && speaking) {
+      if (cardsOverlay) {
+        // Path chooser uses per-card nebulas — keep fullscreen drive idle.
+        externalAudioRef.current.active = false;
+        externalAudioRef.current.frequency = null;
+        driveRef.current.shapeId = undefined;
+        driveRef.current.morphBlend = 0;
+        driveRef.current.figureReveal = 0;
+        driveRef.current.pupilScale = undefined;
+        driveRef.current.turbulence = undefined;
+        driveRef.current.centerPull = undefined;
+        driveRef.current.spin = undefined;
+        driveRef.current.radialScale = undefined;
+        driveRef.current.breatheMotion = idleBreathe;
+      } else if (simulateLiveRef.current) {
+        driveRef.current.shapeId = undefined;
+        driveRef.current.morphBlend = 0;
+        driveRef.current.figureReveal = 0;
+        driveRef.current.pupilScale = undefined;
+        driveRef.current.turbulence = undefined;
+        driveRef.current.centerPull = undefined;
+        driveRef.current.spin = undefined;
+        driveRef.current.radialScale = undefined;
+        const t = (performance.now() - startedAt) / 1000;
+        const volume = 0.28 + 0.22 * (0.5 + 0.5 * Math.sin(t * 2.4));
+        externalAudioRef.current.active = true;
+        externalAudioRef.current.frequency = synthesizeSpectrumFromVolume(volume);
+        driveRef.current.breatheMotion = 0;
+      } else if (connected && speaking) {
+        driveRef.current.shapeId = undefined;
+        driveRef.current.morphBlend = 0;
+        driveRef.current.figureReveal = 0;
         externalAudioRef.current.active = true;
         let frequency: Uint8Array | null = null;
         try {
@@ -121,6 +174,9 @@ function VoiceAgentNebulaDrive({
         externalAudioRef.current.frequency = frequency;
         driveRef.current.breatheMotion = 0;
       } else if (connected && listening) {
+        driveRef.current.shapeId = undefined;
+        driveRef.current.morphBlend = 0;
+        driveRef.current.figureReveal = 0;
         externalAudioRef.current.active = false;
         externalAudioRef.current.frequency = null;
         try {
@@ -129,6 +185,14 @@ function VoiceAgentNebulaDrive({
           driveRef.current.breatheMotion = 0;
         }
       } else {
+        driveRef.current.shapeId = undefined;
+        driveRef.current.morphBlend = 0;
+        driveRef.current.figureReveal = 0;
+        driveRef.current.pupilScale = undefined;
+        driveRef.current.turbulence = undefined;
+        driveRef.current.centerPull = undefined;
+        driveRef.current.spin = undefined;
+        driveRef.current.radialScale = undefined;
         externalAudioRef.current.active = false;
         externalAudioRef.current.frequency = null;
         driveRef.current.breatheMotion = idleBreathe;
@@ -147,21 +211,49 @@ function VoiceAgentNebula({
   externalAudioRef,
   driveRef,
   fullscreen,
+  simulateLive,
+  matchWelcomeVisual,
+  pathCardsMorph,
+  shapeLibrary,
+  visualTuningOverride,
+  hideFullscreenNebula,
 }: {
   externalAudioRef: MutableRefObject<QuantumNebulaExternalAudio>;
   driveRef: MutableRefObject<QuantumNebulaDrive>;
   fullscreen: boolean;
+  simulateLive?: boolean;
+  /** Lab: same visual tuning as WelcomeQuantumNebula. */
+  matchWelcomeVisual?: boolean;
+  pathCardsMorph?: boolean;
+  shapeLibrary?: Record<string, QuantumNebulaShapeBuilder>;
+  visualTuningOverride?: Partial<QuantumNebulaVisualTuning>;
+  /** Lab: glass path cards supply their own nebulas. */
+  hideFullscreenNebula?: boolean;
 }) {
   const { status } = useConversationStatus();
   const { isSpeaking } = useConversationMode();
-  const visualTuning = useMemo(() => getVoiceAgentNebulaVisualTuning(), []);
+  const visualTuning = useMemo(() => {
+    const base = matchWelcomeVisual
+      ? WELCOME_NEBULA_VISUAL_TUNING
+      : getVoiceAgentNebulaVisualTuning();
+    return { ...base, ...visualTuningOverride };
+  }, [matchWelcomeVisual, visualTuningOverride]);
 
-  const nebulaState: QuantumNebulaState =
-    status !== "connected" ? "repos" : isSpeaking ? "mouvement" : "reflexion";
+  const nebulaState: QuantumNebulaState = simulateLive
+    ? "mouvement"
+    : status !== "connected"
+      ? "repos"
+      : isSpeaking
+        ? "mouvement"
+        : "reflexion";
+
+  if (hideFullscreenNebula) {
+    return null;
+  }
 
   const nebula = (
     <QuantumNebula
-      transparent
+      transparent={!matchWelcomeVisual}
       fullscreen={fullscreen}
       theme="auto"
       state={nebulaState}
@@ -170,6 +262,7 @@ function VoiceAgentNebula({
       autoPlayAudio={false}
       externalAudioRef={externalAudioRef}
       driveRef={driveRef}
+      shapeLibrary={shapeLibrary}
       visualTuning={visualTuning}
       className={cn("pointer-events-none", fullscreen ? "z-0" : undefined)}
     />
@@ -187,11 +280,27 @@ function VoiceAgentControls({
   layout,
   errorMessage,
   dynamicVariables,
+  enableCall,
+  simulateLive,
+  requirePathChoice,
+  startSessionRef,
+  bindOnly = false,
 }: {
   onPhase: (p: UiPhase, message?: string) => void;
   layout: VoiceAgentLayout;
   errorMessage?: string | null;
   dynamicVariables: VoiceDynamicVariables;
+  enableCall: boolean;
+  /** Lab preview: UI treats session as live without ElevenLabs. */
+  simulateLive: boolean;
+  /** Welcome: Start opens path chooser before minting a session. */
+  requirePathChoice: boolean;
+  /** Exposes start-with-injection to the path chooser overlay. */
+  startSessionRef?: MutableRefObject<
+    ((injection?: LogosOpeningInjection) => Promise<void>) | null
+  >;
+  /** Mount session start binder without rendering mic CTAs. */
+  bindOnly?: boolean;
 }) {
   const { t } = useLanguage();
   const { startSession, endSession } = useConversationControls();
@@ -203,6 +312,10 @@ function VoiceAgentControls({
   dynamicVariablesRef.current = dynamicVariables;
 
   const end = useCallback(async () => {
+    if (!enableCall) {
+      onPhase("idle");
+      return;
+    }
     setBusy(true);
     try {
       await endSession();
@@ -211,46 +324,81 @@ function VoiceAgentControls({
     } finally {
       setBusy(false);
     }
-  }, [endSession, onPhase]);
+  }, [enableCall, endSession, onPhase]);
+
+  const startWithInjection = useCallback(
+    async (injection?: LogosOpeningInjection) => {
+      if (!enableCall) {
+        onPhase("connected");
+        return;
+      }
+      setBusy(true);
+      setErrorDetail(null);
+      onPhase("connecting");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+
+        const { conversation_token } = await createAgentVoiceSession();
+        const vars: VoiceDynamicVariables = {
+          first_name: "toi",
+          ...dynamicVariablesRef.current,
+          ...injection?.dynamicVariables,
+        };
+        if (!String(vars.first_name || "").trim()) vars.first_name = "toi";
+        if (vars.session_mode == null) vars.session_mode = "open";
+        if (vars.opening_prompt == null) vars.opening_prompt = "";
+        startSession({
+          conversationToken: conversation_token,
+          dynamicVariables: vars,
+          ...(injection?.overrides ? { overrides: injection.overrides } : {}),
+        });
+        onPhase("connected");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : t("voiceAgent.errorGeneric");
+        onPhase("error", msg);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [enableCall, onPhase, startSession, t],
+  );
+
+  useEffect(() => {
+    if (!startSessionRef) return;
+    startSessionRef.current = startWithInjection;
+    return () => {
+      startSessionRef.current = null;
+    };
+  }, [startSessionRef, startWithInjection]);
 
   const start = useCallback(async () => {
-    setBusy(true);
-    setErrorDetail(null);
-    onPhase("connecting");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
-
-      const { conversation_token } = await createAgentVoiceSession();
-      const vars = {
-        first_name: "toi",
-        ...dynamicVariablesRef.current,
-      };
-      if (!String(vars.first_name || "").trim()) vars.first_name = "toi";
-      startSession({
-        conversationToken: conversation_token,
-        dynamicVariables: vars,
-      });
-      onPhase("connected");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : t("voiceAgent.errorGeneric");
-      onPhase("error", msg);
-    } finally {
-      setBusy(false);
+    if (requirePathChoice) {
+      onPhase("path_choice");
+      return;
     }
-  }, [onPhase, startSession, t]);
+    if (!enableCall) {
+      onPhase("connected");
+      return;
+    }
+    await startWithInjection();
+  }, [enableCall, onPhase, requirePathChoice, startWithInjection]);
 
-  const connected = status === "connected";
-  const connecting = status === "connecting" || busy;
+  const connected = enableCall ? status === "connected" : simulateLive;
+  const connecting = enableCall && (status === "connecting" || busy);
   const statusLabel = connected
-    ? isSpeaking
+    ? !enableCall
       ? t("voiceAgent.statusSpeaking")
-      : isListening
-        ? t("voiceAgent.statusListening")
-        : t("voiceAgent.statusConnected")
+      : isSpeaking
+        ? t("voiceAgent.statusSpeaking")
+        : isListening
+          ? t("voiceAgent.statusListening")
+          : t("voiceAgent.statusConnected")
     : connecting
       ? t("voiceAgent.connecting")
       : null;
+
+  if (bindOnly) return null;
 
   if (layout === "welcome") {
     return (
@@ -270,7 +418,7 @@ function VoiceAgentControls({
             <>
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !enableCall}
                 onClick={() => setMuted(!isMuted)}
                 className={cn(
                   welcomeCtaClass,
@@ -360,17 +508,37 @@ function VoiceAgentWelcomeHud({
   debugFooter,
   backHref,
   showHero,
+  phase,
   onPhase,
   errorMessage,
   dynamicVariables,
+  enableCall,
+  simulateLive,
+  matchWelcomeVisual,
+  hideHeroTitle,
+  pathCardsMorph,
+  requirePathChoice,
+  shapeLibrary,
+  visualTuningOverride,
+  liveOverlay,
 }: {
   title: string;
   debugFooter?: ReactNode;
   backHref: string;
   showHero: boolean;
+  phase: UiPhase;
   onPhase: (p: UiPhase, message?: string) => void;
   errorMessage?: string | null;
   dynamicVariables: VoiceDynamicVariables;
+  enableCall: boolean;
+  simulateLive: boolean;
+  matchWelcomeVisual: boolean;
+  hideHeroTitle: boolean;
+  pathCardsMorph: boolean;
+  requirePathChoice: boolean;
+  shapeLibrary?: Record<string, QuantumNebulaShapeBuilder>;
+  visualTuningOverride?: Partial<QuantumNebulaVisualTuning>;
+  liveOverlay?: (helpers: VoiceAgentLiveOverlayHelpers) => ReactNode;
 }) {
   const { t } = useLanguage();
   const { reduceMotion } = useAegisMotion();
@@ -379,22 +547,71 @@ function VoiceAgentWelcomeHud({
     frequency: null,
   });
   const driveRef = useRef<QuantumNebulaDrive>({});
+  const startSessionRef = useRef<
+    ((injection?: LogosOpeningInjection) => Promise<void>) | null
+  >(null);
+  const showTitle = showHero && !hideHeroTitle && Boolean(title.trim());
+  const showPathChooser = Boolean(
+    pathCardsMorph &&
+      liveOverlay &&
+      (phase === "path_choice" || simulateLive),
+  );
+  const endLive = useCallback(() => onPhase("idle"), [onPhase]);
+  const startWithChoice = useCallback(
+    (injection?: LogosOpeningInjection) => {
+      void startSessionRef.current?.(injection);
+    },
+    [],
+  );
 
   return (
-    <div className="welcome-hud relative flex min-h-[100dvh] flex-col overflow-hidden">
+    <div
+      className={cn(
+        "welcome-hud relative flex min-h-[100dvh] flex-col overflow-hidden",
+        showPathChooser && "bg-black",
+      )}
+    >
       <VoiceAgentNebulaDrive
         externalAudioRef={externalAudioRef}
         driveRef={driveRef}
-        idleBreathe={0.16}
+        idleBreathe={matchWelcomeVisual ? 0 : 0.16}
+        simulateLive={simulateLive}
+        pathCardsMorph={pathCardsMorph}
       />
-      <VoiceAgentNebula externalAudioRef={externalAudioRef} driveRef={driveRef} fullscreen />
-      <div className="welcome-hud-bg" aria-hidden />
+      <VoiceAgentNebula
+        externalAudioRef={externalAudioRef}
+        driveRef={driveRef}
+        fullscreen
+        simulateLive={simulateLive}
+        matchWelcomeVisual={matchWelcomeVisual}
+        pathCardsMorph={pathCardsMorph}
+        shapeLibrary={shapeLibrary}
+        visualTuningOverride={visualTuningOverride}
+        hideFullscreenNebula={showPathChooser}
+      />
+      {showPathChooser ? (
+        <div className="pointer-events-none fixed inset-0 z-0 bg-black" aria-hidden />
+      ) : (
+        <div className="welcome-hud-bg" aria-hidden />
+      )}
 
-      <div className="relative z-10 flex min-h-[100dvh] w-full flex-col items-center px-5 sm:px-6">
-        <header className="flex w-full max-w-md flex-col items-center pt-[max(1.5rem,env(safe-area-inset-top))]">
+      {showPathChooser ? liveOverlay?.({ endLive, startWithChoice }) : null}
+
+      <div
+        className={cn(
+          "relative z-10 flex min-h-[100dvh] w-full flex-col items-center px-5 sm:px-6",
+          showPathChooser && "pointer-events-none",
+        )}
+      >
+        <header
+          className={cn(
+            "flex w-full max-w-md flex-col items-center pt-[max(1.5rem,env(safe-area-inset-top))]",
+            showPathChooser && "opacity-0",
+          )}
+        >
           <Link
             to={backHref}
-            className="mb-4 inline-flex items-center gap-1.5 self-start font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground"
+            className="pointer-events-auto mb-4 inline-flex items-center gap-1.5 self-start font-display text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
             {t("welcome.voiceAgent.back")}
@@ -415,7 +632,7 @@ function VoiceAgentWelcomeHud({
 
         <main className="relative flex w-full max-w-md flex-1 flex-col items-center justify-center text-center">
           <AnimatePresence mode="wait">
-            {showHero ? (
+            {showTitle ? (
               <motion.div
                 key="hero"
                 initial={reduceMotion ? false : { opacity: 0, y: 10 }}
@@ -446,17 +663,36 @@ function VoiceAgentWelcomeHud({
           ) : null}
         </main>
 
-        <footer className="flex w-full max-w-md flex-col items-center gap-3 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
-          {showHero && debugFooter ? (
-            <div className="w-full max-w-sm px-1 text-center">{debugFooter}</div>
-          ) : null}
+        {!showPathChooser ? (
+          <footer className="pointer-events-auto flex w-full max-w-md flex-col items-center gap-3 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
+            {showHero && debugFooter ? (
+              <div className="w-full max-w-sm px-1 text-center">{debugFooter}</div>
+            ) : null}
+            <VoiceAgentControls
+              onPhase={onPhase}
+              layout="welcome"
+              errorMessage={!showHero ? errorMessage : null}
+              dynamicVariables={dynamicVariables}
+              enableCall={enableCall}
+              simulateLive={simulateLive}
+              requirePathChoice={requirePathChoice}
+              startSessionRef={startSessionRef}
+            />
+          </footer>
+        ) : null}
+        {showPathChooser ? (
           <VoiceAgentControls
             onPhase={onPhase}
             layout="welcome"
-            errorMessage={!showHero ? errorMessage : null}
+            errorMessage={null}
             dynamicVariables={dynamicVariables}
+            enableCall={enableCall}
+            simulateLive={simulateLive}
+            requirePathChoice={requirePathChoice}
+            startSessionRef={startSessionRef}
+            bindOnly
           />
-        </footer>
+        ) : null}
       </div>
     </div>
   );
@@ -467,11 +703,15 @@ function VoiceAgentCard({
   onPhase,
   errorMessage,
   dynamicVariables,
+  enableCall,
+  simulateLive,
 }: {
   className?: string;
   onPhase: (p: UiPhase, message?: string) => void;
   errorMessage?: string | null;
   dynamicVariables: VoiceDynamicVariables;
+  enableCall: boolean;
+  simulateLive: boolean;
 }) {
   const { t } = useLanguage();
   const externalAudioRef = useRef<QuantumNebulaExternalAudio>({
@@ -493,11 +733,28 @@ function VoiceAgentCard({
         </p>
       ) : null}
       <div className="mt-4">
-        <VoiceAgentNebulaDrive externalAudioRef={externalAudioRef} driveRef={driveRef} idleBreathe={0} />
-        <VoiceAgentNebula externalAudioRef={externalAudioRef} driveRef={driveRef} fullscreen={false} />
+        <VoiceAgentNebulaDrive
+          externalAudioRef={externalAudioRef}
+          driveRef={driveRef}
+          idleBreathe={0}
+          simulateLive={simulateLive}
+        />
+        <VoiceAgentNebula
+          externalAudioRef={externalAudioRef}
+          driveRef={driveRef}
+          fullscreen={false}
+          simulateLive={simulateLive}
+        />
       </div>
       <div className="mt-4">
-        <VoiceAgentControls onPhase={onPhase} layout="card" dynamicVariables={dynamicVariables} />
+        <VoiceAgentControls
+          onPhase={onPhase}
+          layout="card"
+          dynamicVariables={dynamicVariables}
+          enableCall={enableCall}
+          simulateLive={simulateLive}
+          requirePathChoice={false}
+        />
       </div>
     </section>
   );
@@ -506,14 +763,31 @@ function VoiceAgentCard({
 export type VoiceAgentProps = {
   className?: string;
   layout?: VoiceAgentLayout;
-  /** Welcome layout — hero title (e.g. Hello, {name}). */
+  /** Welcome layout — hero title (e.g. Hello, {name}). Empty / hideHeroTitle → no title. */
   welcomeTitle?: string;
   backHref?: string;
   /** Shown above the start CTA while hero is visible (e.g. dev agent id). */
   debugFooter?: ReactNode;
   /** Optional override; VoiceAgent always resolves first_name itself as fallback. */
   dynamicVariables?: VoiceDynamicVariables;
+  /** When false, keep HUD / nebula / CTA chrome but never start an ElevenLabs session. */
+  enableCall?: boolean;
+  /** Use Welcome nebula visual tuning (sphere/camera). */
+  matchWelcomeVisual?: boolean;
+  /** Hide the welcome hero title entirely. */
+  hideHeroTitle?: boolean;
+  /** Morph into path cards during path_choice / simulated live. */
+  pathCardsMorph?: boolean;
+  /** Start CTA opens path chooser before creating an ElevenLabs session. */
+  requirePathChoice?: boolean;
+  shapeLibrary?: Record<string, QuantumNebulaShapeBuilder>;
+  visualTuning?: Partial<QuantumNebulaVisualTuning>;
+  /** Path chooser / live overlay (path_choice or lab simulateLive). */
+  liveOverlay?: (helpers: VoiceAgentLiveOverlayHelpers) => ReactNode;
+  onPhaseChange?: (phase: UiPhase) => void;
 };
+
+export type VoiceAgentUiPhase = UiPhase;
 
 export function VoiceAgent({
   className,
@@ -522,16 +796,29 @@ export function VoiceAgent({
   backHref = "/welcome",
   debugFooter,
   dynamicVariables,
+  enableCall = true,
+  matchWelcomeVisual = false,
+  hideHeroTitle = false,
+  pathCardsMorph = false,
+  requirePathChoice = false,
+  shapeLibrary,
+  visualTuning,
+  liveOverlay,
+  onPhaseChange,
 }: VoiceAgentProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [phase, setPhase] = useState<UiPhase>("idle");
   const [phaseMessage, setPhaseMessage] = useState<string | null>(null);
 
-  const onPhase = useCallback((p: UiPhase, message?: string) => {
-    setPhase(p);
-    setPhaseMessage(message ?? null);
-  }, []);
+  const onPhase = useCallback(
+    (p: UiPhase, message?: string) => {
+      setPhase(p);
+      setPhaseMessage(message ?? null);
+      onPhaseChange?.(p);
+    },
+    [onPhaseChange],
+  );
 
   const resolvedDynamicVariables = useMemo<VoiceDynamicVariables>(() => {
     const fromProp =
@@ -539,13 +826,16 @@ export function VoiceAgent({
         ? dynamicVariables.first_name
         : undefined;
     return {
+      session_mode: "open",
+      opening_prompt: "",
       ...dynamicVariables,
       first_name: resolveFirstName(user, fromProp),
     };
   }, [dynamicVariables, user]);
 
-  const title = welcomeTitle ?? t("voiceAgent.title");
+  const title = hideHeroTitle ? "" : (welcomeTitle ?? t("voiceAgent.title"));
   const showHero = phase === "idle" || phase === "error";
+  const simulateLive = !enableCall && phase === "connected";
 
   return (
     <ConversationProvider
@@ -559,18 +849,29 @@ export function VoiceAgent({
               ? error.message
               : t("voiceAgent.errorGeneric");
         setPhaseMessage(msg);
+        onPhaseChange?.("error");
       }}
     >
-      <LogosClientToolsRegistrar />
+      {enableCall ? <LogosClientToolsRegistrar /> : null}
       {layout === "welcome" ? (
         <VoiceAgentWelcomeHud
           title={title}
           debugFooter={debugFooter}
           backHref={backHref}
           showHero={showHero}
+          phase={phase}
           onPhase={onPhase}
           errorMessage={phase === "error" ? phaseMessage : null}
           dynamicVariables={resolvedDynamicVariables}
+          enableCall={enableCall}
+          simulateLive={simulateLive}
+          matchWelcomeVisual={matchWelcomeVisual}
+          hideHeroTitle={hideHeroTitle}
+          pathCardsMorph={pathCardsMorph}
+          requirePathChoice={requirePathChoice}
+          shapeLibrary={shapeLibrary}
+          visualTuningOverride={visualTuning}
+          liveOverlay={liveOverlay}
         />
       ) : (
         <VoiceAgentCard
@@ -578,6 +879,8 @@ export function VoiceAgent({
           onPhase={onPhase}
           errorMessage={phase === "error" ? phaseMessage : null}
           dynamicVariables={resolvedDynamicVariables}
+          enableCall={enableCall}
+          simulateLive={simulateLive}
         />
       )}
     </ConversationProvider>

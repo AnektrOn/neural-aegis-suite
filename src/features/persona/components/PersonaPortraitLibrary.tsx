@@ -9,20 +9,30 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { SampleProfile } from "@/features/archetype-deepdive-v2/domain/sampleProfile";
+import { DeepDiveUserCards } from "@/features/archetype-deepdive-v2/components/DeepDiveUserCards";
+import type { V4PoleAnalysis } from "@/features/archetype-assessment/domain/types";
 import type { TaoPersonaSummary } from "@/features/tao-portrait/lib/buildTaoPersonaSummary";
-import { spotlightPoleLabel, taoDeepDiveHref } from "@/features/tao-portrait/lib/buildTaoPersonaSummary";
-import { WU_XING_META, type WuXingPole } from "@/features/tao-portrait/domain/types";
+import { TaoPortraitPanel } from "@/features/tao-portrait/components/TaoPortraitPanel";
+import type { TaoPortraitPartRow } from "@/features/tao-portrait/domain/types";
+import { UserReportModal } from "@/features/user-reports/UserReportModal";
+import { markUserReportRead } from "@/features/user-reports/service";
+import type { UserReport } from "@/features/user-reports/types";
 import { defaultPortraitLensId } from "../lib/buildPortraitLenses";
-import type { PortraitLensCard, PortraitLensStatus } from "../lib/portraitLensTypes";
-import { PersonaTriadStrip } from "./personaParts";
+import { findClinicalReportForLens } from "../lib/portraitLensClinical";
+import type { PortraitLensAction, PortraitLensCard, PortraitLensStatus } from "../lib/portraitLensTypes";
 
 interface PersonaPortraitLibraryProps {
   lenses: PortraitLensCard[];
   loading?: boolean;
   profile: SampleProfile;
   taoSummary: TaoPersonaSummary | null;
+  taoParts?: TaoPortraitPartRow[];
+  v4Analysis?: V4PoleAnalysis | null;
+  clinicalReports?: UserReport[];
+  displayName?: string | null;
   shadowTheme: string;
   headingId: string;
+  initialLensId?: string;
   /** Dedicated /persona/portraits route — grid selector + expanded detail. */
   fullPage?: boolean;
   /** Hide in-card title when the page supplies MemberPageHeader. */
@@ -85,52 +95,6 @@ function LensProgressBar({
   );
 }
 
-function TaoPoleMiniGrid({
-  taoSummary,
-  locale,
-}: {
-  taoSummary: TaoPersonaSummary;
-  locale: "fr" | "en";
-}) {
-  return (
-    <div className="grid grid-cols-5 gap-1.5" role="list" aria-label={locale === "fr" ? "Pôles Wu Xing" : "Wu Xing poles"}>
-      {taoSummary.poleProgress.map(({ pole, filled, total }) => {
-        const meta = WU_XING_META[pole as Exclude<WuXingPole, "transversal">];
-        const active = filled > 0;
-        return (
-          <Link
-            key={pole}
-            to={taoDeepDiveHref({ pole })}
-            role="listitem"
-            className={cn(
-              "rounded-lg border px-1 py-2 text-center transition-colors min-h-[44px]",
-              "hover:border-primary/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              active ? "border-border/45 bg-background/50" : "border-border/20 opacity-50",
-            )}
-            style={
-              active
-                ? { borderColor: `color-mix(in srgb, ${meta.color} 32%, transparent)` }
-                : undefined
-            }
-          >
-            <span
-              className="mx-auto block h-2 w-2 rounded-full"
-              style={{ background: active ? meta.color : "hsl(var(--border))" }}
-              aria-hidden
-            />
-            <p className="mt-1 text-[8px] sm:text-[9px] font-display uppercase tracking-wider text-muted-foreground truncate">
-              {locale === "fr" ? meta.label_fr : meta.label_en}
-            </p>
-            <span className="sr-only">
-              {spotlightPoleLabel(pole, locale)}, {filled}/{total}
-            </span>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
 function lensStatusBadge(
   lens: PortraitLensCard,
   loading: boolean | undefined,
@@ -142,18 +106,67 @@ function lensStatusBadge(
   return statusLabel(lens.status, locale);
 }
 
-/** Detail shelf only for shipped Myss / Tao questionnaires — not Jung, Blavatsky, etc. */
-function showCoverFlowDetailPanel(
-  lens: PortraitLensCard,
-  taoSummary: TaoPersonaSummary | null,
-): boolean {
-  if (lens.detailKind === "generic" || lens.comingSoon || lens.locked) return false;
-  if (lens.status !== "ready" && lens.status !== "partial") return false;
-  if (lens.detailKind === "tao") {
-    return Boolean(taoSummary?.hasContent) || lens.status === "partial";
-  }
-  if (lens.detailKind === "myss") return true;
-  return false;
+function PortraitLensActionButtons({
+  lens,
+  clinicalReports,
+  onOpenClinical,
+}: {
+  lens: PortraitLensCard;
+  clinicalReports: UserReport[];
+  onOpenClinical: (report: UserReport) => void;
+}) {
+  const { t, locale } = useLanguage();
+  const isFR = locale === "fr";
+  const clinicalReport = findClinicalReportForLens(clinicalReports, lens.id);
+
+  return (
+    <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+      {lens.locked && !lens.comingSoon ? (
+        <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground py-2 rounded-xl border border-border/25">
+          <Lock size={14} aria-hidden />
+          <span className="font-cinzel text-[10px] uppercase tracking-wider">
+            {isFR ? "À débloquer" : "Locked"}
+          </span>
+        </div>
+      ) : null}
+      {lens.actions.map((action: PortraitLensAction) => {
+        if (action.intent === "clinical") {
+          return (
+            <Button
+              key={action.labelKey}
+              type="button"
+              disabled={!clinicalReport}
+              onClick={() => clinicalReport && onOpenClinical(clinicalReport)}
+              variant={action.variant === "outline" ? "outline" : "default"}
+              className="min-h-[44px] flex-1 font-display text-xs tracking-wider gap-2"
+            >
+              {t(action.labelKey)}
+              <ArrowUpRight size={14} aria-hidden />
+            </Button>
+          );
+        }
+        if (!action.href) return null;
+        return (
+          <Button
+            key={action.href + action.labelKey}
+            asChild
+            variant={action.variant === "outline" ? "outline" : "default"}
+            className="min-h-[44px] flex-1 font-display text-xs tracking-wider gap-2"
+          >
+            <Link to={action.href}>
+              {t(action.labelKey)}
+              <ArrowUpRight size={14} aria-hidden />
+            </Link>
+          </Button>
+        );
+      })}
+      {lens.actions.some((a) => a.intent === "clinical") && !clinicalReport ? (
+        <p className="w-full text-center text-xs text-muted-foreground font-body sm:text-left">
+          {t("persona.lens.ctaClinicalMissing")}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 function PortraitLensActivePanel({
@@ -161,18 +174,29 @@ function PortraitLensActivePanel({
   loading,
   profile,
   taoSummary,
-  shadowTheme,
+  taoParts,
+  v4Analysis,
+  clinicalReports,
+  displayName,
   headingId,
+  onOpenClinical,
 }: {
   lens: PortraitLensCard;
   loading?: boolean;
   profile: SampleProfile;
   taoSummary: TaoPersonaSummary | null;
-  shadowTheme: string;
+  taoParts?: TaoPortraitPartRow[];
+  v4Analysis?: V4PoleAnalysis | null;
+  clinicalReports: UserReport[];
+  displayName?: string | null;
   headingId: string;
+  onOpenClinical: (report: UserReport) => void;
 }) {
   const { locale, t } = useLanguage();
   const isFR = locale === "fr";
+  const showMyssShelf = lens.detailKind === "myss" && lens.status !== "empty";
+  const showTaoShelf =
+    lens.detailKind === "tao" && (lens.status === "ready" || lens.status === "partial");
 
   return (
     <div
@@ -198,25 +222,15 @@ function PortraitLensActivePanel({
               : t(lens.emptyDetailKey ?? "persona.portraits.lensEmpty")}
           </p>
           {lens.actions.length > 0 ? (
-            <div className="flex flex-col sm:flex-row gap-2 pt-1">
-              {lens.actions.map((action) => (
-                <Button
-                  key={action.href + action.labelKey}
-                  asChild
-                  variant="default"
-                  className="min-h-[44px] font-display text-xs tracking-wider gap-2"
-                >
-                  <Link to={action.href}>
-                    {t(action.labelKey)}
-                    <ArrowUpRight size={14} aria-hidden />
-                  </Link>
-                </Button>
-              ))}
-            </div>
+            <PortraitLensActionButtons
+              lens={lens}
+              clinicalReports={clinicalReports}
+              onOpenClinical={onOpenClinical}
+            />
           ) : null}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {lens.title ? (
             <h3 className="font-cormorant-display text-xl sm:text-2xl text-foreground leading-tight line-clamp-2">
               {lens.title}
@@ -234,40 +248,39 @@ function PortraitLensActivePanel({
               />
             </div>
           ) : null}
-          {lens.detailKind === "myss" ? (
-            <div className="space-y-3 rounded-xl border border-border/30 bg-background/25 p-3">
-              <PersonaTriadStrip profile={profile} headingId={`${headingId}-triad`} embedded />
-              <p className="text-xs text-muted-foreground px-1">
-                {t("persona.glimpse.shadowHint", { theme: shadowTheme })}
-              </p>
+
+          {showMyssShelf ? (
+            <div className="rounded-2xl border border-border/30 bg-background/20 p-3 sm:p-4 overflow-hidden">
+              <DeepDiveUserCards
+                profile={profile}
+                v4Analysis={v4Analysis ?? null}
+                layout="stack"
+              />
             </div>
           ) : null}
-          {lens.detailKind === "tao" && taoSummary?.hasContent ? (
-            <TaoPoleMiniGrid taoSummary={taoSummary} locale={locale} />
+
+          {showTaoShelf ? (
+            <div className="rounded-2xl border border-border/30 bg-background/20 p-2 sm:p-3 overflow-hidden">
+              <TaoPortraitPanel
+                parts={taoParts ?? []}
+                loading={loading}
+                variant="embedded"
+                displayName={displayName ?? null}
+              />
+            </div>
           ) : null}
-          <div className="flex flex-col sm:flex-row gap-2">
-            {lens.locked && !lens.comingSoon ? (
-              <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground py-2 rounded-xl border border-border/25">
-                <Lock size={14} aria-hidden />
-                <span className="font-cinzel text-[10px] uppercase tracking-wider">
-                  {isFR ? "Complète le Deep Dive" : "Complete the Deep Dive"}
-                </span>
-              </div>
-            ) : null}
-            {lens.actions.map((action) => (
-              <Button
-                key={action.href + action.labelKey}
-                asChild
-                variant={action.variant === "outline" ? "outline" : "default"}
-                className="min-h-[44px] flex-1 font-display text-xs tracking-wider gap-2"
-              >
-                <Link to={action.href}>
-                  {t(action.labelKey)}
-                  <ArrowUpRight size={14} aria-hidden />
-                </Link>
-              </Button>
-            ))}
-          </div>
+
+          {lens.detailKind === "generic" && !lens.locked && !lens.comingSoon && lens.status === "empty" ? (
+            <p className="text-sm text-muted-foreground font-body">{t(lens.emptyDetailKey ?? "persona.portraits.lensEmpty")}</p>
+          ) : null}
+
+          {lens.actions.length > 0 ? (
+            <PortraitLensActionButtons
+              lens={lens}
+              clinicalReports={clinicalReports}
+              onOpenClinical={onOpenClinical}
+            />
+          ) : null}
         </div>
       )}
     </div>
@@ -280,12 +293,24 @@ function PersonaPortraitLibraryCarousel({
   loading,
   profile,
   taoSummary,
+  taoParts,
+  v4Analysis,
+  clinicalReports = [],
+  displayName,
   shadowTheme,
   headingId,
+  initialLensId,
 }: Omit<PersonaPortraitLibraryProps, "fullPage" | "hideIntro">) {
   const { locale, t } = useLanguage();
   const isFR = locale === "fr";
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [clinicalModal, setClinicalModal] = useState<UserReport | null>(null);
+  const [activeIndex, setActiveIndex] = useState(() => {
+    if (initialLensId) {
+      const idx = lenses.findIndex((l) => l.id === initialLensId);
+      if (idx >= 0) return idx;
+    }
+    return 0;
+  });
   const swipeSurfaceRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useMemo(
     () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -297,6 +322,12 @@ function PersonaPortraitLibraryCarousel({
   useEffect(() => {
     if (activeIndex >= lenses.length) setActiveIndex(Math.max(0, lenses.length - 1));
   }, [lenses.length, activeIndex]);
+
+  useEffect(() => {
+    if (!initialLensId) return;
+    const idx = lenses.findIndex((l) => l.id === initialLensId);
+    if (idx >= 0) setActiveIndex(idx);
+  }, [initialLensId, lenses]);
 
   const goTo = (index: number) => {
     const n = lenses.length;
@@ -349,6 +380,8 @@ function PersonaPortraitLibraryCarousel({
             const flow = coverFlowCardStyle(offset, reduceMotion);
             const isCenter = offset === 0;
             const hasCoverArt = Boolean(lens.coverArtUrl);
+            const veilAuthor = Boolean(lens.locked || lens.comingSoon);
+            const showCoverPortrait = hasCoverArt && !veilAuthor;
 
             return (
               <button
@@ -357,11 +390,7 @@ function PersonaPortraitLibraryCarousel({
                 role="tab"
                 id={`persona-lens-cover-${lens.id}`}
                 aria-selected={isCenter}
-                aria-controls={
-                  showCoverFlowDetailPanel(lens, taoSummary)
-                    ? `persona-lens-panel-${lens.id}`
-                    : undefined
-                }
+                aria-controls={isCenter ? `persona-lens-panel-${lens.id}` : undefined}
                 onClick={() => {
                   if (!isCenter) goTo(index);
                 }}
@@ -382,15 +411,12 @@ function PersonaPortraitLibraryCarousel({
                     : undefined,
                 }}
               >
-                {hasCoverArt ? (
+                {showCoverPortrait ? (
                   <>
                     <img
                       src={lens.coverArtUrl}
                       alt=""
-                      className={cn(
-                        "pointer-events-none absolute inset-0 h-full w-full object-cover object-top",
-                        lens.locked || lens.comingSoon ? "saturate-[0.55] brightness-[0.72]" : "",
-                      )}
+                      className="pointer-events-none absolute inset-0 h-full w-full object-cover object-top"
                       loading="lazy"
                       decoding="async"
                       draggable={false}
@@ -421,12 +447,33 @@ function PersonaPortraitLibraryCarousel({
                         {t(lens.systemKey)}
                       </p>
                     </div>
-                    {lens.locked || lens.comingSoon ? (
-                      <div
-                        className="pointer-events-none absolute inset-0 z-[1] bg-background/15 backdrop-blur-[0.5px]"
-                        aria-hidden
-                      />
-                    ) : null}
+                  </>
+                ) : hasCoverArt && veilAuthor ? (
+                  <>
+                    <div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background: `radial-gradient(120% 90% at 50% 100%, color-mix(in srgb, ${lens.accentColor} 28%, hsl(var(--background))), hsl(var(--card)))`,
+                      }}
+                      aria-hidden
+                    />
+                    <div
+                      className="pointer-events-none absolute inset-0 opacity-40"
+                      style={{
+                        boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${lens.accentColor} 35%, transparent)`,
+                      }}
+                      aria-hidden
+                    />
+                    <span className="absolute right-3 top-3 z-[1] rounded-full border border-border/40 bg-background/80 px-2.5 py-0.5 text-[8px] font-display uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
+                      {badge}
+                    </span>
+                    <div className="relative z-[1] flex flex-1 flex-col items-center justify-center gap-3 px-5 py-8 text-center">
+                      <Lock size={20} className="text-muted-foreground" aria-hidden />
+                      <p className="font-cormorant text-[2rem] leading-[1.05] text-foreground sm:text-[2.35rem]">
+                        {t(lens.systemKey)}
+                      </p>
+                      <p className="sr-only">{t(lens.frameworkKey)}</p>
+                    </div>
                   </>
                 ) : (
                   <>
@@ -528,23 +575,33 @@ function PersonaPortraitLibraryCarousel({
         </Button>
       </div>
 
-      <p className="mt-4 text-center font-cinzel text-[9px] uppercase tracking-[0.22em] text-muted-foreground/75">
-        {t("persona.portraits.coverFlowHint")}
-      </p>
       </div>
 
-      {activeLens && showCoverFlowDetailPanel(activeLens, taoSummary) ? (
+      {activeLens ? (
         <div className="mt-5 w-full box-border pl-3 pr-3 sm:pl-5 sm:pr-5 max-lg:pr-[var(--member-top-dock-clearance)] lg:px-8">
           <PortraitLensActivePanel
             lens={activeLens}
             loading={loading}
             profile={profile}
             taoSummary={taoSummary}
-            shadowTheme={shadowTheme}
+            taoParts={taoParts}
+            v4Analysis={v4Analysis}
+            clinicalReports={clinicalReports}
+            displayName={displayName}
             headingId={headingId}
+            onOpenClinical={(report) => {
+              setClinicalModal(report);
+              void markUserReportRead(report.id);
+            }}
           />
         </div>
       ) : null}
+
+      <UserReportModal
+        report={clinicalModal}
+        open={!!clinicalModal}
+        onOpenChange={(open) => !open && setClinicalModal(null)}
+      />
     </section>
   );
 }
@@ -554,8 +611,13 @@ export function PersonaPortraitLibrary({
   loading,
   profile,
   taoSummary,
+  taoParts,
+  v4Analysis,
+  clinicalReports = [],
+  displayName,
   shadowTheme,
   headingId,
+  initialLensId,
   fullPage = false,
   hideIntro = false,
 }: PersonaPortraitLibraryProps) {
@@ -566,8 +628,13 @@ export function PersonaPortraitLibrary({
         loading={loading}
         profile={profile}
         taoSummary={taoSummary}
+        taoParts={taoParts}
+        v4Analysis={v4Analysis}
+        clinicalReports={clinicalReports}
+        displayName={displayName}
         shadowTheme={shadowTheme}
         headingId={headingId}
+        initialLensId={initialLensId}
       />
     );
   }
@@ -575,7 +642,8 @@ export function PersonaPortraitLibrary({
   const { locale, t } = useLanguage();
   const isFR = locale === "fr";
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeId, setActiveId] = useState(() => defaultPortraitLensId(lenses));
+  const [clinicalModal, setClinicalModal] = useState<UserReport | null>(null);
+  const [activeId, setActiveId] = useState(() => initialLensId ?? defaultPortraitLensId(lenses));
 
   const activeLens = useMemo(
     () => lenses.find((l) => l.id === activeId) ?? lenses[0],
@@ -587,6 +655,13 @@ export function PersonaPortraitLibrary({
       setActiveId(defaultPortraitLensId(lenses));
     }
   }, [lenses, activeId]);
+
+  useEffect(() => {
+    if (!initialLensId) return;
+    if (lenses.some((l) => l.id === initialLensId)) {
+      setActiveId(initialLensId);
+    }
+  }, [initialLensId, lenses]);
 
   const publishedCount = lenses.filter((l) => l.status === "ready" || l.status === "partial").length;
 
@@ -655,6 +730,7 @@ export function PersonaPortraitLibrary({
                 : lens.status === "ready"
                   ? 100
                   : 0;
+            const veilAuthor = Boolean(lens.locked || lens.comingSoon);
 
             return (
               <button
@@ -681,10 +757,12 @@ export function PersonaPortraitLibrary({
                 }
               >
                 <div className="flex flex-col gap-1.5">
-                  <p className="font-cormorant text-lg leading-none text-foreground line-clamp-2">
-                    {t(lens.frameworkKey)}
-                  </p>
-                  <div className="flex items-center gap-2">
+                  {!veilAuthor ? (
+                    <p className="font-cormorant text-lg leading-none text-foreground line-clamp-2">
+                      {t(lens.frameworkKey)}
+                    </p>
+                  ) : null}
+                  <div className={cn("flex items-center gap-2", veilAuthor && "justify-center py-1")}>
                     <div
                       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border"
                       style={{
@@ -695,10 +773,16 @@ export function PersonaPortraitLibrary({
                     >
                       <Icon size={13} strokeWidth={1.5} aria-hidden />
                     </div>
-                    <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground truncate">
+                    <p
+                      className={cn(
+                        "font-display uppercase tracking-wider text-muted-foreground truncate",
+                        veilAuthor ? "text-[10px] text-foreground/90" : "text-[9px]",
+                      )}
+                    >
                       {t(lens.systemKey)}
                     </p>
                   </div>
+                  {veilAuthor ? <p className="sr-only">{t(lens.frameworkKey)}</p> : null}
                 </div>
                 <div className="mt-2.5 flex items-center justify-between gap-2">
                   <span
@@ -734,135 +818,28 @@ export function PersonaPortraitLibrary({
       </div>
 
       {activeLens ? (
-        <div
-          id={`persona-lens-panel-${activeLens.id}`}
-          role="tabpanel"
-          aria-labelledby={`persona-lens-tab-${activeLens.id}`}
-          className="px-4 sm:px-5 py-5 sm:py-6"
-          style={{
-            borderTop: `3px solid color-mix(in srgb, ${activeLens.accentColor} 55%, transparent)`,
-            background: `linear-gradient(180deg, color-mix(in srgb, ${activeLens.accentColor} 5%, transparent) 0%, transparent 28%)`,
+        <PortraitLensActivePanel
+          lens={activeLens}
+          loading={loading}
+          profile={profile}
+          taoSummary={taoSummary}
+          taoParts={taoParts}
+          v4Analysis={v4Analysis}
+          clinicalReports={clinicalReports}
+          displayName={displayName}
+          headingId={headingId}
+          onOpenClinical={(report) => {
+            setClinicalModal(report);
+            void markUserReportRead(report.id);
           }}
-        >
-          {loading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
-              <Loader2 size={16} className="animate-spin" aria-hidden />
-              {isFR ? "Chargement des portraits…" : "Loading portraits…"}
-            </div>
-          ) : activeLens.status === "empty" ? (
-            <div className="space-y-4 py-2 text-center sm:text-left">
-              <h3 className="font-cormorant text-3xl sm:text-4xl text-foreground tracking-tight">
-                {t(activeLens.frameworkKey)}
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed font-body max-w-lg">
-                {activeLens.comingSoon
-                  ? t("persona.lens.comingSoon")
-                  : t(activeLens.emptyDetailKey ?? "persona.portraits.lensEmpty")}
-              </p>
-              {activeLens.actions.length > 0 ? (
-                <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                  {activeLens.actions.map((action) => (
-                    <Button
-                      key={action.href + action.labelKey}
-                      asChild
-                      variant="default"
-                      className="min-h-[44px] font-display text-xs tracking-wider gap-2"
-                    >
-                      <Link to={action.href}>
-                        {t(action.labelKey)}
-                        <ArrowUpRight size={14} aria-hidden />
-                      </Link>
-                    </Button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="space-y-5">
-              <div className="flex gap-4">
-                {activeLens.mark ? (
-                  <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border bg-background/60 text-xl font-display"
-                    style={{
-                      color: activeLens.accentColor,
-                      borderColor: `color-mix(in srgb, ${activeLens.accentColor} 35%, transparent)`,
-                    }}
-                    aria-hidden
-                  >
-                    {activeLens.mark}
-                  </div>
-                ) : null}
-                <div className="min-w-0 flex-1 space-y-2">
-                  <p className="font-display text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                    {t(activeLens.frameworkKey)} · {t(activeLens.systemKey)}
-                  </p>
-                  {activeLens.eyebrow ? (
-                    <p className="text-[10px] font-display uppercase tracking-[0.16em] text-muted-foreground/90">
-                      {activeLens.eyebrow}
-                    </p>
-                  ) : null}
-                  {activeLens.title ? (
-                    <h3 className="font-cormorant-display text-xl sm:text-2xl text-foreground leading-tight line-clamp-2">
-                      {activeLens.title}
-                    </h3>
-                  ) : null}
-                </div>
-              </div>
-
-              {activeLens.excerpt ? (
-                <p className="text-sm text-muted-foreground leading-relaxed font-body line-clamp-5 sm:line-clamp-6">
-                  {activeLens.excerpt}
-                </p>
-              ) : null}
-
-              {activeLens.progressTotal != null && activeLens.progressFilled != null ? (
-                <div className="space-y-2">
-                  <LensProgressBar
-                    filled={activeLens.progressFilled}
-                    total={activeLens.progressTotal}
-                    accentColor={activeLens.accentColor}
-                  />
-                  <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground">
-                    {t("persona.glimpse.taoProgress", {
-                      filled: String(activeLens.progressFilled),
-                      total: String(activeLens.progressTotal),
-                    })}
-                  </p>
-                </div>
-              ) : null}
-
-              {activeLens.detailKind === "myss" ? (
-                <div className="space-y-3 rounded-xl border border-border/30 bg-background/25 p-3 sm:p-4">
-                  <PersonaTriadStrip profile={profile} headingId={`${headingId}-triad`} embedded />
-                  <p className="text-xs text-muted-foreground px-1">
-                    {t("persona.glimpse.shadowHint", { theme: shadowTheme })}
-                  </p>
-                </div>
-              ) : null}
-
-              {activeLens.detailKind === "tao" && taoSummary?.hasContent ? (
-                <TaoPoleMiniGrid taoSummary={taoSummary} locale={locale} />
-              ) : null}
-
-              <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                {activeLens.actions.map((action) => (
-                  <Button
-                    key={action.href + action.labelKey}
-                    asChild
-                    variant={action.variant === "outline" ? "outline" : "default"}
-                    className="min-h-[44px] flex-1 font-display text-xs tracking-wider gap-2"
-                  >
-                    <Link to={action.href}>
-                      {t(action.labelKey)}
-                      <ArrowUpRight size={14} aria-hidden />
-                    </Link>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        />
       ) : null}
+
+      <UserReportModal
+        report={clinicalModal}
+        open={!!clinicalModal}
+        onOpenChange={(open) => !open && setClinicalModal(null)}
+      />
     </section>
   );
 }

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAdmin } from "@/hooks/use-admin";
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { STRIPE_PRICE_AEGIS_SOLO_LOGOS_MONTHLY } from "@/lib/soloPlanQuotas";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   agentReady: boolean;
@@ -22,13 +25,23 @@ type Props = {
 };
 
 export function LogosSubscriptionGate({ agentReady, agentChecked, exitPath, children }: Props) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const { hasLogos, loading: subLoading } = useSubscription();
   const { isAdmin, loading: adminLoading } = useAdmin();
+  const { openCheckout, loading: checkoutLoading } = useStripeCheckout();
+  const isFR = locale === "fr";
 
   const loading = subLoading || adminLoading;
   const entitled = hasLogos || isAdmin;
+
+  const startLogosCheckout = async () => {
+    try {
+      await openCheckout(STRIPE_PRICE_AEGIS_SOLO_LOGOS_MONTHLY);
+    } catch {
+      toast.error(isFR ? "Paiement indisponible." : "Payment unavailable.");
+    }
+  };
 
   if (loading || !agentChecked) {
     return (
@@ -47,10 +60,20 @@ export function LogosSubscriptionGate({ agentReady, agentChecked, exitPath, chil
             <DialogDescription>{t("voiceAgent.noSubscriptionBody")}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button className="w-full" onClick={() => navigate("/pricing")}>
+            <Button
+              className="w-full"
+              disabled={checkoutLoading}
+              onClick={() => void startLogosCheckout()}
+            >
+              {checkoutLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+              ) : null}
+              {t("voiceAgent.upgradeLogosCta")}
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => navigate("/pricing")}>
               {t("voiceAgent.noSubscriptionCta")}
             </Button>
-            <Button variant="outline" className="w-full" onClick={() => navigate(exitPath)}>
+            <Button variant="ghost" className="w-full" onClick={() => navigate(exitPath)}>
               {t("voiceAgent.noAccessCta")}
             </Button>
           </DialogFooter>

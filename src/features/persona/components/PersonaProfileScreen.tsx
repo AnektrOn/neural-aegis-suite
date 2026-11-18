@@ -1,36 +1,22 @@
-import { LayoutDashboard, Layers, Settings2, User } from "lucide-react";
+import { Settings2, User, Layers } from "lucide-react";
 import AegisHealthSection from "@/components/AegisHealthSection";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersonaStatsSection } from "./PersonaStatsSection";
-import { PersonaTrackingStrip } from "./PersonaTrackingStrip";
-import {
-  TrackingProgressBridge,
-  PersonaLinkRow,
-  PersonaNowCard,
-  getPersonaContent,
-  type PersonaViewProps,
-} from "./personaParts";
+import { PersonaLinkRow, getPersonaContent, type PersonaViewProps } from "./personaParts";
 import { Houses72PersonaCTA } from "@/features/houses72/components/Houses72PersonaCTA";
 import { UserReportsSection } from "@/features/user-reports/UserReportsSection";
 
-/** Mobile-only Persona hub — centered profile cover, single column. */
-export function PersonaProfileScreen({
-  profile,
-  displayName,
-  tracking,
-}: PersonaViewProps) {
+/** Mobile Persona — reports portal inside AEGIS (not the daily dashboard). */
+export function PersonaProfileScreen({ profile, displayName }: PersonaViewProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
   const {
-    n,
     shownName,
     classTitle,
     dominantTheme,
     DominantIcon,
-    spotlightPractice,
-    practiceTitle,
     bioLine,
   } = getPersonaContent(profile, displayName);
 
@@ -77,7 +63,6 @@ export function PersonaProfileScreen({
       </header>
 
       <div className="relative z-10 -mt-8 space-y-5 px-4">
-        {tracking ? <PersonaTrackingStrip stats={tracking} /> : null}
         <AegisHealthSection variant="compact" />
 
         <PersonaLinkRow
@@ -87,19 +72,11 @@ export function PersonaProfileScreen({
           detail={t("persona.glimpse.portraitsDetail")}
         />
 
-        {user?.id ? <UserReportsSection userId={user.id} /> : null}
+        <Houses72PersonaCTA userId={user?.id} />
 
         <PersonaStatsSection profile={profile} />
 
-        {spotlightPractice && practiceTitle ? (
-          <PersonaNowCard
-            practiceTitle={practiceTitle}
-            description={spotlightPractice.description}
-            headingId="persona-now-heading-mobile"
-          />
-        ) : null}
-
-        <Houses72PersonaCTA userId={user?.id} />
+        {user?.id ? <UserReportsSection userId={user.id} /> : null}
 
         <section className="space-y-2" aria-labelledby="persona-links-heading-mobile">
           <p
@@ -120,20 +97,7 @@ export function PersonaProfileScreen({
             title={t("persona.glimpse.appSettingsLink")}
             detail={t("persona.glimpse.appSettingsDetail")}
           />
-          <PersonaLinkRow
-            to="/"
-            icon={<LayoutDashboard size={18} strokeWidth={1.5} aria-hidden />}
-            title={t("persona.glimpse.dashboardLink")}
-            detail={t("persona.glimpse.dashboardDetail")}
-          />
         </section>
-
-
-
-
-        <p className="text-center text-[11px] text-muted-foreground/80 font-body px-4 leading-relaxed pb-2">
-          {t("persona.glimpse.footerNote")}
-        </p>
       </div>
     </div>
   );

@@ -43,6 +43,7 @@ import { MermaidDiagram } from "@/components/archetype-balance/MermaidDiagram";
 import { ClinicalMermaidViewer } from "./ClinicalMermaidViewer";
 import { MarkdownBody } from "./MarkdownBody";
 import { openMdPdfPrintWindow } from "@/features/md-pdf/exportMarkdownPdf";
+import { normalizeUserReport } from "../normalizeUserReport";
 
 interface ClinicalReportReaderProps {
   report: UserReport | null;
@@ -77,6 +78,16 @@ export function ClinicalReportReader({
 
   const articleScrollRef = useRef<HTMLDivElement | null>(null);
 
+  const clinical = useMemo(() => (report ? normalizeUserReport(report) : null), [report]);
+
+  useEffect(() => {
+    if (!open) return;
+    setActiveTab("report");
+    setLangMode(isGlobalFR ? "fr" : "en");
+    setReadingProgress(0);
+    setActiveSectionId("");
+  }, [open, report?.id, isGlobalFR]);
+
   // Synchronise le prompt IA avec la langue générale
   useEffect(() => {
     if (langMode === "en") {
@@ -86,13 +97,13 @@ export function ClinicalReportReader({
     }
   }, [langMode]);
 
-  // Détection du mode V3.2 vs Legacy
-  const isV3 = Boolean(report?.pack_files && report.pack_files.rapport_md);
-  const rawRapportMd = isV3 ? report!.pack_files!.rapport_md : report?.content_md || "";
-  const resumeMd = report?.pack_files?.resume_md || "";
-  const bulletPointsMd = report?.pack_files?.bullet_points_md || "";
-  const graphiqueMd = report?.pack_files?.graphique_md || "";
-  const promptAiMd = report?.pack_files?.prompt_ai_md || "";
+  const pack = clinical?.pack_files;
+  const rawRapportMd = (pack?.rapport_md || clinical?.content_md || "").trim();
+  const isV3 = Boolean(pack && (pack.rapport_md?.trim() || pack.resume_md || pack.bullet_points_md));
+  const resumeMd = pack?.resume_md || "";
+  const bulletPointsMd = pack?.bullet_points_md || "";
+  const graphiqueMd = pack?.graphique_md || "";
+  const promptAiMd = pack?.prompt_ai_md || "";
 
   // Détection des diagrammes (fichier dédié ou extrait du rapport)
   const effectiveDiagramMd = useMemo(() => {
@@ -144,9 +155,10 @@ export function ClinicalReportReader({
   }, [activePromptText]);
 
   // Métadonnées et compteurs
-  const levelLabel = report?.level_code || (report?.tier ? `LEVEL_${report.tier}` : "LEVEL_1");
-  const scopeLabel = report?.scope === "trans" ? "TRANS-PRISME" : "INTRA-PRISME";
-  const prismLabel = report?.prism_code || report?.orientation || "MYSS";
+  const levelLabel = clinical?.level_code || (clinical?.tier ? `LEVEL_${clinical.tier}` : "LEVEL_1");
+  const scopeLabel = clinical?.scope === "trans" ? "TRANS-PRISME" : "INTRA-PRISME";
+  const prismLabel = clinical?.prism_code || clinical?.orientation || "MYSS";
+  const bodySections = sectionPairs.filter((p) => !p.is_safeguard);
 
   const wordCount = useMemo(() => {
     return (rawRapportMd || "").trim().split(/\s+/).filter(Boolean).length;
@@ -254,7 +266,7 @@ export function ClinicalReportReader({
           "p-0 gap-0 border-white/10 bg-transparent shadow-2xl transition-all duration-300",
           isFullscreen
             ? "w-screen h-screen max-w-none max-h-none rounded-none m-0"
-            : "max-w-6xl w-[95vw] h-[92vh] max-h-[94vh] rounded-2xl overflow-hidden flex flex-col",
+            : "max-w-6xl w-[95vw] h-[92vh] max-h-[94vh] rounded-2xl overflow-hidden flex flex-col min-h-0",
         )}
       >
         <DialogTitle className="sr-only">{report.title || "Rapport Clinique"}</DialogTitle>
@@ -272,7 +284,7 @@ export function ClinicalReportReader({
           }}
         />
 
-        <div className="relative flex flex-col h-full rounded-2xl border border-white/10 bg-[hsl(var(--background))]/92 backdrop-blur-3xl overflow-hidden">
+        <div className="relative flex min-h-0 flex-1 flex-col h-full rounded-2xl border border-white/10 bg-[hsl(var(--background))]/92 backdrop-blur-3xl overflow-hidden">
           {/* HEADER STATUTAIRE CLINIQUE */}
           <header className="relative border-b border-white/10 px-6 py-4 bg-black/25 shrink-0">
             <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -461,7 +473,7 @@ export function ClinicalReportReader({
           <div
             ref={articleScrollRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 relative"
+            className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-8 py-6 relative"
           >
             {/* 00. RAPPORT INTÉGRAL */}
             {activeTab === "report" && (
@@ -559,12 +571,17 @@ export function ClinicalReportReader({
                       </div>
                     ) : null}
 
-                    {/* Rendu Bilingue : SPLIT VIEW (Côte à côte) */}
-                    {langMode === "split" ? (
+                    {bodySections.length === 0 && rawRapportMd ? (
+                      <article className="mx-auto max-w-3xl space-y-4">
+                        <MarkdownBody size="base">
+                          {langMode === "en"
+                            ? cleanEn || cleanFr || rawRapportMd
+                            : cleanFr || cleanEn || rawRapportMd}
+                        </MarkdownBody>
+                      </article>
+                    ) : langMode === "split" ? (
                       <div className="space-y-10">
-                        {sectionPairs
-                          .filter((p) => !p.is_safeguard)
-                          .map((pair, idx) => (
+                        {bodySections.map((pair, idx) => (
                             <section
                               key={pair.id}
                               id={pair.id}
@@ -606,11 +623,8 @@ export function ClinicalReportReader({
                           ))}
                       </div>
                     ) : (
-                      /* Rendu Monocanal (FR Pur ou EN Pur) */
                       <article className="mx-auto max-w-3xl space-y-10">
-                        {sectionPairs
-                          .filter((p) => !p.is_safeguard)
-                          .map((pair, idx) => {
+                        {bodySections.map((pair, idx) => {
                             const title = langMode === "en" ? pair.title_en : pair.title_fr;
                             const content = langMode === "en" ? pair.content_en : pair.content_fr;
 

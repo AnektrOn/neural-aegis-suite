@@ -15,12 +15,13 @@
     <script>
       (function () {
         try {
+          var stored = localStorage.getItem("theme");
+          var light = stored === "light";
           var root = document.documentElement;
-          root.classList.add("dark");
-          root.classList.remove("light");
-          localStorage.setItem("theme", "dark");
+          root.classList.toggle("light", light);
+          root.classList.toggle("dark", !light);
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute("content", "#08090D");
+          if (meta) meta.setAttribute("content", light ? "#f5f2eb" : "#0b0b0a");
         } catch (e) {}
       })();
     </script>

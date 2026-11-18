@@ -9,12 +9,9 @@ import type { ArchetypeKey } from "@/features/archetype-assessment/domain/types"
 import { useLanguage } from "@/i18n/LanguageContext";
 import { parseProfileLabel } from "../lib/parseProfileLabel";
 import { themeFor } from "../lib/archetypeTheme";
-import type { PersonaTrackingStats } from "../services/personaTrackingStats";
-
 export interface PersonaViewProps {
   profile: SampleProfile;
   displayName?: string;
-  tracking: PersonaTrackingStats | null;
 }
 
 export function archName(key: AnyArchetypeKey, locale: "fr" | "en"): string {
