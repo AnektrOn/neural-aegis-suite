@@ -16,6 +16,7 @@ export default function AppSumoRedemption() {
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState('');
+  const [emailsPending, setEmailsPending] = useState(false);
   const fr = locale === 'fr';
   const signedIn = !!user && !isGuest && !isAnonymous;
 
@@ -24,9 +25,9 @@ export default function AppSumoRedemption() {
     setBusy(true);
     setMessage('');
     try {
-      const { data, error } = await supabase.rpc('redeem_appsumo_code', { input_code: code.trim().toUpperCase() });
+      const { data, error } = await supabase.functions.invoke('redeem-appsumo', { body: { code: code.trim().toUpperCase(), locale } });
       if (error) throw error;
-      const result = data as { success?: boolean; error?: string } | null;
+      const result = data as { success?: boolean; error?: string; emails?: string } | null;
       if (!result?.success) {
         const errors: Record<string, string> = {
           invalid_code: fr ? 'Code invalide ou désactivé.' : 'Invalid or deactivated code.',
@@ -38,6 +39,7 @@ export default function AppSumoRedemption() {
         return;
       }
       await refetch();
+      setEmailsPending(result.emails === 'pending');
       setSuccess(true);
     } catch {
       setMessage(fr ? 'Activation indisponible. Réessayez dans un instant.' : 'Redemption unavailable. Please try again shortly.');
@@ -49,6 +51,7 @@ export default function AppSumoRedemption() {
     <p className="text-sm text-muted-foreground">AEGIS Solo · {fr ? 'Accès à vie, sans LOGOS' : 'Lifetime access, without LOGOS'}</p>
     {success ? <div role="status" className="space-y-3">
       <p className="text-sm text-foreground">{fr ? 'Votre accès AEGIS Solo à vie est activé.' : 'Your AEGIS Solo lifetime access is activated.'}</p>
+      {emailsPending && <div className="space-y-2"><p className="text-sm text-muted-foreground">{fr ? 'Votre accès est actif, mais l’email de confirmation est encore en attente.' : 'Your access is active, but the confirmation email is still pending.'}</p><Button variant="outline" disabled={busy} onClick={() => { setSuccess(false); }}>{fr ? 'Réessayer la confirmation' : 'Retry confirmation'}</Button></div>}
       <Button asChild><Link to="/dashboard">{fr ? 'Ouvrir AEGIS' : 'Open AEGIS'}</Link></Button>
     </div> : signedIn ? <form onSubmit={redeem} className="space-y-3">
       <label htmlFor="appsumo-code" className="block text-sm text-foreground">{fr ? 'Code AppSumo' : 'AppSumo code'}</label>

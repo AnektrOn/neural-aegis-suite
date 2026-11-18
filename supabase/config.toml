@@ -1,31 +1,27 @@
 project_id = "REDACTED"
 
-[functions.drive-debug]
-verify_jwt = true
-
-[functions.send-newsletter-email]
-verify_jwt = false
-
-[functions.scan-alerts]
-verify_jwt = true
-
-[functions.stripe-webhook]
-verify_jwt = false
-
-[functions.stripe-checkout]
-verify_jwt = false
-
-[functions.stripe-portal]
-verify_jwt = false
-
-[functions.founders-availability]
-verify_jwt = false
-
-[functions.import-meditation-drive-links]
-verify_jwt = true
-
-[functions.stream-meditation-audio]
-verify_jwt = false
-
-[functions.agent-session]
-verify_jwt = true
+[functions]
+  [functions.agent-session]
+    verify_jwt = true
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.preview-transactional-email]
+    verify_jwt = false
+  [functions.drive-debug]
+    verify_jwt = true
+  [functions.founders-availability]
+    verify_jwt = false
+  [functions.import-meditation-drive-links]
+    verify_jwt = true
+  [functions.scan-alerts]
+    verify_jwt = true
+  [functions.send-newsletter-email]
+    verify_jwt = false
+  [functions.stream-meditation-audio]
+    verify_jwt = false
+  [functions.stripe-checkout]
+    verify_jwt = false
+  [functions.stripe-portal]
+    verify_jwt = false
+  [functions.stripe-webhook]
+    verify_jwt = false

@@ -1,6 +1,7 @@
 # Project rules
 
 - Redeem AppSumo codes through the authenticated atomic database function, with private code hashes and Solo lifetime subscription rows; never expose the code catalogue or grant LOGOS through redemption.
+- AppSumo UI calls its authenticated feature function, which retains atomic redemption and sends persisted activation-specific member/operator notices through the managed email helper; stable per-recipient keys make retries safe without changing access.
 - Landing and app share LanguageContext and localePreference storage; one persisted language prevents route changes from resetting it.
 
 - Public Solo checkout carries a payment-first marker without a user ID; only the signed paid-checkout handler resolves or invites the Stripe email owner, preserving existing credentials and never returning login tokens through checkout status.

@@ -2,7 +2,9 @@
 
 ## AppSumo test reset and confirmation emails — 18 November 2026
 - [x] Remove only the lifetime activation associated with the supplied test code and restore that code for reuse, preserving the account and other data.
-- [ ] Send an automatic welcome/activation confirmation to the member and an activation notice to platform admins including the member email and actual account creation date; blocked until a sender domain is configured for Lovable app emails.
+- [x] Set up managed sender infrastructure, scaffold AEGIS auth templates and deploy auth-email-hook; sender verification proceeds in More → Emails.
+- [x] Implement and deploy AppSumo member confirmation and operator notices with member email and actual account creation date, trusted recipients and stable event keys. Eleven regression tests pass; signed-in invalid-code submission verified on desktop/mobile without consuming a valid code; preview build OK.
+- [ ] Verify successful welcome/admin email delivery after DNS verification and a fresh activation. Sender still verifying; frontend trigger requires publication. Pending confirmation can be retried without re-granting access.
 
 ## AppSumo redemption and language — 17 November 2026
 - [x] Import 999 supplied codes as valid plus one newly generated code; grant Solo lifetime without LOGOS through authenticated, atomic redemption.
