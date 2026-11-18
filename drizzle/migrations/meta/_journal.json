@@ -120,6 +120,13 @@
       "when": 1794974850633,
       "tag": "0016_weekly_logos_opening_batches",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794976111041,
+      "tag": "0017_restrict_logos_prompt_reads",
+      "breakpoints": true
     }
   ]
 }
