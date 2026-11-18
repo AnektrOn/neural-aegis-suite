@@ -50,7 +50,7 @@ export function renderPage(template: string, page: Page): string {
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(page.title)}$2`)
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(page.description)}$2`)
     .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${esc(page.description)}$2`)
-    .replace(/<div id="root"><\/div>/, `<div id="root"><main data-prerendered="true">${page.body}</main></div>`);
+    .replace(/<div id="root"><\/div>/, `<div id="root"><main data-prerendered="true" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">${page.body}</main></div>`);
 }
 
 type DynPage = Page & { lastmod?: string };
