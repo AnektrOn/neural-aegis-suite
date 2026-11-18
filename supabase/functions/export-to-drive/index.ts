@@ -7,6 +7,7 @@ import { corsHeaders as sdkCorsHeaders } from "npm:@supabase/supabase-js@2/cors"
 import { HOUSES72_BAREME_MD } from "./houses72-bareme.ts";
 import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows, categoryForTable } from "./full-export.ts";
 import { completedVoiceFeedback, voiceFeedbackDocument, type VoiceFeedback } from "./voice-export.ts";
+import { buildLogosTranscript } from "./logos-transcript.ts";
 
 const corsHeaders = {
   ...sdkCorsHeaders,
@@ -111,12 +112,12 @@ async function findOrCreateFolder(
   return inserted.drive_id;
 }
 
-async function uploadMarkdown(parentId: string, filename: string, content: string): Promise<string> {
+async function uploadMarkdown(parentId: string, filename: string, content: string, mimeType = "text/markdown", properties?: Record<string, string>): Promise<string> {
   const boundary = "aegis_" + crypto.randomUUID();
-  const metadata = { name: filename, parents: [parentId], mimeType: "text/markdown" };
+  const metadata = { name: filename, parents: [parentId], mimeType, ...(properties ? { appProperties: properties } : {}) };
   const body =
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
-    `--${boundary}\r\nContent-Type: text/markdown; charset=UTF-8\r\n\r\n${content}\r\n--${boundary}--`;
+    `--${boundary}\r\nContent-Type: ${mimeType}; charset=UTF-8\r\n\r\n${content}\r\n--${boundary}--`;
 
   const r = await fetch(`${GATEWAY}/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true`, {
     method: "POST",
@@ -161,6 +162,7 @@ function mapCategory(cat: string): string {
   if (c === "habits" || c === "habit") return "Habits";
   if (c === "toolbox") return "Toolbox";
   if (c === "people") return "People";
+  if (c === "logos") return "Logos";
   return sanitize(cat);
 }
 
@@ -215,6 +217,53 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
     const body = await req.json().catch(() => ({}));
+
+    if (body.action === "export_logos_transcript") {
+      // Post-call payloads are trusted only from the server, never from a member/admin browser.
+      if (!serviceSecret || auth !== `Bearer ${serviceSecret}`) return new Response(JSON.stringify({ error: "Service role required" }), { status: 403, headers: corsHeaders });
+      let doc: ReturnType<typeof buildLogosTranscript>;
+      try { doc = buildLogosTranscript(body); }
+      catch (error) { return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 400, headers: corsHeaders }); }
+      const { data: profile, error: profileError } = await admin.from("profiles").select("display_name").eq("id", doc.user_id).maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile) return new Response(JSON.stringify({ error: "Profile not found" }), { status: 404, headers: corsHeaders });
+      const token = crypto.randomUUID();
+      const { data: claim, error: claimError } = await admin.rpc("claim_logos_transcript_export", { p_conversation_id: doc.elevenlabs_conversation_id, p_user_id: doc.user_id, p_date: doc.date, p_client_name: sanitize(profile.display_name || doc.user_id), p_token: token });
+      if (claimError) return new Response(JSON.stringify({ error: claimError.message }), { status: 409, headers: corsHeaders });
+      if (!claim?.claimed) return new Response(JSON.stringify({ error: "Export in progress", retryable: true }), { status: 409, headers: { ...corsHeaders, "Retry-After": "5" } });
+      try {
+        const clientName = claim.client_name;
+        const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
+        const categoryId = await findOrCreateFolder(admin, clientId, "Logos");
+        const dateId = await findOrCreateFolder(admin, categoryId, doc.date);
+        const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(doc.content)))).map(b => b.toString(16).padStart(2, "0")).join("");
+        // Recover a file created before a process crash by its conversation appProperty.
+        const q = `'${dateId}' in parents and trashed=false and appProperties has { key='aegis_logos_conversation' and value='${doc.elevenlabs_conversation_id}' }`;
+        const list = await fetch(`${GATEWAY}/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true`, { headers: gwHeaders() });
+        if (!list.ok) throw new Error(`Drive list failed ${list.status}: ${await list.text()}`);
+        const files = (await list.json()).files ?? [];
+        let fileId: string = files[0]?.id ?? claim.file_id;
+        const properties = { aegis_logos_conversation: doc.elevenlabs_conversation_id };
+        if (fileId) {
+          const boundary = `aegis_${crypto.randomUUID()}`;
+          const data = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name: doc.filename, mimeType: doc.mimeType, appProperties: properties })}\r\n--${boundary}\r\nContent-Type: ${doc.mimeType}; charset=UTF-8\r\n\r\n${doc.content}\r\n--${boundary}--`;
+          const response = await fetch(`${GATEWAY}/upload/drive/v3/files/${fileId}?uploadType=multipart&supportsAllDrives=true`, { method: "PATCH", headers: gwHeaders({ "Content-Type": `multipart/related; boundary=${boundary}` }), body: data });
+          if (!response.ok) throw new Error(`Drive update failed ${response.status}: ${await response.text()}`);
+        } else fileId = await uploadMarkdown(dateId, doc.filename, doc.content, doc.mimeType, properties);
+        const verify = await fetch(`${GATEWAY}/drive/v3/files/${fileId}?fields=id,name,parents,size,mimeType&supportsAllDrives=true`, { headers: gwHeaders() });
+        if (!verify.ok) throw new Error(`Drive readback failed ${verify.status}: ${await verify.text()}`);
+        const saved = await verify.json();
+        if (saved.name !== doc.filename || saved.mimeType !== doc.mimeType || !saved.parents?.includes(dateId) || Number(saved.size) !== new TextEncoder().encode(doc.content).length) throw new Error("LOGOS readback mismatch");
+        for (const duplicate of files.slice(1)) await trashDriveFolder(duplicate.id);
+        const path = `${clientName}/Logos/${doc.date}/${doc.filename}`;
+        const { error: saveError } = await admin.from("logos_transcript_exports").update({ file_id: fileId, file_path: path, format: doc.format, content_hash: hash, lease_token: null, lease_until: null, updated_at: new Date().toISOString() }).eq("conversation_id", doc.elevenlabs_conversation_id).eq("lease_token", token);
+        if (saveError) throw saveError;
+        return new Response(JSON.stringify({ success: true, verified: true, fileId, path, format: doc.format, elevenlabs_conversation_id: doc.elevenlabs_conversation_id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (error) {
+        await admin.from("logos_transcript_exports").update({ lease_token: null, lease_until: null }).eq("conversation_id", doc.elevenlabs_conversation_id).eq("lease_token", token);
+        throw error;
+      }
+    }
 
     if (!isInternal) {
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;

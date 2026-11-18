@@ -2383,6 +2383,56 @@ export type Database = {
         }
         Relationships: []
       }
+      logos_transcript_exports: {
+        Row: {
+          client_name: string
+          content_hash: string | null
+          conversation_id: string
+          export_date: string
+          file_id: string | null
+          file_path: string | null
+          format: string | null
+          lease_token: string | null
+          lease_until: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_name: string
+          content_hash?: string | null
+          conversation_id: string
+          export_date: string
+          file_id?: string | null
+          file_path?: string | null
+          format?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_name?: string
+          content_hash?: string | null
+          conversation_id?: string
+          export_date?: string
+          file_id?: string | null
+          file_path?: string | null
+          format?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logos_transcript_exports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       logos_user_path_state: {
         Row: {
           consumed_at: string | null
@@ -4361,6 +4411,16 @@ export type Database = {
       }
       check_service_rate_limit: {
         Args: { p_bucket: string; p_limit?: number; p_window_seconds?: number }
+        Returns: Json
+      }
+      claim_logos_transcript_export: {
+        Args: {
+          p_client_name: string
+          p_conversation_id: string
+          p_date: string
+          p_token: string
+          p_user_id: string
+        }
         Returns: Json
       }
       claim_referral: { Args: { p_code: string }; Returns: Json }

@@ -1,9 +1,14 @@
 # Monitoring fixes
 
+## Cursor LOGOS post-call transcript contract — 18 November 2026
+- [x] Add and deploy service-only export_logos_transcript, complete JSON for user timing data otherwise TXT, inside existing client/Logos/date folders; Cursor audio root untouched.
+- [x] Implement conversation-keyed lease ledger and crash-recovery Drive property; five contract tests pass, browser/anonymous call returns 403, preview build OK; exact server signature saved in docs/logos-transcript-export-contract.md.
+- [ ] Verify a real service-originated post-call export and concurrent retry against Drive; awaits Cursor's signed webhook invocation (server credential is unavailable to local tests).
+
 ## Voice Drive connection — 18 November 2026
-- [ ] Connect caller-owned prompt batches and completed feedback to verified, repeatable per-user Voice exports; preserve existing LOGOS tables.
-- [ ] Read personal daily prompts in the voice chooser and record real conversation messages, IDs and duration.
-- [ ] Import Note's real prompts from the supplied Drive folder « 05 output prompt » and verify exports; existing database prompt sources are empty.
+- [x] Connect caller-owned prompt batches and completed feedback to verified per-user Voice exports; legacy LOGOS tables untouched. Technical transcript saved and read back through Drive, not a real call.
+- [x] Read personal daily prompts in the chooser and wire the SDK recorder; twenty tests pass. Desktop chooser shows real prompts; mobile page has no overflow, loaded mobile chooser verification interrupted.
+- [x] Import five real Note prompts from mapped VOICE_PROMPTS/LATEST_BATCH.json into the private daily batch and verify its export to the user folder. No actual ElevenLabs call performed; post-call responsibility is now explicitly assigned to Cursor.
 
 ## Voice schema application — 18 November 2026
 - [x] Compare uploaded SQL against existing LOGOS tables; apply only the two new tables with explicit grants, profile references and non-guest caller ownership. Existing LOGOS tables untouched.
