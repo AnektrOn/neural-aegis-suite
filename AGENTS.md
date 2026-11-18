@@ -1,5 +1,7 @@
 # Project rules
 
+- Store daily voice batches and session feedback in the dedicated caller-owned tables referencing public.profiles; keep legacy LOGOS tables unchanged so the schema rollout does not break existing voice flows.
+
 - Select the strongest currently valid subscription across a member's purchase history for base access; keep LOGOS entitlement separate so cancelling an add-on cannot mask lifetime access.
 
 - Redeem AppSumo codes through the authenticated atomic database function, with private code hashes and Solo lifetime subscription rows; never expose the code catalogue or grant LOGOS through redemption.

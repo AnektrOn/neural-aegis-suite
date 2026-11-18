@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Voice schema application — 18 November 2026
+- [x] Compare uploaded SQL against existing LOGOS tables; apply only the two new tables with explicit grants, profile references and non-guest caller ownership. Existing LOGOS tables untouched.
+- [x] Confirm both tables, RLS policies and member/date/time uniqueness in the live schema; this request applies schema only, not Drive synchronization or voice UI wiring.
+
 ## Promotion profile — 18 November 2026
 - [x] Create the dedicated promotion account protocolenomosclient@gmail.com without touching existing member data.
 - [x] Populate 12 fictional contacts, 6 linked places, 14 days of mood/health/scoreboard history, 7 decisions, 6 journals, 3 habits, 9 practice assignments (3 pending), 70 Deep Dive and 72 Maisons answers, assessment/profile displays and 2 demonstration messages. Grant the existing Solo override, no Stripe purchase or LOGOS entitlement; no existing accounts changed.

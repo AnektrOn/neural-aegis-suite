@@ -1580,6 +1580,41 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_voice_prompts: {
+        Row: {
+          batch_time: string
+          date: string
+          id: string
+          prompts: Json
+          synced_at: string
+          user_id: string
+        }
+        Insert: {
+          batch_time?: string
+          date?: string
+          id?: string
+          prompts: Json
+          synced_at?: string
+          user_id: string
+        }
+        Update: {
+          batch_time?: string
+          date?: string
+          id?: string
+          prompts?: Json
+          synced_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_voice_prompts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decisions: {
         Row: {
           created_at: string
@@ -4117,6 +4152,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      voice_session_feedbacks: {
+        Row: {
+          category_slug: string
+          clicked_at: string
+          drive_file_path: string | null
+          duration_seconds: number | null
+          elevenlabs_conversation_id: string | null
+          exported_to_drive: boolean | null
+          id: string
+          prompt_id: string
+          transcript: string | null
+          user_id: string
+        }
+        Insert: {
+          category_slug: string
+          clicked_at?: string
+          drive_file_path?: string | null
+          duration_seconds?: number | null
+          elevenlabs_conversation_id?: string | null
+          exported_to_drive?: boolean | null
+          id?: string
+          prompt_id: string
+          transcript?: string | null
+          user_id: string
+        }
+        Update: {
+          category_slug?: string
+          clicked_at?: string
+          drive_file_path?: string | null
+          duration_seconds?: number | null
+          elevenlabs_conversation_id?: string | null
+          exported_to_drive?: boolean | null
+          id?: string
+          prompt_id?: string
+          transcript?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_session_feedbacks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       widget_proposals: {
         Row: {

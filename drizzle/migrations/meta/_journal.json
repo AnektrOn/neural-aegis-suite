@@ -85,6 +85,13 @@
       "when": 1794892440129,
       "tag": "0011_appsumo_lifetime_redemption",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794972991644,
+      "tag": "0012_daily_voice_prompts_and_feedbacks",
+      "breakpoints": true
     }
   ]
 }
