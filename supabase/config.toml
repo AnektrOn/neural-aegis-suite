@@ -25,3 +25,5 @@ project_id = "REDACTED"
     verify_jwt = false
   [functions.stripe-webhook]
     verify_jwt = false
+  [functions.logos-post-call]
+    verify_jwt = false

@@ -306,6 +306,7 @@ function VoiceAgentControls({
   bindOnly?: boolean;
 }) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const { startSession, endSession } = useConversationControls();
   const beginFeedback = useContext(VoiceFeedbackContext);
   const { status } = useConversationStatus();
@@ -353,10 +354,12 @@ function VoiceAgentControls({
         if (!String(vars.first_name || "").trim()) vars.first_name = "toi";
         if (vars.session_mode == null) vars.session_mode = "open";
         if (vars.opening_prompt == null) vars.opening_prompt = "";
+        if (user?.id && vars.aegis_user_id == null) vars.aegis_user_id = user.id;
         beginFeedback?.(injection?.feedbackContext);
         startSession({
           conversationToken: conversation_token,
           dynamicVariables: vars,
+          ...(user?.id ? { userId: user.id } : {}),
           ...(injection?.overrides ? { overrides: injection.overrides } : {}),
         });
         onPhase("connected");
@@ -367,7 +370,7 @@ function VoiceAgentControls({
         setBusy(false);
       }
     },
-    [beginFeedback, enableCall, onPhase, startSession, t],
+    [beginFeedback, enableCall, onPhase, startSession, t, user?.id],
   );
 
   useEffect(() => {

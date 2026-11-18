@@ -1,37 +1,59 @@
-# LOGOS post-call → export-to-drive
+# LOGOS transcript export contract
 
-Server-only POST action: `export_logos_transcript`.
+Cursor webhook `logos-post-call` calls Lovable `export-to-drive` after each ElevenLabs post-call.
+
+## Call
 
 ```ts
-const url = Deno.env.get("SUPABASE_URL");
-const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-if (!url || !serviceKey) throw new Error("Cloud runtime configuration missing");
-
-const response = await fetch(`${url}/functions/v1/export-to-drive`, {
+const response = await fetch(`${SUPABASE_URL}/functions/v1/export-to-drive`, {
   method: "POST",
   headers: {
-    Authorization: `Bearer ${serviceKey}`,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
     action: "export_logos_transcript",
     user_id: resolvedUserId,
     elevenlabs_conversation_id: conversationId,
-    date: conversationDate, // YYYY-MM-DD, same value on every retry
-    transcript_text: plainTranscript, // optional if payload.transcript supplies messages
-    transcript_payload: fullElevenLabsPayload, // optional JSON object
+    date: conversationDate, // YYYY-MM-DD, stable across retries
+    transcript_text: plainTranscript,
+    transcript_payload: fullElevenLabsPayload,
   }),
 });
-const result = await response.json();
-if (!response.ok) throw new Error(`[${response.status}] ${JSON.stringify(result)}`);
 ```
 
-`user_id` must be resolved by the signed webhook handler from the conversation's trusted user/agent association. Never infer it from user-editable voice text.
+## File choice (Lovable)
 
-JSON is selected when `transcript_payload.user_hesitation_timings` is a nonempty array, or a user turn in `transcript_payload.transcript` has numeric `time_in_call_secs`, timestamped `words[].start`, or nonempty `hesitation_timings`. The complete supplied payload is retained. Otherwise TXT is selected: `transcript_text`, or text derived from `transcript_payload.transcript[].message/text`.
+- JSON if payload has hesitation timings / `time_in_call_secs` / `words[].start`
+- TXT otherwise
 
-Response: `{ success: true, verified: true, fileId, path, format: "json" | "txt", elevenlabs_conversation_id }`.
+Destination: `{clientName}/Logos/{date}/{date}_{conversationId}_transcript.json|txt`
 
-Destination: existing USER AEGIS RAW DATA root, `{clientName}/Logos/{date}/{date}_{conversationId}_transcript.{format}`. Client name comes from the stored profile, not the request. No audio-root access, no audio downloads, no webhook parsing in this function.
+## Cursor LOGOS Drive root
 
-Conversation ID is the unique export key. Same ID + same user/date updates the same Drive file, including TXT→JSON upgrades. A conflicting user/date returns 409. Simultaneous execution returns 409 `{error:"Export in progress",retryable:true}` with Retry-After; retry with the unchanged ID/user/date. A service-only lease and Drive appProperty recover uploads after crashes. A successful response follows destination, MIME and byte-size readback.
+Root: `1hAZO9p_pnM-TxW_x7P9hDVr8FWh_az7C`
+
+```text
+/{userId}_{displayName}/YYYY/YYYY-MM-DD/{conversationId}/
+  audio.mp3
+  transcript.json
+  transcript.txt
+  meta.json
+```
+
+## Env
+
+| Secret | Role |
+|--------|------|
+| `ELEVENLABS_API_KEY` | Fetch conversation audio |
+| `ELEVENLABS_POST_CALL_WEBHOOK_SECRET` | HMAC `ElevenLabs-Signature` |
+| `LOVABLE_API_KEY` + `GOOGLE_DRIVE_API_KEY` | Gateway Drive uploads |
+| `LOGOS_DRIVE_ROOT_ID` | Optional override of root folder |
+
+## Deploy
+
+1. Apply `20261118140000_logos_conversation_exports.sql`
+2. `supabase functions deploy logos-post-call --no-verify-jwt`
+3. Point ElevenLabs workspace/agent post-call webhook to  
+   `https://<project>.supabase.co/functions/v1/logos-post-call`  
+   events: `transcript` + `audio`

@@ -19,7 +19,8 @@
 1. Run migration `20261118120000_logos_path_prompts.sql`.
 2. Ensure ElevenLabs agent Security allows **first_message** conversation overrides.
 3. Re-run `install_logos_workflow` so placeholders include `session_mode` + `opening_prompt`.
-4. Insert batches via service_role (Lovable cron) — example:
+4. Deploy post-call webhook (`logos-post-call`) — see [`logos-transcript-export-contract.md`](./logos-transcript-export-contract.md).
+5. Insert batches via service_role (Lovable cron) — example:
 
 ```sql
 INSERT INTO logos_prompt_batches (source, note)

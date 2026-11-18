@@ -20,13 +20,15 @@ type Options = {
   enabled: boolean;
   isFR: boolean;
   firstName: string;
+  /** Auth user id — stamped into session dynamic vars for post-call webhook. */
+  userId?: string;
 };
 
 /**
  * Shared opening-path chooser for Welcome + /dev/logos lab.
  * Titles/expiry/favorite come from `logos_list_available_paths`; covers stay local art.
  */
-export function useLogosPathChooser({ enabled, isFR, firstName }: Options) {
+export function useLogosPathChooser({ enabled, isFR, firstName, userId }: Options) {
   const [openingPaths, setOpeningPaths] = useState<LogosAvailablePath[]>([]);
   const [pathsLoading, setPathsLoading] = useState(false);
 
@@ -67,7 +69,7 @@ export function useLogosPathChooser({ enabled, isFR, firstName }: Options) {
     ) => {
       const full = openingPaths.find((p) => p.id === draft.id);
       if (!full) {
-        startWithChoice(buildOpenLogosInjection(firstName || "toi"));
+        startWithChoice(buildOpenLogosInjection(firstName || "toi", userId));
         return;
       }
       try {
@@ -78,16 +80,18 @@ export function useLogosPathChooser({ enabled, isFR, firstName }: Options) {
       startWithChoice({
         ...buildGuidedLogosInjection(
           {
+            id: full.id,
             openingPrompt: full.openingPrompt,
             firstMessage: full.firstMessage,
           },
           firstName || "toi",
+          userId,
         ),
         feedbackContext: { promptId: full.id, category: full.category },
       });
       void refreshOpeningPaths();
     },
-    [firstName, openingPaths, refreshOpeningPaths],
+    [firstName, openingPaths, refreshOpeningPaths, userId],
   );
 
   const onFavoritePath = useCallback(
@@ -114,7 +118,7 @@ export function useLogosPathChooser({ enabled, isFR, firstName }: Options) {
           void startGuided(path, startWithChoice);
         }}
         onOwnPath={() => {
-          startWithChoice(buildOpenLogosInjection(firstName || "toi"));
+          startWithChoice(buildOpenLogosInjection(firstName || "toi", userId));
         }}
         onFavoritePath={
           canFavorite
@@ -133,6 +137,7 @@ export function useLogosPathChooser({ enabled, isFR, firstName }: Options) {
       onFavoritePath,
       pathsLoading,
       startGuided,
+      userId,
     ],
   );
 

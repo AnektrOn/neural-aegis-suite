@@ -375,6 +375,8 @@ Deno.serve(async (req) => {
                 first_name: String(p.display_name || "").trim().split(/\s+/)[0] || "toi",
                 session_mode: "open",
                 opening_prompt: "",
+                opening_path_id: "",
+                aegis_user_id: userId,
               } },
             } },
           }),

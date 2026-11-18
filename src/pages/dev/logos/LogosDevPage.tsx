@@ -21,6 +21,7 @@ export default function LogosDevPage() {
     enabled: Boolean(user?.id),
     isFR,
     firstName: "toi",
+    userId: user?.id,
   });
 
   return (

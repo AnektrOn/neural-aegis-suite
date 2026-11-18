@@ -1,6 +1,7 @@
 # Project rules
 
 - Store daily voice batches and session feedback in the dedicated caller-owned tables referencing public.profiles; keep legacy LOGOS tables unchanged so the schema rollout does not break existing voice flows.
+- LOGOS post-call exports go through `logos-post-call` (ElevenLabs webhook → Drive root audio/transcript + `export-to-drive` `export_logos_transcript`); stamp `userId` / `aegis_user_id` at session start and keep exports idempotent on `elevenlabs_conversation_id`.
 - Record voice SDK events through a serialized per-session recorder and export completed feedback through the existing authenticated Drive function; stable feedback filenames and readback prevent duplicate files or premature success flags.
 - Resolve personal prompt Drive folders only through protected voice_prompt_sources mappings; sync LATEST_BATCH.json on the member's voice page through an authenticated function, never accept arbitrary member-supplied Drive folders.
 - Export post-call LOGOS transcripts through a service-only action with a conversation-keyed lease ledger; retain complete JSON when user timing data exists, otherwise TXT, without accessing the independently owned audio root.

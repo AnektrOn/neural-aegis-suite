@@ -8,6 +8,8 @@ export type LogosOpeningInjection = {
     first_name?: string;
     session_mode: LogosSessionMode;
     opening_prompt: string;
+    opening_path_id?: string;
+    aegis_user_id?: string;
   };
   overrides?: {
     agent: {
@@ -17,6 +19,7 @@ export type LogosOpeningInjection = {
 };
 
 export type LogosPathInjectionSource = {
+  id?: string;
   openingPrompt: string;
   firstMessage: string;
 };
@@ -25,10 +28,13 @@ export type LogosPathInjectionSource = {
 export function buildGuidedLogosInjection(
   path: LogosPathInjectionSource,
   firstName?: string,
+  aegisUserId?: string,
 ): LogosOpeningInjection {
   return {
     dynamicVariables: {
       ...(firstName ? { first_name: firstName } : {}),
+      ...(aegisUserId ? { aegis_user_id: aegisUserId } : {}),
+      ...(path.id ? { opening_path_id: path.id } : {}),
       session_mode: "guided",
       opening_prompt: path.openingPrompt.trim(),
     },
@@ -41,10 +47,14 @@ export function buildGuidedLogosInjection(
 }
 
 /** Blank / own path: no injected behavior, open triage. */
-export function buildOpenLogosInjection(firstName?: string): LogosOpeningInjection {
+export function buildOpenLogosInjection(
+  firstName?: string,
+  aegisUserId?: string,
+): LogosOpeningInjection {
   return {
     dynamicVariables: {
       ...(firstName ? { first_name: firstName } : {}),
+      ...(aegisUserId ? { aegis_user_id: aegisUserId } : {}),
       session_mode: "open",
       opening_prompt: "",
     },
