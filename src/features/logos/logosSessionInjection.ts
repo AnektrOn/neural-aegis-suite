@@ -3,6 +3,7 @@
 export type LogosSessionMode = "guided" | "open";
 
 export type LogosOpeningInjection = {
+  feedbackContext?: { promptId: string; category: string };
   dynamicVariables: {
     first_name?: string;
     session_mode: LogosSessionMode;

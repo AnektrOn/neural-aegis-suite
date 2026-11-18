@@ -270,10 +270,6 @@ function PortraitLensActivePanel({
             </div>
           ) : null}
 
-          {lens.detailKind === "generic" && !lens.locked && !lens.comingSoon && lens.status === "empty" ? (
-            <p className="text-sm text-muted-foreground font-body">{t(lens.emptyDetailKey ?? "persona.portraits.lensEmpty")}</p>
-          ) : null}
-
           {lens.actions.length > 0 ? (
             <PortraitLensActionButtons
               lens={lens}

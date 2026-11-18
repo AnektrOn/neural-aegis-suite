@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders as sdkCorsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { HOUSES72_BAREME_MD } from "./houses72-bareme.ts";
 import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows, categoryForTable } from "./full-export.ts";
+import { completedVoiceFeedback, voiceFeedbackDocument, type VoiceFeedback } from "./voice-export.ts";
 
 const corsHeaders = {
   ...sdkCorsHeaders,
@@ -127,6 +128,26 @@ async function uploadMarkdown(parentId: string, filename: string, content: strin
   return j.id as string;
 }
 
+async function upsertVerifiedMarkdown(parentId: string, filename: string, content: string): Promise<string> {
+  const q = `name='${filename.replace(/'/g, "\\'")}' and '${parentId}' in parents and trashed=false`;
+  const existing = await fetch(`${GATEWAY}/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&supportsAllDrives=true`, { headers: gwHeaders() });
+  if (!existing.ok) throw new Error(`Drive list failed ${existing.status}: ${await existing.text()}`);
+  const files = (await existing.json()).files ?? [];
+  let fileId = files[0]?.id as string | undefined;
+  if (fileId) {
+    const update = await fetch(`${GATEWAY}/upload/drive/v3/files/${fileId}?uploadType=media&supportsAllDrives=true`, {
+      method: "PATCH", headers: gwHeaders({ "Content-Type": "text/markdown; charset=UTF-8" }), body: content,
+    });
+    if (!update.ok) throw new Error(`Drive update failed ${update.status}: ${await update.text()}`);
+  } else fileId = await uploadMarkdown(parentId, filename, content);
+  for (const duplicate of files.slice(1)) await trashDriveFolder(duplicate.id);
+  const verify = await fetch(`${GATEWAY}/drive/v3/files/${fileId}?fields=id,parents,size&supportsAllDrives=true`, { headers: gwHeaders() });
+  if (!verify.ok) throw new Error(`Drive readback failed ${verify.status}: ${await verify.text()}`);
+  const saved = await verify.json();
+  if (!saved.parents?.includes(parentId) || Number(saved.size) !== new TextEncoder().encode(content).length) throw new Error("Drive readback mismatch");
+  return fileId;
+}
+
 function sanitize(s: string): string {
   return (s || "Inconnu").replace(/[\\/:*?"<>|]/g, "_").trim().slice(0, 120) || "Inconnu";
 }
@@ -193,6 +214,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
+    const body = await req.json().catch(() => ({}));
 
     if (!isInternal) {
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -200,10 +222,41 @@ Deno.serve(async (req) => {
       const { data: { user } } = await userClient.auth.getUser();
       if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
       const { data: role } = await admin.from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin", "superadmin"]).limit(1).maybeSingle();
-      if (!role) return new Response(JSON.stringify({ error: "Admin required" }), { status: 403, headers: corsHeaders });
+      const ownVoiceExport = body.action === "export_voice" && body.user_id === user.id && user.is_anonymous !== true;
+      if (!role && !ownVoiceExport) return new Response(JSON.stringify({ error: "Admin required" }), { status: 403, headers: corsHeaders });
     }
 
-    const body = await req.json().catch(() => ({}));
+    if (body.action === "export_voice") {
+      if (typeof body.user_id !== "string" || !/^[0-9a-f-]{36}$/i.test(body.user_id)) return new Response(JSON.stringify({ error: "Valid user_id required" }), { status: 400, headers: corsHeaders });
+      const { data: profile, error: profileError } = await admin.from("profiles").select("display_name").eq("id", body.user_id).single();
+      if (profileError) throw profileError;
+      const clientName = sanitize(profile.display_name || body.user_id);
+      const batches = await readAllRows((from, to) => admin.from("daily_voice_prompts").select("*").eq("user_id", body.user_id).order("id").range(from, to));
+      const feedbacks = await readAllRows((from, to) => admin.from("voice_session_feedbacks").select("*").eq("user_id", body.user_id).order("id").range(from, to)) as VoiceFeedback[];
+      const files: Array<{ path: string; fileId: string }> = [];
+      if (batches.length || feedbacks.some(completedVoiceFeedback)) {
+        const clientId = await findOrCreateFolder(admin, ROOT_FOLDER_ID, clientName);
+        const categoryId = await findOrCreateFolder(admin, clientId, "Voice");
+        for (const raw of batches) {
+          const row = raw as { id: string; date: string; prompts: unknown; batch_time: string };
+          const dateId = await findOrCreateFolder(admin, categoryId, row.date);
+          const filename = `${row.date}_prompts_${row.id}.md`;
+          const content = `# Prompts vocaux — ${row.date} — ${row.batch_time}\n\n\`\`\`json\n${JSON.stringify(row.prompts, null, 2)}\n\`\`\`\n`;
+          const fileId = await upsertVerifiedMarkdown(dateId, filename, content);
+          files.push({ path: `${clientName}/Voice/${row.date}/${filename}`, fileId });
+        }
+        for (const row of feedbacks.filter(completedVoiceFeedback)) {
+          const doc = voiceFeedbackDocument(row);
+          const dateId = await findOrCreateFolder(admin, categoryId, doc.date);
+          const fileId = await upsertVerifiedMarkdown(dateId, doc.filename, doc.content);
+          const path = `${clientName}/Voice/${doc.date}/${doc.filename}`;
+          const { error } = await admin.from("voice_session_feedbacks").update({ exported_to_drive: true, drive_file_path: path }).eq("id", row.id).eq("user_id", body.user_id).eq("transcript", row.transcript).eq("duration_seconds", row.duration_seconds);
+          if (error) throw error;
+          files.push({ path, fileId });
+        }
+      }
+      return new Response(JSON.stringify({ success: true, verified: true, batches: batches.length, completed_sessions: feedbacks.filter(completedVoiceFeedback).length, files }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     if (body?.action === "dedupe") {
       await admin.from("drive_folder_cache").delete().neq("parent_id", "");

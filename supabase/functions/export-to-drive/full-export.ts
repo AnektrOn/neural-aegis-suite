@@ -6,7 +6,7 @@ export const USER_EXPORT_TABLES = [
   "aegis_user_rune_progress", "affiliates", "analysis_results", "app_update_events",
   "archetype_profile_snapshots", "archetype_scores", "assessment_responses", "assessment_sessions",
   "assigned_habits", "audit_calls", "cartography_bundles", "company_memberships", "daily_actions",
-  "daily_scoreboards", "decisions", "deepdive_responses", "elevenlabs_documents", "elevenlabs_drive_folders",
+  "daily_scoreboards", "daily_voice_prompts", "voice_session_feedbacks", "decisions", "deepdive_responses", "elevenlabs_documents", "elevenlabs_drive_folders",
   "employer_data_consent", "guardian_onboarding", "habit_completions", "houses72_responses",
   "input_hesitations", "journal_entries", "journal_prompts", "library_video_assignments",
   "meditation_assignments", "mood_entries", "newsletter_subscribers", "notifications", "people_contacts",
@@ -28,6 +28,7 @@ export async function readAllRows(queryPage: (from: number, to: number) => Promi
 }
 // Each exported table lands in the same per-user category folder as live exports.
 const CATEGORY_TABLES: Record<string, readonly string[]> = {
+  Voice: ["daily_voice_prompts", "voice_session_feedbacks"],
   Quizz: ["assessment_sessions", "assessment_responses", "archetype_scores", "archetype_profile_snapshots",
     "analysis_results", "deepdive_responses", "houses72_responses", "recommendation_tools"],
   Rapport: ["user_reports", "cartography_bundles", "cartography_bundle_sections", "user_tao_portrait_parts", "aegis_health_scores"],

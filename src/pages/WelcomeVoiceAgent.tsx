@@ -158,13 +158,13 @@ export default function WelcomeVoiceAgent() {
         console.error("WelcomeVoiceAgent consume", err);
       }
       startWithChoice(
-        buildGuidedLogosInjection(
+        { ...buildGuidedLogosInjection(
           {
             openingPrompt: full.openingPrompt,
             firstMessage: full.firstMessage,
           },
           firstName || "toi",
-        ),
+        ), feedbackContext: { promptId: full.id, category: full.category } },
       );
       void refreshOpeningPaths();
     },
@@ -195,12 +195,12 @@ export default function WelcomeVoiceAgent() {
         onOwnPath={() => {
           startWithChoice(buildOpenLogosInjection(firstName || "toi"));
         }}
-        onFavoritePath={(path) => {
+        onFavoritePath={openingPaths.some(path => path.id.includes(":")) ? undefined : (path) => {
           void onFavoritePath(path);
         }}
       />
     ),
-    [chooserPaths, firstName, isFR, onFavoritePath, pathsLoading, startGuided],
+    [chooserPaths, firstName, isFR, onFavoritePath, openingPaths, pathsLoading, startGuided],
   );
 
   if (!user) return null;

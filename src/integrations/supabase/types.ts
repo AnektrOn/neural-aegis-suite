@@ -4153,6 +4153,29 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_prompt_sources: {
+        Row: {
+          drive_folder_id: string
+          user_id: string
+        }
+        Insert: {
+          drive_folder_id: string
+          user_id: string
+        }
+        Update: {
+          drive_folder_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_prompt_sources_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_session_feedbacks: {
         Row: {
           category_slug: string

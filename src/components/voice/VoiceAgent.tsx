@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -36,6 +37,8 @@ import { WELCOME_NEBULA_VISUAL_TUNING } from "@/features/welcome/components/Welc
 import { LogosClientToolsRegistrar } from "@/features/logos/LogosClientToolsRegistrar";
 import type { LogosOpeningInjection } from "@/features/logos/logosSessionInjection";
 import { useAuth } from "@/contexts/AuthContext";
+import { VoiceFeedbackRecorder } from "@/features/logos/voiceFeedbackService";
+import { VoiceFeedbackContext } from "@/features/logos/VoiceFeedbackContext";
 
 type UiPhase = "idle" | "path_choice" | "connecting" | "connected" | "error";
 type VoiceAgentLayout = "card" | "welcome";
@@ -304,6 +307,7 @@ function VoiceAgentControls({
 }) {
   const { t } = useLanguage();
   const { startSession, endSession } = useConversationControls();
+  const beginFeedback = useContext(VoiceFeedbackContext);
   const { status } = useConversationStatus();
   const { isSpeaking, isListening, isMuted, setMuted } = useConversation();
   const [busy, setBusy] = useState(false);
@@ -348,6 +352,7 @@ function VoiceAgentControls({
         if (!String(vars.first_name || "").trim()) vars.first_name = "toi";
         if (vars.session_mode == null) vars.session_mode = "open";
         if (vars.opening_prompt == null) vars.opening_prompt = "";
+        beginFeedback?.(injection?.feedbackContext);
         startSession({
           conversationToken: conversation_token,
           dynamicVariables: vars,
@@ -361,7 +366,7 @@ function VoiceAgentControls({
         setBusy(false);
       }
     },
-    [enableCall, onPhase, startSession, t],
+    [beginFeedback, enableCall, onPhase, startSession, t],
   );
 
   useEffect(() => {
@@ -810,6 +815,10 @@ export function VoiceAgent({
   const { user } = useAuth();
   const [phase, setPhase] = useState<UiPhase>("idle");
   const [phaseMessage, setPhaseMessage] = useState<string | null>(null);
+  const recorder = useMemo(() => user && enableCall
+    ? new VoiceFeedbackRecorder(user.id, (error) => console.error("Voice feedback save failed", error))
+    : null, [user?.id, enableCall]);
+  useEffect(() => () => recorder?.finish(), [recorder]);
 
   const onPhase = useCallback(
     (p: UiPhase, message?: string) => {
@@ -838,9 +847,14 @@ export function VoiceAgent({
   const simulateLive = !enableCall && phase === "connected";
 
   return (
+    <VoiceFeedbackContext.Provider value={recorder ? (context) => recorder.begin(context) : null}>
     <ConversationProvider
       dynamicVariables={resolvedDynamicVariables}
+      onConnect={({ conversationId }) => recorder?.connect(conversationId)}
+      onMessage={(event) => recorder?.message(event)}
+      onDisconnect={() => { recorder?.finish(); onPhase("idle"); }}
       onError={(error) => {
+        recorder?.finish();
         setPhase("error");
         const msg =
           typeof error === "string"
@@ -884,5 +898,6 @@ export function VoiceAgent({
         />
       )}
     </ConversationProvider>
+    </VoiceFeedbackContext.Provider>
   );
 }

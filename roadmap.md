@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## Voice Drive connection — 18 November 2026
+- [ ] Connect caller-owned prompt batches and completed feedback to verified, repeatable per-user Voice exports; preserve existing LOGOS tables.
+- [ ] Read personal daily prompts in the voice chooser and record real conversation messages, IDs and duration.
+- [ ] Import Note's real prompts from the supplied Drive folder « 05 output prompt » and verify exports; existing database prompt sources are empty.
+
 ## Voice schema application — 18 November 2026
 - [x] Compare uploaded SQL against existing LOGOS tables; apply only the two new tables with explicit grants, profile references and non-guest caller ownership. Existing LOGOS tables untouched.
 - [x] Confirm both tables, RLS policies and member/date/time uniqueness in the live schema; this request applies schema only, not Drive synchronization or voice UI wiring.
