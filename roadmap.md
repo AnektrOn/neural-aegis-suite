@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## AppSumo test reset and confirmation emails — 18 November 2026
+- [x] Remove only the lifetime activation associated with the supplied test code and restore that code for reuse, preserving the account and other data.
+- [ ] Send an automatic welcome/activation confirmation to the member and an activation notice to platform admins including the member email and actual account creation date; blocked until a sender domain is configured for Lovable app emails.
+
 ## AppSumo redemption and language — 17 November 2026
 - [x] Import 999 supplied codes as valid plus one newly generated code; grant Solo lifetime without LOGOS through authenticated, atomic redemption.
 - [x] Add redemption at /redeem, /appsumo, auth, Pricing and Settings, preserving redemption destination across signup; unify landing and application language persistence.
