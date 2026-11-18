@@ -2283,6 +2283,109 @@ export type Database = {
         }
         Relationships: []
       }
+      logos_path_prompts: {
+        Row: {
+          batch_id: string
+          category: string
+          created_at: string
+          expires_at: string
+          first_message: string
+          id: string
+          opening_prompt: string
+          title_en: string
+          title_fr: string
+        }
+        Insert: {
+          batch_id: string
+          category: string
+          created_at?: string
+          expires_at: string
+          first_message: string
+          id?: string
+          opening_prompt: string
+          title_en: string
+          title_fr: string
+        }
+        Update: {
+          batch_id?: string
+          category?: string
+          created_at?: string
+          expires_at?: string
+          first_message?: string
+          id?: string
+          opening_prompt?: string
+          title_en?: string
+          title_fr?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logos_path_prompts_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "logos_prompt_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      logos_prompt_batches: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
+      logos_user_path_state: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string | null
+          favorited_at: string | null
+          prompt_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          favorited_at?: string | null
+          prompt_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          favorited_at?: string | null
+          prompt_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logos_user_path_state_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "logos_path_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meditation_assignments: {
         Row: {
           assigned_at: string
@@ -4270,6 +4373,31 @@ export type Database = {
       log_admin_data_access: {
         Args: { p_action: string; p_meta?: Json; p_target_user_id: string }
         Returns: undefined
+      }
+      logos_consume_path: { Args: { p_prompt_id: string }; Returns: Json }
+      logos_favorite_path: {
+        Args: { p_extend_days?: number; p_prompt_id: string }
+        Returns: Json
+      }
+      logos_list_available_paths: {
+        Args: { p_user_id?: string }
+        Returns: {
+          batch_created_at: string
+          batch_id: string
+          category: string
+          days_until_expiry: number
+          expires_at: string
+          first_message: string
+          id: string
+          is_favorited: boolean
+          opening_prompt: string
+          title_en: string
+          title_fr: string
+        }[]
+      }
+      logos_path_effective_expires_at: {
+        Args: { p_prompt_expires: string; p_user_expires: string }
+        Returns: string
       }
       notify_all_admins: {
         Args: {
