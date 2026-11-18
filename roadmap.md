@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## Promotion profile — 18 November 2026
+- [x] Create the dedicated promotion account protocolenomosclient@gmail.com without touching existing member data.
+- [x] Populate 12 fictional contacts, 6 linked places, 14 days of mood/health/scoreboard history, 7 decisions, 6 journals, 3 habits, 9 practice assignments (3 pending), 70 Deep Dive and 72 Maisons answers, assessment/profile displays and 2 demonstration messages. Grant the existing Solo override, no Stripe purchase or LOGOS entitlement; no existing accounts changed.
+- [x] Real password sign-in verified; dashboard, contacts, places, habits, journal, practices, messages, analytics and loaded Persona/Deep Dive read back in the UI. Desktop/mobile People Board checked without runtime errors or mobile overflow; five access tests pass. Password-setup email request accepted for the chosen address; inbox delivery not independently verified. No videos/meditation tracks available in the existing catalog to assign.
+
 ## Founders lifetime access — 18 November 2026
 - [x] Confirm that the newest expired LOGOS row masks the independent lifetime purchase; select the strongest valid base-access grant without changing Stripe purchases or LOGOS cancellation rules.
 - [x] Fifteen regression tests pass and preview build OK; signed-in browser with simulated expired LOGOS + active founder rows shows Founders as the current plan and renders the dashboard without runtime errors. No live purchases or subscriptions changed; publication remains required.
