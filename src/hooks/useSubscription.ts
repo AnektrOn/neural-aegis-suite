@@ -44,6 +44,19 @@ function computeActive(row: SubscriptionRow | null): boolean {
   return false;
 }
 
+/** Rows arrive newest first; retain the strongest valid grant, not just the latest purchase. */
+function selectAccessSubscription(rows: SubscriptionRow[]): SubscriptionRow | null {
+  const rank: Record<PlanTier, number> = { free: 0, matrix: 1, ultra: 2 };
+  let selected: SubscriptionRow | null = null;
+  for (const row of rows) {
+    if (!computeActive(row) || tierFromProduct(row.product_id) === "free") continue;
+    if (!selected || rank[tierFromProduct(row.product_id)] > rank[tierFromProduct(selected.product_id)]) {
+      selected = row;
+    }
+  }
+  return selected ?? rows[0] ?? null;
+}
+
 export function useSubscription() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
@@ -67,9 +80,7 @@ export function useSubscription() {
           "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
         )
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+        .order("created_at", { ascending: false }),
       supabase
         .from("subscriptions")
         .select(
@@ -83,7 +94,7 @@ export function useSubscription() {
       supabase.from("profiles").select("plan_override").eq("id", user.id).maybeSingle(),
     ]);
 
-    setSubscription((sub as SubscriptionRow) ?? null);
+    setSubscription(selectAccessSubscription((sub as SubscriptionRow[] | null) ?? []));
     setLogosSubscription((logosSub as SubscriptionRow) ?? null);
     const override = (profile as { plan_override?: string | null } | null)?.plan_override;
     setPlanOverride(

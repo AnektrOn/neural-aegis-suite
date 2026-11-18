@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Founders lifetime access — 18 November 2026
+- [x] Confirm that the newest expired LOGOS row masks the independent lifetime purchase; select the strongest valid base-access grant without changing Stripe purchases or LOGOS cancellation rules.
+- [x] Fifteen regression tests pass and preview build OK; signed-in browser with simulated expired LOGOS + active founder rows shows Founders as the current plan and renders the dashboard without runtime errors. No live purchases or subscriptions changed; publication remains required.
+
 ## AppSumo test reset and confirmation emails — 18 November 2026
 - [x] Remove only the lifetime activation associated with the supplied test code and restore that code for reuse, preserving the account and other data.
 - [x] Set up managed sender infrastructure, scaffold AEGIS auth templates and deploy auth-email-hook; sender verification proceeds in More → Emails.

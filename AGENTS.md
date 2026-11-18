@@ -1,5 +1,7 @@
 # Project rules
 
+- Select the strongest currently valid subscription across a member's purchase history for base access; keep LOGOS entitlement separate so cancelling an add-on cannot mask lifetime access.
+
 - Redeem AppSumo codes through the authenticated atomic database function, with private code hashes and Solo lifetime subscription rows; never expose the code catalogue or grant LOGOS through redemption.
 - AppSumo UI calls its authenticated feature function, which retains atomic redemption and sends persisted activation-specific member/operator notices through the managed email helper; stable per-recipient keys make retries safe without changing access.
 - Landing and app share LanguageContext and localePreference storage; one persisted language prevents route changes from resetting it.
