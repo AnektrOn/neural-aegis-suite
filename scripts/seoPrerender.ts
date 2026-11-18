@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { Plugin } from "vite";
+import { createServer, type Plugin } from "vite";
 
 const SITE = "https://aegis.humancatalystbeacon.com";
 
@@ -53,18 +53,74 @@ export function renderPage(template: string, page: Page): string {
     .replace(/<div id="root"><\/div>/, `<div id="root"><main data-prerendered="true">${page.body}</main></div>`);
 }
 
+type DynPage = Page & { lastmod?: string };
+
+/** Loads tool and blog registries through Vite (TSX + aliases) so new entries are prerendered and listed automatically. */
+async function loadDynamicPages(root: string): Promise<DynPage[]> {
+  const server = await createServer({
+    root, configFile: false, logLevel: "error", appType: "custom",
+    server: { middlewareMode: true, hmr: false },
+    resolve: { alias: [{ find: "@", replacement: path.resolve(root, "src") }] },
+    esbuild: { jsx: "automatic" },
+  });
+  try {
+    const tools = await server.ssrLoadModule("/src/components/tools/toolsRegistry.ts");
+    const blog = await server.ssrLoadModule("/src/pages/blog/blogRegistry.ts");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const pages: DynPage[] = [];
+    const all = tools.getAllTools() as any[];
+    pages.push({
+      route: "/tools",
+      title: "Outils gratuits pour CEO et dirigeants | AEGIS",
+      description: "Calculateurs et diagnostics gratuits pour dirigeants : coût du coaching, fatigue décisionnelle, biais, priorisation, ROI des cercles de pairs.",
+      body: `<h1>Outils gratuits pour CEO et dirigeants</h1><ul>${all.map((t) => `<li><a href="${t.path}">${esc(t.title)}</a> — ${esc(t.shortDescription)}</li>`).join("")}</ul>`,
+    });
+    for (const t of all) {
+      pages.push({
+        route: t.path, title: t.seo.title, description: t.seo.description,
+        body: `<h1>${esc(t.title)}</h1><p>${esc(t.shortDescription)}</p><p>${esc(t.guide.plainExplain)}</p><p>Pour qui : ${esc(t.guide.bestFor)}</p><ul>${t.guide.outcomes.map((o: string) => `<li>${esc(o)}</li>`).join("")}</ul><section><h2>Questions fréquentes</h2>${t.faq.map((f: any) => `<h3>${esc(f.question)}</h3><p>${esc(f.answer)}</p>`).join("")}</section><p><a href="${t.path}/run">Lancer l'outil</a> · <a href="/tools">Tous les outils</a></p>`,
+      });
+    }
+    const articles = blog.listBlogArticles() as any[];
+    if (articles.length) {
+      pages.push({
+        route: "/blog", title: "Blog AEGIS — Décision et leadership",
+        description: "Articles AEGIS sur la décision en solitaire, les archétypes et le leadership des dirigeants.",
+        body: `<h1>Blog AEGIS</h1><ul>${articles.map((a) => `<li><a href="${a.path}">${esc(a.title.fr)}</a> — ${esc(a.excerpt.fr)}</li>`).join("")}</ul>`,
+      });
+      for (const a of articles) {
+        pages.push({
+          route: a.path, title: a.seo.fr.title, description: a.seo.fr.description, lastmod: a.publishedAt?.slice(0, 10),
+          body: `<article><h1>${esc(a.title.fr)}</h1><p>${esc(a.excerpt.fr)}</p>${renderToStaticMarkup(a.renderBody("fr"))}</article>`,
+        });
+      }
+    }
+    return pages;
+  } finally {
+    await server.close();
+  }
+}
+
+export function buildSitemap(pages: DynPage[]): string {
+  const urls = pages.map((p) => `  <url><loc>${SITE}${p.route}</loc>${p.lastmod ? `<lastmod>${p.lastmod}</lastmod>` : ""}</url>`).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+}
+
 /** Build-time static prerender: writes route HTML with real content; React's createRoot replaces it on load. */
 export function seoPrerender(): Plugin {
   let outDir = "dist";
+  let root = process.cwd();
   return {
     name: "aegis-seo-prerender",
     apply: "build",
-    configResolved(c) { outDir = path.resolve(c.root, c.build.outDir); },
-    closeBundle() {
+    configResolved(c) { root = c.root; outDir = path.resolve(c.root, c.build.outDir); },
+    async closeBundle() {
       const file = path.join(outDir, "index.html");
       if (!fs.existsSync(file)) return;
       const template = fs.readFileSync(file, "utf8");
-      for (const page of PRERENDER_PAGES) {
+      const pages: DynPage[] = [...PRERENDER_PAGES, ...(await loadDynamicPages(root))];
+      fs.writeFileSync(path.join(outDir, "sitemap.xml"), buildSitemap(pages));
+      for (const page of pages) {
         const target = page.route === "/" ? file : path.join(outDir, page.route.slice(1), "index.html");
         fs.mkdirSync(path.dirname(target), { recursive: true });
         fs.writeFileSync(target, renderPage(template, page));

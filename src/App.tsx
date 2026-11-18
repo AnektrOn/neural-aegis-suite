@@ -61,6 +61,8 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Redeem = lazy(() => import('./pages/Redeem'));
 const ToolsHubPage = lazy(() => import("./pages/tools/ToolsHubPage"));
+const BlogHubPage = lazy(() => import("./pages/blog/BlogHubPage"));
+const BlogArticlePage = lazy(() => import("./pages/blog/BlogArticlePage"));
 const ToolIntroPage = lazy(() => import("./pages/tools/ToolIntroPage"));
 const ToolRunDispatcher = lazy(() => import("./pages/tools/ToolRunDispatcher"));
 const ExecutiveDecisionProfilePage = lazy(
@@ -396,6 +398,8 @@ const App = () => (
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/redeem" element={<Redeem />} />
                 <Route path="/appsumo" element={<Navigate to="/redeem" replace />} />
+                <Route path="/blog" element={<Suspense fallback={<PageLoader />}><BlogHubPage /></Suspense>} />
+                <Route path="/blog/:slug" element={<Suspense fallback={<PageLoader />}><BlogArticlePage /></Suspense>} />
                 <Route
                   path="/tools"
                   element={
