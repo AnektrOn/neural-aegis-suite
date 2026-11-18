@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## Weekly LOGOS opening batches — 18 November 2026
+- [x] Add an atomic service-only batch writer, exactly five distinct categories, seven-day expiry and weekly retry deduplication; preserve chooser, personal Drive prompts and existing RPCs. Thirteen live/rule regression tests pass; preview build OK.
+- [x] Schedule Wednesday 00:00 UTC execution and seed the initial batch; authenticated RPC reads five bilingual paths, privileged retries retain the same batch. Two authored sets alternate; no model calls.
+- [ ] Complete live guided-call verification: existing agent allows first_message overrides but lacks session_mode/opening_prompt placeholders. Welcome initially shows loading; later browser captures time out. No chooser or agent workflow modified, per brief; needs Cursor's existing workflow setup before an actual guided call.
+
 ## Cursor LOGOS post-call transcript contract — 18 November 2026
 - [x] Add and deploy service-only export_logos_transcript, complete JSON for user timing data otherwise TXT, inside existing client/Logos/date folders; Cursor audio root untouched.
 - [x] Implement conversation-keyed lease ledger and crash-recovery Drive property; five contract tests pass, browser/anonymous call returns 403, preview build OK; exact server signature saved in docs/logos-transcript-export-contract.md.

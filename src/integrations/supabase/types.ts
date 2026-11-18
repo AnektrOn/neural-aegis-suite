@@ -4434,6 +4434,7 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: boolean
       }
+      create_weekly_logos_batch: { Args: never; Returns: Json }
       delete_cartography_for_user: {
         Args: { p_user_id: string }
         Returns: Json

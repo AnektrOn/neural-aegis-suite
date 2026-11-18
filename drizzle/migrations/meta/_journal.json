@@ -113,6 +113,13 @@
       "when": 1794974415009,
       "tag": "0015_logos_transcript_export_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794974850633,
+      "tag": "0016_weekly_logos_opening_batches",
+      "breakpoints": true
     }
   ]
 }

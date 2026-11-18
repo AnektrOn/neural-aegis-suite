@@ -4,6 +4,7 @@
 - Record voice SDK events through a serialized per-session recorder and export completed feedback through the existing authenticated Drive function; stable feedback filenames and readback prevent duplicate files or premature success flags.
 - Resolve personal prompt Drive folders only through protected voice_prompt_sources mappings; sync LATEST_BATCH.json on the member's voice page through an authenticated function, never accept arbitrary member-supplied Drive folders.
 - Export post-call LOGOS transcripts through a service-only action with a conversation-keyed lease ledger; retain complete JSON when user timing data exists, otherwise TXT, without accessing the independently owned audio root.
+- Generate shared LOGOS opening batches through the service-only atomic weekly database writer and SQL-only cron; a week-keyed advisory lock prevents duplicate batches without changing personal Drive sources or chooser RPCs.
 
 - Select the strongest currently valid subscription across a member's purchase history for base access; keep LOGOS entitlement separate so cancelling an add-on cannot mask lifetime access.
 
