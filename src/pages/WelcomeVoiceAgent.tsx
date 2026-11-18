@@ -1,28 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  VoiceAgent,
-  type VoiceAgentLiveOverlayHelpers,
-} from "@/components/voice/VoiceAgent";
+import { VoiceAgent } from "@/components/voice/VoiceAgent";
 import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
 import { LogosSubscriptionGate } from "@/features/logos/LogosSubscriptionGate";
-import {
-  consumeLogosPath,
-  favoriteLogosPath,
-  pickOpeningLogosPaths,
-  type LogosAvailablePath,
-} from "@/features/logos/logosPathService";
-import {
-  buildGuidedLogosInjection,
-  buildOpenLogosInjection,
-  type LogosOpeningInjection,
-} from "@/features/logos/logosSessionInjection";
-import {
-  LogosPathChooserOverlay,
-  type LogosPathDraft,
-} from "@/pages/dev/logos/LogosPathChooserOverlay";
+import { useLogosPathChooser } from "@/features/logos/useLogosPathChooser";
 
 function pickFirstName(displayName: string | null, user: NonNullable<ReturnType<typeof useAuth>["user"]>) {
   if (displayName?.trim() && !displayName.includes("@")) {
@@ -51,8 +34,6 @@ export default function WelcomeVoiceAgent() {
   const [agentId, setAgentId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [accessChecked, setAccessChecked] = useState(false);
-  const [openingPaths, setOpeningPaths] = useState<LogosAvailablePath[]>([]);
-  const [pathsLoading, setPathsLoading] = useState(false);
 
   const firstName = useMemo(
     () => (user ? pickFirstName(displayName, user) : ""),
@@ -63,18 +44,11 @@ export default function WelcomeVoiceAgent() {
     ? t("welcome.hud.title", { name: firstName })
     : t("welcome.hud.titleNoName");
 
-  const refreshOpeningPaths = useCallback(async () => {
-    setPathsLoading(true);
-    try {
-      const picked = await pickOpeningLogosPaths();
-      setOpeningPaths(picked);
-    } catch (err) {
-      console.error("WelcomeVoiceAgent paths", err);
-      setOpeningPaths([]);
-    } finally {
-      setPathsLoading(false);
-    }
-  }, []);
+  const { liveOverlay } = useLogosPathChooser({
+    enabled: Boolean(user?.id && agentId),
+    isFR,
+    firstName: firstName || "toi",
+  });
 
   useEffect(() => {
     if (!user?.id) return;
@@ -125,83 +99,6 @@ export default function WelcomeVoiceAgent() {
       cancelled = true;
     };
   }, [t, user?.id]);
-
-  useEffect(() => {
-    if (!user?.id || !agentId) return;
-    void refreshOpeningPaths();
-  }, [agentId, refreshOpeningPaths, user?.id]);
-
-  const chooserPaths: LogosPathDraft[] = useMemo(
-    () =>
-      openingPaths.map((p) => ({
-        id: p.id,
-        title: isFR ? p.titleFr : p.titleEn,
-        daysUntilExpiry: p.daysUntilExpiry,
-        isFavorited: p.isFavorited,
-      })),
-    [isFR, openingPaths],
-  );
-
-  const startGuided = useCallback(
-    async (
-      draft: LogosPathDraft,
-      startWithChoice: (injection?: LogosOpeningInjection) => void,
-    ) => {
-      const full = openingPaths.find((p) => p.id === draft.id);
-      if (!full) {
-        startWithChoice(buildOpenLogosInjection(firstName || "toi"));
-        return;
-      }
-      try {
-        await consumeLogosPath(full.id);
-      } catch (err) {
-        console.error("WelcomeVoiceAgent consume", err);
-      }
-      startWithChoice(
-        { ...buildGuidedLogosInjection(
-          {
-            openingPrompt: full.openingPrompt,
-            firstMessage: full.firstMessage,
-          },
-          firstName || "toi",
-        ), feedbackContext: { promptId: full.id, category: full.category } },
-      );
-      void refreshOpeningPaths();
-    },
-    [firstName, openingPaths, refreshOpeningPaths],
-  );
-
-  const onFavoritePath = useCallback(
-    async (draft: LogosPathDraft) => {
-      try {
-        await favoriteLogosPath(draft.id);
-        await refreshOpeningPaths();
-      } catch (err) {
-        console.error("WelcomeVoiceAgent favorite", err);
-      }
-    },
-    [refreshOpeningPaths],
-  );
-
-  const liveOverlay = useCallback(
-    ({ startWithChoice }: VoiceAgentLiveOverlayHelpers) => (
-      <LogosPathChooserOverlay
-        isFR={isFR}
-        paths={chooserPaths}
-        loading={pathsLoading}
-        onSelectPath={(path) => {
-          void startGuided(path, startWithChoice);
-        }}
-        onOwnPath={() => {
-          startWithChoice(buildOpenLogosInjection(firstName || "toi"));
-        }}
-        onFavoritePath={openingPaths.some(path => path.id.includes(":")) ? undefined : (path) => {
-          void onFavoritePath(path);
-        }}
-      />
-    ),
-    [chooserPaths, firstName, isFR, onFavoritePath, openingPaths, pathsLoading, startGuided],
-  );
 
   if (!user) return null;
 

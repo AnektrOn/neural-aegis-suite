@@ -316,19 +316,20 @@ function VoiceAgentControls({
   dynamicVariablesRef.current = dynamicVariables;
 
   const end = useCallback(async () => {
+    const afterEnd: UiPhase = requirePathChoice ? "path_choice" : "idle";
     if (!enableCall) {
-      onPhase("idle");
+      onPhase(afterEnd);
       return;
     }
     setBusy(true);
     try {
       await endSession();
-      onPhase("idle");
+      onPhase(afterEnd);
       setErrorDetail(null);
     } finally {
       setBusy(false);
     }
-  }, [enableCall, endSession, onPhase]);
+  }, [enableCall, endSession, onPhase, requirePathChoice]);
 
   const startWithInjection = useCallback(
     async (injection?: LogosOpeningInjection) => {
@@ -813,7 +814,10 @@ export function VoiceAgent({
 }: VoiceAgentProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const [phase, setPhase] = useState<UiPhase>("idle");
+  // Welcome already has "Talk to my agent" — land on path chooser, skip a second Start.
+  const [phase, setPhase] = useState<UiPhase>(
+    requirePathChoice ? "path_choice" : "idle",
+  );
   const [phaseMessage, setPhaseMessage] = useState<string | null>(null);
   const recorder = useMemo(() => user && enableCall
     ? new VoiceFeedbackRecorder(user.id, (error) => console.error("Voice feedback save failed", error))

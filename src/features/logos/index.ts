@@ -19,3 +19,4 @@ export {
   buildGuidedLogosInjection,
   buildOpenLogosInjection,
 } from "./logosSessionInjection";
+export { useLogosPathChooser } from "./useLogosPathChooser";

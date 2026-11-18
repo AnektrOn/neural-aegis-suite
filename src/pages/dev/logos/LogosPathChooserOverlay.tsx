@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { LogosPathCardNebula } from "./LogosPathCardNebula";
-import type { LogosPathSculptureIndex } from "./logosPathSculptureAssets";
+import { logosPathSculptureIndexFor } from "./logosPathSculptureAssets";
 
 export type LogosPathDraft = {
   id: string;
@@ -9,24 +9,14 @@ export type LogosPathDraft = {
   /** Optional expiry hint (days remaining). */
   daysUntilExpiry?: number;
   isFavorited?: boolean;
+  /** DB category — picks which of the 5 fixed covers to render. */
+  category?: string;
 };
-
-export const DRAFT_PATHS_FR: LogosPathDraft[] = [
-  { id: "path-1", title: "Clarifier une décision" },
-  { id: "path-2", title: "Apaiser le bruit mental" },
-  { id: "path-3", title: "Ancrer mon intention" },
-];
-
-export const DRAFT_PATHS_EN: LogosPathDraft[] = [
-  { id: "path-1", title: "Clarify a decision" },
-  { id: "path-2", title: "Quiet the mental noise" },
-  { id: "path-3", title: "Ground my intention" },
-];
 
 type Props = {
   isFR: boolean;
-  /** Up to 3 weighted paths; falls back to draft titles when omitted. */
-  paths?: LogosPathDraft[];
+  /** Up to 3 weighted paths from `pickOpeningLogosPaths`. */
+  paths: LogosPathDraft[];
   onSelectPath: (path: LogosPathDraft) => void;
   onOwnPath: () => void;
   /** Optional: keep path in memory (extend TTL + favorite weight). */
@@ -35,7 +25,7 @@ type Props = {
   className?: string;
 };
 
-/** Glass path cards: liquid sculpture per tile + readable title. */
+/** Glass path cards: liquid sculpture per tile + readable dynamic title. */
 export function LogosPathChooserOverlay({
   isFR,
   paths: pathsProp,
@@ -45,12 +35,7 @@ export function LogosPathChooserOverlay({
   loading = false,
   className,
 }: Props) {
-  const fallback = isFR ? DRAFT_PATHS_FR : DRAFT_PATHS_EN;
-  // undefined → lab drafts; explicit [] → no cards (blank path only).
-  const paths =
-    pathsProp === undefined
-      ? fallback
-      : pathsProp.slice(0, 3);
+  const paths = pathsProp.slice(0, 3);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const heading = isFR ? "Choisis ton chemin" : "Choose your path";
@@ -60,6 +45,9 @@ export function LogosPathChooserOverlay({
   const ownPath = isFR ? "Je connais mon propre chemin" : "I know my own path";
   const keepLabel = isFR ? "Garder" : "Keep";
   const loadingLabel = isFR ? "Chargement des chemins…" : "Loading paths…";
+  const emptyLabel = isFR
+    ? "Aucun chemin disponible — ouvre en mode libre."
+    : "No paths available — open in free mode.";
 
   const pick = (path: LogosPathDraft) => {
     setSelectedId(path.id);
@@ -81,7 +69,7 @@ export function LogosPathChooserOverlay({
           {heading}
         </h2>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-          {loading ? loadingLabel : sub}
+          {loading ? loadingLabel : paths.length === 0 ? emptyLabel : sub}
         </p>
       </div>
 
@@ -98,7 +86,11 @@ export function LogosPathChooserOverlay({
         >
           {paths.map((path, index) => {
             const selected = selectedId === path.id;
-            const sculptureIndex = (index % 3) as LogosPathSculptureIndex;
+            const sculptureIndex = logosPathSculptureIndexFor({
+              category: path.category,
+              pathId: path.id,
+              fallbackSlot: index,
+            });
             const days =
               typeof path.daysUntilExpiry === "number"
                 ? Math.max(0, Math.ceil(path.daysUntilExpiry))

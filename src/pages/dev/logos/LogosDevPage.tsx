@@ -1,26 +1,27 @@
-import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { VoiceAgent } from "@/components/voice/VoiceAgent";
 import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
+import { useLogosPathChooser } from "@/features/logos/useLogosPathChooser";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogosPathChooserOverlay, type LogosPathDraft } from "./LogosPathChooserOverlay";
 
 /**
- * Lab doublon of Welcome → Agent.
- * CTA → 3 cartes verre (nébule Welcome / carte) + titres draft.
+ * Lab mirror of Welcome → Agent path chooser.
+ * Same DB-weighted paths + dynamic titles; local sculpture covers only.
  */
 export default function LogosDevPage() {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const isFR = locale === "fr";
 
-  const onSelectPath = useCallback((path: LogosPathDraft) => {
-    console.info("[logos-lab] path selected", path);
-  }, []);
+  const { liveOverlay } = useLogosPathChooser({
+    enabled: Boolean(user?.id),
+    isFR,
+    firstName: "toi",
+  });
 
   return (
     <div className="relative min-h-dvh">
@@ -37,7 +38,7 @@ export default function LogosDevPage() {
           </Link>
         </Button>
         <Badge variant="outline" className="pointer-events-none bg-background/70 font-normal backdrop-blur">
-          LAB · glass cards
+          LAB · opening paths
         </Badge>
       </div>
 
@@ -61,16 +62,8 @@ export default function LogosDevPage() {
             matchWelcomeVisual
             hideHeroTitle
             pathCardsMorph
-            liveOverlay={({ endLive, startWithChoice }) => (
-              <LogosPathChooserOverlay
-                isFR={isFR}
-                onSelectPath={(path) => {
-                  onSelectPath(path);
-                  startWithChoice();
-                }}
-                onOwnPath={endLive}
-              />
-            )}
+            requirePathChoice
+            liveOverlay={liveOverlay}
           />
         </LogosVoiceShell>
       )}

@@ -1,6 +1,7 @@
 /**
  * Path-card liquid sculptures — drop files in `./assets/`, then set filenames here.
  * Supported: png / webp / jpg / jpeg (transparent or black-keyed cutouts work best).
+ * Titles are dynamic (DB); covers are fixed art keyed by category when known.
  */
 export const LOGOS_PATH_COUNT = 5;
 
@@ -22,6 +23,21 @@ const assetUrls = import.meta.glob<string>("./assets/*", {
   query: "?url",
   import: "default",
 });
+
+/** Pick a cover among the 5 fixed arts. Prefer category, else stable path id, else slot. */
+export function logosPathSculptureIndexFor(opts: {
+  category?: string;
+  pathId?: string;
+  fallbackSlot?: number;
+}): LogosPathSculptureIndex {
+  const key = (opts.category?.trim() || opts.pathId?.trim() || "").toLowerCase();
+  if (key) {
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return (h % LOGOS_PATH_COUNT) as LogosPathSculptureIndex;
+  }
+  return (Math.abs(opts.fallbackSlot ?? 0) % LOGOS_PATH_COUNT) as LogosPathSculptureIndex;
+}
 
 export function logosPathSculptureSrc(index: LogosPathSculptureIndex): string | null {
   const filename = LOGOS_PATH_SCULPTURE_FILENAMES[index];
