@@ -2318,57 +2318,6 @@ export type Database = {
         }
         Relationships: []
       }
-      logos_conversation_exports: {
-        Row: {
-          agent_id: string | null
-          audio_uploaded: boolean
-          conversation_date: string
-          created_at: string
-          elevenlabs_conversation_id: string
-          logos_drive_done: boolean
-          logos_drive_path: string | null
-          prompt_id: string | null
-          session_mode: string | null
-          updated_at: string
-          user_export_done: boolean
-          user_export_format: string | null
-          user_export_path: string | null
-          user_id: string
-        }
-        Insert: {
-          agent_id?: string | null
-          audio_uploaded?: boolean
-          conversation_date: string
-          created_at?: string
-          elevenlabs_conversation_id: string
-          logos_drive_done?: boolean
-          logos_drive_path?: string | null
-          prompt_id?: string | null
-          session_mode?: string | null
-          updated_at?: string
-          user_export_done?: boolean
-          user_export_format?: string | null
-          user_export_path?: string | null
-          user_id: string
-        }
-        Update: {
-          agent_id?: string | null
-          audio_uploaded?: boolean
-          conversation_date?: string
-          created_at?: string
-          elevenlabs_conversation_id?: string
-          logos_drive_done?: boolean
-          logos_drive_path?: string | null
-          prompt_id?: string | null
-          session_mode?: string | null
-          updated_at?: string
-          user_export_done?: boolean
-          user_export_format?: string | null
-          user_export_path?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       logos_path_prompts: {
         Row: {
           batch_id: string
