@@ -15,9 +15,31 @@ export interface WelcomeNebulaScreenAnchor {
   y: number;
 }
 
+/** Aligné sur le breakpoint `md` Tailwind — comportement mot simplifié en dessous. */
+export const WELCOME_NEBULA_MOBILE_MAX_WIDTH = 768;
+
+export const WELCOME_NEBULA_WORD_SCALE_DESKTOP = 1.55;
+/** −33 % sur mobile */
+export const WELCOME_NEBULA_WORD_SCALE_MOBILE =
+  WELCOME_NEBULA_WORD_SCALE_DESKTOP * 0.67;
+
+export function isWelcomeNebulaMobileViewport(
+  viewport: WelcomeNebulaViewport = readWelcomeNebulaViewport(),
+): boolean {
+  return viewport.width < WELCOME_NEBULA_MOBILE_MAX_WIDTH;
+}
+
+export function getWelcomeNebulaWordScale(
+  viewport: WelcomeNebulaViewport = readWelcomeNebulaViewport(),
+): number {
+  return isWelcomeNebulaMobileViewport(viewport)
+    ? WELCOME_NEBULA_WORD_SCALE_MOBILE
+    : WELCOME_NEBULA_WORD_SCALE_DESKTOP;
+}
+
 /** Ancres visuelles du mot (fractions du viewport). */
 export const WELCOME_NEBULA_SCREEN_ANCHORS = {
-  right: { x: 0.78, y: 0.54 },
+  right: { x: 0.70, y: 0.54 },
   left: { x: 0.22, y: 0.54 },
   center: { x: 0.5, y: 0.5 },
 } as const satisfies Record<string, WelcomeNebulaScreenAnchor>;
@@ -61,6 +83,15 @@ export function getWelcomeNebulaWorldLayout(
       : { width: 390, height: 844 });
 
   const anchors = WELCOME_NEBULA_SCREEN_ANCHORS;
+  const center = screenNormToWorldOffset(
+    anchors.center.x,
+    anchors.center.y,
+    vp,
+    cameraDistance,
+  );
+  if (isWelcomeNebulaMobileViewport(vp)) {
+    return { right: center, left: center, center };
+  }
   return {
     right: screenNormToWorldOffset(
       anchors.right.x,
@@ -74,12 +105,7 @@ export function getWelcomeNebulaWorldLayout(
       vp,
       cameraDistance,
     ),
-    center: screenNormToWorldOffset(
-      anchors.center.x,
-      anchors.center.y,
-      vp,
-      cameraDistance,
-    ),
+    center,
   };
 }
 

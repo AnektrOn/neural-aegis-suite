@@ -7,6 +7,11 @@ import {
 } from "@/components/ui/quantum-nebula-hero-v3";
 import type { QuantumNebulaWordConfig } from "@/components/ui/quantumNebulaWordMask";
 import { useWelcomeNebulaViewportLayout } from "@/features/welcome/hooks/useWelcomeNebulaViewportLayout";
+import {
+  getWelcomeNebulaWordScale,
+  isWelcomeNebulaMobileViewport,
+  readWelcomeNebulaViewport,
+} from "@/features/welcome/welcomeNebulaWordLayout";
 
 /** Welcome hero — viewport vortex (GenerativeArtSceneV3 HTML prototype). */
 export const WELCOME_NEBULA_VISUAL_TUNING: Partial<QuantumNebulaHeroVisualTuning> = {
@@ -54,22 +59,33 @@ const WELCOME_HUD_WORD: QuantumNebulaWordConfig = {
 };
 
 export function WelcomeQuantumNebula() {
-  const { right } = useWelcomeNebulaViewportLayout();
+  const layout = useWelcomeNebulaViewportLayout();
+  const anchor = layout.right;
   const wordDriveRef = useRef<QuantumNebulaHeroWordDrive>({
     text: "AEGIS",
-    offsetX: right.offsetX,
-    offsetY: right.offsetY,
+    offsetX: anchor.offsetX,
+    offsetY: anchor.offsetY,
     reveal: 1,
+    scale: getWelcomeNebulaWordScale(),
   });
 
   useEffect(() => {
+    const vp = readWelcomeNebulaViewport();
+    const mobile = isWelcomeNebulaMobileViewport(vp);
+    const pick = mobile ? layout.center : layout.right;
     Object.assign(wordDriveRef.current, {
       text: "AEGIS",
-      offsetX: right.offsetX,
-      offsetY: right.offsetY,
+      offsetX: pick.offsetX,
+      offsetY: pick.offsetY,
       reveal: 1,
+      scale: getWelcomeNebulaWordScale(vp),
     });
-  }, [right.offsetX, right.offsetY]);
+  }, [
+    layout.center.offsetX,
+    layout.center.offsetY,
+    layout.right.offsetX,
+    layout.right.offsetY,
+  ]);
 
   return (
     <QuantumNebulaHeroV3

@@ -9,8 +9,11 @@
  */
 
 import {
+  getWelcomeNebulaWordScale,
   getWelcomeNebulaWorldLayout,
+  isWelcomeNebulaMobileViewport,
   readWelcomeNebulaViewport,
+  type WelcomeNebulaWorldAnchor,
 } from "./welcomeNebulaWordLayout";
 
 export interface WelcomeNebulaWordState {
@@ -18,6 +21,21 @@ export interface WelcomeNebulaWordState {
   offsetX: number;
   offsetY: number;
   reveal: number;
+  scale: number;
+}
+
+function pinToCenter(
+  state: Omit<WelcomeNebulaWordState, "scale"> & { scale?: number },
+  center: WelcomeNebulaWorldAnchor,
+  scale: number,
+): WelcomeNebulaWordState {
+  return {
+    text: state.text,
+    reveal: state.reveal,
+    offsetX: center.offsetX,
+    offsetY: center.offsetY,
+    scale,
+  };
 }
 
 export const WELCOME_NEBULA_SECTION_IDS = {
@@ -78,15 +96,22 @@ export function computeWelcomeNebulaWordState(
   scrollY: number = typeof window !== "undefined" ? window.scrollY : 0,
   vh: number = typeof window !== "undefined" ? window.innerHeight : 800,
 ): WelcomeNebulaWordState {
-  const { right, left, center } = getWelcomeNebulaWorldLayout(
-    readWelcomeNebulaViewport(),
-  );
-  const fallback: WelcomeNebulaWordState = {
+  const viewport = readWelcomeNebulaViewport();
+  const mobile = isWelcomeNebulaMobileViewport(viewport);
+  const wordScale = getWelcomeNebulaWordScale(viewport);
+  const { right, left, center } = getWelcomeNebulaWorldLayout(viewport);
+  const finalize = (
+    state: Omit<WelcomeNebulaWordState, "scale">,
+  ): WelcomeNebulaWordState =>
+    mobile
+      ? pinToCenter(state, center, wordScale)
+      : { ...state, scale: wordScale };
+
+  const fallback: WelcomeNebulaWordState = finalize({
     text: "AEGIS",
-    offsetX: right.offsetX,
-    offsetY: right.offsetY,
+    ...right,
     reveal: 1,
-  };
+  });
 
   const { hero, demo, rupture, faq } = sections;
   if (!hero || !demo || !rupture || !faq) return fallback;
@@ -98,16 +123,15 @@ export function computeWelcomeNebulaWordState(
 
   const focus = welcomeNebulaFocusY(scrollY, vh);
 
-  const hiddenLogos: WelcomeNebulaWordState = {
-    text: "LOGOS",
-    offsetX: left.offsetX,
-    offsetY: left.offsetY,
-    reveal: 0,
-  };
+  const hiddenLogos: WelcomeNebulaWordState = pinToCenter(
+    { text: "LOGOS", ...left, reveal: 0 },
+    center,
+    wordScale,
+  );
 
   // —— Ch.1 : tant que la ligne de lecture est dans le hero (titre + lead). ——
   if (focus < h.bottom) {
-    return { text: "AEGIS", ...right, reveal: 1 };
+    return finalize({ text: "AEGIS", ...right, reveal: 1 });
   }
 
   // —— Ch.2 : bloc démo vocale (#demo-vocale) — morph puis LOGOS stabilisé. ——
@@ -115,14 +139,22 @@ export function computeWelcomeNebulaWordState(
   if (focus < d.bottom) {
     if (focus <= morphZoneEnd) {
       const morphT = smoothstep((focus - d.top) / Math.max(1, morphZoneEnd - d.top));
-      return {
+      if (mobile) {
+        return finalize({
+          text: morphT >= 0.52 ? "LOGOS" : "AEGIS",
+          offsetX: center.offsetX,
+          offsetY: center.offsetY,
+          reveal: 1,
+        });
+      }
+      return finalize({
         text: morphT >= 0.52 ? "LOGOS" : "AEGIS",
         offsetX: lerp(right.offsetX, left.offsetX, morphT),
         offsetY: lerp(right.offsetY, left.offsetY, morphT),
         reveal: 1,
-      };
+      });
     }
-    return { text: "LOGOS", ...left, reveal: 1 };
+    return finalize({ text: "LOGOS", ...left, reveal: 1 });
   }
 
   // —— Désintégration : passage contenu démo → rupture (jonction physique des sections). ——
@@ -134,14 +166,14 @@ export function computeWelcomeNebulaWordState(
   if (focus < disEnd) {
     if (focus >= disStart) {
       const disT = smoothstep((focus - disStart) / Math.max(1, disEnd - disStart));
-      return {
+      return finalize({
         text: "LOGOS",
         offsetX: left.offsetX,
         offsetY: left.offsetY,
         reveal: 1 - disT,
-      };
+      });
     }
-    return { text: "LOGOS", ...left, reveal: 1 };
+    return finalize({ text: "LOGOS", ...left, reveal: 1 });
   }
 
   // —— Réintégration : fin du ch.3 → entrée dans #faq (avant-dernière section). ——
@@ -150,16 +182,24 @@ export function computeWelcomeNebulaWordState(
 
   if (focus >= reintStart && focus < reintEnd) {
     const reintT = smoothstep((focus - reintStart) / Math.max(1, reintEnd - reintStart));
-    return {
+    if (mobile) {
+      return finalize({
+        text: "AEGIS",
+        offsetX: center.offsetX,
+        offsetY: center.offsetY,
+        reveal: reintT,
+      });
+    }
+    return finalize({
       text: "AEGIS",
       offsetX: lerp(left.offsetX, center.offsetX, reintT),
       offsetY: lerp(left.offsetY, center.offsetY, reintT),
       reveal: reintT,
-    };
+    });
   }
 
   if (focus >= reintEnd) {
-    return { text: "AEGIS", ...center, reveal: 1 };
+    return finalize({ text: "AEGIS", ...center, reveal: 1 });
   }
 
   // Milieu de page : ch.3 (rupture) après dissolve + sections intermédiaires.

@@ -51,6 +51,8 @@ export interface QuantumNebulaHeroWordDrive {
   offsetX: number;
   offsetY: number;
   reveal: number;
+  /** Taille du plan mot (masque canvas) — ex. mobile −33 %. */
+  scale?: number;
 }
 
 export const DEFAULT_HERO_VISUAL_TUNING: QuantumNebulaHeroVisualTuning = {
@@ -293,6 +295,7 @@ export function QuantumNebulaHeroV3({
 
     const wordStyleBase = { ...wordCfg };
     let liveText = wordCfg.text;
+    let liveScale = wordCfg.scale;
     let liveReveal = 1;
     let wordOffsetLiveX = wordOffsetX;
     let wordOffsetLiveY = wordOffsetY;
@@ -303,11 +306,13 @@ export function QuantumNebulaHeroV3({
       const ox = drive?.offsetX ?? base.offsetX ?? 0;
       const oy = drive?.offsetY ?? base.offsetY ?? 0;
       const reveal = drive?.reveal ?? 1;
+      const scale = drive?.scale ?? base.scale;
 
-      if (text !== liveText) {
+      if (text !== liveText || scale !== liveScale) {
         liveText = text;
+        liveScale = scale;
         if (wordMask.texture) wordMask.texture.dispose();
-        wordMask = buildWordMaskData({ ...base, text, offsetX: ox, offsetY: oy });
+        wordMask = buildWordMaskData({ ...base, text, scale, offsetX: ox, offsetY: oy });
         particleMaterial.uniforms.u_wordTex.value = wordMask.texture;
         particleMaterial.uniforms.u_wordHalfSize.value.set(
           wordMask.planeW * 0.5,

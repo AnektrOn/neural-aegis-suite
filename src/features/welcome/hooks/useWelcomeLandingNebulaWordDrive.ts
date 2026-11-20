@@ -4,15 +4,22 @@ import {
   computeWelcomeNebulaWordState,
   queryWelcomeNebulaSections,
 } from "@/features/welcome/welcomeNebulaScrollStory";
-import { getWelcomeNebulaWorldLayout, readWelcomeNebulaViewport } from "@/features/welcome/welcomeNebulaWordLayout";
+import {
+  getWelcomeNebulaWordScale,
+  getWelcomeNebulaWorldLayout,
+  readWelcomeNebulaViewport,
+} from "@/features/welcome/welcomeNebulaWordLayout";
 
 export function useWelcomeLandingNebulaWordDrive(): MutableRefObject<QuantumNebulaHeroWordDrive> {
-  const initialRight = getWelcomeNebulaWorldLayout(readWelcomeNebulaViewport()).right;
+  const vp = readWelcomeNebulaViewport();
+  const layout = getWelcomeNebulaWorldLayout(vp);
+  const initial = layout.right;
   const driveRef = useRef<QuantumNebulaHeroWordDrive>({
     text: "AEGIS",
-    offsetX: initialRight.offsetX,
-    offsetY: initialRight.offsetY,
+    offsetX: initial.offsetX,
+    offsetY: initial.offsetY,
     reveal: 1,
+    scale: getWelcomeNebulaWordScale(vp),
   });
 
   useEffect(() => {

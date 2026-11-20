@@ -15,23 +15,23 @@ const SCENARIO_TIMELINE: StepData[] = [
     timeMs: 0,
     stage: "INPUT_FOUNDER",
     textFr:
-      "Encore un questionnaire… J’ai déjà testé des bilans. Là j’ai besoin de quelque chose qui me montre où je dérape, pas un score.",
+      "Dirigeant : « Je passe mes nuits sur la tréso pour ne pas affronter mon associé. »",
     textEn:
-      "Another questionnaire… I’ve done assessments before. I need something that shows where I drift, not a score.",
+      "Executive: “I spend my nights on cash flow so I don't have to face my partner.”",
   },
   {
     timeMs: 3800,
     stage: "PROCESSING_AEGIS",
-    textFr: "[LECTURE DU MOTIF RÉCURRENT… PRÉPARATION DE L’AUDIT 30 QUESTIONS…]",
-    textEn: "[READING THE RECURRING PATTERN… PREPARING THE 30-QUESTION AUDIT…]",
+    textFr: "[ANALYSE VOCALE EN COURS…]",
+    textEn: "[VOICE ANALYSIS IN PROGRESS…]",
   },
   {
     timeMs: 5000,
     stage: "DECISION_LOGOS",
     textFr:
-      "Ce n’est pas un bilan de plus — c’est une cartographie. Le problème n’est pas ce que vous savez : c’est ce que vous ne voyez plus. Vous n’êtes pas bloqué par le manque d’infos — vous êtes bloqué par l’angle mort. Trente questions, quatre minutes. Ensuite on tranche pour de vrai.",
+      "LOGOS : « Vous utilisez les chiffres comme un anesthésiant. Le litige n'est pas financier, il est humain. Signez l'avenant jeudi : son veto tombe à 7 %. »",
     textEn:
-      "This isn’t another assessment — it’s a map. The issue isn’t what you know — it’s what you can no longer see. You’re not blocked by lack of information — you’re blocked by the blind spot. Thirty questions, four minutes. Then we decide for real.",
+      "LOGOS: “You use numbers as an anesthetic. The dispute isn't financial — it's human. Sign the amendment Thursday: his veto drops to 7%.”",
   },
 ];
 
@@ -242,8 +242,8 @@ export const SilentDemoPlayer: React.FC<SilentDemoPlayerProps> = ({
                 ? "PAUSE // ÉCOUTE DU TIMBRE RÉEL EN COURS"
                 : "PAUSE // LISTENING TO REAL VOICE TIMBRE"
               : isFR
-                ? "ÉCOUTER UN EXTRAIT VOCAL RÉEL (18 SEC)"
-                : "LISTEN TO A REAL VOICE SAMPLE (18 SEC)"}
+                ? "▶ Écouter un arbitrage réel (18 sec)"
+                : "▶ Listen to a real arbitration (18 sec)"}
           </span>
         </button>
 
