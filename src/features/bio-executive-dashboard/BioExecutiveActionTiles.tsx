@@ -1,6 +1,7 @@
 import { ArrowUpRight, ChevronRight, MessageSquare, Sparkles, Wrench } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { BioExecutiveViewModel } from "./types";
 import { BioExecutivePreviewTileDots, type PreviewSlideChrome } from "./BioExecutivePreviewTileDots";
 import { mergeCarouselSlideArticleProps } from "./bioExecutiveCarouselSlide";
@@ -40,6 +41,8 @@ export function BioExecutiveSignalBanner({ viewModel, className }: { viewModel: 
 }
 
 export function BioExecutiveDecisionActionTile({ viewModel, className, slideProps, previewSlideChrome }: ActionTileProps) {
+  const { t, locale } = useLanguage();
+  const isFr = locale === "fr";
   const d = viewModel.pendingDecision;
   const count = viewModel.pendingDecisionCount;
   const empty = !d;
@@ -53,7 +56,7 @@ export function BioExecutiveDecisionActionTile({ viewModel, className, slideProp
       )}
     >
       <div className="z-10 flex items-start justify-between aegis-bio-exec-lab__type-body opacity-90">
-        <span className="font-medium">Décision en attente</span>
+        <span className="font-medium">{t("bioExec.pendingDecisionTitle")}</span>
         {count > 0 ? (
           <span className="aegis-bio-exec-lab__type-label-caps aegis-bio-exec-lab__tile-kicker">{count}</span>
         ) : null}
@@ -61,17 +64,17 @@ export function BioExecutiveDecisionActionTile({ viewModel, className, slideProp
 
       {empty ? (
         <div className="z-10 my-auto space-y-1">
-          <p className="aegis-bio-exec-lab__type-body font-medium">Aucune décision en attente</p>
-          <p className="aegis-bio-exec-lab__type-label opacity-70">Clair pour aujourd&apos;hui</p>
+          <p className="aegis-bio-exec-lab__type-body font-medium">{t("bioExec.noPendingDecision")}</p>
+          <p className="aegis-bio-exec-lab__type-label opacity-70">{t("bioExec.clearForToday")}</p>
         </div>
       ) : (
         <>
           <div className="z-10 mt-2 space-y-2">
             <p className="aegis-bio-exec-lab__type-body text-[15px] font-medium leading-snug">{d.name}</p>
-            <p className="aegis-bio-exec-lab__type-label opacity-80">Il te reste cette décision à prendre.</p>
+            <p className="aegis-bio-exec-lab__type-label opacity-80">{t("bioExec.decisionRemaining")}</p>
             <p className="aegis-bio-exec-lab__type-label opacity-75">
-              Depuis {d.ageDays} j
-              {d.priority >= 2 ? " · Prioritaire" : ""}
+              {isFr ? `Depuis ${d.ageDays} j` : `For ${d.ageDays}d`}
+              {d.priority >= 2 ? (isFr ? " · Prioritaire" : " · Priority") : ""}
             </p>
           </div>
           {viewModel.journalSnippet ? (
@@ -86,7 +89,7 @@ export function BioExecutiveDecisionActionTile({ viewModel, className, slideProp
         to="/decisions"
         className="z-10 mt-3 inline-flex min-h-[44px] items-center gap-1 aegis-bio-exec-lab__type-label font-semibold aegis-bio-exec-lab__accent-text no-underline"
       >
-        <span>Voir les décisions</span>
+        <span>{t("bioExec.seeDecisions")}</span>
         <ArrowUpRight size={14} />
       </NavLink>
       {previewSlideChrome ? <BioExecutivePreviewTileDots {...previewSlideChrome} /> : null}
@@ -95,6 +98,7 @@ export function BioExecutiveDecisionActionTile({ viewModel, className, slideProp
 }
 
 export function BioExecutivePulseActionTile({ viewModel, className, slideProps, previewSlideChrome }: ActionTileProps) {
+  const { t } = useLanguage();
   const card = viewModel.pulseCard;
 
   return (
@@ -103,7 +107,7 @@ export function BioExecutivePulseActionTile({ viewModel, className, slideProps, 
       className={actionTileClass("aegis-bio-exec-lab__color-tile--pulse min-h-[148px]", className)}
     >
       <div className="z-10 flex items-center justify-between aegis-bio-exec-lab__type-body opacity-90">
-        <span className="font-medium">Pulse du jour</span>
+        <span className="font-medium">{t("bioExec.pulseOfTheDay")}</span>
         <Sparkles size={14} className="opacity-80" aria-hidden />
       </div>
 
@@ -112,7 +116,7 @@ export function BioExecutivePulseActionTile({ viewModel, className, slideProps, 
           <div className="z-10 mt-2 flex flex-wrap items-center gap-2">
             {card.isNew ? (
               <span className="rounded-full bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] px-2 py-0.5 aegis-bio-exec-lab__type-label-caps">
-                Nouveau
+                {t("bioExec.newBadge")}
               </span>
             ) : null}
             <span className="aegis-bio-exec-lab__type-label opacity-70">{card.addedLabel}</span>
@@ -120,14 +124,14 @@ export function BioExecutivePulseActionTile({ viewModel, className, slideProps, 
           <p className="z-10 mt-2 line-clamp-3 aegis-bio-exec-lab__type-body font-medium leading-snug">{card.title}</p>
         </>
       ) : (
-        <p className="z-10 my-auto aegis-bio-exec-lab__type-label opacity-75">Aucune carte aujourd&apos;hui</p>
+        <p className="z-10 my-auto aegis-bio-exec-lab__type-label opacity-75">{t("bioExec.noCardsToday")}</p>
       )}
 
       <NavLink
         to="/pulse"
         className="z-10 mt-2 inline-flex min-h-[44px] items-center gap-1 aegis-bio-exec-lab__type-label font-semibold aegis-bio-exec-lab__accent-text no-underline"
       >
-        <span>Ouvrir le deck</span>
+        <span>{t("bioExec.openDeck")}</span>
         <ChevronRight size={14} />
       </NavLink>
       {previewSlideChrome ? <BioExecutivePreviewTileDots {...previewSlideChrome} /> : null}
@@ -136,6 +140,7 @@ export function BioExecutivePulseActionTile({ viewModel, className, slideProps, 
 }
 
 export function BioExecutiveToolboxActionTile({ viewModel, className, slideProps, previewSlideChrome }: ActionTileProps) {
+  const { t } = useLanguage();
   const inbox = viewModel.toolboxInbox;
   const nextTitle = inbox.nextItem?.title;
 
@@ -150,22 +155,22 @@ export function BioExecutiveToolboxActionTile({ viewModel, className, slideProps
       </div>
 
       <p className="z-10 mt-2 line-clamp-2 aegis-bio-exec-lab__type-body font-medium">
-        {nextTitle ?? (inbox.missing > 0 ? `${inbox.missing} outil(s) en attente` : "Inbox claire")}
+        {nextTitle ?? (inbox.missing > 0 ? t("bioExec.pendingToolsCount", { count: inbox.missing }) : t("bioExec.inboxClear"))}
       </p>
 
       <div className="z-10 mt-2 flex flex-wrap gap-x-2 gap-y-1 aegis-bio-exec-lab__type-label opacity-75">
-        <span>Nouveau {inbox.newer}</span>
+        <span>{t("bioExec.inboxNew", { count: inbox.newer })}</span>
         <span>·</span>
-        <span>En attente {inbox.missing}</span>
+        <span>{t("bioExec.inboxPending", { count: inbox.missing })}</span>
         <span>·</span>
-        <span>Favoris {inbox.favorites}</span>
+        <span>{t("bioExec.inboxFavorites", { count: inbox.favorites })}</span>
       </div>
 
       <NavLink
         to="/toolbox"
         className="z-10 mt-2 inline-flex min-h-[44px] items-center gap-1 aegis-bio-exec-lab__type-label font-semibold aegis-bio-exec-lab__accent-text no-underline"
       >
-        <span>Ouvrir</span>
+        <span>{t("bioExec.openAction")}</span>
         <ArrowUpRight size={14} />
       </NavLink>
       {previewSlideChrome ? <BioExecutivePreviewTileDots {...previewSlideChrome} /> : null}

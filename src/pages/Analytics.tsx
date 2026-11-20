@@ -52,13 +52,15 @@ export default function Analytics() {
     <div className="flex flex-col gap-6 h-full justify-between">
       <div>
         <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.26em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
-          {t("analytics.intelligenceCenter")} · BIOMÉTRIE
+          {t("analytics.intelligenceCenter")} · {locale === "fr" ? "BIOMÉTRIE" : "BIOMETRICS"}
         </p>
         <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
           {t("analytics.title")}
         </h1>
         <p className="font-sans text-sm text-muted-foreground mt-2 leading-relaxed">
-          Synthèse globale de vos signaux de performance, clarté cognitive et régularité circadienne.
+          {locale === "fr"
+            ? "Synthèse globale de vos signaux de performance, clarté cognitive et régularité circadienne."
+            : "Global synthesis of your performance signals, cognitive clarity, and circadian regularity."}
         </p>
       </div>
 
@@ -74,7 +76,7 @@ export default function Analytics() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          📊 Graphiques & Tendances
+          📊 {locale === "fr" ? "Graphiques & Tendances" : "Charts & Trends"}
         </button>
         <button
           type="button"
@@ -86,7 +88,7 @@ export default function Analytics() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          📑 Synthèse (4 KPIs)
+          📑 {locale === "fr" ? "Synthèse (4 KPIs)" : "Summary (4 KPIs)"}
         </button>
       </div>
 
@@ -97,7 +99,7 @@ export default function Analytics() {
             <div className="flex items-center gap-2">
               <ShieldCheck size={18} className="text-[#c9a24b]" />
               <span className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c9a24b]">
-                Indice Bio-Exécutif
+                {locale === "fr" ? "Indice Bio-Exécutif" : "Bio-Executive Index"}
               </span>
             </div>
             <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-[#c9a24b]/15 text-[#c9a24b] border border-[#c9a24b]/30">
@@ -109,7 +111,9 @@ export default function Analytics() {
             <div className="p-3 rounded-xl bg-black/25 dark:bg-black/35 border border-white/5 backdrop-blur-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                 <Brain size={13} className="text-[#c9a24b]" />
-                <span className="font-cinzel text-[8.5px] uppercase tracking-wider">Humeur (30j)</span>
+                <span className="font-cinzel text-[8.5px] uppercase tracking-wider">
+                  {locale === "fr" ? "Humeur (30j)" : "Mood (30d)"}
+                </span>
               </div>
               <p className="font-cormorant text-2xl font-light text-foreground tabular-nums">
                 {metricsSummary?.moodAvg ?? "…"} <span className="text-xs text-muted-foreground">/ 10</span>
@@ -119,17 +123,21 @@ export default function Analytics() {
             <div className="p-3 rounded-xl bg-black/25 dark:bg-black/35 border border-white/5 backdrop-blur-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                 <Moon size={13} className="text-sky-400" />
-                <span className="font-cinzel text-[8.5px] uppercase tracking-wider">Sommeil Moy.</span>
+                <span className="font-cinzel text-[8.5px] uppercase tracking-wider">
+                  {locale === "fr" ? "Sommeil Moy." : "Avg. Sleep"}
+                </span>
               </div>
               <p className="font-cormorant text-2xl font-light text-foreground tabular-nums">
-                {metricsSummary?.sleepAvg ?? "…"} <span className="text-xs text-muted-foreground">h / nuit</span>
+                {metricsSummary?.sleepAvg ?? "…"} <span className="text-xs text-muted-foreground">{locale === "fr" ? "h / nuit" : "h / night"}</span>
               </p>
             </div>
 
             <div className="p-3 rounded-xl bg-black/25 dark:bg-black/35 border border-white/5 backdrop-blur-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                 <Activity size={13} className="text-emerald-400" />
-                <span className="font-cinzel text-[8.5px] uppercase tracking-wider">Constance Habitudes</span>
+                <span className="font-cinzel text-[8.5px] uppercase tracking-wider">
+                  {locale === "fr" ? "Constance Habitudes" : "Habit Consistency"}
+                </span>
               </div>
               <p className="font-cormorant text-2xl font-light text-foreground tabular-nums">
                 {metricsSummary?.habitAvg ?? "…"}
@@ -139,7 +147,9 @@ export default function Analytics() {
             <div className="p-3 rounded-xl bg-black/25 dark:bg-black/35 border border-white/5 backdrop-blur-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                 <Target size={13} className="text-[#c9a24b]" />
-                <span className="font-cinzel text-[8.5px] uppercase tracking-wider">Arbitrages Tranchés</span>
+                <span className="font-cinzel text-[8.5px] uppercase tracking-wider">
+                  {locale === "fr" ? "Arbitrages Tranchés" : "Decisions Resolved"}
+                </span>
               </div>
               <p className="font-cormorant text-2xl font-light text-foreground tabular-nums">
                 {metricsSummary?.decidedRatio ?? "…"}
@@ -154,7 +164,9 @@ export default function Analytics() {
 
         <div className="aegis-dock-tile rounded-2xl p-4 text-center">
           <p className="font-cormorant text-sm italic text-muted-foreground leading-relaxed">
-            "La haute performance n'est pas un pic d'effort, mais la maîtrise du rythme et de la régénération."
+            {locale === "fr"
+              ? "\"La haute performance n'est pas un pic d'effort, mais la maîtrise du rythme et de la régénération.\""
+              : "\"Peak performance is not an effort spike, but mastering rhythm and regeneration.\""}
           </p>
         </div>
       </div>

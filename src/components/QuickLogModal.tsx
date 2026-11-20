@@ -25,9 +25,17 @@ interface QuickLogModalProps {
   open: boolean;
   onClose: () => void;
   onSaved?: () => void;
+  overlayClassName?: string;
+  contentClassName?: string;
 }
 
-export default function QuickLogModal({ open, onClose, onSaved }: QuickLogModalProps) {
+export default function QuickLogModal({
+  open,
+  onClose,
+  onSaved,
+  overlayClassName,
+  contentClassName,
+}: QuickLogModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t, locale } = useLanguage();
@@ -69,9 +77,14 @@ export default function QuickLogModal({ open, onClose, onSaved }: QuickLogModalP
   return (
     <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40" />
+        <Drawer.Overlay
+          className={overlayClassName ?? "fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"}
+        />
         <Drawer.Content
-          className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-card border-t border-primary/10 flex flex-col max-h-[90dvh] focus:outline-none"
+          className={
+            contentClassName ??
+            "fixed bottom-0 left-0 right-0 z-50 flex max-h-[90dvh] flex-col rounded-t-3xl border-t border-primary/10 bg-card focus:outline-none"
+          }
         >
           {/* Sticky header with handle + close */}
           <div className="shrink-0 relative pt-3 pb-2 px-5">

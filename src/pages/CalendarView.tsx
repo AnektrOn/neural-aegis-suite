@@ -105,7 +105,7 @@ export default function CalendarView() {
       <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
         <div>
           <p className="font-cinzel text-[9.5px] uppercase tracking-wider text-muted-foreground">
-            JOUR SÉLECTIONNÉ
+            {t("calendar.selectedDay")}
           </p>
           <p className="font-cinzel text-sm font-semibold text-foreground capitalize mt-0.5">
             {new Date(selectedDay + "T00:00:00").toLocaleDateString(dateLocale, {
@@ -183,7 +183,7 @@ export default function CalendarView() {
             {t("common.noActivityToday")}
           </p>
           <p className="font-cinzel text-[9px] uppercase tracking-widest text-muted-foreground/40">
-            Aucun événement consigné pour cette journée
+            {t("calendar.noEventsForDay")}
           </p>
         </div>
       )}
@@ -195,7 +195,7 @@ export default function CalendarView() {
         {t("calendar.selectDay")}
       </p>
       <p className="font-cinzel text-[9px] uppercase tracking-widest text-muted-foreground/40">
-        Cliquez sur une date dans le cadran mensuel
+        {t("calendar.clickDateHint")}
       </p>
     </div>
   );
@@ -205,13 +205,13 @@ export default function CalendarView() {
       {/* Header */}
       <div>
         <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
-          VUE D'ENSEMBLE · BIO-CADENCE
+          {t("calendar.headerKicker")}
         </p>
         <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
           {t("nav.calendar")}
         </h1>
         <p className="font-sans text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
-          Synchronisation de votre bio-cadence, habitudes, réflexions et micro-décisions.
+          {t("calendar.headerSubtitle")}
         </p>
       </div>
 
@@ -227,7 +227,7 @@ export default function CalendarView() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          📅 Calendrier
+          {t("calendar.tabCalendar")}
         </button>
         <button
           type="button"
@@ -239,7 +239,7 @@ export default function CalendarView() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          📋 Détail {selectedDay ? `(${selectedDay.split("-").slice(1).reverse().join("/")})` : "du Jour"}
+          {selectedDay ? `📋 (${selectedDay.split("-").slice(1).reverse().join("/")})` : t("calendar.tabDetail")}
         </button>
       </div>
 
@@ -251,7 +251,7 @@ export default function CalendarView() {
             type="button"
             onClick={prevMonth}
             className="p-2 rounded-xl border border-white/10 bg-black/20 hover:border-[#c9a24b]/40 hover:bg-[#c9a24b]/10 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
-            aria-label="Mois précédent"
+            aria-label={t("calendar.prevMonth")}
           >
             <ChevronLeft size={16} />
           </button>
@@ -262,7 +262,7 @@ export default function CalendarView() {
             type="button"
             onClick={nextMonth}
             className="p-2 rounded-xl border border-white/10 bg-black/20 hover:border-[#c9a24b]/40 hover:bg-[#c9a24b]/10 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
-            aria-label="Mois suivant"
+            aria-label={t("calendar.nextMonth")}
           >
             <ChevronRight size={16} />
           </button>
@@ -358,7 +358,7 @@ export default function CalendarView() {
       <div className="aegis-dock-tile p-5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] space-y-4">
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
           <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.2em] text-[#9e7828] dark:text-[#c9a24b]">
-            SYNTHÈSE DU JOUR
+            {t("calendar.dailySummaryTitle")}
           </p>
           {selectedDay && (
             <span className="font-mono text-[10px] text-muted-foreground">

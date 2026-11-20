@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { UserRound } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   CEO_ARCHETYPE_LABELS,
   CEO_STAGE_LABELS,
@@ -16,12 +17,13 @@ export function CeoProfileBanner({
   className?: string;
   onEdit?: () => void;
 }) {
+  const { t } = useLanguage();
   const profile = getCeoProfile();
   if (!profile) {
     return (
       <button type="button" onClick={onEdit} className={cn(toolsSecondaryButton, "border-dashed", className)}>
         <UserRound className="h-3.5 w-3.5" aria-hidden />
-        Calibrer mon profil
+        {t("tools.calibrateMyProfile")}
       </button>
     );
   }

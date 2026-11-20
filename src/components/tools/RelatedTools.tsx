@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { ToolRegistryEntry } from "./toolsRegistry";
 import { ChevronRight } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { toolsBentoHover, toolsKicker, toolsTitle } from "./toolsDesign";
 
 interface RelatedToolsProps {
@@ -8,11 +9,12 @@ interface RelatedToolsProps {
 }
 
 export function RelatedTools({ tools }: RelatedToolsProps) {
+  const { t } = useLanguage();
   return (
     <section className="mt-16 border-t border-border/40 pt-12" aria-labelledby="related-tools-heading">
-      <p className={toolsKicker}>Continuer l&apos;audit</p>
+      <p className={toolsKicker}>{t("tools.continueAudit")}</p>
       <h2 id="related-tools-heading" className={`${toolsTitle} mt-2 text-2xl`}>
-        Autres outils décisionnels recommandés
+        {t("tools.otherRecommendedTools")}
       </h2>
       <ul className="mt-6 grid gap-4 sm:grid-cols-2">
         {tools.map((tool) => (

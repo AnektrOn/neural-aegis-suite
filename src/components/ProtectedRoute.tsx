@@ -24,7 +24,10 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const location = useLocation();
   const navigate = useNavigate();
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(() => {
+    if (!resolvedUser) return false;
+    return true;
+  });
 
   useEffect(() => {
     if (resolvedUser && !isAnonymousUser(resolvedUser) && !isGuestUser(resolvedUser)) {

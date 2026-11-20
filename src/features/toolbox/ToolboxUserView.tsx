@@ -928,7 +928,7 @@ export function ToolboxUserView({
                 className="w-full btn-solaire flex min-h-[44px] items-center justify-center gap-2 rounded-xl py-2.5 font-cinzel text-xs font-semibold uppercase tracking-[0.16em]"
               >
                 <Play size={12} fill="currentColor" />
-                <span>Démarrer l'exercice</span>
+                <span>{t("toolbox.startExercise")}</span>
               </button>
             )}
           </div>
@@ -963,9 +963,11 @@ export function ToolboxUserView({
     <div className="flex flex-col gap-4 min-h-0">
       <div className="flex items-center justify-between">
         <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90">
-          File de Pratiques
+          {locale === "en" ? "Practice Queue" : "File de Pratiques"}
         </h2>
-        <span className="font-mono text-[10px] text-muted-foreground">{filtered.length} exercices</span>
+        <span className="font-mono text-[10px] text-muted-foreground">
+          {filtered.length} {locale === "en" ? "exercises" : "exercices"}
+        </span>
       </div>
 
       {/* ── Quick-Action Bar (Cockpit d'Intervention Posturale) ── */}

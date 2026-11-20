@@ -198,10 +198,10 @@ const navEn = {
 
 const individuelFr: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — 30 questions sur la personne qui décide",
-    ogTitle: "AEGIS — Vous décidez seul. Personne ne relit vos décisions.",
+    title: "AEGIS — LOGOS | Fin de la solitude décisionnelle",
+    ogTitle: "AEGIS — La fin de la solitude décisionnelle pour dirigeants",
     description:
-      "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.",
+      "Audit gratuit en 30 questions (32 pôles). Puis, si vous le souhaitez, une Grande Lecture à 149 € et l’exocortex vocal LOGOS — sans document à uploader.",
   },
   nav: {
     ...navFr,
@@ -383,23 +383,22 @@ const individuelFr: AegisLandingCopy = {
 
 const individuelEn: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — 30 questions sur la personne qui décide",
-    ogTitle: "AEGIS — Vous décidez seul. Personne ne relit vos décisions.",
+    title: "AEGIS — LOGOS | End of decision-making solitude",
+    ogTitle: "AEGIS — The end of decision-making solitude for executives",
     description:
-      "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.",
+      "Free 30-question audit (32 poles). Then, if you wish, a €149 Grand Reading and the LOGOS vocal exocortex — no documents to upload.",
   },
   nav: {
     ...navEn,
-    cta: "Réserver ma Lecture — 149 €",
-    signUpFree: "Faire le questionnaire — 30 questions, gratuit",
-    signIn: "Se connecter",
+    cta: "Book my Reading — €149",
+    signUpFree: "Take the assessment — 30 questions, free",
   },
   hero: {
-    chip: "AEGIS · POUR CELUI QUI DÉCIDE SEUL",
+    chip: "AEGIS · FOR THE PERSON WHO DECIDES ALONE",
     title: "You decide alone. You make the same calls again. You know it.",
     subtitle:
       "AEGIS is the exocortex that reads what you actually do each week, compares it to the trajectory you chose, and tells you where you drift.",
-    cta: "Réserver ma Lecture — 149 €",
+    cta: "Book my Reading — €149",
     caption: "Reply within 24 hours",
     scrollLabel: "Scroll to content",
     ghostWordmark: "AEGIS",
@@ -484,7 +483,7 @@ const individuelEn: AegisLandingCopy = {
     title: "A product for people who carry the final call.",
     cards: [
       {
-        title: "Celui qui décide seul",
+        title: "The person who decides alone",
         bullets: [
           "You carry calls no one else sees in full.",
           "You want a weekly mirror, not another tool.",
@@ -517,16 +516,16 @@ const individuelEn: AegisLandingCopy = {
     title: "AEGIS Solo plans",
     chip: "",
     body:
-      "Vous passez le questionnaire complet. Une personne lit votre dossier, vous écrit un rapport, puis vous en parle trente minutes en visio. Elle vous dit ce qu'elle voit, pas quoi faire.",
-    price: "149 € HT, une fois",
+      "You take the full assessment. An analyst reviews your file, writes your report, and discusses it with you for thirty minutes on video. They tell you what they see, not what to do.",
+    price: "€149 excl. tax, one-time",
     period: "",
     features: [
-      "Remboursée dans les 30 jours sur simple e-mail, sans justification.",
-      "Une suite vous sera proposée en fin de rendez-vous, sans obligation.",
+      "100% refunded within 30 days upon simple email request, no questions asked.",
+      "Next steps offered at the end of the meeting, with zero obligation.",
     ],
-    cta: "Réserver ma Lecture — 149 €",
+    cta: "Book my Reading — €149",
     ctaHref: LIEN_PAIEMENT_LECTURE,
-    secondaryCta: "Commencer par le questionnaire gratuit",
+    secondaryCta: "Start with the free assessment",
     secondaryCtaHref: LANDING_QUIZ_HREF,
   },
   faq: {
@@ -561,17 +560,17 @@ const individuelEn: AegisLandingCopy = {
   },
   finalCta: {
     title: "In three months you will have either changed, or repeated.",
-    cta: "Réserver ma Lecture — 149 €",
+    cta: "Book my Reading — €149",
   },
   footer: { ...footerEn, links: [...footerEn.links] },
 };
 
 const entrepriseFr: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — 30 questions sur la personne qui décide",
-    ogTitle: "AEGIS — Vous décidez seul. Personne ne relit vos décisions.",
+    title: "AEGIS — Exocortex décisionnel pour comités de direction et entreprises",
+    ogTitle: "AEGIS — Votre entreprise décide. Personne ne voit le motif.",
     description:
-      "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.",
+      "Un exocortex décisionnel hebdomadaire pour comités exécutifs, équipes de direction et conseils d'administration.",
   },
   nav: { ...navFr, cta: "Demander un accès" },
   hero: {
@@ -764,10 +763,10 @@ const entrepriseFr: AegisLandingCopy = {
 
 const entrepriseEn: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — 30 questions sur la personne qui décide",
-    ogTitle: "AEGIS — Vous décidez seul. Personne ne relit vos décisions.",
+    title: "AEGIS — Decision exocortex for companies & leadership teams",
+    ogTitle: "AEGIS — Your company decides. No one sees the pattern.",
     description:
-      "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.",
+      "A weekly decision exocortex for executive committees, leadership teams, and boards.",
   },
   nav: { ...navEn, cta: "Request access" },
   hero: {

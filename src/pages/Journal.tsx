@@ -164,7 +164,7 @@ export default function Journal() {
           {t("journal.title")}
         </h1>
         <p className="font-sans text-sm text-muted-foreground mt-2 leading-relaxed">
-          Consignez vos prises de conscience, leçons d'arbitrage et réflexions profondes.
+          {t("journal.headerSubtitle")}
         </p>
       </div>
 
@@ -180,7 +180,7 @@ export default function Journal() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          ✍️ Rédiger
+          {t("journal.writeBtn")}
         </button>
         <button
           type="button"
@@ -209,7 +209,7 @@ export default function Journal() {
                 onClick={resetForm}
                 className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
               >
-                <X size={13} /> Annuler
+                <X size={13} /> {t("journal.cancelBtn")}
               </button>
             )}
           </div>
@@ -289,7 +289,15 @@ export default function Journal() {
             className="btn-solaire w-full flex min-h-[44px] items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-cinzel text-xs uppercase tracking-[0.16em] disabled:opacity-50 cursor-pointer shadow-md"
           >
             {saving ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Save size={14} aria-hidden />}
-            <span>{editing ? "Mettre à jour" : "Sceller dans l'Exocortex"}</span>
+            <span>
+              {editing
+                ? locale === "fr"
+                  ? "Mettre à jour"
+                  : "Update"
+                : locale === "fr"
+                  ? "Sceller dans l'Exocortex"
+                  : "Seal in Exocortex"}
+            </span>
           </button>
         </div>
 
@@ -297,17 +305,17 @@ export default function Journal() {
         <div className="aegis-dock-tile rounded-2xl p-4 flex items-center justify-between text-center">
           <div>
             <p className="font-mono text-xl font-semibold text-foreground">{entries.length}</p>
-            <p className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">Réflexions</p>
+            <p className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">{t("journal.telemetryReflections")}</p>
           </div>
           <div>
             <p className="font-mono text-xl font-semibold text-[#c9a24b]">{allTags.length}</p>
-            <p className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">Concepts</p>
+            <p className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">{t("journal.telemetryConcepts")}</p>
           </div>
           <div>
             <p className="font-mono text-xs font-semibold text-muted-foreground">
               {entries[0] ? new Date(entries[0].created_at).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", { day: "numeric", month: "short" }) : "—"}
             </p>
-            <p className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">Dernière entrée</p>
+            <p className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">{t("journal.telemetryLastEntry")}</p>
           </div>
         </div>
       </div>
@@ -329,7 +337,14 @@ export default function Journal() {
           />
         </div>
         <span className="font-mono text-xs text-muted-foreground">
-          {filtered.length} {filtered.length > 1 ? "entrées" : "entrée"}
+          {filtered.length}{" "}
+          {locale === "fr"
+            ? filtered.length > 1
+              ? "entrées"
+              : "entrée"
+            : filtered.length > 1
+              ? "entries"
+              : "entry"}
         </span>
       </div>
 
@@ -364,7 +379,7 @@ export default function Journal() {
         <div className="aegis-dock-tile rounded-2xl text-center py-14 px-8 space-y-2">
           <BookOpen size={36} strokeWidth={1} className="mx-auto mb-3 text-primary/30" />
           <p className="font-cormorant text-xl font-light italic text-muted-foreground">
-            Chaque pensée mérite d'être consignée
+            {t("journal.emptyHint")}
           </p>
           <p className="font-cinzel text-[10px] font-semibold tracking-[0.2em] uppercase text-muted-foreground/60">
             {t("journal.noEntries")}

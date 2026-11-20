@@ -142,6 +142,20 @@ function ToolboxExerciseModalLayer({
     if (!mountedRef.current) return;
     if (itemRes.error || !itemRes.data) {
       console.warn("[ToolboxExerciseModal] assignment load failed", itemRes.error);
+      toast({
+        title: t("toolbox.saveError"),
+        description:
+          itemRes.error?.message ??
+          (locale === "fr"
+            ? "Exercice introuvable ou indisponible."
+            : "Exercise not found or unavailable."),
+        variant: "destructive",
+      });
+      window.dispatchEvent(
+        new CustomEvent(LOGOS_TOOLBOX_SESSION_END, {
+          detail: { assignmentId, status: "error:load_failed" },
+        }),
+      );
       onClose();
       return;
     }
@@ -272,12 +286,13 @@ function ToolboxExerciseModalLayer({
     <>
       <Dialog open modal onOpenChange={() => {}}>
         <DialogContent
+          overlayClassName="!z-[220] bg-black/90"
           showCloseButton={false}
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
           className={cn(
-            "fixed inset-0 left-0 top-0 z-[140] h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-0 bg-black p-0",
+            "fixed inset-0 left-0 top-0 !z-[220] h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-0 bg-black p-0",
           )}
         >
           <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3 sm:p-4">
@@ -347,7 +362,7 @@ function ToolboxExerciseModalLayer({
           if (!open) setCompletionDialog({ open: false, status: "", title: "", stats: null });
         }}
       >
-        <DialogContent className="ethereal-glass w-[calc(100vw-1.25rem)] max-w-sm overflow-x-hidden border-border/30 p-4 sm:p-6">
+        <DialogContent className="ethereal-glass !z-[230] w-[calc(100vw-1.25rem)] max-w-sm overflow-x-hidden border-border/30 p-4 sm:p-6">
           <div className="flex flex-col items-center gap-4 py-2">
             <div
               className={cn(
@@ -452,12 +467,18 @@ function ToolboxExerciseModalLayer({
 export function ToolboxExerciseSessionProvider({
   userId,
   children,
+  resumeStoredOpen = true,
+  persistOpenInSession = true,
 }: {
   userId: string | undefined;
   children: ReactNode;
+  /** When false, do not auto-reopen an exercise left in sessionStorage (LOGOS voice). */
+  resumeStoredOpen?: boolean;
+  /** When false, opening/closing does not touch sessionStorage. */
+  persistOpenInSession?: boolean;
 }) {
   const [openAssignmentId, setOpenAssignmentId] = useState<string | null>(() =>
-    userId ? loadOpenToolboxExerciseId(userId) : null,
+    userId && resumeStoredOpen ? loadOpenToolboxExerciseId(userId) : null,
   );
 
   useEffect(() => {
@@ -465,23 +486,27 @@ export function ToolboxExerciseSessionProvider({
       setOpenAssignmentId(null);
       return;
     }
+    if (!resumeStoredOpen) {
+      if (!persistOpenInSession) saveOpenToolboxExerciseId(userId, null);
+      return;
+    }
     const stored = loadOpenToolboxExerciseId(userId);
     if (stored) setOpenAssignmentId(stored);
-  }, [userId]);
+  }, [userId, resumeStoredOpen, persistOpenInSession]);
 
   const openExercise = useCallback(
     (assignmentId: string) => {
       if (!userId) return;
       setOpenAssignmentId(assignmentId);
-      saveOpenToolboxExerciseId(userId, assignmentId);
+      if (persistOpenInSession) saveOpenToolboxExerciseId(userId, assignmentId);
     },
-    [userId],
+    [userId, persistOpenInSession],
   );
 
   const closeExercise = useCallback(() => {
-    if (userId) saveOpenToolboxExerciseId(userId, null);
+    if (userId && persistOpenInSession) saveOpenToolboxExerciseId(userId, null);
     setOpenAssignmentId(null);
-  }, [userId]);
+  }, [userId, persistOpenInSession]);
 
   const value = useMemo(
     () => ({ openAssignmentId, openExercise, closeExercise }),

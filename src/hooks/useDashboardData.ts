@@ -15,14 +15,32 @@ function getSevenDaysAgo() {
 export async function fetchDashboardStats(userId: string) {
   const sevenDaysAgo = getSevenDaysAgo();
   const today = todayStr();
-  const [moodRes, decRes, decOldestRes, habitRes, contactRes, lastTouchRes] = await Promise.all([
-    supabase.from("mood_entries" as any).select("value").eq("user_id", userId).gte("logged_at", sevenDaysAgo.toISOString()),
-    supabase.from("decisions" as any).select("id, name, priority, status").eq("user_id", userId).eq("status", "pending").order("priority", { ascending: false }).limit(3),
-    supabase.from("decisions" as any).select("created_at").eq("user_id", userId).eq("status", "pending").order("created_at", { ascending: true }).limit(1),
-    supabase.from("habit_completions" as any).select("id").eq("user_id", userId).eq("completed_date", today),
-    supabase.from("people_contacts" as any).select("id").eq("user_id", userId),
-    supabase.from("relation_quality_history" as any).select("recorded_at").eq("user_id", userId).order("recorded_at", { ascending: false }).limit(1),
-  ]);
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("fetchDashboardStats timeout")), 5000)
+  );
+  let moodRes: any = { data: [] };
+  let decRes: any = { data: [] };
+  let decOldestRes: any = { data: [] };
+  let habitRes: any = { data: [] };
+  let contactRes: any = { data: [] };
+  let lastTouchRes: any = { data: [] };
+
+  try {
+    const results = await Promise.race([
+      Promise.all([
+        supabase.from("mood_entries" as any).select("value").eq("user_id", userId).gte("logged_at", sevenDaysAgo.toISOString()),
+        supabase.from("decisions" as any).select("id, name, priority, status").eq("user_id", userId).eq("status", "pending").order("priority", { ascending: false }).limit(3),
+        supabase.from("decisions" as any).select("created_at").eq("user_id", userId).eq("status", "pending").order("created_at", { ascending: true }).limit(1),
+        supabase.from("habit_completions" as any).select("id").eq("user_id", userId).eq("completed_date", today),
+        supabase.from("people_contacts" as any).select("id").eq("user_id", userId),
+        supabase.from("relation_quality_history" as any).select("recorded_at").eq("user_id", userId).order("recorded_at", { ascending: false }).limit(1),
+      ]),
+      timeoutPromise,
+    ]);
+    [moodRes, decRes, decOldestRes, habitRes, contactRes, lastTouchRes] = results;
+  } catch (err) {
+    console.warn("[useDashboardData] fetchDashboardStats timed out", err);
+  }
   const moods = (moodRes.data as any[] || []);
   const avg = moods.length > 0 ? (moods.reduce((s, m) => s + m.value, 0) / moods.length).toFixed(1) : "—";
   const oldest = (decOldestRes.data as any[] | null)?.[0]?.created_at;
@@ -42,13 +60,30 @@ export async function fetchDashboardDigest(userId: string) {
   const now = new Date();
   const thisWeekStart = new Date(now); thisWeekStart.setDate(now.getDate() - 7);
   const lastWeekStart = new Date(thisWeekStart); lastWeekStart.setDate(thisWeekStart.getDate() - 7);
-  const [thisWeekMood, lastWeekMood, habitsRes, decisionsRes, journalRes] = await Promise.all([
-    supabase.from("mood_entries" as any).select("value, logged_at").eq("user_id", userId).gte("logged_at", thisWeekStart.toISOString()),
-    supabase.from("mood_entries" as any).select("value").eq("user_id", userId).gte("logged_at", lastWeekStart.toISOString()).lt("logged_at", thisWeekStart.toISOString()),
-    supabase.from("habit_completions" as any).select("completed_date").eq("user_id", userId).gte("completed_date", thisWeekStart.toISOString().split("T")[0]),
-    supabase.from("decisions" as any).select("status").eq("user_id", userId).eq("status", "decided").gte("decided_at", thisWeekStart.toISOString()),
-    supabase.from("journal_entries").select("id").eq("user_id", userId).gte("created_at", thisWeekStart.toISOString()),
-  ]);
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("fetchDashboardDigest timeout")), 5000)
+  );
+  let thisWeekMood: any = { data: [] };
+  let lastWeekMood: any = { data: [] };
+  let habitsRes: any = { data: [] };
+  let decisionsRes: any = { data: [] };
+  let journalRes: any = { data: [] };
+
+  try {
+    const results = await Promise.race([
+      Promise.all([
+        supabase.from("mood_entries" as any).select("value, logged_at").eq("user_id", userId).gte("logged_at", thisWeekStart.toISOString()),
+        supabase.from("mood_entries" as any).select("value").eq("user_id", userId).gte("logged_at", lastWeekStart.toISOString()).lt("logged_at", thisWeekStart.toISOString()),
+        supabase.from("habit_completions" as any).select("completed_date").eq("user_id", userId).gte("completed_date", thisWeekStart.toISOString().split("T")[0]),
+        supabase.from("decisions" as any).select("status").eq("user_id", userId).eq("status", "decided").gte("decided_at", thisWeekStart.toISOString()),
+        supabase.from("journal_entries").select("id").eq("user_id", userId).gte("created_at", thisWeekStart.toISOString()),
+      ]),
+      timeoutPromise,
+    ]);
+    [thisWeekMood, lastWeekMood, habitsRes, decisionsRes, journalRes] = results;
+  } catch (err) {
+    console.warn("[useDashboardData] fetchDashboardDigest timed out", err);
+  }
   const thisAvg = (thisWeekMood.data as any[] || []).length > 0
     ? (thisWeekMood.data as any[]).reduce((s, m) => s + m.value, 0) / (thisWeekMood.data as any[]).length : 0;
   const lastAvg = (lastWeekMood.data as any[] || []).length > 0
@@ -83,30 +118,49 @@ export async function fetchMobileDashboard(userId: string, locale: string) {
   fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
   const weekStartDate = sevenDaysAgo.toISOString().split("T")[0];
   const today = todayStr();
-  const [moodRes, decisionsRes, habitsAssignedRes, completionsRes, journalRes, weekDecisionsRes, weekJournalRes] =
-    await Promise.all([
-    supabase
-      .from("mood_entries" as any)
-      .select("value, sleep, stress, logged_at")
-      .eq("user_id", userId)
-      .gte("logged_at", fourteenDaysAgo.toISOString())
-      .order("logged_at", { ascending: false }),
-    supabase.from("decisions" as any).select("id, name, priority, status, created_at").eq("user_id", userId).eq("status", "pending").order("priority", { ascending: false }).limit(3),
-    supabase.from("assigned_habits" as any).select("id, habit_template_id, toolbox_assignment_id").eq("user_id", userId).eq("is_active", true).limit(5),
-    supabase.from("habit_completions" as any).select("assigned_habit_id, completed_date").eq("user_id", userId).gte("completed_date", weekStartDate),
-    supabase.from("journal_entries").select("content, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    supabase
-      .from("decisions" as any)
-      .select("id")
-      .eq("user_id", userId)
-      .eq("status", "decided")
-      .gte("decided_at", sevenDaysAgo.toISOString()),
-    supabase
-      .from("journal_entries")
-      .select("id")
-      .eq("user_id", userId)
-      .gte("created_at", sevenDaysAgo.toISOString()),
-  ]);
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("fetchMobileDashboard timeout")), 5000)
+  );
+
+  let moodRes: any = { data: [] };
+  let decisionsRes: any = { data: [] };
+  let habitsAssignedRes: any = { data: [] };
+  let completionsRes: any = { data: [] };
+  let journalRes: any = { data: null };
+  let weekDecisionsRes: any = { data: [] };
+  let weekJournalRes: any = { data: [] };
+
+  try {
+    const results = await Promise.race([
+      Promise.all([
+        supabase
+          .from("mood_entries" as any)
+          .select("value, sleep, stress, logged_at")
+          .eq("user_id", userId)
+          .gte("logged_at", fourteenDaysAgo.toISOString())
+          .order("logged_at", { ascending: false }),
+        supabase.from("decisions" as any).select("id, name, priority, status, created_at").eq("user_id", userId).eq("status", "pending").order("priority", { ascending: false }).limit(3),
+        supabase.from("assigned_habits" as any).select("id, habit_template_id, toolbox_assignment_id").eq("user_id", userId).eq("is_active", true).limit(5),
+        supabase.from("habit_completions" as any).select("assigned_habit_id, completed_date").eq("user_id", userId).gte("completed_date", weekStartDate),
+        supabase.from("journal_entries").select("content, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase
+          .from("decisions" as any)
+          .select("id")
+          .eq("user_id", userId)
+          .eq("status", "decided")
+          .gte("decided_at", sevenDaysAgo.toISOString()),
+        supabase
+          .from("journal_entries")
+          .select("id")
+          .eq("user_id", userId)
+          .gte("created_at", sevenDaysAgo.toISOString()),
+      ]),
+      timeoutPromise,
+    ]);
+    [moodRes, decisionsRes, habitsAssignedRes, completionsRes, journalRes, weekDecisionsRes, weekJournalRes] = results;
+  } catch (err) {
+    console.warn("[useDashboardData] fetchMobileDashboard timed out or failed, using graceful defaults", err);
+  }
   const moods = (moodRes.data as any[] || []);
   const moodsThisWeek = moods.filter((m: any) => new Date(m.logged_at) >= sevenDaysAgo);
   const latestMood = moods[0] as { sleep?: number | null; stress?: number | null } | undefined;

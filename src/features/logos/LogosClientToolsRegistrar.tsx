@@ -15,6 +15,19 @@ function asString(v: unknown): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
 }
 
+async function withClientToolLog<T>(name: string, run: () => Promise<T>): Promise<T> {
+  console.info("[logos-client-tool]", name, "invoke");
+  try {
+    const result = await run();
+    console.info("[logos-client-tool]", name, "result", result);
+    return result;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown";
+    console.error("[logos-client-tool]", name, "error", e);
+    return `error:${msg}` as T;
+  }
+}
+
 function asNumber(v: unknown): number | undefined {
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (typeof v === "string" && v.trim()) {
@@ -31,31 +44,39 @@ export function LogosClientToolsRegistrar() {
   const host = useLogosToolHost();
   const userId = user?.id;
 
-  useConversationClientTool("list_actionable_content", async (params) => {
-    if (!userId) return "error:not_authenticated";
-    const intent = asString(params.intent);
-    const limit = asNumber(params.limit) ?? 5;
-    const catalog = await fetchLogosActionableCatalog(userId, locale, limit);
-    return JSON.stringify({ intent: intent ?? null, ...catalog });
-  });
+  useConversationClientTool("list_actionable_content", async (params) =>
+    withClientToolLog("list_actionable_content", async () => {
+      if (!userId) return "error:not_authenticated";
+      const intent = asString(params.intent);
+      const limit = asNumber(params.limit) ?? 5;
+      const catalog = await fetchLogosActionableCatalog(userId, locale, limit);
+      return JSON.stringify({ intent: intent ?? null, ...catalog });
+    }),
+  );
 
-  useConversationClientTool("propose_actionable_choices", async (params) => {
-    if (!userId) return "error:not_authenticated";
-    const limit = asNumber(params.limit) ?? 3;
-    return host.proposeActionableChoicesAndWait(userId, locale, limit);
-  });
+  useConversationClientTool("propose_actionable_choices", async (params) =>
+    withClientToolLog("propose_actionable_choices", async () => {
+      if (!userId) return "error:not_authenticated";
+      const limit = asNumber(params.limit) ?? 3;
+      return host.proposeActionableChoicesAndWait(userId, locale, limit);
+    }),
+  );
 
-  useConversationClientTool("open_toolbox_item", async (params) => {
-    if (!userId) return "error:not_authenticated";
-    const assignmentId = asString(params.assignment_id);
-    const slug = asString(params.slug);
-    return host.openToolboxAndWait(userId, assignmentId, slug);
-  });
+  useConversationClientTool("open_toolbox_item", async (params) =>
+    withClientToolLog("open_toolbox_item", async () => {
+      if (!userId) return "error:not_authenticated";
+      const assignmentId = asString(params.assignment_id);
+      const slug = asString(params.slug);
+      return host.openToolboxAndWait(userId, assignmentId, slug);
+    }),
+  );
 
-  useConversationClientTool("propose_pulse_card", async (params) => {
-    const cardId = asString(params.card_id);
-    return host.proposePulseAndWait(locale, cardId);
-  });
+  useConversationClientTool("propose_pulse_card", async (params) =>
+    withClientToolLog("propose_pulse_card", async () => {
+      const cardId = asString(params.card_id);
+      return host.proposePulseAndWait(locale, cardId);
+    }),
+  );
 
   useConversationClientTool("record_pulse_swipe", async (params) => {
     const cardId = asString(params.card_id);
@@ -70,18 +91,24 @@ export function LogosClientToolsRegistrar() {
     return "ok";
   });
 
-  useConversationClientTool("open_quick_log", async () => host.openQuickLogAndWait());
+  useConversationClientTool("open_quick_log", async () =>
+    withClientToolLog("open_quick_log", () => host.openQuickLogAndWait()),
+  );
 
-  useConversationClientTool("open_people_checkin", async (params) => {
-    if (!userId) return "error:not_authenticated";
-    return host.openPeopleCheckinAndWait(
-      userId,
-      asString(params.contact_id),
-      asString(params.contact_name),
-    );
-  });
+  useConversationClientTool("open_people_checkin", async (params) =>
+    withClientToolLog("open_people_checkin", async () => {
+      if (!userId) return "error:not_authenticated";
+      return host.openPeopleCheckinAndWait(
+        userId,
+        asString(params.contact_id),
+        asString(params.contact_name),
+      );
+    }),
+  );
 
-  useConversationClientTool("open_decision_capture", async () => host.openDecisionCaptureAndWait());
+  useConversationClientTool("open_decision_capture", async () =>
+    withClientToolLog("open_decision_capture", () => host.openDecisionCaptureAndWait()),
+  );
 
   useConversationClientTool("write_decision", async (params) => {
     if (!userId) return "error:not_authenticated";

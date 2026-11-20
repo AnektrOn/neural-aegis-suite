@@ -87,7 +87,7 @@ export default function ShadowCheckinWidget({
 
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{labels[1] ?? "Intensité"}</span>
+              <span className="text-muted-foreground">{labels[1] ?? t("toolbox.widgetFallback.intensity")}</span>
               <span className="font-cinzel text-lg tabular-nums" style={{ color: accent }}>
                 {intensity}/10
               </span>
@@ -128,9 +128,9 @@ export default function ShadowCheckinWidget({
         onClick={async () => {
           if (saving) return;
           const content = formatLabeledJournalContent([
-            { label: labels[0] ?? "Ombre", body: shadow },
-            { label: labels[1] ?? "Intensité", body: `${intensity}/10` },
-            { label: labels[2] ?? "Déclencheur", body: trigger },
+            { label: labels[0] ?? t("toolbox.widgetFallback.shadow"), body: shadow },
+            { label: labels[1] ?? t("toolbox.widgetFallback.intensity"), body: `${intensity}/10` },
+            { label: labels[2] ?? t("toolbox.widgetFallback.trigger"), body: trigger },
           ]);
           const ok = await saveWriting(content, { moodScore: moodScoreFromGauge(intensity) });
           if (!ok) return;

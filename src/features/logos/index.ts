@@ -20,3 +20,5 @@ export {
   buildOpenLogosInjection,
 } from "./logosSessionInjection";
 export { useLogosPathChooser } from "./useLogosPathChooser";
+export { LogosDecisionCaptureModal } from "./LogosDecisionCaptureModal";
+export { LogosPulseProposalModal } from "./LogosPulseProposalModal";

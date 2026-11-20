@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Shield, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { ConversionProblemKind } from "./types";
 import { toolsBento, toolsBentoElevated, toolsKicker, toolsTitle } from "./toolsDesign";
 
@@ -30,9 +31,12 @@ interface AegisConversionCardProps {
 export function AegisConversionCard({
   problemKind,
   className = "",
-  ctaLabel = "Démarrer l'onboarding AEGIS",
+  ctaLabel,
   ctaHref = "/onboarding",
 }: AegisConversionCardProps) {
+  const { t } = useLanguage();
+  const effectiveCtaLabel = ctaLabel ?? t("tools.startOnboarding");
+
   return (
     <section
       className={`${toolsBento} relative overflow-hidden border-primary/25 ${className}`}
@@ -44,9 +48,9 @@ export function AegisConversionCard({
         aria-hidden
       />
 
-      <p className={toolsKicker}>Exocortex décisionnel</p>
+      <p className={toolsKicker}>{t("tools.conversionKicker")}</p>
       <h2 id="aegis-conversion-title" className={`${toolsTitle} mt-2 text-[clamp(1.5rem,3vw,2rem)]`}>
-        Passez de la friction à l&apos;Exocortex Décisionnel
+        {t("tools.conversionTitle")}
       </h2>
       <p className="mt-4 max-w-2xl text-muted-foreground">{HOOKS[problemKind]}</p>
 
@@ -62,7 +66,7 @@ export function AegisConversionCard({
           ]}
         />
         <OfferCard
-          title='Accès perpétuel "Membres Fondateurs"'
+          title={t("tools.foundersPerpetualAccess")}
           price="350 €"
           priceNote="paiement unique — équivalent 10 mois"
           badge="20 premiers dirigeants"
@@ -77,11 +81,11 @@ export function AegisConversionCard({
 
       <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
         <Link to={ctaHref} className="btn-solaire min-h-[44px] px-6">
-          {ctaLabel}
+          {effectiveCtaLabel}
           <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
         <p className="text-sm text-muted-foreground">
-          Garantie Sérénité 30 jours : satisfait ou remboursé intégralement
+          {t("tools.guarantee30Days")}
         </p>
       </div>
     </section>

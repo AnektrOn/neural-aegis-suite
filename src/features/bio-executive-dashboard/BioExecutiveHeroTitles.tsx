@@ -1,5 +1,6 @@
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { DragTarget } from "./bioExecutiveHeroLabDrag";
 import { heroElementBoxStyle, heroElementVisible, type HeroBreakpointSlice } from "./bioExecutiveHeroLabConfig";
 import { heroTypographyProps } from "./heroLabTypography";
@@ -54,6 +55,7 @@ export function BioExecutiveHeroTitles({
   onToggleAiTransparency,
   prodMobileChrome = false,
 }: BioExecutiveHeroTitlesProps) {
+  const { locale } = useLanguage();
   const sessionText = exocortexStatusLine ?? viewModel.sessionLabel;
   const heroTitle = exocortexConstatTitle ?? nodeTitle;
   const sessionShell = titleShell("sessionLabel", slice, heroLab, labTarget);
@@ -92,7 +94,7 @@ export function BioExecutiveHeroTitles({
           <button
             type="button"
             onClick={onToggleAiTransparency}
-            title="Transparence IA"
+            title={locale === "fr" ? "Transparence IA" : "AI Transparency"}
             className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${
               showAiTransparency
                 ? "aegis-bio-exec-lab__chip-active border-transparent"

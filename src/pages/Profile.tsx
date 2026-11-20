@@ -89,7 +89,7 @@ export default function Profile() {
   };
 
   const memberSinceFormatted = user?.created_at
-    ? new Date(user.created_at).toLocaleDateString("fr-FR", {
+    ? new Date(user.created_at).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
         month: "long",
         year: "numeric",
       })
@@ -100,7 +100,7 @@ export default function Profile() {
       {/* Header */}
       <div>
         <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
-          {t("profile.accountLabel")} · IDENTITÉ SOUVERAINE
+          {t("profile.accountLabel")} · {locale === "fr" ? "IDENTITÉ SOUVERAINE" : "SOVEREIGN IDENTITY"}
         </p>
         <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
           {t("profile.accountTitle")}
@@ -155,17 +155,17 @@ export default function Profile() {
           <div className="p-2.5 rounded-xl bg-black/25 border border-white/5 flex flex-col items-center">
             <ShieldCheck size={14} className="text-[#c9a24b] mb-1" />
             <span className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">
-              Accès Membre
+              {t("profile.memberAccess")}
             </span>
             <span className="font-mono text-[11px] text-foreground font-semibold mt-0.5">
-              Bio-Exécutif
+              {t("profile.bioExecutive")}
             </span>
           </div>
 
           <div className="p-2.5 rounded-xl bg-black/25 border border-white/5 flex flex-col items-center">
             <Clock size={14} className="text-emerald-400 mb-1" />
             <span className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">
-              Membre depuis
+              {t("profile.memberSince")}
             </span>
             <span className="font-mono text-[11px] text-foreground font-semibold mt-0.5">
               {memberSinceFormatted}
@@ -181,7 +181,7 @@ export default function Profile() {
           >
             <span className="flex items-center gap-2">
               <Sparkles size={13} className="text-[#c9a24b]" />
-              Empreinte Archétypale
+              {t("profile.archetypalFootprint")}
             </span>
             <ArrowRight size={13} />
           </Link>
@@ -191,7 +191,7 @@ export default function Profile() {
           >
             <span className="flex items-center gap-2">
               <Globe size={13} className="text-[#6ba4f8]" />
-              Préférences Système
+              {t("profile.systemPreferences")}
             </span>
             <ArrowRight size={13} />
           </Link>
@@ -207,11 +207,11 @@ export default function Profile() {
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-4 rounded-full bg-[#c9a24b]" />
             <h2 className="font-cinzel text-[11px] font-semibold tracking-[0.16em] uppercase text-muted-foreground">
-              Paramètres du Compte
+              {t("profile.accountSettings")}
             </h2>
           </div>
           <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-            Données Personnelles
+            {t("profile.personalData")}
           </span>
         </div>
 

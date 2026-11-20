@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { translations, type Locale, type TranslationKey } from "./translations";
 import { readLocalePreference, saveLocalePreference } from './localePreference';
 
+export { readLocalePreference, saveLocalePreference } from './localePreference';
 export type { Locale, TranslationKey } from "./translations";
 
 interface LanguageContextType {
@@ -10,7 +11,22 @@ interface LanguageContextType {
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
 }
 
-const LanguageContext = createContext<LanguageContextType | null>(null);
+const GLOBAL_LANGUAGE_CONTEXT_KEY = "__AEGIS_LANGUAGE_CONTEXT__";
+
+const LanguageContext: React.Context<LanguageContextType | null> =
+  ((globalThis as unknown as { [key: string]: React.Context<LanguageContextType | null> })[
+    GLOBAL_LANGUAGE_CONTEXT_KEY
+  ] ??= createContext<LanguageContextType | null>(null));
+
+function fallbackTranslate(locale: Locale, key: TranslationKey, params?: Record<string, string | number>): string {
+  let str: string = translations[key]?.[locale] || key;
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+    });
+  }
+  return str;
+}
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(readLocalePreference);
@@ -53,8 +69,17 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useLanguage() {
+export function useLanguage(): LanguageContextType {
   const ctx = useContext(LanguageContext);
-  if (!ctx) throw new Error("useLanguage must be used within LanguageProvider");
+  if (!ctx) {
+    // Safe failsafe during HMR, root-level evaluations, or testing
+    const locale = readLocalePreference();
+    return {
+      locale,
+      setLocale: saveLocalePreference,
+      t: (key: TranslationKey, params?: Record<string, string | number>) =>
+        fallbackTranslate(locale, key, params),
+    };
+  }
   return ctx;
 }

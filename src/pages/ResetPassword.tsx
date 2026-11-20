@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { NeuralCard } from "@/components/ui/neural-card";
 import AegisLogo from "@/components/AegisLogo";
 import { signupPasswordIssues } from "@/lib/passwordPolicy";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const inputCls =
   "w-full bg-bg-base border border-border-active rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all duration-200";
@@ -16,6 +17,7 @@ interface ResetPasswordProps {
 }
 
 export default function ResetPassword({ setupOnly = false }: ResetPasswordProps) {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [recoveryReady, setRecoveryReady] = useState(false);
@@ -44,7 +46,7 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
       if (errorDesc) {
         setLinkError(
           /expired|invalid/i.test(errorDesc)
-            ? "Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau ci-dessous."
+            ? t("resetPassword.linkExpired")
             : errorDesc,
         );
         window.history.replaceState({}, "", window.location.pathname);
@@ -62,7 +64,7 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
         });
         window.history.replaceState({}, "", window.location.pathname);
         if (!cancelled) {
-          if (error) setLinkError("Ce lien n'est plus valide. Demandez un nouveau lien ci-dessous.");
+          if (error) setLinkError(t("resetPassword.linkInvalid"));
           else setRecoveryReady(true);
           setCheckingLink(false);
         }
@@ -75,7 +77,7 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
         const { error } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
         window.history.replaceState({}, "", window.location.pathname);
         if (!cancelled) {
-          if (error) setLinkError("Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau ci-dessous.");
+          if (error) setLinkError(t("resetPassword.linkExpired"));
           else setRecoveryReady(true);
           setCheckingLink(false);
         }
@@ -89,9 +91,7 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
         window.history.replaceState({}, "", window.location.pathname);
         if (!cancelled) {
           if (error) {
-            setLinkError(
-              "Ce lien doit être ouvert dans le même navigateur que la demande, ou il a expiré. Demandez un nouveau lien ci-dessous.",
-            );
+            setLinkError(t("resetPassword.linkBrowserMismatch"));
           } else {
             setRecoveryReady(true);
           }
@@ -103,7 +103,7 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
       const { data: sessionData } = await supabase.auth.getSession();
       if (!cancelled) {
         if (sessionData.session) setRecoveryReady(true);
-        else if (setupOnly) setLinkError("Ce lien de création de mot de passe est invalide ou a expiré.");
+        else if (setupOnly) setLinkError(t("resetPassword.setupLinkInvalid"));
         setCheckingLink(false);
       }
     };
@@ -114,7 +114,7 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
       cancelled = true;
       data.subscription.unsubscribe();
     };
-  }, [setupOnly]);
+  }, [setupOnly, t]);
 
   const requestLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,8 +127,8 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
       if (error) throw error;
       setSent(true);
       toast({
-        title: "E-mail envoyé",
-        description: "Consultez votre boîte de réception pour réinitialiser votre mot de passe.",
+        title: t("resetPassword.emailSentTitle"),
+        description: t("resetPassword.emailSentDesc"),
       });
     } catch (err) {
       toast({
@@ -147,7 +147,7 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
     if (issues.length) {
       toast({
         title: "Erreur",
-        description: "Mot de passe : 8 caractères minimum, au moins une lettre et un chiffre.",
+        description: t("resetPassword.passwordRequirements"),
         variant: "destructive",
       });
       return;
@@ -156,7 +156,10 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast({ title: "Mot de passe mis à jour", description: "Vous pouvez maintenant vous connecter." });
+      toast({
+        title: t("resetPassword.passwordUpdatedTitle"),
+        description: t("resetPassword.passwordUpdatedDesc"),
+      });
       await supabase.auth.signOut();
       navigate("/auth", { replace: true });
     } catch (err) {
@@ -183,7 +186,11 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
 
         <NeuralCard className="p-6 space-y-5">
           <h1 className="font-display text-lg tracking-[0.15em] uppercase text-text-primary text-center">
-            {setupOnly ? "Créer votre mot de passe" : recoveryReady ? "Nouveau mot de passe" : "Mot de passe oublié"}
+            {setupOnly
+              ? t("resetPassword.createPasswordTitle")
+              : recoveryReady
+                ? t("resetPassword.newPasswordTitle")
+                : t("resetPassword.forgotPasswordTitle")}
           </h1>
 
           {linkError && (
@@ -204,7 +211,7 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
                   type={show ? "text" : "password"}
                   value={password}
                   onChange={(ev) => setPassword(ev.target.value)}
-                  placeholder="Nouveau mot de passe (8+ caractères)"
+                  placeholder={t("resetPassword.passwordPlaceholder")}
                   autoComplete="new-password"
                   className={`${inputCls} pl-9 pr-10`}
                 />
@@ -222,22 +229,22 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
                 className="w-full py-2.5 rounded-lg border border-accent-primary/40 text-accent-primary text-xs uppercase tracking-[0.2em] hover:bg-accent-primary/10 transition-colors disabled:opacity-40 inline-flex items-center justify-center gap-2"
               >
                 {loading && <Loader2 size={13} className="animate-spin" />}
-                Mettre à jour
+                {t("resetPassword.updateBtn")}
               </button>
             </form>
           ) : setupOnly ? (
             <div className="space-y-4 text-center">
               <p className="text-xs text-text-tertiary leading-relaxed">
-                Demandez à votre administrateur de vous envoyer un nouveau lien de création de mot de passe.
+                {t("resetPassword.adminSetupHint")}
               </p>
               <Link to="/auth" className="inline-block text-xs text-accent-primary hover:underline">
-                Retour à la connexion
+                {t("resetPassword.backToLogin")}
               </Link>
             </div>
           ) : (
             <form onSubmit={requestLink} className="space-y-4">
               <p className="text-xs text-text-tertiary text-center leading-relaxed">
-                Saisissez votre adresse e-mail : un lien de réinitialisation vous sera envoyé.
+                {t("resetPassword.requestHint")}
               </p>
               <div className="relative">
                 <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
@@ -256,14 +263,14 @@ export default function ResetPassword({ setupOnly = false }: ResetPasswordProps)
                 className="w-full py-2.5 rounded-lg border border-accent-primary/40 text-accent-primary text-xs uppercase tracking-[0.2em] hover:bg-accent-primary/10 transition-colors disabled:opacity-40 inline-flex items-center justify-center gap-2"
               >
                 {loading && <Loader2 size={13} className="animate-spin" />}
-                {sent ? "E-mail envoyé" : "Envoyer le lien"}
+                {sent ? t("resetPassword.emailSentTitle") : t("resetPassword.sendLinkBtn")}
               </button>
             </form>
           )}
 
           <div className="text-center">
             <Link to="/auth" className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary hover:text-accent-primary">
-              Retour à la connexion
+              {t("resetPassword.backToLogin")}
             </Link>
           </div>
         </NeuralCard>

@@ -64,9 +64,11 @@ export default function Welcome() {
     return null;
   }
 
+  // Si le guardian n'est pas encore hydraté, ou s'il a besoin d'onboarding mais que le quiz a déjà été complété,
+  // ne pas bloquer indéfiniment la page Welcome dans un spinner sans fin.
   const guardianPending =
-    Boolean(guardian && !guardian.hydrated) ||
-    Boolean(guardian?.hydrated && needsGuardianOnboarding(guardian.state));
+    Boolean(guardian && !guardian.hydrated && quizLoading) ||
+    Boolean(guardian?.hydrated && needsGuardianOnboarding(guardian.state) && !quizCompleted && !quizLoading);
 
   if (guardianPending) {
     return (

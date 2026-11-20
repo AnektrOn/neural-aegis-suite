@@ -1,4 +1,4 @@
-/** Placeholder payment URL for the Lecture offer — replace when the Stripe link is ready. */
-export const LIEN_PAIEMENT_LECTURE = "[LIEN_PAIEMENT_LECTURE]";
+/** Lecture checkout lives on the pricing page until a dedicated Stripe link exists. */
+export const LIEN_PAIEMENT_LECTURE = "/pricing";
 
 export const LANDING_QUIZ_HREF = "/quiz";

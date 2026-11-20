@@ -899,7 +899,7 @@ export default function PeopleBoard() {
           {t("people.boardTitle")}
         </h1>
         <p className="font-sans text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed">
-          Visualisez en 3D la proximité, la qualité d'échange et l'énergie de votre écosystème relationnel.
+          {t("people.ecosystemSubtitle")}
         </p>
       </div>
 
@@ -995,10 +995,10 @@ export default function PeopleBoard() {
       <div className="flex flex-col gap-2.5 pb-1 lg:pr-48">
         <div className="flex items-center gap-2.5">
           <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Écosystème Relationnel
+            {t("people.relationalEcosystem")}
           </h2>
           <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-black/25 text-[#c9a24b] border border-white/5">
-            {people.length} {people.length > 1 ? "relations" : "relation"}
+            {people.length} {people.length > 1 ? (locale === "fr" ? "relations" : "relationships") : (locale === "fr" ? "relation" : "relationship")}
           </span>
         </div>
 
@@ -1014,7 +1014,7 @@ export default function PeopleBoard() {
                   ? "bg-[#c9a24b] text-[#0b0b0a] font-semibold shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
-              title="Cartes des relations"
+              title={t("people.relationshipCards")}
             >
               <LayoutGrid size={13} strokeWidth={1.5} />
               <span className="text-[10.5px]">Contacts ({people.length})</span>

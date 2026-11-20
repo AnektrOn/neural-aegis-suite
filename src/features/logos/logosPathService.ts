@@ -52,9 +52,13 @@ export async function listAvailableLogosPaths(): Promise<LogosAvailablePath[]> {
     if (!session.user) return [];
     const { data: source, error: sourceError } = await supabase.from("voice_prompt_sources").select("drive_folder_id").eq("user_id", session.user.id).maybeSingle();
     if (sourceError) throw sourceError;
-    if (source) {
-      const { error: syncError } = await supabase.functions.invoke("sync-voice-prompts", { body: {} });
-      if (syncError) console.error("Voice prompt sync failed", syncError);
+    if (source?.drive_folder_id) {
+      // Do not block opening-path UI on Drive sync (can be slow or fail independently).
+      void supabase.functions
+        .invoke("sync-voice-prompts", { body: {} })
+        .then(({ error: syncError }) => {
+          if (syncError) console.error("Voice prompt sync failed", syncError);
+        });
     }
     const { data: batches, error: batchError } = await supabase.from("daily_voice_prompts").select("id,date,synced_at,prompts").eq("user_id", session.user.id).eq("date", new Date().toISOString().slice(0, 10));
     if (batchError) throw batchError;
@@ -62,8 +66,11 @@ export async function listAvailableLogosPaths(): Promise<LogosAvailablePath[]> {
     const { data: used, error: usedError } = await supabase.from("voice_session_feedbacks").select("prompt_id").eq("user_id", session.user.id);
     if (usedError) throw usedError;
     const usedIds = new Set((used ?? []).map(row => row.prompt_id));
-    const availablePersonal = personal.filter(path => path.daysUntilExpiry > 0 && !usedIds.has(path.id));
-    if (personal.length) return availablePersonal;
+    const availablePersonal = personal.filter(
+      (path) => path.daysUntilExpiry > 0 && !usedIds.has(path.id),
+    );
+    if (availablePersonal.length > 0) return availablePersonal;
+
     const { data, error } = await supabase.rpc("logos_list_available_paths");
     if (error) {
       console.error("listAvailableLogosPaths", error.message);

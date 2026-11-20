@@ -1,7 +1,7 @@
 {
   "type": "client",
   "name": "propose_pulse_card",
-  "description": "Affiche une carte Pulse : assimilate (grimoire) ou ignore. Ne pas lire le contenu à la voix.",
+  "description": "Affiche la carte Pulse (recto rune/titre, retournable pour verso question/enseignement). Boutons assimilate (grimoire) ou ignore. Ne pas lire le contenu à la voix.",
   "expects_response": true,
   "response_timeout_secs": -1,
   "execution_mode": "immediate",

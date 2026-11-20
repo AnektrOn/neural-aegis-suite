@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { LogosPathCardNebula } from "./LogosPathCardNebula";
-import { logosPathSculptureIndexFor } from "./logosPathSculptureAssets";
+import { logosPathSculptureIndicesForPaths } from "./logosPathSculptureAssets";
 
 export type LogosPathDraft = {
   id: string;
@@ -54,6 +54,8 @@ export function LogosPathChooserOverlay({
     onSelectPath(path);
   };
 
+  const sculptureIndices = logosPathSculptureIndicesForPaths(paths);
+
   return (
     <div
       className={cn(
@@ -86,11 +88,7 @@ export function LogosPathChooserOverlay({
         >
           {paths.map((path, index) => {
             const selected = selectedId === path.id;
-            const sculptureIndex = logosPathSculptureIndexFor({
-              category: path.category,
-              pathId: path.id,
-              fallbackSlot: index,
-            });
+            const sculptureIndex = sculptureIndices[index] ?? 0;
             const days =
               typeof path.daysUntilExpiry === "number"
                 ? Math.max(0, Math.ceil(path.daysUntilExpiry))

@@ -43,31 +43,44 @@ async function fetchPlatformRoles(uid: string): Promise<CacheEntry> {
   if (existing) return existing;
 
   const p = (async () => {
-    const [rolesRes, membershipRes, profileRes] = await Promise.all([
-      supabase.from("user_roles" as never).select("role").eq("user_id", uid),
-      supabase
-        .from("company_memberships" as never)
-        .select("company_id, role")
-        .eq("user_id", uid)
-        .eq("role", "company_admin"),
-      supabase.from("profiles").select("company_id").eq("id", uid).maybeSingle(),
-    ]);
+    // Safety timeout: never hang forever if Supabase queries stall
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("fetchPlatformRoles timeout")), 4000)
+    );
 
-    const roles = ((rolesRes.data as { role: string }[] | null) ?? []).map((r) => r.role);
-    const isSuperAdmin =
-      roles.includes("superadmin") || roles.includes("admin");
-    const memberships =
-      (membershipRes.data as { company_id: string; role: string }[] | null) ?? [];
-    const isCompanyAdmin =
-      !isSuperAdmin &&
-      (roles.includes("company_admin") || memberships.length > 0);
-    const companyId =
-      memberships[0]?.company_id ??
-      ((profileRes.data as { company_id: string | null } | null)?.company_id ?? null);
+    try {
+      const [rolesRes, membershipRes, profileRes] = await Promise.race([
+        Promise.all([
+          supabase.from("user_roles" as never).select("role").eq("user_id", uid),
+          supabase
+            .from("company_memberships" as never)
+            .select("company_id, role")
+            .eq("user_id", uid)
+            .eq("role", "company_admin"),
+          supabase.from("profiles").select("company_id").eq("id", uid).maybeSingle(),
+        ]),
+        timeoutPromise,
+      ]);
 
-    const entry = { isSuperAdmin, isCompanyAdmin, companyId, ts: Date.now() };
-    persist(uid, entry);
-    return entry;
+      const roles = ((rolesRes.data as { role: string }[] | null) ?? []).map((r) => r.role);
+      const isSuperAdmin =
+        roles.includes("superadmin") || roles.includes("admin");
+      const memberships =
+        (membershipRes.data as { company_id: string; role: string }[] | null) ?? [];
+      const isCompanyAdmin =
+        !isSuperAdmin &&
+        (roles.includes("company_admin") || memberships.length > 0);
+      const companyId =
+        memberships[0]?.company_id ??
+        ((profileRes.data as { company_id: string | null } | null)?.company_id ?? null);
+
+      const entry = { isSuperAdmin, isCompanyAdmin, companyId, ts: Date.now() };
+      persist(uid, entry);
+      return entry;
+    } catch (e) {
+      console.warn("[use-admin] fetchPlatformRoles failed or timed out", e);
+      return emptyRoles();
+    }
   })();
 
   inflight.set(uid, p);
@@ -104,12 +117,12 @@ export function usePlatformRoles() {
     }
     const mem = memCache.get(user.id);
     if (mem && Date.now() - mem.ts <= TTL_MS) {
-      return { ...mem, loading: true };
+      return { ...mem, loading: false };
     }
     const persisted = readPersisted(user.id);
     if (persisted) {
       memCache.set(user.id, persisted);
-      return { ...persisted, loading: true };
+      return { ...persisted, loading: false };
     }
     return {
       isSuperAdmin: false,

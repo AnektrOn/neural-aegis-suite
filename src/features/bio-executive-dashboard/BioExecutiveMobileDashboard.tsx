@@ -438,7 +438,7 @@ export function BioExecutiveMobileDashboard({
                 <button
                   type="button"
                   onClick={toggleCalm}
-                  title="Mode Calme : Réduit la saturation et les animations"
+                  title={t("bioExec.calmModeTooltip")}
                   className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs border transition-all ${
                     calmMode
                       ? "aegis-bio-exec-lab__calm-active"
@@ -446,7 +446,7 @@ export function BioExecutiveMobileDashboard({
                   }`}
                 >
                   <Brain size={14} />
-                  <span className="hidden md:inline">{calmMode ? "Focus Calme" : "Standard"}</span>
+                  <span className="hidden md:inline">{calmMode ? t("bioExec.focusCalm") : t("bioExec.standardMode")}</span>
                 </button>
               </>
             ) : null}
@@ -506,14 +506,14 @@ export function BioExecutiveMobileDashboard({
                 >
                   <div className="flex items-center justify-between mb-1 font-medium aegis-bio-exec-lab__accent-text">
                     <span className="flex items-center gap-1.5">
-                      <ShieldCheck size={14} /> Diagnostic IA Transparent
+                      <ShieldCheck size={14} /> {t("bioExec.aiTransparentDiagnostic")}
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowAiTransparency(false)}
                       className="text-[10px] underline"
                     >
-                      Fermer
+                      {t("bioExec.closeAction")}
                     </button>
                   </div>
                   <p className="opacity-80 leading-relaxed text-[11px]">{aiTransparencyBody}</p>
@@ -582,13 +582,11 @@ export function BioExecutiveMobileDashboard({
                   ) : null}
                   {/* Clean Mobile Bio-Node Switcher */}
                   <div className="flex items-center justify-between rounded-xl border border-border bg-card/90 p-1 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-black/40">
-                    {(
-                      [
-                        ["brain", "Cognition", Brain],
-                        ["heart", "Cohérence", Heart],
-                        ["solar", "Énergie", Zap],
-                      ] as const
-                    ).map(([id, label, Icon]) => {
+                    {[
+                      { id: "brain" as const, label: t("bioExec.cognition"), Icon: Brain },
+                      { id: "heart" as const, label: t("bioExec.coherence"), Icon: Heart },
+                      { id: "solar" as const, label: t("bioExec.energy"), Icon: Zap },
+                    ].map(({ id, label, Icon }) => {
                       const active = selectedBioNode === id;
                       return (
                         <button
@@ -677,7 +675,7 @@ export function BioExecutiveMobileDashboard({
 
             {showMetricsCarousel && !heroPreviewCompactChrome ? (
               <div className="aegis-bio-exec-lab__lab-mobile-carousel-label aegis-bio-exec-lab__shell-carousel-label flex lg:hidden items-center justify-between px-1 pt-0.5 uppercase tracking-widest opacity-50 font-semibold">
-                <span>Métriques clés (glisser →)</span>
+                <span>{t("bioExec.keyMetricsSwipe")}</span>
                 <span>
                   {carouselIndex + 1} / {carouselSlideCount}
                 </span>
@@ -795,7 +793,7 @@ export function BioExecutiveMobileDashboard({
             <div className="grid grid-cols-2 lg:grid-cols-2 gap-2.5 lg:gap-4">
               <div className="aegis-bio-exec-lab__bento aegis-bio-exec-lab__bento-habits aegis-bio-exec-lab__shell-bento-card col-span-1 rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between shadow-sm transition-all duration-500">
                 <div className="flex items-center justify-between text-xs aegis-bio-exec-lab__bento-subtle">
-                  <span className="font-medium">Habitudes</span>
+                  <span className="font-medium">{t("bioExec.habitsTitle")}</span>
                   <span className="aegis-bio-exec-lab__shell-bento-chip font-mono bg-primary-muted px-1.5 sm:px-2 py-0.5 rounded-full">
                     {completedHabitsCount}/{habits.length}
                   </span>
@@ -824,7 +822,7 @@ export function BioExecutiveMobileDashboard({
                 </div>
 
                 <div className="aegis-bio-exec-lab__shell-bento-chip aegis-bio-exec-lab__bento-muted flex items-center justify-between pt-1 border-t aegis-bio-exec-lab__bento-divider">
-                  <span>Jour</span>
+                  <span>{locale === "fr" ? "Jour" : "Day"}</span>
                   <span className="font-semibold">{progressPercentage}%</span>
                 </div>
               </div>
@@ -859,7 +857,7 @@ export function BioExecutiveMobileDashboard({
                 </div>
 
                 <div className="aegis-bio-exec-lab__shell-bento-chip aegis-bio-exec-lab__bento-subtle flex items-center justify-between z-10">
-                  <span>Régularité</span>
+                  <span>{t("bioExec.regularity")}</span>
                   <span className="font-medium">{viewModel.regularityPct}%</span>
                 </div>
               </div>
@@ -867,7 +865,7 @@ export function BioExecutiveMobileDashboard({
               <div className="aegis-bio-exec-lab__pulse aegis-bio-exec-lab__pulse--insights aegis-bio-exec-lab__shell-bento-card aegis-bio-exec-lab__shell-bento-card--pulse col-span-2 rounded-[22px] sm:rounded-[24px] p-3.5 sm:p-4 relative overflow-hidden flex flex-col justify-between border shadow-sm transition-all duration-500">
                 <div className="flex items-center justify-between text-xs">
                   <span className="aegis-bio-exec-lab__shell-bento-title uppercase tracking-widest font-semibold aegis-bio-exec-lab__accent-text">
-                    Décision en attente
+                    {t("bioExec.pendingDecisionTitle")}
                   </span>
                   <Sparkles size={13} className="aegis-bio-exec-lab__warm-text" />
                 </div>
@@ -897,7 +895,7 @@ export function BioExecutiveMobileDashboard({
                     to="/decisions"
                     className="text-[11px] font-semibold flex items-center gap-1 aegis-bio-exec-lab__accent-text hover:translate-x-0.5 transition-transform no-underline min-h-[44px] items-center"
                   >
-                    <span>Ouvrir</span>
+                    <span>{t("bioExec.openAction")}</span>
                     <ChevronRight size={13} />
                   </NavLink>
                 </div>

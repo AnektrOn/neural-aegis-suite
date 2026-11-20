@@ -1,5 +1,6 @@
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { BioExecutiveViewModel } from "./types";
 
 type TileProps = {
@@ -20,6 +21,7 @@ export function BioExecutiveLevelTile({
   className,
   slideProps,
 }: TileProps) {
+  const { t, locale } = useLanguage();
   return (
     <div
       {...slideProps}
@@ -30,15 +32,15 @@ export function BioExecutiveLevelTile({
       )}
     >
       <div className="flex items-center justify-between text-xs aegis-bio-exec-lab__bento-muted z-10">
-        <span className="font-medium tracking-wide">Niveau & Constance</span>
-        <span className="text-[11px] opacity-80">7 derniers jours →</span>
+        <span className="font-medium tracking-wide">{t("bioExec.levelConstancy")}</span>
+        <span className="text-[11px] opacity-80">{t("bioExec.last7DaysArrow")}</span>
       </div>
 
       <div className="flex sm:flex-col items-center sm:items-stretch justify-between my-auto sm:my-0 py-1 sm:py-0 z-10 gap-2 lg:flex-1">
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between sm:mt-2 lg:flex-col lg:gap-2">
           <div>
             <div className="text-4xl sm:text-6xl lg:text-5xl xl:text-6xl font-light tracking-tight">
-              Niv. {viewModel.levelNumber}
+              {locale === "fr" ? "Niv." : "Lv."} {viewModel.levelNumber}
             </div>
             <div className="text-xs aegis-bio-exec-lab__bento-muted mt-0.5 sm:mt-1">{viewModel.levelSubtitle}</div>
             {viewModel.scoreDeltaLabel ? (
@@ -76,15 +78,16 @@ export function BioExecutiveLevelTile({
       </div>
 
       <div className="z-10 pt-2 border-t aegis-bio-exec-lab__bento-divider flex items-center justify-between text-[11px] aegis-bio-exec-lab__bento-muted">
-        <span>Stagnation</span>
-        <span className="font-semibold">Élan Optimal</span>
-        <span>Surcharge</span>
+        <span>{t("bioExec.stagnation")}</span>
+        <span className="font-semibold">{t("bioExec.optimalMomentum")}</span>
+        <span>{t("bioExec.overload")}</span>
       </div>
     </div>
   );
 }
 
 export function BioExecutiveScoreTile({ viewModel, scoreChartPoints, className, slideProps }: TileProps) {
+  const { t } = useLanguage();
   return (
     <div
       {...slideProps}
@@ -94,7 +97,7 @@ export function BioExecutiveScoreTile({ viewModel, scoreChartPoints, className, 
       )}
     >
       <div className="flex items-center justify-between text-xs aegis-bio-exec-lab__bento-subtle z-10">
-        <span className="font-medium">Score & Vélocité</span>
+        <span className="font-medium">{t("bioExec.scoreVelocity")}</span>
         <ArrowUpRight size={14} className="opacity-80" />
       </div>
 
@@ -122,6 +125,7 @@ export function BioExecutiveScoreTile({ viewModel, scoreChartPoints, className, 
 }
 
 export function BioExecutiveDecisionTile({ viewModel, className, slideProps }: TileProps) {
+  const { t } = useLanguage();
   const loadNum = Number.parseFloat(viewModel.decisionLoadDisplay) || 0;
   const selectedIdx = Math.min(8, Math.max(0, Math.round(loadNum)));
 
@@ -134,7 +138,7 @@ export function BioExecutiveDecisionTile({ viewModel, className, slideProps }: T
       )}
     >
       <div className="flex items-center justify-between text-xs aegis-bio-exec-lab__bento-subtle z-10">
-        <span className="font-medium">Indice de Charge Décisionnelle</span>
+        <span className="font-medium">{t("bioExec.decisionLoadIndex")}</span>
         <ArrowUpRight size={14} className="opacity-80" />
       </div>
 
@@ -174,11 +178,11 @@ export function BioExecutiveDecisionTile({ viewModel, className, slideProps }: T
       </div>
 
       <div className="z-10 flex items-center justify-between text-[11px] aegis-bio-exec-lab__bento-subtle pt-1">
-        <span className="font-semibold">Optimal</span>
+        <span className="font-semibold">{t("bioExec.optimal")}</span>
         <div className="space-x-3 opacity-75">
-          <span>Léger</span>
-          <span>Modéré</span>
-          <span>Élevé</span>
+          <span>{t("bioExec.light")}</span>
+          <span>{t("bioExec.moderate")}</span>
+          <span>{t("bioExec.high")}</span>
         </div>
       </div>
     </div>

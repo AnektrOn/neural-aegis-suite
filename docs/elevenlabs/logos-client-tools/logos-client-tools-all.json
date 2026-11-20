@@ -69,7 +69,7 @@
     {
       "type": "client",
       "name": "propose_pulse_card",
-      "description": "Modal Pulse : assimilate ou ignore ; ne pas lire la carte à la voix.",
+      "description": "Carte Pulse (recto/verso retournable). Boutons assimilate ou ignore ; ne pas lire la carte à la voix.",
       "expects_response": true,
       "parameters": {
         "type": "object",
@@ -136,7 +136,7 @@
     {
       "type": "client",
       "name": "open_decision_capture",
-      "description": "Rappel UI décision ; préférer write_decision pour persister.",
+      "description": "Ouvre le formulaire ajout rapide décision (nom + priorité). L'utilisateur enregistre ou ferme. Retour : saved | dismissed | error:…. write_decision reste possible sans modal.",
       "expects_response": true,
       "parameters": {
         "type": "object",

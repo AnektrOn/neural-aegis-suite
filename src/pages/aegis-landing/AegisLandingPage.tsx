@@ -1,13 +1,16 @@
 import { Helmet } from "react-helmet-async";
 import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
 import { Suspense } from "react";
+import { useNavigate } from "react-router-dom";
 import "./aegisLanding.css";
 import { AegisLandingLocaleProvider, useAegisLandingLocale } from "./i18n/AegisLandingLocaleProvider";
 import type { AegisLandingAudience } from "./i18n/aegisLandingCopy";
+import { LANDING_QUIZ_HREF } from "./landingCtaHrefs";
 import { LandingNav } from "./components/LandingNav";
 import { LandingHero } from "./components/LandingHero";
 import { MobileStickyCta } from "./components/MobileStickyCta";
 import { LandingFooter } from "./components/LandingFooter";
+import { WelcomeView } from "@/features/welcome/components/WelcomeView";
 
 const ProblemSection = lazy(() =>
   import("./sections/ProblemSection").then((m) => ({ default: m.ProblemSection })),
@@ -40,18 +43,31 @@ const FinalCtaSection = lazy(() =>
   import("./sections/FinalCtaSection").then((m) => ({ default: m.FinalCtaSection })),
 );
 
-function LandingHelmet() {
-  const { copy } = useAegisLandingLocale();
+const LANDING_OG_IMAGE =
+  "https://aegis.humancatalystbeacon.com/aegis-landing/hero-scene-1440.jpg";
+const LANDING_CANONICAL_INDIV = "https://aegis.humancatalystbeacon.com/";
+const LANDING_CANONICAL_ENT = "https://aegis.humancatalystbeacon.com/entreprise";
+
+function LandingHelmet({ audience }: { audience: AegisLandingAudience }) {
+  const { copy, locale } = useAegisLandingLocale();
+  const canonical =
+    audience === "entreprise" ? LANDING_CANONICAL_ENT : LANDING_CANONICAL_INDIV;
   return (
     <Helmet>
       <title>{copy.meta.title}</title>
       <meta name="description" content={copy.meta.description} />
+      <link rel="canonical" href={canonical} />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content={canonical} />
       <meta property="og:title" content={copy.meta.ogTitle} />
       <meta property="og:description" content={copy.meta.description} />
-      <meta property="og:locale" content="fr_FR" />
+      <meta property="og:image" content={LANDING_OG_IMAGE} />
+      <meta property="og:locale" content={locale === "en" ? "en_US" : "fr_FR"} />
+      <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={copy.meta.ogTitle} />
       <meta name="twitter:description" content={copy.meta.description} />
-      <meta name="theme-color" content="#f3eeec" />
+      <meta name="twitter:image" content={LANDING_OG_IMAGE} />
+      <meta name="theme-color" content="#0b0b0a" />
     </Helmet>
   );
 }
@@ -79,9 +95,20 @@ export default function AegisLandingPage({
 }: {
   audience?: AegisLandingAudience;
 }) {
+  const navigate = useNavigate();
+
+  if (audience === "individuel") {
+    return (
+      <AegisLandingLocaleProvider audience={audience}>
+        <LandingHelmet audience={audience} />
+        <WelcomeView onStartAudit={() => navigate(LANDING_QUIZ_HREF)} />
+      </AegisLandingLocaleProvider>
+    );
+  }
+
   return (
     <AegisLandingLocaleProvider audience={audience}>
-      <LandingHelmet />
+      <LandingHelmet audience={audience} />
       <div className="aegis-landing relative min-h-dvh pb-32 sm:pb-0">
         <LandingSkip />
         <LandingNav />

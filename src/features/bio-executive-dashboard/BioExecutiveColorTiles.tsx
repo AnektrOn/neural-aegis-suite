@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   CoherenceViz,
   HabitsViz,
@@ -49,8 +50,12 @@ export function BioExecutiveCoherenceTile({
   className,
   slideProps,
 }: Omit<ColorTileProps, "habits">) {
+  const { t, locale } = useLanguage();
+  const isFr = locale === "fr";
   const delta = viewModel.levelDeltaLabel;
-  const chartLabel = `Niveau ${viewModel.levelNumber}, ${viewModel.levelSubtitle}`;
+  const chartLabel = isFr
+    ? `Niveau ${viewModel.levelNumber}, ${viewModel.levelSubtitle}`
+    : `Level ${viewModel.levelNumber}, ${viewModel.levelSubtitle}`;
 
   return (
     <article
@@ -61,11 +66,13 @@ export function BioExecutiveCoherenceTile({
       )}
     >
       <div className="z-10 flex items-start justify-between aegis-bio-exec-lab__type-body opacity-90">
-        <span className="font-medium tracking-wide">Niveau &amp; Cohérence</span>
-        <span className="aegis-bio-exec-lab__type-label-caps aegis-bio-exec-lab__tile-kicker">Optimal</span>
+        <span className="font-medium tracking-wide">{t("bioExec.levelCoherence")}</span>
+        <span className="aegis-bio-exec-lab__type-label-caps aegis-bio-exec-lab__tile-kicker">{t("bioExec.optimal")}</span>
       </div>
       <div className="z-10 mt-2">
-        <div className="aegis-bio-exec-lab__type-metric">Niv. {viewModel.levelNumber}</div>
+        <div className="aegis-bio-exec-lab__type-metric">
+          {isFr ? "Niv." : "Lv."} {viewModel.levelNumber}
+        </div>
         <p className="mt-1 aegis-bio-exec-lab__type-body opacity-80">{viewModel.levelSubtitle}</p>
       </div>
       <div
@@ -75,11 +82,11 @@ export function BioExecutiveCoherenceTile({
       >
         <CoherenceViz level={viewModel.levelNumber} sparkline={viewModel.scoreTrendSparkline} calmMode={calmMode} />
       </div>
-      <ChartMeta period="7 j" delta={delta} />
+      <ChartMeta period={isFr ? "7 j" : "7d"} delta={delta} />
       <div className="z-10 flex flex-wrap justify-between gap-x-2 gap-y-1 border-t border-current/20 pt-2 aegis-bio-exec-lab__type-label opacity-75">
-        <span>Stagnation</span>
-        <span className="font-semibold opacity-100">Élan</span>
-        <span>Surcharge</span>
+        <span>{t("bioExec.stagnation")}</span>
+        <span className="font-semibold opacity-100">{t("bioExec.momentum")}</span>
+        <span>{t("bioExec.overload")}</span>
       </div>
     </article>
   );
@@ -92,8 +99,10 @@ export function BioExecutiveScoreColorTile({
   slideProps,
   previewSlideChrome,
 }: Omit<ColorTileProps, "habits">) {
+  const { locale } = useLanguage();
+  const isFr = locale === "fr";
   const delta = viewModel.scoreDeltaLabel
-    ? `${viewModel.scoreDeltaLabel.replace("▲ ", "+").replace("▼ ", "−")} vs hier`
+    ? `${viewModel.scoreDeltaLabel.replace("▲ ", "+").replace("▼ ", "−")} ${isFr ? "vs hier" : "vs yesterday"}`
     : null;
   const chartLabel = `Score AEGIS ${viewModel.scoreDisplay}${delta ? `, ${delta}` : ""}`;
 
@@ -109,13 +118,13 @@ export function BioExecutiveScoreColorTile({
       <div className="z-10 flex items-center justify-between aegis-bio-exec-lab__type-body opacity-90">
         <span className="font-medium">Score AEGIS</span>
         <span className="rounded-full border border-current/25 px-2 py-0.5 aegis-bio-exec-lab__type-label-caps opacity-90">
-          Niv. {viewModel.levelNumber}
+          {isFr ? "Niv." : "Lv."} {viewModel.levelNumber}
         </span>
       </div>
       <div className="z-10 flex items-baseline justify-between gap-2">
         <span className="aegis-bio-exec-lab__type-metric">{viewModel.scoreDisplay}</span>
       </div>
-      <ChartMeta period="7 j" delta={delta} />
+      <ChartMeta period={isFr ? "7 j" : "7d"} delta={delta} />
       <div className="relative z-10 h-20 w-full" role="img" aria-label={chartLabel}>
         <ScoreViz sparkline={viewModel.scoreTrendSparkline} calmMode={calmMode} />
       </div>
@@ -131,15 +140,19 @@ export function BioExecutiveStressColorTile({
   slideProps,
   previewSlideChrome,
 }: Omit<ColorTileProps, "habits">) {
+  const { t, locale } = useLanguage();
+  const isFr = locale === "fr";
   const stress = viewModel.stressLatest ?? 0;
   const avg = viewModel.stressAvg7d ?? stress;
-  const status = stress <= 3 ? "Calme" : stress <= 6 ? "Modéré" : "Élevé";
+  const status = stress <= 3 ? t("bioExec.calm") : stress <= 6 ? t("bioExec.moderate") : t("bioExec.high");
   const stateVar = stress <= 3 ? "var(--state-good)" : stress <= 6 ? "var(--state-warn)" : "var(--state-bad)";
   const delta =
     viewModel.stressLatest != null && viewModel.stressAvg7d != null
-      ? `${viewModel.stressLatest - viewModel.stressAvg7d >= 0 ? "+" : ""}${(viewModel.stressLatest - viewModel.stressAvg7d).toFixed(1)} vs moy. 7 j`
+      ? `${viewModel.stressLatest - viewModel.stressAvg7d >= 0 ? "+" : ""}${(viewModel.stressLatest - viewModel.stressAvg7d).toFixed(1)} ${isFr ? "vs moy. 7 j" : "vs 7d avg"}`
       : null;
-  const chartLabel = `Stress ${stress > 0 ? stress.toFixed(1) : "—"} sur 10, ${status.toLowerCase()}`;
+  const chartLabel = isFr
+    ? `Stress ${stress > 0 ? stress.toFixed(1) : "—"} sur 10, ${status.toLowerCase()}`
+    : `Stress ${stress > 0 ? stress.toFixed(1) : "—"} out of 10, ${status.toLowerCase()}`;
 
   return (
     <article
@@ -148,7 +161,7 @@ export function BioExecutiveStressColorTile({
       style={{ ["--tile-accent" as string]: stateVar }}
     >
       <div className="z-10 flex items-center justify-between aegis-bio-exec-lab__type-body opacity-90">
-        <span className="font-medium">Indice stress</span>
+        <span className="font-medium">{isFr ? "Indice stress" : "Stress index"}</span>
         <span className="aegis-bio-exec-lab__type-label font-medium" style={{ color: stateVar }}>
           {status}
         </span>
@@ -157,7 +170,7 @@ export function BioExecutiveStressColorTile({
         <span className="aegis-bio-exec-lab__type-metric">{stress > 0 ? stress.toFixed(1) : "—"}</span>
         <span className="aegis-bio-exec-lab__type-body opacity-75">/10</span>
       </div>
-      <ChartMeta period="7 j" delta={delta} />
+      <ChartMeta period={isFr ? "7 j" : "7d"} delta={delta} />
       <div className="relative z-10 h-20 w-full" role="img" aria-label={chartLabel}>
         <StressWaveViz stress={stress} avgStress={avg} calmMode={calmMode} />
       </div>
@@ -171,7 +184,11 @@ export function BioExecutiveSessionsColorTile({
   className,
   slideProps,
 }: Omit<ColorTileProps, "habits" | "calmMode">) {
-  const chartLabel = `${viewModel.sessionsCount} sessions, régularité ${viewModel.regularityPct} %`;
+  const { locale } = useLanguage();
+  const isFr = locale === "fr";
+  const chartLabel = isFr
+    ? `${viewModel.sessionsCount} sessions, régularité ${viewModel.regularityPct} %`
+    : `${viewModel.sessionsCount} sessions, regularity ${viewModel.regularityPct}%`;
 
   return (
     <article
@@ -182,7 +199,7 @@ export function BioExecutiveSessionsColorTile({
         <span className="aegis-bio-exec-lab__type-metric">{viewModel.sessionsCount}</span>
         <span className="ml-1 aegis-bio-exec-lab__type-label">sessions</span>
       </div>
-      <ChartMeta period="7 j" delta={`Régularité ${viewModel.regularityPct}%`} />
+      <ChartMeta period={isFr ? "7 j" : "7d"} delta={isFr ? `Régularité ${viewModel.regularityPct}%` : `Regularity ${viewModel.regularityPct}%`} />
       <div className="relative z-10 my-1 flex flex-1 items-center justify-center" role="img" aria-label={chartLabel}>
         <SessionsViz count={viewModel.sessionsCount} regularityPct={viewModel.regularityPct} />
       </div>
@@ -197,8 +214,12 @@ export function BioExecutiveHabitsColorTile({
   slideProps,
   previewSlideChrome,
 }: ColorTileProps) {
+  const { t, locale } = useLanguage();
+  const isFr = locale === "fr";
   const done = habits.filter((h) => h.done).length;
-  const chartLabel = `Habitudes ${done} sur ${habits.length}, jour ${viewModel.progressTodayPct} %`;
+  const chartLabel = isFr
+    ? `Habitudes ${done} sur ${habits.length}, jour ${viewModel.progressTodayPct} %`
+    : `Habits ${done} of ${habits.length}, day ${viewModel.progressTodayPct}%`;
 
   return (
     <article
@@ -206,12 +227,12 @@ export function BioExecutiveHabitsColorTile({
       className={tileClass("aegis-bio-exec-lab__color-tile--habits min-h-[148px]", className)}
     >
       <div className="z-10 flex items-center justify-between aegis-bio-exec-lab__type-body opacity-90">
-        <span className="font-medium">Habitudes</span>
+        <span className="font-medium">{t("bioExec.habitsTitle")}</span>
         <span className="rounded-full bg-[color-mix(in_srgb,currentColor_12%,transparent)] px-2 py-0.5 font-mono aegis-bio-exec-lab__type-label">
           {done}/{habits.length}
         </span>
       </div>
-      <ChartMeta period="Jour" delta={`${viewModel.progressTodayPct}% · Régul. ${viewModel.regularityPct}%`} />
+      <ChartMeta period={isFr ? "Jour" : "Day"} delta={`${viewModel.progressTodayPct}% · ${isFr ? "Régul." : "Regul."} ${viewModel.regularityPct}%`} />
       <div className="relative z-10 flex flex-1 items-center justify-center py-1" role="img" aria-label={chartLabel}>
         <HabitsViz habits={habits} progressPct={viewModel.progressTodayPct} />
       </div>
@@ -226,22 +247,24 @@ export function BioExecutiveSleepColorTile({
   slideProps,
   previewSlideChrome,
 }: Omit<ColorTileProps, "habits" | "calmMode">) {
+  const { t, locale } = useLanguage();
+  const isFr = locale === "fr";
   const hours = viewModel.sleepHours ?? 0;
   const goal = viewModel.sleepGoalHours;
   const avg = viewModel.sleepAvg7d ?? hours;
   const delta =
     viewModel.sleepHours != null && viewModel.sleepAvg7d != null
-      ? `${viewModel.sleepHours - viewModel.sleepAvg7d >= 0 ? "+" : ""}${(viewModel.sleepHours - viewModel.sleepAvg7d).toFixed(1)} h vs moy. 7 j`
+      ? `${viewModel.sleepHours - viewModel.sleepAvg7d >= 0 ? "+" : ""}${(viewModel.sleepHours - viewModel.sleepAvg7d).toFixed(1)} h ${isFr ? "vs moy. 7 j" : "vs 7d avg"}`
       : viewModel.sleepStatusLabel;
-  const chartLabel = `Sommeil ${viewModel.sleepHoursLabel}, ${viewModel.sleepStatusLabel}`;
+  const chartLabel = `${isFr ? "Sommeil" : "Sleep"} ${viewModel.sleepHoursLabel}, ${viewModel.sleepStatusLabel}`;
 
   return (
     <article
       {...mergeCarouselSlideArticleProps(slideProps)}
       className={tileClass("aegis-bio-exec-lab__color-tile--blue min-h-[148px]", className)}
     >
-      <div className="z-10 aegis-bio-exec-lab__type-label-caps opacity-85">Sommeil &amp; récup.</div>
-      <ChartMeta period="7 j" delta={delta} />
+      <div className="z-10 aegis-bio-exec-lab__type-label-caps opacity-85">{t("bioExec.sleepAndRecovery")}</div>
+      <ChartMeta period={isFr ? "7 j" : "7d"} delta={delta} />
       <div className="relative z-10 mt-1 flex items-center gap-3" role="img" aria-label={chartLabel}>
         <div className="shrink-0">
           <div className="aegis-bio-exec-lab__type-metric">{viewModel.sleepHoursLabel}</div>

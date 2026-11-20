@@ -7,10 +7,13 @@ export function resolveLocalePreference(saved: string | null, legacy: string | n
 }
 
 export function readLocalePreference(): Locale {
+  const browserLang = typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'fr';
   try {
-    return resolveLocalePreference(localStorage.getItem('app-locale'), localStorage.getItem('aegis-landing-locale'), navigator.language);
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('app-locale') : null;
+    const legacy = typeof localStorage !== 'undefined' ? localStorage.getItem('aegis-landing-locale') : null;
+    return resolveLocalePreference(saved, legacy, browserLang);
   } catch {
-    return resolveLocalePreference(null, null, navigator.language);
+    return resolveLocalePreference(null, null, browserLang);
   }
 }
 

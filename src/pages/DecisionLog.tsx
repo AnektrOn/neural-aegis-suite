@@ -187,7 +187,7 @@ export default function DecisionLog() {
   const desktopLeftPane = (
     <div className="space-y-5">
       <MemberPageHeader
-        kicker="ARCHITECTURE COGNITIVE · DÉCISIONNEL"
+        kicker={t("decisions.kicker")}
         title={t("decisions.journalTitle")}
         subtitle={t("decisions.pageSubtitle")}
       />
@@ -214,7 +214,7 @@ export default function DecisionLog() {
           <p className="font-cormorant text-2xl font-light text-foreground truncate">
             {analytics.avgResolutionHours > 0
               ? analytics.avgResolutionHours >= 48
-                ? `${Math.round(analytics.avgResolutionHours / 24)}j`
+                ? `${Math.round(analytics.avgResolutionHours / 24)}${locale === "fr" ? "j" : "d"}`
                 : `${Math.round(analytics.avgResolutionHours)}h`
               : "—"}
           </p>
@@ -264,7 +264,14 @@ export default function DecisionLog() {
           ))}
         </div>
         <span className="font-mono text-xs text-muted-foreground">
-          {filtered.length} {filtered.length > 1 ? "décisions" : "décision"}
+          {filtered.length}{" "}
+          {locale === "fr"
+            ? filtered.length > 1
+              ? "décisions"
+              : "décision"
+            : filtered.length > 1
+              ? "decisions"
+              : "decision"}
         </span>
       </div>
 

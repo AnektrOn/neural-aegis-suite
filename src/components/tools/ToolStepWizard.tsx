@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
 import { toolsKicker, toolsLead, toolsTitle } from "./toolsDesign";
 
@@ -33,6 +34,7 @@ export function ToolStepWizard({
   onResultsVisible,
   className,
 }: ToolStepWizardProps) {
+  const { t, locale } = useLanguage();
   const totalScreens = steps.length + 1;
   const [index, setIndex] = useState(0);
   const navigate = useNavigate();
@@ -82,12 +84,18 @@ export function ToolStepWizard({
         "flex min-h-[calc(100dvh-4.25rem)] flex-col",
         className,
       )}
-      aria-label="Formulaire par étapes"
+      aria-label={t("tools.stepWizardAria")}
     >
       <div className="border-b border-border/40 bg-background/40 px-4 py-3 backdrop-blur-md md:px-6">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
           <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--aegis-text-secondary)]">
-            {isResult ? "Synthèse" : `Étape ${index + 1} / ${steps.length}`}
+            {isResult
+              ? locale === "en"
+                ? "Summary"
+                : "Synthèse"
+              : locale === "en"
+                ? `Step ${index + 1} / ${steps.length}`
+                : `Étape ${index + 1} / ${steps.length}`}
           </span>
           <span className="font-mono text-xs tabular-nums text-[color:var(--aegis-bronze-ink)]">
             {Math.round(progressPct)} %
@@ -117,7 +125,9 @@ export function ToolStepWizard({
           {(isResult ? resultStep : current) && (
             <header className="mb-6 text-center md:mb-8 md:text-left">
               <p className={toolsKicker}>
-                {isResult ? resultStep.kicker ?? "Résultats" : current?.kicker ?? "Votre contexte"}
+                {isResult
+                  ? resultStep.kicker ?? (locale === "en" ? "Results" : "Résultats")
+                  : current?.kicker ?? (locale === "en" ? "Your context" : "Votre contexte")}
               </p>
               <h2 className={`${toolsTitle} mt-3 text-[clamp(1.5rem,5vw,2.25rem)]`}>
                 {isResult ? resultStep.title : current?.title}

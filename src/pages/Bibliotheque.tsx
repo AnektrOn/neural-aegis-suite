@@ -243,7 +243,7 @@ export default function Bibliotheque() {
     <div className="space-y-4">
       <div>
         <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
-          {t("library.kicker")} · TRANSMISSIONS MAÎTRES
+          {t("library.kicker")} · {locale === "fr" ? "TRANSMISSIONS MAÎTRES" : "MASTER TRANSMISSIONS"}
         </p>
         <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight flex items-center gap-2.5">
           <Library size={28} strokeWidth={1.2} className="text-[#c9a24b] shrink-0" />
@@ -322,7 +322,10 @@ export default function Bibliotheque() {
           </div>
           <p className="font-mono text-[10.5px] text-muted-foreground flex items-center justify-between">
             <span>{selected.duration || "—"}</span>
-            <span>Assigné le {new Date(selected.assigned_at).toLocaleDateString(dateLocale)}</span>
+            <span>
+              {locale === "fr" ? "Assigné le " : "Assigned on "}
+              {new Date(selected.assigned_at).toLocaleDateString(dateLocale)}
+            </span>
           </p>
         </div>
       ) : (
@@ -342,7 +345,14 @@ export default function Bibliotheque() {
           {t("library.listHeading")}
         </p>
         <span className="font-mono text-xs text-muted-foreground">
-          {visibleRows.length} {visibleRows.length > 1 ? "vidéos" : "vidéo"}
+          {visibleRows.length}{" "}
+          {locale === "fr"
+            ? visibleRows.length > 1
+              ? "vidéos"
+              : "vidéo"
+            : visibleRows.length > 1
+              ? "videos"
+              : "video"}
         </span>
       </div>
 

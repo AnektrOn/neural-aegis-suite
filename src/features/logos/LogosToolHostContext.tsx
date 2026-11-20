@@ -13,6 +13,10 @@ import { fetchPulseDeck, recordPulseSwipe } from "@/features/aegis-pulse/service
 import type { PulseCard } from "@/features/aegis-pulse/domain/types";
 import type { Locale } from "@/i18n/translations";
 import { LOGOS_TOOLBOX_SESSION_END } from "./constants";
+import {
+  LOGOS_DRAWER_CONTENT_CLASS,
+  LOGOS_DRAWER_OVERLAY_CLASS,
+} from "./logosDialogStack";
 import { LogosPulseProposalModal } from "./LogosPulseProposalModal";
 import { LogosPeopleCheckinModal } from "./LogosPeopleCheckinModal";
 import {
@@ -23,15 +27,9 @@ import {
   fetchLogosActionableCatalog,
   resolveToolboxAssignmentId,
 } from "./logosActionableCatalog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { LogosDecisionCaptureModal } from "./LogosDecisionCaptureModal";
 
 export type LogosToolHostValue = {
   openToolboxAndWait: (userId: string, assignmentId?: string, slug?: string) => Promise<string>;
@@ -59,19 +57,29 @@ export function useLogosToolHost(): LogosToolHostValue {
   return ctx;
 }
 
+const TOOLBOX_WAIT_MS = 45 * 60 * 1000;
+
 function waitForToolboxSessionEnd(assignmentId: string): Promise<string> {
   return new Promise((resolve) => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const finish = (status: string) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener(LOGOS_TOOLBOX_SESSION_END, handler);
+      resolve(status);
+    };
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<{ assignmentId: string; status: string }>).detail;
       if (detail?.assignmentId !== assignmentId) return;
-      window.removeEventListener(LOGOS_TOOLBOX_SESSION_END, handler);
-      resolve(detail.status);
+      finish(detail.status);
     };
     window.addEventListener(LOGOS_TOOLBOX_SESSION_END, handler);
+    timeoutId = setTimeout(() => finish("error:session_timeout"), TOOLBOX_WAIT_MS);
   });
 }
 
 export function LogosToolHostProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const { locale } = useLanguage();
   const exercise = useToolboxExerciseSessionOptional();
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const quickLogResolve = useRef<((v: string) => void) | null>(null);
@@ -100,14 +108,23 @@ export function LogosToolHostProvider({ children }: { children: ReactNode }) {
   const openToolboxAndWait = useCallback(
     async (userId: string, assignmentId?: string, slug?: string): Promise<string> => {
       if (!exercise) return "error:no_toolbox_session_provider";
-      const resolved = await resolveToolboxAssignmentId(userId, assignmentId, slug);
+
+      let resolved = await resolveToolboxAssignmentId(userId, assignmentId, slug);
+      if (!resolved) {
+        const catalog = await fetchLogosActionableCatalog(userId, locale, 5);
+        resolved = catalog.toolbox[0]?.assignment_id ?? null;
+      }
       if (!resolved) return "error:assignment_not_found";
+
+      if (exercise.openAssignmentId && exercise.openAssignmentId !== resolved) {
+        exercise.closeExercise();
+      }
 
       const waitPromise = waitForToolboxSessionEnd(resolved);
       exercise.openExercise(resolved);
       return waitPromise;
     },
-    [exercise],
+    [exercise, locale],
   );
 
   const proposePulseAndWait = useCallback(async (locale: Locale, cardId?: string): Promise<string> => {
@@ -222,12 +239,19 @@ export function LogosToolHostProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const finishDecision = useCallback((result: string) => {
+    setDecisionOpen(false);
+    decisionResolve.current?.(result);
+    decisionResolve.current = null;
+  }, []);
+
   const openDecisionCaptureAndWait = useCallback((): Promise<string> => {
+    if (!user?.id) return Promise.resolve("error:not_authenticated");
     return new Promise((resolve) => {
       decisionResolve.current = resolve;
       setDecisionOpen(true);
     });
-  }, []);
+  }, [user?.id]);
 
   const value = useMemo(
     () => ({
@@ -288,6 +312,8 @@ export function LogosToolHostProvider({ children }: { children: ReactNode }) {
       />
       <QuickLogModal
         open={quickLogOpen}
+        overlayClassName={LOGOS_DRAWER_OVERLAY_CLASS}
+        contentClassName={LOGOS_DRAWER_CONTENT_CLASS}
         onClose={() => finishQuickLog("dismissed")}
         onSaved={() => finishQuickLog("saved")}
       />
@@ -312,34 +338,13 @@ export function LogosToolHostProvider({ children }: { children: ReactNode }) {
           }}
         />
       ) : null}
-      <Dialog
-        open={decisionOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            decisionResolve.current?.("dismissed");
-            decisionResolve.current = null;
-            setDecisionOpen(false);
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Décision</DialogTitle>
-            <DialogDescription>
-              Utilise l&apos;outil write_decision pour enregistrer une décision à la voix.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" onClick={() => {
-              decisionResolve.current?.("dismissed");
-              decisionResolve.current = null;
-              setDecisionOpen(false);
-            }}>
-              Fermer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {user?.id ? (
+        <LogosDecisionCaptureModal
+          userId={user.id}
+          open={decisionOpen}
+          onClose={finishDecision}
+        />
+      ) : null}
     </LogosToolHostContext.Provider>
   );
 }

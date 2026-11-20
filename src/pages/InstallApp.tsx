@@ -29,14 +29,14 @@ export default function InstallApp() {
         <button
           onClick={() => navigate(-1)}
           className="p-2.5 rounded-xl border border-white/5 bg-white/5 text-muted-foreground hover:text-foreground hover:border-white/15 transition-all cursor-pointer"
-          title="Retour"
+          title={t("install.backTitle")}
         >
           <ArrowLeft size={16} />
         </button>
         <div>
           <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1 flex items-center gap-1.5">
             <Sparkles size={11} className="text-[#c9a24b]" />
-            <span>ACCÈS SOUVERAIN · EXPÉRIENCE NATIVE</span>
+            <span>{t("install.heroKicker")}</span>
           </p>
           <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight flex items-center gap-2.5">
             <Smartphone size={30} strokeWidth={1.2} className="text-[#c9a24b] shrink-0" />
@@ -51,13 +51,11 @@ export default function InstallApp() {
 
       {/* Plateforme Selector */}
       <div className="flex items-center gap-1.5 pt-1">
-        {(
-          [
-            { key: "all", label: "Toutes les plateformes" },
-            { key: "ios", label: "Apple iOS", icon: Apple },
-            { key: "android", label: "Google Android", icon: Smartphone },
-          ] as const
-        ).map((item) => (
+        {[
+          { key: "all", label: t("install.allPlatforms") },
+          { key: "ios", label: "Apple iOS", icon: Apple },
+          { key: "android", label: "Google Android", icon: Smartphone },
+        ].map((item) => (
           <button
             key={item.key}
             type="button"
@@ -81,7 +79,7 @@ export default function InstallApp() {
 
         <div className="flex items-center justify-between gap-3 relative z-10">
           <span className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.2em] text-[#c9a24b]">
-            CARACTÉRISTIQUES DU NOYAU
+            {t("install.coreSpecs")}
           </span>
           <span className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-white/10 bg-black/40 text-[#c9a24b]">
             PWA STANDALONE
@@ -92,22 +90,22 @@ export default function InstallApp() {
           <div className="p-3.5 rounded-xl border border-white/5 bg-black/30 space-y-1">
             <Zap size={15} className="text-[#c9a24b]" />
             <p className="font-cinzel text-[10px] font-semibold text-foreground uppercase tracking-wider">
-              Latence Zéro
+              {t("install.zeroLatencyTitle")}
             </p>
-            <p className="text-[11px] text-muted-foreground">Exécution immédiate à 60 FPS sans téléchargement d&apos;App Store</p>
+            <p className="text-[11px] text-muted-foreground">{t("install.zeroLatencyDesc")}</p>
           </div>
           <div className="p-3.5 rounded-xl border border-white/5 bg-black/30 space-y-1">
             <ShieldCheck size={15} className="text-[#c9a24b]" />
             <p className="font-cinzel text-[10px] font-semibold text-foreground uppercase tracking-wider">
-              Chiffrement
+              {t("install.encryptionTitle")}
             </p>
-            <p className="text-[11px] text-muted-foreground">Données biométriques et jetons sécurisés dans l&apos;enclave locale</p>
+            <p className="text-[11px] text-muted-foreground">{t("install.encryptionDesc")}</p>
           </div>
         </div>
 
         <div className="pt-1 text-xs text-muted-foreground relative z-10 flex items-center gap-2">
           <CheckCircle2 size={13} className="text-[#c9a24b] shrink-0" />
-          <span>Synchronisation automatique et mises à jour transparentes en arrière-plan</span>
+          <span>{t("install.autoSync")}</span>
         </div>
       </div>
     </div>
@@ -117,9 +115,9 @@ export default function InstallApp() {
     <div className="space-y-5">
       <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
         <p className="font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          PROTOCOLE D&apos;INSTALLATION PAS-À-PAS
+          {t("install.protocolStepByStep")}
         </p>
-        <span className="font-mono text-xs text-muted-foreground">Guide instantané</span>
+        <span className="font-mono text-xs text-muted-foreground">{t("install.instantGuide")}</span>
       </div>
 
       {/* iOS Protocol */}
@@ -137,7 +135,7 @@ export default function InstallApp() {
               <h2 className="font-cinzel text-sm font-semibold tracking-wide text-foreground">
                 {t("install.iosTitle")}
               </h2>
-              <p className="font-mono text-[10.5px] text-muted-foreground">Navigateur Safari recommandé</p>
+              <p className="font-mono text-[10.5px] text-muted-foreground">{t("install.safariRecommended")}</p>
             </div>
           </div>
 
@@ -196,7 +194,7 @@ export default function InstallApp() {
               <h2 className="font-cinzel text-sm font-semibold tracking-wide text-foreground">
                 {t("install.androidTitle")}
               </h2>
-              <p className="font-mono text-[10.5px] text-muted-foreground">Navigateur Chrome / Brave recommandé</p>
+              <p className="font-mono text-[10.5px] text-muted-foreground">{t("install.chromeRecommended")}</p>
             </div>
           </div>
 

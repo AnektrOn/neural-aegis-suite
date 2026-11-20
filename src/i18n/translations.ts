@@ -5312,6 +5312,322 @@ excerpt_fr: email brief
     en: "Go to dashboard",
   },
 
+  // Bio-executive tiles & metrics
+  "bioExec.pendingDecisionTitle": { fr: "Décision en attente", en: "Pending decision" },
+  "bioExec.noPendingDecision": { fr: "Aucune décision en attente", en: "No pending decision" },
+  "bioExec.clearForToday": { fr: "Clair pour aujourd'hui", en: "All clear for today" },
+  "bioExec.decisionRemaining": { fr: "Il te reste cette décision à prendre.", en: "You have this decision left to make." },
+  "bioExec.seeDecisions": { fr: "Voir les décisions", en: "View decisions" },
+  "bioExec.pulseOfTheDay": { fr: "Pulse du jour", en: "Today's Pulse" },
+  "bioExec.openDeck": { fr: "Ouvrir le deck", en: "Open deck" },
+  "bioExec.levelCoherence": { fr: "Niveau & Cohérence", en: "Level & Coherence" },
+  "bioExec.momentum": { fr: "Élan", en: "Momentum" },
+  "bioExec.sleepAndRecovery": { fr: "Sommeil & récup.", en: "Sleep & recovery" },
+  "bioExec.calmModeTooltip": { fr: "Mode Calme : Réduit la saturation et les animations", en: "Calm Mode: Reduces saturation and animations" },
+  "bioExec.keyMetricsSwipe": { fr: "Métriques clés (glisser →)", en: "Key metrics (swipe →)" },
+  "bioExec.regularity": { fr: "Régularité", en: "Regularity" },
+  "bioExec.optimalMomentum": { fr: "Élan Optimal", en: "Optimal Momentum" },
+  "bioExec.scoreVelocity": { fr: "Score & Vélocité", en: "Score & Velocity" },
+  "bioExec.decisionLoadIndex": { fr: "Indice de Charge Décisionnelle", en: "Decision Load Index" },
+  "bioExec.light": { fr: "Léger", en: "Light" },
+  "bioExec.moderate": { fr: "Modéré", en: "Moderate" },
+  "bioExec.high": { fr: "Élevé", en: "High" },
+  "bioExec.optimal": { fr: "Optimal", en: "Optimal" },
+  "bioExec.overload": { fr: "Surcharge", en: "Overload" },
+  "bioExec.stagnation": { fr: "Stagnation", en: "Stagnation" },
+  "bioExec.cognition": { fr: "Cognition", en: "Cognition" },
+  "bioExec.coherence": { fr: "Cohérence", en: "Coherence" },
+  "bioExec.energy": { fr: "Énergie", en: "Energy" },
+  "bioExec.restorative": { fr: "Réparateur", en: "Restorative" },
+  "bioExec.metricSelection": { fr: "Sélection de métrique", en: "Metric selection" },
+  "bioExec.keyMetrics": { fr: "Métriques clés", en: "Key metrics" },
+  "bioExec.nothingPending": { fr: "Rien en attente", en: "Nothing pending" },
+  "bioExec.todayShort": { fr: "auj.", en: "today" },
+  "bioExec.vsYesterday": { fr: "vs hier", en: "vs yesterday" },
+
+  // Logos modals
+  "logos.peopleDailyTitle": { fr: "Relation du jour", en: "Daily relationship check-in" },
+  "logos.peopleDailyDesc": { fr: "Qualité perçue et note courte", en: "Perceived quality and short note" },
+  "logos.qualityScale": { fr: "Qualité (1–10)", en: "Quality (1–10)" },
+  "logos.contactLabel": { fr: "Contact", en: "Contact" },
+  "logos.noteLabel": { fr: "Note", en: "Note" },
+  "logos.practiceChoice": { fr: "Choix de pratique", en: "Practice choice" },
+  "logos.previousChoice": { fr: "Choix précédent", en: "Previous choice" },
+  "logos.nextChoice": { fr: "Choix suivant", en: "Next choice" },
+  "logos.choose": { fr: "Choisir", en: "Choose" },
+  "logos.assimilateGrimoire": { fr: "Assimiler au grimoire", en: "Assimilate into grimoire" },
+  "logos.ignore": { fr: "Ignorer", en: "Ignore" },
+
+  // Pulse & Toolbox
+  "pulse.wisdomRunes": { fr: "Runes de Sagesse", en: "Wisdom Runes" },
+  "pulse.unlockedStatus": { fr: "Déverrouillé", en: "Unlocked" },
+  "toolbox.startExercise": { fr: "Démarrer l'exercice", en: "Start exercise" },
+  "meditation.listenSession": { fr: "Écouter la session", en: "Listen to session" },
+
+  // Archetype Radar
+  "archetype.radarTitle": { fr: "Roue archétypale", en: "Archetypal wheel" },
+  "archetype.intensity": { fr: "Intensité", en: "Intensity" },
+  "archetype.light": { fr: "Lumière", en: "Light" },
+  "archetype.shadow": { fr: "Ombre", en: "Shadow" },
+
+  // Install App
+  "install.backTitle": { fr: "Retour", en: "Back" },
+  "install.heroKicker": { fr: "ACCÈS SOUVERAIN · EXPÉRIENCE NATIVE", en: "SOVEREIGN ACCESS · NATIVE EXPERIENCE" },
+  "install.zeroLatencyTitle": { fr: "Latence Zéro", en: "Zero Latency" },
+  "install.zeroLatencyDesc": { fr: "Exécution immédiate à 60 FPS sans téléchargement d'App Store", en: "Immediate 60 FPS performance without App Store download" },
+  "install.encryptionTitle": { fr: "Chiffrement", en: "Encryption" },
+  "install.encryptionDesc": { fr: "Données biométriques et jetons sécurisés dans l'enclave locale", en: "Biometrics and tokens secured in the local enclave" },
+  "install.autoSync": { fr: "Synchronisation automatique et mises à jour transparentes en arrière-plan", en: "Automatic synchronization and seamless background updates" },
+  "install.instantGuide": { fr: "Guide instantané", en: "Instant guide" },
+  "install.safariRecommended": { fr: "Navigateur Safari recommandé", en: "Safari browser recommended" },
+  "install.chromeRecommended": { fr: "Navigateur Chrome / Brave recommandé", en: "Chrome / Brave browser recommended" },
+
+  // Public tools & calculators
+  "tools.kicker": { fr: "Outils décisionnels", en: "Decision tools" },
+  "tools.hubTitle": { fr: "Outils", en: "Tools" },
+  "tools.homeTitle": { fr: "Accueil", en: "Home" },
+  "tools.interactiveCalculator": { fr: "Calculateur interactif", en: "Interactive calculator" },
+  "tools.toolSheet": { fr: "Fiche outil", en: "Tool overview" },
+  "tools.backToTools": { fr: "Retour aux outils", en: "Back to tools" },
+  "tools.breadcrumbAria": { fr: "Fil d'Ariane", en: "Breadcrumb" },
+  "tools.faqTitle": { fr: "Questions fréquentes", en: "Frequently Asked Questions" },
+  "tools.freeBadge": { fr: "Gratuit", en: "Free" },
+  "tools.viewSheet": { fr: "Voir la fiche", en: "View overview" },
+  "tools.nextStepTitle": { fr: "Prochaine étape recommandée", en: "Recommended next step" },
+  "tools.customReading": { fr: "Lecture personnalisée", en: "Personalized assessment" },
+  "tools.immediateActions": { fr: "Actions immédiates", en: "Immediate action items" },
+  "tools.profileKicker": { fr: "Profil décisionnel", en: "Decision profile" },
+  "tools.calibrateTools": { fr: "Calibrer vos outils", en: "Calibrate your tools" },
+  "tools.calibrateSubtitle": { fr: "Deux minutes pour adapter seuils, benchmarks et diagnostics à votre réalité de dirigeant.", en: "Two minutes to adapt thresholds, benchmarks, and diagnostics to your executive reality." },
+  "tools.decisionMakerArchetype": { fr: "Archétype de décideur", en: "Decision-maker archetype" },
+  "tools.companyStage": { fr: "Stade de l'entreprise", en: "Company stage" },
+  "tools.teamSizeLabel": { fr: "Taille d'équipe : {count}", en: "Team size: {count}" },
+  "tools.decisionsPerWeekLabel": { fr: "Arbitrages structurants / semaine : {count}", en: "Key weekly decisions: {count}" },
+  "tools.sleepHoursLabel": { fr: "Sommeil moyen (h/nuit) : {count}", en: "Average sleep (hrs/night): {count}" },
+  "tools.saveProfile": { fr: "Enregistrer le profil", en: "Save profile" },
+  "tools.calibrateMyProfile": { fr: "Calibrer mon profil", en: "Calibrate my profile" },
+  "tools.inShort": { fr: "En clair", en: "In short" },
+  "tools.bestFor": { fr: "Pour qui : ", en: "Best for: " },
+  "tools.hideGuide": { fr: "Masquer le guide", en: "Hide guide" },
+  "tools.whatIsThisToolFor": { fr: "À quoi sert cet outil ?", en: "What is this tool for?" },
+  "tools.beforeStarting": { fr: "Avant de commencer — en clair", en: "Before starting — in short" },
+  "tools.prepare": { fr: "Préparez", en: "Prepare" },
+  "tools.outcomes": { fr: "À la fin", en: "Outcomes" },
+  "tools.example": { fr: "Exemple", en: "Example" },
+  "tools.stepsCount": { fr: "{count} étapes", en: "{count} steps" },
+  "tools.outcomesCount": { fr: "{count} résultats à la fin", en: "{count} outcomes at the end" },
+  "tools.conversionKicker": { fr: "Exocortex décisionnel", en: "Decision Exocortex" },
+  "tools.conversionTitle": { fr: "Passez de la friction à l'Exocortex Décisionnel", en: "Shift from friction to the Decision Exocortex" },
+  "tools.startOnboarding": { fr: "Démarrer l'onboarding AEGIS", en: "Start AEGIS onboarding" },
+  "tools.guarantee30Days": { fr: "Garantie Sérénité 30 jours : satisfait ou remboursé intégralement", en: "30-day Peace of Mind Guarantee: 100% money back" },
+
+  // Journal telemetry
+  "journal.telemetryReflections": { fr: "Réflexions", en: "Reflections" },
+  "journal.telemetryConcepts": { fr: "Concepts", en: "Concepts" },
+  "journal.telemetryLastEntry": { fr: "Dernière entrée", en: "Latest entry" },
+
+  // Capture Hub
+  "capture.saveToExocortex": { fr: "Capturer dans l'Exocortex", en: "Capture to Exocortex" },
+  "capture.todayTelemetry": { fr: "Télémétrie du Jour", en: "Today's Telemetry" },
+  "capture.scaleRecup": { fr: "1 Récup", en: "1 Recovery" },
+  "capture.scaleNeutral": { fr: "5 Neutre", en: "5 Neutral" },
+  "capture.scaleFlow": { fr: "10 Flow", en: "10 Flow" },
+
+  // Mood Tracker additional
+  "mood.headerKicker": { fr: "INTELLIGENCE ÉMOTIONNELLE · CHRONO-CADENCE", en: "EMOTIONAL INTELLIGENCE · CHRONO-CADENCE" },
+  "mood.headerSubtitle": { fr: "Régulez votre clarté mentale, repos circadien et tension nerveuse en temps réel.", en: "Regulate your mental clarity, circadian rest, and nervous tension in real time." },
+  "mood.mealsCountSuffix": { fr: "repas", en: "meals" },
+  "mood.weeklyTrendSuffix": { fr: "Tendance 7 Jours", en: "7-Day Trend" },
+  "mood.loggedCount": { fr: "{count}/7 consignés", en: "{count}/7 logged" },
+  "mood.avg7Days": { fr: "Moyenne 7j", en: "7d Average" },
+  "mood.peakClarity": { fr: "Pic de Clarté", en: "Peak Clarity" },
+  "mood.regularity": { fr: "Régularité", en: "Regularity" },
+  "mood.logFirstMetrics": { fr: "Enregistrez vos premières métriques", en: "Record your first metrics" },
+  "mood.notLogged": { fr: "Non consigné", en: "Not logged" },
+  "mood.valenceScale": { fr: "ÉCHELLE DE VALENCE ÉMOTIONNELLE", en: "EMOTIONAL VALENCE SCALE" },
+  "mood.harmonicLevels": { fr: "10 Niveaux Harmoniques", en: "10 Harmonic Levels" },
+  "mood.tabLog": { fr: "Saisie & Cadrans", en: "Log & Dials" },
+  "mood.tabTrends": { fr: "Tendance 7j & Guide", en: "7d Trend & Guide" },
+
+  // Bio-Executive Dashboard additional
+  "bioExec.focusCalm": { fr: "Focus Calme", en: "Calm Focus" },
+  "bioExec.standardMode": { fr: "Standard", en: "Standard" },
+  "bioExec.habitsTitle": { fr: "Habitudes", en: "Habits" },
+  "bioExec.openAction": { fr: "Ouvrir", en: "Open" },
+  "bioExec.closeAction": { fr: "Fermer", en: "Close" },
+  "bioExec.aiTransparentDiagnostic": { fr: "Diagnostic IA Transparent", en: "Transparent AI Diagnostic" },
+  "bioExec.scoreAegis": { fr: "Score AEGIS", en: "AEGIS Score" },
+  "bioExec.stressIndex": { fr: "Indice stress", en: "Stress index" },
+  "bioExec.calm": { fr: "Calme", en: "Calm" },
+  "bioExec.viewAction": { fr: "Voir", en: "View" },
+  "bioExec.sleepKicker": { fr: "Sommeil", en: "Sleep" },
+  "bioExec.newBadge": { fr: "Nouveau", en: "New" },
+  "bioExec.noCardsToday": { fr: "Aucune carte aujourd'hui", en: "No cards today" },
+  "bioExec.pendingToolsCount": { fr: "{count} outil(s) en attente", en: "{count} pending tool(s)" },
+  "bioExec.inboxClear": { fr: "Inbox claire", en: "Inbox clear" },
+  "bioExec.inboxNew": { fr: "Nouveau {count}", en: "New {count}" },
+  "bioExec.inboxPending": { fr: "En attente {count}", en: "Pending {count}" },
+  "bioExec.inboxFavorites": { fr: "Favoris {count}", en: "Favorites {count}" },
+
+  // Habit Tracker additional
+  "habits.categoriesTitle": { fr: "CATÉGORIES", en: "CATEGORIES" },
+  "habits.maximKicker": { fr: "MAXIME BIO-EXÉCUTIVE", en: "BIO-EXECUTIVE MAXIM" },
+  "habits.maximQuote": {
+    fr: "« La régularité de vos micro-habitudes ancre la résilience neuro-végétative sous haute pression. »",
+    en: "\"The regularity of your micro-habits anchors autonomic resilience under high pressure.\"",
+  },
+
+  // Journal additional
+  "journal.headerSubtitle": {
+    fr: "Consignez vos prises de conscience, leçons d'arbitrage et réflexions profondes.",
+    en: "Record your insights, decision lessons, and deep reflections.",
+  },
+  "journal.writeBtn": { fr: "✍️ Rédiger", en: "✍️ Write" },
+  "journal.cancelBtn": { fr: "Annuler", en: "Cancel" },
+  "journal.emptyHint": { fr: "Chaque pensée mérite d'être consignée", en: "Every thought is worth recording" },
+
+  // Practices Hub additional
+  "hub.headerKicker": { fr: "CENTRE DE PRATIQUES · BIO-CADENCE", en: "PRACTICE CENTER · BIO-CADENCE" },
+  "hub.headerSubtitle": {
+    fr: "Activez vos routines, méditations et soins neuraux pour préserver votre alignement au fil de la journée.",
+    en: "Activate your routines, meditations, and neural care to preserve alignment throughout the day.",
+  },
+  "hub.cadenceSphere": { fr: "✨ Cadence & Sphère", en: "✨ Cadence & Sphere" },
+  "hub.dailyCadenceScore": { fr: "Score de Cadence Quotidienne", en: "Daily Cadence Score" },
+  "hub.accessBtn": { fr: "Accéder", en: "Access" },
+  "hub.morningTitle": { fr: "Discipline Matinale", en: "Morning Discipline" },
+  "hub.morningDesc": { fr: "Activez vos habitudes prioritaires pour donner l'impulsion du jour.", en: "Activate your priority habits to set today's momentum." },
+  "hub.morningAction": { fr: "Ouvrir les habitudes", en: "Open habits" },
+  "hub.middayTitle": { fr: "Session Neurale de Milieu de Journée", en: "Midday Neural Session" },
+  "hub.middayDesc": { fr: "Cohérence cardiaque ou scan corporel pour dissiper la fatigue cognitive.", en: "Heart coherence or body scan to clear cognitive fatigue." },
+  "hub.middayAction": { fr: "Lancer la boîte à outils", en: "Launch toolbox" },
+  "hub.eveningTitle": { fr: "Assimilation du Soir", en: "Evening Assimilation" },
+  "hub.eveningDesc": { fr: "Tirez et assimilez vos cartes archétypales avant la transition nocturne.", en: "Draw and assimilate your archetypal cards before nightfall." },
+  "hub.eveningAction": { fr: "Ouvrir Aegis Pulse", en: "Open Aegis Pulse" },
+
+  // People Board additional
+  "people.ecosystemSubtitle": {
+    fr: "Visualisez en 3D la proximité, la qualité d'échange et l'énergie de votre écosystème relationnel.",
+    en: "Visualize in 3D the proximity, exchange quality, and energy of your relational ecosystem.",
+  },
+  "people.relationalEcosystem": { fr: "Écosystème Relationnel", en: "Relational Ecosystem" },
+
+  // Profile additional
+  "profile.memberAccess": { fr: "Accès Membre", en: "Member Access" },
+  "profile.bioExecutive": { fr: "Bio-Exécutif", en: "Bio-Executive" },
+  "profile.archetypalFootprint": { fr: "Empreinte Archétypale", en: "Archetypal Footprint" },
+  "profile.systemPreferences": { fr: "Préférences Système", en: "System Preferences" },
+  "profile.accountSettings": { fr: "Paramètres du Compte", en: "Account Settings" },
+  "profile.personalData": { fr: "Données Personnelles", en: "Personal Data" },
+
+  // Mood Tracker
+  "mood.deleteMeal": { fr: "Supprimer ce repas", en: "Delete this meal" },
+
+  // Habit Tracker
+  "habits.kicker": { fr: "ARCHITECTURE DE PERFORMANCE · HABITUDES", en: "PERFORMANCE ARCHITECTURE · HABITS" },
+  "habits.trackingSubtitle": { fr: "Maintenez la constance bio-exécutive au fil des jours.", en: "Maintain bio-executive consistency across days." },
+
+  // Practices Hub
+  "hub.practiceStations": { fr: "Stations de Pratiques", en: "Practice Stations" },
+  "hub.practiceStationsCount": { fr: "5 stations bio-exécutives", en: "5 bio-executive stations" },
+
+  // People Board
+  "people.relationshipCards": { fr: "Cartes des relations", en: "Relationship cards" },
+
+  // Navigation Dock
+  "nav.topDockAria": { fr: "Actions rapides du membre", en: "Member quick actions" },
+
+  // Dashboard fallback
+  "dashboard.errorFallbackTitle": { fr: "Impossible d'afficher le tableau de bord.", en: "Unable to load dashboard." },
+  "dashboard.errorFallbackHint": { fr: "Rechargez la page (Cmd+Shift+R). Détail technique ci-dessous.", en: "Please reload the page (Cmd+Shift+R). Technical details below." },
+
+  // Additional public & tools keys
+  "tools.continueAudit": { fr: "Continuer l'audit", en: "Continue audit" },
+  "tools.otherRecommendedTools": { fr: "Autres outils décisionnels recommandés", en: "Other recommended decision tools" },
+  "tools.stepWizardAria": { fr: "Formulaire par étapes", en: "Step wizard" },
+  "tools.foundersPerpetualAccess": { fr: "Accès perpétuel \"Membres Fondateurs\"", en: "Perpetual Access \"Founding Members\"" },
+  "bioExec.levelConstancy": { fr: "Niveau & Constance", en: "Level & Constancy" },
+  "bioExec.last7DaysArrow": { fr: "7 derniers jours →", en: "Last 7 days →" },
+  "bioExec.resetChecklist": { fr: "Réinitialiser la checklist", en: "Reset checklist" },
+
+  // Pulse Page additions
+  "pulse.cardsReady": { fr: "{count} fragments prêts à être assimilés ou ignorés.", en: "{count} fragments ready to be assimilated or dismissed." },
+  "pulse.cycleCompleted": { fr: "Cycle d'assimilation actuel complété.", en: "Current assimilation cycle completed." },
+  "pulse.deckKeyboardHint": { fr: "[←] Ignorer • [→] Assimiler", en: "[←] Dismiss • [→] Assimilate" },
+  "pulse.allPulsesUpToDate": { fr: "Toutes les impulsions sont à jour", en: "All pulses are up to date" },
+  "pulse.noFragmentInProgress": { fr: "Aucun fragment en attente d'intégration", en: "No fragments awaiting integration" },
+  "pulse.noFragmentValidated": { fr: "Aucun fragment encore validé", en: "No fragments validated yet" },
+
+  // Calendar additions
+  "calendar.selectedDay": { fr: "JOUR SÉLECTIONNÉ", en: "SELECTED DAY" },
+  "calendar.noEventsForDay": { fr: "Aucun événement consigné pour cette journée", en: "No events recorded for this day" },
+  "calendar.clickDateHint": { fr: "Cliquez sur une date dans le cadran mensuel", en: "Click a date on the monthly dial" },
+  "calendar.headerKicker": { fr: "VUE D'ENSEMBLE · BIO-CADENCE", en: "OVERVIEW · BIO-CADENCE" },
+  "calendar.headerSubtitle": { fr: "Synchronisation de votre bio-cadence, habitudes, réflexions et micro-décisions.", en: "Sync your bio-cadence, habits, reflections, and micro-decisions." },
+  "calendar.tabCalendar": { fr: "📅 Calendrier", en: "📅 Calendar" },
+  "calendar.tabDetail": { fr: "📋 Détail du Jour", en: "📋 Day Detail" },
+  "calendar.prevMonth": { fr: "Mois précédent", en: "Previous month" },
+  "calendar.nextMonth": { fr: "Mois suivant", en: "Next month" },
+  "calendar.dailySummaryTitle": { fr: "SYNTHÈSE DU JOUR", en: "DAILY SUMMARY" },
+
+  // Capture Hub additions
+  "capture.headerKicker": { fr: "CENTRE DE CAPTURE · BIO-LOGGING RAPIDE", en: "CAPTURE CENTER · RAPID BIO-LOGGING" },
+  "capture.headerSubtitle": { fr: "Enregistrez instantanément vos signaux, pensées et arbitrages sans briser votre flux d'attention.", en: "Instantly record signals, thoughts, and decisions without breaking your focus." },
+  "capture.mobileTabCapture": { fr: "Saisie", en: "Intake" },
+  "capture.mobileTabStations": { fr: "Stations", en: "Stations" },
+  "capture.mobileTabRecent": { fr: "Flux", en: "Stream" },
+  "capture.stationsTitle": { fr: "Stations de Journalisation", en: "Logging Stations" },
+  "capture.activeProtocols": { fr: "protocoles actifs", en: "active protocols" },
+  "capture.tabThought": { fr: "Pensée", en: "Thought" },
+  "capture.tabDecision": { fr: "Décision", en: "Decision" },
+  "capture.tabMood": { fr: "Humeur", en: "Mood" },
+  "capture.recentStreamTitle": { fr: "Flux Récent · Aujourd'hui", en: "Recent Stream · Today" },
+  "capture.recentEntries": { fr: "{count} entrées", en: "{count} entries" },
+  "capture.quote": { fr: "\"Chaque signal capturé structure votre clarté mentale.\"", en: "\"Every signal captured structures your mental clarity.\"" },
+  "capture.emptyStream": { fr: "Aucune capture aujourd'hui — utilisez l'onglet Saisie", en: "No captures today — use the Input tab" },
+  "capture.defaultThoughtTitle": { fr: "Pensée au journal", en: "Journal thought" },
+  "capture.toastThoughtTitle": { fr: "Pensée capturée au Journal", en: "Thought captured to Journal" },
+  "capture.toastThoughtDesc": { fr: "Enregistrée dans votre flux Exocortex.", en: "Recorded in your Exocortex stream." },
+  "capture.toastDecisionTitle": { fr: "Décision capturée", en: "Decision captured" },
+  "capture.toastDecisionDesc": { fr: "Ajoutée à vos arbitrages en attente.", en: "Added to your pending decisions." },
+  "capture.toastMoodTitle": { fr: "Signal émotionnel enregistré", en: "Emotional signal recorded" },
+  "capture.toastMoodDesc": { fr: "Indice {value}/10 synchronisé.", en: "Index {value}/10 synchronized." },
+  "capture.toastError": { fr: "Erreur de capture", en: "Capture error" },
+
+  // Decision Log additions
+  "decisions.kicker": { fr: "ARCHITECTURE COGNITIVE · DÉCISIONNEL", en: "COGNITIVE ARCHITECTURE · DECISION LOG" },
+
+  // Install App additions
+  "install.allPlatforms": { fr: "Toutes les plateformes", en: "All platforms" },
+  "install.coreSpecs": { fr: "CARACTÉRISTIQUES DU NOYAU", en: "CORE SPECIFICATIONS" },
+  "install.protocolStepByStep": { fr: "PROTOCOLE D'INSTALLATION PAS-À-PAS", en: "STEP-BY-STEP INSTALLATION PROTOCOL" },
+
+  // Reset Password additions
+  "resetPassword.linkExpired": { fr: "Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau ci-dessous.", en: "This link has expired or has already been used. Request a new one below." },
+  "resetPassword.linkInvalid": { fr: "Ce lien n'est plus valide. Demandez un nouveau lien ci-dessous.", en: "This link is no longer valid. Request a new one below." },
+  "resetPassword.linkBrowserMismatch": { fr: "Ce lien doit être ouvert dans le même navigateur que la demande, ou il a expiré. Demandez un nouveau lien ci-dessous.", en: "This link must be opened in the same browser, or it has expired. Request a new one below." },
+  "resetPassword.setupLinkInvalid": { fr: "Ce lien de création de mot de passe est invalide ou a expiré.", en: "This password setup link is invalid or has expired." },
+  "resetPassword.emailSentTitle": { fr: "E-mail envoyé", en: "Email sent" },
+  "resetPassword.emailSentDesc": { fr: "Consultez votre boîte de réception pour réinitialiser votre mot de passe.", en: "Check your inbox to reset your password." },
+  "resetPassword.passwordRequirements": { fr: "Mot de passe : 8 caractères minimum, au moins une lettre et un chiffre.", en: "Password: 8 characters minimum, at least one letter and one number." },
+  "resetPassword.passwordUpdatedTitle": { fr: "Mot de passe mis à jour", en: "Password updated" },
+  "resetPassword.passwordUpdatedDesc": { fr: "Vous pouvez maintenant vous connecter.", en: "You can now sign in." },
+  "resetPassword.createPasswordTitle": { fr: "Créer votre mot de passe", en: "Create your password" },
+  "resetPassword.newPasswordTitle": { fr: "Nouveau mot de passe", en: "New password" },
+  "resetPassword.forgotPasswordTitle": { fr: "Mot de passe oublié", en: "Forgot password" },
+  "resetPassword.passwordPlaceholder": { fr: "Nouveau mot de passe (8+ caractères)", en: "New password (8+ characters)" },
+  "resetPassword.updateBtn": { fr: "Mettre à jour", en: "Update" },
+  "resetPassword.adminSetupHint": { fr: "Demandez à votre administrateur de vous envoyer un nouveau lien de création de mot de passe.", en: "Ask your administrator to send you a new password setup link." },
+  "resetPassword.backToLogin": { fr: "Retour à la connexion", en: "Back to login" },
+  "resetPassword.requestHint": { fr: "Saisissez votre adresse e-mail : un lien de réinitialisation vous sera envoyé.", en: "Enter your email address: a reset link will be sent to you." },
+  "resetPassword.sendLinkBtn": { fr: "Envoyer le lien", en: "Send link" },
+
+  // Newsletter additions
+  "newsletter.checkMailConfirm": { fr: "Vérifiez votre boîte mail pour confirmer l'inscription.", en: "Check your inbox to confirm your subscription." },
+
+  // Ambassador additions
+  "ambassador.headerKicker": { fr: "PROGRAMME AFFILIATION · SOUVERAINETÉ", en: "AFFILIATE PROGRAM · SOVEREIGNTY" },
+
 } as const;
 
 export type TranslationKey = keyof typeof translations;

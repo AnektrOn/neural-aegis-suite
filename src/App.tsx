@@ -221,15 +221,22 @@ function PageLoader() {
 }
 
 /** Global boot overlay (auth): blocks UI until the first session bootstrap completes. */
-const BOOT_GATE_MAX_MS = 6000;
+const BOOT_GATE_MAX_MS = 2500;
 
 function isBootGateSkippedPath(pathname: string): boolean {
   return (
+    pathname === "/" ||
     pathname === "/auth" ||
     pathname === "/create-password" ||
     pathname === "/reset-password" ||
     pathname === "/pricing" ||
     pathname === "/install-android" ||
+    pathname === "/dashboard" ||
+    pathname.startsWith("/dashboard") ||
+    pathname === "/people" ||
+    pathname.startsWith("/people") ||
+    pathname.startsWith("/tools") ||
+    pathname.startsWith("/blog") ||
     pathname.startsWith("/legal") ||
     pathname === "/privacy" ||
     pathname === "/terms" ||

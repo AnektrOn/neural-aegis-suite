@@ -257,7 +257,7 @@ export default function ComposedRendererV1({
             {hasSteps && (
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  Étape {stepIdx + 1} / {steps.length}
+                  {locale === "en" ? "Step" : "Étape"} {stepIdx + 1} / {steps.length}
                 </span>
                 <button
                   type="button"

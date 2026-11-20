@@ -113,13 +113,13 @@ export default function MoodTracker() {
       {/* Header */}
       <div>
         <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.24em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
-          INTELLIGENCE ÉMOTIONNELLE · CHRONO-CADENCE
+          {t("mood.headerKicker")}
         </p>
         <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
           {t("mood.frequency")}
         </h1>
         <p className="font-sans text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
-          Régulez votre clarté mentale, repos circadien et tension nerveuse en temps réel.
+          {t("mood.headerSubtitle")}
         </p>
       </div>
 
@@ -216,7 +216,7 @@ export default function MoodTracker() {
               </p>
             </div>
             <span className="font-mono text-[10px] text-muted-foreground">
-              {meals.length} {meals.length > 1 ? "repas" : "repas"}
+              {meals.length} {t("mood.mealsCountSuffix")}
             </span>
           </div>
 
@@ -229,7 +229,7 @@ export default function MoodTracker() {
                 type="button"
                 onClick={() => removeMeal(i)}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-white/10 bg-black/30 text-xs text-foreground hover:border-red-400/40 hover:bg-red-500/10 transition-all cursor-pointer group"
-                title="Supprimer ce repas"
+                title={t("mood.deleteMeal")}
               >
                 <span>{t(mealSizeKeys[mealSizes.indexOf(m)])}</span>
                 <Minus size={11} className="text-muted-foreground group-hover:text-red-400" strokeWidth={1.5} />
@@ -281,11 +281,11 @@ export default function MoodTracker() {
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-4 rounded-full bg-[#c9a24b]" />
             <h2 className="font-cinzel text-[11px] font-semibold tracking-[0.16em] uppercase text-muted-foreground">
-              {t("mood.weeklyMap")} · Tendance 7 Jours
+              {t("mood.weeklyMap")} · {t("mood.weeklyTrendSuffix")}
             </h2>
           </div>
           <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-            {recordedEntries.length}/7 consignés
+            {t("mood.loggedCount", { count: recordedEntries.length })}
           </span>
         </div>
 
@@ -293,7 +293,7 @@ export default function MoodTracker() {
         <div className="grid grid-cols-3 gap-2">
           <div className="p-3 rounded-xl bg-black/25 border border-white/5 flex flex-col items-center justify-center">
             <span className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">
-              Moyenne 7j
+              {t("mood.avg7Days")}
             </span>
             <span className="font-cormorant text-2xl font-light text-[#c9a24b] mt-0.5 tabular-nums">
               {avgMood !== "—" ? `${avgMood}` : "—"}
@@ -301,7 +301,7 @@ export default function MoodTracker() {
           </div>
           <div className="p-3 rounded-xl bg-black/25 border border-white/5 flex flex-col items-center justify-center">
             <span className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">
-              Pic de Clarté
+              {t("mood.peakClarity")}
             </span>
             <span className="font-cormorant text-2xl font-light text-foreground mt-0.5 tabular-nums">
               {peakMood !== "—" ? `${peakMood}` : "—"}
@@ -309,7 +309,7 @@ export default function MoodTracker() {
           </div>
           <div className="p-3 rounded-xl bg-black/25 border border-white/5 flex flex-col items-center justify-center">
             <span className="font-cinzel text-[8.5px] uppercase tracking-wider text-muted-foreground">
-              Régularité
+              {t("mood.regularity")}
             </span>
             <span className="font-cormorant text-2xl font-light text-emerald-400 mt-0.5 tabular-nums">
               {consistencyPct}%
@@ -328,7 +328,7 @@ export default function MoodTracker() {
             </svg>
             <p className="font-cormorant text-lg font-light text-muted-foreground/70 italic">{t("mood.historyEmpty")}</p>
             <p className="font-cinzel text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground/40">
-              Enregistrez vos premières métriques
+              {t("mood.logFirstMetrics")}
             </p>
           </div>
         ) : (
@@ -362,7 +362,7 @@ export default function MoodTracker() {
                     return (
                       <div className="aegis-dock-tile px-3 py-1.5 rounded-xl border border-[#c9a24b]/30 shadow-lg text-xs">
                         <span className="font-mono text-[#c9a24b] font-bold">
-                          {val > 0 ? `${val}/10` : "Non consigné"}
+                          {val > 0 ? `${val}/10` : t("mood.notLogged")}
                         </span>
                       </div>
                     );
@@ -387,10 +387,10 @@ export default function MoodTracker() {
       <div className="aegis-dock-tile rounded-2xl p-5 space-y-3 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
           <p className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.2em] text-[#c9a24b]">
-            ÉCHELLE DE VALENCE ÉMOTIONNELLE
+            {t("mood.valenceScale")}
           </p>
           <span className="font-mono text-[9px] text-muted-foreground uppercase">
-            10 Niveaux Harmoniques
+            {t("mood.harmonicLevels")}
           </span>
         </div>
 
@@ -439,7 +439,7 @@ export default function MoodTracker() {
             )}
           >
             <Brain size={12} strokeWidth={1.5} />
-            <span>Saisie & Cadrans</span>
+            <span>{t("mood.tabLog")}</span>
           </button>
           <button
             type="button"
@@ -452,7 +452,7 @@ export default function MoodTracker() {
             )}
           >
             <TrendingUp size={12} strokeWidth={1.5} />
-            <span>Tendance 7j & Guide</span>
+            <span>{t("mood.tabTrends")}</span>
           </button>
         </div>
       </div>

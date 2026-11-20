@@ -249,8 +249,8 @@ export default function PulsePage() {
         </h1>
         <p className="font-sans text-xs text-muted-foreground mt-1">
           {localCards.length > 0
-            ? `${localCards.length} fragments prêts à être assimilés ou ignorés.`
-            : "Cycle d'assimilation actuel complété."}
+            ? t("pulse.cardsReady", { count: localCards.length })
+            : t("pulse.cycleCompleted")}
         </p>
       </div>
 
@@ -316,7 +316,9 @@ export default function PulsePage() {
                     </div>
                     <div className="space-y-0.5 text-[10px] text-muted-foreground font-mono">
                       <p>user: {diag.userId ?? "—"}</p>
-                      <p>total: {diag.total} | assignées: {diag.forYou} | rpc: {diag.rpcCards}</p>
+                      <p>
+                        total: {diag.total} | {locale === "fr" ? "assignées" : "assigned"}: {diag.forYou} | rpc: {diag.rpcCards}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -388,13 +390,13 @@ export default function PulsePage() {
             </div>
 
             <p className="font-mono text-[10px] tracking-wider text-muted-foreground/50 uppercase hidden lg:block">
-              [←] Ignorer &bull; [→] Assimiler
+              {t("pulse.deckKeyboardHint")}
             </p>
           </div>
         ) : (
           <div className="text-center">
             <p className="font-cinzel text-[10px] uppercase tracking-widest text-muted-foreground">
-              Toutes les impulsions sont à jour
+              {t("pulse.allPulsesUpToDate")}
             </p>
           </div>
         )}
@@ -433,7 +435,7 @@ export default function PulsePage() {
             )}
           >
             <Hexagon size={14} strokeWidth={1.5} />
-            <span>Runes de Sagesse</span>
+            <span>{t("pulse.wisdomRunes")}</span>
             <span className="font-mono text-[10px] opacity-70">
               ({unlockedRunesCount}/{totalRunesCount})
             </span>
@@ -482,11 +484,11 @@ export default function PulsePage() {
               <BookOpen size={28} strokeWidth={1.25} className="mx-auto text-muted-foreground/30" />
               <p className="font-cormorant text-base text-foreground">
                 {grimoireSubTab === "in_progress"
-                  ? "Aucun fragment en attente d'intégration"
-                  : "Aucun fragment encore validé"}
+                  ? t("pulse.noFragmentInProgress")
+                  : t("pulse.noFragmentValidated")}
               </p>
               <p className="font-sans text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                Balayez les cartes vers la droite pour assimiler des fragments de conscience et les inscrire dans votre grimoire.
+                {t("pulse.swipeHint")}
               </p>
             </div>
           ) : (
@@ -570,7 +572,7 @@ export default function PulsePage() {
                   <span className="font-mono text-sm font-semibold text-foreground">
                     {Math.round(activeGroup.progress * 100)}%
                   </span>
-                  <p className="font-mono text-[9px] text-muted-foreground uppercase">Déverrouillé</p>
+                  <p className="font-mono text-[9px] text-muted-foreground uppercase">{t("pulse.unlockedStatus")}</p>
                 </div>
               </div>
 

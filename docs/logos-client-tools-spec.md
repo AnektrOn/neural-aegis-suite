@@ -19,11 +19,11 @@ Configurer les **client tools** sur cet agent avec les noms **exactement** ci-de
 |------|-----------------|--------|-------------------|
 | `list_actionable_content` | false | `intent?` string, `limit?` number (max 8) | JSON catalog |
 | `open_toolbox_item` | **true** | `assignment_id?` uuid, `slug?` string (title slug match) | `completed` \| `abandoned` \| `closed` \| `error:…` |
-| `propose_pulse_card` | **true** | `card_id?` uuid | `assimilated` \| `ignored` \| `dismissed` |
+| `propose_pulse_card` | **true** | `card_id?` uuid | `assimilated` \| `ignored` \| `dismissed` (carte flip recto/verso) |
 | `record_pulse_swipe` | false | `card_id` uuid, `action` `assimilated` \| `ignored` | `ok` \| `error:…` |
 | `open_quick_log` | **true** | `{}` | `saved` \| `dismissed` |
 | `open_people_checkin` | **true** | `contact_id?` uuid, `contact_name?` string | `saved` \| `dismissed` |
-| `open_decision_capture` | **true** | `{}` | `dismissed` (placeholder UI) |
+| `open_decision_capture` | **true** | `{}` | `saved` \| `dismissed` \| `error:…` (formulaire ajout rapide) |
 | `write_decision` | false | `name` string, `priority?` 1-10, `responsibility?` 1-10 | `ok` \| `error:…` |
 | `write_journal_entry` | false | `title` string, `content` string, `tags?` string[] | `ok` \| `error:…` |
 | `write_mood_entry` | false | `value` int 1-10, `sleep?` number, `stress?` number | `ok` \| `error:…` |

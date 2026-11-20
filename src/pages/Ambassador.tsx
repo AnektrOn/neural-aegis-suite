@@ -27,6 +27,7 @@ import {
 import UltraDiscountTier from "@/components/ambassador/UltraDiscountTier";
 
 const COPY: Record<string, { fr: string; en: string }> = {
+  kicker: { fr: "PROGRAMME AFFILIATION · SOUVERAINETÉ", en: "AFFILIATE PROGRAM · SOVEREIGNTY" },
   title: { fr: "Programme Ambassadeur", en: "Ambassador program" },
   subtitle: {
     fr: "Partagez AEGIS et percevez une commission récurrente sur chaque abonnement.",
@@ -248,7 +249,7 @@ export default function Ambassador() {
   return (
     <MemberPageScaffold className="space-y-6">
       <MemberPageHeader
-        kicker="PROGRAMME AFFILIATION · SOUVERAINETÉ"
+        kicker={tr("kicker")}
         title={tr("title")}
         subtitle={tr("subtitle")}
       />

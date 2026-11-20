@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { readLocalePreference } from "@/i18n/localePreference";
 
 type Props = {
   children: ReactNode;
@@ -22,9 +23,12 @@ export class AppRouteErrorBoundary extends Component<Props, State> {
   render() {
     const { error } = this.state;
     if (error) {
+      const isEn = readLocalePreference() === "en";
       return (
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8 text-foreground">
-          <h1 className="font-display text-lg tracking-wide">Une erreur a bloqué l&apos;affichage</h1>
+          <h1 className="font-display text-lg tracking-wide">
+            {isEn ? "An error prevented rendering" : "Une erreur a bloqué l'affichage"}
+          </h1>
           <p className="max-w-md text-center text-sm text-muted-foreground">{error.message}</p>
           <button
             type="button"
@@ -38,7 +42,7 @@ export class AppRouteErrorBoundary extends Component<Props, State> {
               window.location.reload();
             }}
           >
-            Recharger la page
+            {isEn ? "Reload page" : "Recharger la page"}
           </button>
         </div>
       );

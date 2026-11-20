@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   CEO_ARCHETYPE_LABELS,
   CEO_STAGE_LABELS,
@@ -44,6 +45,7 @@ export function CeoProfileDialog({
   initial,
   dismissible = true,
 }: CeoProfileDialogProps) {
+  const { t } = useLanguage();
   const [archetype, setArchetype] = useState<CeoArchetype>(initial?.archetype ?? "first-time-founder");
   const [stage, setStage] = useState<CeoStage>(initial?.stage ?? "early-traction");
   const [teamSize, setTeamSize] = useState(initial?.teamSize ?? 12);
@@ -70,16 +72,16 @@ export function CeoProfileDialog({
         className={toolsDialogContent}
       >
         <DialogHeader>
-          <p className={toolsKicker}>Profil décisionnel</p>
-          <DialogTitle className={`${toolsTitle} text-left text-2xl font-light`}>Calibrer vos outils</DialogTitle>
+          <p className={toolsKicker}>{t("tools.profileKicker")}</p>
+          <DialogTitle className={`${toolsTitle} text-left text-2xl font-light`}>{t("tools.calibrateTools")}</DialogTitle>
           <DialogDescription className="text-left text-sm text-[#5c5c61]">
-            Deux minutes pour adapter seuils, benchmarks et diagnostics à votre réalité de dirigeant.
+            {t("tools.calibrateSubtitle")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 space-y-8">
           <section>
-            <h3 className={toolsSectionLabel}>Archétype de décideur</h3>
+            <h3 className={toolsSectionLabel}>{t("tools.decisionMakerArchetype")}</h3>
             <div className="mt-3">
               <ToolChipStack>
                 {ARCHETYPES.map(([id, label]) => (
@@ -92,7 +94,7 @@ export function CeoProfileDialog({
           </section>
 
           <section>
-            <h3 className={toolsSectionLabel}>Stade de l&apos;entreprise</h3>
+            <h3 className={toolsSectionLabel}>{t("tools.companyStage")}</h3>
             <div className="mt-3">
               <ToolChipStack>
                 {STAGES.map(([id, label]) => (
@@ -105,7 +107,7 @@ export function CeoProfileDialog({
           </section>
 
           <section className="space-y-4">
-            <p className={toolsSectionLabel}>Taille d&apos;équipe : {teamSize}</p>
+            <p className={toolsSectionLabel}>{t("tools.teamSizeLabel", { count: teamSize })}</p>
             <Slider
               min={1}
               max={250}
@@ -117,7 +119,7 @@ export function CeoProfileDialog({
           </section>
 
           <section className="space-y-4">
-            <p className={toolsSectionLabel}>Arbitrages structurants / semaine : {decisionsPerWeek}</p>
+            <p className={toolsSectionLabel}>{t("tools.decisionsPerWeekLabel", { count: decisionsPerWeek })}</p>
             <Slider
               min={5}
               max={80}
@@ -129,7 +131,7 @@ export function CeoProfileDialog({
           </section>
 
           <section className="space-y-4">
-            <p className={toolsSectionLabel}>Sommeil moyen (h/nuit) : {sleepHours}</p>
+            <p className={toolsSectionLabel}>{t("tools.sleepHoursLabel", { count: sleepHours })}</p>
             <Slider
               min={4}
               max={9}
@@ -141,7 +143,7 @@ export function CeoProfileDialog({
           </section>
 
           <button type="button" onClick={handleSave} className={`${toolsPrimaryButton} w-full`}>
-            Enregistrer le profil
+            {t("tools.saveProfile")}
           </button>
         </div>
       </DialogContent>

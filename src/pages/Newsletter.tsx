@@ -164,9 +164,7 @@ export default function Newsletter() {
         setExistingStatus("pending");
         toast({
           title: t("newsletter.successTitle"),
-          description: locale === "fr"
-            ? "Vérifiez votre boîte mail pour confirmer l'inscription."
-            : "Check your inbox to confirm your subscription.",
+          description: t("newsletter.checkMailConfirm"),
         });
         return;
       }

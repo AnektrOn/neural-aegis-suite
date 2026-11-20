@@ -50,41 +50,41 @@ export default function PracticesHub() {
       return {
         id: "habits",
         to: "/habits",
-        title: "Discipline Matinale",
-        desc: "Activez vos habitudes prioritaires pour donner l'impulsion du jour.",
-        action: "Ouvrir les habitudes",
+        title: t("hub.morningTitle"),
+        desc: t("hub.morningDesc"),
+        action: t("hub.morningAction"),
       };
     } else if (hour < 18) {
       return {
         id: "toolbox",
         to: "/toolbox",
-        title: "Session Neurale de Milieu de Journée",
-        desc: "Cohérence cardiaque ou scan corporel pour dissiper la fatigue cognitive.",
-        action: "Lancer la boîte à outils",
+        title: t("hub.middayTitle"),
+        desc: t("hub.middayDesc"),
+        action: t("hub.middayAction"),
       };
     } else {
       return {
         id: "pulse",
         to: "/pulse",
-        title: "Assimilation du Soir",
-        desc: "Tirez et assimilez vos cartes archétypales avant la transition nocturne.",
-        action: "Ouvrir Aegis Pulse",
+        title: t("hub.eveningTitle"),
+        desc: t("hub.eveningDesc"),
+        action: t("hub.eveningAction"),
       };
     }
-  }, []);
+  }, [t]);
 
   const leftPane = (
     <div className="flex flex-col gap-5 h-full justify-between">
       {/* Header */}
       <div>
         <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.26em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-1.5">
-          CENTRE DE PRATIQUES · BIO-CADENCE
+          {t("hub.headerKicker")}
         </p>
         <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
-          Protocoles Vivants
+          {locale === "fr" ? "Protocoles Vivants" : "Living Protocols"}
         </h1>
         <p className="font-sans text-sm text-muted-foreground mt-2 leading-relaxed">
-          Activez vos routines, méditations et soins neuraux pour préserver votre alignement au fil de la journée.
+          {t("hub.headerSubtitle")}
         </p>
       </div>
 
@@ -112,7 +112,7 @@ export default function PracticesHub() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          ✨ Cadence & Sphère
+          {t("hub.cadenceSphere")}
         </button>
       </div>
 
@@ -126,7 +126,7 @@ export default function PracticesHub() {
           <div className="relative z-10 p-4 rounded-xl backdrop-blur-md bg-black/35 border border-white/10 flex items-center justify-between">
             <div>
               <p className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Score de Cadence Quotidienne
+                {t("hub.dailyCadenceScore")}
               </p>
               <p className="font-cormorant text-3xl sm:text-4xl font-light text-foreground tabular-nums tracking-tight">
                 {scoreMain}
@@ -134,10 +134,10 @@ export default function PracticesHub() {
             </div>
             <div className="text-right">
               <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-full bg-[#c9a24b]/15 text-[#c9a24b] border border-[#c9a24b]/20">
-                {scorePct}% accompli
+                {scorePct}% {locale === "fr" ? "accompli" : "completed"}
               </span>
               <p className="font-sans text-[11px] text-muted-foreground mt-1">
-                {scorePct === 100 ? "Alignement complet" : "En cours d'alignement"}
+                {scorePct === 100 ? (locale === "fr" ? "Alignement complet" : "Complete alignment") : (locale === "fr" ? "En cours d'alignement" : "Aligning")}
               </p>
             </div>
           </div>
@@ -170,9 +170,9 @@ export default function PracticesHub() {
     <div className={cn("space-y-4", mobileTab !== "stations" && "hidden lg:block")}>
       <div className="flex items-center justify-between pb-1">
         <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Stations de Pratiques
+          {t("hub.practiceStations")}
         </h2>
-        <span className="font-mono text-[10px] text-muted-foreground">5 stations bio-exécutives</span>
+        <span className="font-mono text-[10px] text-muted-foreground">{t("hub.practiceStationsCount")}</span>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-1">
@@ -220,7 +220,7 @@ export default function PracticesHub() {
 
               <div className="flex items-center gap-1.5 shrink-0">
                 <span className="font-cinzel text-[10px] uppercase tracking-wider text-muted-foreground group-hover:text-[#c9a24b] transition-colors hidden sm:inline">
-                  Accéder
+                  {t("hub.accessBtn")}
                 </span>
                 <ChevronRight
                   size={16}

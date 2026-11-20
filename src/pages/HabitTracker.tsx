@@ -251,9 +251,9 @@ export default function HabitTracker() {
   const leftPane = (
     <div className="space-y-5">
       <MemberPageHeader
-        kicker="ARCHITECTURE DE PERFORMANCE · HABITUDES"
+        kicker={t("habits.kicker")}
         title={t("habits.trackingTitle")}
-        subtitle="Maintenez la constance bio-exécutive au fil des jours."
+        subtitle={t("habits.trackingSubtitle")}
       />
 
       {/* Mobile Segmented Switcher (<lg) */}
@@ -331,7 +331,7 @@ export default function HabitTracker() {
         {/* Category Filter Pills */}
         <div className="space-y-2">
           <p className="font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.2em] text-muted-foreground px-1">
-            CATÉGORIES
+            {t("habits.categoriesTitle")}
           </p>
           <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 pb-1 lg:flex-wrap">
             {categories.map((category) => (
@@ -355,10 +355,10 @@ export default function HabitTracker() {
         {/* Bio-Executive Cadence Tip */}
         <div className="aegis-dock-tile p-4 rounded-xl border border-white/10 space-y-1.5 shadow-sm">
           <p className="font-cinzel text-[9.5px] font-semibold uppercase tracking-wider text-[#c9a24b]">
-            MAXIME BIO-EXÉCUTIVE
+            {t("habits.maximKicker")}
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed italic font-body">
-            « La régularité de vos micro-habitudes ancre la résilience neuro-végétative sous haute pression. »
+            {t("habits.maximQuote")}
           </p>
         </div>
       </div>
@@ -406,7 +406,13 @@ export default function HabitTracker() {
             <path d="M37.5 35l2 2 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <p className="font-cormorant text-lg font-light text-muted-foreground/70 italic mb-1">
-            {habits.length === 0 ? "Votre routine bien-être vous attend" : "Aucune habitude dans ce filtre"}
+            {habits.length === 0
+              ? locale === "fr"
+                ? "Votre routine bien-être vous attend"
+                : "Your wellness routine awaits you"
+              : locale === "fr"
+                ? "Aucune habitude dans ce filtre"
+                : "No habits in this filter"}
           </p>
           <p className="font-cinzel text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground/40">
             {habits.length === 0 ? t("habits.noHabitsAssigned") : t("habits.noHabitsInFilters")}
@@ -432,7 +438,7 @@ export default function HabitTracker() {
                 <button
                   type="button"
                   onClick={() => toggleComplete(habit.id)}
-                  aria-label={`${completed ? "Décocher" : "Cocher"} ${habit.template_name}`}
+                  aria-label={`${completed ? (locale === "fr" ? "Décocher" : "Uncheck") : (locale === "fr" ? "Cocher" : "Check")} ${habit.template_name}`}
                   aria-checked={completed}
                   role="checkbox"
                   className={cn(

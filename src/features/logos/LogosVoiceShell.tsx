@@ -7,7 +7,11 @@ import { LogosToolHostProvider } from "./LogosToolHostContext";
 export function LogosVoiceShell({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   return (
-    <ToolboxExerciseSessionProvider userId={user?.id}>
+    <ToolboxExerciseSessionProvider
+      userId={user?.id}
+      resumeStoredOpen={false}
+      persistOpenInSession={false}
+    >
       <LogosToolHostProvider>{children}</LogosToolHostProvider>
     </ToolboxExerciseSessionProvider>
   );

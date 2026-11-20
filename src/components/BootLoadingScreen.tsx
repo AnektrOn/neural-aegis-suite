@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useBackendHealth } from "@/hooks/useBackendHealth";
+import { readLocalePreference } from "@/i18n/localePreference";
 
 const ArmillaryLoader = lazy(() =>
   import("@/pages/aegis-landing/components/ArmillaryLoader").then((m) => ({
@@ -21,6 +22,7 @@ function LoaderShell({ children }: { children?: ReactNode }) {
 export function BootLoadingScreen() {
   const { status, recheck } = useBackendHealth();
   const degraded = status === "degraded";
+  const isEn = readLocalePreference() === "en";
 
   return (
     <div className="relative z-[100] min-h-screen bg-[#F3EEEC]">
@@ -41,11 +43,12 @@ export function BootLoadingScreen() {
           <AlertTriangle size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-destructive" />
           <div className="flex-1 space-y-1">
             <p className="font-display text-[11px] uppercase tracking-[0.18em] text-destructive">
-              Backend injoignable
+              {isEn ? "Backend unreachable" : "Backend injoignable"}
             </p>
             <p className="text-xs leading-relaxed text-text-secondary">
-              Le service d’authentification met trop de temps à répondre. Vérifie ta connexion
-              ou réessaie dans un instant.
+              {isEn
+                ? "The authentication service is taking too long to respond. Check your connection or try again shortly."
+                : "Le service d’authentification met trop de temps à répondre. Vérifie ta connexion ou réessaie dans un instant."}
             </p>
           </div>
           <button
@@ -57,7 +60,7 @@ export function BootLoadingScreen() {
             className="flex items-center gap-1.5 rounded-md border border-border-active px-2.5 py-1.5 text-[11px] uppercase tracking-wider text-text-secondary transition-colors hover:bg-bg-elevated/60"
           >
             <RefreshCw size={12} strokeWidth={1.5} />
-            Recharger
+            {isEn ? "Reload" : "Recharger"}
           </button>
         </div>
       ) : null}

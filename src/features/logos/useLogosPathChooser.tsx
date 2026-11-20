@@ -46,7 +46,11 @@ export function useLogosPathChooser({ enabled, isFR, firstName, userId }: Option
   }, []);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setPathsLoading(false);
+      return;
+    }
+    setPathsLoading(true);
     void refreshOpeningPaths();
   }, [enabled, refreshOpeningPaths]);
 

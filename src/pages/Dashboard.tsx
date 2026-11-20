@@ -13,6 +13,8 @@ import { WELCOME_DISMISSED_KEY } from "@/components/WelcomeExperience";
 import { getUserMaturityProfile, type UserMaturityProfile } from "@/lib/userMaturity";
 import { DashboardMobile } from "@/pages/dashboard/DashboardMobile";
 import { usePersonaTrackingStats } from "@/features/persona/hooks/usePersonaTrackingStats";
+import { translations } from "@/i18n/translations";
+import { readLocalePreference } from "@/i18n/localePreference";
 import type { MobileHabit } from "@/pages/dashboard/dashboard-shared";
 
 class DashboardRenderBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -24,11 +26,18 @@ class DashboardRenderBoundary extends Component<{ children: ReactNode }, { error
 
   render() {
     if (this.state.error) {
+      const loc = readLocalePreference();
       return (
         <div className="min-h-[50vh] p-6 text-foreground">
-          <p className="mb-2 font-semibold">Impossible d’afficher le tableau de bord.</p>
+          <p className="mb-2 font-semibold">
+            {translations["dashboard.errorFallbackTitle"]?.[loc] ??
+              (loc === "fr" ? "Impossible d'afficher le tableau de bord." : "Unable to display dashboard.")}
+          </p>
           <p className="mb-4 text-sm text-muted-foreground">
-            Rechargez la page (Cmd+Shift+R). Détail technique ci-dessous.
+            {translations["dashboard.errorFallbackHint"]?.[loc] ??
+              (loc === "fr"
+                ? "Rechargez la page (Cmd+Shift+R). Détail technique ci-dessous."
+                : "Reload the page (Cmd+Shift+R). Technical details below.")}
           </p>
           <pre className="overflow-auto rounded-lg bg-muted p-3 text-xs">{this.state.error.message}</pre>
         </div>

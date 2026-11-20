@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LOGOS_DIALOG_CONTENT_Z, LOGOS_DIALOG_OVERLAY_CLASS } from "./logosDialogStack";
+import { cn } from "@/lib/utils";
 
 type ContactRow = { id: string; name: string };
 
@@ -29,6 +32,7 @@ export function LogosPeopleCheckinModal({
   initialContactName,
   onClose,
 }: Props) {
+  const { t } = useLanguage();
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [contactId, setContactId] = useState(initialContactId ?? "");
   const [quality, setQuality] = useState(5);
@@ -84,12 +88,15 @@ export function LogosPeopleCheckinModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose("dismissed")}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        overlayClassName={LOGOS_DIALOG_OVERLAY_CLASS}
+        className={cn(LOGOS_DIALOG_CONTENT_Z, "max-w-md")}
+      >
         <DialogHeader>
-          <DialogTitle>Relation du jour</DialogTitle>
-          <DialogDescription>Qualité perçue et note courte</DialogDescription>
+          <DialogTitle>{t("logos.peopleDailyTitle")}</DialogTitle>
+          <DialogDescription>{t("logos.peopleDailyDesc")}</DialogDescription>
         </DialogHeader>
-        <label className="text-xs text-muted-foreground">Contact</label>
+        <label className="text-xs text-muted-foreground">{t("logos.contactLabel")}</label>
         <select
           className="mb-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           value={contactId}
@@ -102,7 +109,7 @@ export function LogosPeopleCheckinModal({
             </option>
           ))}
         </select>
-        <label className="text-xs text-muted-foreground">Qualité (1–10)</label>
+        <label className="text-xs text-muted-foreground">{t("logos.qualityScale")}</label>
         <Input
           type="number"
           min={1}
@@ -111,14 +118,14 @@ export function LogosPeopleCheckinModal({
           onChange={(e) => setQuality(Number(e.target.value))}
           className="mb-3"
         />
-        <label className="text-xs text-muted-foreground">Note</label>
+        <label className="text-xs text-muted-foreground">{t("logos.noteLabel")}</label>
         <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={() => onClose("dismissed")}>
-            Fermer
+            {t("general.cancel")}
           </Button>
           <Button type="button" disabled={busy || !contactId} onClick={() => void save()}>
-            Enregistrer
+            {t("general.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

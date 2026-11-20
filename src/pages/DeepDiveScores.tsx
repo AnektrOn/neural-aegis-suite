@@ -124,7 +124,7 @@ export default function DeepDiveScores() {
               >
                 <div className="flex items-center justify-between">
                   <span className="font-cinzel text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[#c9a24b]">
-                    RANG #{i + 1}
+                    {locale === "fr" ? "RANG" : "RANK"} #{i + 1}
                   </span>
                   <span className="font-mono text-[10px] text-muted-foreground">
                     {Math.round(score.intensity * 100)}% {locale === "fr" ? "intensité" : "intensity"}
@@ -134,8 +134,18 @@ export default function DeepDiveScores() {
                   {archLabel(arch, locale)}
                 </p>
                 <div className="space-y-2 pt-1">
-                  <Bar label="Lumière" value={score.light} max={Math.max(score.total, 1)} color="bg-[#c9a24b]" />
-                  <Bar label="Ombre" value={score.shadow} max={Math.max(score.total, 1)} color="bg-rose-500/80" />
+                  <Bar
+                    label={locale === "fr" ? "Lumière" : "Light"}
+                    value={score.light}
+                    max={Math.max(score.total, 1)}
+                    color="bg-[#c9a24b]"
+                  />
+                  <Bar
+                    label={locale === "fr" ? "Ombre" : "Shadow"}
+                    value={score.shadow}
+                    max={Math.max(score.total, 1)}
+                    color="bg-rose-500/80"
+                  />
                 </div>
               </motion.div>
             );

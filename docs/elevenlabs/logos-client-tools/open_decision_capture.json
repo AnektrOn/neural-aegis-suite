@@ -1,7 +1,7 @@
 {
   "type": "client",
   "name": "open_decision_capture",
-  "description": "Rappel UI décision ; enregistrement via write_decision.",
+  "description": "Ouvre le formulaire « ajout rapide » décision (nom + priorité P1–P5). L'utilisateur peut enregistrer dans l'app ou fermer. Retourne saved, dismissed ou error:… . Alternative vocale : write_decision sans ouvrir le modal.",
   "expects_response": true,
   "response_timeout_secs": 120,
   "execution_mode": "immediate",

@@ -149,7 +149,7 @@ export default function CaptureHub() {
         ...jList.map((j) => ({
           id: `j-${j.id}`,
           type: "journal" as const,
-          title: j.title || j.content?.slice(0, 40) || "Pensée au journal",
+          title: j.title || j.content?.slice(0, 40) || t("capture.defaultThoughtTitle"),
           timestamp: j.created_at,
         })),
         ...mList.map((m) => ({
@@ -170,7 +170,7 @@ export default function CaptureHub() {
     } catch {
       // Non-blocking for offline or quiet loads
     }
-  }, [user, formatMoodLogTitle]);
+  }, [user, formatMoodLogTitle, t]);
 
   useEffect(() => {
     loadTodayStats();
@@ -190,7 +190,7 @@ export default function CaptureHub() {
           tags: ["capture-rapide"],
         });
         if (error) throw error;
-        toast({ title: "Pensée capturée au Journal", description: "Enregistrée dans votre flux Exocortex." });
+        toast({ title: t("capture.toastThoughtTitle"), description: t("capture.toastThoughtDesc") });
       } else if (quickType === "decision") {
         const { error } = await supabase.from("decisions" as any).insert({
           user_id: user.id,
@@ -200,14 +200,14 @@ export default function CaptureHub() {
           responsibility: 5,
         } as any);
         if (error) throw error;
-        toast({ title: "Décision capturée", description: "Ajoutée à vos arbitrages en attente." });
+        toast({ title: t("capture.toastDecisionTitle"), description: t("capture.toastDecisionDesc") });
       } else if (quickType === "mood") {
         const { error } = await supabase.from("mood_entries" as any).insert({
           user_id: user.id,
           value: moodValue,
         } as any);
         if (error) throw error;
-        toast({ title: "Signal émotionnel enregistré", description: `Indice ${moodValue}/10 synchronisé.` });
+        toast({ title: t("capture.toastMoodTitle"), description: t("capture.toastMoodDesc", { value: moodValue }) });
       }
 
       setContent("");
@@ -215,7 +215,7 @@ export default function CaptureHub() {
     } catch (err: any) {
       toast({
         title: t("toast.error"),
-        description: err.message || "Erreur de capture",
+        description: err.message || t("capture.toastError"),
         variant: "destructive",
       });
     } finally {
@@ -228,13 +228,13 @@ export default function CaptureHub() {
       {/* Hero Header */}
       <div>
         <p className="font-cinzel text-[10.5px] font-semibold tracking-[0.26em] uppercase text-[#9e7828] dark:text-[#c9a24b] mb-2">
-          CENTRE DE CAPTURE · BIO-LOGGING RAPIDE
+          {t("capture.headerKicker")}
         </p>
         <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
           Capture Exocortex
         </h1>
         <p className="font-sans text-sm text-muted-foreground mt-2 leading-relaxed">
-          Enregistrez instantanément vos signaux, pensées et arbitrages sans briser votre flux d'attention.
+          {t("capture.headerSubtitle")}
         </p>
       </div>
 
@@ -250,7 +250,7 @@ export default function CaptureHub() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          ⚡ Saisie
+          ⚡ {t("capture.mobileTabCapture")}
         </button>
         <button
           type="button"
@@ -262,7 +262,7 @@ export default function CaptureHub() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          🧭 Stations ({visible.length})
+          🧭 {t("capture.mobileTabStations")} ({visible.length})
         </button>
         <button
           type="button"
@@ -274,7 +274,7 @@ export default function CaptureHub() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          📜 Flux ({recentLogs.length})
+          📜 {t("capture.mobileTabRecent")} ({recentLogs.length})
         </button>
       </div>
 
@@ -284,9 +284,9 @@ export default function CaptureHub() {
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/20 dark:bg-black/30 border border-white/5 backdrop-blur-sm">
             {(
               [
-                { id: "thought" as const, label: "Pensée", icon: PenLine },
-                { id: "decision" as const, label: "Décision", icon: Target },
-                { id: "mood" as const, label: "Humeur", icon: Smile },
+                { id: "thought" as const, label: t("capture.tabThought"), icon: PenLine },
+                { id: "decision" as const, label: t("capture.tabDecision"), icon: Target },
+                { id: "mood" as const, label: t("capture.tabMood"), icon: Smile },
               ] as const
             ).map((tab) => (
               <button
@@ -327,9 +327,9 @@ export default function CaptureHub() {
                   className="w-full accent-[#c9a24b] cursor-pointer"
                 />
                 <div className="flex justify-between font-mono text-[9px] text-muted-foreground/60 px-1">
-                  <span>1 Récup</span>
-                  <span>5 Neutre</span>
-                  <span>10 Flow</span>
+                  <span>{t("capture.scaleRecup")}</span>
+                  <span>{t("capture.scaleNeutral")}</span>
+                  <span>{t("capture.scaleFlow")}</span>
                 </div>
                 <p className="text-xs text-muted-foreground font-barlow italic">{t("capture.mood.scaleHint")}</p>
                 <Link
@@ -405,7 +405,7 @@ export default function CaptureHub() {
               ) : (
                 <Send size={13} />
               )}
-              <span>Capturer dans l'Exocortex</span>
+              <span>{t("capture.saveToExocortex")}</span>
             </button>
           </form>
         </div>
@@ -413,24 +413,24 @@ export default function CaptureHub() {
         {/* Today's Intake Telemetry */}
         <div className="aegis-dock-tile rounded-2xl p-4">
           <p className="font-cinzel text-[10px] font-semibold uppercase tracking-[0.2em] text-[#c9a24b] mb-3">
-            Télémétrie du Jour
+            {t("capture.todayTelemetry")}
           </p>
           <div className="grid grid-cols-4 gap-2 text-center">
             <div className="p-2 sm:p-2.5 rounded-xl bg-black/25 dark:bg-black/35 border border-white/5 backdrop-blur-sm">
               <p className="font-mono text-base font-semibold text-foreground">{todayCounts.mood}</p>
-              <p className="font-cinzel text-[8px] uppercase tracking-wider text-muted-foreground">Humeur</p>
+              <p className="font-cinzel text-[8px] uppercase tracking-wider text-muted-foreground">{t("nav.mood")}</p>
             </div>
             <div className="p-2 sm:p-2.5 rounded-xl bg-black/25 dark:bg-black/35 border border-white/5 backdrop-blur-sm">
               <p className="font-mono text-base font-semibold text-foreground">{todayCounts.decisions}</p>
-              <p className="font-cinzel text-[8px] uppercase tracking-wider text-muted-foreground">Décisions</p>
+              <p className="font-cinzel text-[8px] uppercase tracking-wider text-muted-foreground">{t("nav.decisions")}</p>
             </div>
             <div className="p-2 sm:p-2.5 rounded-xl bg-black/25 dark:bg-black/35 border border-white/5 backdrop-blur-sm">
               <p className="font-mono text-base font-semibold text-foreground">{todayCounts.habits}</p>
-              <p className="font-cinzel text-[8px] uppercase tracking-wider text-muted-foreground">Habitudes</p>
+              <p className="font-cinzel text-[8px] uppercase tracking-wider text-muted-foreground">{t("nav.habits")}</p>
             </div>
             <div className="p-2 sm:p-2.5 rounded-xl bg-black/25 dark:bg-black/35 border border-white/5 backdrop-blur-sm">
               <p className="font-mono text-base font-semibold text-foreground">{todayCounts.journal}</p>
-              <p className="font-cinzel text-[8px] uppercase tracking-wider text-muted-foreground">Journal</p>
+              <p className="font-cinzel text-[8px] uppercase tracking-wider text-muted-foreground">{t("nav.journal")}</p>
             </div>
           </div>
         </div>
@@ -444,9 +444,11 @@ export default function CaptureHub() {
       <section className={cn("space-y-3", mobileTab !== "stations" && "hidden lg:block")}>
         <div className="flex items-center justify-between">
           <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90">
-            Stations de Journalisation
+            {t("capture.stationsTitle")}
           </h2>
-          <span className="font-mono text-[10px] text-muted-foreground">5 protocoles actifs</span>
+          <span className="font-mono text-[10px] text-muted-foreground">
+            {visible.length} {t("capture.activeProtocols")}
+          </span>
         </div>
 
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2">
@@ -498,19 +500,21 @@ export default function CaptureHub() {
       <section className={cn("space-y-3", mobileTab !== "recent" && "hidden lg:block")}>
         <div className="flex items-center justify-between">
           <h2 className="font-cinzel text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90">
-            Flux Récent · Aujourd'hui
+            {t("capture.recentStreamTitle")}
           </h2>
-          <span className="font-mono text-[10px] text-muted-foreground">{recentLogs.length} entrées</span>
+          <span className="font-mono text-[10px] text-muted-foreground">
+            {recentLogs.length} {t("capture.recentEntries", { count: recentLogs.length })}
+          </span>
         </div>
 
         {recentLogs.length === 0 ? (
           <div className="aegis-dock-tile border-dashed border-border/40 p-8 text-center space-y-2 rounded-2xl">
             <Sparkles size={24} strokeWidth={1.2} className="mx-auto text-[#c9a24b]/50" />
             <p className="font-cormorant text-lg font-light italic text-muted-foreground">
-              "Chaque signal capturé structure votre clarté mentale."
+              {t("capture.quote")}
             </p>
             <p className="font-cinzel text-[9px] uppercase tracking-widest text-muted-foreground/60">
-              Aucune capture aujourd'hui — utilisez l'onglet Saisie
+              {t("capture.emptyStream")}
             </p>
           </div>
         ) : (

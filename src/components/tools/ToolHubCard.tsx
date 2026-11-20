@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { ToolRegistryEntry } from "./toolsRegistry";
 import { toolsBento, toolsBentoHover, toolsCardTitle, toolsKicker } from "./toolsDesign";
 
@@ -8,11 +9,12 @@ interface ToolHubCardProps {
 }
 
 export function ToolHubCard({ tool }: ToolHubCardProps) {
+  const { t } = useLanguage();
   const { guide } = tool;
 
   return (
     <article className={`flex h-full flex-col ${toolsBento} ${toolsBentoHover}`}>
-      <p className={`${toolsKicker} !text-[9px]`}>Gratuit</p>
+      <p className={`${toolsKicker} !text-[9px]`}>{t("tools.freeBadge")}</p>
 
       <h2 className={`mt-2 ${toolsCardTitle}`}>{tool.title}</h2>
       <p className="mt-2 flex-1 text-sm leading-snug text-muted-foreground">{tool.hubBlurb}</p>
@@ -26,7 +28,7 @@ export function ToolHubCard({ tool }: ToolHubCardProps) {
           to={tool.path}
           className="inline-flex items-center text-[10px] font-medium uppercase tracking-[0.14em] text-primary hover:underline"
         >
-          Voir la fiche
+          {t("tools.viewSheet")}
           <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden />
         </Link>
       </div>

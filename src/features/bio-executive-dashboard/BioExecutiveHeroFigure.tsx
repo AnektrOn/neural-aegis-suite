@@ -65,7 +65,7 @@ export function BioExecutiveHeroFigure({
   exocortexUi = null,
   prodMobileChrome = false,
 }: BioExecutiveHeroFigureProps) {
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
   const isFr = locale === "fr";
   const matrixLockLabel = isFr ? "Disponible avec Matrice" : "Available with Matrix";
   const el = slice.elements;
@@ -225,29 +225,27 @@ export function BioExecutiveHeroFigure({
         </svg>
       ) : null}
 
-      {nodeBtn("nodeBrain", "brain", "Cognition")}
-      {nodeBtn("nodeHeart", "heart", "Cohérence")}
-      {nodeBtn("nodeSolar", "solar", "Énergie")}
+      {nodeBtn("nodeBrain", "brain", t("bioExec.cognition"))}
+      {nodeBtn("nodeHeart", "heart", t("bioExec.coherence"))}
+      {nodeBtn("nodeSolar", "solar", t("bioExec.energy"))}
 
       <div
         style={{ ...heroElementBoxStyle(el.sideRail), ...heroSideRailBoxStyle(el.sideRail) }}
         onPointerDown={onPointerDown("sideRail")}
         onClick={() => onLabTargetSelect("sideRail")}
         role="toolbar"
-        aria-label="Sélection de métrique"
+        aria-label={t("bioExec.metricSelection")}
         className={cn(
           "aegis-bio-exec-lab__side-rail flex flex-col gap-1 p-1 rounded-xl border border-[color:var(--bio-frame-border)] bg-[color:var(--bio-frame)]/80 backdrop-blur-md shadow-sm",
           boxClass("sideRail"),
           !heroLab && "aegis-bio-exec-lab__side-rail--mobile-hidden hidden lg:flex",
         )}
       >
-        {(
-          [
-            ["brain", "Cognition", Brain],
-            ["heart", "Cohérence", Heart],
-            ["solar", "Énergie", UserRound],
-          ] as const
-        ).map(([id, label, Icon]) => {
+        {[
+          { id: "brain" as const, label: t("bioExec.cognition"), Icon: Brain },
+          { id: "heart" as const, label: t("bioExec.coherence"), Icon: Heart },
+          { id: "solar" as const, label: t("bioExec.energy"), Icon: UserRound },
+        ].map(({ id, label, Icon }) => {
           const railLabel = exocortexUi?.nodes[id]?.label ?? label;
           const iconSize = heroRailIconSizePx(el.sideRail);
           return (
@@ -287,7 +285,7 @@ export function BioExecutiveHeroFigure({
           )}
         </div>
         <p className="aegis-bio-exec-lab__hero-metric-label">{viewModel.sleepStatusLabel}</p>
-        <span className="aegis-bio-exec-lab__hero-metric-chip aegis-bio-exec-lab__accent-text font-medium">Réparateur</span>
+        <span className="aegis-bio-exec-lab__hero-metric-chip aegis-bio-exec-lab__accent-text font-medium">{t("bioExec.restorative")}</span>
       </button>
       ) : null}
 

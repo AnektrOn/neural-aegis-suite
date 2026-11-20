@@ -1,5 +1,6 @@
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useBackendHealth } from "@/hooks/useBackendHealth";
+import { readLocalePreference } from "@/i18n/localePreference";
 
 /**
  * Inline banner shown when the Lovable Cloud auth backend is unreachable.
@@ -7,6 +8,7 @@ import { useBackendHealth } from "@/hooks/useBackendHealth";
  */
 export default function BackendHealthBanner({ className = "" }: { className?: string }) {
   const { status, recheck } = useBackendHealth();
+  const isEn = readLocalePreference() === "en";
 
   if (status !== "degraded") return null;
 
@@ -18,11 +20,12 @@ export default function BackendHealthBanner({ className = "" }: { className?: st
       <AlertTriangle size={16} strokeWidth={1.5} className="mt-0.5 text-destructive shrink-0" />
       <div className="flex-1 space-y-1">
         <p className="font-display text-[11px] uppercase tracking-[0.18em] text-destructive">
-          Service indisponible
+          {isEn ? "Service unavailable" : "Service indisponible"}
         </p>
         <p className="text-xs text-text-secondary leading-relaxed">
-          Le backend d’authentification ne répond pas. Réessaie dans une minute ; si le problème
-          persiste, augmente l’instance dans les réglages avancés.
+          {isEn
+            ? "Authentication backend is not responding. Please retry in a moment."
+            : "Le backend d’authentification ne répond pas. Réessaie dans une minute ; si le problème persiste, augmente l’instance dans les réglages avancés."}
         </p>
       </div>
       <button
@@ -31,7 +34,7 @@ export default function BackendHealthBanner({ className = "" }: { className?: st
         className="flex items-center gap-1.5 rounded-md border border-border-active px-2.5 py-1.5 text-[11px] uppercase tracking-wider text-text-secondary hover:bg-bg-elevated/60 transition-colors"
       >
         <RefreshCw size={12} strokeWidth={1.5} />
-        Réessayer
+        {isEn ? "Retry" : "Réessayer"}
       </button>
     </div>
   );

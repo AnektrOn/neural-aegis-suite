@@ -280,7 +280,7 @@ export default function MeditationLibraryPage() {
                     e.stopPropagation();
                     navigate(`/meditation/${track.id}`);
                   }}
-                  title="Écouter la session"
+                  title={t("meditation.listenSession")}
                   className={cn(
                     "w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all",
                     isSelected

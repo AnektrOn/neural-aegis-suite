@@ -631,8 +631,8 @@ function VoiceAgentWelcomeHud({
             width={40}
             height={40}
           />
-          <p className="mt-2.5 font-display text-[10px] uppercase tracking-[0.38em] text-muted-foreground">
-            Neural Aegis
+          <p className="mt-2.5 font-cinzel text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            AEGIS — LOGOS
           </p>
           <p className="mt-3 font-display text-[10px] uppercase tracking-[0.3em] text-primary/80">
             {t("welcome.voiceAgent.hudEyebrow")}
@@ -860,6 +860,17 @@ export function VoiceAgent({
       onConnect={({ conversationId }) => recorder?.connect(conversationId)}
       onMessage={(event) => recorder?.message(event)}
       onDisconnect={() => { recorder?.finish(); onPhase("idle"); }}
+      onAgentToolRequest={(event) => {
+        if (import.meta.env.DEV) {
+          console.info("[logos-elevenlabs] agent tool request", event);
+        }
+      }}
+      onUnhandledClientToolCall={(event) => {
+        console.warn(
+          "[logos-elevenlabs] client tool not handled — vérifie que l'agent ElevenLabs a les mêmes noms que LogosClientToolsRegistrar",
+          event,
+        );
+      }}
       onError={(error) => {
         recorder?.finish();
         setPhase("error");

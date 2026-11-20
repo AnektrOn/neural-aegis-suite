@@ -53,7 +53,7 @@ export function MemberTopDockBar({
 
   return (
     <aside
-      aria-label="Actions rapides du membre"
+      aria-label={t("nav.topDockAria")}
       className={cn(
         "pointer-events-none fixed right-3 sm:right-6 z-[60] flex items-center justify-end",
         className,

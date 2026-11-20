@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { ChevronDown, Clock, ListChecks, Lightbulb } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { ToolGuide } from "./types";
 import { toolsBentoElevated, toolsKicker } from "./toolsDesign";
 
@@ -13,15 +14,16 @@ interface ToolGuidePanelProps {
 }
 
 export function ToolGuidePanel({ guide, variant = "full", className = "" }: ToolGuidePanelProps) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(variant !== "wizard");
 
   if (variant === "compact") {
     return (
       <div className={`${toolsBentoElevated} text-left ${className}`}>
-        <p className={toolsKicker}>En clair</p>
+        <p className={toolsKicker}>{t("tools.inShort")}</p>
         <p className="mt-2 text-sm leading-relaxed text-foreground">{guide.plainExplain}</p>
         <p className="mt-3 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Pour qui : </span>
+          <span className="font-medium text-foreground">{t("tools.bestFor")}</span>
           {guide.bestFor}
         </p>
       </div>
@@ -42,12 +44,12 @@ export function ToolGuidePanel({ guide, variant = "full", className = "" }: Tool
               {guide.durationLabel}
             </span>
             <span className="mx-1.5 text-border">·</span>
-            {guide.questionCount} étapes
+            {t("tools.stepsCount", { count: guide.questionCount })}
             <span className="mx-1.5 text-border">·</span>
-            {guide.outcomes.length} résultats à la fin
+            {t("tools.outcomesCount", { count: guide.outcomes.length })}
           </p>
           <CollapsibleTrigger className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-border/50 bg-card/50 px-3 text-xs font-medium text-primary transition hover:border-primary/40">
-            {open ? "Masquer le guide" : "À quoi sert cet outil ?"}
+            {open ? t("tools.hideGuide") : t("tools.whatIsThisToolFor")}
             <ChevronDown
               className={cn("h-4 w-4 transition-transform duration-200", open && "rotate-180")}
               aria-hidden
@@ -62,7 +64,7 @@ export function ToolGuidePanel({ guide, variant = "full", className = "" }: Tool
         <CollapsibleContent className="data-[state=closed]:animate-out data-[state=open]:animate-in">
           <MotionBlock className="mt-4 space-y-4 rounded-xl border border-border/35 bg-muted/15 p-4">
             <div>
-              <p className={toolsKicker}>En clair</p>
+              <p className={toolsKicker}>{t("tools.inShort")}</p>
               <p className="mt-2 text-sm leading-relaxed text-foreground">{guide.plainExplain}</p>
             </div>
 
@@ -76,9 +78,9 @@ export function ToolGuidePanel({ guide, variant = "full", className = "" }: Tool
   return (
     <aside
       className={`rounded-2xl border border-border/40 bg-muted/20 p-5 text-left sm:p-6 ${className}`}
-      aria-label="À quoi sert cet outil"
+      aria-label={t("tools.whatIsThisToolFor")}
     >
-      <p className={toolsKicker}>Avant de commencer — en clair</p>
+      <p className={toolsKicker}>{t("tools.beforeStarting")}</p>
       <p className="mt-3 text-sm leading-relaxed text-foreground">{guide.plainExplain}</p>
       <MotionBlock className="mt-5">
         <GuideMetaRow guide={guide} />
@@ -89,11 +91,12 @@ export function ToolGuidePanel({ guide, variant = "full", className = "" }: Tool
 }
 
 function GuideMetaRow({ guide }: { guide: ToolGuide }) {
+  const { locale } = useLanguage();
   return (
     <div className="flex flex-wrap gap-2 text-xs">
       <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-card/60 px-2.5 py-1 text-muted-foreground">
         <Clock className="h-3.5 w-3.5 text-primary" aria-hidden />
-        {guide.durationLabel} · {guide.questionCount} étapes
+        {guide.durationLabel} · {guide.questionCount} {locale === "en" ? "steps" : "étapes"}
       </span>
       <span className="rounded-lg border border-border/50 bg-card/60 px-2.5 py-1 text-muted-foreground">
         {guide.bestFor}
@@ -103,16 +106,17 @@ function GuideMetaRow({ guide }: { guide: ToolGuide }) {
 }
 
 function GuideGrid({ guide, className = "" }: { guide: ToolGuide; className?: string }) {
+  const { t } = useLanguage();
   return (
     <div className={cn("grid gap-4 sm:grid-cols-2", className)}>
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">Préparez</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">{t("tools.prepare")}</p>
         <p className="mt-1.5 text-sm leading-snug text-muted-foreground">{guide.prepareWhat}</p>
       </div>
       <div>
         <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
           <ListChecks className="h-3.5 w-3.5" aria-hidden />
-          À la fin
+          {t("tools.outcomes")}
         </p>
         <ul className="mt-1.5 space-y-1 text-sm leading-snug text-muted-foreground">
           {guide.outcomes.map((o) => (
@@ -129,7 +133,7 @@ function GuideGrid({ guide, className = "" }: { guide: ToolGuide; className?: st
         <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
           <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
             <Lightbulb className="h-3.5 w-3.5 text-primary" aria-hidden />
-            Exemple
+            {t("tools.example")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">{guide.example}</p>
         </div>

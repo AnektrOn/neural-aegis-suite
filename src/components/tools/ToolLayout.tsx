@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import AegisLogo from "@/components/AegisLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/i18n/LanguageContext";
 import PublicFooter from "@/components/public/PublicFooter";
 import { ToolSeoHelmet } from "./ToolSeoHelmet";
 import { RelatedTools } from "./RelatedTools";
@@ -39,12 +40,14 @@ export function ToolLayout({
   tool,
   children,
   seoContent,
-  kicker = "Outils décisionnels",
+  kicker,
   variant = "wizard",
   wizardResultsVisible = false,
 }: ToolLayoutProps) {
+  const { t } = useLanguage();
   const others = getOtherTools(tool.id);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const effectiveKicker = kicker ?? t("tools.kicker");
 
   return (
     <div className={toolsPageShell}>
@@ -75,7 +78,7 @@ export function ToolLayout({
                 to={tool.path}
                 className="hidden text-xs font-medium text-muted-foreground hover:text-primary sm:inline"
               >
-                Fiche outil
+                {t("tools.toolSheet")}
               </Link>
             ) : null}
             {variant === "wizard" && <ToolsBackToHubLink className="hidden md:inline-flex" />}
@@ -98,31 +101,31 @@ export function ToolLayout({
         {variant === "document" ? (
           <>
             <nav
-              aria-label="Fil d'Ariane"
+              aria-label={t("tools.breadcrumbAria")}
               className="mb-8 flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
             >
               <Link to="/" className="hover:text-primary">
-                Accueil
+                {t("tools.homeTitle")}
               </Link>
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               <Link to="/tools" className="hover:text-primary">
-                Outils
+                {t("tools.hubTitle")}
               </Link>
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               <span className="text-foreground/80">{tool.title}</span>
             </nav>
 
-            <p className={toolsKicker}>{kicker}</p>
+            <p className={toolsKicker}>{effectiveKicker}</p>
             <h1 className={`${toolsTitle} mt-3`}>{tool.title}</h1>
             <p className={`${toolsLead} mt-4 max-w-3xl`}>{tool.shortDescription}</p>
             <ToolGuidePanel guide={tool.guide} variant="compact" className="mt-6" />
 
-            <div className={`${toolsBento} mt-10`} role="region" aria-label="Calculateur interactif">
+            <div className={`${toolsBento} mt-10`} role="region" aria-label={t("tools.interactiveCalculator")}>
               {children}
             </div>
           </>
         ) : (
-          <MotionFull role="region" aria-label="Calculateur interactif">
+          <MotionFull role="region" aria-label={t("tools.interactiveCalculator")}>
             {children}
           </MotionFull>
         )}
@@ -138,7 +141,7 @@ export function ToolLayout({
             <section
               className={`${toolsBento} ${variant === "wizard" ? "mx-4 md:mx-auto md:max-w-5xl" : ""} mt-12`}
             >
-              <h2 className={toolsSectionHeading}>Questions fréquentes</h2>
+              <h2 className={toolsSectionHeading}>{t("tools.faqTitle")}</h2>
               <dl className="mt-6 space-y-6">
                 {tool.faq.map((item) => (
                   <div key={item.question}>

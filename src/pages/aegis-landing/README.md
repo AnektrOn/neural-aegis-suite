@@ -14,31 +14,28 @@ This module is independent of `src/pages/dev/prism-landing/` and `src/pages/dev/
 
 ## Routes
 
-| Path | Who sees it | `audience` |
-| --- | --- | --- |
-| `/` | Unsigned web visitors | `individuel` |
-| `/entreprise` | Anyone (public) | `entreprise` |
-| `/prism` | Redirect → `/` | — |
-| `/prism/entreprise` | Redirect → `/entreprise` | — |
+| Path | Who sees it | `audience` | UI |
+| --- | --- | --- | --- |
+| `/` | Unsigned web visitors | `individuel` | `WelcomeView` (nebula + conversion ladder) |
+| `/entreprise` | Anyone (public) | `entreprise` | Classic shell (armillary + sections below) |
+| `/prism` | Redirect → `/` | — | — |
+| `/prism/entreprise` | Redirect → `/entreprise` | — | — |
 
-Signed-in users hitting `/` get the Welcome hub, not this page. Native Capacitor builds skip the landing and go to `/auth`.
+Signed-in users hitting `/` get the member Welcome hub, not this marketing page. Native Capacitor builds skip the landing and go to `/auth`.
 
 Landing Suspense fallback is `LandingBootFallback` (wordmark only, no WebGL). `BootLoadingScreen` / `ArmillaryLoader` remain for auth boot and `/__loader`.
 
 ```bash
 npm run dev
-# http://localhost:5173/            — individuel
-# http://localhost:5173/entreprise  — entreprise
+# http://localhost:5173/            — individuel (WelcomeView)
+# http://localhost:5173/entreprise  — entreprise (armillary landing)
 ```
 
 ## Features
 
-- FR/EN toggle persisted in `localStorage` (`aegis-landing-locale`)
-- Audience toggle `/` ↔ `/entreprise`
-- WebGL 1 armillary in the hero from 1024px up (non-interactive); JPEG still below that and as fallback
-- Boot loader (auth / `/__loader`) still uses a centered auto-orbit sphere
-- Section copy, FAQ accordion, comparison table, pricing card, weekly/org report mockups
-- `prefers-reduced-motion` freezes ring spin, hover, and scroll reveals
+- **Individuel (`/`)** : `WelcomeView` — sticky nav + mobile menu, vocal demo, audit CTA, pricing ladder, FAQ schema
+- **Entreprise (`/entreprise`)** : FR/EN via `aegis-landing-locale`, armillary hero ≥1024px, section copy, FAQ, sticky mobile CTA
+- `prefers-reduced-motion` freezes ring spin, hover, and scroll reveals on the entreprise shell
 
 ## Quick start (embed)
 
@@ -51,13 +48,13 @@ import AegisLandingPage from "@/pages/aegis-landing/AegisLandingPage";
 
 Copy is selected by `audience` + locale. Components must sit under `AegisLandingLocaleProvider` (the page wraps itself).
 
-## Layout (top → bottom)
+## Layout (entreprise `/entreprise`, top → bottom)
 
 1. `LandingNav` — wordmark, audience, anchors, CTA, FR/EN
 2. `LandingHero` — armillary + headline
 3. `ProblemSection` (`#probleme`)
-4. `ManifestoSection` — entreprise only (`copy.manifesto === null` on individuel)
-5. `RecevezSection` (`#recevez`) — weekly mockup or org heatmap
+4. `ManifestoSection`
+5. `RecevezSection` (`#recevez`) — org heatmap
 6. `CommentCaMarcheSection` (`#comment`)
 7. `ComparatifSection` (`#comparatif`)
 8. `PourQuiSection` (`#pour-qui`)
@@ -66,7 +63,9 @@ Copy is selected by `audience` + locale. Components must sit under `AegisLanding
 11. `FaqSection` (`#faq`)
 12. `FinalCtaSection`
 13. `LandingFooter` — legal routes
-14. `MobileStickyCta` — `#tarif`, `sm:hidden`
+14. `MobileStickyCta` — `sm:hidden`
+
+Individuel `/` is owned by `src/features/welcome/components/WelcomeView.tsx` (not the section list above).
 
 ## Stack
 

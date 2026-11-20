@@ -57,15 +57,36 @@ function selectAccessSubscription(rows: SubscriptionRow[]): SubscriptionRow | nu
   return selected ?? rows[0] ?? null;
 }
 
+type CachedSubscriptionData = {
+  subscription: SubscriptionRow | null;
+  logosSubscription: SubscriptionRow | null;
+  planOverride: PlanTier | null;
+  ts: number;
+};
+
+const subscriptionMemCache = new Map<string, CachedSubscriptionData>();
+const subscriptionInflight = new Map<string, Promise<CachedSubscriptionData>>();
+const SUBSCRIPTION_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
 export function useSubscription() {
   const { user } = useAuth();
-  const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
-  const [logosSubscription, setLogosSubscription] = useState<SubscriptionRow | null>(null);
-  const [planOverride, setPlanOverride] = useState<PlanTier | null>(null);
-  const [loading, setLoading] = useState(true);
+  const userId = user?.id ?? null;
+  const initialCached = userId ? subscriptionMemCache.get(userId) : null;
+  const hasFreshCache = Boolean(initialCached && Date.now() - initialCached.ts < SUBSCRIPTION_CACHE_TTL_MS);
 
-  const fetchSubscription = useCallback(async () => {
-    if (!user?.id) {
+  const [subscription, setSubscription] = useState<SubscriptionRow | null>(
+    initialCached?.subscription ?? null,
+  );
+  const [logosSubscription, setLogosSubscription] = useState<SubscriptionRow | null>(
+    initialCached?.logosSubscription ?? null,
+  );
+  const [planOverride, setPlanOverride] = useState<PlanTier | null>(
+    initialCached?.planOverride ?? null,
+  );
+  const [loading, setLoading] = useState(!hasFreshCache);
+
+  const fetchSubscription = useCallback(async (force = false) => {
+    if (!userId) {
       setSubscription(null);
       setLogosSubscription(null);
       setPlanOverride(null);
@@ -73,54 +94,104 @@ export function useSubscription() {
       return;
     }
 
-    const [{ data: sub }, { data: logosSub }, { data: profile }] = await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select(
-          "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
-        )
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("subscriptions")
-        .select(
-          "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
-        )
-        .eq("user_id", user.id)
-        .eq("product_id", "aegis_solo_logos")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase.from("profiles").select("plan_override").eq("id", user.id).maybeSingle(),
-    ]);
+    if (!force) {
+      const cached = subscriptionMemCache.get(userId);
+      if (cached && Date.now() - cached.ts < SUBSCRIPTION_CACHE_TTL_MS) {
+        setSubscription(cached.subscription);
+        setLogosSubscription(cached.logosSubscription);
+        setPlanOverride(cached.planOverride);
+        setLoading(false);
+        return;
+      }
+    }
 
-    setSubscription(selectAccessSubscription((sub as SubscriptionRow[] | null) ?? []));
-    setLogosSubscription((logosSub as SubscriptionRow) ?? null);
-    const override = (profile as { plan_override?: string | null } | null)?.plan_override;
-    setPlanOverride(
-      override === "ultra" || override === "matrix" ? (override as PlanTier) : null,
-    );
+    let p = subscriptionInflight.get(userId);
+    if (!p) {
+      p = (async () => {
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("fetchSubscription timeout")), 5000)
+        );
+
+        try {
+          const [{ data: sub }, { data: logosSub }, { data: profile }] = await Promise.race([
+            Promise.all([
+              supabase
+                .from("subscriptions")
+                .select(
+                  "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
+                )
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false }),
+              supabase
+                .from("subscriptions")
+                .select(
+                  "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
+                )
+                .eq("user_id", userId)
+                .eq("product_id", "aegis_solo_logos")
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+              supabase.from("profiles").select("plan_override").eq("id", userId).maybeSingle(),
+            ]),
+            timeoutPromise,
+          ]);
+
+          const chosenSub = selectAccessSubscription((sub as SubscriptionRow[] | null) ?? []);
+          const chosenLogos = (logosSub as SubscriptionRow) ?? null;
+          const override = (profile as { plan_override?: string | null } | null)?.plan_override;
+          const chosenOverride =
+            override === "ultra" || override === "matrix" ? (override as PlanTier) : null;
+
+          const data: CachedSubscriptionData = {
+            subscription: chosenSub,
+            logosSubscription: chosenLogos,
+            planOverride: chosenOverride,
+            ts: Date.now(),
+          };
+          subscriptionMemCache.set(userId, data);
+          return data;
+        } catch (e) {
+          console.warn("[useSubscription] fetch failed or timed out", e);
+          const fallback: CachedSubscriptionData = {
+            subscription: null,
+            logosSubscription: null,
+            planOverride: null,
+            ts: Date.now(),
+          };
+          return fallback;
+        } finally {
+          subscriptionInflight.delete(userId);
+        }
+      })();
+      subscriptionInflight.set(userId, p);
+    }
+
+    const res = await p;
+    setSubscription(res.subscription);
+    setLogosSubscription(res.logosSubscription);
+    setPlanOverride(res.planOverride);
     setLoading(false);
-  }, [user?.id]);
+  }, [userId]);
 
   useEffect(() => {
     void fetchSubscription();
   }, [fetchSubscription]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!userId) return;
     const channel = supabase
-      .channel(`subscriptions-${user.id}`)
+      .channel(`subscriptions-${userId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${user.id}` },
-        () => void fetchSubscription(),
+        { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${userId}` },
+        () => void fetchSubscription(true),
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user?.id, fetchSubscription]);
+  }, [userId, fetchSubscription]);
 
   const paidActive = computeActive(subscription);
   const paidTier: PlanTier = paidActive ? tierFromProduct(subscription?.product_id) : "free";
@@ -143,6 +214,6 @@ export function useSubscription() {
     isRestricted: isPastDue && !planOverride,
     tier,
     planOverride,
-    refetch: fetchSubscription,
+    refetch: () => fetchSubscription(true),
   };
 }

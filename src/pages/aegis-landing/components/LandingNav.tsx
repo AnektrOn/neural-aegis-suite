@@ -7,7 +7,7 @@ import { LandingButton } from "./LandingButton";
 const links = [
   { href: "#comment", key: "comment" as const },
   { href: "#pour-qui", key: "pourQui" as const },
-  { href: "/pricing", key: "tarif" as const },
+  { href: "#tarif", key: "tarif" as const },
   { href: "#faq", key: "faq" as const },
 ];
 

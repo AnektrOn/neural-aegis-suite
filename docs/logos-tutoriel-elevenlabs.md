@@ -139,10 +139,10 @@ Pour **chaque** outil ci-dessous :
   - `contact_id` (string, optionnel)
   - `contact_name` (string, optionnel) — ex. Sophie
 
-### 4.7 `open_decision_capture` ⏸
+### 4.7 `open_decision_capture`
 
 - **Attendre la réponse :** **oui**  
-- **Description :** Rappel UI décision ; l’enregistrement se fait surtout via `write_decision`.  
+- **Description :** Ouvre le formulaire ajout rapide décision (nom + priorité P1–P5). L’utilisateur enregistre ou ferme. Retour : `saved`, `dismissed`, `error:…`. Tu peux aussi enregistrer uniquement via `write_decision` sans ouvrir le modal.  
 - **Paramètres :** aucun
 
 ### 4.8 `write_decision`

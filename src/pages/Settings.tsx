@@ -227,7 +227,7 @@ export default function Settings() {
     <div className="space-y-4">
       <div>
         <p className="mb-1.5 font-cinzel text-[10.5px] font-semibold uppercase tracking-[0.24em] text-[color:var(--aegis-gold)]">
-          {t("settings.sectionLabel")} · CONTRÔLE SYSTÈME
+          {t("settings.sectionLabel")} · {locale === "fr" ? "CONTRÔLE SYSTÈME" : "SYSTEM CONTROL"}
         </p>
         <h1 className="font-cormorant text-3xl sm:text-4xl lg:text-5xl font-light text-foreground tracking-tight">
           {t("settings.title")}

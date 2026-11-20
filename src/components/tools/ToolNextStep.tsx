@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { ToolId } from "./toolsRegistry";
 import { getToolById } from "./toolsRegistry";
 import { getToolRunPath } from "@/components/tools/toolsRegistry";
@@ -13,6 +14,7 @@ interface ToolNextStepProps {
 }
 
 export function ToolNextStep({ toolId, outputs, className = "" }: ToolNextStepProps) {
+  const { t } = useLanguage();
   const suggestion = suggestNextTool(toolId, outputs);
   if (!suggestion) return null;
 
@@ -20,8 +22,8 @@ export function ToolNextStep({ toolId, outputs, className = "" }: ToolNextStepPr
   const path = getToolRunPath(suggestion.toolId);
 
   return (
-    <section className={`mt-6 ${className}`} aria-label="Étape suggérée">
-      <p className={toolsKicker}>Prochaine étape recommandée</p>
+    <section className={`mt-6 ${className}`} aria-label={t("tools.nextStepTitle")}>
+      <p className={toolsKicker}>{t("tools.nextStepTitle")}</p>
       <Link
         to={path}
         className={`group mt-3 flex items-center justify-between rounded-2xl border border-border/40 bg-card/70 p-4 ${toolsBentoHover}`}

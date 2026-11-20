@@ -18,6 +18,12 @@ export default function RequireSubscription({ children }: { children: React.Reac
   const location = useLocation();
   const { enabled: freePreview } = useFreePreview();
 
+  // Free paths (dashboard, mood, decisions, habits, profile, etc.) are accessible
+  // to every authenticated user without waiting for subscription or admin state.
+  if (isFreePath(location.pathname)) {
+    return <>{children}</>;
+  }
+
   if (loading || adminLoading) {
     return (
       <div className="relative z-10 flex min-h-screen items-center justify-center">

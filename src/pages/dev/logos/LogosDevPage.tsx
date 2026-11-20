@@ -7,6 +7,7 @@ import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
 import { useLogosPathChooser } from "@/features/logos/useLogosPathChooser";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LogosDevModalsPanel } from "./LogosDevModalsPanel";
 
 /**
  * Lab mirror of Welcome → Agent path chooser.
@@ -39,7 +40,7 @@ export default function LogosDevPage() {
           </Link>
         </Button>
         <Badge variant="outline" className="pointer-events-none bg-background/70 font-normal backdrop-blur">
-          LAB · opening paths
+          LAB · paths + modals
         </Badge>
       </div>
 
@@ -66,6 +67,7 @@ export default function LogosDevPage() {
             requirePathChoice
             liveOverlay={liveOverlay}
           />
+          <LogosDevModalsPanel userId={user.id} locale={locale} isFR={isFR} />
         </LogosVoiceShell>
       )}
     </div>

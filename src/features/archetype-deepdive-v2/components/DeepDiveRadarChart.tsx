@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { Compass } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import type { SampleProfile } from "../domain/sampleProfile";
 import type { AnyArchetypeKey } from "../domain/types";
 
@@ -99,7 +100,9 @@ function buildScores(profile: SampleProfile) {
   });
 }
 
-export function DeepDiveRadarChart({ profile, title = "Roue archétypale" }: DeepDiveRadarChartProps) {
+export function DeepDiveRadarChart({ profile, title }: DeepDiveRadarChartProps) {
+  const { t } = useLanguage();
+  const displayTitle = title ?? t("archetype.radarTitle");
   const data = buildScores(profile);
   const hostRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(MIN_W);
@@ -141,7 +144,7 @@ export function DeepDiveRadarChart({ profile, title = "Roue archétypale" }: Dee
     <Card className="neural-card deep-dive-radar overflow-visible p-6 backdrop-blur-3xl bg-white/[0.03] border border-white/10 mb-8">
       <div className="flex items-center gap-2 text-text-tertiary text-xs uppercase tracking-[0.2em] font-display mb-1">
         <Compass size={14} strokeWidth={1.5} />
-        {title}
+        {displayTitle}
       </div>
       <p className="text-xs text-text-tertiary mb-4">
         Cartographie de l'intensité (orange) avec décomposition lumière (vert) / ombre (ambre) sur les 12 archétypes majeurs.
@@ -180,7 +183,7 @@ export function DeepDiveRadarChart({ profile, title = "Roue archétypale" }: Dee
               tickCount={5}
             />
             <Radar
-              name="Intensité"
+              name={t("archetype.intensity")}
               dataKey="intensity"
               stroke={COLOR_INTENSITY}
               fill={COLOR_INTENSITY}
@@ -189,7 +192,7 @@ export function DeepDiveRadarChart({ profile, title = "Roue archétypale" }: Dee
               isAnimationActive={false}
             />
             <Radar
-              name="Lumière"
+              name={t("archetype.light")}
               dataKey="light"
               stroke={COLOR_LIGHT}
               fill={COLOR_LIGHT}
@@ -198,7 +201,7 @@ export function DeepDiveRadarChart({ profile, title = "Roue archétypale" }: Dee
               isAnimationActive={false}
             />
             <Radar
-              name="Ombre"
+              name={t("archetype.shadow")}
               dataKey="shadow"
               stroke={COLOR_SHADOW}
               fill="transparent"
@@ -223,9 +226,9 @@ export function DeepDiveRadarChart({ profile, title = "Roue archétypale" }: Dee
       </div>
 
       <div className="flex flex-wrap items-center gap-4 mt-3 text-[11px] text-text-tertiary font-display tracking-wider">
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: COLOR_INTENSITY }} /> Intensité</span>
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: COLOR_LIGHT }} /> Lumière</span>
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full border border-dashed" style={{ borderColor: COLOR_SHADOW }} /> Ombre</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: COLOR_INTENSITY }} /> {t("archetype.intensity")}</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ background: COLOR_LIGHT }} /> {t("archetype.light")}</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full border border-dashed" style={{ borderColor: COLOR_SHADOW }} /> {t("archetype.shadow")}</span>
       </div>
     </Card>
   );

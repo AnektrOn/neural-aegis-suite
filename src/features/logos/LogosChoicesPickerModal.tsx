@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,10 @@ import {
   useCoverFlowDragSwipe,
 } from "@/components/ui/cover-flow/coverFlowShelf";
 import { cn } from "@/lib/utils";
+import {
+  LOGOS_DIALOG_CONTENT_Z,
+  LOGOS_DIALOG_OVERLAY_CLASS,
+} from "@/features/logos/logosDialogStack";
 
 export type LogosChoiceItem =
   | {
@@ -54,6 +59,7 @@ function kindLabel(kind: LogosChoiceItem["kind"]) {
 }
 
 export function LogosChoicesPickerModal({ open, items, busy, onSelect, onDismiss }: Props) {
+  const { t } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const swipeSurfaceRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useMemo(
@@ -114,8 +120,9 @@ export function LogosChoicesPickerModal({ open, items, busy, onSelect, onDismiss
     >
       <DialogContent
         showCloseButton={!busy}
-        overlayClassName="bg-[color:var(--aegis-abyss)]/72 dark:bg-black/80"
+        overlayClassName={cn(LOGOS_DIALOG_OVERLAY_CLASS, "bg-[color:var(--aegis-abyss)]/72 dark:bg-black/80")}
         className={cn(
+          LOGOS_DIALOG_CONTENT_Z,
           "logos-choices-picker max-w-[min(100vw,56rem)] gap-0 overflow-visible border-[color:var(--aegis-cardline)] p-0 sm:rounded-[1.75rem]",
           "bg-[color:var(--aegis-bg)] text-[color:var(--aegis-ink)] shadow-[0_28px_90px_rgba(0,0,0,0.35)]",
           "dark:bg-[color:var(--aegis-abyss)] dark:shadow-[0_28px_90px_rgba(0,0,0,0.55)]",
@@ -142,7 +149,7 @@ export function LogosChoicesPickerModal({ open, items, busy, onSelect, onDismiss
             className="persona-cover-flow-stage relative mx-auto flex w-full max-w-5xl items-center justify-center overflow-x-clip overflow-y-visible py-4 sm:py-8"
             style={{ perspective: "1400px", perspectiveOrigin: "50% 42%" }}
             role="tablist"
-            aria-label="Choix de pratique"
+            aria-label={t("logos.practiceChoice")}
             tabIndex={0}
             onKeyDown={onKeyDown}
           >
@@ -243,7 +250,7 @@ export function LogosChoicesPickerModal({ open, items, busy, onSelect, onDismiss
               disabled={busy || items.length < 2}
               className="h-9 w-9 shrink-0 rounded-full border-[color:var(--aegis-cardline)] bg-[color:var(--aegis-surface)] text-[color:var(--aegis-ink)] hover:border-[color:var(--aegis-gold)]/40"
               onClick={goPrev}
-              aria-label="Choix précédent"
+              aria-label={t("logos.previousChoice")}
             >
               <ChevronLeft size={18} aria-hidden />
             </Button>
@@ -275,7 +282,7 @@ export function LogosChoicesPickerModal({ open, items, busy, onSelect, onDismiss
               disabled={busy || items.length < 2}
               className="h-9 w-9 shrink-0 rounded-full border-[color:var(--aegis-cardline)] bg-[color:var(--aegis-surface)] text-[color:var(--aegis-ink)] hover:border-[color:var(--aegis-gold)]/40"
               onClick={goNext}
-              aria-label="Choix suivant"
+              aria-label={t("logos.nextChoice")}
             >
               <ChevronRight size={18} aria-hidden />
             </Button>
@@ -294,7 +301,7 @@ export function LogosChoicesPickerModal({ open, items, busy, onSelect, onDismiss
             className="font-display text-[10px] uppercase tracking-[0.16em] text-[color:var(--aegis-ink-muted)] hover:text-[color:var(--aegis-ink)]"
             onClick={onDismiss}
           >
-            Fermer
+            {t("general.cancel")}
           </Button>
         </div>
       </DialogContent>

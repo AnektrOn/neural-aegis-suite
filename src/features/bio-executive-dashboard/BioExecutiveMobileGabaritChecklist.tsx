@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Check, RotateCcw } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
 import type { HeroBreakpointKey } from "./bioExecutiveHeroLabConfig";
 import {
@@ -30,6 +31,7 @@ export function BioExecutiveMobileGabaritChecklist({
   onEditBreakpoint,
   activeConfigKey,
 }: Props) {
+  const { t } = useLanguage();
   const [state, setState] = useState<MobileGabaritChecklistState>(() => loadMobileGabaritChecklist());
   const done = countMobileGabaritChecklistDone(state);
 
@@ -71,7 +73,7 @@ export function BioExecutiveMobileGabaritChecklist({
         <button
           type="button"
           onClick={resetAll}
-          title="Réinitialiser la checklist"
+          title={t("bioExec.resetChecklist")}
           className="inline-flex items-center gap-1 rounded-md border border-[color:var(--bio-frame-border)] px-1.5 py-0.5 text-[9px] opacity-70 hover:opacity-100"
         >
           <RotateCcw size={11} />
