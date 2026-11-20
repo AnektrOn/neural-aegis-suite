@@ -1,8 +1,8 @@
 # Monitoring fixes
 
 ## Published blank pages — 20 November 2026
-- [ ] Restore public build-time connection settings, preserve the primary custom domain, and publish.
-- [ ] Verify live assessment, sign-in and all three public Solo checkout paths; do not charge a card or overwrite an existing assessment.
+- [x] Restore public build-time connection settings, preserve the primary custom domain, and publish; live release confirmed 20 November 2026 04:04 UTC, preview build OK and thirteen regression tests pass.
+- [x] Live desktop/mobile homepage and sign-in form render without runtime errors; invalid password returns the expected error, private restored session loads the real dashboard and assessment question 1. Three signed-out Stripe paths display €35/month, €110/month and €350 once. No card charged, no assessment answers submitted; successful password/OAuth sign-in and full assessment submission not exercised.
 
 ## Weekly LOGOS opening batches — 18 November 2026
 - [x] Add an atomic service-only batch writer, exactly five distinct categories, seven-day expiry and weekly retry deduplication; preserve chooser, personal Drive prompts and existing RPCs. Thirteen live/rule regression tests pass; preview build OK.
