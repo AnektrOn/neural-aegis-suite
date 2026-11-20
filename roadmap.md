@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Published blank pages — 20 November 2026
+- [ ] Restore public build-time connection settings, preserve the primary custom domain, and publish.
+- [ ] Verify live assessment, sign-in and all three public Solo checkout paths; do not charge a card or overwrite an existing assessment.
+
 ## Weekly LOGOS opening batches — 18 November 2026
 - [x] Add an atomic service-only batch writer, exactly five distinct categories, seven-day expiry and weekly retry deduplication; preserve chooser, personal Drive prompts and existing RPCs. Thirteen live/rule regression tests pass; preview build OK.
 - [x] Schedule Wednesday 00:00 UTC execution and seed the initial batch; authenticated RPC reads five bilingual paths, privileged retries retain the same batch. Two authored sets alternate; no model calls.

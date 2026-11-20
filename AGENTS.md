@@ -1,5 +1,7 @@
 # Project rules
 
+- Resolve browser connection settings in Vite from environment values with a committed public-only fallback; this prevents blank clean deployments without editing the generated client or storing private credentials.
+
 - Store daily voice batches and session feedback in the dedicated caller-owned tables referencing public.profiles; keep legacy LOGOS tables unchanged so the schema rollout does not break existing voice flows.
 - LOGOS post-call exports go through `logos-post-call` (ElevenLabs webhook → Drive root audio/transcript + `export-to-drive` `export_logos_transcript`); stamp `userId` / `aegis_user_id` at session start and keep exports idempotent on `elevenlabs_conversation_id`.
 - Record voice SDK events through a serialized per-session recorder and export completed feedback through the existing authenticated Drive function; stable feedback filenames and readback prevent duplicate files or premature success flags.
