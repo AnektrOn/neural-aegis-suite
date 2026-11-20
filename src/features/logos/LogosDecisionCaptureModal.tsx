@@ -31,7 +31,7 @@ export function LogosDecisionCaptureModal({ userId, open, onClose }: Props) {
     setBusy(true);
     try {
       const res = await logosWriteDecision(userId, data);
-      if (!res.ok) {
+      if (res.ok === false) {
         onClose(`error:${res.error}`);
         return;
       }

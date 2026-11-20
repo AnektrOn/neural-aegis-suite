@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 /** Account settings only — identity & AEGIS score live on /persona; app prefs on /settings */
 export default function Profile() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [displayName, setDisplayName] = useState("");
   const [country, setCountry] = useState("");
   const [timezone, setTimezone] = useState("Europe/Paris");

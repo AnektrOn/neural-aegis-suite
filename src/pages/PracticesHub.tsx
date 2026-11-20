@@ -27,7 +27,7 @@ import { PracticesHubArmillary } from "@/features/practices-hub/components/Pract
 import { cn } from "@/lib/utils";
 
 export default function PracticesHub() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const { stats, loading, dailyScore } = usePracticesHubData();
   const [mobileTab, setMobileTab] = useState<"stations" | "cadence">("stations");

@@ -51,11 +51,11 @@ export default function InstallApp() {
 
       {/* Plateforme Selector */}
       <div className="flex items-center gap-1.5 pt-1">
-        {[
+        {([
           { key: "all", label: t("install.allPlatforms") },
           { key: "ios", label: "Apple iOS", icon: Apple },
           { key: "android", label: "Google Android", icon: Smartphone },
-        ].map((item) => (
+        ] as const).map((item) => (
           <button
             key={item.key}
             type="button"

@@ -41,7 +41,7 @@ type CodexTab = "grimoire" | "runes";
 type GrimoireSubTab = "in_progress" | "validated";
 
 export default function PulsePage() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { user } = useAuth();
   const { state: deckState, reload: reloadDeck } = usePulseDeck();
   const [localCards, setLocalCards] = useState<PulseCard[]>([]);
