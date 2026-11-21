@@ -43,10 +43,12 @@ Deno.serve(async req => {
       const { data: profile } = await admin.from('profiles').select('display_name').eq('id', user.id).maybeSingle();
       const jobs = redemptionEmails({ userId: user.id, redeemedAt: redemption.redeemed_at, email: user.email, name: profile?.display_name, createdAt: user.created_at, locale, code }, admins.filter((email): email is string => Boolean(email)));
       // Each is a recipient-specific notice of this persisted activation, not a campaign.
-      const outcomes = await Promise.allSettled(jobs.map(job => sendTemplateEmail(job.template, job.recipient, { templateData: job.data, idempotencyKey: job.idempotencyKey })));
-      const failed = outcomes.some(outcome => outcome.status === 'rejected');
+      // SMTP via contact@ — Hostinger cannot delegate Lovable's notify NS subdomain.
+      const outcomes = await Promise.allSettled(jobs.map(job => sendTemplateEmail(job.template, job.recipient, { templateData: job.data, idempotencyKey: job.idempotencyKey, replyTo: 'contact@protocolenomos.com' })));
       for (const outcome of outcomes) if (outcome.status === 'rejected') console.error('AppSumo confirmation failed:', outcome.reason?.code || outcome.reason?.message || 'Email unavailable');
-      return respond({ ...result, emails: failed ? 'pending' : 'processed' });
+      // Member welcome is the confirmation buyers see; admin notice failures must not block them.
+      const welcomeFailed = outcomes[0]?.status === 'rejected';
+      return respond({ ...result, emails: welcomeFailed ? 'pending' : 'processed' });
     } catch (emailError) {
       console.error('AppSumo confirmation failed:', emailError instanceof Error ? emailError.message : 'Email unavailable');
       return respond({ ...result, emails: 'pending' });

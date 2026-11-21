@@ -66,7 +66,13 @@ export const LEVEL_MIN_CHARS: Record<number, number> = {
  * Normalise le nom d'un fichier pour matcher la nomenclature des 5 fichiers.
  */
 function normalizeFileName(name: string): string {
-  return name.trim().toLowerCase().replace(/^[0-9]+[-_.]?/, "").replace(/\.md$/i, "");
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/^[0-9]+[-_.]?/, "")
+    .replace(/\.md$/i, "");
 }
 
 /**
@@ -129,6 +135,10 @@ export function detectPrismFromInput(input: string, frontmatterPrism?: unknown):
     return frontmatterPrism.trim().toUpperCase();
   }
   const str = input.toUpperCase();
+  // Pôles Myss dans le chemin (…/LIGHT/LEVEL_1) — avant ARCHETYPE générique
+  if (/(^|\/)LIGHT(\/|$)/.test(str) || /\bP[ÔO]LE\s*LIGHT\b/.test(str)) return "LIGHT";
+  if (/(^|\/)SHADOW(\/|$)/.test(str) || /(^|\/)OMBRE(\/|$)/.test(str)) return "SHADOW";
+  if (/(^|\/)BALANCE(\/|$)/.test(str)) return "BALANCE";
   if (str.includes("MYSS") || str.includes("ARCHETYPE")) return "MYSS";
   if (str.includes("JUNG") || str.includes("INCONSCIENT")) return "JUNG";
   if (str.includes("TAO") || str.includes("WU_XING") || str.includes("WUXING")) return "TAO";
@@ -151,6 +161,76 @@ export function checkHasSafeguard(content: string): boolean {
     /\[aegis\s*v3(\.[0-9]+)?\s*ontology\s*firewall/i.test(content) ||
     /loi\s*aegis|lois\s*aegis/i.test(content)
   );
+}
+
+/** H3 bilingue numéroté : `### 🇫🇷 1. Titre` / `### 🇬🇧 1. Title` (format LEVEL_1 Myss). */
+const NUMBERED_H3_RE =
+  /^###\s*(?:🇫🇷|🇬🇧|🇺🇸)\s*(\d+(?:\.\d+)?)\.\s*(.+)$/;
+
+function isDocumentTitleH1(title: string): boolean {
+  return /rapport\s+clinique|diagnostic\s+niveau|level\s*\d+/i.test(title);
+}
+
+function sectionTitleLooksLikeSafeguard(title: string): boolean {
+  return (
+    checkHasSafeguard(title) ||
+    /^0(?:\.\d+)?(?:\s|[.·:—-]|$)/.test(title.trim()) ||
+    /\b0\.\s*(?:safeguard|notice|epistemic)/i.test(title)
+  );
+}
+
+type MirrorChunk = {
+  rawTitle: string;
+  titleFr?: string;
+  titleEn?: string;
+  contentLines: string[];
+};
+
+/**
+ * Découpe un rapport LEVEL_X structuré uniquement en H3 bilingues numérotés
+ * (`### 🇫🇷 N. …` / `### 🇬🇧 N. …`), sans H2.
+ */
+function chunkByNumberedBilingualH3(
+  lines: string[],
+): { chunks: MirrorChunk[]; prologueLines: string[] } | null {
+  const markers: Array<{ index: number; num: string; title: string; lang: "fr" | "en" }> = [];
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    const m = trimmed.match(NUMBERED_H3_RE);
+    if (!m) continue;
+    const lang: "fr" | "en" = /🇬🇧|🇺🇸/.test(trimmed) ? "en" : "fr";
+    markers.push({ index: i, num: m[1], title: m[2].trim(), lang });
+  }
+  if (markers.length < 2) return null;
+
+  const uniqueNums = [...new Set(markers.map((m) => m.num))];
+  if (uniqueNums.length < 1) return null;
+
+  const prologueLines = lines.slice(0, markers[0].index);
+  const chunks: MirrorChunk[] = [];
+
+  for (let u = 0; u < uniqueNums.length; u++) {
+    const num = uniqueNums[u];
+    const firstIdx = markers.find((m) => m.num === num)!.index;
+    const nextNum = uniqueNums[u + 1];
+    const endIdx =
+      nextNum !== undefined
+        ? markers.find((m) => m.num === nextNum)!.index
+        : lines.length;
+    const frMarker = markers.find((m) => m.num === num && m.lang === "fr");
+    const enMarker = markers.find((m) => m.num === num && m.lang === "en");
+    const titleFr = frMarker ? `${num}. ${frMarker.title}` : undefined;
+    const titleEn = enMarker ? `${num}. ${enMarker.title}` : undefined;
+    const rawTitle = titleFr || titleEn || `${num}. ${markers.find((m) => m.num === num)!.title}`;
+    chunks.push({
+      rawTitle,
+      titleFr,
+      titleEn,
+      contentLines: lines.slice(firstIdx, endIdx),
+    });
+  }
+
+  return { chunks, prologueLines };
 }
 
 /**
@@ -179,45 +259,44 @@ export function parseBilingualMirrorSections(markdown: string): {
     }
   }
 
-  // S'il n'y a pas de H2, découpons par H1
-  if (h2Indices.length === 0) {
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const m = line.match(/^#\s+(.+)$/);
-      if (m && !line.startsWith("###")) {
-        h2Indices.push({ index: i, title: m[1].trim() });
-      }
-    }
-  }
-
   // Traiter chaque chunk de section
-  const chunks: Array<{ rawTitle: string; contentLines: string[] }> = [];
-  if (h2Indices.length > 0) {
-    // Éventuel prologue avant le 1er H2
-    if (h2Indices[0].index > 0) {
-      const prologueLines = lines.slice(0, h2Indices[0].index);
-      // Nettoyer les lignes d'en-tête de document H1 et les artefacts "Partie X"
-      const filteredPrologueLines = prologueLines.filter((l) => {
-        const tr = l.trim();
-        if (/^#\s+/.test(tr) && !tr.startsWith("###")) return false; // H1 document title
-        if (/^Partie\s*\d*$/i.test(tr) || /^Part\s*\d*$/i.test(tr)) return false; // "Partie 2" lone artifact
-        return true;
-      });
-      const prologueText = filteredPrologueLines.join("\n").trim();
+  const chunks: MirrorChunk[] = [];
+  /** Notice FR-only avant la section 0 — à fusionner dans le safeguard bilingue, pas à publier seule. */
+  let pendingPrologueNoticeFr: string | null = null;
 
-      if (checkHasSafeguard(prologueText)) {
-        const biling = extractBilingualContent(prologueText);
-        safeguardSection = {
-          id: "sec-safeguard-preamble",
-          title_fr: "Notice Clinique & Cadre Déontologique",
-          title_en: "Clinical Notice & Ethical Framework",
-          content_fr: biling.fr || prologueText,
-          content_en: biling.hasEn ? biling.en : biling.fr || prologueText,
-          is_safeguard: true,
-        };
-      } else if (prologueText.length > 30) {
-        chunks.push({ rawTitle: "Introduction", contentLines: filteredPrologueLines });
+  const capturePrologue = (prologueLines: string[], opts?: { preferDeferToSection0?: boolean }) => {
+    const filteredPrologueLines = prologueLines.filter((l) => {
+      const tr = l.trim();
+      if (/^#\s+/.test(tr) && !tr.startsWith("###")) return false;
+      if (/^Partie\s*\d*$/i.test(tr) || /^Part\s*\d*$/i.test(tr)) return false;
+      return true;
+    });
+    const prologueText = filteredPrologueLines.join("\n").trim();
+    if (!prologueText) return;
+
+    if (checkHasSafeguard(prologueText)) {
+      if (opts?.preferDeferToSection0) {
+        pendingPrologueNoticeFr = prologueText;
+        return;
       }
+      const biling = extractBilingualContent(prologueText);
+      const enBody = biling.hasEn && biling.en.trim().length > 20 ? biling.en : biling.fr || prologueText;
+      safeguardSection = {
+        id: "sec-safeguard-preamble",
+        title_fr: "Notice Clinique & Cadre Déontologique",
+        title_en: "Clinical Notice & Ethical Framework",
+        content_fr: biling.fr || prologueText,
+        content_en: enBody,
+        is_safeguard: true,
+      };
+    } else if (prologueText.length > 30) {
+      chunks.push({ rawTitle: "Introduction", contentLines: filteredPrologueLines });
+    }
+  };
+
+  if (h2Indices.length > 0) {
+    if (h2Indices[0].index > 0) {
+      capturePrologue(lines.slice(0, h2Indices[0].index));
     }
     for (let k = 0; k < h2Indices.length; k++) {
       const start = h2Indices[k].index + 1;
@@ -228,7 +307,36 @@ export function parseBilingualMirrorSections(markdown: string): {
       });
     }
   } else {
-    chunks.push({ rawTitle: "Rapport", contentLines: lines });
+    // Format LEVEL_1 Myss : pas de H2, sections en ### 🇫🇷 N. / ### 🇬🇧 N.
+    const h3Pack = chunkByNumberedBilingualH3(lines);
+    if (h3Pack) {
+      const hasSection0 = h3Pack.chunks.some((c) => sectionTitleLooksLikeSafeguard(c.rawTitle));
+      capturePrologue(h3Pack.prologueLines, { preferDeferToSection0: hasSection0 });
+      chunks.push(...h3Pack.chunks);
+    } else {
+      // Fallback H1 uniquement s'il y a plusieurs titres de section (pas un seul titre document)
+      const h1Indices: Array<{ index: number; title: string }> = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const m = line.match(/^#\s+(.+)$/);
+        if (m && !line.startsWith("###")) {
+          h1Indices.push({ index: i, title: m[1].trim() });
+        }
+      }
+      const sectionH1s = h1Indices.filter((h) => !isDocumentTitleH1(h.title));
+      if (sectionH1s.length > 0) {
+        for (let k = 0; k < sectionH1s.length; k++) {
+          const start = sectionH1s[k].index + 1;
+          const end = k + 1 < sectionH1s.length ? sectionH1s[k + 1].index : lines.length;
+          chunks.push({
+            rawTitle: sectionH1s[k].title,
+            contentLines: lines.slice(start, end),
+          });
+        }
+      } else {
+        chunks.push({ rawTitle: "Rapport", contentLines: lines });
+      }
+    }
   }
 
   // Analyser chaque chunk pour séparer FR et EN
@@ -237,12 +345,13 @@ export function parseBilingualMirrorSections(markdown: string): {
     const chunkId = `sec-${cIdx + 1}`;
     const rawTitle = chunk.rawTitle;
     const cleanRawTitle = rawTitle.replace(/^Partie\s*\d*\s*[-:—.]\s*/i, "").replace(/^Part\s*\d*\s*[-:—.]\s*/i, "").trim() || rawTitle;
-    const isSafeguard = checkHasSafeguard(cleanRawTitle) || checkHasSafeguard(chunk.contentLines.join("\n"));
-
-    // Découper le titre s'il contient " / "
-    let titleFr = cleanRawTitle;
-    let titleEn = cleanRawTitle;
-    if (cleanRawTitle.includes(" / ")) {
+    // Ne pas marquer tout un rapport comme safeguard juste parce que la section 0
+    // apparaît quelque part dans le corps (faux positif LEVEL_1 sans H2).
+    const isSafeguard = sectionTitleLooksLikeSafeguard(cleanRawTitle);
+    // Titres explicites FR/EN (H3 numérotés) — sinon découpe " / "
+    let titleFr = chunk.titleFr || cleanRawTitle;
+    let titleEn = chunk.titleEn || cleanRawTitle;
+    if (!chunk.titleFr && !chunk.titleEn && cleanRawTitle.includes(" / ")) {
       const parts = cleanRawTitle.split(/\s+\/\s+/);
       if (parts.length >= 2) {
         titleFr = parts[0].trim();
@@ -261,14 +370,26 @@ export function parseBilingualMirrorSections(markdown: string): {
       // Détecteurs de langue stricts V3.2
       if (/^(?:###|####|\*\*)\s*(?:🇫🇷|\(FR\)|Français|FR\s*:)/i.test(trimmed)) {
         currentLang = "fr";
+        // Le titre de section est déjà porté par title_fr — ne pas le re-injecter dans le corps
         const subTitle = trimmed.replace(/^(?:###|####|\*\*)\s*(?:🇫🇷|\(FR\)|Français|FR\s*:)\s*/i, "").replace(/\*\*$/, "").trim();
-        if (subTitle) frLines.push(`### ${subTitle}`);
+        const isSectionBanner =
+          Boolean(chunk.titleFr || chunk.titleEn) &&
+          /^\d+(?:\.\d+)?\.\s+/.test(subTitle);
+        if (subTitle && !isSectionBanner) frLines.push(`### ${subTitle}`);
         continue;
       }
       if (/^(?:###|####|\*\*)\s*(?:🇬🇧|🇺🇸|\(EN\)|English|EN\s*:)/i.test(trimmed)) {
         currentLang = "en";
         const subTitle = trimmed.replace(/^(?:###|####|\*\*)\s*(?:🇬🇧|🇺🇸|\(EN\)|English|EN\s*:)\s*/i, "").replace(/\*\*$/, "").trim();
-        if (subTitle) enLines.push(`### ${subTitle}`);
+        const isSectionBanner =
+          Boolean(chunk.titleFr || chunk.titleEn) &&
+          /^\d+(?:\.\d+)?\.\s+/.test(subTitle);
+        if (subTitle && !isSectionBanner) enLines.push(`### ${subTitle}`);
+        continue;
+      }
+
+      // Séparateurs seuls entre blocs FR/EN : ignorer
+      if (trimmed === "---" && currentLang !== "neutral") {
         continue;
       }
 
@@ -283,8 +404,14 @@ export function parseBilingualMirrorSections(markdown: string): {
       }
     }
 
-    const contentFr = frLines.join("\n").trim();
-    const contentEn = enLines.join("\n").trim() || contentFr; // Fallback to FR if EN is empty
+    let contentFr = frLines.join("\n").trim();
+    let contentEn = enLines.join("\n").trim();
+    if (!contentEn) contentEn = contentFr;
+
+    if (isSafeguard && pendingPrologueNoticeFr) {
+      contentFr = `${pendingPrologueNoticeFr}\n\n${contentFr}`.trim();
+      pendingPrologueNoticeFr = null;
+    }
 
     const pair: ReportSectionPair = {
       id: chunkId,
@@ -295,7 +422,8 @@ export function parseBilingualMirrorSections(markdown: string): {
       is_safeguard: isSafeguard,
     };
 
-    if (isSafeguard && !safeguardSection) {
+    if (isSafeguard) {
+      // La section 0 bilingue remplace toujours une notice prologue FR-only
       safeguardSection = pair;
     }
     sectionPairs.push(pair);
@@ -523,6 +651,8 @@ function cleanHeadingTitle(headingLine: string, fallbackIndex: number): string {
   const cleaned = headingLine
     .replace(/^#{1,6}\s+/, "")
     .replace(/^\*\*(.*)\*\*$/, "$1")
+    // Drapeaux = paires d'indicateurs régionaux — ne pas utiliser une classe `[🇫🇷]`
+    .replace(/^(?:🇫🇷|🇬🇧|🇺🇸)\s*/, "")
     .replace(/^Diagramme\s*\d*\s*[-:—.]\s*/i, "")
     .replace(/^\d+\.\s*/, "")
     .trim();
@@ -568,6 +698,7 @@ export function parseMermaidDiagrams(graphiqueMd: string): ParsedDiagramEntry[] 
 
   const companionTexts: string[] = new Array(matches.length).fill("");
   const titles: string[] = new Array(matches.length).fill("");
+  const rawHeadings: string[] = new Array(matches.length).fill("");
 
   // Détection des titres et légendes entre diagrammes successifs
   for (let i = 0; i < matches.length; i++) {
@@ -576,7 +707,9 @@ export function parseMermaidDiagrams(graphiqueMd: string): ParsedDiagramEntry[] 
 
     if (i === 0) {
       const headingLines = interText.split("\n").filter((l) => /^(?:#{1,6}\s+|\*\*[^*]+\*\*)/.test(l.trim()));
-      titles[0] = headingLines.length > 0 ? cleanHeadingTitle(headingLines[headingLines.length - 1], 1) : "Diagramme 1";
+      const raw = headingLines.length > 0 ? headingLines[headingLines.length - 1] : "";
+      rawHeadings[0] = raw;
+      titles[0] = raw ? cleanHeadingTitle(raw, 1) : "Diagramme 1";
     } else {
       const lines = interText.split("\n");
       let headingIndex = -1;
@@ -589,6 +722,7 @@ export function parseMermaidDiagrams(graphiqueMd: string): ParsedDiagramEntry[] 
 
       if (headingIndex !== -1) {
         companionTexts[i - 1] = lines.slice(0, headingIndex).join("\n").trim();
+        rawHeadings[i] = lines[headingIndex];
         titles[i] = cleanHeadingTitle(lines[headingIndex], i + 1);
       } else {
         companionTexts[i - 1] = interText;
@@ -609,7 +743,8 @@ export function parseMermaidDiagrams(graphiqueMd: string): ParsedDiagramEntry[] 
     const companion = companionTexts[i];
     const bilingualCompanion = companion ? extractBilingualContent(companion) : null;
     const diagTitle = titles[i] || `Diagramme ${i + 1}`;
-    const diagLang = detectDiagramLanguage(diagTitle, companion || "", m.source);
+    // Langue depuis le heading brut (drapeaux) AVANT nettoyage d'affichage
+    const diagLang = detectDiagramLanguage(rawHeadings[i] || diagTitle, companion || "", m.source);
 
     diagrams.push({
       id: `diag-${i + 1}`,
@@ -682,7 +817,8 @@ export function parseLevelPack(
       if (!graphiqueMd) graphiqueMd = file.content;
     } else if (
       norm.includes("prompt") ||
-      norm.includes("ai") ||
+      /\bai\b/.test(norm.replace(/[_-]+/g, " ")) ||
+      norm.includes("prompt_ai") ||
       /^04/.test(rawName) ||
       norm === "console"
     ) {

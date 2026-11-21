@@ -206,19 +206,18 @@ function AdminUserReportsView() {
         return;
       }
 
-      // Regrouper par sous-dossier ou traiter comme pack global
+      // Regrouper par chemin parent complet (ex: LIGHT/LEVEL_1 ≠ SHADOW/LEVEL_1).
+      // Avant : seul le nom du dossier parent immédiat était utilisé, donc un drop
+      // Sacred_Archetypes/{LIGHT,SHADOW,BALANCE}/LEVEL_1 fusionnait les 3 pôles.
       const groups: Record<string, LevelPackFileEntry[]> = {};
 
       for (const item of mdItems) {
-        const parts = item.path.replace(/\\/g, "/").split("/");
+        const parts = item.path.replace(/\\/g, "/").split("/").filter(Boolean);
         let groupName = "LEVEL_PACK";
         if (parts.length > 1) {
-          // Le dossier parent immédiat ou racine (ex: LEVEL_2 ou BALANCE)
-          groupName = parts[parts.length - 2] || parts[0];
-        } else {
-          // Fichier unitaire à la racine
-          groupName = item.filename.replace(/\.md$/i, "");
+          groupName = parts.slice(0, -1).join("/");
         }
+        // Fichiers .md à la racine (ZIP plat / multi-sélection) → un seul pack partagé
         if (!groups[groupName]) groups[groupName] = [];
         groups[groupName].push({
           filename: item.filename,

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseLevelPack,
   detectLevelFromInput,
+  detectPrismFromInput,
   checkHasSafeguard,
   parseBilingualMirrorSections,
   parseMermaidDiagrams,
@@ -221,6 +222,58 @@ The Mystic is at the core of the expression.`;
     expect(analyticalSections[0].title_fr).toBe("1. Don Spirituel Majeur");
     expect(analyticalSections[0].content_fr).toContain("Le Mystique est au cœur");
     expect(analyticalSections[0].content_fr).not.toContain('user: "note"');
+  });
+
+  it("splits Level 1 H3 bilingual numbered sections without marking the whole report as safeguard", () => {
+    const rawMarkdown = `# ✨ RAPPORT CLINIQUE LEVEL 1 — Note (Caroline Myss : Sacred Archetypes · Pôle LIGHT)
+> **Notice Clinique :** Cadre déontologique AEGIS V3.
+
+### 🇫🇷 0. Safeguard Épistémique et Calibration des Données
+Cadre éthique FR.
+### 🇬🇧 0. Epistemic Safeguard and Data Calibration
+Ethical frame EN.
+
+### 🇫🇷 1. Architecture Céleste
+Le Mystique structure la lumière.
+#### Sous-point FR
+Détail.
+
+### 🇬🇧 1. Celestial Architecture
+The Mystic structures the light.
+#### Subpoint EN
+Detail.
+
+### 🇫🇷 2. Pentagramme d'Or
+Cinq archétypes.
+### 🇬🇧 2. Golden Pentagram
+Five archetypes.
+`;
+
+    const { sectionPairs, safeguardSection } = parseBilingualMirrorSections(rawMarkdown);
+    expect(safeguardSection).not.toBeNull();
+    expect(safeguardSection?.title_fr).toMatch(/Safeguard|0\./);
+    expect(safeguardSection?.title_en).toMatch(/Epistemic|0\./);
+    expect(safeguardSection?.content_fr).toMatch(/Cadre (éthique|déontologique)|Notice Clinique/);
+    expect(safeguardSection?.content_en).toContain("Ethical frame EN");
+    expect(safeguardSection?.content_en).not.toBe("---");
+
+    const analytical = sectionPairs.filter((p) => !p.is_safeguard);
+    expect(analytical.length).toBeGreaterThanOrEqual(2);
+    expect(analytical[0].title_fr).toBe("1. Architecture Céleste");
+    expect(analytical[0].title_en).toBe("1. Celestial Architecture");
+    expect(analytical[0].content_fr).toContain("Le Mystique structure");
+    expect(analytical[0].content_fr).not.toContain("The Mystic structures");
+    expect(analytical[0].content_en).toContain("The Mystic structures");
+    expect(analytical[0].content_fr).not.toContain("### 1. Architecture");
+    expect(analytical.some((p) => p.is_safeguard && p.title_fr.includes("RAPPORT CLINIQUE"))).toBe(
+      false,
+    );
+  });
+
+  it("detects pole prism from LIGHT/SHADOW/BALANCE folder path", () => {
+    expect(detectPrismFromInput("Sacred_Archetypes/LIGHT/LEVEL_1")).toBe("LIGHT");
+    expect(detectPrismFromInput("Sacred_Archetypes/SHADOW/LEVEL_1")).toBe("SHADOW");
+    expect(detectPrismFromInput("Sacred_Archetypes/BALANCE/LEVEL_1")).toBe("BALANCE");
   });
 
   it("extracts bilingual content for summary, actionable insights and AI prompt", () => {

@@ -20,8 +20,7 @@ export default function AppSumoRedemption() {
   const fr = locale === 'fr';
   const signedIn = !!user && !isGuest && !isAnonymous;
 
-  async function redeem(e: React.FormEvent) {
-    e.preventDefault();
+  async function redeemCode() {
     setBusy(true);
     setMessage('');
     try {
@@ -46,12 +45,17 @@ export default function AppSumoRedemption() {
     } finally { setBusy(false); }
   }
 
+  async function redeem(e: React.FormEvent) {
+    e.preventDefault();
+    await redeemCode();
+  }
+
   return <section className="space-y-4 border-b border-border py-6" aria-labelledby="appsumo-title">
     <h2 id="appsumo-title" className="flex items-center gap-2 text-xl text-foreground"><KeyRound size={20} />{fr ? 'Activer un code AppSumo' : 'Redeem an AppSumo code'}</h2>
     <p className="text-sm text-muted-foreground">AEGIS Solo · {fr ? 'Accès à vie, sans LOGOS' : 'Lifetime access, without LOGOS'}</p>
     {success ? <div role="status" className="space-y-3">
       <p className="text-sm text-foreground">{fr ? 'Votre accès AEGIS Solo à vie est activé.' : 'Your AEGIS Solo lifetime access is activated.'}</p>
-      {emailsPending && <div className="space-y-2"><p className="text-sm text-muted-foreground">{fr ? 'Votre accès est actif, mais l’email de confirmation est encore en attente.' : 'Your access is active, but the confirmation email is still pending.'}</p><Button variant="outline" disabled={busy} onClick={() => { setSuccess(false); }}>{fr ? 'Réessayer la confirmation' : 'Retry confirmation'}</Button></div>}
+      {emailsPending && <div className="space-y-2"><p className="text-sm text-muted-foreground">{fr ? 'Votre accès est actif, mais l’email de confirmation est encore en attente.' : 'Your access is active, but the confirmation email is still pending.'}</p><Button variant="outline" disabled={busy || !code.trim()} onClick={() => { void redeemCode(); }}>{busy && <Loader2 size={16} className="animate-spin" />}{fr ? 'Réessayer la confirmation' : 'Retry confirmation'}</Button>{message && <p role="alert" className="text-sm text-destructive">{message}</p>}</div>}
       <Button asChild><Link to="/dashboard">{fr ? 'Ouvrir AEGIS' : 'Open AEGIS'}</Link></Button>
     </div> : signedIn ? <form onSubmit={redeem} className="space-y-3">
       <label htmlFor="appsumo-code" className="block text-sm text-foreground">{fr ? 'Code AppSumo' : 'AppSumo code'}</label>

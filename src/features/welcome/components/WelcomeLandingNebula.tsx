@@ -1,9 +1,9 @@
 import { QuantumNebulaHeroV3 } from "@/components/ui/quantum-nebula-hero-v3";
 import { useWelcomeLandingNebulaWordDrive } from "@/features/welcome/hooks/useWelcomeLandingNebulaWordDrive";
 import {
-  WELCOME_NEBULA_VISUAL_TUNING,
-  WELCOME_NEBULA_WORD,
-} from "./WelcomeQuantumNebula";
+  LANDING_NEBULA_VISUAL_TUNING,
+  LANDING_NEBULA_WORD,
+} from "@/features/welcome/welcomeLandingNebulaConfig";
 
 /** Landing long-scroll (`WelcomeView`) — mot piloté par `welcomeNebulaScrollStory`. */
 export function WelcomeLandingNebula() {
@@ -15,8 +15,8 @@ export function WelcomeLandingNebula() {
       theme="auto"
       state="repos"
       flowMode="vortex"
-      visualTuning={WELCOME_NEBULA_VISUAL_TUNING}
-      word={WELCOME_NEBULA_WORD}
+      visualTuning={LANDING_NEBULA_VISUAL_TUNING}
+      word={LANDING_NEBULA_WORD}
       wordDriveRef={wordDriveRef}
       passBehindWord
       className="fixed inset-0 z-0"
