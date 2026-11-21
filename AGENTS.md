@@ -54,3 +54,4 @@
 - R3F environment HDRs use committed Lovable Assets pointers and pass their `.url` to Drei Environment; this keeps binary lighting assets available in clean deployments.
 - Preserve the frozen legacy Prism source by resolving its missing HDR URL import through a Vite alias to an asset-pointer URL adapter; this restores clean builds without refactoring the legacy scene.
 - SEO prerender: a build-only Vite plugin (scripts/seoPrerender.ts) writes static HTML and dist/sitemap.xml for /, /pricing, /newsletter (authored copy) plus every tool and blog article read from their registries; new registry entries are indexed automatically without a headless browser.
+- Database-to-function calls authenticate with `internal_call_headers()` (private random secret checked by service-only `check_internal_secret`); never commit internal secrets or trust anon-key callers for push, email, queue or export actions.
