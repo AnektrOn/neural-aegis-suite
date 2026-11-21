@@ -6,9 +6,8 @@ import { TEMPLATES } from './registry.ts'
 // Server-only: reads SMTP_* secrets. Import from edge functions only — never
 // expose sending to the browser.
 
-const SITE_NAME = 'AEGIS'
 const FROM_DOMAIN = 'protocolenomos.com'
-const DEFAULT_FROM = `${SITE_NAME} <contact@${FROM_DOMAIN}>`
+const DEFAULT_FROM = `Protocol Nomos <contact@${FROM_DOMAIN}>`
 const DEFAULT_REPLY_TO = `contact@${FROM_DOMAIN}`
 
 export type SendTemplateEmailResult =

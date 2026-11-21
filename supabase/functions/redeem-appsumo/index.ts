@@ -33,25 +33,45 @@ Deno.serve(async req => {
     try {
       const { data: redemption, error: readError } = await admin.from('appsumo_codes').select('redeemed_at').eq('code_hash', codeHash).eq('redeemed_by', user.id).single();
       if (readError || !redemption?.redeemed_at) throw new Error('Activation event not found');
-      const { data: roles, error: roleError } = await admin.from('user_roles').select('user_id').in('role', ['admin', 'superadmin']);
-      if (roleError) throw roleError;
-      const admins = await Promise.all([...new Set((roles ?? []).map(row => row.user_id))].map(async id => {
-        const { data, error } = await admin.auth.admin.getUserById(id);
-        if (error) throw error;
-        return data.user?.email;
-      }));
+      // Admin notices are best-effort: never block the member confirmation email.
+      let adminEmails: string[] = [];
+      try {
+        const { data: roles, error: roleError } = await admin.from('user_roles').select('user_id').in('role', ['admin', 'superadmin']);
+        if (roleError) throw roleError;
+        const resolved = await Promise.all([...new Set((roles ?? []).map(row => row.user_id))].map(async id => {
+          const { data, error } = await admin.auth.admin.getUserById(id);
+          if (error) {
+            console.error('AppSumo admin lookup failed:', error.message);
+            return null;
+          }
+          return data.user?.email ?? null;
+        }));
+        adminEmails = resolved.filter((email): email is string => Boolean(email));
+      } catch (adminError) {
+        console.error('AppSumo admin notice skipped:', adminError instanceof Error ? adminError.message : 'Admin lookup unavailable');
+      }
       const { data: profile } = await admin.from('profiles').select('display_name').eq('id', user.id).maybeSingle();
-      const jobs = redemptionEmails({ userId: user.id, redeemedAt: redemption.redeemed_at, email: user.email, name: profile?.display_name, createdAt: user.created_at, locale, code }, admins.filter((email): email is string => Boolean(email)));
-      // Each is a recipient-specific notice of this persisted activation, not a campaign.
+      const jobs = redemptionEmails({ userId: user.id, redeemedAt: redemption.redeemed_at, email: user.email, name: profile?.display_name, createdAt: user.created_at, locale, code }, adminEmails);
       // SMTP via contact@ — Hostinger cannot delegate Lovable's notify NS subdomain.
       const outcomes = await Promise.allSettled(jobs.map(job => sendTemplateEmail(job.template, job.recipient, { templateData: job.data, idempotencyKey: job.idempotencyKey, replyTo: 'contact@protocolenomos.com' })));
-      for (const outcome of outcomes) if (outcome.status === 'rejected') console.error('AppSumo confirmation failed:', outcome.reason?.code || outcome.reason?.message || 'Email unavailable');
+      for (const outcome of outcomes) {
+        if (outcome.status === 'rejected') {
+          const reason = outcome.reason;
+          console.error('AppSumo confirmation failed:', reason instanceof Error ? reason.message : reason?.code || reason?.message || String(reason) || 'Email unavailable');
+        }
+      }
       // Member welcome is the confirmation buyers see; admin notice failures must not block them.
-      const welcomeFailed = outcomes[0]?.status === 'rejected';
-      return respond({ ...result, emails: welcomeFailed ? 'pending' : 'processed' });
+      const welcome = outcomes[0];
+      if (!welcome || welcome.status === 'rejected') {
+        const reason = welcome && welcome.status === 'rejected' ? welcome.reason : null;
+        const emailError = reason instanceof Error ? reason.message : reason?.message || 'Email unavailable';
+        return respond({ ...result, emails: 'pending', email_error: emailError });
+      }
+      return respond({ ...result, emails: 'processed' });
     } catch (emailError) {
-      console.error('AppSumo confirmation failed:', emailError instanceof Error ? emailError.message : 'Email unavailable');
-      return respond({ ...result, emails: 'pending' });
+      const message = emailError instanceof Error ? emailError.message : 'Email unavailable';
+      console.error('AppSumo confirmation failed:', message);
+      return respond({ ...result, emails: 'pending', email_error: message });
     }
   } catch (error) {
     console.error('AppSumo redemption failed:', error instanceof Error ? error.message : 'Unknown error');

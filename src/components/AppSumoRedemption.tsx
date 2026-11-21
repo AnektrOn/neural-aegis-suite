@@ -26,7 +26,7 @@ export default function AppSumoRedemption() {
     try {
       const { data, error } = await supabase.functions.invoke('redeem-appsumo', { body: { code: code.trim().toUpperCase(), locale } });
       if (error) throw error;
-      const result = data as { success?: boolean; error?: string; emails?: string } | null;
+      const result = data as { success?: boolean; error?: string; emails?: string; email_error?: string } | null;
       if (!result?.success) {
         const errors: Record<string, string> = {
           invalid_code: fr ? 'Code invalide ou désactivé.' : 'Invalid or deactivated code.',
@@ -39,6 +39,9 @@ export default function AppSumoRedemption() {
       }
       await refetch();
       setEmailsPending(result.emails === 'pending');
+      setMessage(result.emails === 'pending' && result.email_error
+        ? (fr ? `Email en attente : ${result.email_error}` : `Email pending: ${result.email_error}`)
+        : '');
       setSuccess(true);
     } catch {
       setMessage(fr ? 'Activation indisponible. Réessayez dans un instant.' : 'Redemption unavailable. Please try again shortly.');
