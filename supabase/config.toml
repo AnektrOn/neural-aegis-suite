@@ -7,8 +7,6 @@ project_id = "REDACTED"
     verify_jwt = false
   [functions.preview-transactional-email]
     verify_jwt = false
-  [functions.drive-debug]
-    verify_jwt = true
   [functions.founders-availability]
     verify_jwt = false
   [functions.import-meditation-drive-links]

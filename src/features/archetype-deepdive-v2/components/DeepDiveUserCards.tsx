@@ -10,6 +10,7 @@
  */
 
 import { useState, type ReactNode } from "react";
+import { escapeHtml } from "@/lib/sanitizeHtml";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -52,7 +53,7 @@ const RANK_LABEL: Record<"dominant" | "secondaire" | "tertiaire", { fr: string; 
 
 /** Bold **markers** and line breaks for narrative copy from narrativeContent. */
 function narrativeInlineHtml(text: string): string {
-  return text
+  return escapeHtml(text ?? "")
     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-text-primary">$1</strong>')
     .replace(/\n/g, "<br />");
 }

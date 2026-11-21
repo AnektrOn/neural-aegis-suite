@@ -29,6 +29,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import QUESTIONS_CATALOG from "./questions70.json" with { type: "json" };
+import { isInternalRequest } from "../_shared/internalAuth.ts";
 
 type CatalogOption = { id: string; label_fr: string; label_en: string; weights: { archetype: string; polarity: "light" | "shadow"; weight: number }[] };
 type CatalogQuestion = { id: string; position: number; house: number; prompt_fr: string; prompt_en: string; options: CatalogOption[] };
@@ -548,9 +549,7 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
 
     const auth = req.headers.get("Authorization") || "";
-    const internalSecret = Deno.env.get("EXPORT_INTERNAL_SECRET") || "";
-    const suppliedInternalSecret = req.headers.get("x-internal-secret") || "";
-    const isInternal = !!internalSecret && suppliedInternalSecret === internalSecret;
+    const isInternal = await isInternalRequest(req, admin);
     if (!isInternal && !auth.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },

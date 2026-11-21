@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { getCallerRoles, isInternalRequest } from '../_shared/internalAuth.ts';
 import { OPERATOR_ROLES, OWNER_EMAIL, RECOVERY_START, escapeHtml, isRecentLogin, isInRecoveryPeriod } from './activity-rules.ts';
 
 
@@ -142,7 +143,10 @@ serve(async (req) => {
 
     const body = await req.json();
     if (!body || typeof body.type !== 'string') return new Response(JSON.stringify({ error: 'Invalid type' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    const { type, user_id, data } = body;
+    const { type } = body;
+    let user_id = body.user_id;
+    let data = (body.data && typeof body.data === 'object') ? { ...body.data } : {};
+    const internal = await isInternalRequest(req, supabase);
 
     if (type === 'activity_event' || type === 'activity_catchup' || type === 'activity_recovery_event' || type === 'admin_login_alert') {
       const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
@@ -198,6 +202,7 @@ serve(async (req) => {
         subject = 'Aegis — rattrapage des alertes d’activité';
         html = `<h2>Rattrapage des alertes</h2><p>Dernière alerte de connexion enregistrée : 17 octobre 2026 à 16:37 UTC. Cette date ne prouve pas une livraison en boîte mail. Les quiz et outils ne déclenchaient pas d’email dans le code examiné ; voici tout leur historique encore disponible.</p><h3>${realVisits.length} visites enregistrées depuis cette date</h3><p>Il s’agit de visites avec suivi accepté, pas de connexions authentifiées prouvées ; les visites sans suivi ne sont pas récupérables.</p><ul>${realVisits.map(v => line(v.user_id,v.started_at)).join('')}</ul><h3>${quizzes?.length ?? 0} quiz terminés conservés</h3><ul>${(quizzes ?? []).map(q => line(q.user_id,q.submitted_at)).join('')}</ul><h3>${tools?.length ?? 0} outils terminés conservés</h3><ul>${(tools ?? []).map(t => line(t.user_id,t.completed_at)).join('')}</ul><p>Aucun historique d’envoi antérieur ne permet de certifier quels emails avaient été reçus. Les données supprimées et anciennes répétitions d’un même outil ne sont pas récupérables.</p>`;
       } else if (type === 'activity_event') {
+        if (!internal) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
         if (!['assessment_sessions','toolbox_completions'].includes(body.table) || typeof body.event_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.event_id)) return new Response(JSON.stringify({ error: 'Invalid event' }), { status: 400, headers: corsHeaders });
         // Webhooks carry no user JWT: only accept a persisted, recently completed
         // event and resolve its user, content and recipients exclusively server-side.
@@ -243,12 +248,38 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success:true,event_key:key,results }), { headers: { ...corsHeaders,'Content-Type':'application/json' } });
     }
 
+    // Authorization for generic notifications: internal calls and operators only,
+    // except members may send their own fixed-format alerts to operators.
+    if (!internal) {
+      const callerInfo = await getCallerRoles(req, supabase);
+      if (!callerInfo.userId || callerInfo.isAnonymous) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (!callerInfo.isOperator) {
+        if (type !== 'admin_user_entry_alert' && type !== 'toolbox_abandoned') {
+          return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        user_id = callerInfo.userId;
+        delete data.admin_email;
+        data.user_email = callerInfo.email;
+        data.skip_in_app = false;
+      }
+    }
+    if (type === 'password_setup') {
+      let ok = false;
+      try { ok = new URL(String(data.link)).protocol === 'https:'; } catch { ok = false; }
+      if (!ok) return new Response(JSON.stringify({ error: 'Invalid link' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    // Escape every caller-supplied value before it is placed in email HTML.
+    const raw = data;
+    const e = (v: unknown) => (v === undefined || v === null || v === '' ? undefined : escapeHtml(v));
+    data = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, typeof v === 'boolean' ? v : e(v)]));
     const adminEmailTypes = new Set([
       "admin_login_alert",
       "admin_user_entry_alert",
       "toolbox_abandoned",
     ]);
-    let email = (data?.admin_email as string | undefined)?.trim() || undefined;
+    let email = (raw?.admin_email as string | undefined)?.trim() || undefined;
 
     if (!email && !adminEmailTypes.has(type)) {
       const { data: userData } = await supabase.auth.admin.getUserById(user_id);
@@ -270,7 +301,7 @@ serve(async (req) => {
         htmlBody = `<h2>Bonjour,</h2><p>Un nouveau contenu vous a été assigné : <strong>${data?.title || "Nouvel outil"}</strong></p><p>Connectez-vous pour le découvrir.</p>`;
         break;
       case "admin_message":
-        subject = `Message de votre coach : ${data?.subject || ""}`;
+        subject = `Message de votre coach : ${String(raw?.subject ?? "").slice(0, 150)}`;
         htmlBody = `<h2>Bonjour,</h2><p>Vous avez reçu un message de votre coach :</p><blockquote style="border-left:3px solid #2dd4bf;padding-left:12px;margin:16px 0;color:#555;">${data?.body || ""}</blockquote>`;
         break;
       case "toolbox_abandoned":
@@ -286,15 +317,15 @@ serve(async (req) => {
         htmlBody = `<h2>Nouvelle entrée utilisateur</h2><p><strong>${data?.user_name || "Utilisateur inconnu"}</strong> (${data?.user_email || "email indisponible"}) a créé une nouvelle entrée.</p><p>Titre: <strong>${data?.entry_title || "Sans titre"}</strong></p><p>Aperçu:</p><blockquote style="border-left:3px solid #2dd4bf;padding-left:12px;margin:16px 0;color:#555;">${data?.entry_preview || "Aucun contenu"}</blockquote><p>Horodatage: ${data?.created_at || new Date().toISOString()}</p>`;
         break;
       case "welcome_admin_created":
-        subject = data?.title || "Bienvenue sur Aegis";
+        subject = String(raw?.title || "Bienvenue sur Aegis").slice(0, 150);
         htmlBody = `<h2>Bienvenue</h2><p>${data?.message || "Votre compte Aegis a été créé."}</p><p><a href="https://aegis.humancatalystbeacon.com/auth">Se connecter</a></p>`;
         break;
       case "subscription_update":
-        subject = data?.title || "Votre abonnement AEGIS";
+        subject = String(raw?.title || "Votre abonnement AEGIS").slice(0, 150);
         htmlBody = `<p>${data?.message || ""}</p>`;
         break;
       case "pulse_card":
-        subject = data?.title || "Nouvelle carte Pulse - Aegis";
+        subject = String(raw?.title || "Nouvelle carte Pulse - Aegis").slice(0, 150);
         htmlBody = `<h2>Bonjour,</h2><p>Une nouvelle carte Pulse est disponible : <strong>${data?.message || data?.title || "Nouvelle carte"}</strong></p><p>Ouvrez l'app pour la découvrir.</p>`;
         break;
       case "password_setup":
@@ -308,7 +339,7 @@ serve(async (req) => {
 <p style="color:#666;font-size:13px;"><em>Hello, your access is ready. Click the button above to choose your password — the link opens the form directly. It is valid for one hour and can be used once.</em></p>`;
         break;
       default:
-        subject = data?.title || "Notification Aegis";
+        subject = String(raw?.title || "Notification Aegis").slice(0, 150);
         htmlBody = `<p>${data?.message || "Vous avez une nouvelle notification."}</p>`;
     }
 
@@ -322,16 +353,16 @@ serve(async (req) => {
       try {
         sendResult = await sendEmail({ to, subject, html: htmlBody });
       } catch (err) {
-        console.error("email delivery failed", to, err instanceof Error ? err.message : err);
+        console.error("email delivery failed", err instanceof Error ? err.message : err);
       }
     }
     if (!recipients.length) {
-      console.log(`Email notification skipped (no recipient): subject=${subject}, type=${type}`);
+      console.log(`Email notification skipped (no recipient): type=${type}`);
     }
 
-    console.log(`Email notification: to=${recipients.join(", ") || "(none)"}, subject=${subject}, type=${type}`);
+    console.log(`Email notification: recipients=${recipients.length}, type=${type}`);
 
-    const skipInApp = data?.skip_in_app === true;
+    const skipInApp = raw?.skip_in_app === true;
 
     // In-app: user-targeted vs admin-targeted (see plan: admin_user_entry_alert = email only — DB triggers own in-app).
     if (skipInApp) {
@@ -342,7 +373,7 @@ serve(async (req) => {
       // Journal in-app notifications come from Postgres triggers; avoid duplicates.
     } else if (type === "admin_login_alert") {
       const msg =
-        `${data?.user_name || "Utilisateur"} (${data?.user_email || "?"}) s'est connecté.`;
+        `${raw?.user_name || "Utilisateur"} (${raw?.user_email || "?"}) s'est connecté.`;
       await insertNotificationsForAllAdmins(supabase, {
         title: subject,
         message: msg,
@@ -351,7 +382,7 @@ serve(async (req) => {
       });
     } else if (type === "toolbox_abandoned") {
       const msg =
-        `${data?.user_name || "?"} a abandonné l'outil « ${data?.tool_title || "?"} ».`;
+        `${raw?.user_name || "?"} a abandonné l'outil « ${raw?.tool_title || "?"} ».`;
       await insertNotificationsForAllAdmins(supabase, {
         title: subject,
         message: msg,
@@ -362,20 +393,20 @@ serve(async (req) => {
       await supabase.from("notifications").insert({
         user_id,
         title: subject,
-        message: data?.message || data?.body || data?.title || "Nouvelle notification",
+        message: String(raw?.message || raw?.body || raw?.title || "Nouvelle notification").slice(0, 1000),
         type: type === "admin_message" ? "message" : "info",
       });
     } else {
       await supabase.from("notifications").insert({
         user_id,
         title: subject,
-        message: data?.message || data?.body || data?.title || "Nouvelle notification",
+        message: String(raw?.message || raw?.body || raw?.title || "Nouvelle notification").slice(0, 1000),
         type: "info",
       });
     }
 
     return new Response(
-      JSON.stringify({ success: true, recipients, subject, delivery: sendResult }),
+      JSON.stringify({ success: true, recipients: recipients.length, delivery: sendResult }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {

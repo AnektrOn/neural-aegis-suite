@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { sanitizeSvg } from "@/lib/sanitizeHtml";
 import type { RunePrincipleCode } from "../domain/types";
 
 interface SacredGeometryProps {
@@ -62,7 +63,7 @@ export function SacredGeometry({ type, isGlowing = true, glowIntensity, glyphSvg
           filter: effectiveGlow ? `drop-shadow(0 0 ${blurRadius}px rgba(255,215,0,${(0.1 + intensity * 0.35).toFixed(2)}))` : "none",
           transition: "opacity 0.7s, filter 0.7s",
         }}
-        dangerouslySetInnerHTML={{ __html: glyphSvg }}
+        dangerouslySetInnerHTML={{ __html: sanitizeSvg(glyphSvg) }}
       />
     );
   }

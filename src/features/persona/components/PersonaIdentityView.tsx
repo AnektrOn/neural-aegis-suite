@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { escapeHtml } from "@/lib/sanitizeHtml";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Sparkles,
@@ -218,7 +219,7 @@ export function PersonaIdentityView({ profile, displayName }: PersonaIdentityVie
                 <li key={i} className="text-sm text-muted-foreground leading-relaxed pl-3 border-l border-emerald-500/20">
                   <span
                     dangerouslySetInnerHTML={{
-                      __html: s.replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground">$1</strong>'),
+                      __html: escapeHtml(s).replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground">$1</strong>'),
                     }}
                   />
                 </li>

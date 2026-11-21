@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isInternalRequest } from "../_shared/internalAuth.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
@@ -322,6 +323,11 @@ serve(async (req) => {
     const { action, limit, email, locale, edition_id, confirm_token } = body;
 
     if (action === "process_queue") {
+      if (!(await isInternalRequest(req, supabase))) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const result = await processQueue(supabase, Math.min(Math.max(Number(limit) || 10, 1), 50));
       return new Response(JSON.stringify({ success: true, ...result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

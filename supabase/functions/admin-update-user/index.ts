@@ -120,6 +120,13 @@ Deno.serve(async (req) => {
 
     if (!userId) return json({ error: "user_id is required" }, 400);
 
+    // Company administrators may only act on members of their own companies.
+    if (!isSuperAdmin) {
+      const { assertCanActOnUser } = await import("../_shared/b2b-roles.ts");
+      const scope = await assertCanActOnUser(adminClient, caller.id, userId);
+      if (!scope.ok) return json({ error: scope.error }, scope.status);
+    }
+
     // Send a branded "create your password" email with a direct set-password link.
     if (action === "reset_password") {
       const { data: target, error: getErr } = await adminClient.auth.admin.getUserById(userId);

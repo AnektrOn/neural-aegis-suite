@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { neutralizeCsvFormula } from "@/lib/safeCsv";
 import { motion } from "framer-motion";
 import { Loader2, Search, Sparkles, ChevronDown, ChevronRight, Download, FileText } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -102,7 +103,7 @@ export default function AdminDeepDive() {
       "intensity_pct",
     ];
     const escape = (v: any) => {
-      const s = v === null || v === undefined ? "" : String(v);
+      const s = neutralizeCsvFormula(v === null || v === undefined ? "" : String(v));
       return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const lines: string[] = [header.join(",")];

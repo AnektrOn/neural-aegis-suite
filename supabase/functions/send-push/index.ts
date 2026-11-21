@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // @ts-expect-error web-push ships CJS types (export =) while esm.sh serves a default export
 import webpush from "https://esm.sh/web-push@3.6.7";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
+import { getCallerRoles, isInternalRequest } from "../_shared/internalAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -126,7 +127,7 @@ serve(async (req) => {
     );
 
     const body = await req.json().catch(() => ({}));
-    const {
+    let {
       target = "admins",
       user_id,
       title = "Aegis",
@@ -134,6 +135,33 @@ serve(async (req) => {
       url = "/",
       tag,
     } = body ?? {};
+
+    // Internal server calls and operators may target anyone; members may only
+    // trigger their own fixed login alert to the operators.
+    const internal = await isInternalRequest(req, supabase);
+    if (!internal) {
+      const caller = await getCallerRoles(req, supabase);
+      if (!caller.userId || caller.isAnonymous) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!caller.isOperator) {
+        const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", caller.userId).maybeSingle();
+        const name = profile?.display_name || caller.email || "Utilisateur";
+        target = "admins";
+        user_id = undefined;
+        title = "Connexion utilisateur";
+        message = `${name} vient de se connecter.`;
+        url = "/admin/insights?tab=analytics";
+        tag = `login-${caller.userId}`;
+      }
+    }
+    if (typeof title !== "string") title = "Aegis";
+    if (typeof message !== "string") message = "";
+    if (typeof url !== "string" || !url.startsWith("/")) url = "/";
+    title = title.slice(0, 200);
+    message = message.slice(0, 1000);
 
     let adminIds: string[] | null = null;
     if (!(target === "user" && user_id)) {

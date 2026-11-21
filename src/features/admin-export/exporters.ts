@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { neutralizeCsvFormula } from "@/lib/safeCsv";
 import type { DataSourceKey } from "./dataSources";
 
 function escapeCsv(v: any): string {
@@ -6,6 +7,7 @@ function escapeCsv(v: any): string {
   let s: string;
   if (typeof v === "object") s = JSON.stringify(v);
   else s = String(v);
+  s = neutralizeCsvFormula(s);
   if (/[",\n\r]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
   return s;
 }

@@ -40,9 +40,18 @@ Deno.serve(async (req) => {
     if (!customerId) return json({ error: 'No customer found' }, 404);
 
     const { origin } = await req.json().catch(() => ({ origin: undefined }));
-    const baseUrl = typeof origin === 'string' && origin.startsWith('http')
-      ? origin
-      : 'https://aegis.humancatalystbeacon.com';
+    const ALLOWED_ORIGINS = new Set([
+      'https://aegis.humancatalystbeacon.com',
+      'https://neural-aegis-suite.lovable.app',
+      'https://id-preview--7e055f5e-19d7-4fcc-af86-05590e0fc958.lovable.app',
+    ]);
+    let baseUrl = 'https://aegis.humancatalystbeacon.com';
+    if (typeof origin === 'string') {
+      try {
+        const parsed = new URL(origin).origin;
+        if (ALLOWED_ORIGINS.has(parsed)) baseUrl = parsed;
+      } catch { /* keep default */ }
+    }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
       // stripe@17 only types its own latest API version; the account runs Basil.

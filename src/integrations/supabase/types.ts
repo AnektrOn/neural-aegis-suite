@@ -2116,6 +2116,24 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_call_secrets: {
+        Row: {
+          created_at: string
+          id: number
+          secret: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          secret: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          secret?: string
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           content: string
@@ -4409,6 +4427,7 @@ export type Database = {
         Args: { _subject: string; _viewer: string }
         Returns: boolean
       }
+      check_internal_secret: { Args: { p_secret: string }; Returns: boolean }
       check_service_rate_limit: {
         Args: { p_bucket: string; p_limit?: number; p_window_seconds?: number }
         Returns: Json
@@ -4528,6 +4547,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      internal_call_headers: { Args: never; Returns: Json }
       is_company_admin: { Args: { _uid?: string }; Returns: boolean }
       is_company_admin_of: {
         Args: { _company_id: string; _uid: string }

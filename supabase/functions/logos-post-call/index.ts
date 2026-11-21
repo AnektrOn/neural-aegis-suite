@@ -343,15 +343,17 @@ Deno.serve(async (req) => {
     if (!url || !service) return json({ error: "Server misconfigured" }, 500);
 
     const rawBody = await req.text();
-    if (webhookSecret) {
+    if (!webhookSecret) {
+      console.error("logos-post-call: webhook secret not configured — request rejected");
+      return json({ error: "Webhook not configured" }, 503);
+    }
+    {
       const ok = await verifyElevenLabsSignature(
         rawBody,
         req.headers.get("elevenlabs-signature") ?? req.headers.get("ElevenLabs-Signature"),
         webhookSecret,
       );
       if (!ok) return json({ error: "Invalid signature" }, 401);
-    } else {
-      console.warn("logos-post-call: ELEVENLABS_POST_CALL_WEBHOOK_SECRET unset — signature skipped");
     }
 
     const payload = JSON.parse(rawBody) as { type?: string; data?: Record<string, unknown> };

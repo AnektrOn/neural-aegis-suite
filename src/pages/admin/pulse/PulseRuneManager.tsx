@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { sanitizeSvg } from "@/lib/sanitizeHtml";
 import {
   Search,
   Eye,
@@ -450,7 +451,7 @@ export function PulseRuneManager() {
                   {rune.glyph_svg ? (
                     <div
                       className="size-9 shrink-0 text-text-primary opacity-60"
-                      dangerouslySetInnerHTML={{ __html: rune.glyph_svg }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeSvg(rune.glyph_svg) }}
                     />
                   ) : (
                     <div className="size-9 shrink-0 rounded-lg bg-bg-elevated flex items-center justify-center">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { neutralizeCsvFormula } from "@/lib/safeCsv";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -396,9 +397,9 @@ export default function AdminSegmentation() {
       head.join(","),
       ...rows.map((u) =>
         [
-          `"${(u.display_name || "").split('"').join('""')}"`,
-          `"${(u.email || "").split('"').join('""')}"`,
-          `"${(u.company_id ? companyNameById.get(u.company_id) || "" : "").split('"').join('""')}"`,
+          `"${neutralizeCsvFormula((u.display_name || "")).split('"').join('""')}"`,
+          `"${neutralizeCsvFormula((u.email || "")).split('"').join('""')}"`,
+          `"${neutralizeCsvFormula((u.company_id ? companyNameById.get(u.company_id) || "" : "")).split('"').join('""')}"`,
           u.avg_mood_14d ?? "",
           u.habit_rate_14d,
           u.days_since_login,

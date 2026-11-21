@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authenticateCronRequest } from "../_shared/cron-auth.ts";
+import { getCallerRoles, isInternalRequest } from "../_shared/internalAuth.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
@@ -136,6 +138,14 @@ serve(async (req) => {
         });
       }
     } else {
+      // Automatic mode is reserved for the scheduler, internal calls and operators.
+      const cronOk = authenticateCronRequest(req.clone()) === null;
+      if (!cronOk && !(await isInternalRequest(req, supabase)) && !(await getCallerRoles(req, supabase)).isOperator) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { data: settings } = await supabase
         .from("email_alert_settings")
         .select("*")
@@ -241,7 +251,7 @@ serve(async (req) => {
         }
         sent += 1;
       } catch (err) {
-        console.error("alert email failed", r.email, err instanceof Error ? err.message : err);
+        console.error("alert email failed", err instanceof Error ? err.message : err);
       }
     }
     if (smtp) await smtp.client.close();

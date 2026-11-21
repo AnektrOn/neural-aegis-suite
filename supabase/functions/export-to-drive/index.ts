@@ -3,6 +3,7 @@
 // Uses a DB cache (drive_folder_cache) to guarantee unique folders even under
 // massively parallel pg_net calls.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isInternalRequest } from "../_shared/internalAuth.ts";
 import { corsHeaders as sdkCorsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { HOUSES72_BAREME_MD } from "./houses72-bareme.ts";
 import { EXPORT_ROOT, USER_EXPORT_TABLES, readAllRows, categoryForTable } from "./full-export.ts";
@@ -206,16 +207,12 @@ Deno.serve(async (req) => {
 
   try {
     const serviceSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const exportSecret = Deno.env.get("EXPORT_INTERNAL_SECRET") || "";
     const auth = req.headers.get("Authorization") || "";
-    const internalHeader = req.headers.get("x-internal-secret") || "";
-    const isInternal =
-      (!!serviceSecret && auth === `Bearer ${serviceSecret}`) ||
-      (!!exportSecret && internalHeader === exportSecret);
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
+    // The internal secret lives only in a private database table (rotated); the old committed value is no longer accepted.
+    const isInternal = await isInternalRequest(req, admin);
     const body = await req.json().catch(() => ({}));
 
     if (body.action === "export_logos_transcript") {
@@ -387,7 +384,7 @@ Deno.serve(async (req) => {
       }
       const runAll = async () => {
         for (const profile of profiles) {
-          try { console.log("export_all verified:", JSON.stringify(await exportUser(profile))); }
+          try { await exportUser(profile); console.log("export_all verified:", profile.id); }
           catch (error) { console.error(`export_all failed for ${profile.id}:`, error); }
         }
       };
