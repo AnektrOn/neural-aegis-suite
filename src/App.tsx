@@ -121,6 +121,7 @@ const AegisCorePreview = lazy(() => import("./pages/dev/AegisCorePreview"));
 const QuantumNebulaDemo = lazy(() => import("./pages/dev/QuantumNebulaDemo"));
 const ToolboxNebulaDemo = lazy(() => import("./pages/dev/ToolboxNebulaDemo"));
 const LogosChoicesLabPage = lazy(() => import("./pages/dev/logos-choices/LogosChoicesLabPage"));
+const LogosWorkflowLabPage = lazy(() => import("./pages/dev/logos-workflow/LogosWorkflowLabPage"));
 const LogosDevPage = lazy(() => import("./pages/dev/logos/LogosDevPage"));
 const DienChanMap = lazy(() => import("./pages/dev/DienChanMap"));
 const BodyScanPreview = lazy(() => import("./pages/dev/BodyScanPreview"));
@@ -355,6 +356,7 @@ const App = () => (
                     <Route path="/dev/toolbox-nebula" element={<DevGate><ToolboxNebulaDemo /></DevGate>} />
                     <Route path="/dev/logos" element={<DevGate><LogosDevPage /></DevGate>} />
                     <Route path="/dev/logos-choices" element={<DevGate><LogosChoicesLabPage /></DevGate>} />
+                    <Route path="/dev/logos-workflow" element={<DevGate><LogosWorkflowLabPage /></DevGate>} />
                     <Route path="/dev/dien-chan" element={<DevGate><DienChanMap variant="dev" /></DevGate>} />
                     {/* Mixamo Xbot additive-skinning playground */}
                     <Route path="/dev/body-scan" element={<DevGate><BodyScanPreview /></DevGate>} />

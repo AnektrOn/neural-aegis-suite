@@ -22,3 +22,17 @@ Routes de test :
 
 - Tutoriel pas à pas (fr) : [`logos-tutoriel-elevenlabs.md`](./logos-tutoriel-elevenlabs.md)
 - Spec complète : [`logos-client-tools-spec.md`](./logos-client-tools-spec.md)
+- IDs workspace : [`elevenlabs/logos-client-tools/tool-ids.json`](./elevenlabs/logos-client-tools/tool-ids.json)
+
+## Preuve d’invocation (app)
+
+Pendant un appel, la console doit montrer `[logos-client-tool] <name> invoke` puis `result`.  
+Sans cette ligne, le modal ne peut pas s’ouvrir — problème côté agent (edge / tool call), pas React.
+
+## QA transcript
+
+```bash
+node scripts/assert-logos-transcript-tools.mjs transcript.json
+```
+
+Checklist live : [`LOGOS_LIVE_VALIDATION.md`](./LOGOS_LIVE_VALIDATION.md)

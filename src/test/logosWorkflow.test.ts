@@ -18,4 +18,16 @@ describe("LOGOS workflow without uploaded sources", () => {
     expect(template.workflow.edges.start_node__greeting.target).toBe("triage");
     expect(template.workflow.nodes.triage.entry_behavior).toBe("wait_for_user");
   });
+
+  it("pins UI client tools on guide_somatique, checkin, analyse", () => {
+    const guide = template.workflow.nodes.guide_somatique as {
+      additional_tool_ids?: string[];
+    };
+    const checkin = template.workflow.nodes.checkin as { additional_tool_ids?: string[] };
+    const analyse = template.workflow.nodes.analyse as { additional_tool_ids?: string[] };
+    expect(guide.additional_tool_ids).toContain("tool_4801m7bxhmy8fd6sbessx9cmbybp");
+    expect(checkin.additional_tool_ids?.length).toBeGreaterThanOrEqual(3);
+    expect(analyse.additional_tool_ids?.length).toBeGreaterThanOrEqual(5);
+    expect((template.workflow.nodes.triage as { additional_tool_ids?: string[] }).additional_tool_ids ?? []).toHaveLength(0);
+  });
 });

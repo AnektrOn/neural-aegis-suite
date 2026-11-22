@@ -264,6 +264,17 @@ const FEATURES: DevFeature[] = [
     accent: "from-amber-500/20 to-stone-500/10",
   },
   {
+    path: "/dev/logos-workflow",
+    title: "LOGOS — workflow",
+    titleEn: "LOGOS — workflow",
+    blurb: "Sans voix : intents triage → edges → client tools (toolbox / check-in / analyse) + trigger log.",
+    blurbEn: "No voice: triage intents → edges → client tools (toolbox / check-in / analyse) + trigger log.",
+    status: "playground",
+    tags: ["logos", "workflow", "tools"],
+    icon: Activity,
+    accent: "from-amber-500/25 to-rose-500/10",
+  },
+  {
     path: "/dev/aegis-core",
     title: "Aegis Core",
     titleEn: "Aegis Core",

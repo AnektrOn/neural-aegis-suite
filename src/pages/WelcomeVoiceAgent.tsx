@@ -6,7 +6,6 @@ import { VoiceAgent } from "@/components/voice/VoiceAgent";
 import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
 import { LogosSubscriptionGate } from "@/features/logos/LogosSubscriptionGate";
 import { useLogosPathChooser } from "@/features/logos/useLogosPathChooser";
-import { LogosDevModalsPanel } from "@/pages/dev/logos/LogosDevModalsPanel";
 
 function pickFirstName(displayName: string | null, user: NonNullable<ReturnType<typeof useAuth>["user"]>) {
   if (displayName?.trim() && !displayName.includes("@")) {
@@ -35,9 +34,6 @@ export default function WelcomeVoiceAgent() {
   const [agentId, setAgentId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [accessChecked, setAccessChecked] = useState(false);
-  const [voicePhase, setVoicePhase] = useState<
-    "idle" | "path_choice" | "connecting" | "connected" | "error"
-  >("path_choice");
 
   const firstName = useMemo(
     () => (user ? pickFirstName(displayName, user) : ""),
@@ -128,16 +124,7 @@ export default function WelcomeVoiceAgent() {
         requirePathChoice
         matchWelcomeVisual
         liveOverlay={liveOverlay}
-        onPhaseChange={setVoicePhase}
       />
-      {import.meta.env.DEV && voicePhase === "connected" ? (
-        <LogosDevModalsPanel
-          userId={user.id}
-          locale={locale}
-          isFR={isFR}
-          className="!z-[230]"
-        />
-      ) : null}
       </LogosVoiceShell>
     </LogosSubscriptionGate>
   );

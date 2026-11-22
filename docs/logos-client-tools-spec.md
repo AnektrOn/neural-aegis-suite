@@ -18,6 +18,7 @@ Configurer les **client tools** sur cet agent avec les noms **exactement** ci-de
 | Name | expectsResponse | Params | Return (string) |
 |------|-----------------|--------|-------------------|
 | `list_actionable_content` | false | `intent?` string, `limit?` number (max 8) | JSON catalog |
+| `propose_actionable_choices` | **true** | `limit?` number (typ. 3) | sélection + `completed` \| `abandoned` \| `assimilated` \| `ignored` \| `dismissed` \| `error:…` |
 | `open_toolbox_item` | **true** | `assignment_id?` uuid, `slug?` string (title slug match) | `completed` \| `abandoned` \| `closed` \| `error:…` |
 | `propose_pulse_card` | **true** | `card_id?` uuid | `assimilated` \| `ignored` \| `dismissed` (carte flip recto/verso) |
 | `record_pulse_swipe` | false | `card_id` uuid, `action` `assimilated` \| `ignored` | `ok` \| `error:…` |
@@ -34,7 +35,7 @@ Configurer les **client tools** sur cet agent avec les noms **exactement** ci-de
 | Nœud | Tools typiques |
 |------|----------------|
 | `triage` | `list_actionable_content` (optionnel) |
-| `guide_somatique` | list, open_toolbox_item, propose_pulse_card, record_pulse_swipe |
+| `guide_somatique` | list, propose_actionable_choices, open_toolbox_item, propose_pulse_card, record_pulse_swipe |
 | `checkin` | write_mood_entry, open_quick_log, open_toolbox_item (régulation) |
 | `analyse` | write_journal_entry, write_decision, open_people_checkin, write_relation_note, open_toolbox_item (ancrage) |
 

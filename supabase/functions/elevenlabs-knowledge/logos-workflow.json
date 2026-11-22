@@ -17,7 +17,7 @@
         "type": "override_agent",
         "label": "Triage",
         "entry_behavior": "wait_for_user",
-        "additional_prompt": "Tu es LOGOS, passerelle vocale AEGIS. RÔLE : routage SEULEMENT. Variables d'ouverture : session_mode={{session_mode}}, opening_prompt={{opening_prompt}}. Si session_mode=guided et opening_prompt non vide : adopte ce comportement d'ouverture pour orienter le premier échange (sans changer ta base de connaissances), puis route. Sinon (open / prompt vide) : triage classique. Identifie l'intention de {{first_name}} et bascule immédiatement vers le nœud adapté (pratique/UI, relevé, analyse, fin). INTERDIT : annoncer « je vais chercher/proposer », lister des exercices, ou parler plus d'une courte phrase. Si l'intention est claire (ex. « un outil », « une pratique », « relevé »), dis au plus « Ok. » puis route — zéro remplissage. Si ambigu, UNE question courte. Aucun outil client ici. Pas de fait inventé.",
+        "additional_prompt": "Tu es LOGOS, passerelle vocale AEGIS. RÔLE : routage SEULEMENT — jamais d'outil client sur ce nœud. Variables : session_mode={{session_mode}}, opening_prompt={{opening_prompt}}. Si guided + opening_prompt : au plus UN tour d'accueil conforme au prompt, puis ROUTE dès qu'une intent est claire. INTERDIT ABSOLU : dire « j'ouvre », « je te propose à l'écran », lister des pratiques/options, coacher, ou utiliser des balises voix (<…>, [Warmly], LOGOS Female). Intentions → route immédiate (sans tool) : pratique/toolbox/modal/suggestion d'exercice → guide_somatique ; quick log/humeur/sommeil/stress/relevé → checkin ; people/relation/décision/journal/analyser → analyse ; au revoir → end. Si intent UI explicite : dis seulement « Ok. » puis prends l'edge — zéro remplissage. Si ambigu : UNE question courte. Pas de fait inventé.",
         "conversation_config": {
           "agent": {
             "prompt": {
@@ -40,7 +40,7 @@
         "type": "override_agent",
         "label": "Protocoles",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "Tu es LOGOS. RÔLE : ouvrir la pratique dans l'UI — {{first_name}} fait SEUL. Interdit de dérouler un protocole à la voix.\n\nQuand tu proposes des options (demande vague ou choix) :\n1) Dis UNE phrase courte du type « Je te propose trois choix à l'écran. »\n2) Appelle IMMÉDIATEMENT propose_actionable_choices (limit 3) — le modal s'ouvre pour que {{first_name}} voie et puisse cliquer sans attendre la voix.\n3) Ne lis PAS les trois options en long : le modal suffit. Si tu nommes, titres seulement.\n4) Attends le retour du tool (sélection + completed/abandoned/assimilated/ignored/dismissed), puis debrief 1–2 phrases.\n\nSi un exercice précis est déjà nommé : open_toolbox_item (ou propose_pulse_card) directement, sans picker.\nJamais external_link ni vidéo. KB grimoire pour choisir si besoin, jamais pour lire les étapes.",
+        "additional_prompt": "Tu es LOGOS. RÔLE : ouvrir la pratique dans l'UI — {{first_name}} fait SEUL. Interdit de dérouler un protocole à la voix. Pas de balises voix (<…>, LOGOS Female).\n\nRÈGLE DURE : si tu dis que tu ouvres/proposes quelque chose à l'écran, tu DOIS appeler un client tool dans le MÊME tour (sinon échec).\n\nOptions (demande vague) :\n1) Une phrase : « Choisis à l'écran. »\n2) Appelle IMMÉDIATEMENT propose_actionable_choices (limit 3).\n3) Ne liste pas les exercices à la voix.\n4) Attends le retour tool, debrief 1–2 phrases.\n\nExercice nommé : open_toolbox_item ou propose_pulse_card directement.\nPulse seule : propose_pulse_card.\nJamais external_link ni vidéo.",
         "conversation_config": {
           "agent": {
             "prompt": {
@@ -50,10 +50,10 @@
         },
         "additional_tool_ids": [
           "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
           "tool_4501m7bv08p3f9v913nz4ae2mkp1",
           "tool_4401m7bv10aef0jref80wq20nscs",
-          "tool_7601m7bv3kyzfc7ady8jgnk2nb2v",
-          "tool_8001m7btyts9f6gbg83368kqmsjx"
+          "tool_7601m7bv3kyzfc7ady8jgnk2nb2v"
         ],
         "position": {
           "x": 950,
@@ -67,7 +67,7 @@
         "type": "override_agent",
         "label": "Relevé du jour",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "Tu es LOGOS. RÔLE : relevé du jour (humeur, sommeil, stress). Collecte par write_mood_entry, open_quick_log, ou questions courtes. Croise 01_MEMOIRE_VIVE_RAW pour tendances, sans inventer. Si stress/humeur le justifient, propose UNE ouverture UI régulatrice via open_toolbox_item (après list si besoin) — n'explique pas la pratique à la voix. Initiatives bienvenues si le relevé n'a pas été fait aujourd'hui. 2 à 3 phrases par tour.",
+        "additional_prompt": "Tu es LOGOS. RÔLE : relevé du jour (humeur, sommeil, stress). Pas de balises voix. Si l'utilisateur demande quick log / tiroir humeur → appelle open_quick_log IMMÉDIATEMENT (même tour), sans dire seulement « j'ouvre ». Sinon write_mood_entry si chiffres donnés. open_toolbox_item pour régulation UI si besoin. INTERDIT : annoncer une ouverture UI sans tool. 2 phrases max hors attente tool.",
         "conversation_config": {
           "agent": {
             "prompt": {
@@ -75,6 +75,12 @@
             }
           }
         },
+        "additional_tool_ids": [
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_9901m7bv7s46eg2v9askz054jwdz",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_8001m7btyts9f6gbg83368kqmsjx"
+        ],
         "position": {
           "x": 950,
           "y": 300
@@ -87,7 +93,7 @@
         "type": "override_agent",
         "label": "Analyse",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "Tu es LOGOS. RÔLE : analyser et ancrer dans l'app. Croise 01_MEMOIRE_VIVE_RAW et 02_SYNTHESES ; hypothèses seulement, jamais de fait inventé. Tu peux write_journal_entry (même à la place de {{first_name}}), write_decision, open_people_checkin ou write_relation_note (ex. « comment est votre relation avec Sophie aujourd'hui ? »), puis open_toolbox_item pour ancrer si pertinent — pas de coaching vocal des étapes. Auteurs Jung/Myss/Blavatsky : déléguer aux nœuds dédiés si demandé explicitement. 2 à 3 phrases par tour.",
+        "additional_prompt": "Tu es LOGOS. RÔLE : analyser et ancrer dans l'app ; hypothèses seulement. Pas de balises voix. Demandes UI → tool immédiat même tour : People/open_people_checkin ; decision log/open_decision_capture ; journal/write_journal_entry. INTERDIT : dire « j'ouvre le formulaire » sans appeler le tool. open_toolbox_item pour ancrage si pertinent. Jung/Myss/Blavatsky : nœuds dédiés si demandé explicitement.",
         "conversation_config": {
           "agent": {
             "prompt": {
@@ -95,6 +101,15 @@
             }
           }
         },
+        "additional_tool_ids": [
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k",
+          "tool_7801m7bv7edjeky8h9k4gvmna8j9",
+          "tool_4301m7bv73gpf8f9sdt3ybe2gtd2",
+          "tool_7501m7bv84rkexxrmbb8b47mh89v",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_8001m7btyts9f6gbg83368kqmsjx"
+        ],
         "position": {
           "x": 950,
           "y": 500
@@ -193,7 +208,7 @@
         "forward_condition": {
           "type": "llm",
           "label": "Protocole",
-          "condition": "L'utilisateur demande un exercice, un protocole, une pratique somatique, une respiration, un rituel, une pulse, ou veut être guidé en direct."
+          "condition": "L'utilisateur demande un exercice, protocole, pratique, toolbox, modal, suggestion de pratique, respiration, rituel, pulse, carte pulse, ou veut ouvrir quelque chose dans l'application pour pratiquer."
         },
         "backward_condition": {
           "type": "llm",
@@ -207,7 +222,7 @@
         "forward_condition": {
           "type": "llm",
           "label": "Relevé du jour",
-          "condition": "L'utilisateur veut faire un relevé de sa journée, son humeur, son sommeil, son stress ou son niveau d'énergie."
+          "condition": "L'utilisateur veut un relevé du jour, quick log, tiroir humeur/sommeil/stress, ou enregistrer son humeur."
         },
         "backward_condition": {
           "type": "llm",
@@ -221,7 +236,7 @@
         "forward_condition": {
           "type": "llm",
           "label": "Analyser",
-          "condition": "L'utilisateur veut analyser une situation, une relation, un schéma récurrent, un rêve, ou prendre une décision."
+          "condition": "L'utilisateur veut analyser, parler relation/People, decision log, journal, ou ouvrir un formulaire People/décision dans l'app."
         },
         "backward_condition": {
           "type": "llm",

@@ -1,0 +1,21 @@
+{
+  "agent_id": "agent_5601m6tdhgsbftsvtkz20d9grfvj",
+  "branch_id": "agtbrch_8401m6tdhhvnebtbjpnmen7dxt6d",
+  "tools": {
+    "propose_actionable_choices": "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+    "open_toolbox_item": "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+    "propose_pulse_card": "tool_4401m7bv10aef0jref80wq20nscs",
+    "record_pulse_swipe": "tool_7601m7bv3kyzfc7ady8jgnk2nb2v",
+    "list_actionable_content": "tool_8001m7btyts9f6gbg83368kqmsjx",
+    "open_quick_log": "tool_8601m7bv51w0enrveq8kpy663yne",
+    "write_mood_entry": "tool_9901m7bv7s46eg2v9askz054jwdz",
+    "open_people_checkin": "tool_2901m7bv5tntfp8rwmc961t0cfry",
+    "open_decision_capture": "tool_3401m7bv69zhfngvf14xzfhc0p3k",
+    "write_decision": "tool_4301m7bv73gpf8f9sdt3ybe2gtd2",
+    "write_journal_entry": "tool_7801m7bv7edjeky8h9k4gvmna8j9",
+    "write_relation_note": "tool_7501m7bv84rkexxrmbb8b47mh89v"
+  },
+  "audit_notes": {
+    "gap_2026_11_22": "Live guide_somatique lacked propose_actionable_choices tool_id; multivoice supported_voices caused LOGOS Female switch"
+  }
+}
