@@ -12,6 +12,7 @@ import {
 } from "./helpers.ts";
 import {
   ensureLogosConversationFolder,
+  resolveLogosConversationFolder,
   upsertDriveBytes,
   upsertDriveText,
 } from "./drive.ts";
@@ -171,6 +172,15 @@ async function handleTranscription(
 
   const { folderId, path } = await ensureLogosConversationFolder(parts);
 
+  // Stamp path early so a concurrent post_call_audio webhook reuses this tree.
+  await admin
+    .from("logos_conversation_exports")
+    .update({
+      logos_drive_path: path,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("elevenlabs_conversation_id", conversationId);
+
   await upsertDriveText(
     folderId,
     "transcript.json",
@@ -274,6 +284,34 @@ async function handleTranscription(
   };
 }
 
+async function waitForExportAnchor(
+  admin: ReturnType<typeof createClient>,
+  conversationId: string,
+): Promise<{
+  user_id: string | null;
+  conversation_date: string | null;
+  logos_drive_path: string | null;
+  audio_uploaded: boolean;
+} | null> {
+  let last: {
+    user_id: string | null;
+    conversation_date: string | null;
+    logos_drive_path: string | null;
+    audio_uploaded: boolean;
+  } | null = null;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const { data } = await admin
+      .from("logos_conversation_exports")
+      .select("user_id, conversation_date, logos_drive_path, audio_uploaded")
+      .eq("elevenlabs_conversation_id", conversationId)
+      .maybeSingle();
+    last = data ?? null;
+    if (data?.audio_uploaded || data?.logos_drive_path) return data;
+    await sleep(350 * (attempt + 1));
+  }
+  return last;
+}
+
 async function handleAudioWebhook(
   admin: ReturnType<typeof createClient>,
   data: Record<string, unknown>,
@@ -287,16 +325,13 @@ async function handleAudioWebhook(
     resolveWebhookUserId(data as Parameters<typeof resolveWebhookUserId>[0]) ??
     (await resolveUserIdFromAgent(admin, data.agent_id as string | undefined));
 
-  const { data: exportRow } = await admin
-    .from("logos_conversation_exports")
-    .select("user_id, conversation_date, logos_drive_path, audio_uploaded")
-    .eq("elevenlabs_conversation_id", conversationId)
-    .maybeSingle();
+  // Prefer the transcription handler's tree (avoids duplicate same-name Drive folders).
+  const exportRow = await waitForExportAnchor(admin, conversationId);
 
   userId = userId ?? exportRow?.user_id ?? null;
   if (!userId) throw new Error("Unable to resolve AEGIS user for audio webhook");
   if (exportRow?.audio_uploaded) {
-    return { ok: true, skipped: true, conversation_id: conversationId };
+    return { ok: true, skipped: true, conversation_id: conversationId, reason: "audio_already" };
   }
 
   const { data: profile } = await admin
@@ -312,7 +347,13 @@ async function handleAudioWebhook(
     date,
     conversationId,
   });
-  const { folderId, path } = await ensureLogosConversationFolder(parts);
+
+  // If transcription already stamped a path, resolve it (no create). Else ensure once.
+  const resolved =
+    (await resolveLogosConversationFolder(parts)) ??
+    (await ensureLogosConversationFolder(parts));
+  const { folderId, path } = resolved;
+
   const binary = Uint8Array.from(atob(fullAudio), (c) => c.charCodeAt(0));
   await upsertDriveBytes(folderId, "audio.mp3", binary, "audio/mpeg");
 

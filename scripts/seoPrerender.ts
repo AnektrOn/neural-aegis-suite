@@ -9,9 +9,9 @@ type Page = { route: string; title: string; description: string; body: string };
 export const PRERENDER_PAGES: Page[] = [
   {
     route: "/",
-    title: "AEGIS — 30 questions sur la personne qui décide",
+    title: "AEGIS & LOGOS | Le Sparring-Partner Vocal et Exocortex des Dirigeants",
     description:
-      "Un questionnaire gratuit sur la façon dont vous décidez quand vous décidez seul. Puis, si vous le souhaitez, une Lecture de votre profil par un humain.",
+      "Clarifiez vos arbitrages sous haute tension. Auditez vos mécanismes décisionnels via nos 30 dilemmes, puis confrontez vos angles morts à LOGOS, l'agent vocal souverain sans complaisance.",
     body: `<header><h1>AEGIS — Vous décidez seul. Personne ne relit vos décisions.</h1>
 <p>AEGIS est une suite de coaching pour dirigeants : un questionnaire gratuit de 30 questions sur la façon dont vous décidez, une cartographie de vos archétypes, puis un suivi quotidien de l'humeur, des décisions, des habitudes et des relations.</p></header>
 <section><h2>Comment ça marche</h2><ol><li>Répondez aux 30 questions du questionnaire d'archétypes.</li><li>Recevez votre profil et votre portrait de décideur.</li><li>Poursuivez avec le Deep Dive, la boîte à outils et le journal de décisions.</li></ol></section>

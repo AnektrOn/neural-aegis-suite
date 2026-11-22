@@ -3,14 +3,20 @@ import {
   conversationDateFromPayload,
   logosConversationFolderParts,
   logosUserFolderName,
+  logosUserLabel,
   plainTranscriptFromTurns,
   resolveWebhookUserId,
   verifyElevenLabsSignature,
 } from "../../supabase/functions/logos-post-call/helpers";
 
 describe("logosPostCallHelpers", () => {
-  it("builds stable Drive folder parts", () => {
-    expect(logosUserFolderName("uid-1", "Leo / A")).toBe("uid-1_Leo _ A");
+  it("builds compact Drive folder parts", () => {
+    expect(logosUserLabel("humancatalystnote@gmail.com")).toBe("humancatalystnote");
+    expect(logosUserLabel("Leo / A")).toBe("Leo");
+    expect(logosUserFolderName("25d80046-d3f4-43f2-933a-ade961f20e28", "humancatalystnote@gmail.com")).toBe(
+      "humancatalystnote_25d80046",
+    );
+    expect(logosUserFolderName("uid-1", "Leo / A")).toBe("Leo_uid1");
     const parts = logosConversationFolderParts({
       userId: "11111111-1111-1111-1111-111111111111",
       displayName: "Leo",
@@ -18,7 +24,7 @@ describe("logosPostCallHelpers", () => {
       conversationId: "conv_abc",
     });
     expect(parts).toEqual({
-      userFolder: "11111111-1111-1111-1111-111111111111_Leo",
+      userFolder: "Leo_11111111",
       year: "2026",
       date: "2026-11-18",
       conversationId: "conv_abc",

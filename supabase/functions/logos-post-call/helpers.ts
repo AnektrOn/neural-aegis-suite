@@ -17,9 +17,21 @@ export function sanitizeDriveSegment(value: string, fallback = "user"): string {
   return cleaned || fallback;
 }
 
+/** Short human label for Drive browsing (email local-part or first token). */
+export function logosUserLabel(displayName?: string | null): string {
+  const raw = displayName?.trim() || "member";
+  const token = raw.includes("@") ? raw.split("@")[0]! : raw.split(/\s+/)[0]!;
+  return sanitizeDriveSegment(token, "member").slice(0, 32);
+}
+
+/**
+ * Compact unique user folder: `{label}_{first8}` e.g. `humancatalystnote_25d80046`.
+ * Full UUID stays in meta.json / DB, not in the path.
+ */
 export function logosUserFolderName(userId: string, displayName?: string | null): string {
-  const name = sanitizeDriveSegment(displayName?.trim() || "member", "member");
-  return `${userId}_${name}`;
+  const label = logosUserLabel(displayName);
+  const shortId = userId.replace(/-/g, "").slice(0, 8) || "user";
+  return `${label}_${shortId}`;
 }
 
 /** {userFolder}/YYYY/YYYY-MM-DD/{conversationId} */

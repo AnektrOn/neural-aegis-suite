@@ -198,10 +198,10 @@ const navEn = {
 
 const individuelFr: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — LOGOS | Fin de la solitude décisionnelle",
-    ogTitle: "AEGIS — La fin de la solitude décisionnelle pour dirigeants",
+    title: "AEGIS & LOGOS | Le Sparring-Partner Vocal et Exocortex des Dirigeants",
+    ogTitle: "AEGIS & LOGOS | Le Sparring-Partner Vocal et Exocortex des Dirigeants",
     description:
-      "Audit gratuit en 30 questions (32 pôles). Puis, si vous le souhaitez, une Grande Lecture à 149 € et l’exocortex vocal LOGOS — sans document à uploader.",
+      "Clarifiez vos arbitrages sous haute tension. Auditez vos mécanismes décisionnels via nos 30 dilemmes, puis confrontez vos angles morts à LOGOS, l'agent vocal souverain sans complaisance.",
   },
   nav: {
     ...navFr,
@@ -383,10 +383,10 @@ const individuelFr: AegisLandingCopy = {
 
 const individuelEn: AegisLandingCopy = {
   meta: {
-    title: "AEGIS — LOGOS | End of decision-making solitude",
-    ogTitle: "AEGIS — The end of decision-making solitude for executives",
+    title: "AEGIS & LOGOS | Sovereign Voice Sparring Partner & Executive Exocortex",
+    ogTitle: "AEGIS & LOGOS | Sovereign Voice Sparring Partner & Executive Exocortex",
     description:
-      "Free 30-question audit (32 poles). Then, if you wish, a €149 Grand Reading and the LOGOS vocal exocortex — no documents to upload.",
+      "Clarify high-stakes arbitration. Audit your decision mechanics with 30 dilemmas, then confront blind spots with LOGOS—the uncompromising sovereign voice agent.",
   },
   nav: {
     ...navEn,

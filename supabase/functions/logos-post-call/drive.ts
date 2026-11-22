@@ -34,8 +34,31 @@ async function createDriveFolder(parentId: string, name: string): Promise<string
 
 export async function findOrCreateChildFolder(parentId: string, name: string): Promise<string> {
   const existing = await listChildFolders(parentId, name);
-  if (existing.length > 0) return existing[0];
-  return createDriveFolder(parentId, name);
+  if (existing.length > 0) return existing[0]; // oldest first (orderBy createdTime)
+  const createdId = await createDriveFolder(parentId, name);
+  // Collapse create races: Drive allows duplicate names; always pin to oldest.
+  const again = await listChildFolders(parentId, name);
+  return again[0] ?? createdId;
+}
+
+/** Walk an existing path without creating folders. Prefers oldest duplicate at each level. */
+export async function resolveLogosConversationFolder(parts: {
+  userFolder: string;
+  year: string;
+  date: string;
+  conversationId: string;
+}): Promise<{ folderId: string; path: string } | null> {
+  const root = Deno.env.get("LOGOS_DRIVE_ROOT_ID")?.trim() || LOGOS_DRIVE_ROOT_ID;
+  let parent = root;
+  for (const segment of [parts.userFolder, parts.year, parts.date, parts.conversationId]) {
+    const ids = await listChildFolders(parent, segment);
+    if (!ids.length) return null;
+    parent = ids[0];
+  }
+  return {
+    folderId: parent,
+    path: `${parts.userFolder}/${parts.year}/${parts.date}/${parts.conversationId}`,
+  };
 }
 
 export async function ensureLogosConversationFolder(parts: {
@@ -44,6 +67,9 @@ export async function ensureLogosConversationFolder(parts: {
   date: string;
   conversationId: string;
 }): Promise<{ folderId: string; path: string }> {
+  const resolved = await resolveLogosConversationFolder(parts);
+  if (resolved) return resolved;
+
   const root = Deno.env.get("LOGOS_DRIVE_ROOT_ID")?.trim() || LOGOS_DRIVE_ROOT_ID;
   const userId = await findOrCreateChildFolder(root, parts.userFolder);
   const yearId = await findOrCreateChildFolder(userId, parts.year);

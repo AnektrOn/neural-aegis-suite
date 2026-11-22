@@ -34,12 +34,17 @@ Destination: `{clientName}/Logos/{date}/{date}_{conversationId}_transcript.json|
 Root: `1hAZO9p_pnM-TxW_x7P9hDVr8FWh_az7C`
 
 ```text
-/{userId}_{displayName}/YYYY/YYYY-MM-DD/{conversationId}/
+/{label}_{first8}/YYYY/YYYY-MM-DD/{conversationId}/
   audio.mp3
   transcript.json
   transcript.txt
   meta.json
 ```
+
+- `label` = email local-part or first display-name token (max 32)
+- `first8` = first 8 hex chars of `user_id` (full UUID lives in `meta.json`)
+- Example: `humancatalystnote_25d80046/2026/2026-11-21/conv_…/`
+- `post_call_audio` waits for / reuses the transcription tree (oldest Drive folder on name collisions) so concurrent webhooks do not leave a second empty user folder
 
 ## Env
 
