@@ -1,5 +1,7 @@
 # Project rules
 
+- Subscription administration uses the shared server-side platform-role resolver (admin or superadmin), never company-admin access; this prevents role mismatches without widening billing privileges.
+
 - Resolve browser connection settings in Vite from environment values with a committed public-only fallback; this prevents blank clean deployments without editing the generated client or storing private credentials.
 
 - Store daily voice batches and session feedback in the dedicated caller-owned tables referencing public.profiles; keep legacy LOGOS tables unchanged so the schema rollout does not break existing voice flows.
@@ -54,4 +56,5 @@
 - R3F environment HDRs use committed Lovable Assets pointers and pass their `.url` to Drei Environment; this keeps binary lighting assets available in clean deployments.
 - Preserve the frozen legacy Prism source by resolving its missing HDR URL import through a Vite alias to an asset-pointer URL adapter; this restores clean builds without refactoring the legacy scene.
 - SEO prerender: a build-only Vite plugin (scripts/seoPrerender.ts) writes static HTML and dist/sitemap.xml for /, /pricing, /newsletter (authored copy) plus every tool and blog article read from their registries; new registry entries are indexed automatically without a headless browser.
+- Prerender blog bodies inside StaticRouter at each article path so registry content containing router links renders during builds.
 - Database-to-function calls authenticate with `internal_call_headers()` (private random secret checked by service-only `check_internal_secret`); never commit internal secrets or trust anon-key callers for push, email, queue or export actions.

@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## Admin subscription access — 22 November 2026
+- [x] Align subscription authorization with platform admin/superadmin roles; deployed, eleven tests pass, authenticated admin UI reads a real subscription (HTTP 200), unsigned calls return 401. No billing or account changes performed.
+- [x] Repair the existing blog prerender router-context build blocker; preview build OK and admin page has no runtime errors.
+
 ## Published blank pages — 20 November 2026
 - [x] Restore public build-time connection settings, preserve the primary custom domain, and publish; live release confirmed 20 November 2026 04:04 UTC, preview build OK and thirteen regression tests pass.
 - [x] Live desktop/mobile homepage and sign-in form render without runtime errors; invalid password returns the expected error, private restored session loads the real dashboard and assessment question 1. Three signed-out Stripe paths display €35/month, €110/month and €350 once. No card charged, no assessment answers submitted; successful password/OAuth sign-in and full assessment submission not exercised.

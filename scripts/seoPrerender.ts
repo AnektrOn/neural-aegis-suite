@@ -67,6 +67,8 @@ async function loadDynamicPages(root: string): Promise<DynPage[]> {
     const tools = await server.ssrLoadModule("/src/components/tools/toolsRegistry.ts");
     const blog = await server.ssrLoadModule("/src/pages/blog/blogRegistry.ts");
     const { renderToStaticMarkup } = await import("react-dom/server");
+    const { createElement } = await import("react");
+    const { StaticRouter } = await import("react-router-dom/server.js");
     const pages: DynPage[] = [];
     const all = tools.getAllTools() as any[];
     pages.push({
@@ -91,7 +93,7 @@ async function loadDynamicPages(root: string): Promise<DynPage[]> {
       for (const a of articles) {
         pages.push({
           route: a.path, title: a.seo.fr.title, description: a.seo.fr.description, lastmod: a.publishedAt?.slice(0, 10),
-          body: `<article><h1>${esc(a.title.fr)}</h1><p>${esc(a.excerpt.fr)}</p>${renderToStaticMarkup(a.renderBody("fr"))}</article>`,
+          body: `<article><h1>${esc(a.title.fr)}</h1><p>${esc(a.excerpt.fr)}</p>${renderToStaticMarkup(createElement(StaticRouter, { location: a.path }, a.renderBody("fr")))}</article>`,
         });
       }
     }

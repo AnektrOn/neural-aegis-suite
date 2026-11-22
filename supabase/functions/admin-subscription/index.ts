@@ -1,5 +1,6 @@
 import Stripe from 'npm:stripe@17';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { resolveCallerRoles } from '../_shared/b2b-roles.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,13 +29,9 @@ Deno.serve(async (req) => {
     const caller = callerData?.user;
     if (!caller) return json({ error: 'Unauthorized' }, 401);
 
-    const { data: role } = await admin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', caller.id)
-      .eq('role', 'admin')
-      .maybeSingle();
-    if (!role) return json({ error: 'Admin access required' }, 403);
+    const roles = await resolveCallerRoles(admin, caller.id);
+    // Subscription controls remain platform-only, including legacy admin roles.
+    if (!roles.isSuperAdmin) return json({ error: 'Admin access required' }, 403);
 
     const body = await req.json().catch(() => ({}));
     const action: string = body.action ?? 'list';
