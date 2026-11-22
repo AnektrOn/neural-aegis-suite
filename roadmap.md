@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## New-account admin alert — 22 November 2026
+- [x] Add and deploy a distinct account-created event through the existing activity sender and Auth lifecycle; preserve login alerts and member confirmation emails.
+- [x] Eight rule tests pass; unsigned requests return 401. Creating a temporary auth test account triggered two SMTP-accepted administrator emails and two persisted in-app notices. Existing member accounts untouched; inbox placement not independently verified. Preview build OK.
+
 ## Admin subscription access — 22 November 2026
 - [x] Align subscription authorization with platform admin/superadmin roles; deployed, eleven tests pass, authenticated admin UI reads a real subscription (HTTP 200), unsigned calls return 401. No billing or account changes performed.
 - [x] Repair the existing blog prerender router-context build blocker; preview build OK and admin page has no runtime errors.

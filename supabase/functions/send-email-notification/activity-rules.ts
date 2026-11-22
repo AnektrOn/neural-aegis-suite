@@ -21,3 +21,13 @@ export function isCompletionEvent(table: string, row: Record<string, unknown>, o
 export function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
 }
+
+/** One account event, independent of subsequent sign-ins. */
+export function accountCreatedEvent(user: { id: string; email?: string; created_at: string; is_anonymous?: boolean }) {
+  if (user.is_anonymous || !user.email || !Number.isFinite(Date.parse(user.created_at))) return null;
+  return {
+    key: `account-created:${user.id}`,
+    subject: 'Aegis — Nouveau compte créé',
+    html: `<h2>Nouveau compte créé</h2><p>${escapeHtml(user.email)} a créé un compte AEGIS.</p><p>Date de création : ${escapeHtml(user.created_at)} (UTC).</p>`,
+  };
+}

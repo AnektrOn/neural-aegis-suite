@@ -1,7 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { OPERATOR_ROLES, isCompletionEvent, escapeHtml, isRecentLogin, isInRecoveryPeriod } from '../../supabase/functions/send-email-notification/activity-rules';
+import { OPERATOR_ROLES, isCompletionEvent, escapeHtml, isRecentLogin, isInRecoveryPeriod, accountCreatedEvent } from '../../supabase/functions/send-email-notification/activity-rules';
 
 describe('requested activity email alerts', () => {
+  it('keys account creation once per account, separately from login events', () => {
+    const user = { id: '11111111-1111-4111-8111-111111111111', email: 'member@example.com', created_at: '2026-11-22T02:07:00Z' };
+    expect(accountCreatedEvent(user)?.key).toBe('account-created:11111111-1111-4111-8111-111111111111');
+    expect(accountCreatedEvent({ ...user, created_at: '2026-11-22T03:00:00Z' })?.key).toBe(accountCreatedEvent(user)?.key);
+    expect(accountCreatedEvent({ ...user, id: '22222222-2222-4222-8222-222222222222' })?.key).not.toBe(accountCreatedEvent(user)?.key);
+  });
+  it('does not announce guest accounts or accounts without email', () => {
+    const user = { id: '11111111-1111-4111-8111-111111111111', email: 'member@example.com', created_at: '2026-11-22T02:07:00Z' };
+    expect(accountCreatedEvent({ ...user, is_anonymous: true })).toBeNull();
+    expect(accountCreatedEvent({ ...user, email: undefined })).toBeNull();
+    expect(accountCreatedEvent(user)).not.toBeNull();
+  });
   it('includes the whole 17 October but excludes earlier events', () => {
     expect(isInRecoveryPeriod('2026-10-17T00:00:00Z')).toBe(true);
     expect(isInRecoveryPeriod('2026-10-16T23:59:59Z')).toBe(false);

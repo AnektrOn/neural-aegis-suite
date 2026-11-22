@@ -28,6 +28,7 @@
 - Complete Drive exports use an explicit credential-free per-user table allowlist, paginated reads and linked report sections, filed per table into the same per-user category folders as live exports (Maisons answers carry a generated scoring-grid file); synchronous per-user results enable verified resumable backfills instead of unobserved background success.
 
 - Activity emails resolve platform operators from admin/superadmin roles, defer client calls outside auth callbacks, and persist event/recipient delivery keys; this avoids missing owners, auth-lock stalls and duplicate retries.
+- Account creation alerts originate from the Auth insert lifecycle and reuse the internal activity sender with auth-resolved identity and account-keyed deduplication; this covers all account creation methods without conflating logins.
 
 - Render application branding through the shared AegisLogo component, with theme-aware variants and explicit overrides for fixed-color surfaces; this keeps all screens consistent without image filters.
 

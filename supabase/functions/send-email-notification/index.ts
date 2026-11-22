@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { getCallerRoles, isInternalRequest } from '../_shared/internalAuth.ts';
-import { OPERATOR_ROLES, OWNER_EMAIL, RECOVERY_START, escapeHtml, isRecentLogin, isInRecoveryPeriod } from './activity-rules.ts';
+import { OPERATOR_ROLES, OWNER_EMAIL, RECOVERY_START, escapeHtml, isRecentLogin, isInRecoveryPeriod, accountCreatedEvent } from './activity-rules.ts';
 
 
 async function sendWithResend({
@@ -148,14 +148,23 @@ serve(async (req) => {
     let data = (body.data && typeof body.data === 'object') ? { ...body.data } : {};
     const internal = await isInternalRequest(req, supabase);
 
-    if (type === 'activity_event' || type === 'activity_catchup' || type === 'activity_recovery_event' || type === 'admin_login_alert') {
+    if (type === 'account_created' || type === 'activity_event' || type === 'activity_catchup' || type === 'activity_recovery_event' || type === 'admin_login_alert') {
       const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
       const { data: caller } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
       let key = '';
       let subject = '';
       let html = '';
       let recipients = await getAdminEmails(supabase);
-      if (type === 'activity_recovery_event') {
+      if (type === 'account_created') {
+        if (!internal) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        if (typeof user_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user_id)) return new Response(JSON.stringify({ error: 'Invalid user' }), { status: 400, headers: corsHeaders });
+        // Resolve identity, date and recipients server-side, never from the request.
+        const { data: person, error } = await supabase.auth.admin.getUserById(user_id);
+        if (error || !person.user) return new Response(JSON.stringify({ error: 'Account not found' }), { status: 404, headers: corsHeaders });
+        const event = accountCreatedEvent(person.user);
+        if (!event) return new Response(JSON.stringify({ success: true, skipped: true }), { headers: corsHeaders });
+        ({ key, subject, html } = event);
+      } else if (type === 'activity_recovery_event') {
         if (!caller.user) return new Response(JSON.stringify({ error:'Unauthorized' }), { status:401, headers:corsHeaders });
         const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id',caller.user.id).in('role',OPERATOR_ROLES);
         if (!roles?.length) return new Response(JSON.stringify({ error:'Forbidden' }), { status:403, headers:corsHeaders });
@@ -245,6 +254,7 @@ serve(async (req) => {
         }
       }
       if (type === 'admin_login_alert' && results.some(r => r.sent)) await insertNotificationsForAllAdmins(supabase,{ title:subject,message:'Un utilisateur s’est connecté.',type:'admin_login',link:'/admin/analytics' });
+      if (type === 'account_created' && results.some(r => r.sent)) await insertNotificationsForAllAdmins(supabase,{ title:subject,message:'Un nouveau compte a été créé.',type:'admin_account_created',link:'/admin/users' });
       return new Response(JSON.stringify({ success:true,event_key:key,results }), { headers: { ...corsHeaders,'Content-Type':'application/json' } });
     }
 

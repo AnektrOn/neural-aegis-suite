@@ -134,6 +134,13 @@
       "when": 1795223894448,
       "tag": "0018_security_hardening_internal_calls_and_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795313380766,
+      "tag": "0019_account_created_activity_alert",
+      "breakpoints": true
     }
   ]
 }
