@@ -290,6 +290,16 @@ serve(async (req) => {
       "toolbox_abandoned",
     ]);
     let email = (raw?.admin_email as string | undefined)?.trim() || undefined;
+    // A caller-supplied recipient must be a platform operator or the owner inbox.
+    if (email && !internal) {
+      const allowed = new Set<string>([OWNER_EMAIL.toLowerCase()]);
+      const { data: opRoles } = await supabase.from('user_roles').select('user_id').in('role', OPERATOR_ROLES);
+      for (const r of opRoles ?? []) {
+        const { data: u } = await supabase.auth.admin.getUserById(r.user_id);
+        if (u?.user?.email) allowed.add(u.user.email.toLowerCase());
+      }
+      if (!allowed.has(email.toLowerCase())) email = undefined;
+    }
 
     if (!email && !adminEmailTypes.has(type)) {
       const { data: userData } = await supabase.auth.admin.getUserById(user_id);

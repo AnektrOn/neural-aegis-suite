@@ -816,7 +816,7 @@ function catalogNeedsV4Resync(questions: RuntimeQuestion[]): boolean {
   return !Array.isArray(pw) || pw.length === 0;
 }
 
-/** Replace core (non-appendix) questions via SECURITY DEFINER RPC — safe for all authenticated users. */
+/** Replace core (non-appendix) questions via SECURITY DEFINER RPC — administrators only. */
 async function replaceCoreCatalog(): Promise<void> {
   const payload = buildQuestionSeedPayload(QUESTIONS);
   const { error } = await callUntypedRpc("replace_assessment_core_catalog", {
@@ -824,6 +824,12 @@ async function replaceCoreCatalog(): Promise<void> {
     p_questions: payload,
   });
   if (!error) return;
+
+  // Catalog resync is reserved to administrators; members keep the current catalog.
+  if (error.code === "42501" || /admin access required/i.test(error.message ?? "")) {
+    console.warn("Assessment catalog resync requires an administrator");
+    return;
+  }
 
   const rpcMissing =
     error.code === "PGRST202" ||

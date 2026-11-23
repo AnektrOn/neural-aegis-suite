@@ -81,6 +81,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (typeof companyId === 'string' && companyId.length > 0) {
+      const { data: canManage } = await supabase.rpc('is_company_admin_of', { _uid: user!.id, _company_id: companyId });
+      if (canManage !== true) return json({ error: 'Forbidden' }, 403);
+    }
+
     const seats =
       typeof seatQuantity === 'number' && Number.isFinite(seatQuantity) && seatQuantity > 0
         ? Math.floor(seatQuantity)

@@ -84,7 +84,7 @@ async function sendWithSmtp({
     console.warn(
       "[newsletter] SMTP non configuré (SMTP_HOST, SMTP_USER, SMTP_PASSWORD). E-mail ignoré.",
     );
-    console.log(`[newsletter] to=${to} subject=${subject}`);
+    console.log(`[newsletter] skipped email subject=${subject}`);
     return { sent: false, provider: "none" };
   }
 

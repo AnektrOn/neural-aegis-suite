@@ -148,7 +148,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const priceId = md.priceId as string;
   const companyId = md.companyId as string | undefined;
   const seatQuantity = Number(md.seatQuantity ?? '');
-  if (companyId && Number.isFinite(seatQuantity) && seatQuantity > 0) {
+  let companyAuthorized = false;
+  if (companyId && md.userId) {
+    const { data: ok } = await supabase.rpc('is_company_admin_of', { _uid: md.userId as string, _company_id: companyId });
+    companyAuthorized = ok === true;
+  }
+  if (companyId && companyAuthorized && Number.isFinite(seatQuantity) && seatQuantity > 0) {
     const customerId = (session.customer as string) ?? null;
     await supabase
       .from('companies')

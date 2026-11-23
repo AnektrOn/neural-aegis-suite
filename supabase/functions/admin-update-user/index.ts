@@ -134,9 +134,18 @@ Deno.serve(async (req) => {
       const targetEmail = target.user?.email;
       if (!targetEmail) return json({ error: "This account has no email address" }, 400);
 
-      const redirectTo = typeof body.redirect_to === "string" && body.redirect_to.startsWith("http")
-        ? body.redirect_to
-        : "https://aegis.humancatalystbeacon.com/create-password";
+      const DEFAULT_REDIRECT = "https://aegis.humancatalystbeacon.com/create-password";
+      const ALLOWED_REDIRECT_ORIGINS = new Set([
+        "https://aegis.humancatalystbeacon.com",
+        "https://neural-aegis-suite.lovable.app",
+      ]);
+      let redirectTo = DEFAULT_REDIRECT;
+      if (typeof body.redirect_to === "string") {
+        try {
+          const u = new URL(body.redirect_to);
+          if (ALLOWED_REDIRECT_ORIGINS.has(u.origin)) redirectTo = u.toString();
+        } catch { /* keep default */ }
+      }
 
       const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
         type: "recovery",
