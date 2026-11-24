@@ -1,6 +1,7 @@
 # Monitoring fixes
 
 ## AppSumo confirmation retries — 24 November 2026
+- [ ] Sweep redemption, AppSumo alias, Pricing, Settings, signup redirects, sender/templates, database activation and distinct account alerts; verify persisted confirmation after navigation/reload.
 - [x] Fix confirmation delivery and authenticated code-free retries without changing lifetime access; deployed member-first SMTP with safe cleanup and private per-recipient delivery records.
 - [x] Sixteen regression tests pass; the AppSumo QA account's real Retry confirmation returns processed, displays sent, and records SMTP acceptance. Repeating preserves the original sent timestamp and one lifetime row; inbox arrival remains for QA to confirm.
 

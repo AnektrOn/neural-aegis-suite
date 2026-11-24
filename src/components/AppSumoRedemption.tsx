@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { KeyRound, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,29 @@ export default function AppSumoRedemption() {
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState('');
   const [emailsPending, setEmailsPending] = useState(false);
+  const [activationUserId, setActivationUserId] = useState<string | null>(null);
   const fr = locale === 'fr';
   const signedIn = !!user && !isGuest && !isAnonymous;
-  const alreadyActivated = isActive && subscription?.price_id === 'appsumo_lifetime';
+  const alreadyActivated = activationUserId === user?.id || (isActive && subscription?.price_id === 'appsumo_lifetime');
+  const userId = signedIn ? user?.id : null;
+
+  useEffect(() => {
+    let cancelled = false;
+    setSuccess(false);
+    setEmailsPending(false);
+    setActivationUserId(null);
+    setMessage('');
+    setCode('');
+    if (userId) {
+      void supabase.functions.invoke('redeem-appsumo', { body: { status: true } }).then(({ data, error }) => {
+        if (cancelled || error || !data?.activated) return;
+        setActivationUserId(userId);
+        setSuccess(true);
+        setEmailsPending(data.emails !== 'processed');
+      });
+    }
+    return () => { cancelled = true; };
+  }, [userId]);
 
   async function redeemCode(resend = false) {
     if (busy) return;

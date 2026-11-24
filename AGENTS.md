@@ -15,6 +15,7 @@
 
 - Redeem AppSumo codes through the authenticated atomic database function, with private code hashes and Solo lifetime subscription rows; never expose the code catalogue or grant LOGOS through redemption.
 - AppSumo UI calls its authenticated feature function: initial access stays atomic; code-free confirmation retries resolve only the caller's persisted activation. SMTP sends member-first, records per-recipient keys in the private activity delivery ledger, and never lets connection cleanup override the send result, preventing false pending states and duplicate notices.
+- All AppSumo entry points read caller-owned activation and confirmation status through the feature function rather than infer it from the selected subscription; this preserves sent status after reload or purchase of another plan without sending email on page load.
 - Landing and app share LanguageContext and localePreference storage; one persisted language prevents route changes from resetting it.
 
 - Public Solo checkout carries a payment-first marker without a user ID; only the signed paid-checkout handler resolves or invites the Stripe email owner, preserving existing credentials and never returning login tokens through checkout status.

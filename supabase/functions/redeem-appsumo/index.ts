@@ -9,6 +9,7 @@ const Code = z.string().trim().toUpperCase().regex(/^AEGIS-[A-Z0-9]{12}$/);
 const Body = z.union([
   z.object({ code: Code, locale: z.enum(['fr', 'en']).default('en') }).strict(),
   z.object({ resend: z.literal(true), locale: z.enum(['fr', 'en']).default('en') }).strict(),
+  z.object({ status: z.literal(true) }).strict(),
 ]);
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
@@ -28,12 +29,13 @@ Deno.serve(async req => {
     if (authError || !user || user.is_anonymous || !user.email) return respond({ error: 'sign_in_required' }, 401);
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return respond({ error: 'invalid_code' }, 400);
-    const { locale } = parsed.data;
+    const locale = 'locale' in parsed.data ? parsed.data.locale : 'en';
+    const statusOnly = 'status' in parsed.data;
     const resend = 'resend' in parsed.data;
     const code = 'code' in parsed.data ? parsed.data.code : '';
     // Only initial activation touches access; retries resolve the caller's persisted event.
     let result: Record<string, unknown> = { success: true, already_redeemed: true };
-    if (!resend) {
+    if (!resend && !statusOnly) {
       const { data, error } = await member.rpc('redeem_appsumo_code', { input_code: code });
       if (error) throw error;
       if (!data?.success) return respond(data);
@@ -42,6 +44,13 @@ Deno.serve(async req => {
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
     try {
       const { data: redemption, error: readError } = await admin.from('appsumo_codes').select('redeemed_at').eq('redeemed_by', user.id).single();
+      if (statusOnly) {
+        if (readError && readError.code !== 'PGRST116') throw readError;
+        if (!redemption?.redeemed_at) return respond({ success: true, activated: false });
+        const { data: delivery, error: deliveryError } = await admin.from('activity_email_deliveries').select('status').eq('event_key', `appsumo-welcome:${user.id}:${redemption.redeemed_at}`).eq('recipient_email', user.email).maybeSingle();
+        if (deliveryError) throw deliveryError;
+        return respond({ success: true, activated: true, emails: delivery?.status === 'sent' ? 'processed' : 'pending' });
+      }
       if (readError || !redemption?.redeemed_at) {
         if (resend) return respond({ error: 'activation_not_found' }, 400);
         throw new Error('Activation event not found');
