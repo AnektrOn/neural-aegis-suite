@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clock, Loader2, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
-import { formatVoiceDuration } from "@/features/logos/voiceSessionCost";
+import { formatVoiceDuration, formatVoiceUsageLabel } from "@/features/logos/voiceSessionCost";
 import {
   fetchLogosVoiceQuotaOverview,
+  syncVoiceUsageFromElevenLabs,
   updateDefaultVoiceLimit,
   updateProfileVoiceLimit,
   type LogosVoiceQuotaAdminRow,
@@ -103,6 +104,27 @@ export function LogosVoiceQuotaPanel({
     await load();
   };
 
+  const syncElevenLabs = async () => {
+    setBusy("sync-el");
+    const { ok, error, results } = await syncVoiceUsageFromElevenLabs(selectedUserId ?? undefined);
+    setBusy(null);
+    if (!ok) {
+      toast.error(error ?? "Synchronisation ElevenLabs impossible");
+      return;
+    }
+    const rows = Array.isArray(results) ? results : [];
+    const totalSec = rows.reduce(
+      (acc, r) => acc + Math.max(0, Math.floor(Number((r as { total_seconds?: number }).total_seconds) || 0)),
+      0,
+    );
+    toast.success(
+      selectedUserId
+        ? `Durées ElevenLabs mises à jour (~${formatVoiceUsageLabel(totalSec)} ce mois UTC)`
+        : `${rows.length} membre(s) synchronisé(s) depuis ElevenLabs`,
+    );
+    await load();
+  };
+
   const saveOverride = async (userId: string) => {
     const raw = overrideDraft[userId]?.trim() ?? "";
     const minutes = raw === "" ? null : Number(raw);
@@ -138,16 +160,32 @@ export function LogosVoiceQuotaPanel({
             {rows.length > 0 ? (
               <>
                 {" "}
-                · {rows.length} agent(s) · {formatVoiceDuration(totals.used)} consommées ·{" "}
-                {formatVoiceDuration(totals.remaining)} restantes (agrégat)
+                · {rows.length} agent(s) · {formatVoiceUsageLabel(totals.used)} consommées ·{" "}
+                {formatVoiceUsageLabel(totals.remaining)} restantes (agrégat)
               </>
             ) : null}
           </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Les minutes affichées viennent de Supabase. Si elles sont basses, sync ElevenLabs (durées réelles par
+            appel).
+          </p>
         </div>
-        <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => void load()}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Actualiser
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={loading || busy === "sync-el"}
+            onClick={() => void syncElevenLabs()}
+          >
+            {busy === "sync-el" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sync ElevenLabs
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => void load()}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-2 rounded-xl border border-border/15 bg-background/30 p-3">
@@ -222,16 +260,18 @@ export function LogosVoiceQuotaPanel({
                         <div className={`h-full ${barClass(pct)}`} style={{ width: `${pct}%` }} />
                       </div>
                     </td>
-                    <td className="pr-3 font-mono tabular-nums">{formatVoiceDuration(row.used_seconds)}</td>
+                    <td className="pr-3 font-mono tabular-nums" title={`${row.used_seconds} s`}>
+                      {formatVoiceUsageLabel(row.used_seconds)}
+                    </td>
                     <td
                       className={`pr-3 font-mono tabular-nums ${
                         row.remaining_seconds < 60 ? "text-destructive" : "text-foreground"
                       }`}
                     >
-                      {formatVoiceDuration(row.remaining_seconds)}
+                      {formatVoiceUsageLabel(row.remaining_seconds)}
                     </td>
                     <td className="pr-3 font-mono tabular-nums text-muted-foreground">
-                      {formatVoiceDuration(row.limit_seconds)}
+                      {formatVoiceUsageLabel(row.limit_seconds)}
                     </td>
                     <td className="pr-3">
                       <input

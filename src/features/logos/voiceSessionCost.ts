@@ -22,6 +22,15 @@ export function estimateVoiceSessionCost(elapsedSeconds: number): VoiceCostEstim
   return { elapsedSeconds: elapsed, credits, usd, eur };
 }
 
+/** Étiquette lisible admin (évite « 15:00 » confondu avec une heure). */
+export function formatVoiceUsageLabel(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  if (s < 60) return `${s} s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r === 0 ? `${m} min` : `${m} min ${r} s`;
+}
+
 export function formatVoiceDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
   const h = Math.floor(s / 3600);

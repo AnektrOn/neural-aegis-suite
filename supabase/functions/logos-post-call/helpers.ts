@@ -50,6 +50,19 @@ export function logosConversationFolderParts(input: {
   };
 }
 
+/** Authoritative call length from post-call webhook or GET conversation (metadata.call_duration_secs). */
+export function extractCallDurationSecs(data: {
+  metadata?: { call_duration_secs?: number | null } | null;
+  call_duration_secs?: number | null;
+}): number | null {
+  const candidates = [data.metadata?.call_duration_secs, data.call_duration_secs];
+  for (const value of candidates) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) return Math.round(n);
+  }
+  return null;
+}
+
 export function conversationDateFromPayload(data: {
   metadata?: { start_time_unix_secs?: number | null } | null;
   event_timestamp?: number | null;

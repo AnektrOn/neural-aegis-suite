@@ -10,6 +10,7 @@ import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+import AppSumoDealBar from "@/components/AppSumoDealBar";
 import PaymentTestModeBanner from "@/components/PaymentTestModeBanner";
 import PublicFooter from "@/components/public/PublicFooter";
 import AppSumoRedemption from "@/components/AppSumoRedemption";
@@ -337,6 +338,7 @@ export default function Pricing() {
       </Helmet>
 
       <PaymentTestModeBanner />
+      <AppSumoDealBar />
 
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 md:px-6">
         <Link

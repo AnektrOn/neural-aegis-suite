@@ -6,6 +6,7 @@ import {
   createVoiceConversationToken,
   mapVoiceSessionError,
 } from "../_shared/voice-session.ts";
+import { syncVoiceUsageForUser, utcMonthUnixBounds } from "./voice-usage-sync.ts";
 
 const DRIVE = "https://connector-gateway.lovable.dev/google_drive/drive/v3";
 function driveHeaders(): HeadersInit {
@@ -507,6 +508,48 @@ Deno.serve(async (req) => {
           await finishJob(admin, jobId, [{ status: "failed", error: msg }], msg);
           return json({ error: msg }, 400);
         }
+      }
+
+      case "sync_voice_usage": {
+        const bounds = utcMonthUnixBounds();
+        const targets: { id: string; elevenlabs_agent_id: string }[] = [];
+        if (userId) {
+          const { data: p, error } = await admin
+            .from("profiles")
+            .select("id, elevenlabs_agent_id")
+            .eq("id", userId)
+            .maybeSingle();
+          if (error) throw error;
+          if (!p?.elevenlabs_agent_id) return json({ error: "Cet utilisateur n'a pas d'agent ElevenLabs" }, 400);
+          targets.push({ id: p.id, elevenlabs_agent_id: p.elevenlabs_agent_id });
+        } else {
+          const { data: users, error } = await admin
+            .from("profiles")
+            .select("id, elevenlabs_agent_id")
+            .not("elevenlabs_agent_id", "is", null);
+          if (error) throw error;
+          for (const u of users ?? []) {
+            if (u.elevenlabs_agent_id) {
+              targets.push({ id: u.id, elevenlabs_agent_id: u.elevenlabs_agent_id });
+            }
+          }
+        }
+        const results = [];
+        for (const t of targets) {
+          try {
+            results.push(
+              await syncVoiceUsageForUser(admin, elJson, t.id, t.elevenlabs_agent_id, bounds),
+            );
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            results.push({
+              user_id: t.id,
+              agent_id: t.elevenlabs_agent_id,
+              error: msg,
+            });
+          }
+        }
+        return json({ ok: true, results });
       }
 
       case "sync_all": {

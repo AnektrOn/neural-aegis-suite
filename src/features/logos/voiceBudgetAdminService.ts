@@ -87,6 +87,22 @@ export async function updateDefaultVoiceLimit(
   return { error: error?.message ?? null };
 }
 
+export async function syncVoiceUsageFromElevenLabs(
+  userId?: string | null,
+): Promise<{ ok: boolean; error: string | null; results?: unknown[] }> {
+  const { data, error } = await supabase.functions.invoke("elevenlabs-knowledge", {
+    body: {
+      action: "sync_voice_usage",
+      ...(userId ? { user_id: userId } : {}),
+    },
+  });
+  if (error) return { ok: false, error: error.message };
+  const payload = data as { ok?: boolean; error?: string; results?: unknown[] } | null;
+  if (payload?.error) return { ok: false, error: payload.error };
+  if (payload?.ok !== true) return { ok: false, error: "Sync quota vocal échouée" };
+  return { ok: true, error: null, results: payload.results };
+}
+
 export function voiceBudgetFromAdminRow(row: LogosVoiceQuotaAdminRow): VoiceUsageBudget {
   return {
     period_start: "",

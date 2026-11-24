@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   conversationDateFromPayload,
+  extractCallDurationSecs,
   logosConversationFolderParts,
   logosUserFolderName,
   logosUserLabel,
@@ -29,6 +30,12 @@ describe("logosPostCallHelpers", () => {
       date: "2026-11-18",
       conversationId: "conv_abc",
     });
+  });
+
+  it("reads ElevenLabs call duration from metadata", () => {
+    expect(extractCallDurationSecs({ metadata: { call_duration_secs: 180 } })).toBe(180);
+    expect(extractCallDurationSecs({ call_duration_secs: 67 })).toBe(67);
+    expect(extractCallDurationSecs({ metadata: { call_duration_secs: 0 } })).toBe(null);
   });
 
   it("formats plain transcript and date", () => {

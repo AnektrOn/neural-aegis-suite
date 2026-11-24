@@ -1,5 +1,6 @@
 import type { BlogArticleMeta } from "./types";
 import { renderCoachIaDirigeantsBody } from "./articles/coachIaDirigeants";
+import { renderConflitEntreAssociesBody } from "./articles/conflitEntreAssocies";
 
 const articles: BlogArticleMeta[] = [
   {
@@ -37,6 +38,41 @@ const articles: BlogArticleMeta[] = [
       },
     },
     renderBody: renderCoachIaDirigeantsBody,
+  },
+  {
+    id: "conflit-associes-startup-non-dits",
+    path: "/blog/conflit-associes-startup-non-dits",
+    publishedAt: "2026-11-24T09:00:00.000Z",
+    readingMinutes: 9,
+    category: {
+      fr: "Gouvernance & fondateurs",
+      en: "Governance & founders",
+    },
+    kicker: {
+      fr: "Pacte d'associés · Arbitrage",
+      en: "Co-founder conflict · Arbitration",
+    },
+    title: {
+      fr: "Conflit entre associés : pourquoi 65 % des startups meurent de leurs non-dits (et comment arbitrer avant les avocats)",
+      en: "Co-founder conflict: why 65% of startups die from unspoken fractures (and how to arbitrate before lawyers)",
+    },
+    excerpt: {
+      fr: "Dimanche 23 h, le brouillon incendiaire. Les non-dits qui nourrissent l'implosion fondatrice — et la méthode du miroir systémique avant que les honoraires ne brûlent la valeur.",
+      en: "Sunday night, the angry draft. Unspoken fractures that kill founder teams — and systemic mirror arbitration before legal fees burn enterprise value.",
+    },
+    seo: {
+      fr: {
+        title: "Conflit entre associés : 65 % des startups et les non-dits",
+        description:
+          "Harvard / Wasserman : la fracture fondatrice tue avant le cash. Victime, marchandage, sabotage — cartographie, faits bruts et arbitrage formel avant l'avocat.",
+      },
+      en: {
+        title: "Co-founder conflict: 65% of startups and unspoken fractures",
+        description:
+          "Founder-team implosion often precedes cash death. Map relations, force formal arbitration, audit your decision reflexes with AEGIS before lawyers.",
+      },
+    },
+    renderBody: renderConflitEntreAssociesBody,
   },
 ];
 

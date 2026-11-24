@@ -5,7 +5,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogosVoiceQuotaPanel } from "@/pages/admin/LogosVoiceQuotaPanel";
-import { formatVoiceDuration } from "@/features/logos/voiceSessionCost";
+import { formatVoiceUsageLabel } from "@/features/logos/voiceSessionCost";
 import { fetchVoiceUsageBudget } from "@/features/logos/voiceBudgetService";
 
 interface UserRow {
@@ -337,16 +337,16 @@ export default function AdminElevenLabsKnowledge() {
                     <>
                       <dt className="text-muted-foreground">Quota vocal (mois)</dt>
                       <dd className="text-foreground font-mono text-xs tabular-nums">
-                        {formatVoiceDuration(selectedVoiceBudget.used_seconds)} utilisées ·{" "}
+                        {formatVoiceUsageLabel(selectedVoiceBudget.used_seconds)} utilisées ·{" "}
                         <span
                           className={
                             selectedVoiceBudget.remaining_seconds < 120 ? "text-destructive" : ""
                           }
                         >
-                          {formatVoiceDuration(selectedVoiceBudget.remaining_seconds)} restantes
+                          {formatVoiceUsageLabel(selectedVoiceBudget.remaining_seconds)} restantes
                         </span>
                         {" "}
-                        / {formatVoiceDuration(selectedVoiceBudget.limit_seconds)}
+                        / {formatVoiceUsageLabel(selectedVoiceBudget.limit_seconds)}
                       </dd>
                     </>
                   ) : null}

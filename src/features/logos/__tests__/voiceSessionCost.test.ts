@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   estimateVoiceSessionCost,
   formatVoiceDuration,
+  formatVoiceUsageLabel,
   LOGOS_VOICE_CREDITS_PER_SECOND,
 } from "../voiceSessionCost";
 
@@ -15,5 +16,7 @@ describe("voiceSessionCost", () => {
   it("formats durations", () => {
     expect(formatVoiceDuration(65)).toBe("1:05");
     expect(formatVoiceDuration(3661)).toBe("1:01:01");
+    expect(formatVoiceUsageLabel(900)).toBe("15 min");
+    expect(formatVoiceUsageLabel(65)).toBe("1 min 5 s");
   });
 });

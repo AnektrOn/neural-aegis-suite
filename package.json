@@ -20,7 +20,8 @@
     "test:watch": "vitest",
     "verify:i18n": "npx tsx scripts/verify-i18n-catalog.ts",
     "verify:aegis-landing-docs": "npx tsx scripts/verify-aegis-landing-docs.ts",
-    "audit:i18n": "node scripts/audit-hardcoded-i18n.mjs"
+    "audit:i18n": "node scripts/audit-hardcoded-i18n.mjs",
+    "audit:member-routes": "node scripts/member-routes-audit.mjs --out .cursor/member-routes-audit.json"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",

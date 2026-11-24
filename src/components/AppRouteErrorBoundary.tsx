@@ -18,6 +18,25 @@ export class AppRouteErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[AppRouteErrorBoundary]", this.props.label ?? "app", error, info.componentStack);
+    // #region agent log
+    fetch("http://127.0.0.1:7734/ingest/5c724db7-3dd7-4e14-aa0c-d7fe395f7450", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "cfa9cc" },
+      body: JSON.stringify({
+        sessionId: "cfa9cc",
+        location: "AppRouteErrorBoundary.tsx:componentDidCatch",
+        message: "route error boundary",
+        data: {
+          label: this.props.label ?? "app",
+          errorMessage: error.message,
+          path: typeof window !== "undefined" ? window.location.pathname : null,
+        },
+        timestamp: Date.now(),
+        hypothesisId: "H-RENDER",
+        runId: "routes-audit",
+      }),
+    }).catch(() => {});
+    // #endregion
   }
 
   render() {

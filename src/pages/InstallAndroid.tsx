@@ -6,6 +6,7 @@ import {
   getPublishedRelease,
   type AppRelease,
 } from "@/services/appReleasesService";
+import AppSumoDealBar from "@/components/AppSumoDealBar";
 import { Button } from "@/components/ui/button";
 
 export default function InstallAndroid() {
@@ -27,7 +28,9 @@ export default function InstallAndroid() {
   )}`;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <>
+      <AppSumoDealBar />
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -115,6 +118,7 @@ export default function InstallAndroid() {
           </>
         )}
       </motion.div>
-    </div>
+      </div>
+    </>
   );
 }

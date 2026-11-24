@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders as sdkCorsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import {
   conversationDateFromPayload,
+  extractCallDurationSecs,
   extractOpeningMeta,
   logosConversationFolderParts,
   plainTranscriptFromTurns,
@@ -36,6 +37,58 @@ function elHeaders(): HeadersInit {
   const key = Deno.env.get("ELEVENLABS_API_KEY");
   if (!key) throw new Error("ELEVENLABS_API_KEY missing");
   return { "xi-api-key": key };
+}
+
+async function fetchConversationSummary(conversationId: string): Promise<Record<string, unknown> | null> {
+  const r = await fetch(`${EL}/convai/conversations/${encodeURIComponent(conversationId)}`, {
+    headers: elHeaders(),
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`ElevenLabs conversation ${r.status}: ${await r.text()}`);
+  return (await r.json()) as Record<string, unknown>;
+}
+
+async function resolveCallDurationSeconds(
+  conversationId: string,
+  data: Record<string, unknown>,
+): Promise<number | null> {
+  const fromWebhook = extractCallDurationSecs(data as Parameters<typeof extractCallDurationSecs>[0]);
+  if (fromWebhook != null) return fromWebhook;
+  try {
+    const summary = await fetchConversationSummary(conversationId);
+    return summary ? extractCallDurationSecs(summary as Parameters<typeof extractCallDurationSecs>[0]) : null;
+  } catch (err) {
+    console.warn("resolveCallDurationSeconds:", conversationId, err);
+    return null;
+  }
+}
+
+async function syncVoiceCallDuration(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  conversationId: string,
+  callDurationSeconds: number,
+) {
+  await admin
+    .from("logos_conversation_exports")
+    .update({
+      call_duration_seconds: callDurationSeconds,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("elevenlabs_conversation_id", conversationId);
+
+  const { data: rows } = await admin
+    .from("voice_session_feedbacks")
+    .select("id, duration_seconds")
+    .eq("user_id", userId)
+    .eq("elevenlabs_conversation_id", conversationId);
+
+  for (const row of rows ?? []) {
+    const merged = Math.max(row.duration_seconds ?? 0, callDurationSeconds);
+    if (merged !== (row.duration_seconds ?? 0)) {
+      await admin.from("voice_session_feedbacks").update({ duration_seconds: merged }).eq("id", row.id);
+    }
+  }
 }
 
 async function fetchConversationAudio(conversationId: string): Promise<Uint8Array | null> {
@@ -157,6 +210,8 @@ async function handleTranscription(
     };
   }
 
+  const callDurationSeconds = await resolveCallDurationSeconds(conversationId, data);
+
   await admin.from("logos_conversation_exports").upsert(
     {
       elevenlabs_conversation_id: conversationId,
@@ -165,10 +220,15 @@ async function handleTranscription(
       conversation_date: date,
       prompt_id: opening.promptId,
       session_mode: opening.sessionMode,
+      ...(callDurationSeconds != null ? { call_duration_seconds: callDurationSeconds } : {}),
       updated_at: new Date().toISOString(),
     },
     { onConflict: "elevenlabs_conversation_id" },
   );
+
+  if (callDurationSeconds != null) {
+    await syncVoiceCallDuration(admin, userId, conversationId, callDurationSeconds);
+  }
 
   const { folderId, path } = await ensureLogosConversationFolder(parts);
 
