@@ -1,5 +1,9 @@
 # Monitoring fixes
 
+## AppSumo confirmation retries — 24 November 2026
+- [ ] Fix confirmation delivery and authenticated code-free retries without changing lifetime access.
+- [ ] Run regression tests and verify the real confirmation action and delivery outcome.
+
 ## New-account admin alert — 22 November 2026
 - [x] Add and deploy a distinct account-created event through the existing activity sender and Auth lifecycle; preserve login alerts and member confirmation emails.
 - [x] Eight rule tests pass; unsigned requests return 401. Creating a temporary auth test account triggered two SMTP-accepted administrator emails and two persisted in-app notices. Existing member accounts untouched; inbox placement not independently verified. Preview build OK.
