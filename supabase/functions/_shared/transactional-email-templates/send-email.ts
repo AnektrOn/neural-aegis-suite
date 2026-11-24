@@ -2,6 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
 import { TEMPLATES } from './registry.ts'
+import { sendAndClose } from './smtp-lifecycle.ts'
 
 // Server-only: reads SMTP_* secrets. Import from edge functions only — never
 // expose sending to the browser.
@@ -72,18 +73,17 @@ export async function sendTemplateEmail(
       auth: { username: user, password },
     },
   })
-  try {
-    await client.send({
+  await sendAndClose({
+    send: () => client.send({
       from,
       to: recipient,
       subject,
       html,
       content: 'auto',
       replyTo,
-    })
-  } finally {
-    await client.close()
-  }
+    }),
+    close: () => client.close(),
+  })
 
   return { sent: true }
 }

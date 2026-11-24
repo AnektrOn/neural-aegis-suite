@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 export default function AppSumoRedemption() {
   const { user, isGuest, isAnonymous } = useAuth();
   const { locale } = useLanguage();
-  const { refetch } = useSubscription();
+  const { refetch, subscription, isActive } = useSubscription();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -19,12 +19,14 @@ export default function AppSumoRedemption() {
   const [emailsPending, setEmailsPending] = useState(false);
   const fr = locale === 'fr';
   const signedIn = !!user && !isGuest && !isAnonymous;
+  const alreadyActivated = isActive && subscription?.price_id === 'appsumo_lifetime';
 
-  async function redeemCode() {
+  async function redeemCode(resend = false) {
+    if (busy) return;
     setBusy(true);
     setMessage('');
     try {
-      const { data, error } = await supabase.functions.invoke('redeem-appsumo', { body: { code: code.trim().toUpperCase(), locale } });
+      const { data, error } = await supabase.functions.invoke('redeem-appsumo', { body: resend ? { resend: true, locale } : { code: code.trim().toUpperCase(), locale } });
       if (error) throw error;
       const result = data as { success?: boolean; error?: string; emails?: string; email_error?: string } | null;
       if (!result?.success) {
@@ -56,9 +58,10 @@ export default function AppSumoRedemption() {
   return <section className="space-y-4 border-b border-border py-6" aria-labelledby="appsumo-title">
     <h2 id="appsumo-title" className="flex items-center gap-2 text-xl text-foreground"><KeyRound size={20} />{fr ? 'Activer un code AppSumo' : 'Redeem an AppSumo code'}</h2>
     <p className="text-sm text-muted-foreground">AEGIS Solo · {fr ? 'Accès à vie, sans LOGOS' : 'Lifetime access, without LOGOS'}</p>
-    {success ? <div role="status" className="space-y-3">
+    {signedIn && (success || alreadyActivated) ? <div role="status" className="space-y-3">
       <p className="text-sm text-foreground">{fr ? 'Votre accès AEGIS Solo à vie est activé.' : 'Your AEGIS Solo lifetime access is activated.'}</p>
-      {emailsPending && <div className="space-y-2"><p className="text-sm text-muted-foreground">{fr ? 'Votre accès est actif, mais l’email de confirmation est encore en attente.' : 'Your access is active, but the confirmation email is still pending.'}</p><Button variant="outline" disabled={busy || !code.trim()} onClick={() => { void redeemCode(); }}>{busy && <Loader2 size={16} className="animate-spin" />}{fr ? 'Réessayer la confirmation' : 'Retry confirmation'}</Button>{message && <p role="alert" className="text-sm text-destructive">{message}</p>}</div>}
+      {(emailsPending || !success) && <div className="space-y-2">{emailsPending && <p className="text-sm text-muted-foreground">{fr ? 'Votre accès est actif, mais l’email de confirmation est encore en attente.' : 'Your access is active, but the confirmation email is still pending.'}</p>}<Button variant="outline" disabled={busy} onClick={() => { void redeemCode(true); }}>{busy && <Loader2 size={16} className="animate-spin" />}{fr ? 'Réessayer la confirmation' : 'Retry confirmation'}</Button>{message && <p role="alert" className="text-sm text-destructive">{message}</p>}</div>}
+      {success && !emailsPending && <p className="text-sm text-muted-foreground">{fr ? 'Email de confirmation envoyé.' : 'Confirmation email sent.'}</p>}
       <Button asChild><Link to="/dashboard">{fr ? 'Ouvrir AEGIS' : 'Open AEGIS'}</Link></Button>
     </div> : signedIn ? <form onSubmit={redeem} className="space-y-3">
       <label htmlFor="appsumo-code" className="block text-sm text-foreground">{fr ? 'Code AppSumo' : 'AppSumo code'}</label>

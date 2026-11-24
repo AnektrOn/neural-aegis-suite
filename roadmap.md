@@ -1,8 +1,8 @@
 # Monitoring fixes
 
 ## AppSumo confirmation retries — 24 November 2026
-- [ ] Fix confirmation delivery and authenticated code-free retries without changing lifetime access.
-- [ ] Run regression tests and verify the real confirmation action and delivery outcome.
+- [x] Fix confirmation delivery and authenticated code-free retries without changing lifetime access; deployed member-first SMTP with safe cleanup and private per-recipient delivery records.
+- [x] Sixteen regression tests pass; the AppSumo QA account's real Retry confirmation returns processed, displays sent, and records SMTP acceptance. Repeating preserves the original sent timestamp and one lifetime row; inbox arrival remains for QA to confirm.
 
 ## New-account admin alert — 22 November 2026
 - [x] Add and deploy a distinct account-created event through the existing activity sender and Auth lifecycle; preserve login alerts and member confirmation emails.

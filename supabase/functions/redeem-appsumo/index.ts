@@ -3,8 +3,13 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts';
 import { redemptionEmails } from './email-rules.ts';
+import { deliverConfirmationFirst } from './delivery-rules.ts';
 
-const Body = z.object({ code: z.string().trim().toUpperCase().regex(/^AEGIS-[A-Z0-9]{12}$/), locale: z.enum(['fr', 'en']).default('en') }).strict();
+const Code = z.string().trim().toUpperCase().regex(/^AEGIS-[A-Z0-9]{12}$/);
+const Body = z.union([
+  z.object({ code: Code, locale: z.enum(['fr', 'en']).default('en') }).strict(),
+  z.object({ resend: z.literal(true), locale: z.enum(['fr', 'en']).default('en') }).strict(),
+]);
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
 Deno.serve(async req => {
@@ -23,20 +28,30 @@ Deno.serve(async req => {
     if (authError || !user || user.is_anonymous || !user.email) return respond({ error: 'sign_in_required' }, 401);
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return respond({ error: 'invalid_code' }, 400);
-    const { code, locale } = parsed.data;
-    // Keep the authenticated atomic database function authoritative for access.
-    const { data: result, error } = await member.rpc('redeem_appsumo_code', { input_code: code });
-    if (error) throw error;
-    if (!result?.success) return respond(result);
+    const { locale } = parsed.data;
+    const resend = 'resend' in parsed.data;
+    const code = 'code' in parsed.data ? parsed.data.code : '';
+    // Only initial activation touches access; retries resolve the caller's persisted event.
+    let result: Record<string, unknown> = { success: true, already_redeemed: true };
+    if (!resend) {
+      const { data, error } = await member.rpc('redeem_appsumo_code', { input_code: code });
+      if (error) throw error;
+      if (!data?.success) return respond(data);
+      result = data;
+    }
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
-    const codeHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code))), b => b.toString(16).padStart(2, '0')).join('');
     try {
-      const { data: redemption, error: readError } = await admin.from('appsumo_codes').select('redeemed_at').eq('code_hash', codeHash).eq('redeemed_by', user.id).single();
-      if (readError || !redemption?.redeemed_at) throw new Error('Activation event not found');
+      const { data: redemption, error: readError } = await admin.from('appsumo_codes').select('redeemed_at').eq('redeemed_by', user.id).single();
+      if (readError || !redemption?.redeemed_at) {
+        if (resend) return respond({ error: 'activation_not_found' }, 400);
+        throw new Error('Activation event not found');
+      }
       // Admin notices are best-effort: never block the member confirmation email.
       let adminEmails: string[] = [];
       try {
-        const { data: roles, error: roleError } = await admin.from('user_roles').select('user_id').in('role', ['admin', 'superadmin']);
+        const { data: roles, error: roleError } = !result.already_redeemed
+          ? await admin.from('user_roles').select('user_id').in('role', ['admin', 'superadmin'])
+          : { data: [], error: null };
         if (roleError) throw roleError;
         const resolved = await Promise.all([...new Set((roles ?? []).map(row => row.user_id))].map(async id => {
           const { data, error } = await admin.auth.admin.getUserById(id);
@@ -52,21 +67,31 @@ Deno.serve(async req => {
       }
       const { data: profile } = await admin.from('profiles').select('display_name').eq('id', user.id).maybeSingle();
       const jobs = redemptionEmails({ userId: user.id, redeemedAt: redemption.redeemed_at, email: user.email, name: profile?.display_name, createdAt: user.created_at, locale, code }, adminEmails);
-      // SMTP via contact@ — Hostinger cannot delegate Lovable's notify NS subdomain.
-      const outcomes = await Promise.allSettled(jobs.map(job => sendTemplateEmail(job.template, job.recipient, { templateData: job.data, idempotencyKey: job.idempotencyKey, replyTo: 'contact@protocolenomos.com' })));
-      for (const outcome of outcomes) {
-        if (outcome.status === 'rejected') {
-          const reason = outcome.reason;
-          console.error('AppSumo confirmation failed:', reason instanceof Error ? reason.message : reason?.code || reason?.message || String(reason) || 'Email unavailable');
+      await deliverConfirmationFirst(jobs, async job => {
+        // Reuse the private activity delivery ledger; SMTP itself has no idempotency keys.
+        const key = job.idempotencyKey;
+        const { error: claimError } = await admin.from('activity_email_deliveries').insert({ event_key: key, recipient_email: job.recipient });
+        if (claimError) {
+          if (claimError.code !== '23505') throw claimError;
+          const { data: existing, error: lookupError } = await admin.from('activity_email_deliveries').select('status,created_at').eq('event_key', key).eq('recipient_email', job.recipient).single();
+          if (lookupError) throw lookupError;
+          if (existing.status === 'sent') return;
+          if (existing.status === 'sending' && Date.now() - Date.parse(existing.created_at) < 120_000) throw new Error('Confirmation already sending; retry shortly');
+          const { data: claimed, error: retryError } = await admin.from('activity_email_deliveries').update({ status: 'sending', created_at: new Date().toISOString(), error_message: null }).eq('event_key', key).eq('recipient_email', job.recipient).eq('status', existing.status).eq('created_at', existing.created_at).select('event_key');
+          if (retryError) throw retryError;
+          if (!claimed?.length) throw new Error('Confirmation already sending; retry shortly');
         }
-      }
-      // Member welcome is the confirmation buyers see; admin notice failures must not block them.
-      const welcome = outcomes[0];
-      if (!welcome || welcome.status === 'rejected') {
-        const reason = welcome && welcome.status === 'rejected' ? welcome.reason : null;
-        const emailError = reason instanceof Error ? reason.message : reason?.message || 'Email unavailable';
-        return respond({ ...result, emails: 'pending', email_error: emailError });
-      }
+        try {
+          const sent = await sendTemplateEmail(job.template, job.recipient, { templateData: job.data, idempotencyKey: key, replyTo: 'contact@protocolenomos.com' });
+          if (!sent.sent) throw new Error('Confirmation not sent');
+          const { error: recordError } = await admin.from('activity_email_deliveries').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('event_key', key).eq('recipient_email', job.recipient);
+          if (recordError) throw recordError;
+          console.log('AppSumo email accepted', job.template);
+        } catch (error) {
+          await admin.from('activity_email_deliveries').update({ status: 'failed', error_message: error instanceof Error ? error.message : 'Email unavailable' }).eq('event_key', key).eq('recipient_email', job.recipient);
+          throw error;
+        }
+      });
       return respond({ ...result, emails: 'processed' });
     } catch (emailError) {
       const message = emailError instanceof Error ? emailError.message : 'Email unavailable';
