@@ -19,6 +19,9 @@ export type TranscriptExport = {
 const UI_OPEN_PHRASES =
   /\b(j['\u2019]ouvre|je t['\u2019]ouvre|je te propose|modal|tiroir|formulaire|à l['\u2019]écran)\b/i;
 
+const FORCED_DAILY_PATH_LOOP =
+  /^on se retrouve sur l'espace/i;
+
 const UI_INTENT_PHRASES =
   /\b(pratique|toolbox|modal|pulse|quick\s*log|people|décision|decision\s*log|suggestion)\b/i;
 
@@ -47,6 +50,25 @@ export function assertLogosTranscript(data: TranscriptExport): LogosTranscriptVi
     const msg = (t.message ?? "").replace(/<[^>]+>/g, " ");
     const toolCalls = t.tool_calls ?? [];
     const node = t.agent_metadata?.workflow_node_id ?? "unknown";
+
+    if (FORCED_DAILY_PATH_LOOP.test(msg.trim()) && i > 5) {
+      const priorUser = turns
+        .slice(0, i)
+        .reverse()
+        .find((x) => x.role === "user");
+      const userText = (priorUser?.message ?? "").toLowerCase();
+      if (
+        !/\b(chemin|début|prompt|thème du jour|retour|signal|ancrage|rappelle)\b/i.test(
+          userText,
+        )
+      ) {
+        violations.push({
+          code: "unprompted_daily_path_loop",
+          turnIndex: i,
+          detail: msg.slice(0, 120),
+        });
+      }
+    }
 
     if (UI_OPEN_PHRASES.test(msg) && toolCalls.length === 0) {
       violations.push({

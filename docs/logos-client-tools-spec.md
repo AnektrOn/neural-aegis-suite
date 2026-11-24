@@ -34,10 +34,13 @@ Configurer les **client tools** sur cet agent avec les noms **exactement** ci-de
 
 | Nœud | Tools typiques |
 |------|----------------|
-| `triage` | `list_actionable_content` (optionnel) |
-| `guide_somatique` | list, propose_actionable_choices, open_toolbox_item, propose_pulse_card, record_pulse_swipe |
-| `checkin` | write_mood_entry, open_quick_log, open_toolbox_item (régulation) |
-| `analyse` | write_journal_entry, write_decision, open_people_checkin, write_relation_note, open_toolbox_item (ancrage) |
+| `triage` | KB complète + passerelle UI (list, propose_*, open_*, etc.) — intro sobre |
+| `guide_somatique` | KB + passerelle UI — cadre pratique |
+| `checkin` | KB + relevé + passerelle UI |
+| `analyse` | KB + écriture + passerelle UI — cadre formulaire / analyse |
+| `jung` / `myss` / `blavatsky` | KB agent + docs doctrine ciblés + passerelle UI — intro liée à la lecture |
+
+Voir [`logos-kb-and-routing.md`](./logos-kb-and-routing.md).
 
 ## `list_actionable_content` — shape JSON
 

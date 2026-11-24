@@ -1820,16 +1820,19 @@ export type Database = {
           id: boolean
           main_agent_id: string | null
           updated_at: string
+          voice_monthly_limit_seconds: number
         }
         Insert: {
           id?: boolean
           main_agent_id?: string | null
           updated_at?: string
+          voice_monthly_limit_seconds?: number
         }
         Update: {
           id?: boolean
           main_agent_id?: string | null
           updated_at?: string
+          voice_monthly_limit_seconds?: number
         }
         Relationships: []
       }
@@ -2885,6 +2888,7 @@ export type Database = {
           sidebar_items: Json | null
           timezone: string | null
           updated_at: string
+          voice_monthly_limit_seconds: number | null
         }
         Insert: {
           account_type?: string
@@ -2911,6 +2915,7 @@ export type Database = {
           sidebar_items?: Json | null
           timezone?: string | null
           updated_at?: string
+          voice_monthly_limit_seconds?: number | null
         }
         Update: {
           account_type?: string
@@ -2937,6 +2942,7 @@ export type Database = {
           sidebar_items?: Json | null
           timezone?: string | null
           updated_at?: string
+          voice_monthly_limit_seconds?: number | null
         }
         Relationships: [
           {
@@ -4430,6 +4436,14 @@ export type Database = {
       check_internal_secret: { Args: { p_secret: string }; Returns: boolean }
       check_service_rate_limit: {
         Args: { p_bucket: string; p_limit?: number; p_window_seconds?: number }
+        Returns: Json
+      }
+      get_voice_usage_budget: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      list_logos_voice_usage_budgets: {
+        Args: { p_search?: string | null }
         Returns: Json
       }
       claim_logos_transcript_export: {

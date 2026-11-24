@@ -1,4 +1,8 @@
 import { userHasLogosEntitlement } from './logos-entitlement.ts';
+import {
+  assertVoiceBudgetAllowsSession,
+  type VoiceUsageBudget,
+} from './voice-budget.ts';
 
 const EL = "https://api.elevenlabs.io/v1";
 const EL_FETCH_TIMEOUT_MS = 15_000;
@@ -61,10 +65,15 @@ export async function resolveVoiceAgentId(admin: Admin, userId: string): Promise
   return (profile?.elevenlabs_agent_id as string | null | undefined) ?? defaultAgentId();
 }
 
+export type VoiceConversationStartPayload = {
+  conversation_token: string;
+  voice_budget: VoiceUsageBudget;
+};
+
 export async function createVoiceConversationToken(
   admin: Admin,
   userId: string,
-): Promise<{ conversation_token: string }> {
+): Promise<VoiceConversationStartPayload> {
   const { data: rl, error: rlErr } = await admin.rpc("check_service_rate_limit", {
     p_bucket: `agent-session:${userId}`,
     p_limit: RATE_LIMIT_PER_HOUR,
@@ -92,14 +101,19 @@ export async function createVoiceConversationToken(
     throw err;
   }
 
+  const voice_budget = await assertVoiceBudgetAllowsSession(admin, userId);
+
   const conversation_token = await fetchWebRtcToken(agentId, userId);
-  return { conversation_token };
+  return { conversation_token, voice_budget };
 }
 
 export function mapVoiceSessionError(e: unknown): { message: string; status: number } {
   const msg = e instanceof Error ? e.message : String(e);
   const status = (e as Error & { status?: number }).status;
-  if (status === 403) return { message: "Abonnement AEGIS + LOGOS Solo requis", status: 403 };
+  if (status === 403) {
+    if (msg.includes("Quota vocal")) return { message: msg, status: 403 };
+    return { message: "Abonnement AEGIS + LOGOS Solo requis", status: 403 };
+  }
   if (status === 404) return { message: "Agent introuvable", status: 404 };
   if (status === 429) return { message: "Too many requests", status: 429 };
   if (status === 422) return { message: "Configuration agent invalide", status: 502 };

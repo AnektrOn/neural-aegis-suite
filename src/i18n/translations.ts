@@ -1574,6 +1574,22 @@ export const translations = {
   },
   "voiceAgent.noSubscriptionCta": { fr: "Voir les tarifs", en: "View pricing" },
   "voiceAgent.noAccessCta": { fr: "Retour à l'accueil", en: "Back to home" },
+  "voiceAgent.meterSession": {
+    fr: "Appel {duration} · ~{cost}",
+    en: "Call {duration} · ~{cost}",
+  },
+  "voiceAgent.meterMonthRemaining": {
+    fr: "Mois restant {remaining}",
+    en: "Month left {remaining}",
+  },
+  "voiceAgent.meterFootnote": {
+    fr: "Coût indicatif ElevenLabs · quota mensuel global",
+    en: "Indicative ElevenLabs cost · global monthly quota",
+  },
+  "voiceAgent.quotaExhausted": {
+    fr: "Quota vocal du mois atteint. L'appel se termine.",
+    en: "Monthly voice quota reached. Ending call.",
+  },
   "voiceAgent.errorGeneric": {
     fr: "Impossible de démarrer la conversation.",
     en: "Could not start the conversation.",

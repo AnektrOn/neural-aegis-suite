@@ -4,6 +4,9 @@ import { toast } from "sonner";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { LogosVoiceQuotaPanel } from "@/pages/admin/LogosVoiceQuotaPanel";
+import { formatVoiceDuration } from "@/features/logos/voiceSessionCost";
+import { fetchVoiceUsageBudget } from "@/features/logos/voiceBudgetService";
 
 interface UserRow {
   id: string;
@@ -179,6 +182,11 @@ export default function AdminElevenLabsKnowledge() {
     counts: { markdown: number; other: number; folders: number };
   } | null>(null);
   const [bulkResult, setBulkResult] = useState<{ user: string; ok: number; failed: number; skipped: number; error?: string }[] | null>(null);
+  const [selectedVoiceBudget, setSelectedVoiceBudget] = useState<{
+    used_seconds: number;
+    limit_seconds: number;
+    remaining_seconds: number;
+  } | null>(null);
 
   const load = useCallback(async () => {
     const [{ data: u }, { data: d }, { data: s }] = await Promise.all([
@@ -200,6 +208,21 @@ export default function AdminElevenLabsKnowledge() {
     setDriveFolder(selected?.drive_folder_id ?? "");
     setDriveEnabled(!!selected?.elevenlabs_sync_enabled);
     setUserAgentId(selected?.elevenlabs_agent_id ?? "");
+    setSelectedVoiceBudget(null);
+    if (!selected?.id || !selected.elevenlabs_agent_id) return;
+    let cancelled = false;
+    void fetchVoiceUsageBudget(selected.id).then((b) => {
+      if (!cancelled && b) {
+        setSelectedVoiceBudget({
+          used_seconds: b.used_seconds,
+          limit_seconds: b.limit_seconds,
+          remaining_seconds: b.remaining_seconds,
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [selected?.id, selected?.drive_folder_id, selected?.elevenlabs_sync_enabled, selected?.elevenlabs_agent_id]);
 
   const docsByUser = useMemo(() => {
@@ -246,6 +269,12 @@ export default function AdminElevenLabsKnowledge() {
         <p className="mt-2 text-sm text-muted-foreground">Chaque utilisateur a son propre agent ElevenLabs. Ses documents ne sont attachés qu'à son agent.</p>
       </div>
 
+      <LogosVoiceQuotaPanel
+        searchQuery={query}
+        selectedUserId={selectedId}
+        onSelectUser={(id) => setSelectedId(id)}
+      />
+
       {/* Main agent */}
       <section className={card}>
         <h2 className="flex items-center gap-2 text-lg text-foreground"><Bot size={16} /> Agent principal</h2>
@@ -281,7 +310,9 @@ export default function AdminElevenLabsKnowledge() {
                   <button type="button" onClick={() => setSelectedId(u.id)}
                     className={`w-full rounded-xl px-3 py-2 text-left text-sm transition-colors ${selectedId === u.id ? "bg-primary/10 text-foreground" : "hover:bg-secondary/30 text-muted-foreground"}`}>
                     <div className="text-foreground">{u.display_name || u.id.slice(0, 8)}</div>
-                    <div className="text-xs">{u.elevenlabs_agent_id ? `Agent ✓ · ${ud.length} doc(s)` : "Agent non créé"}</div>
+                    <div className="text-xs">
+                      {u.elevenlabs_agent_id ? `Agent ✓ · ${ud.length} doc(s)` : "Agent non créé"}
+                    </div>
                   </button>
                 </li>
               );
@@ -302,6 +333,23 @@ export default function AdminElevenLabsKnowledge() {
                   <dt className="text-muted-foreground">Documents</dt><dd className="text-foreground">{userDocs.length}</dd>
                   <dt className="text-muted-foreground">Dernier envoi</dt><dd className="text-foreground">{fmt(userDocs[0]?.uploaded_at ?? null)}</dd>
                   <dt className="text-muted-foreground">Statut du dernier envoi</dt><dd className="text-foreground">{userDocs[0] ? STATUS_LABEL[userDocs[0].status] : "—"}</dd>
+                  {selected.elevenlabs_agent_id && selectedVoiceBudget ? (
+                    <>
+                      <dt className="text-muted-foreground">Quota vocal (mois)</dt>
+                      <dd className="text-foreground font-mono text-xs tabular-nums">
+                        {formatVoiceDuration(selectedVoiceBudget.used_seconds)} utilisées ·{" "}
+                        <span
+                          className={
+                            selectedVoiceBudget.remaining_seconds < 120 ? "text-destructive" : ""
+                          }
+                        >
+                          {formatVoiceDuration(selectedVoiceBudget.remaining_seconds)} restantes
+                        </span>
+                        {" "}
+                        / {formatVoiceDuration(selectedVoiceBudget.limit_seconds)}
+                      </dd>
+                    </>
+                  ) : null}
                 </dl>
                 <div className="flex flex-wrap gap-2">
                   <input value={userAgentId} onChange={(e) => setUserAgentId(e.target.value)} placeholder="Ou collez ici l'ID d'un agent existant" className={`${input} flex-1 min-w-[240px]`} />

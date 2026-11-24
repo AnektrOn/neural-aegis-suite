@@ -39,6 +39,7 @@ import type { LogosOpeningInjection } from "@/features/logos/logosSessionInjecti
 import { useAuth } from "@/contexts/AuthContext";
 import { VoiceFeedbackRecorder } from "@/features/logos/voiceFeedbackService";
 import { VoiceFeedbackContext } from "@/features/logos/VoiceFeedbackContext";
+import { VoiceAgentSessionMeter } from "@/components/voice/VoiceAgentSessionMeter";
 
 type UiPhase = "idle" | "path_choice" | "connecting" | "connected" | "error";
 type VoiceAgentLayout = "card" | "welcome";
@@ -417,6 +418,16 @@ function VoiceAgentControls({
             {statusLabel}
           </p>
         ) : null}
+        {connected && user?.id ? (
+          <VoiceAgentSessionMeter
+            userId={user.id}
+            active={connected}
+            onLimitReached={() => {
+              onPhase("error", t("voiceAgent.quotaExhausted"));
+              void end();
+            }}
+          />
+        ) : null}
         {errorDetail || errorMessage ? (
           <p className="max-w-sm text-center text-xs text-destructive" role="alert">
             {errorDetail ?? errorMessage}
@@ -483,6 +494,16 @@ function VoiceAgentControls({
         <p className="text-sm text-muted-foreground" role="status">
           {statusLabel}
         </p>
+        {user?.id ? (
+          <VoiceAgentSessionMeter
+            userId={user.id}
+            active={connected}
+            onLimitReached={() => {
+              onPhase("error", t("voiceAgent.quotaExhausted"));
+              void end();
+            }}
+          />
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="secondary" disabled={busy} onClick={() => setMuted(!isMuted)}>
             {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}

@@ -1,22 +1,38 @@
 import { describe, expect, it } from "vitest";
 import template from "../../supabase/functions/elevenlabs-knowledge/logos-workflow.json";
 
-describe("LOGOS workflow without uploaded sources", () => {
-  it("installs all seven conversation roles without knowledge documents", () => {
+describe("LOGOS workflow", () => {
+  it("does not strip agent KB on workflow nodes (no empty knowledge_base override)", () => {
     const roles = Object.values(template.workflow.nodes).filter(n => n.type === "override_agent");
-    expect(roles).toHaveLength(7);
+    expect(roles.length).toBeGreaterThanOrEqual(11);
     for (const node of roles) {
-      expect("conversation_config" in node && node.conversation_config.agent.prompt.knowledge_base).toEqual([]);
+      const kb =
+        "conversation_config" in node &&
+        node.conversation_config?.agent?.prompt &&
+        "knowledge_base" in node.conversation_config.agent.prompt
+          ? node.conversation_config.agent.prompt.knowledge_base
+          : undefined;
+      expect(kb).toBeUndefined();
     }
+    const shadow = template.workflow.nodes.prism_myss_shadow as { additional_knowledge_base?: unknown[] };
+    expect((shadow.additional_knowledge_base ?? []).length).toBeGreaterThanOrEqual(1);
     expect(JSON.stringify(template)).not.toMatch(/el_(memoire|grimoire|jung|myss|blavatsky|syntheses)/);
   });
-  it("retains routing to all three author readings and conversation termination", () => {
-    expect(template.workflow.edges.analyse__jung.target).toBe("jung");
-    expect(template.workflow.edges.analyse__myss.target).toBe("myss");
-    expect(template.workflow.edges.analyse__blavatsky.target).toBe("blavatsky");
+  it("Myss lighthouse tree replaces flat myss node", () => {
+    expect(template.workflow.nodes.myss).toBeUndefined();
+    expect(template.workflow.nodes.lighthouse_myss).toBeDefined();
+    expect(template.workflow.nodes.perspective_myss_archetypes).toBeDefined();
+    expect(template.workflow.edges.analyse__lighthouse_myss.target).toBe("lighthouse_myss");
+    expect(template.workflow.edges.perspective_myss_archetypes__prism_myss_shadow.target).toBe(
+      "prism_myss_shadow",
+    );
     expect(template.workflow.edges.triage__end_node.target).toBe("end_node");
     expect(template.workflow.edges.start_node__greeting.target).toBe("triage");
     expect(template.workflow.nodes.triage.entry_behavior).toBe("wait_for_user");
+  });
+  it("retains Jung and Blavatsky from analyse", () => {
+    expect(template.workflow.edges.analyse__jung.target).toBe("jung");
+    expect(template.workflow.edges.analyse__blavatsky.target).toBe("blavatsky");
   });
 
   it("pins UI client tools on guide_somatique, checkin, analyse", () => {
@@ -26,8 +42,10 @@ describe("LOGOS workflow without uploaded sources", () => {
     const checkin = template.workflow.nodes.checkin as { additional_tool_ids?: string[] };
     const analyse = template.workflow.nodes.analyse as { additional_tool_ids?: string[] };
     expect(guide.additional_tool_ids).toContain("tool_4801m7bxhmy8fd6sbessx9cmbybp");
+    expect(guide.additional_tool_ids).toContain("tool_8601m7bv51w0enrveq8kpy663yne");
     expect(checkin.additional_tool_ids?.length).toBeGreaterThanOrEqual(3);
     expect(analyse.additional_tool_ids?.length).toBeGreaterThanOrEqual(5);
-    expect((template.workflow.nodes.triage as { additional_tool_ids?: string[] }).additional_tool_ids ?? []).toHaveLength(0);
+    const triage = template.workflow.nodes.triage as { additional_tool_ids?: string[] };
+    expect((triage.additional_tool_ids ?? []).length).toBeGreaterThanOrEqual(8);
   });
 });

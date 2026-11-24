@@ -1,11 +1,24 @@
 import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AgentVoiceSession = {
-  conversation_token: string;
+export type VoiceUsageBudget = {
+  period_start: string;
+  period_end: string;
+  used_seconds: number;
+  limit_seconds: number;
+  remaining_seconds: number;
 };
 
-type InvokePayload = { conversation_token?: string; error?: string };
+export type AgentVoiceSession = {
+  conversation_token: string;
+  voice_budget?: VoiceUsageBudget;
+};
+
+type InvokePayload = {
+  conversation_token?: string;
+  voice_budget?: VoiceUsageBudget;
+  error?: string;
+};
 
 async function readInvokeBody(error: FunctionsHttpError): Promise<InvokePayload | null> {
   try {
@@ -38,7 +51,10 @@ async function invokeAgentSession(): Promise<AgentVoiceSession> {
   });
 
   if (!error && data?.conversation_token) {
-    return { conversation_token: data.conversation_token };
+    return {
+      conversation_token: data.conversation_token,
+      ...(data.voice_budget ? { voice_budget: data.voice_budget } : {}),
+    };
   }
 
   if (error instanceof FunctionsFetchError) {
@@ -63,7 +79,10 @@ async function invokeVoiceTokenFallback(): Promise<AgentVoiceSession> {
   });
 
   if (!error && data?.conversation_token) {
-    return { conversation_token: data.conversation_token };
+    return {
+      conversation_token: data.conversation_token,
+      ...(data.voice_budget ? { voice_budget: data.voice_budget } : {}),
+    };
   }
 
   if (error instanceof FunctionsFetchError) {

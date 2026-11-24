@@ -7,7 +7,11 @@ export type LogosWorkflowNodeId =
   | "checkin"
   | "analyse"
   | "jung"
-  | "myss"
+  | "lighthouse_myss"
+  | "perspective_myss_archetypes"
+  | "prism_myss_balance"
+  | "prism_myss_light"
+  | "prism_myss_shadow"
   | "blavatsky"
   | "end_node";
 
@@ -60,7 +64,11 @@ export const LOGOS_NODE_LABELS: Record<LogosWorkflowNodeId, { fr: string; en: st
   checkin: { fr: "Relevé du jour", en: "Daily check-in" },
   analyse: { fr: "Analyse", en: "Analyse" },
   jung: { fr: "Jung", en: "Jung" },
-  myss: { fr: "Myss", en: "Myss" },
+  lighthouse_myss: { fr: "Phare Myss", en: "Myss lighthouse" },
+  perspective_myss_archetypes: { fr: "Myss · Archétypes", en: "Myss · Archetypes" },
+  prism_myss_balance: { fr: "Myss · Équilibre", en: "Myss · Balance" },
+  prism_myss_light: { fr: "Myss · Lumière", en: "Myss · Light" },
+  prism_myss_shadow: { fr: "Myss · Ombre", en: "Myss · Shadow" },
   blavatsky: { fr: "Blavatsky", en: "Blavatsky" },
   end_node: { fr: "Fin", en: "End" },
 };
@@ -68,14 +76,34 @@ export const LOGOS_NODE_LABELS: Record<LogosWorkflowNodeId, { fr: string; en: st
 /** Tools the live node is expected to use (from logos-client-tools-spec). */
 export const LOGOS_NODE_TOOLS: Record<LogosWorkflowNodeId, LogosLabToolId[]> = {
   start_node: [],
-  triage: ["list_actionable_content"],
+  triage: [
+    "list_actionable_content",
+    "propose_actionable_choices",
+    "open_toolbox_item",
+    "propose_pulse_card",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture",
+  ],
   guide_somatique: [
     "list_actionable_content",
     "propose_actionable_choices",
     "open_toolbox_item",
     "propose_pulse_card",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture",
   ],
-  checkin: ["write_mood_entry", "open_quick_log", "open_toolbox_item", "list_actionable_content"],
+  checkin: [
+    "write_mood_entry",
+    "open_quick_log",
+    "open_toolbox_item",
+    "list_actionable_content",
+    "propose_actionable_choices",
+    "propose_pulse_card",
+    "open_people_checkin",
+    "open_decision_capture",
+  ],
   analyse: [
     "write_journal_entry",
     "write_decision",
@@ -83,10 +111,66 @@ export const LOGOS_NODE_TOOLS: Record<LogosWorkflowNodeId, LogosLabToolId[]> = {
     "write_relation_note",
     "open_toolbox_item",
     "open_decision_capture",
+    "propose_actionable_choices",
+    "propose_pulse_card",
+    "open_quick_log",
   ],
-  jung: [],
-  myss: [],
-  blavatsky: [],
+  jung: [
+    "propose_actionable_choices",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture",
+    "propose_pulse_card",
+    "open_toolbox_item",
+  ],
+  lighthouse_myss: [
+    "propose_actionable_choices",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture",
+    "propose_pulse_card",
+    "open_toolbox_item",
+  ],
+  perspective_myss_archetypes: [
+    "propose_actionable_choices",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture",
+    "propose_pulse_card",
+    "open_toolbox_item",
+  ],
+  prism_myss_balance: [
+    "propose_actionable_choices",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture",
+    "propose_pulse_card",
+    "open_toolbox_item",
+  ],
+  prism_myss_light: [
+    "propose_actionable_choices",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture",
+    "propose_pulse_card",
+    "open_toolbox_item",
+  ],
+  prism_myss_shadow: [
+    "propose_actionable_choices",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture",
+    "propose_pulse_card",
+    "open_toolbox_item",
+  ],
+  blavatsky: [
+    "propose_actionable_choices",
+    "open_quick_log",
+    "open_people_checkin",
+    "open_decision_capture",
+    "propose_pulse_card",
+    "open_toolbox_item",
+  ],
   end_node: [],
 };
 
@@ -137,11 +221,25 @@ export const LOGOS_WORKFLOW_EDGES: LogosWorkflowEdge[] = [
     condition: "Demande explicite Jung.",
   },
   {
-    id: "analyse__myss",
+    id: "analyse__lighthouse_myss",
     source: "analyse",
-    target: "myss",
-    label: "Grille Myss",
-    condition: "Demande explicite Myss.",
+    target: "lighthouse_myss",
+    label: "Phare Myss",
+    condition: "Demande explicite Myss / archétypes.",
+  },
+  {
+    id: "lighthouse_myss__perspective_myss_archetypes",
+    source: "lighthouse_myss",
+    target: "perspective_myss_archetypes",
+    label: "Perspective archétypes",
+    condition: "Sacred Archetypes.",
+  },
+  {
+    id: "perspective_myss_archetypes__prism_myss_shadow",
+    source: "perspective_myss_archetypes",
+    target: "prism_myss_shadow",
+    label: "Prisme Ombre",
+    condition: "Ombre / Survival Family.",
   },
   {
     id: "analyse__blavatsky",
@@ -179,11 +277,11 @@ export const LOGOS_WORKFLOW_EDGES: LogosWorkflowEdge[] = [
     condition: "Lecture terminée.",
   },
   {
-    id: "myss__triage",
-    source: "myss",
+    id: "lighthouse_myss__triage",
+    source: "lighthouse_myss",
     target: "triage",
-    label: "Retour triage",
-    condition: "Lecture terminée.",
+    label: "Quitter Myss",
+    condition: "Autre besoin.",
   },
   {
     id: "blavatsky__triage",
@@ -260,8 +358,12 @@ export function canTakeEdge(from: LogosWorkflowNodeId, edgeId: string): boolean 
 
 export function resolveBackToTriageEdge(from: LogosWorkflowNodeId): string | null {
   if (from === "triage" || from === "start_node" || from === "end_node") return null;
-  const id = `${from}__triage`;
-  return edgeById(id) ? id : null;
+  const direct = `${from}__triage`;
+  if (edgeById(direct)) return direct;
+  if (from.startsWith("prism_myss_")) return `perspective_myss_archetypes__${from}`;
+  if (from === "perspective_myss_archetypes") return "lighthouse_myss__perspective_myss_archetypes";
+  if (from === "lighthouse_myss") return "lighthouse_myss__triage";
+  return null;
 }
 
 export function makeTriggerId(): string {

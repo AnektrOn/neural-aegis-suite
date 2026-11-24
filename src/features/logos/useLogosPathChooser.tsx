@@ -85,6 +85,7 @@ export function useLogosPathChooser({ enabled, isFR, firstName, userId }: Option
         ...buildGuidedLogosInjection(
           {
             id: full.id,
+            titleFr: full.titleFr,
             openingPrompt: full.openingPrompt,
             firstMessage: full.firstMessage,
           },

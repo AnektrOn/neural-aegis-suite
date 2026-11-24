@@ -376,6 +376,8 @@ Deno.serve(async (req) => {
                 session_mode: "open",
                 opening_prompt: "",
                 opening_path_id: "",
+                opening_path_title: "",
+                opening_first_message: "",
                 aegis_user_id: userId,
               } },
             } },

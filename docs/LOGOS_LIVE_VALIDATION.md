@@ -27,6 +27,26 @@ node scripts/assert-logos-transcript-tools.mjs path/to/transcript.json
 
 Violations typiques : `announce_ui_without_tool`, `ui_intent_no_route`, `multivoice_tags`.
 
+## Piège connu — chemin guided + Myss (`conv_2301m837…`, v `agtvrsn_5101…`)
+
+| Signal transcript | Cause |
+|-------------------|--------|
+| `workflow_node_id` = `triage` tout l’appel + `rag_usage.usage_count: 0` | Pas de route `analyse` ; KB seulement via tool manuel tardif |
+| `opening_prompt` du jour : pas d’auteurs / pas Myss | Le modèle refuse la doctrine au lieu de **pivot explicite** |
+| « Je n’ai pas accès aux rapports externes » | Faux : `03_DOCTRINE_CLINIQUE_CAROLINE_MYSS`, `00_RAPPORT.md`, etc. sont listés en KB |
+| `knowledge_base` cat sur `01_MEMOIRE_VIVE` | Mauvais doc pour « rapports Miss » → préférer doctrine + `00_RAPPORT` / synthèses Myss |
+| Réponse Mystic/Sage/Healer (mémoire Deep Dive) | Pas les rapports LEVEL_1 Sacred Archetypes (doctrine Myss) |
+
+**Attendu après correctif triage (repo)** : dès « parle-moi de mes archétypes / Myss » → KB doctrine + route `analyse` → `lighthouse_myss` (même en `session_mode=guided` après le 1er tour).
+
+Republier le workflow sur le pilote après merge ; la version UI `5101…` peut diverger du JSON repo.
+
+## Piège connu (corrigé 2026-11-23)
+
+Si l’appel reste sur `guide_somatique`, seuls les tools **attachés à ce nœud** sont invoquables.  
+Toolbox/Pulse marchaient ; quick log / People / décision non — tools absents du nœud.  
+Correctif : bundle passerelle UI sur `guide_somatique`, `checkin`, `analyse`.
+
 ## Correctifs déployés (2026-11-22)
 
 - `propose_actionable_choices` attaché au nœud `guide_somatique` (manquait en live)

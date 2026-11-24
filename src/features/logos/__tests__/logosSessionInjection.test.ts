@@ -9,6 +9,7 @@ describe("logosSessionInjection", () => {
     const inj = buildGuidedLogosInjection(
       {
         id: "path-1",
+        titleFr: "Signal & Ancrage",
         openingPrompt: "Aide à clarifier une décision.",
         firstMessage: "On clarifie. Qu’est-ce qui bloque ?",
       },
@@ -19,6 +20,8 @@ describe("logosSessionInjection", () => {
     expect(inj.dynamicVariables.opening_prompt).toContain("décision");
     expect(inj.dynamicVariables.first_name).toBe("Leo");
     expect(inj.dynamicVariables.opening_path_id).toBe("path-1");
+    expect(inj.dynamicVariables.opening_path_title).toBe("Signal & Ancrage");
+    expect(inj.dynamicVariables.opening_first_message).toContain("clarifie");
     expect(inj.dynamicVariables.aegis_user_id).toBe("33333333-3333-3333-3333-333333333333");
     expect(inj.overrides?.agent.firstMessage).toContain("clarifie");
   });

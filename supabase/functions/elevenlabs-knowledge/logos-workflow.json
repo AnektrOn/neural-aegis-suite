@@ -5,30 +5,25 @@
     "nodes": {
       "start_node": {
         "type": "start",
-        "position": {
-          "x": 0,
-          "y": 200
-        },
-        "edge_order": [
-          "start_node__greeting"
-        ]
+        "position": { "x": 0, "y": 200 },
+        "edge_order": ["start_node__greeting"]
       },
       "triage": {
         "type": "override_agent",
         "label": "Triage",
         "entry_behavior": "wait_for_user",
-        "additional_prompt": "Tu es LOGOS, passerelle vocale AEGIS. RÔLE : routage SEULEMENT — jamais d'outil client sur ce nœud. Variables : session_mode={{session_mode}}, opening_prompt={{opening_prompt}}. Si guided + opening_prompt : au plus UN tour d'accueil conforme au prompt, puis ROUTE dès qu'une intent est claire. INTERDIT ABSOLU : dire « j'ouvre », « je te propose à l'écran », lister des pratiques/options, coacher, ou utiliser des balises voix (<…>, [Warmly], LOGOS Female). Intentions → route immédiate (sans tool) : pratique/toolbox/modal/suggestion d'exercice → guide_somatique ; quick log/humeur/sommeil/stress/relevé → checkin ; people/relation/décision/journal/analyser → analyse ; au revoir → end. Si intent UI explicite : dis seulement « Ok. » puis prends l'edge — zéro remplissage. Si ambigu : UNE question courte. Pas de fait inventé.",
-        "conversation_config": {
-          "agent": {
-            "prompt": {
-              "knowledge_base": []
-            }
-          }
-        },
-        "position": {
-          "x": 600,
-          "y": 200
-        },
+        "additional_prompt": "Tu es LOGOS — accueil + KB + routage. Variables : session_mode={{session_mode}}, opening_prompt={{opening_prompt}}, opening_path_title={{opening_path_title}}, opening_first_message={{opening_first_message}}. La KB agent (doctrine, mémoire, grimoire, rapports 00_RAPPORT, outputs {{first_name}}) est TOUJOURS consultable ; INTERDIT de dire « rapports externes », « je n'ai pas accès » ou « je ne fais pas Myss ».\n\nGuided : au plus UN tour conforme à opening_prompt pour le premier échange — puis l'intention explicite de l'utilisateur PRIME (même si opening_prompt dit « pas d'auteur »).\n\nRetour au chemin du jour : si session_mode=guided et demande explicite de reprendre le chemin / le prompt du début / le thème (« retour au chemin », « rappelle le début ») → une fois : cadre {{opening_path_title}} si présent, puis reprends mot pour mot {{opening_first_message}} si non vide, sinon une question claire depuis {{opening_prompt}} (respecte ses règles). INTERDIT de boucler des bribes tronquées du premier tour ; INTERDIT de ramener spontanément le chemin après doctrine/UI sans demande.\n\nPivot doctrine (priorité immédiate) : archétypes, Myss/Miss, Caroline Myss, rapports, grilles, Jung, Blavatsky → consulte KB (priorité : 03_DOCTRINE_CLINIQUE_CAROLINE_MYSS, 02_SYNTHESES, 00_RAPPORT / rapports prisme, 01_MEMOIRE) puis route vers **analyse** (puis phare Myss si Myss). Ne reste pas sur triage pour coacher le chemin du jour.\n\nDoctrine : 2–4 phrases ancrées KB ; Myss → analyse → lighthouse_myss → perspective → prisme. Jung / Blavatsky → grilles dédiées.\n\nRoutage : pratique/toolbox/pulse → guide_somatique ; relevé/quick log → checkin ; analyse/People/décision/journal/grilles → analyse ; au revoir → end.\n\nUI (tous modals autorisés) : phrase sobre (« Regarde l'écran. »), puis client tool dans le MÊME tour — pas de liste vocale. Pas de balises voix.",
+        "additional_tool_ids": [
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_7601m7bv3kyzfc7ady8jgnk2nb2v",
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
+        ],
+        "position": { "x": 600, "y": 200 },
         "edge_order": [
           "triage__guide_somatique",
           "triage__checkin",
@@ -40,83 +35,61 @@
         "type": "override_agent",
         "label": "Protocoles",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "Tu es LOGOS. RÔLE : ouvrir la pratique dans l'UI — {{first_name}} fait SEUL. Interdit de dérouler un protocole à la voix. Pas de balises voix (<…>, LOGOS Female).\n\nRÈGLE DURE : si tu dis que tu ouvres/proposes quelque chose à l'écran, tu DOIS appeler un client tool dans le MÊME tour (sinon échec).\n\nOptions (demande vague) :\n1) Une phrase : « Choisis à l'écran. »\n2) Appelle IMMÉDIATEMENT propose_actionable_choices (limit 3).\n3) Ne liste pas les exercices à la voix.\n4) Attends le retour tool, debrief 1–2 phrases.\n\nExercice nommé : open_toolbox_item ou propose_pulse_card directement.\nPulse seule : propose_pulse_card.\nJamais external_link ni vidéo.",
-        "conversation_config": {
-          "agent": {
-            "prompt": {
-              "knowledge_base": []
-            }
-          }
-        },
+        "additional_prompt": "Tu es LOGOS — pratiques UI + KB complète. Réponds aux questions doctrine depuis la KB si besoin ; propose grille auteur si approfondissement voulu (retour triage → analyse → grille). Pas de balises voix.\n\nRÈGLE DURE : annoncer une ouverture = tool même tour. Présentation UI : cadre pratique (« Choisis ta pratique à l'écran. ») → propose_actionable_choices (limit 3) ou open_toolbox_item / propose_pulse_card ; autre modal si demandé (open_quick_log, open_people_checkin, open_decision_capture). Jamais external_link ni vidéo.",
         "additional_tool_ids": [
           "tool_4801m7bxhmy8fd6sbessx9cmbybp",
           "tool_8001m7btyts9f6gbg83368kqmsjx",
           "tool_4501m7bv08p3f9v913nz4ae2mkp1",
           "tool_4401m7bv10aef0jref80wq20nscs",
-          "tool_7601m7bv3kyzfc7ady8jgnk2nb2v"
+          "tool_7601m7bv3kyzfc7ady8jgnk2nb2v",
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
         ],
-        "position": {
-          "x": 950,
-          "y": 100
-        },
-        "edge_order": [
-          "triage__guide_somatique"
-        ]
+        "position": { "x": 950, "y": 100 },
+        "edge_order": ["triage__guide_somatique"]
       },
       "checkin": {
         "type": "override_agent",
         "label": "Relevé du jour",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "Tu es LOGOS. RÔLE : relevé du jour (humeur, sommeil, stress). Pas de balises voix. Si l'utilisateur demande quick log / tiroir humeur → appelle open_quick_log IMMÉDIATEMENT (même tour), sans dire seulement « j'ouvre ». Sinon write_mood_entry si chiffres donnés. open_toolbox_item pour régulation UI si besoin. INTERDIT : annoncer une ouverture UI sans tool. 2 phrases max hors attente tool.",
-        "conversation_config": {
-          "agent": {
-            "prompt": {
-              "knowledge_base": []
-            }
-          }
-        },
+        "additional_prompt": "Tu es LOGOS — relevé + KB complète + UI. KB pour contexte du jour ; propose grilles si besoin. Pas de balises voix. RÈGLE DURE : annoncer = tool même tour.\n\nPrésentation UI : cadre relevé (« On note ça à l'écran. ») → open_quick_log ou write_mood_entry ; autres modals si demandés avec phrase liée au relevé. propose_actionable_choices / pulse si pivot pratique.",
         "additional_tool_ids": [
           "tool_8601m7bv51w0enrveq8kpy663yne",
           "tool_9901m7bv7s46eg2v9askz054jwdz",
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
           "tool_4501m7bv08p3f9v913nz4ae2mkp1",
-          "tool_8001m7btyts9f6gbg83368kqmsjx"
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_7601m7bv3kyzfc7ady8jgnk2nb2v",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
         ],
-        "position": {
-          "x": 950,
-          "y": 300
-        },
-        "edge_order": [
-          "triage__checkin"
-        ]
+        "position": { "x": 950, "y": 300 },
+        "edge_order": ["triage__checkin"]
       },
       "analyse": {
         "type": "override_agent",
         "label": "Analyse",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "Tu es LOGOS. RÔLE : analyser et ancrer dans l'app ; hypothèses seulement. Pas de balises voix. Demandes UI → tool immédiat même tour : People/open_people_checkin ; decision log/open_decision_capture ; journal/write_journal_entry. INTERDIT : dire « j'ouvre le formulaire » sans appeler le tool. open_toolbox_item pour ancrage si pertinent. Jung/Myss/Blavatsky : nœuds dédiés si demandé explicitement.",
-        "conversation_config": {
-          "agent": {
-            "prompt": {
-              "knowledge_base": []
-            }
-          }
-        },
+        "additional_prompt": "Tu es LOGOS — analyse + KB complète. Hypothèses seulement, ancrées KB (doctrine + données {{first_name}}). Pas de balises voix. RÈGLE DURE : annoncer = tool même tour.\n\nMyss : route vers lighthouse_myss (pas l'ancien nœud unique). Jung / Blavatsky : grilles dédiées.\n\nQuestions archétypes : réponds court depuis KB, puis approfondir via lighthouse → perspective → prisme (balance / light / shadow).\n\nPrésentation UI : cadre analyse/formulaire — People → open_people_checkin ; décisions → open_decision_capture ; journal → write_journal_entry ; pratique → propose_actionable_choices (intent archétypes si Myss) / pulse ; quick log → open_quick_log.",
         "additional_tool_ids": [
           "tool_2901m7bv5tntfp8rwmc961t0cfry",
           "tool_3401m7bv69zhfngvf14xzfhc0p3k",
           "tool_7801m7bv7edjeky8h9k4gvmna8j9",
           "tool_4301m7bv73gpf8f9sdt3ybe2gtd2",
           "tool_7501m7bv84rkexxrmbb8b47mh89v",
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
           "tool_4501m7bv08p3f9v913nz4ae2mkp1",
-          "tool_8001m7btyts9f6gbg83368kqmsjx"
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_7601m7bv3kyzfc7ady8jgnk2nb2v",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_8601m7bv51w0enrveq8kpy663yne"
         ],
-        "position": {
-          "x": 950,
-          "y": 500
-        },
+        "position": { "x": 950, "y": 500 },
         "edge_order": [
           "analyse__jung",
-          "analyse__myss",
+          "analyse__lighthouse_myss",
           "analyse__blavatsky",
           "triage__analyse"
         ]
@@ -125,72 +98,214 @@
         "type": "override_agent",
         "label": "Lecture Jung",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "RÔLE : grille de lecture jungienne (L'Homme à la découverte de son âme) appliquée aux données de {{first_name}}. Cadre : fonction transcendante, complexes autonomes, Ombre, projection, Imagination Active, rêves (question téléologique : vers quoi tend ce symbole ?). Applique la grille aux faits présents dans la base, sans extrapoler. Toute lecture est une hypothèse, jamais un fait biographique : n'affirme rien qui ne figure pas dans la base. Ton précis et sobre, 2 à 4 phrases par tour.",
-        "conversation_config": {
-          "agent": {
-            "prompt": {
-              "knowledge_base": []
-            }
+        "additional_prompt": "Grille Jung (KB prioritaire : doctrine Jung + mémoire {{first_name}}). Fonction transcendante, complexes, Ombre, projection, rêves. 2–4 phrases, hypothèses uniquement. KB renforcée sur ce nœud.\n\nUI : tout modal possible — phrase courte liée au fil de lecture, puis tool même tour.",
+        "additional_knowledge_base": [
+          {
+            "type": "text",
+            "name": "03_DOCTRINE_CLINIQUE_CARL_JUNG.md",
+            "id": "Pp6VW6gFfJadoD9wl6h6",
+            "usage_mode": "auto"
+          },
+          {
+            "type": "text",
+            "name": "02_SYNTHESES_ET_AXIOMES_CLINIQUES.md",
+            "id": "Ae8WCd6zvVTqvsODaLFC",
+            "usage_mode": "auto"
           }
-        },
-        "position": {
-          "x": 1300,
-          "y": 400
-        },
+        ],
+        "additional_tool_ids": [
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
+        ],
+        "position": { "x": 1300, "y": 400 },
+        "edge_order": ["analyse__jung", "jung__triage"]
+      },
+      "lighthouse_myss": {
+        "type": "override_agent",
+        "label": "Phare · Caroline Myss",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "LOGOS — lighthouse Caroline Myss pour {{first_name}}. KB : index synthèses + mémoire ; pas de lecture profonde ici.\n\nRÔLE : identifier la **perspective** (livre / corpus). Aujourd'hui : Sacred Archetypes (Archétypes & contrats sacrés). Futures perspectives (corps-esprit, etc.) arriveront — ne pas mélanger les vocabulaires.\n\nSi archétypes / contrats / survival family sans précision de prisme → route **perspective_myss_archetypes**. Si ombre/lumière/équilibre explicite → route directement le prisme.\n\n2–4 phrases, hypothèses, tutoiement. UI : phrase + tool même tour ; choices alignés archétypes Myss.",
+        "additional_knowledge_base": [
+          {
+            "type": "text",
+            "name": "02_SYNTHESES_ET_AXIOMES_CLINIQUES.md",
+            "id": "Ae8WCd6zvVTqvsODaLFC",
+            "usage_mode": "auto"
+          }
+        ],
+        "additional_tool_ids": [
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
+        ],
+        "position": { "x": 1280, "y": 520 },
         "edge_order": [
-          "analyse__jung",
-          "jung__triage"
+          "analyse__lighthouse_myss",
+          "lighthouse_myss__perspective_myss_archetypes",
+          "lighthouse_myss__triage"
         ]
       },
-      "myss": {
+      "perspective_myss_archetypes": {
         "type": "override_agent",
-        "label": "Lecture Myss",
+        "label": "Myss · Archétypes sacrés",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "RÔLE : grille de lecture de Caroline Myss (Archétypes et Contrats Sacrés) appliquée aux données de {{first_name}}. Cadre : Survival Family (Saboteur, Victime, Prostitué·e, Enfant), Tétrade supérieure (Souverain, Sage, Guérisseur, Mystique), maisons, Point Zéro, règle des 70 %. Cite les scores et les maisons réellement présents dans la base, avec leur modèle et leur date. Toute lecture est une hypothèse, rien d'inventé sur la biographie. Ton précis et sobre, 2 à 4 phrases par tour.",
-        "conversation_config": {
-          "agent": {
-            "prompt": {
-              "knowledge_base": []
-            }
+        "additional_prompt": "Perspective **Sacred Archetypes** uniquement (Caroline Myss). AIR-GAP : interdit jargon Jung/Blavatsky/corps-esprit d'autres livres Myss.\n\nRoute vers **prism_myss_balance** (Point Zéro, réconciliation), **prism_myss_light** (pôle don / Pentagramme), ou **prism_myss_shadow** (Survival Family, miroir ombre) selon demande explicite ; sinon une question : « Équilibre, Lumière ou Ombre ? »\n\nCite scores/maisons présents en base. 2–4 phrases. UI : tool même tour ; grimoire/pulse liés archétypes.",
+        "additional_knowledge_base": [
+          {
+            "type": "text",
+            "name": "03_DOCTRINE_CLINIQUE_CAROLINE_MYSS.md",
+            "id": "ucwGW5Nl6IiFh00vnhUm",
+            "usage_mode": "auto"
+          },
+          {
+            "type": "file",
+            "name": "03_MATRICE_DES_5_CATEGORIES.md",
+            "id": "t10EdUFR3F10q0ol1ehe",
+            "usage_mode": "auto"
           }
-        },
-        "position": {
-          "x": 1300,
-          "y": 550
-        },
+        ],
+        "additional_tool_ids": [
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
+        ],
+        "position": { "x": 1560, "y": 520 },
         "edge_order": [
-          "analyse__myss",
-          "myss__triage"
+          "lighthouse_myss__perspective_myss_archetypes",
+          "perspective_myss_archetypes__prism_myss_balance",
+          "perspective_myss_archetypes__prism_myss_light",
+          "perspective_myss_archetypes__prism_myss_shadow"
         ]
+      },
+      "prism_myss_balance": {
+        "type": "override_agent",
+        "label": "Myss · Prisme Équilibre",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "Prisme BALANCE — Sacred Archetypes. Point Zéro, mariage Ombre/Lumière, règle 85 %. Hypothèses seulement ; données {{first_name}} en base. INTERDIT : coacher ombre seule ou lumière seule ici — synthèse des deux pôles.\n\n2–4 phrases. UI : tool même tour ; propose_actionable_choices = pratiques grimoire Myss (contrats, intégrité).",
+        "additional_knowledge_base": [
+          {
+            "type": "text",
+            "name": "02_SYNTHESES_ET_AXIOMES_CLINIQUES.md",
+            "id": "Ae8WCd6zvVTqvsODaLFC",
+            "usage_mode": "auto"
+          },
+          {
+            "type": "text",
+            "name": "03_DOCTRINE_CLINIQUE_CAROLINE_MYSS.md",
+            "id": "ucwGW5Nl6IiFh00vnhUm",
+            "usage_mode": "auto"
+          }
+        ],
+        "additional_tool_ids": [
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
+        ],
+        "position": { "x": 1840, "y": 360 },
+        "edge_order": ["perspective_myss_archetypes__prism_myss_balance"]
+      },
+      "prism_myss_light": {
+        "type": "override_agent",
+        "label": "Myss · Prisme Lumière",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "Prisme LIGHT — Sacred Archetypes. Pentagramme céleste, dons, inviolabilité, Grâce. Ton noble, jamais complaisant. INTERDIT : décrire Survival Family comme fait brut sans transmutation — ici pôle Lumière.\n\n2–4 phrases, hypothèses. UI : tool même tour ; pulse/toolbox alignés création / mystique / souveraineté.",
+        "additional_knowledge_base": [
+          {
+            "type": "text",
+            "name": "02_SYNTHESES_ET_AXIOMES_CLINIQUES.md",
+            "id": "Ae8WCd6zvVTqvsODaLFC",
+            "usage_mode": "auto"
+          }
+        ],
+        "additional_tool_ids": [
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
+        ],
+        "position": { "x": 1840, "y": 520 },
+        "edge_order": ["perspective_myss_archetypes__prism_myss_light"]
+      },
+      "prism_myss_shadow": {
+        "type": "override_agent",
+        "label": "Myss · Prisme Ombre",
+        "entry_behavior": "generate_immediately",
+        "additional_prompt": "Prisme SHADOW — Sacred Archetypes. Survival Family (Victime, Saboteur, Prostituée, Enfant), miroir sans complaisance, pas de bypass spirituel. INTERDIT : coach lumière / pentagramme ici. Pose des questions qui regardent la blessure nue.\n\n2–4 phrases. UI : tool même tour ; toolbox désamorçage Saboteur, Victime, intégrité (grimoire Myss).",
+        "additional_knowledge_base": [
+          {
+            "type": "text",
+            "name": "02_SYNTHESES_ET_AXIOMES_CLINIQUES.md",
+            "id": "Ae8WCd6zvVTqvsODaLFC",
+            "usage_mode": "auto"
+          },
+          {
+            "type": "file",
+            "name": "04_ONTOLOGIE_ARCHETYPES_ET_OMBRE.md",
+            "id": "ECxdLP8gtVUmKu7TOGjt",
+            "usage_mode": "auto"
+          }
+        ],
+        "additional_tool_ids": [
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
+        ],
+        "position": { "x": 1840, "y": 680 },
+        "edge_order": ["perspective_myss_archetypes__prism_myss_shadow"]
       },
       "blavatsky": {
         "type": "override_agent",
         "label": "Lecture Blavatsky",
         "entry_behavior": "generate_immediately",
-        "additional_prompt": "RÔLE : grille de lecture de la Doctrine Secrète d'Helena Blavatsky appliquée aux données de {{first_name}}. Cadre exclusif : cosmogenèse, septénaire (Atma, Buddhi, Manas, Kama-Manas, Prana, Linga Sharira, Sthula Sharira), Antahkarana, Manvantara et Pralaya, Sutratma, karma et dharma. Dans CE nœud uniquement, n'emploie pas le jargon de la psychologie moderne (pas de « archétype », « ombre », « complexe ») ni de références à d'autres auteurs. Toute lecture est une hypothèse, rien d'inventé sur la biographie de {{first_name}}. Ton sobre et précis, 2 à 4 phrases par tour.",
-        "conversation_config": {
-          "agent": {
-            "prompt": {
-              "knowledge_base": []
-            }
+        "additional_prompt": "Grille Blavatsky (KB prioritaire). Cosmogenèse, septénaire, karma — pas de jargon psychologie moderne ici. Hypothèses, 2–4 phrases.\n\nUI : tout modal possible — phrase liée à la lecture, puis tool même tour.",
+        "additional_knowledge_base": [
+          {
+            "type": "text",
+            "name": "03_DOCTRINE_CLINIQUE_HP_BLAVATSKY.md",
+            "id": "DdIh9uB7P5u0LlzyRwIV",
+            "usage_mode": "auto"
           }
-        },
-        "position": {
-          "x": 1300,
-          "y": 700
-        },
-        "edge_order": [
-          "analyse__blavatsky",
-          "blavatsky__triage"
-        ]
+        ],
+        "additional_tool_ids": [
+          "tool_4801m7bxhmy8fd6sbessx9cmbybp",
+          "tool_8001m7btyts9f6gbg83368kqmsjx",
+          "tool_4501m7bv08p3f9v913nz4ae2mkp1",
+          "tool_4401m7bv10aef0jref80wq20nscs",
+          "tool_8601m7bv51w0enrveq8kpy663yne",
+          "tool_2901m7bv5tntfp8rwmc961t0cfry",
+          "tool_3401m7bv69zhfngvf14xzfhc0p3k"
+        ],
+        "position": { "x": 1300, "y": 700 },
+        "edge_order": ["analyse__blavatsky", "blavatsky__triage"]
       },
       "end_node": {
         "type": "end",
         "outcome": "success",
-        "position": {
-          "x": 1300,
-          "y": 250
-        }
+        "position": { "x": 1300, "y": 250 }
       }
     },
     "edges": {
@@ -236,7 +351,7 @@
         "forward_condition": {
           "type": "llm",
           "label": "Analyser",
-          "condition": "L'utilisateur veut analyser, parler relation/People, decision log, journal, ou ouvrir un formulaire People/décision dans l'app."
+          "condition": "L'utilisateur veut analyser ; parle de relation/People, decision log, journal ; pose une question sur Jung, Myss, Blavatsky, archétypes, ombre, contrats sacrés, doctrine ou grille de lecture ; ou accepte d'aller plus loin sur une grille auteur après une réponse courte."
         },
         "backward_condition": {
           "type": "llm",
@@ -259,7 +374,7 @@
         "forward_condition": {
           "type": "llm",
           "label": "Grille Jung",
-          "condition": "L'utilisateur demande explicitement la lecture ou la grille de Jung (inconscient, complexes, ombre, rêves)."
+          "condition": "L'utilisateur parle de Jung, inconscient, complexes, ombre, rêves, ou dit oui à approfondir avec la grille Jung."
         },
         "backward_condition": {
           "type": "llm",
@@ -267,18 +382,83 @@
           "condition": "L'utilisateur veut un autre auteur, une autre lecture, ou revenir à l'analyse générale."
         }
       },
-      "analyse__myss": {
+      "analyse__lighthouse_myss": {
         "source": "analyse",
-        "target": "myss",
+        "target": "lighthouse_myss",
         "forward_condition": {
           "type": "llm",
-          "label": "Grille Myss",
-          "condition": "L'utilisateur demande explicitement la lecture ou la grille de Caroline Myss (archétypes, contrats sacrés, survival family)."
+          "label": "Phare Myss",
+          "condition": "L'utilisateur parle de Caroline Myss, archétypes sacrés, contrats sacrés, survival family, maisons, ou veut approfondir Myss."
         },
         "backward_condition": {
           "type": "llm",
-          "label": "Autre grille",
-          "condition": "L'utilisateur veut un autre auteur, une autre lecture, ou revenir à l'analyse générale."
+          "label": "Autre auteur",
+          "condition": "L'utilisateur veut Jung, Blavatsky, un autre auteur, ou revenir à l'analyse générale."
+        }
+      },
+      "lighthouse_myss__perspective_myss_archetypes": {
+        "source": "lighthouse_myss",
+        "target": "perspective_myss_archetypes",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Perspective Archétypes",
+          "condition": "Perspective archétypes / Sacred Archetypes, ou l'utilisateur nomme contrats, maisons, survival family sans autre livre Myss."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Retour phare",
+          "condition": "Retour au phare Myss, autre perspective Myss (futur), ou quitter la lecture archétypes."
+        }
+      },
+      "lighthouse_myss__triage": {
+        "source": "lighthouse_myss",
+        "target": "triage",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Quitter Myss",
+          "condition": "Sujet terminé, autre besoin (pratique, relevé, autre auteur), ou fin."
+        }
+      },
+      "perspective_myss_archetypes__prism_myss_balance": {
+        "source": "perspective_myss_archetypes",
+        "target": "prism_myss_balance",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Prisme Équilibre",
+          "condition": "Équilibre, Point Zéro, réconciliation ombre-lumière, balance, règle des 85 %, ou accepter lecture équilibre."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Retour perspective",
+          "condition": "Prisme terminé, autre prisme, autre sujet, ou retour à la perspective archétypes."
+        }
+      },
+      "perspective_myss_archetypes__prism_myss_light": {
+        "source": "perspective_myss_archetypes",
+        "target": "prism_myss_light",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Prisme Lumière",
+          "condition": "Lumière, dons, Pentagramme d'Or, Guérisseur/Créateur/Mystique, inviolabilité, ou accepter lecture lumière."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Retour perspective",
+          "condition": "Prisme terminé, autre prisme, autre sujet, ou retour à la perspective archétypes."
+        }
+      },
+      "perspective_myss_archetypes__prism_myss_shadow": {
+        "source": "perspective_myss_archetypes",
+        "target": "prism_myss_shadow",
+        "forward_condition": {
+          "type": "llm",
+          "label": "Prisme Ombre",
+          "condition": "Ombre, Survival Family, Victime, Saboteur, Prostituée, miroir, ou accepter lecture ombre."
+        },
+        "backward_condition": {
+          "type": "llm",
+          "label": "Retour perspective",
+          "condition": "Prisme terminé, autre prisme, autre sujet, ou retour à la perspective archétypes."
         }
       },
       "analyse__blavatsky": {
@@ -287,7 +467,7 @@
         "forward_condition": {
           "type": "llm",
           "label": "Grille Blavatsky",
-          "condition": "L'utilisateur demande explicitement la lecture ou la grille de Blavatsky (doctrine secrète, cosmogenèse, septénaire, karma)."
+          "condition": "L'utilisateur parle de Blavatsky, doctrine secrète, cosmogenèse, septénaire, karma, ou dit oui à approfondir avec la grille Blavatsky."
         },
         "backward_condition": {
           "type": "llm",
@@ -297,15 +477,6 @@
       },
       "jung__triage": {
         "source": "jung",
-        "target": "triage",
-        "forward_condition": {
-          "type": "llm",
-          "label": "Autre besoin",
-          "condition": "La lecture est terminée, ou l'utilisateur veut passer à un autre type de besoin (protocole, relevé du jour, fin)."
-        }
-      },
-      "myss__triage": {
-        "source": "myss",
         "target": "triage",
         "forward_condition": {
           "type": "llm",
