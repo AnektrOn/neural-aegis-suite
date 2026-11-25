@@ -113,7 +113,7 @@ export function LogosVoiceQuotaPanel({
       return;
     }
     const rows = Array.isArray(results) ? results : [];
-    const totalSec = rows.reduce(
+    const totalSec = rows.reduce<number>(
       (acc, r) => acc + Math.max(0, Math.floor(Number((r as { total_seconds?: number }).total_seconds) || 0)),
       0,
     );

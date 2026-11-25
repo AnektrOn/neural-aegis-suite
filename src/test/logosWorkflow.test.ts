@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import template from "../../supabase/functions/elevenlabs-knowledge/logos-workflow.json";
+import templateJson from "../../supabase/functions/elevenlabs-knowledge/logos-workflow.json";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const template = templateJson as any;
 
 describe("LOGOS workflow", () => {
   it("does not strip agent KB on workflow nodes (no empty knowledge_base override)", () => {
-    const roles = Object.values(template.workflow.nodes).filter(n => n.type === "override_agent");
+    const roles = Object.values(template.workflow.nodes).filter((n: any) => n.type === "override_agent");
     expect(roles.length).toBeGreaterThanOrEqual(11);
     for (const node of roles) {
       const kb =

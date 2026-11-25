@@ -1,4 +1,5 @@
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+// deno-lint-ignore no-explicit-any
+type SupabaseClient = any;
 
 export type ElConvListRow = {
   conversation_id?: string;
