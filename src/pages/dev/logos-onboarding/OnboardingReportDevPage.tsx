@@ -7,8 +7,9 @@ import { VoiceAgent } from "@/components/voice/VoiceAgent";
 import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
 import { buildOnboardingReportLogosInjection } from "@/features/logos/logosSessionInjection";
 import {
+  EXPECTED_EDGE_STAMPS,
   fetchOnboardingReportAgentId,
-  ONBOARDING_PREVIEW_EDGE_STAMP,
+  ONBOARDING_PACK_PREVIEW_STAMP,
   previewOnboardingDrivePack,
 } from "@/features/logos/onboardingReportDevApi";
 import { OnboardingKbPreviewDialog } from "./OnboardingKbPreviewDialog";
@@ -68,9 +69,9 @@ export default function OnboardingReportDevPage() {
   });
 
   const packPreviewQuery = useQuery({
-    queryKey: ["preview_onboarding_pack", driveFolderId],
+    queryKey: ["preview_onboarding_pack", driveFolderId, "embed"],
     enabled: Boolean(user?.id && driveFolderId),
-    queryFn: () => previewOnboardingDrivePack(driveFolderId),
+    queryFn: () => previewOnboardingDrivePack(driveFolderId, { embedPreviews: true }),
     staleTime: 60_000,
     retry: false,
   });
@@ -126,22 +127,27 @@ export default function OnboardingReportDevPage() {
       return `${name} — ${isFR ? "aucun .md onboarding détecté" : "no onboarding .md found"}`;
     }
     const stamp = packPreviewQuery.data?.edge_stamp;
-    const stampHint =
-      stamp === ONBOARDING_PREVIEW_EDGE_STAMP
-        ? ""
-        : ` — edge ${stamp ?? "?"} (attendu ${ONBOARDING_PREVIEW_EDGE_STAMP})`;
+    const stampOk =
+      packPreviewQuery.data?.edge_ok ??
+      (stamp ? (EXPECTED_EDGE_STAMPS as readonly string[]).includes(stamp) : false);
+    const stampHint = stampOk
+      ? ""
+      : ` — déploie Edge « onboarding-pack-preview » (stamp ${ONBOARDING_PACK_PREVIEW_STAMP})`;
     return `${name} — ${files.length} fichier(s) — ${isFR ? "ouvre l’aperçu" : "open preview"}${stampHint}`;
   }, [
     driveError,
     driveFiles,
     isFR,
+    packPreviewQuery.data?.edge_ok,
     packPreviewQuery.data?.edge_stamp,
     packPreviewQuery.data?.folder_name,
     packPreviewQuery.isLoading,
   ]);
 
   const needsEdgeDeploy =
-    (driveError?.includes("non à jour") ?? false) ||
+    (packPreviewQuery.isSuccess && !packPreviewQuery.data?.edge_ok) ||
+    (driveError?.includes("Déploie") ?? false) ||
+    (driveError?.includes("onboarding-pack-preview") ?? false) ||
     (agentIdQuery.error instanceof Error && agentIdQuery.error.message.includes("non à jour"));
 
   return (
@@ -240,8 +246,8 @@ export default function OnboardingReportDevPage() {
                 {needsEdgeDeploy ? (
                   <p className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-left text-amber-900 dark:text-amber-100">
                     {isFR
-                      ? "Supabase exécute encore l’ancienne elevenlabs-knowledge. Dashboard → Edge Functions → elevenlabs-knowledge + agent-session → Deploy. Puis migrations SQL 20261125100000 / 25110000 et Admin › Déployer Onboarding Report."
-                      : "Remote Supabase is on an old elevenlabs-knowledge build. Dashboard → Edge Functions → deploy elevenlabs-knowledge + agent-session. Apply SQL migrations 20261125100000 / 25110000, then Admin › Deploy Onboarding Report."}
+                      ? "Le push Git ne déploie pas les Edge Functions. Supabase Dashboard → Edge Functions → déploie onboarding-pack-preview (et agent-session / elevenlabs-knowledge si besoin). Puis migrations 20261125100000 / 25110000 et Admin › Déployer Onboarding Report."
+                      : "Git push does not deploy Edge Functions. Supabase Dashboard → Edge Functions → deploy onboarding-pack-preview (and agent-session / elevenlabs-knowledge if needed). Apply migrations 20261125100000 / 25110000, then Admin › Deploy Onboarding Report."}
                   </p>
                 ) : (
                   <p className="text-[10px] opacity-80">

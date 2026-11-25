@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "@/lib/utils";
 import {
   fetchOnboardingDriveFilePreview,
+  fileHasEmbeddedPreview,
   type OnboardingDrivePreviewFile,
   type OnboardingDrivePreviewFileMeta,
 } from "@/features/logos/onboardingReportDevApi";
@@ -23,7 +24,7 @@ type Props = {
   isFR: boolean;
   driveFolderId: string;
   folderName?: string | null;
-  driveFiles?: OnboardingDrivePreviewFileMeta[];
+  driveFiles?: (OnboardingDrivePreviewFileMeta | OnboardingDrivePreviewFile)[];
   driveError?: string | null;
   sessionKnowledge?: VoiceKnowledgeLocator[] | null;
 };
@@ -60,23 +61,33 @@ export function OnboardingKbPreviewDialog({
     let cancelled = false;
 
     const loadAll = async () => {
-      const ids = driveFiles.map((m) => m.id).filter(Boolean);
-      if (!ids.length) return;
+      const embedded: Record<string, OnboardingDrivePreviewFile> = {};
+      const pendingIds: string[] = [];
+      for (const meta of driveFiles) {
+        if (!meta.id) continue;
+        if (fileHasEmbeddedPreview(meta)) embedded[meta.id] = meta;
+        else pendingIds.push(meta.id);
+      }
+      if (Object.keys(embedded).length) {
+        setLoaded((prev) => ({ ...prev, ...embedded }));
+      }
+      if (!pendingIds.length) return;
+
       setLoaded((prev) => {
         const next = { ...prev };
-        for (const id of ids) {
-          if (!next[id]) next[id] = "loading";
+        for (const id of pendingIds) {
+          if (!next[id] || next[id] === "loading") next[id] = "loading";
         }
         return next;
       });
       const results = await Promise.allSettled(
-        ids.map((id) => fetchOnboardingDriveFilePreview(driveFolderId, id)),
+        pendingIds.map((id) => fetchOnboardingDriveFilePreview(driveFolderId, id)),
       );
       if (cancelled) return;
       setLoaded((prev) => {
         const next = { ...prev };
         results.forEach((r, i) => {
-          const id = ids[i];
+          const id = pendingIds[i];
           if (r.status === "fulfilled") next[id] = r.value;
           else next[id] = "error";
         });
@@ -86,7 +97,7 @@ export function OnboardingKbPreviewDialog({
         const next = { ...prev };
         results.forEach((r, i) => {
           if (r.status === "rejected") {
-            const id = ids[i];
+            const id = pendingIds[i];
             next[id] = r.reason instanceof Error ? r.reason.message : String(r.reason);
           }
         });
@@ -143,8 +154,12 @@ export function OnboardingKbPreviewDialog({
                   const pathKey = meta.relativePath || meta.name;
                   const expanded = openPaths[pathKey] ?? true;
                   const state = loaded[meta.id];
-                  const file = state && state !== "loading" && state !== "error" ? state : null;
-                  const err = loadErrors[meta.id];
+                                  const file =
+                                    (state && state !== "loading" && state !== "error" ? state : null) ??
+                                    (fileHasEmbeddedPreview(meta) ? meta : null);
+                                  const err =
+                                    loadErrors[meta.id] ??
+                                    (file?.error && !file.preview?.trim() ? file.error : undefined);
 
                   return (
                     <li
@@ -200,8 +215,8 @@ export function OnboardingKbPreviewDialog({
                                   {file?.preview?.trim()
                                     ? file.preview
                                     : isFR
-                                      ? "(vide — sauvegarde edge stamp 2026-11-25e ou vérifie le fichier sur Drive)"
-                                      : "(empty — save edge stamp 2026-11-25e or check Drive file)"}
+                                      ? "(vide — déploie onboarding-pack-preview ou vérifie le fichier sur Drive)"
+                                      : "(empty — deploy onboarding-pack-preview or check Drive file)"}
                                 </pre>
                               </ScrollArea>
                             )}
