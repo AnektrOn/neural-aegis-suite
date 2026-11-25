@@ -253,6 +253,17 @@ const FEATURES: DevFeature[] = [
     accent: "from-amber-500/25 to-orange-500/10",
   },
   {
+    path: "/dev/logos-onboarding-report",
+    title: "LOGOS — Onboarding Report",
+    titleEn: "LOGOS — Onboarding Report",
+    blurb: "Débrief vocal 30 min (agent global) — sans choix de chemin, variables onboarding_report.",
+    blurbEn: "30 min voice debrief (global agent) — no path picker, onboarding_report session vars.",
+    status: "playground",
+    tags: ["logos", "onboarding", "voice"],
+    icon: Waves,
+    accent: "from-teal-500/25 to-cyan-500/10",
+  },
+  {
     path: "/dev/logos-choices",
     title: "LOGOS — choix UI",
     titleEn: "LOGOS — choice UI",

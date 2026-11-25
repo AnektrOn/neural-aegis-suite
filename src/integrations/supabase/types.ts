@@ -1819,18 +1819,21 @@ export type Database = {
         Row: {
           id: boolean
           main_agent_id: string | null
+          onboarding_report_agent_id: string | null
           updated_at: string
           voice_monthly_limit_seconds: number
         }
         Insert: {
           id?: boolean
           main_agent_id?: string | null
+          onboarding_report_agent_id?: string | null
           updated_at?: string
           voice_monthly_limit_seconds?: number
         }
         Update: {
           id?: boolean
           main_agent_id?: string | null
+          onboarding_report_agent_id?: string | null
           updated_at?: string
           voice_monthly_limit_seconds?: number
         }
@@ -2937,6 +2940,8 @@ export type Database = {
           last_synced_at: string | null
           linkedin: string | null
           mobile_radial_menu: Json | null
+          onboarding_completed: boolean
+          onboarding_drive_folder_id: string | null
           plan_override: string | null
           preferred_language: string
           sidebar_items: Json | null
@@ -2964,6 +2969,8 @@ export type Database = {
           last_synced_at?: string | null
           linkedin?: string | null
           mobile_radial_menu?: Json | null
+          onboarding_completed?: boolean
+          onboarding_drive_folder_id?: string | null
           plan_override?: string | null
           preferred_language?: string
           sidebar_items?: Json | null
@@ -2991,6 +2998,8 @@ export type Database = {
           last_synced_at?: string | null
           linkedin?: string | null
           mobile_radial_menu?: Json | null
+          onboarding_completed?: boolean
+          onboarding_drive_folder_id?: string | null
           plan_override?: string | null
           preferred_language?: string
           sidebar_items?: Json | null
@@ -3990,6 +3999,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_executive_profiles: {
+        Row: {
+          annual_revenue_bracket: string | null
+          company_stage: string | null
+          completed_at: string | null
+          created_at: string
+          dominant_decision_friction: string | null
+          governance_structure: string | null
+          onboarding_step_reached: number
+          peak_focus_time: string | null
+          primary_stakeholders: Json
+          raw_dilemma_responses: Json
+          role_title: string | null
+          stress_symptoms: string[]
+          team_size: string | null
+          updated_at: string
+          urgent_decision_horizon: string | null
+          urgent_decision_stakes: string | null
+          urgent_decision_title: string | null
+          user_id: string
+        }
+        Insert: {
+          annual_revenue_bracket?: string | null
+          company_stage?: string | null
+          completed_at?: string | null
+          created_at?: string
+          dominant_decision_friction?: string | null
+          governance_structure?: string | null
+          onboarding_step_reached?: number
+          peak_focus_time?: string | null
+          primary_stakeholders?: Json
+          raw_dilemma_responses?: Json
+          role_title?: string | null
+          stress_symptoms?: string[]
+          team_size?: string | null
+          updated_at?: string
+          urgent_decision_horizon?: string | null
+          urgent_decision_stakes?: string | null
+          urgent_decision_title?: string | null
+          user_id: string
+        }
+        Update: {
+          annual_revenue_bracket?: string | null
+          company_stage?: string | null
+          completed_at?: string | null
+          created_at?: string
+          dominant_decision_friction?: string | null
+          governance_structure?: string | null
+          onboarding_step_reached?: number
+          peak_focus_time?: string | null
+          primary_stakeholders?: Json
+          raw_dilemma_responses?: Json
+          role_title?: string | null
+          stress_symptoms?: string[]
+          team_size?: string | null
+          updated_at?: string
+          urgent_decision_horizon?: string | null
+          urgent_decision_stakes?: string | null
+          urgent_decision_title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_location_admin_consent: {
         Row: {
           consent_version: string
@@ -4554,6 +4626,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      finalize_onboarding_and_populate_cockpit: { Args: never; Returns: Json }
       get_aegis_pulse_diagnostic: { Args: never; Returns: Json }
       get_aegis_synapse_deck: {
         Args: { p_limit?: number; p_locale?: string }

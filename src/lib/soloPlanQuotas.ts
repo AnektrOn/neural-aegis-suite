@@ -1,3 +1,7 @@
+/** Free Initiation starter baselines (5 Pulse cards / 5 Toolbox protocols unlocked post-onboarding). */
+export const FREE_WEEKLY_TOOLBOX_ITEMS = 5;
+export const FREE_ACTIVE_PULSE_CARDS = 5;
+
 /** AEGIS Solo delivery baselines (pricing copy + future entitlement checks). */
 export const SOLO_WEEKLY_TOOLBOX_ITEMS = 10;
 export const SOLO_ACTIVE_PULSE_CARDS = 15;

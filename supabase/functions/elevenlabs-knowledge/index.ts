@@ -7,6 +7,12 @@ import {
   mapVoiceSessionError,
 } from "../_shared/voice-session.ts";
 import { syncVoiceUsageForUser, utcMonthUnixBounds } from "./voice-usage-sync.ts";
+import { buildOnboardingReportAgentBody } from "./onboarding-report-agent.ts";
+import {
+  mayUseOnboardingDriveOverride,
+  parseDriveFolderId,
+} from "../_shared/onboarding-lab-drive.ts";
+import { listOnboardingPackFromDrive } from "../_shared/voice-onboarding-kb.ts";
 
 const DRIVE = "https://connector-gateway.lovable.dev/google_drive/drive/v3";
 function driveHeaders(): HeadersInit {
@@ -337,9 +343,55 @@ Deno.serve(async (req) => {
     const userId: string | null = typeof body?.user_id === "string" ? body.user_id : null;
     if (userId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return json({ error: "Identifiant utilisateur invalide" }, 400);
 
+    if (action === "onboarding_report_status") {
+      const { data, error: stErr } = await admin
+        .from("elevenlabs_settings")
+        .select("onboarding_report_agent_id")
+        .eq("id", true)
+        .maybeSingle();
+      if (stErr) {
+        console.error("onboarding_report_status", stErr.message);
+        return json({ error: "Configuration indisponible" }, 500);
+      }
+      const agentId = data?.onboarding_report_agent_id?.trim() || null;
+      return json({ ok: true, agent_id: agentId, deployed: Boolean(agentId) });
+    }
+
+    if (action === "preview_onboarding_pack") {
+      const raw = String(body?.drive_folder_id ?? body?.onboarding_drive_folder_id ?? "").trim();
+      const folderId = parseDriveFolderId(raw);
+      if (!folderId) return json({ error: "drive_folder_id requis" }, 400);
+      if (!(await mayUseOnboardingDriveOverride(admin, u.user.id, folderId))) {
+        return json({ error: "Forbidden" }, 403);
+      }
+      try {
+        const pack = await listOnboardingPackFromDrive(folderId);
+        return json({ ok: true, drive_folder_id: folderId, ...pack });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error("preview_onboarding_pack", e);
+        return json({ error: msg }, 422);
+      }
+    }
+
     if (action === "voice_conversation_token") {
       try {
-        const payload = await createVoiceConversationToken(admin, u.user.id);
+        const agentKind =
+          body?.agent_kind === "onboarding_report" ? "onboarding_report" : "personal_logos";
+        let onboarding_drive_root_override: string | undefined;
+        if (
+          agentKind === "onboarding_report" &&
+          typeof body?.onboarding_drive_folder_id === "string" &&
+          body.onboarding_drive_folder_id.trim() &&
+          (await mayUseOnboardingDriveOverride(admin, u.user.id, body.onboarding_drive_folder_id.trim()))
+        ) {
+          onboarding_drive_root_override =
+            parseDriveFolderId(body.onboarding_drive_folder_id.trim()) || undefined;
+        }
+        const payload = await createVoiceConversationToken(admin, u.user.id, {
+          agent_kind: agentKind,
+          onboarding_drive_root_override,
+        });
         return json(payload);
       } catch (e) {
         console.error("elevenlabs-knowledge voice_conversation_token", e);
@@ -485,12 +537,22 @@ Deno.serve(async (req) => {
 
       case "set_drive": {
         if (!userId) return json({ error: "user_id requis" }, 400);
-        const folder = String(body?.drive_folder_id ?? "").trim();
-        const m = folder.match(/folders\/([a-zA-Z0-9_-]+)/);
-        await admin
-          .from("profiles")
-          .update({ drive_folder_id: (m?.[1] ?? folder) || null, elevenlabs_sync_enabled: !!body?.enabled })
-          .eq("id", userId);
+        const patch: Record<string, unknown> = {};
+        if ("drive_folder_id" in body) {
+          const folder = String(body?.drive_folder_id ?? "").trim();
+          const m = folder.match(/folders\/([a-zA-Z0-9_-]+)/);
+          patch.drive_folder_id = (m?.[1] ?? folder) || null;
+        }
+        if ("onboarding_drive_folder_id" in body) {
+          const ob = String(body?.onboarding_drive_folder_id ?? "").trim();
+          const m2 = ob.match(/folders\/([a-zA-Z0-9_-]+)/);
+          patch.onboarding_drive_folder_id = (m2?.[1] ?? ob) || null;
+        }
+        if ("enabled" in body) {
+          patch.elevenlabs_sync_enabled = !!body?.enabled;
+        }
+        if (!Object.keys(patch).length) return json({ error: "Aucun champ Drive à mettre à jour" }, 400);
+        await admin.from("profiles").update(patch).eq("id", userId);
         return json({ ok: true });
       }
 
@@ -508,6 +570,65 @@ Deno.serve(async (req) => {
           await finishJob(admin, jobId, [{ status: "failed", error: msg }], msg);
           return json({ error: msg }, 400);
         }
+      }
+
+      case "deploy_onboarding_report_agent": {
+        const voiceId = Deno.env.get("ELEVENLABS_LOGOS_VOICE_ID")?.trim();
+        if (!voiceId) {
+          return json({ error: "ELEVENLABS_LOGOS_VOICE_ID manquant (secret Supabase Edge)" }, 400);
+        }
+        const { data: settings, error: settingsError } = await admin
+          .from("elevenlabs_settings")
+          .select("onboarding_report_agent_id")
+          .eq("id", true)
+          .maybeSingle();
+        if (settingsError) throw settingsError;
+
+        const payload = buildOnboardingReportAgentBody(voiceId);
+        let agentId = settings?.onboarding_report_agent_id?.trim() || null;
+
+        if (agentId) {
+          await elJson(`/convai/agents/${encodeURIComponent(agentId)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          const created = (await elJson(`/convai/agents/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })) as { agent_id?: string };
+          agentId = created?.agent_id ?? null;
+          if (!agentId) throw new Error("ElevenLabs : création agent sans agent_id");
+        }
+
+        const { error: upsertError } = await admin.from("elevenlabs_settings").upsert({
+          id: true,
+          onboarding_report_agent_id: agentId,
+          updated_at: new Date().toISOString(),
+        });
+        if (upsertError) throw upsertError;
+
+        const summary = (await elJson(
+          `/convai/agents/${encodeURIComponent(agentId)}`,
+        )) as Record<string, unknown>;
+        const cc = summary?.conversation_config as Record<string, unknown> | undefined;
+        const conv = cc?.conversation as { max_duration_seconds?: number } | undefined;
+        const agentCfg = cc?.agent as {
+          first_message?: string;
+          prompt?: { llm?: string; temperature?: number };
+        } | undefined;
+
+        return json({
+          ok: true,
+          agent_id: agentId,
+          name: summary?.name ?? payload.name,
+          max_duration_seconds: conv?.max_duration_seconds ?? null,
+          llm: agentCfg?.prompt?.llm ?? null,
+          temperature: agentCfg?.prompt?.temperature ?? null,
+          first_message_preview: agentCfg?.first_message?.slice(0, 120) ?? null,
+        });
       }
 
       case "sync_voice_usage": {

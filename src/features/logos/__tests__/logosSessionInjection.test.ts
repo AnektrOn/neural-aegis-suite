@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildGuidedLogosInjection,
+  buildOnboardingReportLogosInjection,
   buildOpenLogosInjection,
+  mergeOnboardingKnowledgeOverrides,
 } from "../logosSessionInjection";
 
 describe("logosSessionInjection", () => {
@@ -24,6 +26,17 @@ describe("logosSessionInjection", () => {
     expect(inj.dynamicVariables.opening_first_message).toContain("clarifie");
     expect(inj.dynamicVariables.aegis_user_id).toBe("33333333-3333-3333-3333-333333333333");
     expect(inj.overrides?.agent.firstMessage).toContain("clarifie");
+  });
+
+  it("builds onboarding report injection", () => {
+    const inj = buildOnboardingReportLogosInjection("Note", "25d80046-d3f4-43f2-933a-ade961f20e28");
+    expect(inj.dynamicVariables.session_mode).toBe("onboarding_report");
+    expect(inj.overrides).toBeUndefined();
+    expect(inj.dynamicVariables.aegis_user_id).toBe("25d80046-d3f4-43f2-933a-ade961f20e28");
+    const withKb = mergeOnboardingKnowledgeOverrides(inj, [
+      { type: "text", id: "doc_1", name: "00_RAPPORT.md" },
+    ]);
+    expect(withKb?.agent.prompt?.knowledge_base?.[0].name).toBe("00_RAPPORT.md");
   });
 
   it("builds open injection without overrides", () => {

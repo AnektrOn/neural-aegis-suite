@@ -18,5 +18,5 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "scripts/seoPrerender.ts"]
+  "include": ["vite.config.ts", "scripts/seoPrerender.ts", "drizzle/schema.ts"]
 }

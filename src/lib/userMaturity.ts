@@ -44,13 +44,14 @@ export async function getUserMaturityProfile(
   // Profile creation date (fallback to now if missing)
   const { data: profile } = await supabase
     .from("profiles")
-    .select("created_at")
+    .select("created_at, onboarding_completed")
     .eq("id", userId)
     .maybeSingle();
 
   const createdAt = profile?.created_at
     ? new Date(profile.created_at)
     : new Date();
+  const hasCompletedExecutiveOnboarding = Boolean(profile?.onboarding_completed);
   const daysActive = diffDays(createdAt, new Date());
 
   // Run probes in parallel — head:true keeps payloads minimal
@@ -104,13 +105,17 @@ export async function getUserMaturityProfile(
   const totalLogs =
     moodCount + decisionCount + journalCount + (habitCount ?? 0);
 
-  const completionScore = Math.min(
+  const baseCompletionScore = Math.min(
     100,
     (hasArchetypeProfile ? WEIGHTS.archetype : 0) +
       (hasAnyMood ? WEIGHTS.mood : 0) +
       (hasAnyDecision ? WEIGHTS.decision : 0) +
       (hasAnyJournal ? WEIGHTS.journal : 0) +
       (hasAnyContact ? WEIGHTS.contact : 0)
+  );
+  const completionScore = Math.max(
+    baseCompletionScore,
+    hasCompletedExecutiveOnboarding ? 65 : 0
   );
 
   return {

@@ -148,6 +148,13 @@
       "when": 1795395346396,
       "tag": "0020_harden_selected_security_findings",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795481746396,
+      "tag": "0021_rich_onboarding_harvest",
+      "breakpoints": true
     }
   ]
 }

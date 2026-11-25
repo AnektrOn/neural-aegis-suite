@@ -8,6 +8,10 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  clearExecutiveOnboardingDone,
+  useOnboardingStore,
+} from "@/store/useOnboardingStore";
 import { getGuardianAudioSrc } from "./guardianAudio";
 import { clearGuardianState, loadGuardianState, saveGuardianState } from "./guardianStorage";
 import {
@@ -296,6 +300,8 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     setState(next);
     if (userId) {
       clearGuardianState(userId);
+      clearExecutiveOnboardingDone(userId);
+      useOnboardingStore.getState().resetOnboarding();
       saveGuardianState(userId, next);
       void persistGuardianState(userId, next).catch(() => undefined);
     }

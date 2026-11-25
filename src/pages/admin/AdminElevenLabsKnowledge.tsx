@@ -13,6 +13,7 @@ interface UserRow {
   display_name: string | null;
   elevenlabs_agent_id: string | null;
   drive_folder_id: string | null;
+  onboarding_drive_folder_id: string | null;
   elevenlabs_sync_enabled: boolean;
   last_synced_at: string | null;
 }
@@ -170,10 +171,12 @@ export default function AdminElevenLabsKnowledge() {
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [mainAgent, setMainAgent] = useState("");
   const [mainAgentSaved, setMainAgentSaved] = useState<string | null>(null);
+  const [onboardingAgentSaved, setOnboardingAgentSaved] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [driveFolder, setDriveFolder] = useState("");
+  const [onboardingDriveFolder, setOnboardingDriveFolder] = useState("");
   const [driveEnabled, setDriveEnabled] = useState(false);
   const [userAgentId, setUserAgentId] = useState("");
   const [syncResults, setSyncResults] = useState<{ file: string; status: string; error?: string }[] | null>(null);
@@ -190,14 +193,25 @@ export default function AdminElevenLabsKnowledge() {
 
   const load = useCallback(async () => {
     const [{ data: u }, { data: d }, { data: s }] = await Promise.all([
-      supabase.from("profiles").select("id, display_name, elevenlabs_agent_id, drive_folder_id, elevenlabs_sync_enabled, last_synced_at").order("display_name").limit(1000),
+      supabase
+        .from("profiles")
+        .select(
+          "id, display_name, elevenlabs_agent_id, drive_folder_id, onboarding_drive_folder_id, elevenlabs_sync_enabled, last_synced_at",
+        )
+        .order("display_name")
+        .limit(1000),
       supabase.from("elevenlabs_documents").select("*").order("created_at", { ascending: false }).limit(2000),
-      supabase.from("elevenlabs_settings").select("main_agent_id").eq("id", true).maybeSingle(),
+      supabase
+        .from("elevenlabs_settings")
+        .select("main_agent_id, onboarding_report_agent_id")
+        .eq("id", true)
+        .maybeSingle(),
     ]);
     setUsers((u ?? []) as UserRow[]);
     setDocs((d ?? []) as DocRow[]);
     setMainAgentSaved(s?.main_agent_id ?? null);
     setMainAgent(s?.main_agent_id ?? "");
+    setOnboardingAgentSaved(s?.onboarding_report_agent_id ?? null);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -206,6 +220,7 @@ export default function AdminElevenLabsKnowledge() {
   useEffect(() => {
     setSyncResults(null);
     setDriveFolder(selected?.drive_folder_id ?? "");
+    setOnboardingDriveFolder(selected?.onboarding_drive_folder_id ?? "");
     setDriveEnabled(!!selected?.elevenlabs_sync_enabled);
     setUserAgentId(selected?.elevenlabs_agent_id ?? "");
     setSelectedVoiceBudget(null);
@@ -274,6 +289,41 @@ export default function AdminElevenLabsKnowledge() {
         selectedUserId={selectedId}
         onSelectUser={(id) => setSelectedId(id)}
       />
+
+      <section className={card}>
+        <h2 className="flex items-center gap-2 text-lg text-foreground">
+          <Bot size={16} /> LOGOS — Onboarding Report
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Agent global (30 min, débrief rapport stratégique). Secret Edge requis :{" "}
+          <code className="text-xs">ELEVENLABS_LOGOS_VOICE_ID</code>.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-xs text-foreground break-all">
+            {onboardingAgentSaved ?? "Non déployé"}
+          </span>
+          <button
+            type="button"
+            className={btn}
+            disabled={busy === "onboarding-deploy"}
+            onClick={() =>
+              run("onboarding-deploy", async () => {
+                const res = await call({ action: "deploy_onboarding_report_agent" });
+                if (res?.error) throw new Error(String(res.error));
+                toast.success(
+                  res?.agent_id
+                    ? `Onboarding Report publié (${String(res.agent_id)})`
+                    : "Onboarding Report publié",
+                );
+                await load();
+              })
+            }
+          >
+            {busy === "onboarding-deploy" && <Loader2 size={12} className="animate-spin" />}
+            Déployer / republier
+          </button>
+        </div>
+      </section>
 
       {/* Main agent */}
       <section className={card}>
@@ -383,7 +433,16 @@ export default function AdminElevenLabsKnowledge() {
 
               <div className={card}>
                 <h3 className="flex items-center gap-2 text-foreground"><FolderSync size={14} /> Drive Sync</h3>
-                <input value={driveFolder} onChange={(e) => setDriveFolder(e.target.value)} placeholder="ID ou lien du dossier Google Drive" className={input} />
+                <input value={driveFolder} onChange={(e) => setDriveFolder(e.target.value)} placeholder="ID ou lien Vault LOGOS (sync agent perso)" className={input} />
+                <p className="text-xs text-muted-foreground">
+                  Dossier Onboarding Obsidian (username) — lu au démarrage du débrief vocal, sans sync LOGOS :
+                </p>
+                <input
+                  value={onboardingDriveFolder}
+                  onChange={(e) => setOnboardingDriveFolder(e.target.value)}
+                  placeholder="ID dossier user Obsidian (prioritaire pour onboarding report)"
+                  className={input}
+                />
                 <label className="flex items-center gap-2 text-sm text-foreground">
                   <input type="checkbox" checked={driveEnabled} onChange={(e) => setDriveEnabled(e.target.checked)} /> Synchronisation Drive activée
                 </label>
@@ -394,7 +453,17 @@ export default function AdminElevenLabsKnowledge() {
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" className={btn} disabled={busy === "drive"} onClick={() => run("drive", async () => { await call({ action: "set_drive", user_id: selected.id, drive_folder_id: driveFolder, enabled: driveEnabled }); toast.success("Réglages Drive enregistrés"); await load(); })}>
+                  <button type="button" className={btn} disabled={busy === "drive"} onClick={() => run("drive", async () => {
+                    await call({
+                      action: "set_drive",
+                      user_id: selected.id,
+                      drive_folder_id: driveFolder,
+                      onboarding_drive_folder_id: onboardingDriveFolder,
+                      enabled: driveEnabled,
+                    });
+                    toast.success("Réglages Drive enregistrés");
+                    await load();
+                  })}>
                     Enregistrer
                   </button>
                   <Button type="button" variant="outline" className={btn} disabled={busy === "preview" || !driveFolder.trim()} onClick={() => run("preview", async () => {

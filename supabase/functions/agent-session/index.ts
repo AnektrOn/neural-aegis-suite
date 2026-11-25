@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { mayUseOnboardingDriveOverride, parseDriveFolderId } from "../_shared/onboarding-lab-drive.ts";
 import {
   createVoiceConversationToken,
   mapVoiceSessionError,
@@ -29,7 +30,30 @@ Deno.serve(async (req) => {
     const user = userData?.user;
     if (userErr || !user) return json({ error: "Unauthorized" }, 401);
 
-    const payload = await createVoiceConversationToken(admin, user.id);
+    const body = await req.json().catch(() => ({}));
+    const agentKind =
+      body && typeof body === "object" && body.agent_kind === "onboarding_report"
+        ? "onboarding_report"
+        : "personal_logos";
+
+    let onboarding_drive_root_override: string | undefined;
+    if (
+      agentKind === "onboarding_report" &&
+      body &&
+      typeof body === "object" &&
+      typeof body.onboarding_drive_folder_id === "string" &&
+      body.onboarding_drive_folder_id.trim()
+    ) {
+      const raw = body.onboarding_drive_folder_id.trim();
+      if (await mayUseOnboardingDriveOverride(admin, user.id, raw)) {
+        onboarding_drive_root_override = parseDriveFolderId(raw) || undefined;
+      }
+    }
+
+    const payload = await createVoiceConversationToken(admin, user.id, {
+      agent_kind: agentKind,
+      onboarding_drive_root_override,
+    });
     return json(payload);
   } catch (e) {
     console.error("agent-session", e);

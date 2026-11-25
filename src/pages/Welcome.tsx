@@ -10,6 +10,7 @@ import { useAegisMotion } from "@/hooks/useAegisMotion";
 import { useGuardianOptional, needsGuardianOnboarding } from "@/features/guardian";
 import { GUARDIAN_ONBOARDING_PATH } from "@/lib/welcomeHud";
 import { useQuizCompletion } from "@/hooks/useQuizCompletion";
+import { isExecutiveOnboardingDone } from "@/store/useOnboardingStore";
 import { isProductTourDone, markProductTourDone } from "@/lib/productTour";
 
 export default function Welcome() {
@@ -25,15 +26,17 @@ export default function Welcome() {
 
   const { loading: quizLoading, completed: quizCompleted } = useQuizCompletion();
 
+  const execOnboardingDone = isExecutiveOnboardingDone(userId);
+
   useEffect(() => {
     if (!guardian || !guardian.hydrated) return;
     // Les membres ayant déjà terminé le questionnaire ne sont jamais renvoyés
     // vers l'onboarding Guardian (nouveau navigateur = état local vide).
-    if (quizLoading || quizCompleted) return;
+    if (quizLoading || quizCompleted || execOnboardingDone) return;
     if (needsGuardianOnboarding(guardian.state)) {
       navigate(GUARDIAN_ONBOARDING_PATH, { replace: true });
     }
-  }, [guardian, navigate, quizLoading, quizCompleted]);
+  }, [guardian, navigate, quizLoading, quizCompleted, execOnboardingDone]);
 
   const firstName = useMemo(() => {
     if (!user) return "";
@@ -67,8 +70,14 @@ export default function Welcome() {
   // Si le guardian n'est pas encore hydraté, ou s'il a besoin d'onboarding mais que le quiz a déjà été complété,
   // ne pas bloquer indéfiniment la page Welcome dans un spinner sans fin.
   const guardianPending =
-    Boolean(guardian && !guardian.hydrated && quizLoading) ||
-    Boolean(guardian?.hydrated && needsGuardianOnboarding(guardian.state) && !quizCompleted && !quizLoading);
+    Boolean(guardian && !guardian.hydrated && quizLoading && !execOnboardingDone) ||
+    Boolean(
+      guardian?.hydrated &&
+        needsGuardianOnboarding(guardian.state) &&
+        !quizCompleted &&
+        !quizLoading &&
+        !execOnboardingDone,
+    );
 
   if (guardianPending) {
     return (

@@ -29,13 +29,16 @@ import QuantumNebula, {
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAegisMotion } from "@/hooks/useAegisMotion";
-import { createAgentVoiceSession } from "@/services/agentSessionService";
+import { createAgentVoiceSession, type VoiceAgentKind } from "@/services/agentSessionService";
 import { cn } from "@/lib/utils";
 import { synthesizeSpectrumFromVolume } from "@/components/voice/voiceAgentSpectrum";
 import { getVoiceAgentNebulaVisualTuning } from "@/components/voice/voiceAgentNebulaPresets";
 import { WELCOME_NEBULA_VISUAL_TUNING } from "@/features/welcome/components/WelcomeQuantumNebula";
 import { LogosClientToolsRegistrar } from "@/features/logos/LogosClientToolsRegistrar";
-import type { LogosOpeningInjection } from "@/features/logos/logosSessionInjection";
+import {
+  mergeOnboardingKnowledgeOverrides,
+  type LogosOpeningInjection,
+} from "@/features/logos/logosSessionInjection";
 import { useAuth } from "@/contexts/AuthContext";
 import { VoiceFeedbackRecorder } from "@/features/logos/voiceFeedbackService";
 import { VoiceFeedbackContext } from "@/features/logos/VoiceFeedbackContext";
@@ -288,6 +291,8 @@ function VoiceAgentControls({
   simulateLive,
   requirePathChoice,
   startSessionRef,
+  agentKind = "personal_logos",
+  onboardingDriveFolderId,
   bindOnly = false,
 }: {
   onPhase: (p: UiPhase, message?: string) => void;
@@ -303,6 +308,8 @@ function VoiceAgentControls({
   startSessionRef?: MutableRefObject<
     ((injection?: LogosOpeningInjection) => Promise<void>) | null
   >;
+  agentKind?: VoiceAgentKind;
+  onboardingDriveFolderId?: string;
   /** Mount session start binder without rendering mic CTAs. */
   bindOnly?: boolean;
 }) {
@@ -346,7 +353,10 @@ function VoiceAgentControls({
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach((track) => track.stop());
 
-        const { conversation_token } = await createAgentVoiceSession();
+        const { conversation_token, knowledge_base } = await createAgentVoiceSession({
+          agentKind,
+          onboardingDriveFolderId,
+        });
         const vars: VoiceDynamicVariables = {
           first_name: "toi",
           ...dynamicVariablesRef.current,
@@ -357,11 +367,12 @@ function VoiceAgentControls({
         if (vars.opening_prompt == null) vars.opening_prompt = "";
         if (user?.id && vars.aegis_user_id == null) vars.aegis_user_id = user.id;
         beginFeedback?.(injection?.feedbackContext);
+        const overrides = mergeOnboardingKnowledgeOverrides(injection, knowledge_base);
         startSession({
           conversationToken: conversation_token,
           dynamicVariables: vars,
           ...(user?.id ? { userId: user.id } : {}),
-          ...(injection?.overrides ? { overrides: injection.overrides } : {}),
+          ...(overrides ? { overrides } : {}),
         });
         onPhase("connected");
       } catch (e) {
@@ -371,7 +382,7 @@ function VoiceAgentControls({
         setBusy(false);
       }
     },
-    [beginFeedback, enableCall, onPhase, startSession, t, user?.id],
+    [agentKind, beginFeedback, enableCall, onboardingDriveFolderId, onPhase, startSession, t, user?.id],
   );
 
   useEffect(() => {
@@ -551,6 +562,8 @@ function VoiceAgentWelcomeHud({
   shapeLibrary,
   visualTuningOverride,
   liveOverlay,
+  agentKind = "personal_logos",
+  onboardingDriveFolderId,
 }: {
   title: string;
   debugFooter?: ReactNode;
@@ -569,6 +582,8 @@ function VoiceAgentWelcomeHud({
   shapeLibrary?: Record<string, QuantumNebulaShapeBuilder>;
   visualTuningOverride?: Partial<QuantumNebulaVisualTuning>;
   liveOverlay?: (helpers: VoiceAgentLiveOverlayHelpers) => ReactNode;
+  agentKind?: VoiceAgentKind;
+  onboardingDriveFolderId?: string;
 }) {
   const { t } = useLanguage();
   const { reduceMotion } = useAegisMotion();
@@ -707,6 +722,8 @@ function VoiceAgentWelcomeHud({
               simulateLive={simulateLive}
               requirePathChoice={requirePathChoice}
               startSessionRef={startSessionRef}
+              agentKind={agentKind}
+              onboardingDriveFolderId={onboardingDriveFolderId}
             />
           </footer>
         ) : null}
@@ -720,6 +737,8 @@ function VoiceAgentWelcomeHud({
             simulateLive={simulateLive}
             requirePathChoice={requirePathChoice}
             startSessionRef={startSessionRef}
+            agentKind={agentKind}
+            onboardingDriveFolderId={onboardingDriveFolderId}
             bindOnly
           />
         ) : null}
@@ -814,6 +833,9 @@ export type VoiceAgentProps = {
   visualTuning?: Partial<QuantumNebulaVisualTuning>;
   /** Path chooser / live overlay (path_choice or lab simulateLive). */
   liveOverlay?: (helpers: VoiceAgentLiveOverlayHelpers) => ReactNode;
+  /** Global onboarding debrief agent vs per-member LOGOS workflow agent. */
+  agentKind?: VoiceAgentKind;
+  onboardingDriveFolderId?: string;
   onPhaseChange?: (phase: UiPhase) => void;
 };
 
@@ -834,6 +856,8 @@ export function VoiceAgent({
   shapeLibrary,
   visualTuning,
   liveOverlay,
+  agentKind = "personal_logos",
+  onboardingDriveFolderId,
   onPhaseChange,
 }: VoiceAgentProps) {
   const { t } = useLanguage();
@@ -925,6 +949,8 @@ export function VoiceAgent({
           shapeLibrary={shapeLibrary}
           visualTuningOverride={visualTuning}
           liveOverlay={liveOverlay}
+          agentKind={agentKind}
+          onboardingDriveFolderId={onboardingDriveFolderId}
         />
       ) : (
         <VoiceAgentCard

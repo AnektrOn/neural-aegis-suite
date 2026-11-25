@@ -1,8 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPulseDeck } from "@/features/aegis-pulse/services/pulseService";
+import { SOLO_ACTIVE_PULSE_CARDS } from "@/lib/soloPlanQuotas";
 import type { Locale } from "@/i18n/translations";
 
-const PULSE_DECK_MAX = 15;
+const PULSE_DECK_MAX = SOLO_ACTIVE_PULSE_CARDS;
 
 export interface PersonaTrackingStats {
   pendingDecisions: number;
@@ -18,6 +19,7 @@ export interface PersonaTrackingStats {
 export async function fetchPersonaTrackingStats(
   userId: string,
   locale: Locale,
+  pulseLimit = PULSE_DECK_MAX,
 ): Promise<PersonaTrackingStats> {
   const [decisionsRes, peopleRes, toolboxRes, toolboxCompletionsRes, pulseResult] = await Promise.all([
     supabase
@@ -38,7 +40,7 @@ export async function fetchPersonaTrackingStats(
       .from("toolbox_completions" as never)
       .select("assignment_id, status")
       .eq("user_id", userId),
-    fetchPulseDeck(locale, PULSE_DECK_MAX),
+    fetchPulseDeck(locale, pulseLimit),
   ]);
 
   if (decisionsRes.error) {

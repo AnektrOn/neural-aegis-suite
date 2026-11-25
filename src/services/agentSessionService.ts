@@ -9,14 +9,32 @@ export type VoiceUsageBudget = {
   remaining_seconds: number;
 };
 
+/** ElevenLabs knowledge base locator (session override). */
+export type VoiceKnowledgeLocator = {
+  type: string;
+  name: string;
+  id: string;
+  usage_mode?: string;
+};
+
 export type AgentVoiceSession = {
   conversation_token: string;
   voice_budget?: VoiceUsageBudget;
+  knowledge_base?: VoiceKnowledgeLocator[];
+};
+
+export type VoiceAgentKind = "personal_logos" | "onboarding_report";
+
+export type CreateAgentVoiceSessionOptions = {
+  agentKind?: VoiceAgentKind;
+  /** Admin / dev lab : force le dossier Drive Obsidian sans modifier le profil. */
+  onboardingDriveFolderId?: string;
 };
 
 type InvokePayload = {
   conversation_token?: string;
   voice_budget?: VoiceUsageBudget;
+  knowledge_base?: VoiceKnowledgeLocator[];
   error?: string;
 };
 
@@ -45,15 +63,27 @@ function throwFromInvoke(
   throw new Error("Session vocale indisponible");
 }
 
-async function invokeAgentSession(): Promise<AgentVoiceSession> {
+function sessionBody(options?: CreateAgentVoiceSessionOptions): Record<string, string> {
+  const body: Record<string, string> = {};
+  if (options?.agentKind === "onboarding_report") {
+    body.agent_kind = "onboarding_report";
+  }
+  if (options?.onboardingDriveFolderId?.trim()) {
+    body.onboarding_drive_folder_id = options.onboardingDriveFolderId.trim();
+  }
+  return body;
+}
+
+async function invokeAgentSession(options?: CreateAgentVoiceSessionOptions): Promise<AgentVoiceSession> {
   const { data, error } = await supabase.functions.invoke<InvokePayload>("agent-session", {
-    body: {},
+    body: sessionBody(options),
   });
 
   if (!error && data?.conversation_token) {
     return {
       conversation_token: data.conversation_token,
       ...(data.voice_budget ? { voice_budget: data.voice_budget } : {}),
+      ...(data.knowledge_base?.length ? { knowledge_base: data.knowledge_base } : {}),
     };
   }
 
@@ -73,15 +103,16 @@ async function invokeAgentSession(): Promise<AgentVoiceSession> {
   throw new Error("Réponse serveur invalide");
 }
 
-async function invokeVoiceTokenFallback(): Promise<AgentVoiceSession> {
+async function invokeVoiceTokenFallback(options?: CreateAgentVoiceSessionOptions): Promise<AgentVoiceSession> {
   const { data, error } = await supabase.functions.invoke<InvokePayload>("elevenlabs-knowledge", {
-    body: { action: "voice_conversation_token" },
+    body: { action: "voice_conversation_token", ...sessionBody(options) },
   });
 
   if (!error && data?.conversation_token) {
     return {
       conversation_token: data.conversation_token,
       ...(data.voice_budget ? { voice_budget: data.voice_budget } : {}),
+      ...(data.knowledge_base?.length ? { knowledge_base: data.knowledge_base } : {}),
     };
   }
 
@@ -113,12 +144,14 @@ async function invokeVoiceTokenFallback(): Promise<AgentVoiceSession> {
   throw new Error("Réponse serveur invalide");
 }
 
-export async function createAgentVoiceSession(): Promise<AgentVoiceSession> {
+export async function createAgentVoiceSession(
+  options?: CreateAgentVoiceSessionOptions,
+): Promise<AgentVoiceSession> {
   try {
-    return await invokeAgentSession();
+    return await invokeAgentSession(options);
   } catch (e) {
     if (e instanceof FunctionsFetchError) {
-      return invokeVoiceTokenFallback();
+      return invokeVoiceTokenFallback(options);
     }
     throw e;
   }

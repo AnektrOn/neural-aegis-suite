@@ -35,8 +35,8 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 
 const Welcome = lazy(() => import("./pages/Welcome"));
 const WelcomeVoiceAgent = lazy(() => import("./pages/WelcomeVoiceAgent"));
-const GuardianOnboardingPage = lazy(
-  () => import("@/features/guardian/pages/GuardianOnboardingPage"),
+const ExecutiveOnboardingPage = lazy(
+  () => import("@/features/onboarding/pages/ExecutiveOnboardingPage"),
 );
 const Persona = lazy(() => import("./pages/Persona"));
 const PersonaPortraits = lazy(() => import("./pages/PersonaPortraits"));
@@ -123,6 +123,9 @@ const ToolboxNebulaDemo = lazy(() => import("./pages/dev/ToolboxNebulaDemo"));
 const LogosChoicesLabPage = lazy(() => import("./pages/dev/logos-choices/LogosChoicesLabPage"));
 const LogosWorkflowLabPage = lazy(() => import("./pages/dev/logos-workflow/LogosWorkflowLabPage"));
 const LogosDevPage = lazy(() => import("./pages/dev/logos/LogosDevPage"));
+const OnboardingReportDevPage = lazy(
+  () => import("./pages/dev/logos-onboarding/OnboardingReportDevPage"),
+);
 const DienChanMap = lazy(() => import("./pages/dev/DienChanMap"));
 const BodyScanPreview = lazy(() => import("./pages/dev/BodyScanPreview"));
 const AegisBioExecutiveDevPage = lazy(() => import("./pages/dev/aegis-dashboard/AegisBioExecutiveDevPage"));
@@ -355,6 +358,14 @@ const App = () => (
                     <Route path="/dev/quantum-nebula" element={<DevGate><QuantumNebulaDemo /></DevGate>} />
                     <Route path="/dev/toolbox-nebula" element={<DevGate><ToolboxNebulaDemo /></DevGate>} />
                     <Route path="/dev/logos" element={<DevGate><LogosDevPage /></DevGate>} />
+                    <Route
+                      path="/dev/logos-onboarding-report"
+                      element={
+                        <DevGate>
+                          <OnboardingReportDevPage />
+                        </DevGate>
+                      }
+                    />
                     <Route path="/dev/logos-choices" element={<DevGate><LogosChoicesLabPage /></DevGate>} />
                     <Route path="/dev/logos-workflow" element={<DevGate><LogosWorkflowLabPage /></DevGate>} />
                     <Route path="/dev/dien-chan" element={<DevGate><DienChanMap variant="dev" /></DevGate>} />
@@ -560,7 +571,7 @@ const App = () => (
                   element={
                     <VisitorRoute>
                       <Suspense fallback={<PageLoader />}>
-                        <GuardianOnboardingPage />
+                        <ExecutiveOnboardingPage />
                       </Suspense>
                     </VisitorRoute>
                   }

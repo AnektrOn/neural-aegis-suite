@@ -3,6 +3,18 @@ import {
   assertVoiceBudgetAllowsSession,
   type VoiceUsageBudget,
 } from './voice-budget.ts';
+import {
+  resolveOnboardingMemberKnowledgeBase,
+  type VoiceKnowledgeLocator,
+} from './voice-onboarding-kb.ts';
+import {
+  resolveOnboardingReportAgentId,
+  type VoiceAgentKind,
+} from './voice-onboarding-session.ts';
+
+export type { VoiceKnowledgeLocator };
+
+export type { VoiceAgentKind };
 
 const EL = "https://api.elevenlabs.io/v1";
 const EL_FETCH_TIMEOUT_MS = 15_000;
@@ -45,7 +57,15 @@ async function fetchWebRtcToken(agentId: string, participantName: string) {
   return token;
 }
 
-export async function resolveVoiceAgentId(admin: Admin, userId: string): Promise<string | null> {
+export async function resolveVoiceAgentId(
+  admin: Admin,
+  userId: string,
+  agentKind: VoiceAgentKind = "personal_logos",
+): Promise<string | null> {
+  if (agentKind === "onboarding_report") {
+    return resolveOnboardingReportAgentId(admin);
+  }
+
   const { data: mapping, error: mapErr } = await admin
     .from("user_agents")
     .select("elevenlabs_agent_id")
@@ -68,12 +88,16 @@ export async function resolveVoiceAgentId(admin: Admin, userId: string): Promise
 export type VoiceConversationStartPayload = {
   conversation_token: string;
   voice_budget: VoiceUsageBudget;
+  /** Populated for onboarding_report — pass as conversation KB override at session start. */
+  knowledge_base?: VoiceKnowledgeLocator[];
 };
 
 export async function createVoiceConversationToken(
   admin: Admin,
   userId: string,
+  opts?: { agent_kind?: VoiceAgentKind; onboarding_drive_root_override?: string },
 ): Promise<VoiceConversationStartPayload> {
+  const agentKind = opts?.agent_kind === "onboarding_report" ? "onboarding_report" : "personal_logos";
   const { data: rl, error: rlErr } = await admin.rpc("check_service_rate_limit", {
     p_bucket: `agent-session:${userId}`,
     p_limit: RATE_LIMIT_PER_HOUR,
@@ -87,14 +111,16 @@ export async function createVoiceConversationToken(
     throw err;
   }
 
-  const entitled = await userHasLogosEntitlement(admin, userId);
-  if (!entitled) {
-    const err = new Error("Abonnement AEGIS + LOGOS Solo requis");
-    (err as Error & { status?: number }).status = 403;
-    throw err;
+  if (agentKind === "personal_logos") {
+    const entitled = await userHasLogosEntitlement(admin, userId);
+    if (!entitled) {
+      const err = new Error("Abonnement AEGIS + LOGOS Solo requis");
+      (err as Error & { status?: number }).status = 403;
+      throw err;
+    }
   }
 
-  const agentId = await resolveVoiceAgentId(admin, userId);
+  const agentId = await resolveVoiceAgentId(admin, userId, agentKind);
   if (!agentId) {
     const err = new Error("Aucun agent vocal configuré pour ce compte");
     (err as Error & { status?: number }).status = 404;
@@ -103,8 +129,19 @@ export async function createVoiceConversationToken(
 
   const voice_budget = await assertVoiceBudgetAllowsSession(admin, userId);
 
+  let knowledge_base: VoiceKnowledgeLocator[] | undefined;
+  if (agentKind === "onboarding_report") {
+    knowledge_base = await resolveOnboardingMemberKnowledgeBase(admin, userId, {
+      drive_root_override: opts?.onboarding_drive_root_override,
+    });
+  }
+
   const conversation_token = await fetchWebRtcToken(agentId, userId);
-  return { conversation_token, voice_budget };
+  return {
+    conversation_token,
+    voice_budget,
+    ...(knowledge_base?.length ? { knowledge_base } : {}),
+  };
 }
 
 export function mapVoiceSessionError(e: unknown): { message: string; status: number } {
@@ -116,7 +153,10 @@ export function mapVoiceSessionError(e: unknown): { message: string; status: num
   }
   if (status === 404) return { message: "Agent introuvable", status: 404 };
   if (status === 429) return { message: "Too many requests", status: 429 };
-  if (status === 422) return { message: "Configuration agent invalide", status: 502 };
+  if (status === 422) {
+    if (msg.includes("Base de connaissances") || msg.includes("Vault")) return { message: msg, status: 422 };
+    return { message: "Configuration agent invalide", status: 502 };
+  }
   if (msg.includes("timeout") || msg.includes("Timeout")) {
     return { message: "ElevenLabs timeout", status: 504 };
   }

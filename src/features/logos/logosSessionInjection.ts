@@ -1,6 +1,8 @@
 /** Session-start injection for LOGOS opening paths (KB untouched). */
 
-export type LogosSessionMode = "guided" | "open";
+import type { VoiceKnowledgeLocator } from "@/services/agentSessionService";
+
+export type LogosSessionMode = "guided" | "open" | "onboarding_report";
 
 export type LogosOpeningInjection = {
   feedbackContext?: { promptId: string; category: string };
@@ -15,12 +17,38 @@ export type LogosOpeningInjection = {
     opening_first_message?: string;
     aegis_user_id?: string;
   };
-  overrides?: {
-    agent: {
-      firstMessage: string;
+  overrides?: LogosSessionStartOverrides;
+};
+
+export type LogosSessionStartOverrides = {
+  agent: {
+    firstMessage?: string;
+    prompt?: {
+      knowledge_base?: VoiceKnowledgeLocator[];
     };
   };
 };
+
+/** Merge onboarding KB override from agent-session with path first_message overrides. */
+export function mergeOnboardingKnowledgeOverrides(
+  injection: LogosOpeningInjection | undefined,
+  knowledgeBase: VoiceKnowledgeLocator[] | undefined,
+): LogosSessionStartOverrides | undefined {
+  if (!knowledgeBase?.length && !injection?.overrides) return injection?.overrides;
+  const agent = {
+    ...(injection?.overrides?.agent ?? {}),
+    ...(knowledgeBase?.length
+      ? {
+          prompt: {
+            ...(injection?.overrides?.agent?.prompt ?? {}),
+            knowledge_base: knowledgeBase,
+          },
+        }
+      : {}),
+  };
+  if (!agent.firstMessage && !agent.prompt?.knowledge_base?.length) return injection?.overrides;
+  return { agent };
+}
 
 export type LogosPathInjectionSource = {
   id?: string;
@@ -51,6 +79,21 @@ export function buildGuidedLogosInjection(
       agent: {
         firstMessage: path.firstMessage.trim(),
       },
+    },
+  };
+}
+
+/** Onboarding débrief (rapport 30 dilemmes) — agent global, first message défini côté agent ElevenLabs. */
+export function buildOnboardingReportLogosInjection(
+  firstName?: string,
+  aegisUserId?: string,
+): LogosOpeningInjection {
+  return {
+    dynamicVariables: {
+      ...(firstName ? { first_name: firstName } : {}),
+      ...(aegisUserId ? { aegis_user_id: aegisUserId } : {}),
+      session_mode: "onboarding_report",
+      opening_prompt: "",
     },
   };
 }
