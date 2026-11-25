@@ -1,4 +1,4 @@
-/** Lovable Cloud redeploy stamp: preview throttle + voice session (2026-11-25g). */
+/** Lovable Cloud redeploy stamp: preview throttle + voice session (2026-11-25h). */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { mayUseOnboardingDriveOverride, parseDriveFolderId } from "../_shared/onboarding-lab-drive.ts";
@@ -6,10 +6,7 @@ import {
   AGENT_SESSION_ONBOARDING_PREVIEW_STAMP,
   buildOnboardingPackPreviewResponse,
 } from "../_shared/onboarding-pack-preview-handler.ts";
-import {
-  createVoiceConversationToken,
-  mapVoiceSessionError,
-} from "../_shared/voice-session.ts";
+import { createVoiceConversationToken, mapVoiceSessionError } from "../_shared/voice-session.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
