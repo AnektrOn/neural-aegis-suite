@@ -1,3 +1,4 @@
+/** Lovable Cloud redeploy stamp: onboarding_drive_folder_id override + KB session (2026-11-25). */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { mayUseOnboardingDriveOverride, parseDriveFolderId } from "../_shared/onboarding-lab-drive.ts";

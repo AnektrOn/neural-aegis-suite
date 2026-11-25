@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react";
@@ -43,6 +43,11 @@ export default function OnboardingAhaSynthesis({
   const [attempt, setAttempt] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const guardianRef = useRef(guardian);
+  guardianRef.current = guardian;
+  const onFinalizedRef = useRef(onFinalized);
+  onFinalizedRef.current = onFinalized;
+
   const runCalibration = useCallback(async () => {
     setErrorMsg(null);
     setPhase(1);
@@ -64,7 +69,7 @@ export default function OnboardingAhaSynthesis({
     Promise.all([delay(SYNTHESIS_MIN_DURATION_MS), finalizeOnboarding(userId)])
       .then(async () => {
         if (cancelled) return;
-        guardian?.completeGuardian();
+        guardianRef.current?.completeGuardian();
         markProductTourDone(userId);
 
         await Promise.all([
@@ -83,7 +88,7 @@ export default function OnboardingAhaSynthesis({
         }
 
         if (!cancelled) {
-          onFinalized();
+          onFinalizedRef.current();
           navigate("/dashboard", { replace: true });
         }
       })
@@ -103,7 +108,7 @@ export default function OnboardingAhaSynthesis({
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [attempt, guardian, navigate, onFinalized, queryClient, userId]);
+  }, [attempt, navigate, queryClient, userId]);
 
   const phaseMeta = {
     1: {

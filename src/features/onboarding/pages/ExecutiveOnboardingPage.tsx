@@ -160,6 +160,15 @@ export default function ExecutiveOnboardingPage() {
     }
   })();
 
+  const handleFinalized = useCallback(() => {
+    finalizedRef.current = true;
+  }, []);
+
+  const handleReturnToSteps = useCallback(() => {
+    finalizedRef.current = false;
+    setIsSynthesizing(false);
+  }, []);
+
   const handleNext = () => {
     if (!canProceed || !userId) return;
     if (currentStep < TOTAL_ONBOARDING_STEPS) {
@@ -171,6 +180,8 @@ export default function ExecutiveOnboardingPage() {
       }
       return;
     }
+    if (syncBadgeTimerRef.current) clearTimeout(syncBadgeTimerRef.current);
+    setIsSyncingBadge(false);
     setIsSynthesizing(true);
   };
 
@@ -216,13 +227,8 @@ export default function ExecutiveOnboardingPage() {
         {isSynthesizing ? (
           <OnboardingAhaSynthesis
             userId={userId}
-            onFinalized={() => {
-              finalizedRef.current = true;
-            }}
-            onReturnToSteps={() => {
-              finalizedRef.current = false;
-              setIsSynthesizing(false);
-            }}
+            onFinalized={handleFinalized}
+            onReturnToSteps={handleReturnToSteps}
           />
         ) : (
           <>

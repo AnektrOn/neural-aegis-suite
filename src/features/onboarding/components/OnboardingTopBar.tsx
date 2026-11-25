@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Pause, Volume2 } from "lucide-react";
 import AegisLogo from "@/components/AegisLogo";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { getGuardianAudioSrc, type GuardianGender } from "@/features/guardian/guardianAudio";
+import { getGuardianAudioSrc } from "@/features/guardian/guardianAudio";
+import type { GuardianGender } from "@/features/guardian/types";
 import type { OnboardingStep } from "@/store/useOnboardingStore";
 import {
   mapStepToGuardianAudioStep,
