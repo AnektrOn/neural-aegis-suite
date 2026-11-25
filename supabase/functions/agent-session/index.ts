@@ -1,15 +1,8 @@
-/** Lovable Cloud redeploy stamp: preview_onboarding_pack lab + voice session (2026-11-25f). */
+/** Lovable Cloud redeploy stamp: onboarding_drive_folder_id override + KB session (2026-11-25f). */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { mayUseOnboardingDriveOverride, parseDriveFolderId } from "../_shared/onboarding-lab-drive.ts";
-import {
-  AGENT_SESSION_ONBOARDING_PREVIEW_STAMP,
-  buildOnboardingPackPreviewResponse,
-} from "../_shared/onboarding-pack-preview-handler.ts";
-import {
-  createVoiceConversationToken,
-  mapVoiceSessionError,
-} from "../_shared/voice-session.ts";
+import { createVoiceConversationToken, mapVoiceSessionError } from "../_shared/voice-session.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -35,17 +28,7 @@ Deno.serve(async (req) => {
     const user = userData?.user;
     if (userErr || !user) return json({ error: "Unauthorized" }, 401);
 
-    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-    if (body?.action === "preview_onboarding_pack") {
-      const { status, payload } = await buildOnboardingPackPreviewResponse(
-        admin,
-        user.id,
-        body,
-        AGENT_SESSION_ONBOARDING_PREVIEW_STAMP,
-      );
-      return json(payload, status);
-    }
-
+    const body = await req.json().catch(() => ({}));
     const agentKind =
       body && typeof body === "object" && body.agent_kind === "onboarding_report"
         ? "onboarding_report"
