@@ -53,7 +53,9 @@ export async function buildOnboardingPackPreviewResponse(
 
     if (embedPreviews) {
       const files = [];
-      for (const meta of pack.files) {
+      for (let i = 0; i < pack.files.length; i++) {
+        const meta = pack.files[i];
+        if (i > 0) await new Promise((r) => setTimeout(r, 250));
         try {
           const file = await fetchOnboardingDriveFilePreview(meta.id);
           file.relativePath = meta.relativePath;

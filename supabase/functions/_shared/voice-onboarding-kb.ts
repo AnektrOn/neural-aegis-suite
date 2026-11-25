@@ -31,6 +31,11 @@ async function driveFetch(path: string) {
   if (!res.ok) {
     const details = await res.text();
     console.error(`Drive ${res.status}: ${details}`);
+    if (res.status === 429 || /too many requests/i.test(details)) {
+      throw onboardingKbError(
+        "Too many requests — quota Google Drive temporaire. Réessaie dans 1–2 minutes.",
+      );
+    }
     throw new Error(`Drive ${res.status}: ${details.slice(0, 300)}`);
   }
   return res;

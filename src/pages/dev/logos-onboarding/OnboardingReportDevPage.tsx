@@ -68,34 +68,40 @@ export default function OnboardingReportDevPage() {
     staleTime: 30_000,
   });
 
-  const packPreviewQuery = useQuery({
-    queryKey: ["preview_onboarding_pack", driveFolderId, "embed"],
+  const packListQuery = useQuery({
+    queryKey: ["preview_onboarding_pack", driveFolderId, "list"],
     enabled: Boolean(user?.id && driveFolderId),
-    queryFn: () => previewOnboardingDrivePack(driveFolderId, { embedPreviews: true }),
-    staleTime: 60_000,
+    queryFn: () => previewOnboardingDrivePack(driveFolderId),
+    staleTime: 5 * 60_000,
     retry: false,
+    refetchOnWindowFocus: false,
   });
 
-  const driveFiles = packPreviewQuery.data?.files;
+  const packEmbedQuery = useQuery({
+    queryKey: ["preview_onboarding_pack", driveFolderId, "embed"],
+    enabled: Boolean(user?.id && driveFolderId && previewOpen),
+    queryFn: () => previewOnboardingDrivePack(driveFolderId, { embedPreviews: true }),
+    staleTime: 10 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const driveFiles = packEmbedQuery.data?.files ?? packListQuery.data?.files;
   const driveError =
-    packPreviewQuery.isError && packPreviewQuery.error instanceof Error
-      ? packPreviewQuery.error.message
-      : null;
+    (packEmbedQuery.isError && packEmbedQuery.error instanceof Error
+      ? packEmbedQuery.error.message
+      : null) ??
+  (packListQuery.isError && packListQuery.error instanceof Error ? packListQuery.error.message : null);
+  const previewLoading = previewOpen && packEmbedQuery.isFetching && !packEmbedQuery.data?.files?.length;
 
   useEffect(() => {
-    if (!user?.id || packPreviewQuery.isLoading) return;
+    if (!user?.id || packListQuery.isLoading) return;
     if (autoOpenedForDrive.current === driveFolderId) return;
-    if (packPreviewQuery.isSuccess || packPreviewQuery.isError) {
+    if (packListQuery.isSuccess || packListQuery.isError) {
       autoOpenedForDrive.current = driveFolderId;
       setPreviewOpen(true);
     }
-  }, [
-    driveFolderId,
-    packPreviewQuery.isError,
-    packPreviewQuery.isLoading,
-    packPreviewQuery.isSuccess,
-    user?.id,
-  ]);
+  }, [driveFolderId, packListQuery.isError, packListQuery.isLoading, packListQuery.isSuccess, user?.id]);
 
   const onOnboardingKnowledgeLoaded = useCallback((items: VoiceKnowledgeLocator[]) => {
     setSessionKnowledge(items);
@@ -119,16 +125,17 @@ export default function OnboardingReportDevPage() {
   }, [agentIdQuery.data, agentIdQuery.error, agentIdQuery.isError, agentIdQuery.isLoading, isFR]);
 
   const packSummary = useMemo(() => {
-    if (packPreviewQuery.isLoading) return isFR ? "Lecture Drive…" : "Reading Drive…";
+    if (packListQuery.isLoading) return isFR ? "Lecture Drive…" : "Reading Drive…";
     if (driveError) return `${isFR ? "Pack Drive" : "Drive pack"}: ${driveError}`;
     const files = driveFiles ?? [];
-    const name = packPreviewQuery.data?.folder_name ?? "—";
+    const name = packListQuery.data?.folder_name ?? packEmbedQuery.data?.folder_name ?? "—";
     if (!files.length) {
       return `${name} — ${isFR ? "aucun .md onboarding détecté" : "no onboarding .md found"}`;
     }
-    const stamp = packPreviewQuery.data?.edge_stamp;
+    const stamp = packListQuery.data?.edge_stamp ?? packEmbedQuery.data?.edge_stamp;
     const stampOk =
-      packPreviewQuery.data?.edge_ok ??
+      packListQuery.data?.edge_ok ??
+      packEmbedQuery.data?.edge_ok ??
       (stamp ? (EXPECTED_EDGE_STAMPS as readonly string[]).includes(stamp) : false);
     const stampHint = stampOk
       ? ""
@@ -138,14 +145,16 @@ export default function OnboardingReportDevPage() {
     driveError,
     driveFiles,
     isFR,
-    packPreviewQuery.data?.edge_ok,
-    packPreviewQuery.data?.edge_stamp,
-    packPreviewQuery.data?.folder_name,
-    packPreviewQuery.isLoading,
+    packEmbedQuery.data?.edge_ok,
+    packEmbedQuery.data?.edge_stamp,
+    packListQuery.data?.edge_ok,
+    packListQuery.data?.edge_stamp,
+    packListQuery.data?.folder_name,
+    packListQuery.isLoading,
   ]);
 
   const needsEdgeDeploy =
-    (packPreviewQuery.isSuccess && !packPreviewQuery.data?.edge_ok) ||
+    (packListQuery.isSuccess && !packListQuery.data?.edge_ok && !packEmbedQuery.data?.edge_ok) ||
     (driveError?.includes("Déploie") ?? false) ||
     (driveError?.includes("agent-session") ?? false) ||
     (agentIdQuery.error instanceof Error && agentIdQuery.error.message.includes("non à jour"));
@@ -157,9 +166,10 @@ export default function OnboardingReportDevPage() {
         onOpenChange={setPreviewOpen}
         isFR={isFR}
         driveFolderId={driveFolderId}
-        folderName={packPreviewQuery.data?.folder_name}
+        folderName={packListQuery.data?.folder_name ?? packEmbedQuery.data?.folder_name}
         driveFiles={driveFiles}
         driveError={driveError}
+        loading={previewLoading}
         sessionKnowledge={sessionKnowledge}
       />
 
@@ -246,8 +256,8 @@ export default function OnboardingReportDevPage() {
                 {needsEdgeDeploy ? (
                   <p className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-left text-amber-900 dark:text-amber-100">
                     {isFR
-                      ? "Le push Git ne déploie pas les Edge Functions. Dans Lovable, sauvegarde supabase/functions/agent-session/index.ts (stamp 2026-11-25f) — ou Supabase Dashboard → agent-session → Deploy. Puis migrations 20261125100000 / 25110000 et Admin › Déployer Onboarding Report."
-                      : "Git push does not deploy Edge Functions. On Lovable, save supabase/functions/agent-session/index.ts (stamp 2026-11-25f) — or Supabase Dashboard → agent-session → Deploy. Apply migrations 20261125100000 / 25110000, then Admin › Deploy Onboarding Report."}
+                      ? "Le push Git ne déploie pas les Edge Functions. Sauvegarde agent-session/index.ts (stamp 2026-11-25g). Puis migrations 20261125100000 / 25110000 et Admin › Déployer Onboarding Report."
+                      : "Git push does not deploy Edge Functions. Save agent-session/index.ts (stamp 2026-11-25g). Apply migrations 20261125100000 / 25110000, then Admin › Deploy Onboarding Report."}
                   </p>
                 ) : (
                   <p className="text-[10px] opacity-80">

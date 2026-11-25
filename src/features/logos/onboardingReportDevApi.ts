@@ -1,12 +1,10 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-/** Déjà listée dans Supabase — redéployer après sauvegarde index.ts sur Lovable. */
-const PRIMARY_PREVIEW_FN = "agent-session";
+/** Une seule edge — évite le rate-limit Drive (pas de fallback en chaîne). */
+const PREVIEW_FN = "agent-session";
 export const AGENT_SESSION_ONBOARDING_PREVIEW_STAMP = "agent-session-onboarding-preview-1";
-const OPTIONAL_PREVIEW_FN = "onboarding-pack-preview";
 export const ONBOARDING_PACK_PREVIEW_STAMP = "onboarding-pack-preview-1";
-/** Legacy stamp on elevenlabs-knowledge (fallback). */
 export const ONBOARDING_PREVIEW_EDGE_STAMP = "2026-11-25e";
 
 export const EXPECTED_EDGE_STAMPS = [
@@ -14,6 +12,16 @@ export const EXPECTED_EDGE_STAMPS = [
   ONBOARDING_PACK_PREVIEW_STAMP,
   ONBOARDING_PREVIEW_EDGE_STAMP,
 ] as const;
+
+function mapRateLimitMessage(detail: string, isFR = true): string {
+  const lower = detail.toLowerCase();
+  if (lower.includes("too many requests") || lower.includes("429") || lower.includes("rate limit")) {
+    return isFR
+      ? "Trop de requêtes Google Drive — attends 1–2 minutes, ferme l’aperçu puis réouvre (un seul chargement à la fois)."
+      : "Google Drive rate limit — wait 1–2 minutes, close preview and try again.";
+  }
+  return detail;
+}
 
 export async function readEdgeFunctionError(error: FunctionsHttpError): Promise<string> {
   let detail = error.message;
@@ -24,12 +32,9 @@ export async function readEdgeFunctionError(error: FunctionsHttpError): Promise<
     /* ignore */
   }
   if (detail === "Action inconnue") {
-    return `Redéploie la fonction Edge « ${PRIMARY_PREVIEW_FN} » (Lovable : sauvegarde supabase/functions/agent-session/index.ts, stamp 2026-11-25f). Git push seul ne met pas à jour les fonctions.`;
+    return `Redéploie « ${PREVIEW_FN} » (sauvegarde supabase/functions/agent-session/index.ts, stamp 2026-11-25g).`;
   }
-  if (detail.includes("non-2xx")) {
-    return `Fonction Edge « ${PRIMARY_PREVIEW_FN} » absente ou erreur serveur — redéploie sur Supabase.`;
-  }
-  return detail;
+  return mapRateLimitMessage(detail);
 }
 
 function isKnownStamp(stamp: string | undefined): boolean {
@@ -43,11 +48,11 @@ export async function fetchOnboardingReportAgentId(): Promise<string | null> {
   );
   if (error instanceof FunctionsHttpError) {
     const msg = await readEdgeFunctionError(error);
-    if (msg.includes("Redéploie") || msg.includes("absente")) return null;
+    if (msg.includes("Redéploie")) return null;
     throw error;
   }
   if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+  if (data?.error) throw new Error(mapRateLimitMessage(data.error));
   return data?.agent_id?.trim() || null;
 }
 
@@ -75,96 +80,25 @@ type PreviewPackResponse = {
 
 type PreviewInvokeOptions = {
   embedPreviews?: boolean;
-  driveFileId?: string;
 };
 
-async function invokePreviewFunction(
-  functionName: string,
+async function invokePreviewPack(
   driveFolderId: string,
   opts?: PreviewInvokeOptions,
 ): Promise<PreviewPackResponse> {
-  const { data, error } = await supabase.functions.invoke<PreviewPackResponse>(functionName, {
+  const { data, error } = await supabase.functions.invoke<PreviewPackResponse>(PREVIEW_FN, {
     body: {
       action: "preview_onboarding_pack",
       drive_folder_id: driveFolderId,
       ...(opts?.embedPreviews ? { embed_previews: true } : {}),
-      ...(opts?.driveFileId ? { drive_file_id: opts.driveFileId } : {}),
     },
   });
   if (error instanceof FunctionsHttpError) {
     throw new Error(await readEdgeFunctionError(error));
   }
   if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+  if (data?.error) throw new Error(mapRateLimitMessage(data.error));
   return data ?? {};
-}
-
-function isMissingFunctionError(msg: string): boolean {
-  return (
-    msg.includes("Failed to send") ||
-    msg.includes("not found") ||
-    msg.includes("404") ||
-    msg.includes("non-2xx") ||
-    msg.includes("Redéploie") ||
-    msg.includes("absente")
-  );
-}
-
-function stillLegacyListResponse(data: PreviewPackResponse, opts?: PreviewInvokeOptions): boolean {
-  if (data.file) return false;
-  if (!data.files?.length) return false;
-  if (opts?.embedPreviews) {
-    return !data.files.some((f) => typeof f.preview === "string" && f.preview.trim().length > 0);
-  }
-  if (opts?.driveFileId) {
-    return !data.files.some((f) => f.id === opts.driveFileId && f.preview?.trim());
-  }
-  return false;
-}
-
-async function invokeOnboardingPreviewPack(
-  driveFolderId: string,
-  opts?: PreviewInvokeOptions,
-): Promise<PreviewPackResponse> {
-  const order = [PRIMARY_PREVIEW_FN, OPTIONAL_PREVIEW_FN, "elevenlabs-knowledge"];
-  let lastErr: Error | null = null;
-
-  for (const fn of order) {
-    try {
-      const data = await invokePreviewFunction(fn, driveFolderId, opts);
-      if (isKnownStamp(data.edge_stamp)) return data;
-      if (!stillLegacyListResponse(data, opts)) return data;
-      lastErr = new Error(
-        `« ${fn} » sans contenu (stamp ${data.edge_stamp ?? "?"}) — redéploie ${PRIMARY_PREVIEW_FN}.`,
-      );
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-      lastErr = err;
-      if (!isMissingFunctionError(err.message)) throw err;
-    }
-  }
-
-  throw (
-    lastErr ??
-    new Error(
-      `Redéploie « ${PRIMARY_PREVIEW_FN} » (stamp ${AGENT_SESSION_ONBOARDING_PREVIEW_STAMP}) sur Supabase / Lovable.`,
-    )
-  );
-}
-
-function normalizeEmbeddedFile(
-  hit: OnboardingDrivePreviewFileMeta & Partial<OnboardingDrivePreviewFile>,
-): OnboardingDrivePreviewFile | null {
-  if (!hit.preview?.trim()) return null;
-  return {
-    id: hit.id,
-    name: hit.name,
-    relativePath: hit.relativePath,
-    char_count: hit.char_count ?? hit.preview.length,
-    preview: hit.preview,
-    truncated: Boolean(hit.truncated),
-    error: hit.error,
-  };
 }
 
 export async function previewOnboardingDrivePack(
@@ -176,27 +110,21 @@ export async function previewOnboardingDrivePack(
   edge_stamp?: string;
   edge_ok?: boolean;
 }> {
-  const data = await invokeOnboardingPreviewPack(driveFolderId, {
-    embedPreviews: opts?.embedPreviews,
-  });
+  const data = await invokePreviewPack(driveFolderId, opts);
   const edge_ok = isKnownStamp(data.edge_stamp);
-  return { ...data, edge_ok };
-}
+  const hasEmbedded =
+    Boolean(opts?.embedPreviews) &&
+    (data.files?.some((f) => typeof f.preview === "string" && f.preview.trim().length > 0) ?? false);
 
-export async function fetchOnboardingDriveFilePreview(
-  driveFolderId: string,
-  driveFileId: string,
-): Promise<OnboardingDrivePreviewFile> {
-  const data = await invokeOnboardingPreviewPack(driveFolderId, { driveFileId });
-  if (data.file) return data.file;
+  if (opts?.embedPreviews && !hasEmbedded && !data.file && (data.files?.length ?? 0) > 0 && !edge_ok) {
+    return {
+      ...data,
+      edge_ok: false,
+      files: data.files,
+    };
+  }
 
-  const legacy = data.files?.find((f) => f.id === driveFileId);
-  const embedded = legacy ? normalizeEmbeddedFile(legacy) : null;
-  if (embedded) return embedded;
-
-  throw new Error(
-    `Redéploie « ${PRIMARY_PREVIEW_FN} » (attendu stamp ${AGENT_SESSION_ONBOARDING_PREVIEW_STAMP}). Git push ne déploie pas les Edge Functions.`,
-  );
+  return { ...data, edge_ok: edge_ok || hasEmbedded };
 }
 
 export function fileHasEmbeddedPreview(

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronDown, FileText, FolderOpen, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -11,7 +11,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import {
-  fetchOnboardingDriveFilePreview,
   fileHasEmbeddedPreview,
   type OnboardingDrivePreviewFile,
   type OnboardingDrivePreviewFileMeta,
@@ -26,6 +25,7 @@ type Props = {
   folderName?: string | null;
   driveFiles?: (OnboardingDrivePreviewFileMeta | OnboardingDrivePreviewFile)[];
   driveError?: string | null;
+  loading?: boolean;
   sessionKnowledge?: VoiceKnowledgeLocator[] | null;
 };
 
@@ -46,77 +46,12 @@ export function OnboardingKbPreviewDialog({
   folderName,
   driveFiles,
   driveError,
+  loading,
   sessionKnowledge,
 }: Props) {
   const driveCount = driveFiles?.length ?? 0;
   const sessionCount = sessionKnowledge?.length ?? 0;
   const [openPaths, setOpenPaths] = useState<Record<string, boolean>>({});
-  const [loaded, setLoaded] = useState<Record<string, OnboardingDrivePreviewFile | "loading" | "error">>(
-    {},
-  );
-  const [loadErrors, setLoadErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (!open || !driveFiles?.length) return;
-    let cancelled = false;
-
-    const loadAll = async () => {
-      const embedded: Record<string, OnboardingDrivePreviewFile> = {};
-      const pendingIds: string[] = [];
-      for (const meta of driveFiles) {
-        if (!meta.id) continue;
-        if (fileHasEmbeddedPreview(meta)) embedded[meta.id] = meta;
-        else pendingIds.push(meta.id);
-      }
-      if (Object.keys(embedded).length) {
-        setLoaded((prev) => ({ ...prev, ...embedded }));
-      }
-      if (!pendingIds.length) return;
-
-      setLoaded((prev) => {
-        const next = { ...prev };
-        for (const id of pendingIds) {
-          if (!next[id] || next[id] === "loading") next[id] = "loading";
-        }
-        return next;
-      });
-      const results = await Promise.allSettled(
-        pendingIds.map((id) => fetchOnboardingDriveFilePreview(driveFolderId, id)),
-      );
-      if (cancelled) return;
-      setLoaded((prev) => {
-        const next = { ...prev };
-        results.forEach((r, i) => {
-          const id = pendingIds[i];
-          if (r.status === "fulfilled") next[id] = r.value;
-          else next[id] = "error";
-        });
-        return next;
-      });
-      setLoadErrors((prev) => {
-        const next = { ...prev };
-        results.forEach((r, i) => {
-          if (r.status === "rejected") {
-            const id = pendingIds[i];
-            next[id] = r.reason instanceof Error ? r.reason.message : String(r.reason);
-          }
-        });
-        return next;
-      });
-    };
-
-    void loadAll();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, driveFiles, driveFolderId]);
-
-  useEffect(() => {
-    if (!open) {
-      setLoaded({});
-      setLoadErrors({});
-    }
-  }, [open, driveFolderId]);
 
   const setFileOpen = (path: string, next: boolean) => {
     setOpenPaths((prev) => ({ ...prev, [path]: next }));
@@ -141,9 +76,16 @@ export function OnboardingKbPreviewDialog({
               <FolderOpen className="h-4 w-4 text-muted-foreground" aria-hidden />
               {isFR ? "Contenu Drive (aperçu)" : "Drive content (preview)"}
               <span className="text-muted-foreground">({driveCount})</span>
+              {loading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden />
+              ) : null}
             </div>
             {driveError ? (
               <p className="text-sm text-destructive">{driveError}</p>
+            ) : loading && !driveCount ? (
+              <p className="text-sm text-muted-foreground">
+                {isFR ? "Chargement du pack (un appel Drive)…" : "Loading pack (single Drive call)…"}
+              </p>
             ) : driveCount === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {isFR ? "Aucun .md dans le pack (attendu : 00_RAPPORT.md)." : "No .md in pack (expected 00_RAPPORT.md)."}
@@ -153,13 +95,8 @@ export function OnboardingKbPreviewDialog({
                 {driveFiles!.map((meta) => {
                   const pathKey = meta.relativePath || meta.name;
                   const expanded = openPaths[pathKey] ?? true;
-                  const state = loaded[meta.id];
-                                  const file =
-                                    (state && state !== "loading" && state !== "error" ? state : null) ??
-                                    (fileHasEmbeddedPreview(meta) ? meta : null);
-                                  const err =
-                                    loadErrors[meta.id] ??
-                                    (file?.error && !file.preview?.trim() ? file.error : undefined);
+                  const file = fileHasEmbeddedPreview(meta) ? meta : null;
+                  const rowError = "error" in meta && meta.error ? String(meta.error) : null;
 
                   return (
                     <li
@@ -181,13 +118,13 @@ export function OnboardingKbPreviewDialog({
                           <div className="min-w-0 flex-1">
                             <p className="font-mono text-xs font-medium text-foreground">{pathKey}</p>
                             <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                              {state === "loading" ? (
+                              {loading && !file && !rowError ? (
                                 <>
                                   <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                                   {isFR ? "Chargement…" : "Loading…"}
                                 </>
-                              ) : state === "error" ? (
-                                <span className="text-destructive">{isFR ? "erreur — voir ci-dessous" : "error — see below"}</span>
+                              ) : rowError ? (
+                                <span className="text-destructive">{rowError}</span>
                               ) : (
                                 <>
                                   {formatCharCount(file?.char_count, isFR)}
@@ -203,20 +140,20 @@ export function OnboardingKbPreviewDialog({
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <div className="border-t border-border bg-muted/30 px-3 py-2">
-                            {state === "loading" ? (
+                            {loading && !file && !rowError ? (
                               <p className="text-xs text-muted-foreground">
                                 {isFR ? "Lecture Drive…" : "Reading from Drive…"}
                               </p>
-                            ) : state === "error" ? (
-                              <p className="text-xs text-destructive">{err}</p>
+                            ) : rowError ? (
+                              <p className="text-xs text-destructive">{rowError}</p>
                             ) : (
                               <ScrollArea className="max-h-64 rounded-md border border-border/60 bg-background">
                                 <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed text-foreground">
                                   {file?.preview?.trim()
                                     ? file.preview
                                     : isFR
-                                      ? "(vide — redéploie agent-session ou vérifie le fichier sur Drive)"
-                                      : "(empty — redeploy agent-session or check Drive file)"}
+                                      ? "(vide — redéploie agent-session ou attends si rate-limit Drive)"
+                                      : "(empty — redeploy agent-session or wait if Drive rate limited)"}
                                 </pre>
                               </ScrollArea>
                             )}
