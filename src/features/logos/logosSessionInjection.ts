@@ -1,6 +1,9 @@
 /** Session-start injection for LOGOS opening paths (KB untouched). */
 
+import type { HookOptions } from "@elevenlabs/react";
 import type { VoiceKnowledgeLocator } from "@/services/agentSessionService";
+
+type SdkAgentOverrides = NonNullable<NonNullable<HookOptions["overrides"]>["agent"]>;
 
 export type LogosSessionMode = "guided" | "open" | "onboarding_report";
 
@@ -23,7 +26,8 @@ export type LogosOpeningInjection = {
 export type LogosSessionStartOverrides = {
   agent: {
     firstMessage?: string;
-    prompt?: {
+    // Retain the SDK prompt fields alongside the onboarding knowledge extension.
+    prompt?: NonNullable<SdkAgentOverrides["prompt"]> & {
       knowledge_base?: VoiceKnowledgeLocator[];
     };
   };
