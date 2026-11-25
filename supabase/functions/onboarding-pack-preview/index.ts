@@ -1,4 +1,4 @@
-/** Dédié lab onboarding — preview Drive pack (liste + contenu). Stamp: onboarding-pack-preview-1 */
+/** Dédié lab onboarding — preview Drive pack (liste + contenu). Stamp: onboarding-pack-preview-1f */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { buildOnboardingPackPreviewResponse } from "../_shared/onboarding-pack-preview-handler.ts";
