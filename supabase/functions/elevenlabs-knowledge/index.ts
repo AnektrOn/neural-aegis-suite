@@ -1,4 +1,4 @@
-/** Lovable Cloud redeploy stamp: onboarding Drive KB + preview_onboarding_pack (2026-11-25). ceci est un commentaire pour forcer le deploy 3 */
+/** Lovable Cloud redeploy stamp: read_onboarding_drive_file_preview + Google Doc export redeploy 4 (2026-11-25d). */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { collectDriveTree, ensureDriveFolder, withDriveRootFolder } from "./drive-sync.ts";
@@ -7,7 +7,7 @@ import { createVoiceConversationToken, mapVoiceSessionError } from "../_shared/v
 import { syncVoiceUsageForUser, utcMonthUnixBounds } from "./voice-usage-sync.ts";
 import { buildOnboardingReportAgentBody } from "./onboarding-report-agent.ts";
 import { mayUseOnboardingDriveOverride, parseDriveFolderId } from "../_shared/onboarding-lab-drive.ts";
-import { listOnboardingPackFromDrive } from "../_shared/voice-onboarding-kb.ts";
+import { fetchOnboardingDriveFilePreview, listOnboardingPackFromDrive } from "../_shared/voice-onboarding-kb.ts";
 
 const DRIVE = "https://connector-gateway.lovable.dev/google_drive/drive/v3";
 function driveHeaders(): HeadersInit {
@@ -450,6 +450,30 @@ Deno.serve(async (req) => {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error("preview_onboarding_pack", e);
+        return json({ error: msg }, 422);
+      }
+    }
+
+    if (action === "read_onboarding_drive_file_preview") {
+      const rawFolder = String(body?.drive_folder_id ?? "").trim();
+      const folderId = parseDriveFolderId(rawFolder);
+      const fileId = String(body?.drive_file_id ?? "").trim();
+      if (!folderId || !fileId) return json({ error: "drive_folder_id et drive_file_id requis" }, 400);
+      if (!(await mayUseOnboardingDriveOverride(admin, u.user.id, folderId))) {
+        return json({ error: "Forbidden" }, 403);
+      }
+      try {
+        const pack = await listOnboardingPackFromDrive(folderId);
+        if (!pack.files.some((f) => f.id === fileId)) {
+          return json({ error: "Fichier hors du pack onboarding" }, 403);
+        }
+        const file = await fetchOnboardingDriveFilePreview(fileId);
+        file.relativePath = pack.files.find((f) => f.id === fileId)?.relativePath ?? file.relativePath;
+        file.name = pack.files.find((f) => f.id === fileId)?.name ?? file.name;
+        return json({ ok: true, file });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error("read_onboarding_drive_file_preview", e);
         return json({ error: msg }, 422);
       }
     }
