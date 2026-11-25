@@ -2339,6 +2339,60 @@ export type Database = {
         }
         Relationships: []
       }
+      logos_conversation_exports: {
+        Row: {
+          agent_id: string | null
+          audio_uploaded: boolean
+          call_duration_seconds: number | null
+          conversation_date: string
+          created_at: string
+          elevenlabs_conversation_id: string
+          logos_drive_done: boolean
+          logos_drive_path: string | null
+          prompt_id: string | null
+          session_mode: string | null
+          updated_at: string
+          user_export_done: boolean
+          user_export_format: string | null
+          user_export_path: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          audio_uploaded?: boolean
+          call_duration_seconds?: number | null
+          conversation_date: string
+          created_at?: string
+          elevenlabs_conversation_id: string
+          logos_drive_done?: boolean
+          logos_drive_path?: string | null
+          prompt_id?: string | null
+          session_mode?: string | null
+          updated_at?: string
+          user_export_done?: boolean
+          user_export_format?: string | null
+          user_export_path?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          audio_uploaded?: boolean
+          call_duration_seconds?: number | null
+          conversation_date?: string
+          created_at?: string
+          elevenlabs_conversation_id?: string
+          logos_drive_done?: boolean
+          logos_drive_path?: string | null
+          prompt_id?: string | null
+          session_mode?: string | null
+          updated_at?: string
+          user_export_done?: boolean
+          user_export_format?: string | null
+          user_export_path?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       logos_path_prompts: {
         Row: {
           batch_id: string
@@ -4438,14 +4492,6 @@ export type Database = {
         Args: { p_bucket: string; p_limit?: number; p_window_seconds?: number }
         Returns: Json
       }
-      get_voice_usage_budget: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
-      list_logos_voice_usage_budgets: {
-        Args: { p_search?: string | null }
-        Returns: Json
-      }
       claim_logos_transcript_export: {
         Args: {
           p_client_name: string
@@ -4546,6 +4592,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_voice_usage_budget: { Args: { p_user_id: string }; Returns: Json }
       grant_company_admin: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: Json
@@ -4570,6 +4617,10 @@ export type Database = {
       is_platform_operator: { Args: { _uid?: string }; Returns: boolean }
       is_superadmin: { Args: { _uid?: string }; Returns: boolean }
       leave_company: { Args: { p_user_id?: string }; Returns: Json }
+      list_logos_voice_usage_budgets: {
+        Args: { p_search?: string }
+        Returns: Json
+      }
       log_admin_data_access: {
         Args: { p_action: string; p_meta?: Json; p_target_user_id: string }
         Returns: undefined
@@ -4768,6 +4819,14 @@ export type Database = {
       subscribe_newsletter: {
         Args: { p_email: string; p_locale?: string; p_source?: string }
         Returns: Json
+      }
+      sum_voice_month_used_seconds: {
+        Args: {
+          p_period_end: string
+          p_period_start: string
+          p_user_id: string
+        }
+        Returns: number
       }
       track_affiliate_click: {
         Args: { p_code: string; p_path?: string }
