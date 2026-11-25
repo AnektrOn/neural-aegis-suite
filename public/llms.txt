@@ -1,23 +1,22 @@
 # AEGIS (Neural Aegis)
 
 > Suite cognitive et décisionnelle pour dirigeants, fondateurs et équipes de direction.
-> Diagnostic gratuit en 30 questions, dix outils décisionnels sans compte, lecture de
-> profil humaine (Lecture Neural), parcours LOGOS (miroir d'arbitrage vocal), newsletter.
+> Questionnaire public gratuit (30 questions), dix outils décisionnels gratuits sans compte,
+> fonctionnalité produit LOGOS (miroir d'arbitrage vocal), option Lecture Neural (lecture humaine du profil), newsletter.
 
-AEGIS aide les personnes qui décident sous pression à clarifier leurs arbitrages :
-questionnaire d'archétypes gratuit, calculateurs marketing pour CEO (fatigue, biais,
-coût du coaching, priorisation), synthèses et suivi pour les membres connectés.
-Interface bilingue français / anglais (même URL, préférence stockée côté client).
+AEGIS aide les personnes qui décident sous pression à clarifier leurs arbitrages : quiz public
+gratuit, calculateurs pour dirigeants (fatigue, biais, coût du coaching, priorisation), synthèses
+et suivi pour les membres connectés. Interface bilingue français / anglais (même URL).
 
 ## Pages publiques utiles
-- [Accueil](https://aegis.humancatalystbeacon.com/): Diagnostic décisionnel, LOGOS, liens vers outils et offres.
-- [Outils décisionnels](https://aegis.humancatalystbeacon.com/tools): Dix calculateurs gratuits pour dirigeants.
-- [Diagnostic — 30 questions](https://aegis.humancatalystbeacon.com/quiz): Parcours public gratuit (non indexé SEO, mais lié depuis l'accueil).
-- [Entreprise](https://aegis.humancatalystbeacon.com/entreprise): Offre comités de direction et organisations.
-- [Tarifs](https://aegis.humancatalystbeacon.com/pricing): Forfaits Solo, LOGOS et Fondateurs.
-- [Newsletter](https://aegis.humancatalystbeacon.com/newsletter): Éditions sur décision et leadership.
-- [Blog](https://aegis.humancatalystbeacon.com/blog): Articles décision et dirigeants.
+- [Accueil](https://aegis.humancatalystbeacon.com/)
+- [Outils décisionnels gratuits](https://aegis.humancatalystbeacon.com/tools)
+- [Diagnostic — 30 questions](https://aegis.humancatalystbeacon.com/quiz) (public, gratuit, non indexé SEO)
+- [Tarifs](https://aegis.humancatalystbeacon.com/pricing)
+- [Blog](https://aegis.humancatalystbeacon.com/blog)
+- [Newsletter](https://aegis.humancatalystbeacon.com/newsletter)
+- [Entreprise](https://aegis.humancatalystbeacon.com/entreprise)
 
 ## Ce qu'AEGIS n'est pas
-- Pas un dispositif médical ni une promesse de validation clinique.
-- Les FAQ et synthèses sont des aides à la réflexion, pas des conseils juridiques ou financiers.
+- Ni un outil médical, ni un dispositif psychologique, ni un service de validation ou de diagnostic clinique.
+- LOGOS et les synthèses sont des aides à la réflexion pour dirigeants, pas des conseils juridiques, financiers ou de santé.

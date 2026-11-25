@@ -344,7 +344,11 @@ export function parseBilingualMirrorSections(markdown: string): {
     const chunk = chunks[cIdx];
     const chunkId = `sec-${cIdx + 1}`;
     const rawTitle = chunk.rawTitle;
-    const cleanRawTitle = rawTitle.replace(/^Partie\s*\d*\s*[-:—.]\s*/i, "").replace(/^Part\s*\d*\s*[-:—.]\s*/i, "").trim() || rawTitle;
+    const cleanRawTitle =
+      rawTitle
+        .replace(/^Partie\s*\d*\s*(?:-|:|\.|\u2014)\s*/i, "")
+        .replace(/^Part\s*\d*\s*(?:-|:|\.|\u2014)\s*/i, "")
+        .trim() || rawTitle;
     // Ne pas marquer tout un rapport comme safeguard juste parce que la section 0
     // apparaît quelque part dans le corps (faux positif LEVEL_1 sans H2).
     const isSafeguard = sectionTitleLooksLikeSafeguard(cleanRawTitle);
@@ -653,7 +657,7 @@ function cleanHeadingTitle(headingLine: string, fallbackIndex: number): string {
     .replace(/^\*\*(.*)\*\*$/, "$1")
     // Drapeaux = paires d'indicateurs régionaux — ne pas utiliser une classe `[🇫🇷]`
     .replace(/^(?:🇫🇷|🇬🇧|🇺🇸)\s*/, "")
-    .replace(/^Diagramme\s*\d*\s*[-:—.]\s*/i, "")
+    .replace(/^Diagramme\s*\d*\s*(?:-|:|\.|\u2014)\s*/i, "")
     .replace(/^\d+\.\s*/, "")
     .trim();
   return cleaned || `Diagramme ${fallbackIndex}`;

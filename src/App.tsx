@@ -16,6 +16,7 @@ import { GuardianProvider } from "@/features/guardian";
 import ExecutiveOnboardingAutoSync from "@/features/onboarding/components/ExecutiveOnboardingAutoSync";
 import AndroidStartGate from "@/features/onboarding/components/AndroidStartGate";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import PublicUnknownPathGuard from "@/components/PublicUnknownPathGuard";
 import RequireSubscription from "@/components/RequireSubscription";
 import VisitorRoute from "@/components/VisitorRoute";
 import RequireQuizOnboarding from "@/components/RequireQuizOnboarding";
@@ -62,6 +63,7 @@ const Messages = lazy(() => import("./pages/Messages"));
 const InstallApp = lazy(() => import("./pages/InstallApp"));
 const CalendarView = lazy(() => import("./pages/CalendarView"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const PublicNotFoundPage = lazy(() => import("./pages/PublicNotFoundPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Pricing = lazy(() => import("./pages/Pricing"));
@@ -476,6 +478,14 @@ const App = () => (
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/refund" element={<RefundPolicy />} />
 
+                <Route
+                  path="/diagnostic-decisionnel"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <PublicNotFoundPage />
+                    </Suspense>
+                  }
+                />
                 <Route path="/checkout/success" element={<CheckoutSuccess />} />
                 <Route path="/install-android" element={<InstallAndroid />} />
                 <Route path="/newsletter" element={<NewsletterLayout />}>
@@ -643,6 +653,7 @@ const App = () => (
                 <Route
                   path="/*"
                   element={
+                    <PublicUnknownPathGuard>
                     <ProtectedRoute>
                       <RequireQuizOnboarding>
                       <RequireSubscription>
@@ -705,6 +716,7 @@ const App = () => (
                       </RequireSubscription>
                       </RequireQuizOnboarding>
                     </ProtectedRoute>
+                    </PublicUnknownPathGuard>
                   }
                 />
               </Routes>

@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import type { SeoFaqItem } from "./seoPages";
 import { SEO_OG_IMAGE } from "./site";
 import { faqPageJsonLd, organizationJsonLd, webPageJsonLd, webSiteJsonLd } from "./schemas";
+import { useSyncPrerenderMetaDescription } from "./syncPrerenderDescription";
 
 export type SeoHelmetProps = {
   title: string;
@@ -31,6 +32,7 @@ export function SeoHelmet({
   pageName,
   faq,
 }: SeoHelmetProps) {
+  const hasPrerenderDescription = useSyncPrerenderMetaDescription(description);
   const ogT = ogTitle ?? title;
   const jsonLd: object[] =
     variant === "home"
@@ -43,7 +45,7 @@ export function SeoHelmet({
   return (
     <Helmet>
       <title>{title}</title>
-      <meta name="description" content={description} />
+      {hasPrerenderDescription ? null : <meta name="description" content={description} />}
       {noindex ? <meta name="robots" content={robots} /> : null}
       <link rel="canonical" href={canonical} />
       <meta property="og:type" content="website" />

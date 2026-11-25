@@ -99,7 +99,7 @@ ${HOME_FAQ.map((f) => `<h3>${f.question}</h3><p>${f.answer}</p>`).join("")}
 }
 
 export const TOOLS_HUB_SEO_COPY = {
-  title: "10 outils décisionnels gratuits pour CEO, fondateurs et dirigeants | AEGIS",
+  title: "Outils décisionnels gratuits pour dirigeants | AEGIS",
   description:
     "Calculateurs et diagnostics gratuits pour dirigeants : coût du coaching, fatigue décisionnelle, biais, priorisation et ROI des cercles de pairs.",
   h1: "Outils décisionnels gratuits pour dirigeants et fondateurs",
@@ -192,6 +192,40 @@ export const DIAGNOSTIC_DECISIONNEL_DRAFT = {
   indexable: false,
   note: "Préparer la page pilier ; ne pas publier tant que le contenu éditorial n'est pas validé.",
 };
+
+export const NOT_FOUND_SEO = {
+  title: "Page introuvable | AEGIS",
+  description: "Cette page n'existe pas ou n'est plus disponible sur AEGIS.",
+  h1: "Page introuvable",
+} as const;
+
+/** Retired or unknown public URLs — prerendered HTML + HTTP 404 when the host honors `_redirects`. */
+export const HTTP_404_PATHS = [DIAGNOSTIC_DECISIONNEL_DRAFT.route] as const;
+
+function buildHttp404PrerenderBody(): string {
+  return `<main>
+<h1>${NOT_FOUND_SEO.h1}</h1>
+<p>${NOT_FOUND_SEO.description}</p>
+<p><a href="/">Retour à l'accueil</a> · <a href="/tools">Outils décisionnels</a></p>
+</main>`;
+}
+
+export function buildHttp404PageRecords(): SeoPageRecord[] {
+  return HTTP_404_PATHS.map((route) => ({
+    route,
+    indexable: false,
+    noindex: true,
+    robots: "noindex, follow" as const,
+    title: NOT_FOUND_SEO.title,
+    description: NOT_FOUND_SEO.description,
+    ogTitle: NOT_FOUND_SEO.title,
+    h1: NOT_FOUND_SEO.h1,
+    canonical: seoCanonical(route),
+    ogLocale: SEO_DEFAULT_LOCALE,
+    ogImage: SEO_OG_IMAGE,
+    prerenderBody: buildHttp404PrerenderBody(),
+  }));
+}
 
 export const NOINDEX_STATIC_ROUTES: {
   route: string;
@@ -318,7 +352,7 @@ export function buildNoindexPageRecords(toolRunRoutes: string[]): SeoPageRecord[
     route,
     indexable: false,
     noindex: true,
-    robots: "noindex, nofollow" as const,
+    robots: "noindex, follow" as const,
     title: "Calculateur AEGIS",
     description: "Session interactive d'un outil décisionnel AEGIS.",
     ogTitle: "Calculateur AEGIS",

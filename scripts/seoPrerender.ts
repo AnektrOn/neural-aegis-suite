@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createServer, type Plugin } from "vite";
 import {
+  buildHttp404PageRecords,
   buildNoindexPageRecords,
   buildToolsHubPageRecord,
   getStaticIndexablePages,
@@ -18,7 +19,10 @@ export function renderSeoHtml(template: string, page: SeoPageRecord): string {
   const robots = robotsDirective ? `\n    <meta name="robots" content="${robotsDirective}" />` : "";
   let out = template
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(page.title)}</title>`)
-    .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(page.description)}$2`)
+    .replace(
+      /<meta name="description" content="[^"]*"\s*\/?>/,
+      `<meta name="description" content="${esc(page.description)}" data-seo-prerender="1" />`,
+    )
     .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${esc(page.canonical)}$2`)
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${esc(page.canonical)}$2`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(page.ogTitle)}$2`)
@@ -187,7 +191,13 @@ export function seoPrerender(): Plugin {
       const dynamic = await loadDynamicIndexablePages(root);
       const noindexFromDynamic = dynamic.filter((p) => !p.indexable);
       const indexableDynamic = dynamic.filter((p) => p.indexable);
-      const allPages: SeoPageRecord[] = [...indexableStatic, ...indexableDynamic, ...noindexFromDynamic];
+      const http404Pages = buildHttp404PageRecords();
+      const allPages: SeoPageRecord[] = [
+        ...indexableStatic,
+        ...indexableDynamic,
+        ...noindexFromDynamic,
+        ...http404Pages,
+      ];
 
       fs.writeFileSync(path.join(outDir, "sitemap.xml"), buildSitemap(allPages));
 
@@ -197,6 +207,9 @@ export function seoPrerender(): Plugin {
         fs.mkdirSync(path.dirname(target), { recursive: true });
         fs.writeFileSync(target, renderSeoHtml(template, page));
       }
+
+      const generic404 = renderSeoHtml(template, http404Pages[0]!);
+      fs.writeFileSync(path.join(outDir, "404.html"), generic404);
     },
   };
 }

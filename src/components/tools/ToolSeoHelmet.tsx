@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { toolsCanonicalPath } from "@/lib/toolsSite";
 import type { ToolFaqItem, ToolSeoMeta } from "./types";
+import { useSyncPrerenderMetaDescription } from "@/seo/syncPrerenderDescription";
 
 interface ToolSeoHelmetProps {
   path: string;
@@ -10,6 +11,7 @@ interface ToolSeoHelmetProps {
 }
 
 export function ToolSeoHelmet({ path, seo, webAppName, faq }: ToolSeoHelmetProps) {
+  const hasPrerenderDescription = useSyncPrerenderMetaDescription(seo.description);
   const canonical = toolsCanonicalPath(path);
 
   const webAppLd = {
@@ -42,7 +44,7 @@ export function ToolSeoHelmet({ path, seo, webAppName, faq }: ToolSeoHelmetProps
   return (
     <Helmet>
       <title>{seo.title}</title>
-      <meta name="description" content={seo.description} />
+      {hasPrerenderDescription ? null : <meta name="description" content={seo.description} />}
       <link rel="canonical" href={canonical} />
       <meta property="og:title" content={seo.title} />
       <meta property="og:description" content={seo.description} />

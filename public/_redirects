@@ -1,0 +1,3 @@
+# HTTP 404 for prerendered retired URLs (Netlify / Cloudflare Pages / many static hosts).
+# If your host only serves SPA index.html with 200 for all paths, rely on prerender + React 404 (noindex, follow) instead.
+/diagnostic-decisionnel  /diagnostic-decisionnel/index.html  404

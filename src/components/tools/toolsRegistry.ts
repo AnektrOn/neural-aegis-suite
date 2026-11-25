@@ -58,7 +58,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "500 € à 1 500 €/h — quel est votre vrai run-rate annuel ?",
     webAppName: "Executive Coaching Cost Calculator",
     seo: {
-      title: "Calculateur coût coaching dirigeant (2026) | Tarifs réels & ROI | AEGIS",
+      title: "Coût coaching dirigeant : calculateur et ROI | AEGIS",
       description:
         "Calculez le coût réel d'un coaching de dirigeant (500 € à 1 500 €/h) selon votre séniorité et comparez avec la continuité d'un exocortex décisionnel.",
     },

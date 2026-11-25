@@ -38,7 +38,7 @@ export default function ToolRunDispatcher() {
         description="Session interactive d'un outil décisionnel AEGIS."
         canonical={seoCanonical(pathname)}
         noindex
-        robots="noindex, nofollow"
+        robots="noindex, follow"
       />
       <Suspense fallback={<div className="min-h-[50vh] bg-aegis-gradient" aria-busy />}>
         <Page />
