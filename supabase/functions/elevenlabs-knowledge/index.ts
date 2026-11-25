@@ -1,4 +1,4 @@
-/** Lovable Cloud redeploy stamp: onboarding Drive KB + preview_onboarding_pack (2026-11-25). ceci est un commentaire pour forcer le deploy */
+/** Lovable Cloud redeploy stamp: onboarding Drive KB + preview_onboarding_pack (2026-11-25). ceci est un commentaire pour forcer le deploy 2 */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { collectDriveTree, ensureDriveFolder, withDriveRootFolder } from "./drive-sync.ts";
