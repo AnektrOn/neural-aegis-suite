@@ -1,14 +1,7 @@
 /** Dédié lab onboarding — preview Drive pack (liste + contenu). Stamp: onboarding-pack-preview-1 */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import {
-  mayUseOnboardingDriveOverride,
-  parseDriveFolderId,
-} from "../_shared/onboarding-lab-drive.ts";
-import {
-  fetchOnboardingDriveFilePreview,
-  listOnboardingPackFromDrive,
-} from "../_shared/voice-onboarding-kb.ts";
+import { buildOnboardingPackPreviewResponse } from "../_shared/onboarding-pack-preview-handler.ts";
 
 export const ONBOARDING_PACK_PREVIEW_STAMP = "onboarding-pack-preview-1";
 
@@ -38,69 +31,13 @@ Deno.serve(async (req) => {
       return json({ error: "Action inconnue" }, 400);
     }
 
-    const raw = String(body?.drive_folder_id ?? body?.onboarding_drive_folder_id ?? "").trim();
-    const folderId = parseDriveFolderId(raw);
-    if (!folderId) return json({ error: "drive_folder_id requis" }, 400);
-    if (!(await mayUseOnboardingDriveOverride(admin, u.user.id, folderId))) {
-      return json({ error: "Forbidden" }, 403);
-    }
-
-    const embedPreviews = body?.embed_previews === true || body?.embed_previews === "true";
-    const fileId = String(body?.drive_file_id ?? "").trim();
-    const pack = await listOnboardingPackFromDrive(folderId);
-
-    if (fileId) {
-      const meta = pack.files.find((f) => f.id === fileId);
-      if (!meta) return json({ error: "Fichier hors du pack onboarding" }, 403);
-      const file = await fetchOnboardingDriveFilePreview(fileId);
-      file.relativePath = meta.relativePath;
-      file.name = meta.name;
-      return json({
-        ok: true,
-        edge_stamp: ONBOARDING_PACK_PREVIEW_STAMP,
-        drive_folder_id: folderId,
-        folder_name: pack.folder_name,
-        file,
-      });
-    }
-
-    if (embedPreviews) {
-      const files = [];
-      for (const meta of pack.files) {
-        try {
-          const file = await fetchOnboardingDriveFilePreview(meta.id);
-          file.relativePath = meta.relativePath;
-          file.name = meta.name;
-          files.push(file);
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          files.push({
-            id: meta.id,
-            name: meta.name,
-            relativePath: meta.relativePath,
-            char_count: 0,
-            preview: "",
-            truncated: false,
-            error: msg,
-          });
-        }
-      }
-      return json({
-        ok: true,
-        edge_stamp: ONBOARDING_PACK_PREVIEW_STAMP,
-        drive_folder_id: folderId,
-        folder_name: pack.folder_name,
-        files,
-      });
-    }
-
-    return json({
-      ok: true,
-      edge_stamp: ONBOARDING_PACK_PREVIEW_STAMP,
-      drive_folder_id: folderId,
-      folder_name: pack.folder_name,
-      files: pack.files,
-    });
+    const { status, payload } = await buildOnboardingPackPreviewResponse(
+      admin,
+      u.user.id,
+      body,
+      ONBOARDING_PACK_PREVIEW_STAMP,
+    );
+    return json(payload, status);
   } catch (e) {
     console.error("onboarding-pack-preview", e);
     const msg = e instanceof Error ? e.message : String(e);

@@ -7,9 +7,9 @@ import { VoiceAgent } from "@/components/voice/VoiceAgent";
 import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
 import { buildOnboardingReportLogosInjection } from "@/features/logos/logosSessionInjection";
 import {
+  AGENT_SESSION_ONBOARDING_PREVIEW_STAMP,
   EXPECTED_EDGE_STAMPS,
   fetchOnboardingReportAgentId,
-  ONBOARDING_PACK_PREVIEW_STAMP,
   previewOnboardingDrivePack,
 } from "@/features/logos/onboardingReportDevApi";
 import { OnboardingKbPreviewDialog } from "./OnboardingKbPreviewDialog";
@@ -132,7 +132,7 @@ export default function OnboardingReportDevPage() {
       (stamp ? (EXPECTED_EDGE_STAMPS as readonly string[]).includes(stamp) : false);
     const stampHint = stampOk
       ? ""
-      : ` — déploie Edge « onboarding-pack-preview » (stamp ${ONBOARDING_PACK_PREVIEW_STAMP})`;
+      : ` — redéploie Edge « agent-session » (stamp ${AGENT_SESSION_ONBOARDING_PREVIEW_STAMP})`;
     return `${name} — ${files.length} fichier(s) — ${isFR ? "ouvre l’aperçu" : "open preview"}${stampHint}`;
   }, [
     driveError,
@@ -147,7 +147,7 @@ export default function OnboardingReportDevPage() {
   const needsEdgeDeploy =
     (packPreviewQuery.isSuccess && !packPreviewQuery.data?.edge_ok) ||
     (driveError?.includes("Déploie") ?? false) ||
-    (driveError?.includes("onboarding-pack-preview") ?? false) ||
+    (driveError?.includes("agent-session") ?? false) ||
     (agentIdQuery.error instanceof Error && agentIdQuery.error.message.includes("non à jour"));
 
   return (
@@ -246,8 +246,8 @@ export default function OnboardingReportDevPage() {
                 {needsEdgeDeploy ? (
                   <p className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-left text-amber-900 dark:text-amber-100">
                     {isFR
-                      ? "Le push Git ne déploie pas les Edge Functions. Supabase Dashboard → Edge Functions → déploie onboarding-pack-preview (et agent-session / elevenlabs-knowledge si besoin). Puis migrations 20261125100000 / 25110000 et Admin › Déployer Onboarding Report."
-                      : "Git push does not deploy Edge Functions. Supabase Dashboard → Edge Functions → deploy onboarding-pack-preview (and agent-session / elevenlabs-knowledge if needed). Apply migrations 20261125100000 / 25110000, then Admin › Deploy Onboarding Report."}
+                      ? "Le push Git ne déploie pas les Edge Functions. Dans Lovable, sauvegarde supabase/functions/agent-session/index.ts (stamp 2026-11-25f) — ou Supabase Dashboard → agent-session → Deploy. Puis migrations 20261125100000 / 25110000 et Admin › Déployer Onboarding Report."
+                      : "Git push does not deploy Edge Functions. On Lovable, save supabase/functions/agent-session/index.ts (stamp 2026-11-25f) — or Supabase Dashboard → agent-session → Deploy. Apply migrations 20261125100000 / 25110000, then Admin › Deploy Onboarding Report."}
                   </p>
                 ) : (
                   <p className="text-[10px] opacity-80">

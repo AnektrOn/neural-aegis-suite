@@ -215,8 +215,8 @@ export function OnboardingKbPreviewDialog({
                                   {file?.preview?.trim()
                                     ? file.preview
                                     : isFR
-                                      ? "(vide — déploie onboarding-pack-preview ou vérifie le fichier sur Drive)"
-                                      : "(empty — deploy onboarding-pack-preview or check Drive file)"}
+                                      ? "(vide — redéploie agent-session ou vérifie le fichier sur Drive)"
+                                      : "(empty — redeploy agent-session or check Drive file)"}
                                 </pre>
                               </ScrollArea>
                             )}

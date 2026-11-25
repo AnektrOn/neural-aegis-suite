@@ -1,12 +1,16 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-const ONBOARDING_PACK_PREVIEW_FN = "onboarding-pack-preview";
+/** Déjà listée dans Supabase — redéployer après sauvegarde index.ts sur Lovable. */
+const PRIMARY_PREVIEW_FN = "agent-session";
+export const AGENT_SESSION_ONBOARDING_PREVIEW_STAMP = "agent-session-onboarding-preview-1";
+const OPTIONAL_PREVIEW_FN = "onboarding-pack-preview";
 export const ONBOARDING_PACK_PREVIEW_STAMP = "onboarding-pack-preview-1";
 /** Legacy stamp on elevenlabs-knowledge (fallback). */
 export const ONBOARDING_PREVIEW_EDGE_STAMP = "2026-11-25e";
 
 export const EXPECTED_EDGE_STAMPS = [
+  AGENT_SESSION_ONBOARDING_PREVIEW_STAMP,
   ONBOARDING_PACK_PREVIEW_STAMP,
   ONBOARDING_PREVIEW_EDGE_STAMP,
 ] as const;
@@ -20,10 +24,10 @@ export async function readEdgeFunctionError(error: FunctionsHttpError): Promise<
     /* ignore */
   }
   if (detail === "Action inconnue") {
-    return `Déploie la fonction Edge « ${ONBOARDING_PACK_PREVIEW_FN} » (Supabase Dashboard → Edge Functions → Deploy, ou CLI). Git push seul ne met pas à jour les fonctions.`;
+    return `Redéploie la fonction Edge « ${PRIMARY_PREVIEW_FN} » (Lovable : sauvegarde supabase/functions/agent-session/index.ts, stamp 2026-11-25f). Git push seul ne met pas à jour les fonctions.`;
   }
   if (detail.includes("non-2xx")) {
-    return "Fonction Edge absente ou erreur serveur — déploie onboarding-pack-preview sur Supabase.";
+    return `Fonction Edge « ${PRIMARY_PREVIEW_FN} » absente ou erreur serveur — redéploie sur Supabase.`;
   }
   return detail;
 }
@@ -39,7 +43,7 @@ export async function fetchOnboardingReportAgentId(): Promise<string | null> {
   );
   if (error instanceof FunctionsHttpError) {
     const msg = await readEdgeFunctionError(error);
-    if (msg.includes("Déploie") || msg.includes("absente")) return null;
+    if (msg.includes("Redéploie") || msg.includes("absente")) return null;
     throw error;
   }
   if (error) throw error;
@@ -95,23 +99,57 @@ async function invokePreviewFunction(
   return data ?? {};
 }
 
+function isMissingFunctionError(msg: string): boolean {
+  return (
+    msg.includes("Failed to send") ||
+    msg.includes("not found") ||
+    msg.includes("404") ||
+    msg.includes("non-2xx") ||
+    msg.includes("Redéploie") ||
+    msg.includes("absente")
+  );
+}
+
+function stillLegacyListResponse(data: PreviewPackResponse, opts?: PreviewInvokeOptions): boolean {
+  if (data.file) return false;
+  if (!data.files?.length) return false;
+  if (opts?.embedPreviews) {
+    return !data.files.some((f) => typeof f.preview === "string" && f.preview.trim().length > 0);
+  }
+  if (opts?.driveFileId) {
+    return !data.files.some((f) => f.id === opts.driveFileId && f.preview?.trim());
+  }
+  return false;
+}
+
 async function invokeOnboardingPreviewPack(
   driveFolderId: string,
   opts?: PreviewInvokeOptions,
 ): Promise<PreviewPackResponse> {
-  try {
-    return await invokePreviewFunction(ONBOARDING_PACK_PREVIEW_FN, driveFolderId, opts);
-  } catch (primaryErr) {
-    const msg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
-    const missing =
-      msg.includes("Failed to send") ||
-      msg.includes("not found") ||
-      msg.includes("404") ||
-      msg.includes("non-2xx") ||
-      msg.includes("Déploie");
-    if (!missing) throw primaryErr;
-    return invokePreviewFunction("elevenlabs-knowledge", driveFolderId, opts);
+  const order = [PRIMARY_PREVIEW_FN, OPTIONAL_PREVIEW_FN, "elevenlabs-knowledge"];
+  let lastErr: Error | null = null;
+
+  for (const fn of order) {
+    try {
+      const data = await invokePreviewFunction(fn, driveFolderId, opts);
+      if (isKnownStamp(data.edge_stamp)) return data;
+      if (!stillLegacyListResponse(data, opts)) return data;
+      lastErr = new Error(
+        `« ${fn} » sans contenu (stamp ${data.edge_stamp ?? "?"}) — redéploie ${PRIMARY_PREVIEW_FN}.`,
+      );
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      lastErr = err;
+      if (!isMissingFunctionError(err.message)) throw err;
+    }
   }
+
+  throw (
+    lastErr ??
+    new Error(
+      `Redéploie « ${PRIMARY_PREVIEW_FN} » (stamp ${AGENT_SESSION_ONBOARDING_PREVIEW_STAMP}) sur Supabase / Lovable.`,
+    )
+  );
 }
 
 function normalizeEmbeddedFile(
@@ -156,13 +194,9 @@ export async function fetchOnboardingDriveFilePreview(
   const embedded = legacy ? normalizeEmbeddedFile(legacy) : null;
   if (embedded) return embedded;
 
-  if (data.files?.length) {
-    throw new Error(
-      `Edge pas à jour — déploie « ${ONBOARDING_PACK_PREVIEW_FN} » sur Supabase (attendu stamp ${ONBOARDING_PACK_PREVIEW_STAMP}). Le push Git ne déploie pas les Edge Functions.`,
-    );
-  }
-
-  throw new Error("Réponse sans contenu fichier");
+  throw new Error(
+    `Redéploie « ${PRIMARY_PREVIEW_FN} » (attendu stamp ${AGENT_SESSION_ONBOARDING_PREVIEW_STAMP}). Git push ne déploie pas les Edge Functions.`,
+  );
 }
 
 export function fileHasEmbeddedPreview(
