@@ -1,18 +1,12 @@
-/** Lovable Cloud redeploy stamp: onboarding Drive KB + preview_onboarding_pack (2026-11-25). */
+/** Lovable Cloud redeploy stamp: onboarding Drive KB + preview_onboarding_pack (2026-11-25). ceci est un commentaire pour forcer le deploy */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { collectDriveTree, ensureDriveFolder, withDriveRootFolder } from "./drive-sync.ts";
 import logosTemplate from "./logos-workflow.json" with { type: "json" };
-import {
-  createVoiceConversationToken,
-  mapVoiceSessionError,
-} from "../_shared/voice-session.ts";
+import { createVoiceConversationToken, mapVoiceSessionError } from "../_shared/voice-session.ts";
 import { syncVoiceUsageForUser, utcMonthUnixBounds } from "./voice-usage-sync.ts";
 import { buildOnboardingReportAgentBody } from "./onboarding-report-agent.ts";
-import {
-  mayUseOnboardingDriveOverride,
-  parseDriveFolderId,
-} from "../_shared/onboarding-lab-drive.ts";
+import { mayUseOnboardingDriveOverride, parseDriveFolderId } from "../_shared/onboarding-lab-drive.ts";
 import { listOnboardingPackFromDrive } from "../_shared/voice-onboarding-kb.ts";
 
 const DRIVE = "https://connector-gateway.lovable.dev/google_drive/drive/v3";
@@ -83,10 +77,16 @@ async function setAgentKb(agentId: string, mutate: (items: KbItem[]) => KbItem[]
   const update: RequestInit = {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ conversation_config: { agent: { prompt: {
-      knowledge_base: next,
-      ...(useRag ? { rag: { ...agent?.conversation_config?.agent?.prompt?.rag, enabled: true } } : {}),
-    } } } }),
+    body: JSON.stringify({
+      conversation_config: {
+        agent: {
+          prompt: {
+            knowledge_base: next,
+            ...(useRag ? { rag: { ...agent?.conversation_config?.agent?.prompt?.rag, enabled: true } } : {}),
+          },
+        },
+      },
+    }),
   };
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
@@ -134,14 +134,23 @@ async function uploadMarkdown(
   const existing = existingRows?.[0];
 
   if (existing && existing.status === "success" && existing.content_hash === hash && existing.file_name === opts.name) {
-    if (opts.parentFolderId && existing.elevenlabs_parent_folder_id !== opts.parentFolderId && existing.elevenlabs_document_id) {
+    if (
+      opts.parentFolderId &&
+      existing.elevenlabs_parent_folder_id !== opts.parentFolderId &&
+      existing.elevenlabs_document_id
+    ) {
       await elJson(`/convai/knowledge-base/${existing.elevenlabs_document_id}/move`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ move_to: opts.parentFolderId }),
       });
-      const { error } = await admin.from("elevenlabs_documents").update({
-        elevenlabs_parent_folder_id: opts.parentFolderId, drive_relative_path: opts.relativePath,
-      }).eq("id", existing.id);
+      const { error } = await admin
+        .from("elevenlabs_documents")
+        .update({
+          elevenlabs_parent_folder_id: opts.parentFolderId,
+          drive_relative_path: opts.relativePath,
+        })
+        .eq("id", existing.id);
       if (error) throw error;
       return { status: "success", documentId: existing.elevenlabs_document_id };
     }
@@ -170,15 +179,23 @@ async function uploadMarkdown(
     const doc = await elJson(`/convai/knowledge-base/text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: opts.text, name: opts.name, ...(opts.parentFolderId ? { parent_folder_id: opts.parentFolderId } : {}) }),
+      body: JSON.stringify({
+        text: opts.text,
+        name: opts.name,
+        ...(opts.parentFolderId ? { parent_folder_id: opts.parentFolderId } : {}),
+      }),
     });
     const newId: string = doc.id;
     const oldId: string | null = existing?.elevenlabs_document_id ?? null;
 
-    await setAgentKb(opts.agentId, (items) => [
-      ...items.filter((i) => i.id !== oldId && i.id !== newId),
-      { type: "text", name: opts.name, id: newId, usage_mode: "auto" },
-    ], opts.source === "drive_file");
+    await setAgentKb(
+      opts.agentId,
+      (items) => [
+        ...items.filter((i) => i.id !== oldId && i.id !== newId),
+        { type: "text", name: opts.name, id: newId, usage_mode: "auto" },
+      ],
+      opts.source === "drive_file",
+    );
 
     if (oldId && oldId !== newId) {
       await elFetch(`/convai/knowledge-base/${oldId}?force=true`, { method: "DELETE" }).catch(() => null);
@@ -208,13 +225,18 @@ async function uploadMarkdown(
 }
 
 async function listDriveMd(folderId: string) {
-  const metadata = await (await driveFetch(`/files/${encodeURIComponent(folderId)}?fields=id,name,mimeType&supportsAllDrives=true`)).json();
-  if (metadata.mimeType !== "application/vnd.google-apps.folder") throw new Error("Cet ID Drive ne correspond pas à un dossier.");
+  const metadata = await (
+    await driveFetch(`/files/${encodeURIComponent(folderId)}?fields=id,name,mimeType&supportsAllDrives=true`)
+  ).json();
+  if (metadata.mimeType !== "application/vnd.google-apps.folder")
+    throw new Error("Cet ID Drive ne correspond pas à un dossier.");
   return collectDriveTree(folderId, metadata.name, async (id, pageToken) => {
     const params = new URLSearchParams({
       q: `'${id.replace(/'/g, "\\'")}' in parents and trashed = false`,
-      fields: "nextPageToken,files(id,name,mimeType)", pageSize: "200",
-      supportsAllDrives: "true", includeItemsFromAllDrives: "true",
+      fields: "nextPageToken,files(id,name,mimeType)",
+      pageSize: "200",
+      supportsAllDrives: "true",
+      includeItemsFromAllDrives: "true",
     });
     if (pageToken) params.set("pageToken", pageToken);
     return (await driveFetch(`/files?${params}`)).json();
@@ -230,12 +252,21 @@ async function syncUser(admin: Admin, userId: string, offset = 0, batchSize?: nu
   if (!p?.elevenlabs_agent_id) throw new Error("Cet utilisateur n'a pas d'agent ElevenLabs");
   if (!p?.drive_folder_id) throw new Error("Aucun dossier Drive configuré");
   const tree = await listDriveMd(p.drive_folder_id);
-  const { data: mappings, error: mappingError } = await admin.from("elevenlabs_drive_folders")
+  const { data: mappings, error: mappingError } = await admin
+    .from("elevenlabs_drive_folders")
     .select("drive_folder_id,elevenlabs_folder_id")
-    .eq("user_id", userId).eq("target_agent_id", p.elevenlabs_agent_id).eq("drive_root_id", p.drive_folder_id);
+    .eq("user_id", userId)
+    .eq("target_agent_id", p.elevenlabs_agent_id)
+    .eq("drive_root_id", p.drive_folder_id);
   if (mappingError) throw mappingError;
-  const folderIds = new Map<string, string>((mappings ?? []).filter((m: { elevenlabs_folder_id: string | null }) => m.elevenlabs_folder_id)
-    .map((m: { drive_folder_id: string; elevenlabs_folder_id: string }) => [m.drive_folder_id, m.elevenlabs_folder_id]));
+  const folderIds = new Map<string, string>(
+    (mappings ?? [])
+      .filter((m: { elevenlabs_folder_id: string | null }) => m.elevenlabs_folder_id)
+      .map((m: { drive_folder_id: string; elevenlabs_folder_id: string }) => [
+        m.drive_folder_id,
+        m.elevenlabs_folder_id,
+      ]),
+  );
   const lookup = async (id: string) => folderIds.get(id) ?? null;
   const existingRootId = folderIds.get(p.drive_folder_id);
   const root = tree.folders[0];
@@ -250,32 +281,63 @@ async function syncUser(admin: Admin, userId: string, offset = 0, batchSize?: nu
       const folder = unit.folder;
       const existed = folderIds.has(folder.id);
       // Reserve first: concurrent syncs cannot create duplicate provider folders.
-      const { error: reserveError } = await admin.from("elevenlabs_drive_folders").upsert({
-        user_id: userId, target_agent_id: p.elevenlabs_agent_id, drive_root_id: p.drive_folder_id,
-        drive_folder_id: folder.id, parent_drive_folder_id: folder.parentId,
-        folder_name: folder.name, relative_path: folder.relativePath,
-      }, { onConflict: "user_id,target_agent_id,drive_root_id,drive_folder_id", ignoreDuplicates: true });
+      const { error: reserveError } = await admin.from("elevenlabs_drive_folders").upsert(
+        {
+          user_id: userId,
+          target_agent_id: p.elevenlabs_agent_id,
+          drive_root_id: p.drive_folder_id,
+          drive_folder_id: folder.id,
+          parent_drive_folder_id: folder.parentId,
+          folder_name: folder.name,
+          relative_path: folder.relativePath,
+        },
+        { onConflict: "user_id,target_agent_id,drive_root_id,drive_folder_id", ignoreDuplicates: true },
+      );
       if (reserveError) throw reserveError;
       const claimTime = new Date().toISOString();
       const claimToken = crypto.randomUUID();
-      const { data: claim, error: claimError } = await admin.from("elevenlabs_drive_folders")
-        .update({ sync_claim_token: claimToken, sync_claim_expires_at: new Date(Date.now() + 120000).toISOString() }).eq("user_id", userId).eq("target_agent_id", p.elevenlabs_agent_id)
-        .eq("drive_root_id", p.drive_folder_id).eq("drive_folder_id", folder.id)
-        .is("elevenlabs_folder_id", null).or(`sync_claim_expires_at.is.null,sync_claim_expires_at.lt.${claimTime}`).select("id");
+      const { data: claim, error: claimError } = await admin
+        .from("elevenlabs_drive_folders")
+        .update({ sync_claim_token: claimToken, sync_claim_expires_at: new Date(Date.now() + 120000).toISOString() })
+        .eq("user_id", userId)
+        .eq("target_agent_id", p.elevenlabs_agent_id)
+        .eq("drive_root_id", p.drive_folder_id)
+        .eq("drive_folder_id", folder.id)
+        .is("elevenlabs_folder_id", null)
+        .or(`sync_claim_expires_at.is.null,sync_claim_expires_at.lt.${claimTime}`)
+        .select("id");
       if (claimError) throw claimError;
-      if (!existed && !claim?.length) throw new Error("Dossier en cours de synchronisation ; relancez la synchronisation.");
-      const id = await ensureDriveFolder(folder, lookup, async (name, parent) => {
-        const doc = await elJson("/convai/knowledge-base/folder", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, ...(parent ? { parent_folder_id: parent } : {}) }),
-        });
-        if (typeof doc.id !== "string" || !doc.id) throw new Error("ElevenLabs : ID de dossier absent");
-        return doc.id;
-      }, async (created, id) => {
-        const { error } = await admin.from("elevenlabs_drive_folders").update({ elevenlabs_folder_id: id, sync_claim_token: null, sync_claim_expires_at: null, updated_at: new Date().toISOString() })
-          .eq("user_id", userId).eq("target_agent_id", p.elevenlabs_agent_id).eq("drive_root_id", p.drive_folder_id).eq("drive_folder_id", created.id).eq("sync_claim_token", claimToken);
-        if (error) throw error;
-      });
+      if (!existed && !claim?.length)
+        throw new Error("Dossier en cours de synchronisation ; relancez la synchronisation.");
+      const id = await ensureDriveFolder(
+        folder,
+        lookup,
+        async (name, parent) => {
+          const doc = await elJson("/convai/knowledge-base/folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, ...(parent ? { parent_folder_id: parent } : {}) }),
+          });
+          if (typeof doc.id !== "string" || !doc.id) throw new Error("ElevenLabs : ID de dossier absent");
+          return doc.id;
+        },
+        async (created, id) => {
+          const { error } = await admin
+            .from("elevenlabs_drive_folders")
+            .update({
+              elevenlabs_folder_id: id,
+              sync_claim_token: null,
+              sync_claim_expires_at: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", userId)
+            .eq("target_agent_id", p.elevenlabs_agent_id)
+            .eq("drive_root_id", p.drive_folder_id)
+            .eq("drive_folder_id", created.id)
+            .eq("sync_claim_token", claimToken);
+          if (error) throw error;
+        },
+      );
       folderIds.set(folder.id, id);
       if (folder.parentId === null) await attachDriveRoot(p.elevenlabs_agent_id, id, folder.name);
       results.push({ file: `${folder.relativePath || folder.name}/`, status: existed ? "skipped" : "success" });
@@ -305,14 +367,30 @@ async function syncUser(admin: Admin, userId: string, offset = 0, batchSize?: nu
   const nextOffset = offset + batch.length;
   const done = nextOffset >= units.length;
   if (done) await admin.from("profiles").update({ last_synced_at: new Date().toISOString() }).eq("id", userId);
-  return { results, total: units.length, documents_total: tree.files.length, folders_total: tree.folders.length, next_offset: nextOffset, done };
+  return {
+    results,
+    total: units.length,
+    documents_total: tree.files.length,
+    folders_total: tree.folders.length,
+    next_offset: nextOffset,
+    done,
+  };
 }
 
 async function startJob(admin: Admin, mode: string, userId: string | null) {
-  const { data } = await admin.from("sync_jobs").insert({ mode, user_id: userId, status: "running" }).select("id").single();
+  const { data } = await admin
+    .from("sync_jobs")
+    .insert({ mode, user_id: userId, status: "running" })
+    .select("id")
+    .single();
   return data?.id as string;
 }
-async function finishJob(admin: Admin, id: string, results: { status: string; file?: string; error?: string }[], summary?: string) {
+async function finishJob(
+  admin: Admin,
+  id: string,
+  results: { status: string; file?: string; error?: string }[],
+  summary?: string,
+) {
   const failed = results.filter((r) => r.status === "failed").length;
   const ok = results.length - failed;
   await admin
@@ -342,7 +420,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
     const userId: string | null = typeof body?.user_id === "string" ? body.user_id : null;
-    if (userId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return json({ error: "Identifiant utilisateur invalide" }, 400);
+    if (userId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId))
+      return json({ error: "Identifiant utilisateur invalide" }, 400);
 
     if (action === "onboarding_report_status") {
       const { data, error: stErr } = await admin
@@ -377,8 +456,7 @@ Deno.serve(async (req) => {
 
     if (action === "voice_conversation_token") {
       try {
-        const agentKind =
-          body?.agent_kind === "onboarding_report" ? "onboarding_report" : "personal_logos";
+        const agentKind = body?.agent_kind === "onboarding_report" ? "onboarding_report" : "personal_logos";
         let onboarding_drive_root_override: string | undefined;
         if (
           agentKind === "onboarding_report" &&
@@ -386,8 +464,7 @@ Deno.serve(async (req) => {
           body.onboarding_drive_folder_id.trim() &&
           (await mayUseOnboardingDriveOverride(admin, u.user.id, body.onboarding_drive_folder_id.trim()))
         ) {
-          onboarding_drive_root_override =
-            parseDriveFolderId(body.onboarding_drive_folder_id.trim()) || undefined;
+          onboarding_drive_root_override = parseDriveFolderId(body.onboarding_drive_folder_id.trim()) || undefined;
         }
         const payload = await createVoiceConversationToken(admin, u.user.id, {
           agent_kind: agentKind,
@@ -411,8 +488,11 @@ Deno.serve(async (req) => {
     switch (action) {
       case "install_logos_workflow": {
         if (!userId) return json({ error: "user_id requis" }, 400);
-        const { data: p, error } = await admin.from("profiles")
-          .select("elevenlabs_agent_id, display_name").eq("id", userId).maybeSingle();
+        const { data: p, error } = await admin
+          .from("profiles")
+          .select("elevenlabs_agent_id, display_name")
+          .eq("id", userId)
+          .maybeSingle();
         if (error) throw error;
         if (!p?.elevenlabs_agent_id) return json({ error: "Cet utilisateur n'a pas d'agent ElevenLabs" }, 400);
         const agentId = p.elevenlabs_agent_id;
@@ -422,34 +502,47 @@ Deno.serve(async (req) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             workflow: logosTemplate.workflow,
-            conversation_config: { agent: {
-              first_message: logosTemplate.first_message,
-              dynamic_variables: { dynamic_variable_placeholders: {
-                ...before?.conversation_config?.agent?.dynamic_variables?.dynamic_variable_placeholders,
-                first_name: String(p.display_name || "").trim().split(/\s+/)[0] || "toi",
-                session_mode: "open",
-                opening_prompt: "",
-                opening_path_id: "",
-                opening_path_title: "",
-                opening_first_message: "",
-                aegis_user_id: userId,
-              } },
-            } },
+            conversation_config: {
+              agent: {
+                first_message: logosTemplate.first_message,
+                dynamic_variables: {
+                  dynamic_variable_placeholders: {
+                    ...before?.conversation_config?.agent?.dynamic_variables?.dynamic_variable_placeholders,
+                    first_name:
+                      String(p.display_name || "")
+                        .trim()
+                        .split(/\s+/)[0] || "toi",
+                    session_mode: "open",
+                    opening_prompt: "",
+                    opening_path_id: "",
+                    opening_path_title: "",
+                    opening_first_message: "",
+                    aegis_user_id: userId,
+                  },
+                },
+              },
+            },
           }),
         });
         const after = await elJson(`/convai/agents/${agentId}`);
         const expectedNodes = Object.keys(logosTemplate.workflow.nodes).sort();
         const actualNodes = Object.keys(after?.workflow?.nodes ?? {}).sort();
-        if (JSON.stringify(expectedNodes) !== JSON.stringify(actualNodes) ||
-            JSON.stringify(Object.keys(logosTemplate.workflow.edges).sort()) !==
-            JSON.stringify(Object.keys(after?.workflow?.edges ?? {}).sort())) {
+        if (
+          JSON.stringify(expectedNodes) !== JSON.stringify(actualNodes) ||
+          JSON.stringify(Object.keys(logosTemplate.workflow.edges).sort()) !==
+            JSON.stringify(Object.keys(after?.workflow?.edges ?? {}).sort())
+        ) {
           throw new Error("ElevenLabs : le workflow n'a pas été confirmé après installation.");
         }
         return json({ ok: true, agent_id: agentId, nodes: actualNodes, sources_pending: true });
       }
       case "create_agent": {
         if (!userId) return json({ error: "user_id requis" }, 400);
-        const { data: p } = await admin.from("profiles").select("display_name, elevenlabs_agent_id").eq("id", userId).maybeSingle();
+        const { data: p } = await admin
+          .from("profiles")
+          .select("display_name, elevenlabs_agent_id")
+          .eq("id", userId)
+          .maybeSingle();
         if (!p) return json({ error: "Utilisateur introuvable" }, 404);
         if (p.elevenlabs_agent_id) return json({ agent_id: p.elevenlabs_agent_id });
         const agent = await elJson(`/convai/agents/create`, {
@@ -461,7 +554,10 @@ Deno.serve(async (req) => {
               agent: {
                 language: "fr",
                 first_message: "",
-                prompt: { prompt: "Tu es l'agent personnel AEGIS de cet utilisateur. Appuie-toi uniquement sur sa base de connaissances." },
+                prompt: {
+                  prompt:
+                    "Tu es l'agent personnel AEGIS de cet utilisateur. Appuie-toi uniquement sur sa base de connaissances.",
+                },
               },
             },
           }),
@@ -487,7 +583,11 @@ Deno.serve(async (req) => {
         if (!docs.length) return json({ error: "Aucun document" }, 400);
         let agentId: string | null = null;
         if (target === "main") {
-          const { data: s } = await admin.from("elevenlabs_settings").select("main_agent_id").eq("id", true).maybeSingle();
+          const { data: s } = await admin
+            .from("elevenlabs_settings")
+            .select("main_agent_id")
+            .eq("id", true)
+            .maybeSingle();
           agentId = s?.main_agent_id ?? null;
           if (!agentId) return json({ error: "Agent principal non configuré" }, 400);
         } else {
@@ -499,7 +599,9 @@ Deno.serve(async (req) => {
         const jobId = await startJob(admin, "manual_md_upload", target === "main" ? null : userId);
         const results = [];
         for (const d of docs) {
-          const name = String(d?.name ?? "").trim().slice(0, 200);
+          const name = String(d?.name ?? "")
+            .trim()
+            .slice(0, 200);
           const text = String(d?.text ?? "");
           if (!name || !text.trim()) {
             results.push({ file: name || "(sans nom)", status: "failed", error: "Nom ou contenu vide" });
@@ -524,7 +626,9 @@ Deno.serve(async (req) => {
         if (!row) return json({ error: "Document introuvable" }, 404);
         if (row.elevenlabs_document_id) {
           await setAgentKb(row.target_agent_id, (items) => items.filter((i) => i.id !== row.elevenlabs_document_id));
-          await elFetch(`/convai/knowledge-base/${row.elevenlabs_document_id}?force=true`, { method: "DELETE" }).catch(() => null);
+          await elFetch(`/convai/knowledge-base/${row.elevenlabs_document_id}?force=true`, { method: "DELETE" }).catch(
+            () => null,
+          );
         }
         await admin.from("elevenlabs_documents").delete().eq("id", docId);
         return json({ ok: true });
@@ -532,7 +636,9 @@ Deno.serve(async (req) => {
 
       case "set_main_agent": {
         const id = String(body?.agent_id ?? "").trim() || null;
-        await admin.from("elevenlabs_settings").upsert({ id: true, main_agent_id: id, updated_at: new Date().toISOString() });
+        await admin
+          .from("elevenlabs_settings")
+          .upsert({ id: true, main_agent_id: id, updated_at: new Date().toISOString() });
         return json({ ok: true });
       }
 
@@ -560,7 +666,8 @@ Deno.serve(async (req) => {
       case "sync_user": {
         if (!userId) return json({ error: "user_id requis" }, 400);
         const offset = Number(body?.offset ?? 0);
-        if (!Number.isSafeInteger(offset) || offset < 0) return json({ error: "Position de synchronisation invalide" }, 400);
+        if (!Number.isSafeInteger(offset) || offset < 0)
+          return json({ error: "Position de synchronisation invalide" }, 400);
         const jobId = await startJob(admin, "drive_user_sync", userId);
         try {
           const batch = await syncUser(admin, userId, offset, 5);
@@ -611,15 +718,15 @@ Deno.serve(async (req) => {
         });
         if (upsertError) throw upsertError;
 
-        const summary = (await elJson(
-          `/convai/agents/${encodeURIComponent(agentId)}`,
-        )) as Record<string, unknown>;
+        const summary = (await elJson(`/convai/agents/${encodeURIComponent(agentId)}`)) as Record<string, unknown>;
         const cc = summary?.conversation_config as Record<string, unknown> | undefined;
         const conv = cc?.conversation as { max_duration_seconds?: number } | undefined;
-        const agentCfg = cc?.agent as {
-          first_message?: string;
-          prompt?: { llm?: string; temperature?: number };
-        } | undefined;
+        const agentCfg = cc?.agent as
+          | {
+              first_message?: string;
+              prompt?: { llm?: string; temperature?: number };
+            }
+          | undefined;
 
         return json({
           ok: true,
@@ -659,9 +766,7 @@ Deno.serve(async (req) => {
         const results = [];
         for (const t of targets) {
           try {
-            results.push(
-              await syncVoiceUsageForUser(admin, elJson, t.id, t.elevenlabs_agent_id, bounds),
-            );
+            results.push(await syncVoiceUsageForUser(admin, elJson, t.id, t.elevenlabs_agent_id, bounds));
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
             results.push({
