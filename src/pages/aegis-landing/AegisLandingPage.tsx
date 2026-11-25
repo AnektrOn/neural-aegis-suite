@@ -1,4 +1,6 @@
-import { Helmet } from "react-helmet-async";
+import { SeoHelmet } from "@/seo/SeoHelmet";
+import { ENTREPRISE_SEO_COPY } from "@/seo/seoPages";
+import { seoCanonical } from "@/seo/site";
 import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
 import { Suspense } from "react";
 import { useNavigate } from "react-router-dom";
@@ -43,35 +45,6 @@ const FinalCtaSection = lazy(() =>
   import("./sections/FinalCtaSection").then((m) => ({ default: m.FinalCtaSection })),
 );
 
-const LANDING_OG_IMAGE =
-  "https://aegis.humancatalystbeacon.com/aegis-landing/hero-scene-1440.jpg";
-const LANDING_CANONICAL_INDIV = "https://aegis.humancatalystbeacon.com/";
-const LANDING_CANONICAL_ENT = "https://aegis.humancatalystbeacon.com/entreprise";
-
-function LandingHelmet({ audience }: { audience: AegisLandingAudience }) {
-  const { copy, locale } = useAegisLandingLocale();
-  const canonical =
-    audience === "entreprise" ? LANDING_CANONICAL_ENT : LANDING_CANONICAL_INDIV;
-  return (
-    <Helmet>
-      <title>{copy.meta.title}</title>
-      <meta name="description" content={copy.meta.description} />
-      <link rel="canonical" href={canonical} />
-      <meta property="og:type" content="website" />
-      <meta property="og:url" content={canonical} />
-      <meta property="og:title" content={copy.meta.ogTitle} />
-      <meta property="og:description" content={copy.meta.description} />
-      <meta property="og:image" content={LANDING_OG_IMAGE} />
-      <meta property="og:locale" content={locale === "en" ? "en_US" : "fr_FR"} />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={copy.meta.ogTitle} />
-      <meta name="twitter:description" content={copy.meta.description} />
-      <meta name="twitter:image" content={LANDING_OG_IMAGE} />
-      <meta name="theme-color" content="#0b0b0a" />
-    </Helmet>
-  );
-}
-
 function LandingSections() {
   return (
     <>
@@ -100,15 +73,21 @@ export default function AegisLandingPage({
   if (audience === "individuel") {
     return (
       <AegisLandingLocaleProvider audience={audience}>
-        <LandingHelmet audience={audience} />
         <WelcomeView onStartAudit={() => navigate(LANDING_QUIZ_HREF)} />
       </AegisLandingLocaleProvider>
     );
   }
 
   return (
-    <AegisLandingLocaleProvider audience={audience}>
-      <LandingHelmet audience={audience} />
+      <AegisLandingLocaleProvider audience={audience}>
+      <SeoHelmet
+        variant="page"
+        title={ENTREPRISE_SEO_COPY.title}
+        description={ENTREPRISE_SEO_COPY.description}
+        canonical={seoCanonical("/entreprise")}
+        ogTitle={ENTREPRISE_SEO_COPY.ogTitle}
+        pageName={ENTREPRISE_SEO_COPY.title}
+      />
       <div className="aegis-landing relative min-h-dvh pb-32 sm:pb-0">
         <LandingSkip />
         <LandingNav />

@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { NeuralCard } from "@/components/ui/neural-card";
 import { Button } from "@/components/ui/button";
+import { SeoHelmet } from "@/seo/SeoHelmet";
+import { seoCanonical } from "@/seo/site";
 
 export default function CheckoutSuccess() {
   const { locale } = useLanguage();
@@ -72,6 +74,14 @@ export default function CheckoutSuccess() {
 
 
   return (
+    <>
+      <SeoHelmet
+        title="Paiement confirmé"
+        description="Confirmation de paiement AEGIS."
+        canonical={seoCanonical("/checkout/success")}
+        noindex
+        robots="noindex, nofollow"
+      />
     <div className="min-h-screen bg-aegis-gradient flex items-center justify-center p-4">
       <NeuralCard variant="elevated" glow="warm" className="max-w-md w-full p-8 text-center space-y-4">
         <CheckCircle2 className="w-10 h-10 text-primary mx-auto" aria-hidden />
@@ -107,5 +117,6 @@ export default function CheckoutSuccess() {
         </Button>
       </NeuralCard>
     </div>
+    </>
   );
 }

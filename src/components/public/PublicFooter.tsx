@@ -6,6 +6,9 @@ export default function PublicFooter() {
   const isFR = locale === "fr";
 
   const links = [
+    { to: "/tools", label: isFR ? "Outils décisionnels" : "Decision tools" },
+    { to: "/blog", label: "Blog" },
+    { to: "/newsletter", label: "Newsletter" },
     { to: "/pricing", label: isFR ? "Tarifs" : "Pricing" },
     { to: "/legal/mentions", label: isFR ? "Mentions légales" : "Legal notice" },
     { to: "/legal/terms", label: isFR ? "Conditions générales" : "Terms & Conditions" },

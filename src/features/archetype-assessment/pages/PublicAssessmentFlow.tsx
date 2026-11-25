@@ -30,6 +30,8 @@ import { useAssessmentSession } from "../hooks/useAssessmentSession";
 import type { LoadedTemplate } from "../services/assessmentService";
 import { AssessmentQuestionRenderer } from "../components/AssessmentQuestionRenderer";
 import { useGuardianOptional } from "@/features/guardian";
+import { SeoHelmet } from "@/seo/SeoHelmet";
+import { seoCanonical } from "@/seo/site";
 
 const SECONDS_PER_QUESTION = 18;
 
@@ -38,6 +40,11 @@ function formatMinutesRemaining(remainingQuestions: number, t: (key: string, var
   const minutes = Math.max(1, Math.round(seconds / 60));
   return t("assessment.minutesRemaining", { minutes: String(minutes) });
 }
+
+const QUIZ_SEO = {
+  title: "Questionnaire AEGIS",
+  description: "Diagnostic gratuit — 30 questions sur la façon dont vous décidez.",
+} as const;
 
 export default function PublicAssessmentFlow() {
   const navigate = useNavigate();
@@ -164,8 +171,20 @@ export default function PublicAssessmentFlow() {
     }
   };
 
+  const quizHelmet = (
+    <SeoHelmet
+      title={QUIZ_SEO.title}
+      description={QUIZ_SEO.description}
+      canonical={seoCanonical("/quiz")}
+      noindex
+      robots="noindex, follow"
+    />
+  );
+
   if (loadError) {
     return (
+      <>
+        {quizHelmet}
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <Card className="p-6 max-w-md">
           <p className="text-destructive">{loadError}</p>
@@ -174,20 +193,26 @@ export default function PublicAssessmentFlow() {
           </Button>
         </Card>
       </div>
+      </>
     );
   }
 
   if (authLoading || bootScreenActive || !loaded || !user) {
     return (
+      <>
+        {quizHelmet}
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
+      </>
     );
   }
 
   const remaining = Math.max(0, session.totalQuestions - (session.questionIndex + 1));
 
   return (
+    <>
+      {quizHelmet}
     <div className="min-h-screen relative">
       <div className="absolute top-4 right-4 z-10">
         <Button
@@ -340,5 +365,6 @@ export default function PublicAssessmentFlow() {
         )}
       </div>
     </div>
+    </>
   );
 }

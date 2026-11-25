@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight, ChevronDown, Languages, Menu, Mic, X } from "lucide-react";
@@ -9,7 +8,6 @@ import AegisLogo from "@/components/AegisLogo";
 import { WelcomeLandingNebula } from "./WelcomeLandingNebula";
 import { SilentDemoPlayer } from "./SilentDemoPlayer";
 import {
-  FAQ_SOVEREIGN,
   PRICING_TIERS,
   QUICK_TOOLS,
   QUIZ_REVELATIONS,
@@ -18,6 +16,18 @@ import {
   WELCOME_GOLD,
   WELCOME_MUTED,
 } from "../welcomeLandingContent";
+import { SeoHelmet } from "@/seo/SeoHelmet";
+import { HOME_FAQ, HOME_SEO_COPY } from "@/seo/seoPages";
+import { seoCanonical } from "@/seo/site";
+import {
+  homeAudienceSection,
+  homeDiscoverLinks,
+  homeFaqUi,
+  homeHeroUi,
+  homeLogosSection,
+  homeProblemSection,
+  homeSolutionSection,
+} from "@/seo/homeUi";
 
 export interface WelcomeViewProps {
   onStartAudit: () => void;
@@ -44,16 +54,6 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartAudit }) => {
 
   const toggleLanguage = () => setLocale(locale === "fr" ? "en" : "fr");
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQ_SOVEREIGN.map((item) => ({
-      "@type": "Question",
-      name: t(item.q, isFR),
-      acceptedAnswer: { "@type": "Answer", text: t(item.a, isFR) },
-    })),
-  };
-
   const primaryCtaClass =
     "inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full border px-8 py-3 font-display text-[11px] uppercase tracking-[0.2em] transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
   const primaryCtaStyle = {
@@ -64,9 +64,14 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartAudit }) => {
 
   return (
     <div className="welcome-hud relative flex min-h-[100dvh] flex-col overflow-x-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom))] text-foreground selection:bg-primary/25 sm:pb-0">
-      <Helmet>
-        <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
-      </Helmet>
+      <SeoHelmet
+        variant="home"
+        title={HOME_SEO_COPY.title}
+        description={HOME_SEO_COPY.description}
+        canonical={seoCanonical("/")}
+        ogTitle={HOME_SEO_COPY.ogTitle}
+        faq={HOME_FAQ}
+      />
 
       <a
         href="#welcome-main"
@@ -169,37 +174,25 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartAudit }) => {
         >
           <motion.div {...fadeUp(0.08)} className="max-w-xl">
               <p className="font-display text-[10px] uppercase tracking-[0.32em] text-[#BC9746]">
-                {isFR
-                  ? "Agent vocal souverain // Pour ceux qui décident seuls"
-                  : "Sovereign voice agent // For those who decide alone"}
+                {t(homeHeroUi.chip, isFR)}
               </p>
 
               <h1
                 id="welcome-hero-heading"
                 className="mt-6 font-cormorant-display text-[2.75rem] leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3rem]"
               >
-                {isFR ? (
-                  <>
-                    Vous tranchez seul.{" "}
-                    <span className="text-[#BC9746]">LOGOS</span> est votre miroir
-                    d&apos;arbitrage.
-                  </>
-                ) : (
-                  <>
-                    You decide alone.{" "}
-                    <span className="text-[#BC9746]">LOGOS</span> is your
-                    arbitration mirror.
-                  </>
-                )}
+                {t(homeHeroUi.h1, isFR)}
               </h1>
+
+              <blockquote className="mt-5 max-w-md border-l-2 border-[#BC9746]/60 pl-4 font-body text-sm leading-relaxed text-[#E5E7EB] sm:text-base">
+                {t(homeHeroUi.tldr, isFR)}
+              </blockquote>
 
               <p
                 className="mt-6 max-w-md font-body text-lg leading-relaxed"
                 style={{ color: WELCOME_MUTED }}
               >
-                {isFR
-                  ? "Parlez de vive voix. LOGOS traque vos angles morts, désamorce vos fuites rationnelles et verrouille vos décisions critiques en 4 minutes."
-                  : "Speak aloud. LOGOS tracks your blind spots, defuses rationalized escapes, and locks your critical decisions within 4 minutes."}
+                {t(homeHeroUi.subtitle, isFR)}
               </p>
 
               <div className="mt-10 flex flex-col items-stretch gap-3 sm:items-start">
@@ -210,11 +203,16 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartAudit }) => {
                   style={primaryCtaStyle}
                 >
                   <Mic size={14} aria-hidden />
-                  {isFR
-                    ? "Lancer l'audit de lucidité — 30 questions, gratuit"
-                    : "Start lucidity audit — 30 questions, free"}
+                  {t(homeHeroUi.primaryCta, isFR)}
                   <ArrowRight size={14} aria-hidden />
                 </button>
+                <Link
+                  to="/tools"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-8 py-3 font-display text-[11px] uppercase tracking-[0.2em] text-[#D1D5DB] no-underline transition-colors hover:border-[#BC9746]/50 hover:text-[#BC9746]"
+                >
+                  {t(homeHeroUi.secondaryCta, isFR)}
+                  <ArrowRight size={14} aria-hidden />
+                </Link>
                 <p className="font-display text-[11px] uppercase tracking-[0.18em] text-[#D1D5DB]/70">
                   {isFR
                     ? "Résultat immédiat • Aucune carte bancaire • Chiffrement privé étanche"
@@ -229,6 +227,89 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartAudit }) => {
                 </a>
               </div>
           </motion.div>
+        </section>
+
+        <section
+          id="probleme-decisionnel"
+          aria-labelledby="welcome-problem-heading"
+          className="border-t border-white/10 bg-black/10 py-20"
+        >
+          <div className="mx-auto max-w-3xl px-5 sm:px-8">
+            <h2 id="welcome-problem-heading" className="font-cormorant-display text-3xl text-white">
+              {t(homeProblemSection.title, isFR)}
+            </h2>
+            <p className="mt-4 font-body text-base leading-relaxed" style={{ color: WELCOME_MUTED }}>
+              {t(homeProblemSection.body, isFR)}
+            </p>
+          </div>
+        </section>
+
+        <section
+          id="solution-aegis"
+          aria-labelledby="welcome-solution-heading"
+          className="py-20"
+        >
+          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+            <h2 id="welcome-solution-heading" className="font-cormorant-display text-3xl text-white">
+              {t(homeSolutionSection.title, isFR)}
+            </h2>
+            <ul className="mt-10 grid gap-6 md:grid-cols-3">
+              {homeSolutionSection.items.map((item) => (
+                <li
+                  key={item.title.fr}
+                  className="rounded-2xl border border-white/10 bg-[#0A0A0B]/50 p-6"
+                >
+                  <h3 className="font-display text-sm uppercase tracking-[0.2em] text-[#BC9746]">
+                    {t(item.title, isFR)}
+                  </h3>
+                  <p className="mt-3 font-body text-sm leading-relaxed" style={{ color: WELCOME_MUTED }}>
+                    {t(item.body, isFR)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <nav aria-label={isFR ? "Explorer AEGIS" : "Explore AEGIS"} className="mt-12 flex flex-wrap gap-3">
+              {homeDiscoverLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-4 font-display text-[10px] uppercase tracking-[0.16em] text-[#D1D5DB] no-underline hover:border-[#BC9746]/50 hover:text-[#BC9746]"
+                >
+                  {t(link.label, isFR)}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </section>
+
+        <section
+          id="logos-produit"
+          aria-labelledby="welcome-logos-product-heading"
+          className="border-t border-white/10 bg-black/15 py-16"
+        >
+          <div className="mx-auto max-w-3xl px-5 text-center sm:px-8">
+            <h2 id="welcome-logos-product-heading" className="font-cormorant-display text-2xl text-white sm:text-3xl">
+              {t(homeLogosSection.title, isFR)}
+            </h2>
+            <p className="mt-4 font-body text-sm leading-relaxed sm:text-base" style={{ color: WELCOME_MUTED }}>
+              {t(homeLogosSection.body, isFR)}
+            </p>
+          </div>
+        </section>
+
+        <section
+          id="pour-qui"
+          aria-labelledby="welcome-audience-heading"
+          className="border-b border-white/10 py-14"
+        >
+          <div className="mx-auto max-w-3xl px-5 text-center sm:px-8">
+            <h2 id="welcome-audience-heading" className="font-display text-[10px] uppercase tracking-[0.28em] text-[#BC9746]">
+              {t(homeAudienceSection.title, isFR)}
+            </h2>
+            <p className="mt-3 font-body text-base" style={{ color: WELCOME_MUTED }}>
+              {t(homeAudienceSection.body, isFR)}
+            </p>
+          </div>
         </section>
 
         {/* —— DÉMO VOCALE —— */}
@@ -246,7 +327,7 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartAudit }) => {
                 id="welcome-demo-heading"
                 className="mt-4 font-cormorant-display text-3xl text-white sm:text-4xl"
               >
-                {isFR ? "Entendez LOGOS trancher." : "Hear LOGOS decide."}
+                {isFR ? "LOGOS en action : entendez un arbitrage réel." : "LOGOS in action: hear a real trade-off."}
               </h2>
               <p className="mt-3 font-body text-sm leading-relaxed" style={{ color: WELCOME_MUTED }}>
                 {isFR
@@ -384,11 +465,16 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartAudit }) => {
             >
               {isFR ? "Vous préférez des chiffres immédiats ?" : "Prefer instant numbers?"}
             </h2>
+            <p className="mt-3 max-w-2xl font-body text-sm" style={{ color: WELCOME_MUTED }}>
+              <Link to="/tools" className="text-[#BC9746] underline-offset-2 hover:underline">
+                {isFR ? "Voir les 10 outils décisionnels" : "See all 10 decision tools"}
+              </Link>
+            </p>
             <ul className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {QUICK_TOOLS.map((tool) => (
                 <li key={tool.href}>
                   <Link
-                    to={tool.href}
+                    to={tool.href.replace(/\/run$/, "")}
                     className="inline-flex min-h-11 items-center rounded-full border border-white/15 bg-white/5 px-5 py-2 font-display text-[10px] uppercase tracking-[0.16em] text-[#D1D5DB] no-underline transition-colors hover:border-[#BC9746]/50 hover:text-[#BC9746]"
                   >
                     {t(tool.label, isFR)}
@@ -436,7 +522,7 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartAudit }) => {
               FAQ
             </h2>
             <div className="mt-10 space-y-2">
-              {FAQ_SOVEREIGN.map((item, idx) => {
+              {homeFaqUi.map((item, idx) => {
                 const open = openFaqIndex === idx;
                 return (
                   <div
@@ -475,11 +561,17 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onStartAudit }) => {
             AEGIS — LOGOS · © Protocole Nomos
           </span>
           <div className="flex flex-wrap justify-center gap-5 font-display text-[10px] uppercase tracking-[0.2em]">
+            <Link to="/tools" className="text-[#D1D5DB]/80 no-underline hover:text-white">
+              {isFR ? "Outils" : "Tools"}
+            </Link>
             <Link to="/pricing" className="text-[#D1D5DB]/80 no-underline hover:text-white">
               {isFR ? "Tarifs" : "Pricing"}
             </Link>
+            <Link to="/newsletter" className="text-[#D1D5DB]/80 no-underline hover:text-white">
+              Newsletter
+            </Link>
             <Link to="/entreprise" className="text-[#D1D5DB]/80 no-underline hover:text-white">
-              LOGOS Business
+              {isFR ? "Entreprise" : "Enterprise"}
             </Link>
             <Link to="/legal/privacy" className="text-[#D1D5DB]/80 no-underline hover:text-white">
               {isFR ? "Confidentialité" : "Privacy"}

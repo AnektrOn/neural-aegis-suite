@@ -44,6 +44,33 @@ Deno.serve(async (req) => {
     const forwardedSecret = req.headers.get("x-internal-secret")?.trim();
     if (forwardedSecret) internalHeaders["x-internal-secret"] = forwardedSecret;
 
+    if (mode === "sheet_test") {
+      const now = new Date().toISOString();
+      const testRow = [
+        now,
+        "00000000-0000-4000-8000-0000000eef00",
+        "",
+        "Test AEGIS (sheet_test)",
+        "test-onboarding@protocolenomos.com",
+        "1990-01-01",
+        "Paris (test)",
+        "Dirigeant test",
+        "Décision test",
+        "Stakeholder test",
+        "TEST",
+      ];
+      const sheetResult = await appendGoogleSheetRow(testRow);
+      return new Response(
+        JSON.stringify({
+          success: sheetResult.ok,
+          mode,
+          sheet: sheetResult,
+          row: testRow,
+        }),
+        { headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+
     if (mode === "funnel_abandon") {
       const eventId = typeof body.event_id === "string" ? body.event_id : null;
       if (!eventId || !UUID_RE.test(eventId)) {

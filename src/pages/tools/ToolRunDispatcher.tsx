@@ -1,6 +1,8 @@
 import { lazy, Suspense } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useParams } from "react-router-dom";
 import { isToolId } from "@/components/tools/toolsRegistry";
+import { SeoHelmet } from "@/seo/SeoHelmet";
+import { seoCanonical } from "@/seo/site";
 
 const RUN_PAGES = {
   "executive-coaching-cost-calculator": lazy(
@@ -20,6 +22,7 @@ const RUN_PAGES = {
 } as const;
 
 export default function ToolRunDispatcher() {
+  const { pathname } = useLocation();
   const { toolId } = useParams<{ toolId: string }>();
 
   if (!toolId || !isToolId(toolId)) {
@@ -29,8 +32,17 @@ export default function ToolRunDispatcher() {
   const Page = RUN_PAGES[toolId];
 
   return (
-    <Suspense fallback={<div className="min-h-[50vh] bg-aegis-gradient" aria-busy />}>
-      <Page />
-    </Suspense>
+    <>
+      <SeoHelmet
+        title="Calculateur AEGIS"
+        description="Session interactive d'un outil décisionnel AEGIS."
+        canonical={seoCanonical(pathname)}
+        noindex
+        robots="noindex, nofollow"
+      />
+      <Suspense fallback={<div className="min-h-[50vh] bg-aegis-gradient" aria-busy />}>
+        <Page />
+      </Suspense>
+    </>
   );
 }

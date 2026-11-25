@@ -1,17 +1,39 @@
 User-agent: Googlebot
 Allow: /
 
-User-agent: Bingbot
+User-agent: GPTBot
 Allow: /
 
-User-agent: Twitterbot
+User-agent: OAI-SearchBot
 Allow: /
 
-User-agent: facebookexternalhit
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
 Allow: /
 
 User-agent: *
 Allow: /
 
-Sitemap: https://aegis.humancatalystbeacon.com/sitemap.xml
+# Private, utility and test areas (HTML prerender also sets noindex where needed).
+# /quiz is crawlable (noindex, follow) so internal links pass equity context.
+Disallow: /admin
+Disallow: /dev
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /start
+Disallow: /onboarding
+Disallow: /welcome
+Disallow: /visitor
+Disallow: /redeem
+Disallow: /intro
+Disallow: /reset-password
+Disallow: /create-password
+Disallow: /account-deleted
+Disallow: /checkout/
+Disallow: /invite/
+Disallow: /tools/profile
+Disallow: /*/run
 
+Sitemap: https://aegis.humancatalystbeacon.com/sitemap.xml

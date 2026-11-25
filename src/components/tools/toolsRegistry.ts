@@ -58,7 +58,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "500 € à 1 500 €/h — quel est votre vrai run-rate annuel ?",
     webAppName: "Executive Coaching Cost Calculator",
     seo: {
-      title: "Executive Coaching Cost Calculator (2026) | True Hourly Rates & ROI",
+      title: "Calculateur coût coaching dirigeant (2026) | Tarifs réels & ROI | AEGIS",
       description:
         "Calculez le coût réel d'un coaching de dirigeant (500 € à 1 500 €/h) selon votre séniorité et comparez avec la continuité d'un exocortex décisionnel.",
     },
@@ -89,7 +89,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "15 k€–39 k€/an + 150 h : le vrai prix de votre cercle.",
     webAppName: "Peer Network ROI Calculator",
     seo: {
-      title: "YPO & Vistage Cost vs ROI Calculator | The True Executive Price",
+      title: "ROI cercles de pairs (YPO, Vistage, EO) | Coût réel | AEGIS",
       description:
         "Estimez le coût complet des cercles de dirigeants (cotisation 15k$-39k$/an + 150h de réunions obligatoires). Évaluez votre retour sur temps investi.",
     },
@@ -120,7 +120,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "Votre Notion est-il un cimetière de notes ?",
     webAppName: "Second Brain Waste Audit",
     seo: {
-      title: "Second Brain Waste Audit | Is Your Notion a Note Graveyard?",
+      title: "Audit gaspillage second brain | Notes mortes & temps perdu | AEGIS",
       description:
         "Testez l'efficacité de votre second cerveau en 4 questions. Calculez votre taux de notes mortes et le temps perdu en maintenance passive.",
     },
@@ -151,7 +151,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "ChatGPT, Rewind, Limitless : où fuient vos secrets ?",
     webAppName: "Executive Cloud AI Privacy Risk Checker",
     seo: {
-      title: "Executive Cloud AI Privacy Risk Checker | ComEx Data Exposure",
+      title: "Risque confidentialité IA cloud pour dirigeants | AEGIS",
       description:
         "Évaluez le risque de fuite de vos données stratégiques et secrets d'affaires sur les IA cloud grand public (ChatGPT, Rewind, Limitless, Granola).",
     },
@@ -182,7 +182,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "Notion + IA + transcription + coach = quelle facture ?",
     webAppName: "Executive Tech Stack Run-Rate Calculator",
     seo: {
-      title: "Executive Tech Stack Run-Rate Calculator | Optimize Leadership Tools",
+      title: "Run-rate stack produitivité dirigeant | AEGIS",
       description:
         "Additionnez vos abonnements dispersés (notes, assistants IA, transcription, coaching) et visualisez le coût de fragmentation de vos outils.",
     },
@@ -213,7 +213,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "Combien d'arbitrages repoussez-vous après 18 h ?",
     webAppName: "CEO Decision Fatigue Index",
     seo: {
-      title: "CEO Decision Fatigue Test (2026) | Founder Mental Fog Assessment",
+      title: "Test fatigue décisionnelle CEO (2026) | Indice dirigeant | AEGIS",
       description:
         "Test gratuit de fatigue décisionnelle pour dirigeants : décisions repoussées, choix par défaut et saturation cognitive en fin de journée.",
     },
@@ -244,7 +244,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "Que conseilleriez-vous à un pair sur cette décision ?",
     webAppName: "Decision Bias Reframe Tool",
     seo: {
-      title: "Decision Making Framework for Leaders | Unstick Hard Decisions",
+      title: "Débloquer une décision difficile | Friend Reframe dirigeants | AEGIS",
       description:
         "Outil Friend Reframe : trois questions pour débloquer une décision difficile — conseil à un pair, lentille successeur, enjeux divisés par deux.",
     },
@@ -275,7 +275,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "1 à 3 mois de retard : quel est le vrai prix ?",
     webAppName: "Cost of Delayed Decision Calculator",
     seo: {
-      title: "Cost of Delayed Decision Calculator | Cost of Inaction Formula",
+      title: "Coût de l'inaction & décision repoussée | Calculateur | AEGIS",
       description:
         "Calculez la perte financière et opérationnelle d'une décision repoussée : burn, revenus en jeu, équipe en attente.",
     },
@@ -306,7 +306,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "Cette sollicitation mérite-t-elle un oui ?",
     webAppName: "Founder Prioritization Matrix",
     seo: {
-      title: "Founder Prioritization Matrix Generator | Saying No Framework for CEOs",
+      title: "Matrice de priorisation fondateur | Dire non | AEGIS",
       description:
         "Générateur de matrice de priorisation : alignement stratégique, charge cachée et verdict dire non / peut-être / oui.",
     },
@@ -337,7 +337,7 @@ export const TOOLS_REGISTRY: ToolRegistryCore[] = [
     hubBlurb: "Combien coûtent vos bascules de contexte ?",
     webAppName: "Executive Context Switching Calculator",
     seo: {
-      title: "Executive Context Switching Cost | CEO Cognitive Overload Calculator",
+      title: "Coût du changement de contexte dirigeant | Calculateur | AEGIS",
       description:
         "Calculez les heures perdues en reconstitution mentale entre réunions d'associés, investisseurs et équipes — overload cognitif dirigeant.",
     },

@@ -1,19 +1,23 @@
-# Aegis
+# AEGIS (Neural Aegis)
 
-> A private, clinically rigorous coaching suite for executives and leaders:
-> archetype exegesis, mood and decision analytics, habit architecture and
-> confidential deep-dive reports.
+> Suite cognitive et décisionnelle pour dirigeants, fondateurs et équipes de direction.
+> Diagnostic gratuit en 30 questions, dix outils décisionnels sans compte, lecture de
+> profil humaine (Lecture Neural), parcours LOGOS (miroir d'arbitrage vocal), newsletter.
 
-Aegis pairs clinical assessment with daily practice. Each member works from a
-personal archetype cartography, then sustains it through measured mood,
-decision, habit and relationship tracking — with AI-assisted insight and
-coach-authored deep-dive reports delivered privately in the app.
+AEGIS aide les personnes qui décident sous pression à clarifier leurs arbitrages :
+questionnaire d'archétypes gratuit, calculateurs marketing pour CEO (fatigue, biais,
+coût du coaching, priorisation), synthèses et suivi pour les membres connectés.
+Interface bilingue français / anglais (même URL, préférence stockée côté client).
 
-Aegis is invitation-only: accounts are created by coaches and administrators,
-there is no public sign-up. The interface is bilingual (French / English).
+## Pages publiques utiles
+- [Accueil](https://aegis.humancatalystbeacon.com/): Diagnostic décisionnel, LOGOS, liens vers outils et offres.
+- [Outils décisionnels](https://aegis.humancatalystbeacon.com/tools): Dix calculateurs gratuits pour dirigeants.
+- [Diagnostic — 30 questions](https://aegis.humancatalystbeacon.com/quiz): Parcours public gratuit (non indexé SEO, mais lié depuis l'accueil).
+- [Entreprise](https://aegis.humancatalystbeacon.com/entreprise): Offre comités de direction et organisations.
+- [Tarifs](https://aegis.humancatalystbeacon.com/pricing): Forfaits Solo, LOGOS et Fondateurs.
+- [Newsletter](https://aegis.humancatalystbeacon.com/newsletter): Éditions sur décision et leadership.
+- [Blog](https://aegis.humancatalystbeacon.com/blog): Articles décision et dirigeants.
 
-## Pages
-- [Home](/): The Aegis practice — positioning and entry point.
-- [Sign in](/auth): Private access for existing members.
-- [Newsletter](/newsletter): Public editions on archetypes, mental
-  fitness and leadership.
+## Ce qu'AEGIS n'est pas
+- Pas un dispositif médical ni une promesse de validation clinique.
+- Les FAQ et synthèses sont des aides à la réflexion, pas des conseils juridiques ou financiers.
