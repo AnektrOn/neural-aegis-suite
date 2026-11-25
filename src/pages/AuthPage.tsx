@@ -27,8 +27,17 @@ import {
   signupPasswordIssues,
   signupPasswordScore,
 } from "@/lib/passwordPolicy";
+import { useOnboardingStore } from "@/store/useOnboardingStore";
 
 type AuthMode = "signin" | "signup" | "guest" | "upgrade";
+
+function readPreOnboardingAuthDraft(): { email: string; firstName: string } {
+  const draft = useOnboardingStore.getState();
+  const email = draft.email?.trim() ?? "";
+  const fullName = draft.full_name?.trim() ?? "";
+  const firstName = fullName.split(/\s+/).filter(Boolean)[0] ?? "";
+  return { email, firstName };
+}
 
 const inputCls =
   "w-full bg-bg-base border border-border-active rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-all duration-200";
@@ -37,10 +46,11 @@ const labelCls =
   "text-[10px] tracking-[0.15em] uppercase text-text-tertiary font-medium font-display block";
 
 export default function AuthPage() {
-  const [email, setEmail] = useState("");
+  const preOnboardingDraft = readPreOnboardingAuthDraft();
+  const [email, setEmail] = useState(preOnboardingDraft.email);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
+  const [firstName, setFirstName] = useState(preOnboardingDraft.firstName);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -56,10 +66,13 @@ export default function AuthPage() {
   const upgradeFromUrl = searchParams.get("upgrade") === "1";
   const signupFromUrl =
     searchParams.get("signup") === "1" || searchParams.get("mode") === "signup";
+  const fromExecutiveOnboarding =
+    redirectParam === "/onboarding" &&
+    Boolean(preOnboardingDraft.email || preOnboardingDraft.firstName);
 
   const [mode, setMode] = useState<AuthMode>(() => {
     if (upgradeFromUrl) return "upgrade";
-    if (signupFromUrl) return "signup";
+    if (signupFromUrl || fromExecutiveOnboarding) return "signup";
     if (guestFromUrl) return "guest";
     return "signin";
   });
@@ -71,18 +84,25 @@ export default function AuthPage() {
       setMode("upgrade");
     } else if (guestFromUrl) {
       setMode("guest");
-    } else if (signupFromUrl) {
+    } else if (signupFromUrl || fromExecutiveOnboarding) {
       setMode("signup");
     } else if (upgradeFromUrl) {
       setMode("upgrade");
     }
-  }, [upgradeFromUrl, guestFromUrl, signupFromUrl, isGuest, user]);
+  }, [upgradeFromUrl, guestFromUrl, signupFromUrl, fromExecutiveOnboarding, isGuest, user]);
 
   useEffect(() => {
     if (user?.email && (mode === "upgrade" || mode === "guest")) {
       setEmail(user.email);
+      return;
     }
-  }, [user?.email, mode]);
+    // Prefill from pre-login /start draft when fields are still empty
+    if (!user) {
+      const draft = readPreOnboardingAuthDraft();
+      if (draft.email) setEmail((prev) => prev || draft.email);
+      if (draft.firstName) setFirstName((prev) => prev || draft.firstName);
+    }
+  }, [user?.email, user, mode]);
 
   useEffect(() => {
     if (authLoading || !user) return;

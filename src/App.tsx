@@ -241,6 +241,8 @@ function isBootGateSkippedPath(pathname: string): boolean {
   return (
     pathname === "/" ||
     pathname === "/auth" ||
+    pathname === "/start" ||
+    pathname.startsWith("/start/") ||
     pathname === "/create-password" ||
     pathname === "/reset-password" ||
     pathname === "/pricing" ||

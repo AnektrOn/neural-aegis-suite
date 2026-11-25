@@ -227,8 +227,8 @@ export default function ExecutiveOnboardingPage() {
       navigate("/onboarding", { replace: true });
       return;
     }
-    // Pre-login flow: preserve localStorage answers, route to /auth then post-login voice Guardian onboarding
-    navigate("/auth?redirect=/onboarding", { replace: true });
+    // Pre-login flow: keep draft in localStorage, open signup with fields prefilled
+    navigate("/auth?signup=1&redirect=/onboarding", { replace: true });
   }, [navigate, userId]);
 
   const handleReplay = useCallback(() => {
