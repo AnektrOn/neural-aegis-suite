@@ -29,3 +29,5 @@ project_id = "REDACTED"
     verify_jwt = false
   [functions.onboarding-pack-preview]
     verify_jwt = true
+  [functions.notify-executive-onboarding-complete]
+    verify_jwt = false

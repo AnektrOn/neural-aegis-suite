@@ -4,6 +4,7 @@ import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { getCallerRoles, isInternalRequest } from '../_shared/internalAuth.ts';
 import { OPERATOR_ROLES, OWNER_EMAIL, RECOVERY_START, escapeHtml, isRecentLogin, isInRecoveryPeriod, accountCreatedEvent } from './activity-rules.ts';
+import { executiveOnboardingAbandonHtml, executiveOnboardingAdminHtml, loadExecutiveLead, loadFunnelEvent } from '../_shared/executive-onboarding-lead.ts';
 
 
 async function sendWithResend({
@@ -148,7 +149,7 @@ serve(async (req) => {
     let data = (body.data && typeof body.data === 'object') ? { ...body.data } : {};
     const internal = await isInternalRequest(req, supabase);
 
-    if (type === 'account_created' || type === 'activity_event' || type === 'activity_catchup' || type === 'activity_recovery_event' || type === 'admin_login_alert') {
+    if (type === 'account_created' || type === 'executive_onboarding_completed' || type === 'executive_onboarding_abandoned' || type === 'activity_event' || type === 'activity_catchup' || type === 'activity_recovery_event' || type === 'admin_login_alert') {
       const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
       const { data: caller } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
       let key = '';
@@ -164,6 +165,27 @@ serve(async (req) => {
         const event = accountCreatedEvent(person.user);
         if (!event) return new Response(JSON.stringify({ success: true, skipped: true }), { headers: corsHeaders });
         ({ key, subject, html } = event);
+      } else if (type === 'executive_onboarding_completed') {
+        if (!internal) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        if (typeof user_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user_id)) {
+          return new Response(JSON.stringify({ error: 'Invalid user' }), { status: 400, headers: corsHeaders });
+        }
+        const lead = await loadExecutiveLead(supabase, user_id);
+        if (!lead) return new Response(JSON.stringify({ success: true, skipped: true }), { headers: corsHeaders });
+        key = `exec-onboarding:${user_id}`;
+        subject = 'Aegis — Pré-onboarding exécutif complété';
+        html = executiveOnboardingAdminHtml(lead);
+      } else if (type === 'executive_onboarding_abandoned') {
+        if (!internal) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        const eventId = typeof body.event_id === 'string' ? body.event_id : '';
+        if (!/^[0-9a-f-]{36}$/i.test(eventId)) {
+          return new Response(JSON.stringify({ error: 'Invalid event' }), { status: 400, headers: corsHeaders });
+        }
+        const event = await loadFunnelEvent(supabase, eventId);
+        if (!event) return new Response(JSON.stringify({ success: true, skipped: true }), { headers: corsHeaders });
+        key = `exec-onboarding-abandon:${eventId}`;
+        subject = `Aegis — Pré-onboarding abandonné (étape ${event.microStep}/${event.totalSteps})`;
+        html = executiveOnboardingAbandonHtml(event);
       } else if (type === 'activity_recovery_event') {
         if (!caller.user) return new Response(JSON.stringify({ error:'Unauthorized' }), { status:401, headers:corsHeaders });
         const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id',caller.user.id).in('role',OPERATOR_ROLES);
@@ -255,6 +277,22 @@ serve(async (req) => {
       }
       if (type === 'admin_login_alert' && results.some(r => r.sent)) await insertNotificationsForAllAdmins(supabase,{ title:subject,message:'Un utilisateur s’est connecté.',type:'admin_login',link:'/admin/analytics' });
       if (type === 'account_created' && results.some(r => r.sent)) await insertNotificationsForAllAdmins(supabase,{ title:subject,message:'Un nouveau compte a été créé.',type:'admin_account_created',link:'/admin/users' });
+      if (type === 'executive_onboarding_completed' && results.some(r => r.sent)) {
+        await insertNotificationsForAllAdmins(supabase, {
+          title: subject,
+          message: 'Un membre a terminé le pré-onboarding /start.',
+          type: 'admin_exec_onboarding',
+          link: '/admin/users',
+        });
+      }
+      if (type === 'executive_onboarding_abandoned' && results.some(r => r.sent)) {
+        await insertNotificationsForAllAdmins(supabase, {
+          title: subject,
+          message: 'Un visiteur a quitté le pré-onboarding /start avant la fin.',
+          type: 'admin_exec_onboarding_abandon',
+          link: '/admin/users',
+        });
+      }
       return new Response(JSON.stringify({ success:true,event_key:key,results }), { headers: { ...corsHeaders,'Content-Type':'application/json' } });
     }
 

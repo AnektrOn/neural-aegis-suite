@@ -37,6 +37,8 @@ import {
   MicroUrgentTitle,
 } from "../microSteps/ExecutiveMicroScreens";
 import { dilemmaKeyForMicroStep, microStepToLegacyStep } from "../microSteps/microStepRouting";
+import { useExecutiveOnboardingFunnelTracking } from "../hooks/useExecutiveOnboardingFunnelTracking";
+import { markExecutiveOnboardingCompleteTracked } from "@/lib/executiveOnboardingFunnel";
 
 export default function ExecutiveOnboardingPage() {
   const { user, loading: authLoading } = useAuth();
@@ -71,6 +73,17 @@ export default function ExecutiveOnboardingPage() {
 
   const userId = user?.id ?? null;
   const localDone = isExecutiveOnboardingDone(userId);
+
+  useExecutiveOnboardingFunnelTracking({
+    microStep,
+    locale,
+    contactEmail: email,
+    fullName,
+    occupation,
+    isSynthesizing,
+    previewScore,
+    finalized: finalizedRef.current,
+  });
 
   // Hydrate remote draft if signed in; remain fully functional pre-login via localStorage.
   useEffect(() => {
@@ -222,6 +235,7 @@ export default function ExecutiveOnboardingPage() {
   }, []);
 
   const handleEnterNextStage = useCallback(() => {
+    markExecutiveOnboardingCompleteTracked();
     if (userId) {
       // Post-login completion of /start → Guardian voice onboarding (not dashboard)
       navigate("/onboarding", { replace: true });
