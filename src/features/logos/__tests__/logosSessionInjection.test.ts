@@ -32,6 +32,12 @@ describe("logosSessionInjection", () => {
     const inj = buildOnboardingReportLogosInjection("Note", "25d80046-d3f4-43f2-933a-ade961f20e28");
     expect(inj.dynamicVariables.session_mode).toBe("onboarding_report");
     expect(inj.overrides).toBeUndefined();
+    const withOpen = buildOnboardingReportLogosInjection(
+      "Note",
+      "25d80046-d3f4-43f2-933a-ade961f20e28",
+      "Bonjour Note — Mystique, Sage, Guérisseur.",
+    );
+    expect(withOpen.overrides?.agent.firstMessage).toContain("Mystique");
     expect(inj.dynamicVariables.aegis_user_id).toBe("25d80046-d3f4-43f2-933a-ade961f20e28");
     const withKb = mergeOnboardingKnowledgeOverrides(inj, [
       { type: "text", id: "doc_1", name: "00_RAPPORT.md" },

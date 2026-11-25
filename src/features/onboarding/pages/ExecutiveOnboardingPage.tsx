@@ -20,27 +20,29 @@ import {
   ONBOARDING_PRIMARY_BTN_CLASS,
   ONBOARDING_SECONDARY_BTN_CLASS,
   ONBOARDING_SHELL_CLASS,
-  pickLocaleCopy,
-  TOTAL_ONBOARDING_STEPS,
+  TOTAL_ONBOARDING_MICRO_STEPS,
 } from "../onboardingPrimitives";
-import { getOccupationPreset } from "../occupationPresets";
 import OnboardingTopBar from "../components/OnboardingTopBar";
 import OnboardingAhaSynthesis from "../components/OnboardingAhaSynthesis";
 import OnboardingCockpitPreview from "../components/OnboardingCockpitPreview";
-import Step1OperationalTheater from "../components/steps/Step1OperationalTheater";
-import Step2RelationalMap from "../components/steps/Step2RelationalMap";
-import Step3UrgentDilemma from "../components/steps/Step3UrgentDilemma";
-import Step4SomaticFriction from "../components/steps/Step4SomaticFriction";
-import Step5DecisionDilemmas, {
-  CURATED_DILEMMA_KEYS,
-} from "../components/steps/Step5DecisionDilemmas";
+import {
+  MicroBirthDate,
+  MicroDilemma,
+  MicroEmail,
+  MicroFullName,
+  MicroLocation,
+  MicroOccupation,
+  MicroStakeholderName,
+  MicroSymptoms,
+  MicroUrgentTitle,
+} from "../microSteps/ExecutiveMicroScreens";
+import { dilemmaKeyForMicroStep, microStepToLegacyStep } from "../microSteps/microStepRouting";
 
 export default function ExecutiveOnboardingPage() {
   const { user, loading: authLoading } = useAuth();
   const { locale, t } = useLanguage();
   const navigate = useNavigate();
 
-  const currentStep = useOnboardingStore((s) => s.currentStep);
   const occupation = useOnboardingStore((s) => s.occupation);
   const fullName = useOnboardingStore((s) => s.full_name);
   const email = useOnboardingStore((s) => s.email);
@@ -62,6 +64,7 @@ export default function ExecutiveOnboardingPage() {
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [previewScore, setPreviewScore] = useState<number | null>(null);
   const [isSyncingBadge, setIsSyncingBadge] = useState(false);
+  const [microStep, setMicroStep] = useState(1);
 
   const finalizedRef = useRef(false);
   const syncBadgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -152,8 +155,8 @@ export default function ExecutiveOnboardingPage() {
 
     void CapacitorApp.addListener("backButton", () => {
       if (finalizedRef.current || isSynthesizing || previewScore !== null) return;
-      if (currentStep > 1) {
-        setStep((currentStep - 1) as OnboardingStep);
+      if (microStep > 1) {
+        setMicroStep((s) => Math.max(1, s - 1));
       }
     }).then((handle) => {
       removeListener = () => handle.remove();
@@ -162,7 +165,7 @@ export default function ExecutiveOnboardingPage() {
     return () => {
       if (removeListener) void removeListener();
     };
-  }, [currentStep, isSynthesizing, previewScore, setStep]);
+  }, [microStep, isSynthesizing, previewScore]);
 
   const handleSyncPatch = useCallback(
     (patch: Partial<OnboardingProfileFields>) => {
@@ -179,23 +182,31 @@ export default function ExecutiveOnboardingPage() {
   );
 
   const canProceed = (() => {
-    switch (currentStep) {
+    switch (microStep) {
       case 1:
-        return Boolean(
-          occupation &&
-            fullName.trim().length > 0 &&
-            email.trim().includes("@") &&
-            birthDate.trim().length > 0 &&
-            location.trim().length > 0,
-        );
+        return Boolean(occupation);
       case 2:
-        return primaryStakeholders.some((s) => s.name.trim().length > 0);
+        return fullName.trim().length > 0;
       case 3:
-        return true;
+        return email.trim().includes("@");
       case 4:
-        return stressSymptoms.length > 0 || Boolean(dominantFriction);
+        return birthDate.trim().length > 0;
       case 5:
-        return CURATED_DILEMMA_KEYS.every((key) => Boolean(rawDilemmas[key]));
+        return location.trim().length > 0;
+      case 6:
+        return primaryStakeholders.some((s) => s.name.trim().length > 0);
+      case 7:
+        return urgentDecisionTitle.trim().length > 0;
+      case 8:
+        return stressSymptoms.length > 0 || Boolean(dominantFriction);
+      case 9:
+        return Boolean(rawDilemmas.q1);
+      case 10:
+        return Boolean(rawDilemmas.q2);
+      case 11:
+        return Boolean(rawDilemmas.q3);
+      default:
+        return false;
     }
   })();
 
@@ -212,7 +223,8 @@ export default function ExecutiveOnboardingPage() {
 
   const handleEnterNextStage = useCallback(() => {
     if (userId) {
-      navigate("/dashboard", { replace: true });
+      // Post-login completion of /start → Guardian voice onboarding (not dashboard)
+      navigate("/onboarding", { replace: true });
       return;
     }
     // Pre-login flow: preserve localStorage answers, route to /auth then post-login voice Guardian onboarding
@@ -223,32 +235,20 @@ export default function ExecutiveOnboardingPage() {
     finalizedRef.current = false;
     setPreviewScore(null);
     setIsSynthesizing(false);
+    setMicroStep(1);
     setStep(1);
   }, [setStep]);
 
   const handleNext = () => {
     if (!canProceed) return;
 
-    if (currentStep === 3 && !urgentDecisionTitle.trim()) {
-      const firstDecision = getOccupationPreset(occupation).decisions[0];
-      if (firstDecision) {
-        const defaultTitle = pickLocaleCopy(
-          locale,
-          firstDecision.fr,
-          firstDecision.en,
-        );
-        updateFields({ urgent_decision_title: defaultTitle });
-        if (userId) {
-          syncStepToSupabase({ urgent_decision_title: defaultTitle }, userId);
-        }
-      }
-    }
-
-    if (currentStep < TOTAL_ONBOARDING_STEPS) {
-      const nextStep = (currentStep + 1) as OnboardingStep;
-      setStep(nextStep);
+    if (microStep < TOTAL_ONBOARDING_MICRO_STEPS) {
+      const nextMicro = microStep + 1;
+      const legacyStep = microStepToLegacyStep(nextMicro);
+      setMicroStep(nextMicro);
+      setStep(legacyStep);
       if (userId) {
-        syncStepToSupabase({ onboarding_step_reached: nextStep }, userId);
+        syncStepToSupabase({ onboarding_step_reached: legacyStep }, userId);
       }
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -262,11 +262,13 @@ export default function ExecutiveOnboardingPage() {
   };
 
   const handlePrev = () => {
-    if (currentStep <= 1 || isSynthesizing || previewScore !== null) return;
-    const prevStep = (currentStep - 1) as OnboardingStep;
-    setStep(prevStep);
+    if (microStep <= 1 || isSynthesizing || previewScore !== null) return;
+    const nextMicro = microStep - 1;
+    const legacyStep = microStepToLegacyStep(nextMicro);
+    setMicroStep(nextMicro);
+    setStep(legacyStep);
     if (userId) {
-      syncStepToSupabase({ onboarding_step_reached: prevStep }, userId);
+      syncStepToSupabase({ onboarding_step_reached: legacyStep }, userId);
     }
   };
 
@@ -292,7 +294,9 @@ export default function ExecutiveOnboardingPage() {
   return (
     <div className={`${ONBOARDING_SHELL_CLASS} flex flex-col`}>
       <OnboardingTopBar
-        currentStep={currentStep}
+        currentStep={microStepToLegacyStep(microStep)}
+        progressIndex={microStep}
+        progressTotal={TOTAL_ONBOARDING_MICRO_STEPS}
         isSyncing={isSyncingBadge}
         hideAudioControls={hideFooter}
       />
@@ -315,21 +319,20 @@ export default function ExecutiveOnboardingPage() {
           />
         ) : (
           <>
-            {currentStep === 1 && (
-              <Step1OperationalTheater onSyncPatch={handleSyncPatch} />
-            )}
-            {currentStep === 2 && (
-              <Step2RelationalMap onSyncPatch={handleSyncPatch} />
-            )}
-            {currentStep === 3 && (
-              <Step3UrgentDilemma onSyncPatch={handleSyncPatch} />
-            )}
-            {currentStep === 4 && (
-              <Step4SomaticFriction onSyncPatch={handleSyncPatch} />
-            )}
-            {currentStep === 5 && (
-              <Step5DecisionDilemmas onSyncPatch={handleSyncPatch} />
-            )}
+            {microStep === 1 && <MicroOccupation onSyncPatch={handleSyncPatch} />}
+            {microStep === 2 && <MicroFullName onSyncPatch={handleSyncPatch} />}
+            {microStep === 3 && <MicroEmail onSyncPatch={handleSyncPatch} />}
+            {microStep === 4 && <MicroBirthDate onSyncPatch={handleSyncPatch} />}
+            {microStep === 5 && <MicroLocation onSyncPatch={handleSyncPatch} />}
+            {microStep === 6 && <MicroStakeholderName onSyncPatch={handleSyncPatch} />}
+            {microStep === 7 && <MicroUrgentTitle onSyncPatch={handleSyncPatch} />}
+            {microStep === 8 && <MicroSymptoms onSyncPatch={handleSyncPatch} />}
+            {dilemmaKeyForMicroStep(microStep) ? (
+              <MicroDilemma
+                dilemmaKey={dilemmaKeyForMicroStep(microStep)!}
+                onSyncPatch={handleSyncPatch}
+              />
+            ) : null}
           </>
         )}
       </main>
@@ -342,7 +345,7 @@ export default function ExecutiveOnboardingPage() {
           }
         >
           <div className="mx-auto flex max-w-2xl items-center gap-3">
-            {currentStep > 1 && (
+            {microStep > 1 && (
               <button
                 type="button"
                 onClick={handlePrev}
@@ -360,7 +363,7 @@ export default function ExecutiveOnboardingPage() {
               className={`${ONBOARDING_PRIMARY_BTN_CLASS} flex-1`}
             >
               <span>
-                {currentStep === TOTAL_ONBOARDING_STEPS
+                {microStep === TOTAL_ONBOARDING_MICRO_STEPS
                   ? t("execOnboarding.finalize")
                   : t("execOnboarding.continue")}
               </span>

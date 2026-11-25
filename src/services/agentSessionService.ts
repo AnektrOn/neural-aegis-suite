@@ -21,6 +21,8 @@ export type AgentVoiceSession = {
   conversation_token: string;
   voice_budget?: VoiceUsageBudget;
   knowledge_base?: VoiceKnowledgeLocator[];
+  opening_first_message?: string;
+  top_archetypes?: { label: string; score: number }[];
 };
 
 export type VoiceAgentKind = "personal_logos" | "onboarding_report";
@@ -35,6 +37,8 @@ type InvokePayload = {
   conversation_token?: string;
   voice_budget?: VoiceUsageBudget;
   knowledge_base?: VoiceKnowledgeLocator[];
+  opening_first_message?: string;
+  top_archetypes?: { label: string; score: number }[];
   error?: string;
 };
 
@@ -84,6 +88,8 @@ async function invokeAgentSession(options?: CreateAgentVoiceSessionOptions): Pro
       conversation_token: data.conversation_token,
       ...(data.voice_budget ? { voice_budget: data.voice_budget } : {}),
       ...(data.knowledge_base?.length ? { knowledge_base: data.knowledge_base } : {}),
+      ...(data.opening_first_message ? { opening_first_message: data.opening_first_message } : {}),
+      ...(data.top_archetypes?.length ? { top_archetypes: data.top_archetypes } : {}),
     };
   }
 
@@ -113,6 +119,8 @@ async function invokeVoiceTokenFallback(options?: CreateAgentVoiceSessionOptions
       conversation_token: data.conversation_token,
       ...(data.voice_budget ? { voice_budget: data.voice_budget } : {}),
       ...(data.knowledge_base?.length ? { knowledge_base: data.knowledge_base } : {}),
+      ...(data.opening_first_message ? { opening_first_message: data.opening_first_message } : {}),
+      ...(data.top_archetypes?.length ? { top_archetypes: data.top_archetypes } : {}),
     };
   }
 

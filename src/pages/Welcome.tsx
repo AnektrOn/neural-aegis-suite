@@ -16,6 +16,8 @@ import {
   isExecutiveOnboardingDone,
 } from "@/store/useOnboardingStore";
 import { isProductTourDone, markProductTourDone } from "@/lib/productTour";
+import { useSubscription } from "@/hooks/useSubscription";
+import { LogosAmbassadorOfferDialog } from "@/features/logos/LogosAmbassadorOfferDialog";
 
 export default function Welcome() {
   const { user } = useAuth();
@@ -29,6 +31,8 @@ export default function Welcome() {
     !userId ? true : tourDismissedForUser === userId || isProductTourDone(userId);
 
   const { loading: quizLoading, completed: quizCompleted } = useQuizCompletion();
+  const { hasLogos } = useSubscription();
+  const [logosOfferOpen, setLogosOfferOpen] = useState(false);
 
   const execOnboardingDone = isExecutiveOnboardingDone(userId);
   const isNativeAndroid =
@@ -38,8 +42,11 @@ export default function Welcome() {
 
   useEffect(() => {
     if (!guardian || !guardian.hydrated) return;
-    // Sur Android natif, ne jamais lancer le post-login /onboarding tant que /start n'est pas fini.
-    if (androidStartMissing) return;
+    // Android: finish pre-login /start before Guardian voice onboarding.
+    if (androidStartMissing) {
+      navigate("/start", { replace: true });
+      return;
+    }
     // Les membres ayant déjà terminé le questionnaire ne sont jamais renvoyés
     // vers l'onboarding Guardian (nouveau navigateur = état local vide).
     if (quizLoading || quizCompleted || execOnboardingDone) return;
@@ -65,7 +72,13 @@ export default function Welcome() {
   }, [user]);
 
   const goDashboard = () => navigate("/dashboard", { replace: true });
-  const goVoiceAgent = () => navigate("/welcome/voice-agent");
+  const goVoiceAgent = () => {
+    if (hasLogos) {
+      navigate("/welcome/voice-agent");
+      return;
+    }
+    setLogosOfferOpen(true);
+  };
 
   const completeProductTour = () => {
     if (!userId) return;
@@ -91,7 +104,7 @@ export default function Welcome() {
 
   if (guardianPending) {
     return (
-      <div className="welcome-hud flex min-h-[100dvh] items-center justify-center">
+      <div className="welcome-hud flex min-h-[100dvh] flex-col items-center justify-center gap-6 px-6">
         <WelcomeQuantumNebula />
         <div className="welcome-hud-bg fixed inset-0" aria-hidden />
         <div
@@ -99,6 +112,13 @@ export default function Welcome() {
           role="status"
           aria-label={t("welcome.loading")}
         />
+        <button
+          type="button"
+          onClick={goDashboard}
+          className="relative z-10 min-h-11 rounded-full border border-border/40 bg-background/30 px-5 py-2.5 font-display text-[10px] uppercase tracking-[0.2em] text-muted-foreground backdrop-blur-sm hover:text-foreground"
+        >
+          {t("welcome.skipToDashboard")}
+        </button>
       </div>
     );
   }
@@ -122,6 +142,7 @@ export default function Welcome() {
         onVoiceAgent={goVoiceAgent}
       />
       <WelcomePostTourModals />
+      <LogosAmbassadorOfferDialog open={logosOfferOpen} onOpenChange={setLogosOfferOpen} />
     </>
   );
 }

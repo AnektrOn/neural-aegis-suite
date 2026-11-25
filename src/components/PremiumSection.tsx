@@ -45,7 +45,7 @@ export default function PremiumSection({
           className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background/80 px-4 py-2.5 text-xs font-medium uppercase tracking-[0.12em] text-primary shadow-lg backdrop-blur-xl transition-colors hover:bg-primary/10"
         >
           <Lock className="h-3.5 w-3.5" aria-hidden />
-          {label ?? (isFR ? "Activer la Matrice" : "Activate Matrix")}
+          {label ?? (isFR ? "Activer AEGIS Solo" : "Activate AEGIS Solo")}
         </Link>
       </div>
     </div>

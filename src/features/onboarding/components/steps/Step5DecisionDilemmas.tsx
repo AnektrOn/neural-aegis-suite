@@ -31,7 +31,7 @@ interface MirrorDilemma {
   options: { score: 1 | 2 | 3; labelKey: TranslationKey }[];
 }
 
-const MIRROR_DILEMMAS: MirrorDilemma[] = [
+export const MIRROR_DILEMMAS: MirrorDilemma[] = [
   {
     id: "q1",
     position: 1,

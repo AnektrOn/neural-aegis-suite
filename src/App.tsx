@@ -31,6 +31,7 @@ import { useReferralCapture } from "@/hooks/useReferralCapture";
 import { useBackendHealth } from "@/hooks/useBackendHealth";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { isMemberFeatureVisible } from "@/lib/memberFeatureFlags";
+import { getNativeColdStartPath } from "@/store/useOnboardingStore";
 
 // Lazy-loaded user pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -185,9 +186,9 @@ function HomeRoute() {
   const resolvedUser = user ?? session?.user ?? null;
 
   if (!loading && !resolvedUser) {
-    // Native APK/iOS: skip marketing homepage, open sign-in immediately.
+    // Native APK/iOS: pre-login /start first, then auth (skip marketing homepage).
     if (Capacitor.isNativePlatform()) {
-      return <Navigate to="/auth" replace />;
+      return <Navigate to={getNativeColdStartPath()} replace />;
     }
     return (
       <Suspense fallback={<LandingBootFallback />}>
@@ -210,7 +211,11 @@ function HomeRoute() {
 
 function AppRouter({ children }: { children: ReactNode }) {
   if (Capacitor.isNativePlatform()) {
-    return <MemoryRouter initialEntries={["/auth"]}>{children}</MemoryRouter>;
+    return (
+      <MemoryRouter initialEntries={[getNativeColdStartPath()]}>
+        {children}
+      </MemoryRouter>
+    );
   }
   return <BrowserRouter>{children}</BrowserRouter>;
 }

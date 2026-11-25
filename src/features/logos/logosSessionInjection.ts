@@ -87,18 +87,30 @@ export function buildGuidedLogosInjection(
   };
 }
 
-/** Onboarding débrief (rapport 30 dilemmes) — agent global, first message défini côté agent ElevenLabs. */
+/** Onboarding débrief — first message vocal avec top 3 archétypes (serveur ou aperçu lab). */
 export function buildOnboardingReportLogosInjection(
   firstName?: string,
   aegisUserId?: string,
+  openingFirstMessage?: string,
 ): LogosOpeningInjection {
+  const opening = openingFirstMessage?.trim();
   return {
     dynamicVariables: {
       ...(firstName ? { first_name: firstName } : {}),
       ...(aegisUserId ? { aegis_user_id: aegisUserId } : {}),
       session_mode: "onboarding_report",
       opening_prompt: "",
+      ...(opening ? { opening_first_message: opening } : {}),
     },
+    ...(opening
+      ? {
+          overrides: {
+            agent: {
+              firstMessage: opening,
+            },
+          },
+        }
+      : {}),
   };
 }
 

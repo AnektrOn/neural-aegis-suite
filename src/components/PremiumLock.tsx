@@ -23,8 +23,8 @@ export default function PremiumLock({ children, reason = "upgrade" }: Props) {
           icon: CreditCard,
           title: isFR ? "Paiement à régulariser" : "Payment required",
           body: isFR
-            ? "Votre dernier paiement a échoué. L'accès Matrice est suspendu jusqu'à mise à jour de votre moyen de paiement."
-            : "Your last payment failed. Matrix access is suspended until you update your payment method.",
+            ? "Votre dernier paiement a échoué. L'accès AEGIS Solo est suspendu jusqu'à mise à jour de votre moyen de paiement."
+            : "Your last payment failed. AEGIS Solo access is suspended until you update your payment method.",
           primary: isFR ? "Mettre à jour le paiement" : "Update payment",
           primaryTo: "/pricing",
           secondary: isFR ? "Retour aux logs quotidiens" : "Back to daily logs",
@@ -42,11 +42,11 @@ export default function PremiumLock({ children, reason = "upgrade" }: Props) {
           }
         : {
             icon: Lock,
-            title: isFR ? "Réservé à la Matrice" : "Matrix members only",
+            title: isFR ? "Réservé à AEGIS Solo" : "AEGIS Solo members only",
             body: isFR
-              ? "Votre accès Initiation couvre la saisie quotidienne : humeur, décisions et habitudes, sans limite d'historique. Les analyses, le Deep Dive, la Toolbox, les Pulse cards, le tableau de relations, le calendrier et les exports font partie de la Matrice."
-              : "Your Initiation access covers daily logging: mood, decisions and habits, with unlimited history. Analyses, Deep Dive, Toolbox, Pulse cards, the relations board, the calendar and exports are part of Matrix.",
-            primary: isFR ? "Activer la Matrice" : "Activate Matrix",
+              ? "Votre accès Initiation couvre la saisie quotidienne : humeur, décisions et habitudes, sans limite d'historique. Les analyses, le Deep Dive, Persona, le tableau de relations, le calendrier et les exports font partie d'AEGIS Solo — à partir de 35 € HT / mois."
+              : "Your Initiation access covers daily logging: mood, decisions and habits, with unlimited history. Analyses, Deep Dive, Persona, the relations board, calendar and exports are included with AEGIS Solo — from €35 excl. tax / month.",
+            primary: isFR ? "Activer AEGIS Solo" : "Activate AEGIS Solo",
             primaryTo: "/pricing",
             secondary: isFR ? "Retour à mes logs quotidiens" : "Back to my daily logs",
           };

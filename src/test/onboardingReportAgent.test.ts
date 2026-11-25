@@ -33,6 +33,6 @@ describe("onboardingReportAgent", () => {
     expect(agent.prompt.temperature).toBe(0.25);
     expect(agent.prompt.llm).toBe("claude-3-5-sonnet");
     expect(agent.prompt.tool_ids.length).toBeGreaterThanOrEqual(3);
-    expect(agent.first_message).toContain("rapport d'audit décisionnel");
+    expect(agent.first_message).toContain("Fallback agent");
   });
 });

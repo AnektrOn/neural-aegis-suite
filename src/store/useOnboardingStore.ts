@@ -195,15 +195,53 @@ export function clearExecutiveOnboardingDone(userId: string | null | undefined):
   }
 }
 
-export function hasFinishedStartOnboardingLocal(
-  userId?: string | null,
-): boolean {
-  if (isExecutiveOnboardingDone(userId)) return true;
-  const state = useOnboardingStore.getState();
+function isStartDraftFinished(state: {
+  raw_dilemma_responses: Record<string, RawDilemmaAnswer>;
+  primary_stakeholders: OnboardingStakeholder[];
+}): boolean {
   return (
     Object.keys(state.raw_dilemma_responses).length >= 3 &&
     state.primary_stakeholders.some((s) => s.name.trim().length > 0)
   );
+}
+
+export function hasFinishedStartOnboardingLocal(
+  userId?: string | null,
+): boolean {
+  if (isExecutiveOnboardingDone(userId)) return true;
+  return isStartDraftFinished(useOnboardingStore.getState());
+}
+
+/**
+ * Sync cold-start path for native APK/iOS before React Router mounts.
+ * Reads persisted /start draft from localStorage so rehydration race does not
+ * bounce first-time users straight to /auth.
+ */
+export function getNativeColdStartPath(): "/start" | "/auth" {
+  if (hasFinishedStartOnboardingLocal(null)) return "/auth";
+  try {
+    const raw = safeLocalStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (!raw) return "/start";
+    const parsed = JSON.parse(raw) as {
+      state?: {
+        raw_dilemma_responses?: Record<string, RawDilemmaAnswer>;
+        primary_stakeholders?: OnboardingStakeholder[];
+      };
+    };
+    const draft = parsed?.state;
+    if (
+      draft &&
+      isStartDraftFinished({
+        raw_dilemma_responses: draft.raw_dilemma_responses ?? {},
+        primary_stakeholders: draft.primary_stakeholders ?? [],
+      })
+    ) {
+      return "/auth";
+    }
+  } catch {
+    // ignore corrupt storage
+  }
+  return "/start";
 }
 
 function clampStep(step: number | undefined): OnboardingStep {

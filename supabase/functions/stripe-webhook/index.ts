@@ -8,6 +8,12 @@ import {
   FOUNDERS_LIFETIME_MAX,
   FOUNDERS_PRODUCT_ID,
 } from '../_shared/founders-lifetime.ts';
+import {
+  countActiveLogosAmbassador,
+  LOGOS_AMBASSADOR_MAX,
+  LOGOS_AMBASSADOR_PRODUCT_ID,
+  LOGOS_VOICE_SECONDS_AMBASSADOR,
+} from '../_shared/logos-ambassador.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -22,6 +28,7 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
 const PLAN_LABEL: Record<string, string> = {
   aegis_solo: 'AEGIS Solo',
   aegis_solo_logos: 'AEGIS + LOGOS Solo',
+  aegis_logos: 'LOGOS Ambassadeur',
   aegis_founders_lifetime: 'Membres Fondateurs',
   aegis_matrix: 'Matrice',
   aegis_ultra: 'Ultra',
@@ -71,8 +78,20 @@ async function recordAffiliateCommission(
   if (error) console.error('recordAffiliateCommission:', error.message);
 }
 
+async function applyLogosVoiceProfileLimit(userId: string, productId: string) {
+  if (productId === LOGOS_AMBASSADOR_PRODUCT_ID) {
+    await supabase
+      .from('profiles')
+      .update({ voice_monthly_limit_seconds: LOGOS_VOICE_SECONDS_AMBASSADOR })
+      .eq('id', userId);
+  } else if (productId === 'aegis_solo_logos') {
+    await supabase.from('profiles').update({ voice_monthly_limit_seconds: null }).eq('id', userId);
+  }
+}
+
 async function onPurchaseActivated(userId: string, productId: string, priceId: string) {
   const plan = PLAN_LABEL[productId] ?? productId;
+  await applyLogosVoiceProfileLimit(userId, productId);
   await notifyUser(
     userId,
     `Accès ${plan} activé`,
@@ -92,6 +111,13 @@ async function onPurchaseActivated(userId: string, productId: string, priceId: s
     await notifyAdmins(
       'Nouveau Membre Fondateur',
       `${email} a rejoint la cohorte lifetime (${sold}/${FOUNDERS_LIFETIME_MAX}).`,
+      '/admin/users',
+    );
+  } else if (productId === LOGOS_AMBASSADOR_PRODUCT_ID) {
+    const sold = await countActiveLogosAmbassador(supabase);
+    await notifyAdmins(
+      'Nouvelle vente LOGOS Ambassadeur',
+      `${email} — ${sold}/${LOGOS_AMBASSADOR_MAX} places (${priceId}).`,
       '/admin/users',
     );
   } else if (productId === 'aegis_solo' || productId === 'aegis_solo_logos') {

@@ -360,24 +360,44 @@ function VoiceAgentControls({
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach((track) => track.stop());
 
-        const { conversation_token, knowledge_base } = await createAgentVoiceSession({
+        const {
+          conversation_token,
+          knowledge_base,
+          opening_first_message: serverOpening,
+        } = await createAgentVoiceSession({
           agentKind,
           onboardingDriveFolderId,
         });
         if (knowledge_base?.length) {
           onOnboardingKnowledgeLoaded?.(knowledge_base);
         }
+        const injectionMerged =
+          agentKind === "onboarding_report" && serverOpening?.trim()
+            ? {
+                ...injection,
+                dynamicVariables: {
+                  ...injection?.dynamicVariables,
+                  opening_first_message: serverOpening.trim(),
+                },
+                overrides: {
+                  agent: {
+                    ...injection?.overrides?.agent,
+                    firstMessage: serverOpening.trim(),
+                  },
+                },
+              }
+            : injection;
         const vars: VoiceDynamicVariables = {
           first_name: "toi",
           ...dynamicVariablesRef.current,
-          ...injection?.dynamicVariables,
+          ...injectionMerged?.dynamicVariables,
         };
         if (!String(vars.first_name || "").trim()) vars.first_name = "toi";
         if (vars.session_mode == null) vars.session_mode = "open";
         if (vars.opening_prompt == null) vars.opening_prompt = "";
         if (user?.id && vars.aegis_user_id == null) vars.aegis_user_id = user.id;
-        beginFeedback?.(injection?.feedbackContext);
-        const overrides = mergeOnboardingKnowledgeOverrides(injection, knowledge_base);
+        beginFeedback?.(injectionMerged?.feedbackContext);
+        const overrides = mergeOnboardingKnowledgeOverrides(injectionMerged, knowledge_base);
         startSession({
           conversationToken: conversation_token,
           dynamicVariables: vars,
@@ -499,11 +519,12 @@ function VoiceAgentControls({
           ) : (
             <button
               type="button"
-              disabled={connecting}
+              disabled={connecting || !enableCall}
               onClick={() => void start()}
               className={cn(
                 welcomeCtaClass,
                 "border-primary/25 bg-primary/10 text-primary hover:border-primary/40 hover:bg-primary/15",
+                !enableCall && "cursor-not-allowed opacity-50",
               )}
             >
               {connecting ? (

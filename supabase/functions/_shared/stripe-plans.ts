@@ -2,6 +2,7 @@
 export type PlanKey =
   | 'aegis_solo_monthly'
   | 'aegis_solo_logos_monthly'
+  | 'aegis_logos_ambassador_monthly'
   | 'aegis_founders_lifetime'
   | 'aegis_matrix_monthly'
   | 'aegis_matrix_yearly'
@@ -11,6 +12,7 @@ export type PlanKey =
 export type ProductId =
   | 'aegis_solo'
   | 'aegis_solo_logos'
+  | 'aegis_logos'
   | 'aegis_founders_lifetime'
   | 'aegis_matrix'
   | 'aegis_ultra';
@@ -50,6 +52,13 @@ export const PLANS: Record<PlanKey, PlanDef> = {
     interval: 'month',
     stripePriceIdTest: 'price_1Ubz2dA6HEQaWZImFPwAf04p',
     stripeProductIdTest: 'prod_VdFXEu9cr1cDfe',
+  },
+  aegis_logos_ambassador_monthly: {
+    productId: 'aegis_logos',
+    label: 'LOGOS Ambassadeur — mensuel',
+    amount: 13000,
+    currency: 'eur',
+    interval: 'month',
   },
   aegis_founders_lifetime: {
     productId: 'aegis_founders_lifetime',

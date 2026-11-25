@@ -35,6 +35,8 @@ import { isPulseOnboarded, markPulseOnboarded } from "../lib/pulseOnboarding";
 import { MemberPageScaffold } from "@/layouts/MemberPageScaffold";
 import { MemberSplitLayout } from "@/layouts/MemberSplitLayout";
 import { cn } from "@/lib/utils";
+import { useFreemiumDailyBudget, isFreemiumQuotaError } from "@/hooks/useFreemiumDailyBudget";
+import { SoloUpgradeSheet } from "@/components/freemium/SoloUpgradeSheet";
 
 type PulseView = "deck" | "grimoire" | "runes";
 type CodexTab = "grimoire" | "runes";
@@ -57,6 +59,8 @@ export default function PulsePage() {
   const [grimoireSubTab, setGrimoireSubTab] = useState<GrimoireSubTab>("in_progress");
   const [selectedGroupCode, setSelectedGroupCode] = useState<string | null>(null);
   const onboardingInitRef = useRef(false);
+  const { budget, refresh: refreshFreemiumBudget } = useFreemiumDailyBudget();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   useEffect(() => {
     if (onboardingInitRef.current || !user?.id) return;
@@ -116,7 +120,12 @@ export default function PulsePage() {
       const result = await recordPulseSwipe(card.id, action);
 
       if ("error" in result) {
-        showNotification(result.error);
+        if (isFreemiumQuotaError(result.error)) {
+          setUpgradeOpen(true);
+          showNotification(t("freemium.quotaPulse"));
+        } else {
+          showNotification(result.error);
+        }
         setIsSwiping(false);
         return;
       }
@@ -126,13 +135,14 @@ export default function PulsePage() {
       }
 
       setLocalCards((prev) => prev.filter((c) => c.id !== card.id));
+      await refreshFreemiumBudget();
       await reloadDeck();
       if (action === "assimilated") {
         await reloadGrimoire();
       }
       setIsSwiping(false);
     },
-    [isSwiping, reloadDeck, reloadGrimoire, showNotification, t],
+    [isSwiping, reloadDeck, reloadGrimoire, refreshFreemiumBudget, showNotification, t],
   );
 
   const forceSwipe = useCallback(
@@ -252,6 +262,11 @@ export default function PulsePage() {
             ? t("pulse.cardsReady", { count: localCards.length })
             : t("pulse.cycleCompleted")}
         </p>
+        {!budget.isPaid && budget.pulseRemaining !== null ? (
+          <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-primary/80">
+            {t("freemium.pulseBanner", { remaining: String(budget.pulseRemaining) })}
+          </p>
+        ) : null}
       </div>
 
       {/* Main Interactive Deck Frame */}
@@ -710,6 +725,7 @@ export default function PulsePage() {
       )}
 
       {onboardingOverlay}
+      <SoloUpgradeSheet open={upgradeOpen} onOpenChange={setUpgradeOpen} context="pulse" />
     </MemberPageScaffold>
   );
 }

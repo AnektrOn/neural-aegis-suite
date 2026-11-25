@@ -3,8 +3,8 @@
  *
  * Initiation (free) : account management + daily logging (mood, decisions, habits),
  * with unlimited history of their own entries.
- * Matrice / Ultra   : everything else (analyses, Deep Dive, toolbox, pulse,
- * relations, calendar, exports).
+ * AEGIS Solo / Ultra : Persona, Deep Dive, relations, calendar, exports (full platform).
+ * Initiation keeps /pulse and /toolbox with daily global quotas (see freemium RPCs).
  */
 
 /** Paths reachable without any paid plan. */

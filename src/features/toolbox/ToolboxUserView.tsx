@@ -55,6 +55,12 @@ import {
 import { extractWhyThisForYou } from "@/features/toolbox/ui/ToolboxPrescriptionBanner";
 import { resolveToolboxAccent } from "@/features/toolbox/ui/toolboxPhaseColors";
 import { Button } from "@/components/ui/button";
+import {
+  useFreemiumDailyBudget,
+  startToolboxGlobalSession,
+  isFreemiumQuotaError,
+} from "@/hooks/useFreemiumDailyBudget";
+import { SoloUpgradeSheet } from "@/components/freemium/SoloUpgradeSheet";
 
 interface ToolboxItem {
   id: string;
@@ -131,6 +137,8 @@ export function ToolboxUserView({
   const [habitLinkBusy, setHabitLinkBusy] = useState<string | null>(null);
   const [reloadBusy, setReloadBusy] = useState<string | null>(null);
   const [widgetReloadKeys, setWidgetReloadKeys] = useState<Record<string, number>>({});
+  const { budget: freemiumBudget, refresh: refreshFreemiumBudget } = useFreemiumDailyBudget();
+  const [soloUpgradeOpen, setSoloUpgradeOpen] = useState(false);
   const [refreshingList, setRefreshingList] = useState(false);
   const [completionDialog, setCompletionDialog] = useState<{ open: boolean; itemId: string | null; status: string }>({ open: false, itemId: null, status: "" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -617,7 +625,7 @@ export function ToolboxUserView({
   );
 
   const openTodoItem = useCallback(
-    (item: ToolboxItem) => {
+    async (item: ToolboxItem) => {
       const isWaiting = (item.user_delivery_status || "active") === "waiting";
       if (isWaiting) return;
       const isExternal = item.content_type === "external_link" && item.external_url;
@@ -630,13 +638,38 @@ export function ToolboxUserView({
         }
         return;
       }
+      if (!readOnly && !isIndividualItem(item)) {
+        const gate = await startToolboxGlobalSession(item.id);
+        if (!gate.ok) {
+          if (isFreemiumQuotaError(gate.error)) {
+            setSoloUpgradeOpen(true);
+            toast({
+              title: t("freemium.quotaToolbox"),
+              variant: "destructive",
+            });
+          } else if (gate.error) {
+            toast({ title: t("toolbox.saveError"), description: gate.error, variant: "destructive" });
+          }
+          return;
+        }
+        void refreshFreemiumBudget();
+      }
       if (exerciseSession && !readOnly) {
         exerciseSession.openExercise(item.id);
       } else {
         setActiveWidget(item.id);
       }
     },
-    [bibliothequeVisible, navigate, exerciseSession, readOnly],
+    [
+      bibliothequeVisible,
+      navigate,
+      exerciseSession,
+      readOnly,
+      isIndividualItem,
+      refreshFreemiumBudget,
+      toast,
+      t,
+    ],
   );
 
   useEffect(() => {
@@ -746,6 +779,11 @@ export function ToolboxUserView({
           <h1 className="font-cormorant text-2xl sm:text-3xl md:text-4xl font-light text-foreground tracking-tight mb-2 break-words">
             {t("toolbox.title")}
           </h1>
+          {!freemiumBudget.isPaid && freemiumBudget.toolboxRemaining !== null ? (
+            <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-primary/80">
+              {t("freemium.toolboxBanner", { remaining: String(freemiumBudget.toolboxRemaining) })}
+            </p>
+          ) : null}
           {items.length > 0 ? (
             <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
               <div className="h-1.5 min-w-[5rem] flex-1 max-w-[180px] rounded-full bg-border/40 overflow-hidden">
@@ -2033,6 +2071,7 @@ export function ToolboxUserView({
           </div>
         </DialogContent>
       </Dialog>
+      <SoloUpgradeSheet open={soloUpgradeOpen} onOpenChange={setSoloUpgradeOpen} context="toolbox" />
     </div>
   );
 }

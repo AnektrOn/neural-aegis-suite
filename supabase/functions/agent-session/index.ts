@@ -1,4 +1,4 @@
-/** Lovable Cloud redeploy stamp: preview throttle + voice session (2026-11-25h). */
+/** Lovable Cloud redeploy stamp: preview + opening top-3 + voice session (2026-11-25i). */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { mayUseOnboardingDriveOverride, parseDriveFolderId } from "../_shared/onboarding-lab-drive.ts";

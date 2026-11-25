@@ -9,6 +9,8 @@ project_id = "REDACTED"
     verify_jwt = false
   [functions.founders-availability]
     verify_jwt = false
+  [functions.logos-ambassador-availability]
+    verify_jwt = false
   [functions.import-meditation-drive-links]
     verify_jwt = true
   [functions.scan-alerts]

@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useSubscription } from "@/hooks/useSubscription";
 import type { UserMaturityProfile } from "@/lib/userMaturity";
 
 export const WELCOME_DISMISSED_KEY = "aegis_welcome_dismissed";
@@ -62,6 +63,7 @@ function getFirstName(meta: Record<string, unknown> | undefined, email?: string 
 export function WelcomeExperience({ maturityProfile, onDismiss }: Props) {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
+  const { isActive: hasPaidPlan } = useSubscription();
   const isFR = locale === "fr";
   const [showDismiss, setShowDismiss] = useState(false);
 
@@ -108,13 +110,18 @@ export function WelcomeExperience({ maturityProfile, onDismiss }: Props) {
       cta: t("welcome.cta.add"),
       to: "/decisions",
     },
-    {
-      key: "journal",
-      done: maturityProfile.hasAnyJournal,
-      label: t("welcome.checklist.journal"),
-      cta: t("welcome.cta.write"),
-      to: "/journal",
-    },
+    // Journal is paid-only — never surface it on the free Initiation checklist.
+    ...(hasPaidPlan
+      ? [
+          {
+            key: "journal",
+            done: maturityProfile.hasAnyJournal,
+            label: t("welcome.checklist.journal"),
+            cta: t("welcome.cta.write"),
+            to: "/journal",
+          } satisfies ChecklistItem,
+        ]
+      : []),
   ];
 
   const completion = maturityProfile.completionScore;
@@ -298,6 +305,7 @@ export function SetupProgressBanner({
   maturityProfile: UserMaturityProfile;
 }) {
   const { t } = useLanguage();
+  const { isActive: hasPaidPlan } = useSubscription();
   const [hidden, setHidden] = useState<boolean>(() => {
     try {
       return localStorage.getItem(EMERGING_DISMISS_KEY) === "1";
@@ -313,12 +321,12 @@ export function SetupProgressBanner({
       return { label: t("welcome.next.mood"), to: "/mood" };
     if (!maturityProfile.hasAnyDecision)
       return { label: t("welcome.next.decision"), to: "/decisions" };
-    if (!maturityProfile.hasAnyJournal)
+    if (hasPaidPlan && !maturityProfile.hasAnyJournal)
       return { label: t("welcome.next.journal"), to: "/journal" };
     if (!maturityProfile.hasAnyContact)
       return { label: t("welcome.next.contact"), to: "/people" };
     return null;
-  }, [maturityProfile, t]);
+  }, [maturityProfile, t, hasPaidPlan]);
 
   if (hidden || !nextStep) return null;
 

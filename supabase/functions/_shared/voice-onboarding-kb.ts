@@ -4,6 +4,7 @@ import {
   collectOnboardingDriveMarkdown,
   type DriveListFn,
 } from "./onboarding-drive-pack.ts";
+import { openingFromOnboardingPack } from "./onboarding-report-opening.ts";
 import { resolveOnboardingReportAgentId } from "./voice-onboarding-session.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -262,11 +263,17 @@ async function ensureOnboardingKbDocument(
   }
 }
 
+export type OnboardingVoicePackContext = {
+  knowledge_base: VoiceKnowledgeLocator[];
+  opening_first_message?: string;
+  top_archetypes?: { label: string; score: number }[];
+};
+
 export async function resolveOnboardingMemberKnowledgeBase(
   admin: Admin,
   userId: string,
-  opts?: { drive_root_override?: string },
-): Promise<VoiceKnowledgeLocator[]> {
+  opts?: { drive_root_override?: string; member_first_name?: string },
+): Promise<OnboardingVoicePackContext> {
   const onboardingAgentId = await resolveOnboardingReportAgentId(admin);
   if (!onboardingAgentId) {
     throw onboardingKbError("Agent Onboarding Report non déployé (admin ElevenLabs).");
@@ -290,10 +297,15 @@ export async function resolveOnboardingMemberKnowledgeBase(
     );
   }
 
+  const reportFile =
+    mdFiles.find((f) => /^00[_-]?RAPPORT\.md$/i.test(f.name)) ?? mdFiles[0];
+
   const locators: VoiceKnowledgeLocator[] = [];
+  let reportText = "";
   for (const file of mdFiles) {
     const { text } = await readDriveFileText(file.id);
     if (!text.trim()) continue;
+    if (file.id === reportFile.id) reportText = text;
     const docId = await ensureOnboardingKbDocument(admin, {
       onboardingAgentId,
       userId,
@@ -314,7 +326,16 @@ export async function resolveOnboardingMemberKnowledgeBase(
     throw onboardingKbError("Les fichiers Drive du pack onboarding sont vides ou illisibles.");
   }
 
-  return locators;
+  const firstName = opts?.member_first_name?.trim() || "toi";
+  const opening = reportText.trim()
+    ? openingFromOnboardingPack(reportText, firstName)
+    : { first_message: undefined, top_archetypes: [] as { label: string; score: number }[] };
+
+  return {
+    knowledge_base: locators,
+    ...(opening.first_message ? { opening_first_message: opening.first_message } : {}),
+    ...(opening.top_archetypes.length ? { top_archetypes: opening.top_archetypes } : {}),
+  };
 }
 
 function onboardingKbError(message: string): Error {

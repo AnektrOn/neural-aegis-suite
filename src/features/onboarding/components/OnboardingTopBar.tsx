@@ -14,6 +14,9 @@ import {
 
 interface OnboardingTopBarProps {
   currentStep: OnboardingStep;
+  /** When set, progress pills reflect micro-steps instead of the legacy 5 steps. */
+  progressIndex?: number;
+  progressTotal?: number;
   isSyncing?: boolean;
   hideAudioControls?: boolean;
 }
@@ -22,6 +25,8 @@ const STEP_NUMBERS: OnboardingStep[] = [1, 2, 3, 4, 5];
 
 export default function OnboardingTopBar({
   currentStep,
+  progressIndex,
+  progressTotal,
   isSyncing = false,
   hideAudioControls = false,
 }: OnboardingTopBarProps) {
@@ -83,8 +88,8 @@ export default function OnboardingTopBar({
             <AegisLogo className="h-6 sm:h-7 w-auto shrink-0" />
             <span className="font-mono text-xs font-medium tabular-nums text-[#161614]/70 dark:text-[#f5f2eb]/70">
               {t("execOnboarding.stepCounter", {
-                step: currentStep,
-                total: TOTAL_ONBOARDING_STEPS,
+                step: progressIndex ?? currentStep,
+                total: progressTotal ?? TOTAL_ONBOARDING_STEPS,
               })}
             </span>
             {isSyncing && (
@@ -159,12 +164,15 @@ export default function OnboardingTopBar({
           role="progressbar"
           aria-label={t("execOnboarding.progressAria")}
           aria-valuemin={1}
-          aria-valuemax={TOTAL_ONBOARDING_STEPS}
-          aria-valuenow={currentStep}
-          className="grid grid-cols-5 gap-1.5"
+          aria-valuemax={progressTotal ?? TOTAL_ONBOARDING_STEPS}
+          aria-valuenow={progressIndex ?? currentStep}
+          className="grid gap-1.5"
+          style={{
+            gridTemplateColumns: `repeat(${progressTotal ?? TOTAL_ONBOARDING_STEPS}, minmax(0, 1fr))`,
+          }}
         >
-          {STEP_NUMBERS.map((stepNum) => {
-            const active = stepNum <= currentStep;
+          {Array.from({ length: progressTotal ?? TOTAL_ONBOARDING_STEPS }, (_, i) => i + 1).map((stepNum) => {
+            const active = stepNum <= (progressIndex ?? currentStep);
             return (
               <span
                 key={stepNum}

@@ -1,4 +1,9 @@
-export const PUBLIC_PAID_PLANS = ["aegis_solo_monthly", "aegis_solo_logos_monthly", "aegis_founders_lifetime"];
+export const PUBLIC_PAID_PLANS = [
+  "aegis_solo_monthly",
+  "aegis_solo_logos_monthly",
+  "aegis_logos_ambassador_monthly",
+  "aegis_founders_lifetime",
+];
 
 export function canProvisionPaidAccount(session: {
   status?: string | null;

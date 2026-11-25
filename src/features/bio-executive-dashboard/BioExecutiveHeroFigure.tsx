@@ -67,7 +67,7 @@ export function BioExecutiveHeroFigure({
 }: BioExecutiveHeroFigureProps) {
   const { locale, t } = useLanguage();
   const isFr = locale === "fr";
-  const matrixLockLabel = isFr ? "Disponible avec Matrice" : "Available with Matrix";
+  const matrixLockLabel = isFr ? "Disponible avec AEGIS Solo" : "Available with AEGIS Solo";
   const el = slice.elements;
   const metricRef = useRef<HTMLButtonElement>(null);
   const [connector, setConnector] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);

@@ -1102,6 +1102,10 @@ export const translations = {
     fr: "Crée ton compte membre — email, mot de passe, et tu es dans AEGIS. Pas d'accès invité.",
     en: "Create your member account — email, password, and you're in AEGIS. Not guest access.",
   },
+  "auth.startOnboardingCta": {
+    fr: "Commencer le parcours d'accueil (recommandé)",
+    en: "Start the welcome journey (recommended)",
+  },
   "auth.passwordConfirm": { fr: "Confirmer le mot de passe", en: "Confirm password" },
   "auth.passwordHint": {
     fr: "Au moins 8 caractères, une lettre et un chiffre.",
@@ -1538,6 +1542,23 @@ export const translations = {
   "general.delete": { fr: "Supprimer", en: "Delete" },
   "general.language": { fr: "Langue", en: "Language" },
   "general.close": { fr: "Fermer", en: "Close" },
+  "freemium.pulseBanner": {
+    fr: "Initiation · {remaining} cartes Pulse globales restantes aujourd'hui",
+    en: "Initiation · {remaining} global Pulse cards left today",
+  },
+  "freemium.toolboxBanner": {
+    fr: "Initiation · {remaining} protocoles globaux restants aujourd'hui",
+    en: "Initiation · {remaining} global protocols left today",
+  },
+  "freemium.quotaPulse": {
+    fr: "Quota journalier Pulse atteint — passez à AEGIS Solo pour continuer.",
+    en: "Daily Pulse quota reached — upgrade to AEGIS Solo to continue.",
+  },
+  "freemium.quotaToolbox": {
+    fr: "Quota journalier Toolbox atteint — passez à AEGIS Solo pour continuer.",
+    en: "Daily Toolbox quota reached — upgrade to AEGIS Solo to continue.",
+  },
+
   "voiceAgent.title": { fr: "Mon agent vocal", en: "My voice agent" },
   "voiceAgent.subtitle": {
     fr: "Conversation directe avec votre agent personnel (aucun routage intermédiaire).",
@@ -1561,16 +1582,16 @@ export const translations = {
     en: "Your LOGOS agent is not provisioned on this account yet. Try again in a few minutes or contact support.",
   },
   "voiceAgent.noSubscriptionTitle": {
-    fr: "LOGOS réservé à AEGIS + LOGOS Solo",
-    en: "LOGOS requires AEGIS + LOGOS Solo",
+    fr: "LOGOS — agent vocal",
+    en: "LOGOS voice agent",
   },
   "voiceAgent.noSubscriptionBody": {
-    fr: "L'agent vocal LOGOS est inclus dans AEGIS + LOGOS Solo (110 € HT / mois) : le double d'assignations toolbox et de cartes Pulse actives par rapport à AEGIS Solo.",
-    en: "The LOGOS voice agent is included with AEGIS + LOGOS Solo (€110 excl. tax / month): twice the weekly toolbox assignments and active Pulse cards vs AEGIS Solo.",
+    fr: "L'offre ambassadeur LOGOS : 130 € HT / mois, 20 places, 90 minutes d'appels par mois.",
+    en: "LOGOS ambassador offer: €130 excl. tax / month, 20 seats, 90 minutes of calls per month.",
   },
   "voiceAgent.upgradeLogosCta": {
-    fr: "Passer à AEGIS + LOGOS Solo",
-    en: "Upgrade to AEGIS + LOGOS Solo",
+    fr: "Activer LOGOS Ambassadeur",
+    en: "Activate LOGOS Ambassador",
   },
   "voiceAgent.noSubscriptionCta": { fr: "Voir les tarifs", en: "View pricing" },
   "voiceAgent.noAccessCta": { fr: "Retour à l'accueil", en: "Back to home" },
@@ -2525,6 +2546,10 @@ export const translations = {
     en: "Could not load your welcome hub. Check your connection.",
   },
   "welcome.loading": { fr: "Chargement…", en: "Loading…" },
+  "welcome.skipToDashboard": {
+    fr: "Aller au tableau de bord",
+    en: "Go to dashboard",
+  },
 
   // Pulse feature announcement
   "pulseAnnounce.title": {
@@ -5181,12 +5206,12 @@ excerpt_fr: email brief
   // Pricing comparison table
   "pricing.compare.title": { fr: "Ce qui est inclus", en: "What's included" },
   "pricing.compare.subtitle": {
-    fr: "Initiation couvre la saisie quotidienne et l'historique personnel. La Matrice débloque les analyses, exports et outils avancés.",
-    en: "Initiation covers daily logging and personal history. Matrix unlocks analytics, exports, and advanced tools.",
+    fr: "Initiation couvre la saisie quotidienne et l'historique personnel. AEGIS Solo débloque la plateforme complète.",
+    en: "Initiation covers daily logging and personal history. AEGIS Solo unlocks the full platform.",
   },
   "pricing.compare.feature": { fr: "Fonctionnalité", en: "Feature" },
   "pricing.compare.free": { fr: "Initiation", en: "Initiation" },
-  "pricing.compare.matrix": { fr: "Matrice", en: "Matrix" },
+  "pricing.compare.matrix": { fr: "AEGIS Solo", en: "AEGIS Solo" },
   "pricing.compare.ultra": { fr: "Ultra", en: "Ultra" },
   "pricing.compare.view": { fr: "Consulter", en: "View" },
   "pricing.compare.enter": { fr: "Saisir", en: "Enter" },
@@ -5207,8 +5232,8 @@ excerpt_fr: email brief
   "pricing.compare.personalReports": { fr: "Rapports personnels admin", en: "Admin personal reports" },
   "pricing.compare.humanCoaching": { fr: "Accompagnement humain, audit, appels", en: "Human coaching, audit, calls" },
   "pricing.compare.footnote": {
-    fr: "Ultra = Matrice + accès Inner Circle. L'expérience produit reste la même ; la différence est humaine.",
-    en: "Ultra = Matrix + Inner Circle access. The product experience is the same; the difference is human.",
+    fr: "Ultra = AEGIS Solo + accès Inner Circle. L'expérience produit reste la même ; la différence est humaine.",
+    en: "Ultra = AEGIS Solo + Inner Circle access. The product experience is the same; the difference is human.",
   },
 
   "nav.ambassador": { fr: "Ambassadeur", en: "Ambassador" },

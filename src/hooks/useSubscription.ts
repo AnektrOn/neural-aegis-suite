@@ -128,7 +128,7 @@ export function useSubscription() {
                   "id, product_id, price_id, status, current_period_end, cancel_at_period_end, paddle_subscription_id",
                 )
                 .eq("user_id", userId)
-                .eq("product_id", "aegis_solo_logos")
+                .in("product_id", ["aegis_solo_logos", "aegis_logos"])
                 .order("created_at", { ascending: false })
                 .limit(1)
                 .maybeSingle(),

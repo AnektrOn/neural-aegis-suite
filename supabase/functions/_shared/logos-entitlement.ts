@@ -1,5 +1,6 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
+export const LOGOS_PRODUCT_IDS = ['aegis_solo_logos', 'aegis_logos'] as const;
 export const LOGOS_PRODUCT_ID = 'aegis_solo_logos';
 
 type SubRow = {
@@ -35,7 +36,7 @@ export async function userHasLogosEntitlement(
     .from('subscriptions')
     .select('status, current_period_end')
     .eq('user_id', userId)
-    .eq('product_id', LOGOS_PRODUCT_ID)
+    .in('product_id', [...LOGOS_PRODUCT_IDS])
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();

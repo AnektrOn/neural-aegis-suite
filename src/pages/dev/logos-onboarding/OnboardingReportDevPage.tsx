@@ -6,12 +6,15 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { VoiceAgent } from "@/components/voice/VoiceAgent";
 import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
 import { buildOnboardingReportLogosInjection } from "@/features/logos/logosSessionInjection";
+import { fileHasEmbeddedPreview } from "@/features/logos/onboardingReportDevApi";
+import { openingFromOnboardingPack } from "@/features/logos/onboardingReportOpening";
 import {
   AGENT_SESSION_ONBOARDING_PREVIEW_STAMP,
   EXPECTED_EDGE_STAMPS,
   fetchOnboardingReportAgentId,
   previewOnboardingDrivePack,
 } from "@/features/logos/onboardingReportDevApi";
+import { OnboardingFirstMessagePretest } from "./OnboardingFirstMessagePretest";
 import { OnboardingKbPreviewDialog } from "./OnboardingKbPreviewDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +37,8 @@ export default function OnboardingReportDevPage() {
   const [sessionKnowledge, setSessionKnowledge] = useState<VoiceKnowledgeLocator[] | null>(null);
   const autoOpenedForDrive = useRef<string | null>(null);
 
+  const voiceLiveEnabled = searchParams.get("voice") === "1";
+
   const driveFolderId = useMemo(() => {
     const fromUrl = searchParams.get("drive")?.trim();
     return fromUrl || DEV_ONBOARDING_DRIVE_FOLDER_ID;
@@ -47,7 +52,7 @@ export default function OnboardingReportDevPage() {
 
   const agentIdQuery = useQuery({
     queryKey: ["onboarding_report_status"],
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id && voiceLiveEnabled),
     queryFn: fetchOnboardingReportAgentId,
     staleTime: 60_000,
     retry: false,
@@ -79,7 +84,7 @@ export default function OnboardingReportDevPage() {
 
   const packEmbedQuery = useQuery({
     queryKey: ["preview_onboarding_pack", driveFolderId, "embed"],
-    enabled: Boolean(user?.id && driveFolderId && previewOpen),
+    enabled: Boolean(user?.id && driveFolderId),
     queryFn: () => previewOnboardingDrivePack(driveFolderId, { embedPreviews: true }),
     staleTime: 10 * 60_000,
     retry: false,
@@ -95,22 +100,36 @@ export default function OnboardingReportDevPage() {
   const previewLoading = previewOpen && packEmbedQuery.isFetching && !packEmbedQuery.data?.files?.length;
 
   useEffect(() => {
+    if (searchParams.get("preview") !== "1") return;
     if (!user?.id || packListQuery.isLoading) return;
     if (autoOpenedForDrive.current === driveFolderId) return;
     if (packListQuery.isSuccess || packListQuery.isError) {
       autoOpenedForDrive.current = driveFolderId;
       setPreviewOpen(true);
     }
-  }, [driveFolderId, packListQuery.isError, packListQuery.isLoading, packListQuery.isSuccess, user?.id]);
+  }, [driveFolderId, packListQuery.isError, packListQuery.isLoading, packListQuery.isSuccess, searchParams, user?.id]);
 
   const onOnboardingKnowledgeLoaded = useCallback((items: VoiceKnowledgeLocator[]) => {
     setSessionKnowledge(items);
     setPreviewOpen(true);
   }, []);
 
+  const openingPreview = useMemo(() => {
+    const report = driveFiles?.find(
+      (f) => f.name === "00_RAPPORT.md" || f.relativePath?.endsWith("00_RAPPORT.md"),
+    );
+    if (!report || !fileHasEmbeddedPreview(report)) return null;
+    return openingFromOnboardingPack(report.preview, firstName);
+  }, [driveFiles, firstName]);
+
   const dynamicVariables = useMemo(
-    () => buildOnboardingReportLogosInjection(firstName, user?.id).dynamicVariables,
-    [firstName, user?.id],
+    () =>
+      buildOnboardingReportLogosInjection(
+        firstName,
+        user?.id,
+        voiceLiveEnabled ? openingPreview?.first_message : undefined,
+      ).dynamicVariables,
+    [firstName, openingPreview?.first_message, user?.id, voiceLiveEnabled],
   );
 
   const agentLabel = useMemo(() => {
@@ -171,6 +190,7 @@ export default function OnboardingReportDevPage() {
         driveError={driveError}
         loading={previewLoading}
         sessionKnowledge={sessionKnowledge}
+        voiceOpeningPreview={openingPreview}
       />
 
       <div className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex items-center justify-between gap-3 px-4 py-3">
@@ -227,11 +247,38 @@ export default function OnboardingReportDevPage() {
               isFR ? "Débrief rapport — LOGOS Onboarding" : "Report debrief — LOGOS Onboarding"
             }
             agentKind="onboarding_report"
+            enableCall={voiceLiveEnabled}
             onboardingDriveFolderId={driveFolderId}
-            onOnboardingKnowledgeLoaded={onOnboardingKnowledgeLoaded}
+            onOnboardingKnowledgeLoaded={voiceLiveEnabled ? onOnboardingKnowledgeLoaded : undefined}
             dynamicVariables={dynamicVariables}
             debugFooter={
               <div className="space-y-1 text-xs text-muted-foreground">
+                <OnboardingFirstMessagePretest
+                  isFR={isFR}
+                  firstName={firstName}
+                  loading={packEmbedQuery.isLoading}
+                  needsEmbed={!packEmbedQuery.data?.files?.length && !packEmbedQuery.isLoading}
+                  opening={openingPreview}
+                />
+                {!voiceLiveEnabled ? (
+                  <p className="text-[10px] text-muted-foreground">
+                    {isFR ? (
+                      <>
+                        Voix désactivée (pré-test). URL live :{" "}
+                        <span className="font-mono text-foreground">
+                          {`/dev/logos-onboarding-report?voice=1${driveFolderId !== DEV_ONBOARDING_DRIVE_FOLDER_ID ? `&drive=${driveFolderId}` : ""}`}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        Voice off (pre-test). Live URL:{" "}
+                        <span className="font-mono text-foreground">
+                          {`/dev/logos-onboarding-report?voice=1${driveFolderId !== DEV_ONBOARDING_DRIVE_FOLDER_ID ? `&drive=${driveFolderId}` : ""}`}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                ) : null}
                 <p>
                   {isFR ? "Agent ElevenLabs : " : "ElevenLabs agent: "}
                   <span className="font-mono text-foreground">{agentLabel}</span>

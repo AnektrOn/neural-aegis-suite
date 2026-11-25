@@ -16,6 +16,7 @@ import {
   type OnboardingDrivePreviewFileMeta,
 } from "@/features/logos/onboardingReportDevApi";
 import type { VoiceKnowledgeLocator } from "@/services/agentSessionService";
+import type { MajorArchetypeScore } from "@/features/logos/onboardingReportOpening";
 
 type Props = {
   open: boolean;
@@ -27,6 +28,10 @@ type Props = {
   driveError?: string | null;
   loading?: boolean;
   sessionKnowledge?: VoiceKnowledgeLocator[] | null;
+  voiceOpeningPreview?: {
+    first_message: string;
+    top_archetypes: MajorArchetypeScore[];
+  } | null;
 };
 
 function formatCharCount(n: number | undefined, isFR: boolean): string {
@@ -48,6 +53,7 @@ export function OnboardingKbPreviewDialog({
   driveError,
   loading,
   sessionKnowledge,
+  voiceOpeningPreview,
 }: Props) {
   const driveCount = driveFiles?.length ?? 0;
   const sessionCount = sessionKnowledge?.length ?? 0;
@@ -166,6 +172,22 @@ export function OnboardingKbPreviewDialog({
               </ul>
             )}
           </section>
+
+          {voiceOpeningPreview ? (
+            <section className="mt-6 space-y-2 border-t border-border pt-4">
+              <p className="text-sm font-medium text-foreground">
+                {isFR ? "Premier message LOGOS (oral)" : "LOGOS first spoken message"}
+              </p>
+              {voiceOpeningPreview.top_archetypes.length >= 3 ? (
+                <p className="text-[10px] text-muted-foreground">
+                  Top 3 : {voiceOpeningPreview.top_archetypes.map((a) => `${a.label} (${a.score})`).join(" · ")}
+                </p>
+              ) : null}
+              <p className="rounded-md border border-border/80 bg-muted/40 p-3 text-xs leading-relaxed text-foreground">
+                {voiceOpeningPreview.first_message}
+              </p>
+            </section>
+          ) : null}
 
           {sessionKnowledge != null ? (
             <section className="mt-6 space-y-2 border-t border-border pt-4">

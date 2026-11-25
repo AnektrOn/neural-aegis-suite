@@ -369,11 +369,17 @@ export default function AuthPage() {
               )}
 
               {mode === "signup" && (
-                <div className="mb-4 text-center space-y-1">
+                <div className="mb-4 text-center space-y-2">
                   <p className="text-xs uppercase tracking-[0.2em] font-display text-primary">
                     {t("auth.signupFreeBadge")}
                   </p>
                   <p className="text-sm text-text-secondary">{t("auth.signupIntro")}</p>
+                  <Link
+                    to="/start"
+                    className="inline-flex min-h-11 items-center justify-center text-xs uppercase tracking-wider font-display text-primary hover:text-primary/80"
+                  >
+                    {t("auth.startOnboardingCta")}
+                  </Link>
                 </div>
               )}
 

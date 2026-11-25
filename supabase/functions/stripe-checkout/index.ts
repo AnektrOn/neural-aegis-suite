@@ -8,6 +8,11 @@ import {
   FOUNDERS_LIFETIME_MAX,
   FOUNDERS_PRODUCT_ID,
 } from '../_shared/founders-lifetime.ts';
+import {
+  countActiveLogosAmbassador,
+  LOGOS_AMBASSADOR_MAX,
+  LOGOS_AMBASSADOR_PRODUCT_ID,
+} from '../_shared/logos-ambassador.ts';
 
 function catalogStripePriceId(
   planKey: PlanKey,
@@ -62,6 +67,25 @@ Deno.serve(async (req) => {
     if (!user && !PUBLIC_PAID_PLANS.includes(priceId)) return json({ error: 'Unauthorized' }, 401);
     if (!user && (companyId || (seatQuantity != null && seatQuantity !== 1))) {
       return json({ error: 'Public checkout is single-user only' }, 400);
+    }
+
+    if (priceId === 'aegis_logos_ambassador_monthly') {
+      const sold = await countActiveLogosAmbassador(supabase);
+      if (sold >= LOGOS_AMBASSADOR_MAX) {
+        return json({ error: 'LOGOS_AMBASSADOR_SOLD_OUT' }, 409);
+      }
+      if (user) {
+        const { data: existingLogos } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('product_id', LOGOS_AMBASSADOR_PRODUCT_ID)
+          .in('status', ['active', 'trialing'])
+          .maybeSingle();
+        if (existingLogos) {
+          return json({ error: 'LOGOS_ALREADY_OWNED' }, 409);
+        }
+      }
     }
 
     if (priceId === 'aegis_founders_lifetime') {

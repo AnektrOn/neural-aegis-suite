@@ -2,6 +2,7 @@ import type { Locale } from "@/i18n/translations";
 import type { OnboardingStep } from "@/store/useOnboardingStore";
 
 export const TOTAL_ONBOARDING_STEPS = 5;
+export const TOTAL_ONBOARDING_MICRO_STEPS = 11;
 
 /** Shell background matching Member Shell v2 dark/light duality (Obsidienne / Albâtre). */
 export const ONBOARDING_SHELL_CLASS =

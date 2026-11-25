@@ -90,6 +90,9 @@ export type VoiceConversationStartPayload = {
   voice_budget: VoiceUsageBudget;
   /** Populated for onboarding_report — pass as conversation KB override at session start. */
   knowledge_base?: VoiceKnowledgeLocator[];
+  /** Onboarding : first message avec top 3 archétypes majeurs (depuis 00_RAPPORT). */
+  opening_first_message?: string;
+  top_archetypes?: { label: string; score: number }[];
 };
 
 export async function createVoiceConversationToken(
@@ -130,10 +133,26 @@ export async function createVoiceConversationToken(
   const voice_budget = await assertVoiceBudgetAllowsSession(admin, userId);
 
   let knowledge_base: VoiceKnowledgeLocator[] | undefined;
+  let opening_first_message: string | undefined;
+  let top_archetypes: { label: string; score: number }[] | undefined;
   if (agentKind === "onboarding_report") {
-    knowledge_base = await resolveOnboardingMemberKnowledgeBase(admin, userId, {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("first_name, display_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const memberFirst =
+      (typeof profile?.first_name === "string" && profile.first_name.trim()) ||
+      (typeof profile?.display_name === "string" && profile.display_name.trim().split(/\s+/)[0]) ||
+      "toi";
+
+    const pack = await resolveOnboardingMemberKnowledgeBase(admin, userId, {
       drive_root_override: opts?.onboarding_drive_root_override,
+      member_first_name: memberFirst,
     });
+    knowledge_base = pack.knowledge_base;
+    opening_first_message = pack.opening_first_message;
+    top_archetypes = pack.top_archetypes;
   }
 
   const conversation_token = await fetchWebRtcToken(agentId, userId);
@@ -141,6 +160,8 @@ export async function createVoiceConversationToken(
     conversation_token,
     voice_budget,
     ...(knowledge_base?.length ? { knowledge_base } : {}),
+    ...(opening_first_message ? { opening_first_message } : {}),
+    ...(top_archetypes?.length ? { top_archetypes } : {}),
   };
 }
 
