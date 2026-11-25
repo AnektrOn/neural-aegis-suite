@@ -4,7 +4,6 @@ import {
   useOnboardingStore,
   type OnboardingProfileFields,
   type OnboardingStakeholder,
-  type StakeholderRole,
   type TensionLevel,
 } from "@/store/useOnboardingStore";
 import {
@@ -17,31 +16,35 @@ import {
   ONBOARDING_KICKER_CLASS,
   ONBOARDING_SUBCARD_CLASS,
 } from "../../onboardingPrimitives";
+import {
+  getLocalizedRoleLabel,
+  getOccupationPreset,
+} from "../../occupationPresets";
 
 interface Step2Props {
   onSyncPatch: (patch: Partial<OnboardingProfileFields>) => void;
 }
 
-const ROLE_OPTIONS: { value: StakeholderRole; labelKey: TranslationKey }[] = [
-  { value: "COFOUNDER", labelKey: "execOnboarding.step2.role.cofounder" },
-  { value: "LEAD_INVESTOR", labelKey: "execOnboarding.step2.role.board_investor" },
-  { value: "RIGHT_HAND", labelKey: "execOnboarding.step2.role.exec_n1" },
-  { value: "SPOUSE", labelKey: "execOnboarding.step2.role.spouse_family" },
-];
-
-const TENSION_OPTIONS: { value: TensionLevel; labelKey: TranslationKey }[] = [
-  { value: "LOW", labelKey: "execOnboarding.step2.friction.aligned" },
-  { value: "MEDIUM", labelKey: "execOnboarding.step2.friction.tense" },
-  { value: "HIGH", labelKey: "execOnboarding.step2.friction.critical" },
-  { value: "CRITICAL", labelKey: "execOnboarding.step2.friction.blocked" },
+const DYNAMICS: {
+  id: string;
+  labelKey: TranslationKey;
+  level: TensionLevel;
+}[] = [
+  { id: "unspoken", labelKey: "execOnboarding.step2.dynamic.unspoken", level: "HIGH" },
+  { id: "disagreement", labelKey: "execOnboarding.step2.dynamic.disagreement", level: "HIGH" },
+  { id: "trust_loss", labelKey: "execOnboarding.step2.dynamic.trust_loss", level: "CRITICAL" },
+  { id: "emotional_load", labelKey: "execOnboarding.step2.dynamic.emotional_load", level: "MEDIUM" },
 ];
 
 export default function Step2RelationalMap({ onSyncPatch }: Step2Props) {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
+  const occupation = useOnboardingStore((s) => s.occupation);
   const stakeholders = useOnboardingStore((s) => s.primary_stakeholders);
   const addStakeholder = useOnboardingStore((s) => s.addStakeholder);
   const updateStakeholder = useOnboardingStore((s) => s.updateStakeholder);
   const removeStakeholder = useOnboardingStore((s) => s.removeStakeholder);
+
+  const preset = getOccupationPreset(occupation);
 
   const syncCurrentList = () => {
     onSyncPatch({
@@ -72,8 +75,8 @@ export default function Step2RelationalMap({ onSyncPatch }: Step2Props) {
       <header className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className={ONBOARDING_KICKER_CLASS}>{t("execOnboarding.step2.kicker")}</p>
-          <span className="font-mono text-xs tabular-nums text-[#9e7828] dark:text-[#c9a24b]">
-            {t("execOnboarding.step2.countBadge", { count: stakeholders.length })}
+          <span className="font-mono text-[11px] px-2 py-0.5 rounded-md border border-[#9e7828]/30 bg-[#9e7828]/10 text-[#9e7828] dark:border-[#c9a24b]/30 dark:bg-[#c9a24b]/10 dark:text-[#c9a24b]">
+            {occupation}
           </span>
         </div>
         <h1 className={ONBOARDING_H1_CLASS}>{t("execOnboarding.step2.title")}</h1>
@@ -127,24 +130,27 @@ export default function Step2RelationalMap({ onSyncPatch }: Step2Props) {
               <p className="text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75">
                 {t("execOnboarding.step2.roleLabel")}
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {ROLE_OPTIONS.map((opt) => {
-                  const active = item.role === opt.value;
-                  const roleLabel = t(opt.labelKey);
+              <div className="flex flex-wrap gap-2">
+                {preset.roles.map((roleOpt) => {
+                  const label = getLocalizedRoleLabel(roleOpt, locale);
+                  const active = item.role_label === label;
                   return (
                     <button
-                      key={opt.value}
+                      key={roleOpt.fr}
                       type="button"
                       aria-pressed={active}
                       onClick={() =>
                         handleUpdate(item.id, {
-                          role: opt.value,
-                          role_label: roleLabel,
+                          role: roleOpt.stakeholderRole,
+                          role_label: label,
                         })
                       }
-                      className={`${ONBOARDING_CHIP_BASE} ${active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE}`}
+                      className={
+                        "min-h-[44px] rounded-xl border px-3.5 py-2 text-xs sm:text-sm font-medium transition-all " +
+                        (active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE)
+                      }
                     >
-                      <span>{roleLabel}</span>
+                      {label}
                     </button>
                   );
                 })}
@@ -155,20 +161,25 @@ export default function Step2RelationalMap({ onSyncPatch }: Step2Props) {
               <p className="text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75">
                 {t("execOnboarding.step2.frictionLabel")}
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {TENSION_OPTIONS.map((opt) => {
-                  const active = item.tension_level === opt.value;
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {DYNAMICS.map((dyn) => {
+                  const dynLabel = t(dyn.labelKey);
+                  const active =
+                    item.dynamic === dynLabel || item.dynamic === dyn.id;
                   return (
                     <button
-                      key={opt.value}
+                      key={dyn.id}
                       type="button"
                       aria-pressed={active}
                       onClick={() =>
-                        handleUpdate(item.id, { tension_level: opt.value })
+                        handleUpdate(item.id, {
+                          dynamic: dynLabel,
+                          tension_level: dyn.level,
+                        })
                       }
-                      className={`${ONBOARDING_CHIP_BASE} justify-center text-center text-xs ${active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE}`}
+                      className={`${ONBOARDING_CHIP_BASE} text-xs sm:text-sm ${active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE}`}
                     >
-                      <span>{t(opt.labelKey)}</span>
+                      <span>{dynLabel}</span>
                     </button>
                   );
                 })}

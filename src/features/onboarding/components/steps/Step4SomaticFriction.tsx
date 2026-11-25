@@ -1,4 +1,4 @@
-import { Activity, Check } from "lucide-react";
+import { Anchor, Check, HelpCircle, Scale, ShieldAlert } from "lucide-react";
 import { useLanguage, type TranslationKey } from "@/i18n/LanguageContext";
 import {
   useOnboardingStore,
@@ -7,7 +7,6 @@ import {
 import {
   ONBOARDING_CARD_CLASS,
   ONBOARDING_CHIP_ACTIVE,
-  ONBOARDING_CHIP_BASE,
   ONBOARDING_CHIP_IDLE,
   ONBOARDING_H1_CLASS,
   ONBOARDING_KICKER_CLASS,
@@ -17,56 +16,63 @@ interface Step4Props {
   onSyncPatch: (patch: Partial<OnboardingProfileFields>) => void;
 }
 
-const SYMPTOM_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
-  { value: "hyper_control", labelKey: "execOnboarding.step4.symptom.hyper_control" },
-  { value: "escalation_avoidance", labelKey: "execOnboarding.step4.symptom.escalation_avoidance" },
-  { value: "cognitive_dispersion", labelKey: "execOnboarding.step4.symptom.cognitive_dispersion" },
-  { value: "emotional_overinvestment", labelKey: "execOnboarding.step4.symptom.emotional_overinvestment" },
-  { value: "insomnia_rumination", labelKey: "execOnboarding.step4.symptom.insomnia_rumination" },
-  { value: "somatic_tension", labelKey: "execOnboarding.step4.symptom.somatic_tension" },
-];
-
-const FRICTION_ARCHETYPES: { value: string; labelKey: TranslationKey }[] = [
-  { value: "control", labelKey: "execOnboarding.step4.friction.control" },
-  { value: "avoidance", labelKey: "execOnboarding.step4.friction.avoidance" },
-  { value: "burnout_risk", labelKey: "execOnboarding.step4.friction.burnout_risk" },
-  { value: "people_pleasing", labelKey: "execOnboarding.step4.friction.people_pleasing" },
-];
-
-const PEAK_WINDOWS: { value: string; labelKey: TranslationKey }[] = [
-  { value: "morning_startup", labelKey: "execOnboarding.step4.peak.morning_startup" },
-  { value: "midday_overload", labelKey: "execOnboarding.step4.peak.midday_overload" },
-  { value: "late_evening", labelKey: "execOnboarding.step4.peak.late_evening" },
-  { value: "sunday_anticipation", labelKey: "execOnboarding.step4.peak.sunday_anticipation" },
+const SHADOW_OPTIONS: {
+  id: "saboteur" | "prostitute" | "victim" | "child";
+  titleKey: TranslationKey;
+  descKey: TranslationKey;
+  clinicalKey: TranslationKey;
+  Icon: typeof ShieldAlert;
+}[] = [
+  {
+    id: "saboteur",
+    titleKey: "execOnboarding.step4.shadow.saboteur.title",
+    descKey: "execOnboarding.step4.shadow.saboteur.desc",
+    clinicalKey: "execOnboarding.step4.shadow.saboteur.clinical",
+    Icon: ShieldAlert,
+  },
+  {
+    id: "prostitute",
+    titleKey: "execOnboarding.step4.shadow.prostitute.title",
+    descKey: "execOnboarding.step4.shadow.prostitute.desc",
+    clinicalKey: "execOnboarding.step4.shadow.prostitute.clinical",
+    Icon: Scale,
+  },
+  {
+    id: "victim",
+    titleKey: "execOnboarding.step4.shadow.victim.title",
+    descKey: "execOnboarding.step4.shadow.victim.desc",
+    clinicalKey: "execOnboarding.step4.shadow.victim.clinical",
+    Icon: Anchor,
+  },
+  {
+    id: "child",
+    titleKey: "execOnboarding.step4.shadow.child.title",
+    descKey: "execOnboarding.step4.shadow.child.desc",
+    clinicalKey: "execOnboarding.step4.shadow.child.clinical",
+    Icon: HelpCircle,
+  },
 ];
 
 export default function Step4SomaticFriction({ onSyncPatch }: Step4Props) {
   const { t } = useLanguage();
   const stressSymptoms = useOnboardingStore((s) => s.stress_symptoms);
-  const dominantFriction = useOnboardingStore((s) => s.dominant_decision_friction);
-  const peakFocusTime = useOnboardingStore((s) => s.peak_focus_time);
   const toggleStressSymptom = useOnboardingStore((s) => s.toggleStressSymptom);
   const updateFields = useOnboardingStore((s) => s.updateFields);
 
-  const handleToggleSymptom = (symptom: string) => {
-    toggleStressSymptom(symptom);
-    const next = useOnboardingStore.getState();
+  const handleToggleShadow = (id: "saboteur" | "prostitute" | "victim" | "child") => {
+    const wasSelected = stressSymptoms.includes(id);
+    toggleStressSymptom(id);
+    const nextState = useOnboardingStore.getState();
+    const dominant = !wasSelected
+      ? id
+      : nextState.stress_symptoms[0] ?? null;
+    if (dominant !== nextState.dominant_decision_friction) {
+      updateFields({ dominant_decision_friction: dominant });
+    }
     onSyncPatch({
-      stress_symptoms: next.stress_symptoms,
-      dominant_decision_friction: next.dominant_decision_friction,
+      stress_symptoms: useOnboardingStore.getState().stress_symptoms,
+      dominant_decision_friction: useOnboardingStore.getState().dominant_decision_friction,
     });
-  };
-
-  const handleSelectFriction = (value: string) => {
-    const patch = { dominant_decision_friction: value };
-    updateFields(patch);
-    onSyncPatch(patch);
-  };
-
-  const handleSelectPeak = (value: string) => {
-    const patch = { peak_focus_time: value };
-    updateFields(patch);
-    onSyncPatch(patch);
   };
 
   return (
@@ -79,81 +85,47 @@ export default function Step4SomaticFriction({ onSyncPatch }: Step4Props) {
         </p>
       </header>
 
-      <div className={`${ONBOARDING_CARD_CLASS} space-y-5`}>
-        <div className="space-y-2.5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75">
-            {t("execOnboarding.step4.symptomsLabel")}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {SYMPTOM_OPTIONS.map((opt) => {
-              const active = stressSymptoms.includes(opt.value);
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => handleToggleSymptom(opt.value)}
-                  className={`${ONBOARDING_CHIP_BASE} ${active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE}`}
-                >
-                  <span>{t(opt.labelKey)}</span>
-                  {active && (
-                    <Check className="h-4 w-4 shrink-0 text-[#9e7828] dark:text-[#c9a24b]" aria-hidden />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-2.5">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-[#9e7828] dark:text-[#c9a24b]" aria-hidden />
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75">
-              {t("execOnboarding.step4.archetypeHintTitle")}
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {FRICTION_ARCHETYPES.map((opt) => {
-              const active = dominantFriction === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => handleSelectFriction(opt.value)}
-                  className={`${ONBOARDING_CHIP_BASE} ${active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE}`}
-                >
-                  <span>{t(opt.labelKey)}</span>
-                  {active && (
-                    <Check className="h-4 w-4 shrink-0 text-[#9e7828] dark:text-[#c9a24b]" aria-hidden />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-2.5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75">
-            {t("execOnboarding.step4.peakLabel")}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {PEAK_WINDOWS.map((opt) => {
-              const active = peakFocusTime === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => handleSelectPeak(opt.value)}
-                  className={`${ONBOARDING_CHIP_BASE} ${active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE}`}
-                >
-                  <span>{t(opt.labelKey)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      <div className={`${ONBOARDING_CARD_CLASS} space-y-3`}>
+        {SHADOW_OPTIONS.map(({ id, titleKey, descKey, clinicalKey, Icon }) => {
+          const selected = stressSymptoms.includes(id);
+          return (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => handleToggleShadow(id)}
+              className={
+                "min-h-[76px] w-full rounded-xl border p-4 text-left transition-all duration-150 " +
+                "flex items-start gap-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a24b]/60 " +
+                (selected ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE)
+              }
+            >
+              <Icon
+                className="h-5 w-5 shrink-0 mt-0.5 text-[#9e7828] dark:text-[#c9a24b]"
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-semibold leading-snug">
+                    {t(titleKey)}
+                  </span>
+                  <span className="font-mono text-[10px] px-2 py-0.5 rounded-md border border-[#9e7828]/30 bg-[#9e7828]/10 text-[#9e7828] dark:border-[#c9a24b]/30 dark:bg-[#c9a24b]/10 dark:text-[#c9a24b]">
+                    {t(clinicalKey)}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-[13px] leading-relaxed text-[#161614]/70 dark:text-[#f5f2eb]/70">
+                  {t(descKey)}
+                </p>
+              </div>
+              {selected && (
+                <Check
+                  className="h-4 w-4 shrink-0 mt-0.5 text-[#9e7828] dark:text-[#c9a24b]"
+                  aria-hidden
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

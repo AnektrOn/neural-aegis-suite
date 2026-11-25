@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { WelcomeHudScreen } from "@/features/welcome/components/WelcomeHudScreen";
@@ -10,7 +11,10 @@ import { useAegisMotion } from "@/hooks/useAegisMotion";
 import { useGuardianOptional, needsGuardianOnboarding } from "@/features/guardian";
 import { GUARDIAN_ONBOARDING_PATH } from "@/lib/welcomeHud";
 import { useQuizCompletion } from "@/hooks/useQuizCompletion";
-import { isExecutiveOnboardingDone } from "@/store/useOnboardingStore";
+import {
+  hasFinishedStartOnboardingLocal,
+  isExecutiveOnboardingDone,
+} from "@/store/useOnboardingStore";
 import { isProductTourDone, markProductTourDone } from "@/lib/productTour";
 
 export default function Welcome() {
@@ -27,16 +31,22 @@ export default function Welcome() {
   const { loading: quizLoading, completed: quizCompleted } = useQuizCompletion();
 
   const execOnboardingDone = isExecutiveOnboardingDone(userId);
+  const isNativeAndroid =
+    Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+  const androidStartMissing =
+    isNativeAndroid && !hasFinishedStartOnboardingLocal(userId);
 
   useEffect(() => {
     if (!guardian || !guardian.hydrated) return;
+    // Sur Android natif, ne jamais lancer le post-login /onboarding tant que /start n'est pas fini.
+    if (androidStartMissing) return;
     // Les membres ayant déjà terminé le questionnaire ne sont jamais renvoyés
     // vers l'onboarding Guardian (nouveau navigateur = état local vide).
     if (quizLoading || quizCompleted || execOnboardingDone) return;
     if (needsGuardianOnboarding(guardian.state)) {
       navigate(GUARDIAN_ONBOARDING_PATH, { replace: true });
     }
-  }, [guardian, navigate, quizLoading, quizCompleted, execOnboardingDone]);
+  }, [guardian, navigate, quizLoading, quizCompleted, execOnboardingDone, androidStartMissing]);
 
   const firstName = useMemo(() => {
     if (!user) return "";

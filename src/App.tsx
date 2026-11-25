@@ -13,6 +13,8 @@ import AppUpdatePrompt from "@/components/AppUpdatePrompt";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { GuardianProvider } from "@/features/guardian";
+import ExecutiveOnboardingAutoSync from "@/features/onboarding/components/ExecutiveOnboardingAutoSync";
+import AndroidStartGate from "@/features/onboarding/components/AndroidStartGate";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RequireSubscription from "@/components/RequireSubscription";
 import VisitorRoute from "@/components/VisitorRoute";
@@ -37,6 +39,9 @@ const Welcome = lazy(() => import("./pages/Welcome"));
 const WelcomeVoiceAgent = lazy(() => import("./pages/WelcomeVoiceAgent"));
 const ExecutiveOnboardingPage = lazy(
   () => import("@/features/onboarding/pages/ExecutiveOnboardingPage"),
+);
+const GuardianOnboardingPage = lazy(
+  () => import("@/features/guardian/pages/GuardianOnboardingPage"),
 );
 const Persona = lazy(() => import("./pages/Persona"));
 const PersonaPortraits = lazy(() => import("./pages/PersonaPortraits"));
@@ -344,6 +349,7 @@ const App = () => (
       <AppRouter>
         <LanguageProvider>
           <AuthProvider>
+            <ExecutiveOnboardingAutoSync />
             <GuardianProvider>
             <AuthBootGate>
             <Suspense fallback={<PageLoader />}>
@@ -567,12 +573,22 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/start"
+                  element={
+                    <Suspense fallback={<PageLoader />}>
+                      <ExecutiveOnboardingPage />
+                    </Suspense>
+                  }
+                />
+                <Route
                   path="/onboarding"
                   element={
                     <VisitorRoute>
-                      <Suspense fallback={<PageLoader />}>
-                        <ExecutiveOnboardingPage />
-                      </Suspense>
+                      <AndroidStartGate>
+                        <Suspense fallback={<PageLoader />}>
+                          <GuardianOnboardingPage />
+                        </Suspense>
+                      </AndroidStartGate>
                     </VisitorRoute>
                   }
                 />

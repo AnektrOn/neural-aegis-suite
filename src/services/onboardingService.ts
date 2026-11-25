@@ -52,13 +52,18 @@ function buildUpsertPayload(
     updated_at: new Date().toISOString(),
   };
 
-  if ("role_title" in data) payload.role_title = data.role_title ?? null;
-  if ("company_stage" in data) payload.company_stage = data.company_stage ?? null;
-  if ("team_size" in data) payload.team_size = data.team_size ?? null;
-  if ("annual_revenue_bracket" in data) {
+  if ("occupation" in data && data.occupation) payload.role_title = data.occupation;
+  if ("role_title" in data) payload.role_title = data.role_title ?? payload.role_title ?? null;
+  if ("birth_date" in data) payload.company_stage = data.birth_date || null;
+  else if ("company_stage" in data) payload.company_stage = data.company_stage ?? null;
+  if ("email" in data) payload.team_size = data.email?.trim() || null;
+  else if ("team_size" in data) payload.team_size = data.team_size ?? null;
+  if ("full_name" in data) payload.annual_revenue_bracket = data.full_name?.trim() || null;
+  else if ("annual_revenue_bracket" in data) {
     payload.annual_revenue_bracket = data.annual_revenue_bracket ?? null;
   }
-  if ("governance_structure" in data) {
+  if ("location" in data) payload.governance_structure = data.location?.trim() || null;
+  else if ("governance_structure" in data) {
     payload.governance_structure = data.governance_structure ?? null;
   }
   if ("primary_stakeholders" in data && data.primary_stakeholders) {
@@ -69,6 +74,7 @@ function buildUpsertPayload(
         name: s.name.trim(),
         role: s.role,
         ...(s.role_label ? { role_label: s.role_label } : {}),
+        ...(s.dynamic ? { dynamic: s.dynamic } : {}),
         tension_level: s.tension_level,
       })) as unknown as Json;
   }
@@ -188,8 +194,21 @@ function parseRemoteRow(row: ExecProfileRow): RemoteExecutiveOnboardingState["pr
       ? (row.raw_dilemma_responses as unknown as Record<string, RawDilemmaAnswer>)
       : {};
 
+  const occupationRaw = row.role_title;
+  const occupation =
+    occupationRaw === "Leader" ||
+    occupationRaw === "Board Member" ||
+    occupationRaw === "Vie Perso / Indépendant"
+      ? occupationRaw
+      : "Business Owner";
+
   return {
     currentStep: clampStep(row.onboarding_step_reached),
+    occupation,
+    full_name: row.annual_revenue_bracket ?? "",
+    email: row.team_size ?? "",
+    birth_date: row.company_stage ?? "",
+    location: row.governance_structure ?? "",
     role_title: row.role_title,
     company_stage: row.company_stage,
     team_size: row.team_size,

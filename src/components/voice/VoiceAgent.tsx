@@ -29,7 +29,11 @@ import QuantumNebula, {
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAegisMotion } from "@/hooks/useAegisMotion";
-import { createAgentVoiceSession, type VoiceAgentKind } from "@/services/agentSessionService";
+import {
+  createAgentVoiceSession,
+  type VoiceAgentKind,
+  type VoiceKnowledgeLocator,
+} from "@/services/agentSessionService";
 import { cn } from "@/lib/utils";
 import { synthesizeSpectrumFromVolume } from "@/components/voice/voiceAgentSpectrum";
 import { getVoiceAgentNebulaVisualTuning } from "@/components/voice/voiceAgentNebulaPresets";
@@ -293,6 +297,7 @@ function VoiceAgentControls({
   startSessionRef,
   agentKind = "personal_logos",
   onboardingDriveFolderId,
+  onOnboardingKnowledgeLoaded,
   bindOnly = false,
 }: {
   onPhase: (p: UiPhase, message?: string) => void;
@@ -310,6 +315,8 @@ function VoiceAgentControls({
   >;
   agentKind?: VoiceAgentKind;
   onboardingDriveFolderId?: string;
+  /** After agent-session resolves onboarding KB locators (lab / prod verification). */
+  onOnboardingKnowledgeLoaded?: (items: VoiceKnowledgeLocator[]) => void;
   /** Mount session start binder without rendering mic CTAs. */
   bindOnly?: boolean;
 }) {
@@ -357,6 +364,9 @@ function VoiceAgentControls({
           agentKind,
           onboardingDriveFolderId,
         });
+        if (knowledge_base?.length) {
+          onOnboardingKnowledgeLoaded?.(knowledge_base);
+        }
         const vars: VoiceDynamicVariables = {
           first_name: "toi",
           ...dynamicVariablesRef.current,
@@ -382,7 +392,17 @@ function VoiceAgentControls({
         setBusy(false);
       }
     },
-    [agentKind, beginFeedback, enableCall, onboardingDriveFolderId, onPhase, startSession, t, user?.id],
+    [
+      agentKind,
+      beginFeedback,
+      enableCall,
+      onboardingDriveFolderId,
+      onOnboardingKnowledgeLoaded,
+      onPhase,
+      startSession,
+      t,
+      user?.id,
+    ],
   );
 
   useEffect(() => {
@@ -564,6 +584,7 @@ function VoiceAgentWelcomeHud({
   liveOverlay,
   agentKind = "personal_logos",
   onboardingDriveFolderId,
+  onOnboardingKnowledgeLoaded,
 }: {
   title: string;
   debugFooter?: ReactNode;
@@ -584,6 +605,7 @@ function VoiceAgentWelcomeHud({
   liveOverlay?: (helpers: VoiceAgentLiveOverlayHelpers) => ReactNode;
   agentKind?: VoiceAgentKind;
   onboardingDriveFolderId?: string;
+  onOnboardingKnowledgeLoaded?: (items: VoiceKnowledgeLocator[]) => void;
 }) {
   const { t } = useLanguage();
   const { reduceMotion } = useAegisMotion();
@@ -724,6 +746,7 @@ function VoiceAgentWelcomeHud({
               startSessionRef={startSessionRef}
               agentKind={agentKind}
               onboardingDriveFolderId={onboardingDriveFolderId}
+              onOnboardingKnowledgeLoaded={onOnboardingKnowledgeLoaded}
             />
           </footer>
         ) : null}
@@ -739,6 +762,7 @@ function VoiceAgentWelcomeHud({
             startSessionRef={startSessionRef}
             agentKind={agentKind}
             onboardingDriveFolderId={onboardingDriveFolderId}
+            onOnboardingKnowledgeLoaded={onOnboardingKnowledgeLoaded}
             bindOnly
           />
         ) : null}
@@ -836,6 +860,7 @@ export type VoiceAgentProps = {
   /** Global onboarding debrief agent vs per-member LOGOS workflow agent. */
   agentKind?: VoiceAgentKind;
   onboardingDriveFolderId?: string;
+  onOnboardingKnowledgeLoaded?: (items: VoiceKnowledgeLocator[]) => void;
   onPhaseChange?: (phase: UiPhase) => void;
 };
 
@@ -858,6 +883,7 @@ export function VoiceAgent({
   liveOverlay,
   agentKind = "personal_logos",
   onboardingDriveFolderId,
+  onOnboardingKnowledgeLoaded,
   onPhaseChange,
 }: VoiceAgentProps) {
   const { t } = useLanguage();
@@ -951,6 +977,7 @@ export function VoiceAgent({
           liveOverlay={liveOverlay}
           agentKind={agentKind}
           onboardingDriveFolderId={onboardingDriveFolderId}
+          onOnboardingKnowledgeLoaded={onOnboardingKnowledgeLoaded}
         />
       ) : (
         <VoiceAgentCard

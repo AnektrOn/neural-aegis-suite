@@ -64,13 +64,13 @@ describe("useOnboardingStore", () => {
 
   it("maps stress symptoms to dominant_decision_friction and clears when empty", () => {
     const store = useOnboardingStore.getState();
-    store.toggleStressSymptom("hyper_control");
+    store.toggleStressSymptom("saboteur");
 
     let state = useOnboardingStore.getState();
-    expect(state.stress_symptoms).toEqual(["hyper_control"]);
-    expect(state.dominant_decision_friction).toBe("control");
+    expect(state.stress_symptoms).toEqual(["saboteur"]);
+    expect(state.dominant_decision_friction).toBe("saboteur");
 
-    store.toggleStressSymptom("hyper_control");
+    store.toggleStressSymptom("saboteur");
     state = useOnboardingStore.getState();
     expect(state.stress_symptoms).toEqual([]);
     expect(state.dominant_decision_friction).toBeNull();
@@ -88,6 +88,7 @@ describe("useOnboardingStore", () => {
 
     useOnboardingStore.getState().resetOnboarding();
     expect(window.localStorage.getItem(ONBOARDING_STORAGE_KEY)).toBeNull();
-    expect(useOnboardingStore.getState().role_title).toBeNull();
+    expect(useOnboardingStore.getState().role_title).toBe("Business Owner");
+    expect(useOnboardingStore.getState().full_name).toBe("");
   });
 });

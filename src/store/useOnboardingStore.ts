@@ -7,12 +7,18 @@ export const ONBOARDING_DONE_KEY_PREFIX = "aegis_exec_onboarding_done:v1:";
 export type OnboardingStep = 1 | 2 | 3 | 4 | 5;
 export type StakeholderRole = "COFOUNDER" | "LEAD_INVESTOR" | "SPOUSE" | "RIGHT_HAND";
 export type TensionLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type ExecutiveOccupation =
+  | "Business Owner"
+  | "Leader"
+  | "Board Member"
+  | "Vie Perso / Indépendant";
 
 export interface OnboardingStakeholder {
   id: string;
   name: string;
   role: StakeholderRole;
   role_label?: string;
+  dynamic?: string;
   tension_level: TensionLevel;
 }
 
@@ -25,6 +31,11 @@ export interface RawDilemmaAnswer {
 }
 
 export interface OnboardingProfileFields {
+  occupation: ExecutiveOccupation;
+  full_name: string;
+  email: string;
+  birth_date: string;
+  location: string;
   role_title: string | null;
   company_stage: string | null;
   team_size: string | null;
@@ -69,6 +80,10 @@ export interface OnboardingState extends OnboardingProfileFields {
 const MAX_STAKEHOLDERS = 3;
 
 const SYMPTOM_TO_FRICTION: Record<string, string> = {
+  saboteur: "saboteur",
+  prostitute: "prostitute",
+  victim: "victim",
+  child: "child",
   hyper_control: "control",
   escalation_avoidance: "avoidance",
   cognitive_dispersion: "burnout_risk",
@@ -89,21 +104,28 @@ function makeDefaultStakeholder(): OnboardingStakeholder {
     id: createStakeholderId(),
     name: "",
     role: "COFOUNDER",
-    tension_level: "MEDIUM",
+    role_label: "Associé / Co-fondateur",
+    dynamic: "Tension non-dite",
+    tension_level: "HIGH",
   };
 }
 
 function createInitialFields(): OnboardingProfileFields {
   return {
-    role_title: null,
+    occupation: "Business Owner",
+    full_name: "",
+    email: "",
+    birth_date: "",
+    location: "",
+    role_title: "Business Owner",
     company_stage: null,
     team_size: null,
     annual_revenue_bracket: null,
     governance_structure: null,
     primary_stakeholders: [makeDefaultStakeholder()],
     urgent_decision_title: "",
-    urgent_decision_stakes: "",
-    urgent_decision_horizon: null,
+    urgent_decision_stakes: "Mon sommeil",
+    urgent_decision_horizon: "48 heures",
     dominant_decision_friction: null,
     raw_dilemma_responses: {},
     peak_focus_time: null,
@@ -171,6 +193,17 @@ export function clearExecutiveOnboardingDone(userId: string | null | undefined):
   } catch {
     // Ignore storage errors
   }
+}
+
+export function hasFinishedStartOnboardingLocal(
+  userId?: string | null,
+): boolean {
+  if (isExecutiveOnboardingDone(userId)) return true;
+  const state = useOnboardingStore.getState();
+  return (
+    Object.keys(state.raw_dilemma_responses).length >= 3 &&
+    state.primary_stakeholders.some((s) => s.name.trim().length > 0)
+  );
 }
 
 function clampStep(step: number | undefined): OnboardingStep {
@@ -270,6 +303,11 @@ export const useOnboardingStore = create<OnboardingState>()(
           return {
             ownerUserId: userId,
             currentStep: remote.currentStep ?? state.currentStep,
+            occupation: remote.occupation ?? state.occupation,
+            full_name: remote.full_name ?? state.full_name,
+            email: remote.email ?? state.email,
+            birth_date: remote.birth_date ?? state.birth_date,
+            location: remote.location ?? state.location,
             role_title: remote.role_title ?? state.role_title,
             company_stage: remote.company_stage ?? state.company_stage,
             team_size: remote.team_size ?? state.team_size,
@@ -303,11 +341,16 @@ export const useOnboardingStore = create<OnboardingState>()(
         const s = get();
         return {
           onboarding_step_reached: s.currentStep,
-          role_title: s.role_title,
-          company_stage: s.company_stage,
-          team_size: s.team_size,
-          annual_revenue_bracket: s.annual_revenue_bracket,
-          governance_structure: s.governance_structure,
+          occupation: s.occupation,
+          full_name: s.full_name,
+          email: s.email,
+          birth_date: s.birth_date,
+          location: s.location,
+          role_title: s.occupation || s.role_title,
+          company_stage: s.birth_date || s.company_stage,
+          team_size: s.email || s.team_size,
+          annual_revenue_bracket: s.full_name || s.annual_revenue_bracket,
+          governance_structure: s.location || s.governance_structure,
           primary_stakeholders: s.primary_stakeholders,
           urgent_decision_title: s.urgent_decision_title,
           urgent_decision_stakes: s.urgent_decision_stakes,
@@ -335,6 +378,11 @@ export const useOnboardingStore = create<OnboardingState>()(
       partialize: (state) => ({
         ownerUserId: state.ownerUserId,
         currentStep: state.currentStep,
+        occupation: state.occupation,
+        full_name: state.full_name,
+        email: state.email,
+        birth_date: state.birth_date,
+        location: state.location,
         role_title: state.role_title,
         company_stage: state.company_stage,
         team_size: state.team_size,

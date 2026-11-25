@@ -21,6 +21,7 @@ export const FREE_PATHS = [
   "/decisions",
   "/habits",
   // Guardian / executive onboarding (must stay free for Initiation users)
+  "/start",
   "/onboarding",
   "/onboarding/assessment",
   "/onboarding/results",

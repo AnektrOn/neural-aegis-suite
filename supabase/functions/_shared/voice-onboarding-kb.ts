@@ -69,9 +69,68 @@ async function sha256(text: string) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function listOnboardingPackFromDrive(userRootFolderId: string): Promise<
-  { folder_name: string; files: { name: string; relativePath: string }[] }
-> {
+export type OnboardingDrivePreviewFileMeta = {
+  id: string;
+  name: string;
+  relativePath: string;
+};
+
+export type OnboardingDrivePreviewFile = OnboardingDrivePreviewFileMeta & {
+  char_count: number;
+  preview: string;
+  truncated: boolean;
+};
+
+const PREVIEW_CHARS_PER_FILE = 12_000;
+const GOOGLE_DOC_MIME = "application/vnd.google-apps.document";
+
+/** Télécharge le texte d’un fichier Drive (binaire .md ou export Google Doc). */
+export async function readDriveFileText(driveFileId: string): Promise<{ name: string; text: string }> {
+  const metaRes = await driveFetch(
+    `/files/${encodeURIComponent(driveFileId)}?fields=id,name,mimeType&supportsAllDrives=true`,
+  );
+  const meta = await metaRes.json();
+  const mime = String(meta.mimeType ?? "");
+  const name = String(meta.name ?? "document.md");
+  let text: string;
+  if (mime === GOOGLE_DOC_MIME) {
+    const res = await driveFetch(
+      `/files/${encodeURIComponent(driveFileId)}/export?mimeType=${encodeURIComponent("text/plain")}&supportsAllDrives=true`,
+    );
+    text = await res.text();
+  } else {
+    const res = await driveFetch(
+      `/files/${encodeURIComponent(driveFileId)}?alt=media&supportsAllDrives=true`,
+    );
+    text = await res.text();
+  }
+  return { name, text };
+}
+
+export async function fetchOnboardingDriveFilePreview(driveFileId: string): Promise<OnboardingDrivePreviewFile> {
+  const { name, text } = await readDriveFileText(driveFileId);
+  if (!text.trim()) {
+    throw onboardingKbError(
+      "Fichier Drive vide ou non exportable (vérifie le contenu sur Drive ou les droits de la connexion).",
+    );
+  }
+  const char_count = text.length;
+  const truncated = char_count > PREVIEW_CHARS_PER_FILE;
+  return {
+    id: driveFileId,
+    name,
+    relativePath: name,
+    char_count,
+    preview: truncated ? text.slice(0, PREVIEW_CHARS_PER_FILE) : text,
+    truncated,
+  };
+}
+
+/** Liste légère (IDs) — contenu via fetchOnboardingDriveFilePreview. */
+export async function listOnboardingPackFromDrive(userRootFolderId: string): Promise<{
+  folder_name: string;
+  files: OnboardingDrivePreviewFileMeta[];
+}> {
   const meta = await (
     await driveFetch(
       `/files/${encodeURIComponent(userRootFolderId)}?fields=id,name,mimeType&supportsAllDrives=true`,
@@ -83,7 +142,7 @@ export async function listOnboardingPackFromDrive(userRootFolderId: string): Pro
   const mdFiles = await collectOnboardingDriveMarkdown(userRootFolderId, driveListPage);
   return {
     folder_name: meta.name ?? userRootFolderId,
-    files: mdFiles.map((f) => ({ name: f.name, relativePath: f.relativePath })),
+    files: mdFiles.map((f) => ({ id: f.id, name: f.name, relativePath: f.relativePath })),
   };
 }
 
@@ -228,10 +287,7 @@ export async function resolveOnboardingMemberKnowledgeBase(
 
   const locators: VoiceKnowledgeLocator[] = [];
   for (const file of mdFiles) {
-    const res = await driveFetch(
-      `/files/${encodeURIComponent(file.id)}?alt=media&supportsAllDrives=true`,
-    );
-    const text = await res.text();
+    const { text } = await readDriveFileText(file.id);
     if (!text.trim()) continue;
     const docId = await ensureOnboardingKbDocument(admin, {
       onboardingAgentId,

@@ -20,26 +20,32 @@ import {
   ONBOARDING_PRIMARY_BTN_CLASS,
   ONBOARDING_SECONDARY_BTN_CLASS,
   ONBOARDING_SHELL_CLASS,
+  pickLocaleCopy,
   TOTAL_ONBOARDING_STEPS,
 } from "../onboardingPrimitives";
+import { getOccupationPreset } from "../occupationPresets";
 import OnboardingTopBar from "../components/OnboardingTopBar";
 import OnboardingAhaSynthesis from "../components/OnboardingAhaSynthesis";
+import OnboardingCockpitPreview from "../components/OnboardingCockpitPreview";
 import Step1OperationalTheater from "../components/steps/Step1OperationalTheater";
 import Step2RelationalMap from "../components/steps/Step2RelationalMap";
 import Step3UrgentDilemma from "../components/steps/Step3UrgentDilemma";
 import Step4SomaticFriction from "../components/steps/Step4SomaticFriction";
 import Step5DecisionDilemmas, {
-  CURATED_DILEMMA_POSITIONS,
+  CURATED_DILEMMA_KEYS,
 } from "../components/steps/Step5DecisionDilemmas";
 
 export default function ExecutiveOnboardingPage() {
   const { user, loading: authLoading } = useAuth();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const navigate = useNavigate();
 
   const currentStep = useOnboardingStore((s) => s.currentStep);
-  const roleTitle = useOnboardingStore((s) => s.role_title);
-  const teamSize = useOnboardingStore((s) => s.team_size);
+  const occupation = useOnboardingStore((s) => s.occupation);
+  const fullName = useOnboardingStore((s) => s.full_name);
+  const email = useOnboardingStore((s) => s.email);
+  const birthDate = useOnboardingStore((s) => s.birth_date);
+  const location = useOnboardingStore((s) => s.location);
   const primaryStakeholders = useOnboardingStore((s) => s.primary_stakeholders);
   const urgentDecisionTitle = useOnboardingStore((s) => s.urgent_decision_title);
   const stressSymptoms = useOnboardingStore((s) => s.stress_symptoms);
@@ -48,11 +54,13 @@ export default function ExecutiveOnboardingPage() {
 
   const bindUser = useOnboardingStore((s) => s.bindUser);
   const setStep = useOnboardingStore((s) => s.setStep);
+  const updateFields = useOnboardingStore((s) => s.updateFields);
   const hydrateFromRemote = useOnboardingStore((s) => s.hydrateFromRemote);
   const resetOnboarding = useOnboardingStore((s) => s.resetOnboarding);
 
   const [checkingRemote, setCheckingRemote] = useState(true);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [previewScore, setPreviewScore] = useState<number | null>(null);
   const [isSyncingBadge, setIsSyncingBadge] = useState(false);
 
   const finalizedRef = useRef(false);
@@ -61,7 +69,7 @@ export default function ExecutiveOnboardingPage() {
   const userId = user?.id ?? null;
   const localDone = isExecutiveOnboardingDone(userId);
 
-  // Hydrate draft from Supabase and guard completed users across fresh browsers.
+  // Hydrate remote draft if signed in; remain fully functional pre-login via localStorage.
   useEffect(() => {
     if (authLoading) return;
     if (!userId) {
@@ -91,6 +99,23 @@ export default function ExecutiveOnboardingPage() {
         if (remote.profile) {
           hydrateFromRemote(userId, remote.profile);
         }
+        const snapshot = useOnboardingStore.getState();
+        const metaName =
+          typeof user?.user_metadata?.full_name === "string"
+            ? user.user_metadata.full_name
+            : "";
+        const prefill: Partial<OnboardingProfileFields> = {};
+        if (!snapshot.email && user?.email) {
+          prefill.email = user.email;
+          prefill.team_size = user.email;
+        }
+        if (!snapshot.full_name && metaName) {
+          prefill.full_name = metaName;
+          prefill.annual_revenue_bracket = metaName;
+        }
+        if (Object.keys(prefill).length > 0) {
+          updateFields(prefill);
+        }
       })
       .catch(() => {
         // Keep localStorage draft responsive when offline
@@ -102,7 +127,17 @@ export default function ExecutiveOnboardingPage() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, bindUser, hydrateFromRemote, navigate, resetOnboarding, userId]);
+  }, [
+    authLoading,
+    bindUser,
+    hydrateFromRemote,
+    navigate,
+    resetOnboarding,
+    updateFields,
+    user?.email,
+    user?.user_metadata?.full_name,
+    userId,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -116,7 +151,7 @@ export default function ExecutiveOnboardingPage() {
     let removeListener: (() => Promise<void>) | undefined;
 
     void CapacitorApp.addListener("backButton", () => {
-      if (finalizedRef.current || isSynthesizing) return;
+      if (finalizedRef.current || isSynthesizing || previewScore !== null) return;
       if (currentStep > 1) {
         setStep((currentStep - 1) as OnboardingStep);
       }
@@ -127,7 +162,7 @@ export default function ExecutiveOnboardingPage() {
     return () => {
       if (removeListener) void removeListener();
     };
-  }, [currentStep, isSynthesizing, setStep]);
+  }, [currentStep, isSynthesizing, previewScore, setStep]);
 
   const handleSyncPatch = useCallback(
     (patch: Partial<OnboardingProfileFields>) => {
@@ -146,22 +181,28 @@ export default function ExecutiveOnboardingPage() {
   const canProceed = (() => {
     switch (currentStep) {
       case 1:
-        return Boolean(roleTitle && teamSize);
+        return Boolean(
+          occupation &&
+            fullName.trim().length > 0 &&
+            email.trim().includes("@") &&
+            birthDate.trim().length > 0 &&
+            location.trim().length > 0,
+        );
       case 2:
         return primaryStakeholders.some((s) => s.name.trim().length > 0);
       case 3:
-        return urgentDecisionTitle.trim().length > 0;
+        return true;
       case 4:
         return stressSymptoms.length > 0 || Boolean(dominantFriction);
       case 5:
-        return CURATED_DILEMMA_POSITIONS.every((pos) =>
-          Boolean(rawDilemmas[String(pos)]),
-        );
+        return CURATED_DILEMMA_KEYS.every((key) => Boolean(rawDilemmas[key]));
     }
   })();
 
-  const handleFinalized = useCallback(() => {
+  const handleSynthesisReady = useCallback((score: number) => {
     finalizedRef.current = true;
+    setIsSynthesizing(false);
+    setPreviewScore(score);
   }, []);
 
   const handleReturnToSteps = useCallback(() => {
@@ -169,24 +210,59 @@ export default function ExecutiveOnboardingPage() {
     setIsSynthesizing(false);
   }, []);
 
+  const handleEnterNextStage = useCallback(() => {
+    if (userId) {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+    // Pre-login flow: preserve localStorage answers, route to /auth then post-login voice Guardian onboarding
+    navigate("/auth?redirect=/onboarding", { replace: true });
+  }, [navigate, userId]);
+
+  const handleReplay = useCallback(() => {
+    finalizedRef.current = false;
+    setPreviewScore(null);
+    setIsSynthesizing(false);
+    setStep(1);
+  }, [setStep]);
+
   const handleNext = () => {
-    if (!canProceed || !userId) return;
+    if (!canProceed) return;
+
+    if (currentStep === 3 && !urgentDecisionTitle.trim()) {
+      const firstDecision = getOccupationPreset(occupation).decisions[0];
+      if (firstDecision) {
+        const defaultTitle = pickLocaleCopy(
+          locale,
+          firstDecision.fr,
+          firstDecision.en,
+        );
+        updateFields({ urgent_decision_title: defaultTitle });
+        if (userId) {
+          syncStepToSupabase({ urgent_decision_title: defaultTitle }, userId);
+        }
+      }
+    }
+
     if (currentStep < TOTAL_ONBOARDING_STEPS) {
       const nextStep = (currentStep + 1) as OnboardingStep;
       setStep(nextStep);
-      syncStepToSupabase({ onboarding_step_reached: nextStep }, userId);
+      if (userId) {
+        syncStepToSupabase({ onboarding_step_reached: nextStep }, userId);
+      }
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
       return;
     }
+
     if (syncBadgeTimerRef.current) clearTimeout(syncBadgeTimerRef.current);
     setIsSyncingBadge(false);
     setIsSynthesizing(true);
   };
 
   const handlePrev = () => {
-    if (currentStep <= 1 || isSynthesizing) return;
+    if (currentStep <= 1 || isSynthesizing || previewScore !== null) return;
     const prevStep = (currentStep - 1) as OnboardingStep;
     setStep(prevStep);
     if (userId) {
@@ -207,28 +283,35 @@ export default function ExecutiveOnboardingPage() {
     );
   }
 
-  if (!userId) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (localDone && !isSynthesizing) {
+  if (localDone && !isSynthesizing && previewScore === null) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  const hideFooter = isSynthesizing || previewScore !== null;
 
   return (
     <div className={`${ONBOARDING_SHELL_CLASS} flex flex-col`}>
       <OnboardingTopBar
         currentStep={currentStep}
         isSyncing={isSyncingBadge}
-        hideAudioControls={isSynthesizing}
+        hideAudioControls={hideFooter}
       />
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 sm:px-6 pt-6 pb-32">
+      <main
+        className={`mx-auto w-full max-w-2xl flex-1 px-4 sm:px-6 pt-6 ${hideFooter ? "pb-10" : "pb-32"}`}
+      >
         {isSynthesizing ? (
           <OnboardingAhaSynthesis
             userId={userId}
-            onFinalized={handleFinalized}
+            onSynthesisReady={handleSynthesisReady}
             onReturnToSteps={handleReturnToSteps}
+          />
+        ) : previewScore !== null ? (
+          <OnboardingCockpitPreview
+            clarityScore={previewScore}
+            isAuthenticated={Boolean(userId)}
+            onContinue={handleEnterNextStage}
+            onReplay={handleReplay}
           />
         ) : (
           <>
@@ -251,7 +334,7 @@ export default function ExecutiveOnboardingPage() {
         )}
       </main>
 
-      {!isSynthesizing && (
+      {!hideFooter && (
         <footer
           className={
             "fixed inset-x-0 bottom-0 z-30 border-t border-[#161614]/10 bg-[#f5f2eb]/95 backdrop-blur-md " +

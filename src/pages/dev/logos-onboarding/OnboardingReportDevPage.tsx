@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock, FolderSearch } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { VoiceAgent } from "@/components/voice/VoiceAgent";
@@ -10,10 +10,12 @@ import {
   fetchOnboardingReportAgentId,
   previewOnboardingDrivePack,
 } from "@/features/logos/onboardingReportDevApi";
+import { OnboardingKbPreviewDialog } from "./OnboardingKbPreviewDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import type { VoiceKnowledgeLocator } from "@/services/agentSessionService";
 
 /** Dossier Drive Obsidian user (lab Note) — surcharge via ?drive=… */
 export const DEV_ONBOARDING_DRIVE_FOLDER_ID = "1Oa5e2i0nsz8E_l0jJsmjQMUGSkefSk3D";
@@ -26,6 +28,9 @@ export default function OnboardingReportDevPage() {
   const { locale } = useLanguage();
   const isFR = locale === "fr";
   const [searchParams] = useSearchParams();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [sessionKnowledge, setSessionKnowledge] = useState<VoiceKnowledgeLocator[] | null>(null);
+  const autoOpenedForDrive = useRef<string | null>(null);
 
   const driveFolderId = useMemo(() => {
     const fromUrl = searchParams.get("drive")?.trim();
@@ -69,6 +74,32 @@ export default function OnboardingReportDevPage() {
     retry: false,
   });
 
+  const driveFiles = packPreviewQuery.data?.files;
+  const driveError =
+    packPreviewQuery.isError && packPreviewQuery.error instanceof Error
+      ? packPreviewQuery.error.message
+      : null;
+
+  useEffect(() => {
+    if (!user?.id || packPreviewQuery.isLoading) return;
+    if (autoOpenedForDrive.current === driveFolderId) return;
+    if (packPreviewQuery.isSuccess || packPreviewQuery.isError) {
+      autoOpenedForDrive.current = driveFolderId;
+      setPreviewOpen(true);
+    }
+  }, [
+    driveFolderId,
+    packPreviewQuery.isError,
+    packPreviewQuery.isLoading,
+    packPreviewQuery.isSuccess,
+    user?.id,
+  ]);
+
+  const onOnboardingKnowledgeLoaded = useCallback((items: VoiceKnowledgeLocator[]) => {
+    setSessionKnowledge(items);
+    setPreviewOpen(true);
+  }, []);
+
   const dynamicVariables = useMemo(
     () => buildOnboardingReportLogosInjection(firstName, user?.id).dynamicVariables,
     [firstName, user?.id],
@@ -87,25 +118,32 @@ export default function OnboardingReportDevPage() {
 
   const packSummary = useMemo(() => {
     if (packPreviewQuery.isLoading) return isFR ? "Lecture Drive…" : "Reading Drive…";
-    if (packPreviewQuery.isError) {
-      const msg = packPreviewQuery.error instanceof Error ? packPreviewQuery.error.message : "erreur";
-      return `${isFR ? "Pack Drive" : "Drive pack"}: ${msg}`;
-    }
-    const files = packPreviewQuery.data?.files ?? [];
+    if (driveError) return `${isFR ? "Pack Drive" : "Drive pack"}: ${driveError}`;
+    const files = driveFiles ?? [];
     const name = packPreviewQuery.data?.folder_name ?? "—";
     if (!files.length) {
       return `${name} — ${isFR ? "aucun .md onboarding détecté" : "no onboarding .md found"}`;
     }
-    return `${name} — ${files.length} fichier(s): ${files.map((f) => f.relativePath).join(", ")}`;
-  }, [isFR, packPreviewQuery.data, packPreviewQuery.error, packPreviewQuery.isLoading]);
+    return `${name} — ${files.length} fichier(s) — ${isFR ? "ouvre l’aperçu" : "open preview"}`;
+  }, [driveError, driveFiles, isFR, packPreviewQuery.data?.folder_name, packPreviewQuery.isLoading]);
 
   const needsEdgeDeploy =
-    (packPreviewQuery.error instanceof Error &&
-      packPreviewQuery.error.message.includes("non à jour")) ||
+    (driveError?.includes("non à jour") ?? false) ||
     (agentIdQuery.error instanceof Error && agentIdQuery.error.message.includes("non à jour"));
 
   return (
     <div className="relative min-h-dvh">
+      <OnboardingKbPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        isFR={isFR}
+        driveFolderId={driveFolderId}
+        folderName={packPreviewQuery.data?.folder_name}
+        driveFiles={driveFiles}
+        driveError={driveError}
+        sessionKnowledge={sessionKnowledge}
+      />
+
       <div className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex items-center justify-between gap-3 px-4 py-3">
         <Button
           asChild
@@ -118,10 +156,24 @@ export default function OnboardingReportDevPage() {
             Dev lab
           </Link>
         </Button>
-        <Badge variant="outline" className="pointer-events-none gap-1 bg-background/70 font-normal backdrop-blur">
-          <Clock className="h-3 w-3" aria-hidden />
-          LAB · onboarding 30 min
-        </Badge>
+        <div className="pointer-events-auto flex items-center gap-2">
+          {user ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 bg-background/70 backdrop-blur"
+              onClick={() => setPreviewOpen(true)}
+            >
+              <FolderSearch className="h-3.5 w-3.5" aria-hidden />
+              {isFR ? "Aperçu KB" : "KB preview"}
+            </Button>
+          ) : null}
+          <Badge variant="outline" className="pointer-events-none gap-1 bg-background/70 font-normal backdrop-blur">
+            <Clock className="h-3 w-3" aria-hidden />
+            LAB · onboarding 30 min
+          </Badge>
+        </div>
       </div>
 
       {!user ? (
@@ -147,6 +199,7 @@ export default function OnboardingReportDevPage() {
             }
             agentKind="onboarding_report"
             onboardingDriveFolderId={driveFolderId}
+            onOnboardingKnowledgeLoaded={onOnboardingKnowledgeLoaded}
             dynamicVariables={dynamicVariables}
             debugFooter={
               <div className="space-y-1 text-xs text-muted-foreground">
@@ -164,7 +217,13 @@ export default function OnboardingReportDevPage() {
                     </span>
                   ) : null}
                 </p>
-                <p className="text-left">{packSummary}</p>
+                <button
+                  type="button"
+                  className="text-left underline decoration-dotted underline-offset-2 hover:text-foreground"
+                  onClick={() => setPreviewOpen(true)}
+                >
+                  {packSummary}
+                </button>
                 {needsEdgeDeploy ? (
                   <p className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-left text-amber-900 dark:text-amber-100">
                     {isFR

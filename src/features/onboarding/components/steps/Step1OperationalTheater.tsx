@@ -1,87 +1,111 @@
-import { Check } from "lucide-react";
+import { Building2, Compass, Crown, Feather, MapPin } from "lucide-react";
 import { useLanguage, type TranslationKey } from "@/i18n/LanguageContext";
 import {
   useOnboardingStore,
+  type ExecutiveOccupation,
   type OnboardingProfileFields,
 } from "@/store/useOnboardingStore";
 import {
   ONBOARDING_CARD_CLASS,
   ONBOARDING_CHIP_ACTIVE,
-  ONBOARDING_CHIP_BASE,
   ONBOARDING_CHIP_IDLE,
   ONBOARDING_H1_CLASS,
   ONBOARDING_INPUT_CLASS,
   ONBOARDING_KICKER_CLASS,
 } from "../../onboardingPrimitives";
+import {
+  getLocalizedRoleLabel,
+  getOccupationPreset,
+} from "../../occupationPresets";
 
 interface Step1Props {
   onSyncPatch: (patch: Partial<OnboardingProfileFields>) => void;
 }
 
-const ROLE_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
-  { value: "founder_ceo", labelKey: "execOnboarding.step1.role.founder_ceo" },
-  { value: "c_level", labelKey: "execOnboarding.step1.role.c_level" },
-  { value: "vp_head", labelKey: "execOnboarding.step1.role.vp_head" },
-  { value: "managing_partner", labelKey: "execOnboarding.step1.role.managing_partner" },
-  { value: "board_advisor", labelKey: "execOnboarding.step1.role.board_advisor" },
-  { value: "independent_principal", labelKey: "execOnboarding.step1.role.independent_principal" },
+const OCCUPATION_CARDS: {
+  id: ExecutiveOccupation;
+  labelKey: TranslationKey;
+  descKey: TranslationKey;
+  Icon: typeof Crown;
+}[] = [
+  {
+    id: "Business Owner",
+    labelKey: "execOnboarding.step1.occ.business_owner",
+    descKey: "execOnboarding.step1.occ.business_owner.desc",
+    Icon: Building2,
+  },
+  {
+    id: "Leader",
+    labelKey: "execOnboarding.step1.occ.leader",
+    descKey: "execOnboarding.step1.occ.leader.desc",
+    Icon: Compass,
+  },
+  {
+    id: "Board Member",
+    labelKey: "execOnboarding.step1.occ.board_member",
+    descKey: "execOnboarding.step1.occ.board_member.desc",
+    Icon: Crown,
+  },
+  {
+    id: "Vie Perso / Indépendant",
+    labelKey: "execOnboarding.step1.occ.personal",
+    descKey: "execOnboarding.step1.occ.personal.desc",
+    Icon: Feather,
+  },
 ];
 
-const ORG_SCALE_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
-  { value: "solo", labelKey: "execOnboarding.step1.org.solo" },
-  { value: "2_10", labelKey: "execOnboarding.step1.org.2_10" },
-  { value: "11_50", labelKey: "execOnboarding.step1.org.11_50" },
-  { value: "51_250", labelKey: "execOnboarding.step1.org.51_250" },
-  { value: "250_plus", labelKey: "execOnboarding.step1.org.250_plus" },
-];
-
-const PRESSURE_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
-  { value: "hypergrowth", labelKey: "execOnboarding.step1.pressure.hypergrowth" },
-  { value: "cash_crunch", labelKey: "execOnboarding.step1.pressure.cash_crunch" },
-  { value: "restructuring", labelKey: "execOnboarding.step1.pressure.restructuring" },
-  { value: "board_conflict", labelKey: "execOnboarding.step1.pressure.board_conflict" },
-  { value: "pivot", labelKey: "execOnboarding.step1.pressure.pivot" },
-  { value: "steady_scaling", labelKey: "execOnboarding.step1.pressure.steady_scaling" },
-  { value: "ma_exit", labelKey: "execOnboarding.step1.pressure.ma_exit" },
-];
+const QUICK_CITIES = [
+  "Paris, France",
+  "Lyon, France",
+  "Montréal, Canada",
+  "Genève, Suisse",
+  "Bruxelles, Belgique",
+] as const;
 
 export default function Step1OperationalTheater({ onSyncPatch }: Step1Props) {
-  const { t } = useLanguage();
-  const roleTitle = useOnboardingStore((s) => s.role_title);
-  const teamSize = useOnboardingStore((s) => s.team_size);
-  const companyStage = useOnboardingStore((s) => s.company_stage);
-  const governanceStructure = useOnboardingStore((s) => s.governance_structure);
+  const { locale, t } = useLanguage();
+  const occupation = useOnboardingStore((s) => s.occupation);
+  const fullName = useOnboardingStore((s) => s.full_name);
+  const email = useOnboardingStore((s) => s.email);
+  const birthDate = useOnboardingStore((s) => s.birth_date);
+  const location = useOnboardingStore((s) => s.location);
+  const primaryStakeholders = useOnboardingStore((s) => s.primary_stakeholders);
   const updateFields = useOnboardingStore((s) => s.updateFields);
 
-  const selectedPressures = companyStage
-    ? companyStage.split(",").filter(Boolean)
-    : [];
+  const handleSelectOccupation = (occ: ExecutiveOccupation) => {
+    const preset = getOccupationPreset(occ);
+    const firstRole = preset.roles[0];
+    const updatedStakeholders =
+      primaryStakeholders.length > 0 && firstRole
+        ? primaryStakeholders.map((s, idx) =>
+            idx === 0
+              ? {
+                  ...s,
+                  role: firstRole.stakeholderRole,
+                  role_label: getLocalizedRoleLabel(firstRole, locale),
+                }
+              : s,
+          )
+        : primaryStakeholders;
 
-  const handleSelectRole = (value: string) => {
-    const patch = { role_title: value };
+    const patch: Partial<OnboardingProfileFields> = {
+      occupation: occ,
+      role_title: occ,
+      primary_stakeholders: updatedStakeholders,
+    };
     updateFields(patch);
     onSyncPatch(patch);
   };
 
-  const handleSelectScale = (value: string) => {
-    const patch = { team_size: value };
-    updateFields(patch);
-    onSyncPatch(patch);
-  };
-
-  const handleTogglePressure = (value: string) => {
-    const exists = selectedPressures.includes(value);
-    const next = exists
-      ? selectedPressures.filter((item) => item !== value)
-      : [...selectedPressures, value];
-    const encoded = next.length > 0 ? next.join(",") : null;
-    const patch = { company_stage: encoded };
-    updateFields(patch);
-    onSyncPatch(patch);
-  };
-
-  const handleSectorChange = (sector: string) => {
-    const patch = { governance_structure: sector || null };
+  const handleFieldChange = (
+    key: "full_name" | "email" | "birth_date" | "location",
+    value: string,
+  ) => {
+    const patch: Partial<OnboardingProfileFields> = { [key]: value };
+    if (key === "full_name") patch.annual_revenue_bracket = value;
+    if (key === "email") patch.team_size = value;
+    if (key === "birth_date") patch.company_stage = value;
+    if (key === "location") patch.governance_structure = value;
     updateFields(patch);
     onSyncPatch(patch);
   };
@@ -99,73 +123,35 @@ export default function Step1OperationalTheater({ onSyncPatch }: Step1Props) {
       <div className={`${ONBOARDING_CARD_CLASS} space-y-5`}>
         <div className="space-y-2.5">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75">
-            {t("execOnboarding.step1.roleLabel")}
+            {t("execOnboarding.step1.occupationLabel")}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {ROLE_OPTIONS.map((opt) => {
-              const active = roleTitle === opt.value;
+            {OCCUPATION_CARDS.map(({ id, labelKey, descKey, Icon }) => {
+              const active = occupation === id;
               return (
                 <button
-                  key={opt.value}
+                  key={id}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => handleSelectRole(opt.value)}
-                  className={`${ONBOARDING_CHIP_BASE} ${active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE}`}
-                >
-                  <span>{t(opt.labelKey)}</span>
-                  {active && (
-                    <Check className="h-4 w-4 shrink-0 text-[#9e7828] dark:text-[#c9a24b]" aria-hidden />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-2.5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75">
-            {t("execOnboarding.step1.orgLabel")}
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {ORG_SCALE_OPTIONS.map((opt) => {
-              const active = teamSize === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => handleSelectScale(opt.value)}
-                  className={`${ONBOARDING_CHIP_BASE} justify-center text-center ${active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE}`}
-                >
-                  <span className="font-mono text-xs sm:text-sm tabular-nums">{t(opt.labelKey)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-2.5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75">
-            {t("execOnboarding.step1.pressureLabel")}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {PRESSURE_OPTIONS.map((opt) => {
-              const active = selectedPressures.includes(opt.value);
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => handleTogglePressure(opt.value)}
+                  onClick={() => handleSelectOccupation(id)}
                   className={
-                    "min-h-[44px] inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs sm:text-sm font-medium transition-all " +
+                    "min-h-[68px] w-full rounded-xl border p-3.5 text-left transition-all duration-150 " +
+                    "flex flex-col justify-between gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a24b]/60 " +
                     (active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE)
                   }
                 >
-                  <span>{t(opt.labelKey)}</span>
-                  {active && (
-                    <Check className="h-3.5 w-3.5 shrink-0 text-[#9e7828] dark:text-[#c9a24b]" aria-hidden />
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      className="h-4 w-4 shrink-0 text-[#9e7828] dark:text-[#c9a24b]"
+                      aria-hidden
+                    />
+                    <span className="text-sm font-semibold leading-tight">
+                      {t(labelKey)}
+                    </span>
+                  </div>
+                  <p className="text-xs leading-snug text-[#161614]/65 dark:text-[#f5f2eb]/65">
+                    {t(descKey)}
+                  </p>
                 </button>
               );
             })}
@@ -174,20 +160,92 @@ export default function Step1OperationalTheater({ onSyncPatch }: Step1Props) {
 
         <div className="space-y-2">
           <label
-            htmlFor="exec-onboarding-sector"
+            htmlFor="exec-onboarding-fullname"
             className="block text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75"
           >
-            {t("execOnboarding.step1.sectorLabel")}
+            {t("execOnboarding.step1.fullNameLabel")}
           </label>
           <input
-            id="exec-onboarding-sector"
+            id="exec-onboarding-fullname"
             type="text"
-            maxLength={120}
-            value={governanceStructure ?? ""}
-            onChange={(e) => handleSectorChange(e.target.value)}
-            placeholder={t("execOnboarding.step1.sectorPlaceholder")}
+            maxLength={100}
+            value={fullName}
+            onChange={(e) => handleFieldChange("full_name", e.target.value)}
+            placeholder={t("execOnboarding.step1.fullNamePlaceholder")}
             className={ONBOARDING_INPUT_CLASS}
           />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="exec-onboarding-email"
+            className="block text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75"
+          >
+            {t("execOnboarding.step1.emailLabel")}
+          </label>
+          <input
+            id="exec-onboarding-email"
+            type="email"
+            maxLength={120}
+            value={email}
+            onChange={(e) => handleFieldChange("email", e.target.value)}
+            placeholder={t("execOnboarding.step1.emailPlaceholder")}
+            className={ONBOARDING_INPUT_CLASS}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="exec-onboarding-birthdate"
+            className="block text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75"
+          >
+            {t("execOnboarding.step1.birthDateLabel")}
+          </label>
+          <input
+            id="exec-onboarding-birthdate"
+            type="date"
+            value={birthDate}
+            onChange={(e) => handleFieldChange("birth_date", e.target.value)}
+            className={`${ONBOARDING_INPUT_CLASS} dark:[color-scheme:dark]`}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="exec-onboarding-location"
+            className="block text-xs font-semibold uppercase tracking-wider text-[#161614]/75 dark:text-[#f5f2eb]/75"
+          >
+            {t("execOnboarding.step1.locationLabel")}
+          </label>
+          <input
+            id="exec-onboarding-location"
+            type="text"
+            maxLength={120}
+            value={location}
+            onChange={(e) => handleFieldChange("location", e.target.value)}
+            placeholder={t("execOnboarding.step1.locationPlaceholder")}
+            className={ONBOARDING_INPUT_CLASS}
+          />
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {QUICK_CITIES.map((city) => {
+              const active = location === city;
+              return (
+                <button
+                  key={city}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => handleFieldChange("location", city)}
+                  className={
+                    "min-h-[36px] inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors " +
+                    (active ? ONBOARDING_CHIP_ACTIVE : ONBOARDING_CHIP_IDLE)
+                  }
+                >
+                  <MapPin className="h-3 w-3 shrink-0 text-[#9e7828] dark:text-[#c9a24b]" aria-hidden />
+                  <span>{city}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

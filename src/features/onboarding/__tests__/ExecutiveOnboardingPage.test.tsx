@@ -9,23 +9,20 @@ import {
   useOnboardingStore,
 } from "@/store/useOnboardingStore";
 import ExecutiveOnboardingPage from "../pages/ExecutiveOnboardingPage";
-import { CURATED_DILEMMA_POSITIONS } from "../components/steps/Step5DecisionDilemmas";
+import { CURATED_DILEMMA_KEYS } from "../components/steps/Step5DecisionDilemmas";
 
 const syncStepMock = vi.fn();
 const fetchRemoteMock = vi.fn();
 const finalizeMock = vi.fn();
-const completeGuardianMock = vi.fn();
+let mockAuthUser: { id: string; email: string } | null = {
+  id: "user-exec-1",
+  email: "ceo@aegis.test",
+};
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
-    user: { id: "user-exec-1", email: "ceo@aegis.test" },
+    user: mockAuthUser,
     loading: false,
-  }),
-}));
-
-vi.mock("@/features/guardian", () => ({
-  useGuardianOptional: () => ({
-    completeGuardian: completeGuardianMock,
   }),
 }));
 
@@ -57,9 +54,13 @@ function renderOnboarding() {
   return render(
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <MemoryRouter initialEntries={["/onboarding"]}>
+        <MemoryRouter initialEntries={["/start"]}>
           <Routes>
-            <Route path="/onboarding" element={<ExecutiveOnboardingPage />} />
+            <Route path="/start" element={<ExecutiveOnboardingPage />} />
+            <Route
+              path="/auth"
+              element={<div data-testid="auth-screen">Auth Screen</div>}
+            />
             <Route
               path="/dashboard"
               element={<div data-testid="dashboard-screen">Dashboard Cockpit</div>}
@@ -73,6 +74,7 @@ function renderOnboarding() {
 
 describe("ExecutiveOnboardingPage", () => {
   beforeEach(() => {
+    mockAuthUser = { id: "user-exec-1", email: "ceo@aegis.test" };
     window.localStorage.clear();
     saveLocalePreference("fr");
     useOnboardingStore.getState().resetOnboarding();
@@ -117,97 +119,84 @@ describe("ExecutiveOnboardingPage", () => {
     expect(await screen.findByTestId("dashboard-screen")).toBeInTheDocument();
   });
 
-  it("walks through all 5 steps, runs retryable 3000ms sequential Aha synthesis, and navigates to /dashboard", async () => {
+  it("walks through all 5 steps, runs 3000ms synthesis with retry, displays Sovereignty Score preview, and enters /dashboard", async () => {
     finalizeMock
       .mockRejectedValueOnce(new Error("RPC_TEMPORARY_ERROR"))
       .mockResolvedValueOnce({ success: true, clarity_score: 81 });
 
     renderOnboarding();
 
-    // Wait for remote draft check & Step 1 render
+    // Step 1: Identité & Posture
     expect(
       await screen.findByRole("heading", { name: translations["execOnboarding.step1.title"].fr }),
     ).toBeInTheDocument();
 
-    // Step 1: Role & Org scale
-    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.step1.role.founder_ceo"].fr }));
-    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.step1.org.11_50"].fr }));
+    fireEvent.click(screen.getByRole("button", { name: /Leader/ }));
+    fireEvent.change(
+      screen.getByPlaceholderText(translations["execOnboarding.step1.fullNamePlaceholder"].fr),
+      { target: { value: "Camille Laurent" } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(translations["execOnboarding.step1.birthDateLabel"].fr),
+      { target: { value: "1990-05-14" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Paris, France/ }));
+
     expect(syncStepMock).toHaveBeenCalledWith(
-      expect.objectContaining({ role_title: "founder_ceo" }),
+      expect.objectContaining({ occupation: "Leader" }),
       "user-exec-1",
     );
     fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.continue"].fr }));
 
-    // Step 2: Stakeholder
+    // Step 2: Tension Humaine
     expect(
       await screen.findByRole("heading", { name: translations["execOnboarding.step2.title"].fr }),
     ).toBeInTheDocument();
-    const stakeholderInput = screen.getByPlaceholderText(
-      translations["execOnboarding.step2.namePlaceholder"].fr,
+    fireEvent.change(
+      screen.getByPlaceholderText(translations["execOnboarding.step2.namePlaceholder"].fr),
+      { target: { value: "Thomas" } },
     );
-    fireEvent.change(stakeholderInput, { target: { value: "Marc" } });
-    expect(syncStepMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        primary_stakeholders: expect.arrayContaining([
-          expect.objectContaining({ name: "Marc" }),
-        ]),
-      }),
-      "user-exec-1",
+    fireEvent.click(
+      screen.getByRole("button", { name: translations["execOnboarding.step2.dynamic.trust_loss"].fr }),
     );
     fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.continue"].fr }));
 
-    // Step 3: Urgent Decision
+    // Step 3: Épine dans le Pied
     expect(
       await screen.findByRole("heading", { name: translations["execOnboarding.step3.title"].fr }),
     ).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: translations["execOnboarding.step3.preset.exec_exit"].fr }),
-    );
-    expect(syncStepMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        urgent_decision_title: translations["execOnboarding.step3.preset.exec_exit"].fr,
-      }),
-      "user-exec-1",
+      screen.getByRole("button", { name: translations["execOnboarding.step3.cost.integrity"].fr }),
     );
     fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.continue"].fr }));
 
-    // Step 4: Somatic Friction
+    // Step 4: Cartographie des 4 Ombres
     expect(
       await screen.findByRole("heading", { name: translations["execOnboarding.step4.title"].fr }),
     ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: translations["execOnboarding.step4.symptom.hyper_control"].fr }),
-    );
-    expect(useOnboardingStore.getState().dominant_decision_friction).toBe("control");
+    fireEvent.click(screen.getByRole("button", { name: /L'esquive de perfection/ }));
+    expect(useOnboardingStore.getState().dominant_decision_friction).toBe("saboteur");
     fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.continue"].fr }));
 
-    // Step 5: 6 Curated Dilemmas
+    // Step 5: 3 Questions Miroir Viscérales
     expect(
       await screen.findByRole("heading", { name: translations["execOnboarding.step5.title"].fr }),
     ).toBeInTheDocument();
-
-    for (let idx = 0; idx < CURATED_DILEMMA_POSITIONS.length; idx++) {
-      const tabLabel = translations["execOnboarding.step5.progressLabel"].fr
-        .replace("{current}", String(idx + 1))
-        .replace("{total}", String(CURATED_DILEMMA_POSITIONS.length));
-      fireEvent.click(screen.getByRole("button", { name: tabLabel }));
-      const optionA = screen.getByRole("button", { name: /^A\./ });
-      fireEvent.click(optionA);
-    }
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.step5.q1.opt1"].fr }));
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.step5.q2.opt2"].fr }));
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.step5.q3.opt3"].fr }));
 
     const storedDilemmas = useOnboardingStore.getState().raw_dilemma_responses;
-    for (const pos of CURATED_DILEMMA_POSITIONS) {
-      expect(storedDilemmas[String(pos)]).toBeDefined();
+    for (const key of CURATED_DILEMMA_KEYS) {
+      expect(storedDilemmas[key]).toBeDefined();
     }
 
-    // Switch to fake timers before launching Aha Synthesis
     vi.useFakeTimers();
 
     fireEvent.click(
       screen.getByRole("button", { name: translations["execOnboarding.finalize"].fr }),
     );
 
-    // Flush first rejected finalizeOnboarding() call
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10);
     });
@@ -216,7 +205,6 @@ describe("ExecutiveOnboardingPage", () => {
       screen.getByRole("heading", { name: translations["execOnboarding.aha.errorTitle"].fr }),
     ).toBeInTheDocument();
 
-    // Retry succeeds and progresses through sequential phases across 3000ms
     fireEvent.click(
       screen.getByRole("button", { name: translations["execOnboarding.aha.errorRetry"].fr }),
     );
@@ -224,30 +212,99 @@ describe("ExecutiveOnboardingPage", () => {
     expect(
       screen.getByRole("heading", { name: translations["execOnboarding.aha.phase1.title"].fr }),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("dashboard-screen")).not.toBeInTheDocument();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(750);
     });
     expect(
       screen.getByRole("heading", { name: translations["execOnboarding.aha.phase2.title"].fr }),
     ).toBeInTheDocument();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(750);
     });
     expect(
       screen.getByRole("heading", { name: translations["execOnboarding.aha.phase3.title"].fr }),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("dashboard-screen")).not.toBeInTheDocument();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(750);
+    });
+    expect(
+      screen.getByRole("heading", { name: translations["execOnboarding.aha.phase4.title"].fr }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(750);
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    expect(completeGuardianMock).toHaveBeenCalledTimes(1);
+    // Shows Sovereignty Score & Cockpit preview BEFORE entering /dashboard
+    expect(screen.getByText("81")).toBeInTheDocument();
+    expect(screen.getByText("Thomas · N+1 / Direction")).toBeInTheDocument();
+    expect(screen.queryByTestId("dashboard-screen")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: translations["execOnboarding.preview.enterDashboard"].fr }),
+    );
     expect(screen.getByTestId("dashboard-screen")).toBeInTheDocument();
+  });
+
+  it("supports pre-login flow (no user), shows local Sovereignty Score preview, and routes to /auth", async () => {
+    mockAuthUser = null;
+
+    renderOnboarding();
+
+    expect(
+      await screen.findByRole("heading", { name: translations["execOnboarding.step1.title"].fr }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByPlaceholderText(translations["execOnboarding.step1.fullNamePlaceholder"].fr),
+      { target: { value: "Marc" } },
+    );
+    fireEvent.change(
+      screen.getByPlaceholderText(translations["execOnboarding.step1.emailPlaceholder"].fr),
+      { target: { value: "marc@aegis.test" } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(translations["execOnboarding.step1.birthDateLabel"].fr),
+      { target: { value: "1988-02-10" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Paris, France/ }));
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.continue"].fr }));
+
+    fireEvent.change(
+      screen.getByPlaceholderText(translations["execOnboarding.step2.namePlaceholder"].fr),
+      { target: { value: "Julie" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.continue"].fr }));
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.continue"].fr }));
+
+    fireEvent.click(screen.getByRole("button", { name: /L'esquive de perfection/ }));
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.continue"].fr }));
+
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.step5.q1.opt3"].fr }));
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.step5.q2.opt3"].fr }));
+    fireEvent.click(screen.getByRole("button", { name: translations["execOnboarding.step5.q3.opt3"].fr }));
+
+    vi.useFakeTimers();
+    fireEvent.click(
+      screen.getByRole("button", { name: translations["execOnboarding.finalize"].fr }),
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3100);
+      await Promise.resolve();
+    });
+
+    expect(finalizeMock).not.toHaveBeenCalled();
+    expect(screen.getByText("88")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: translations["execOnboarding.preview.createAccountCta"].fr }),
+    );
+    expect(screen.getByTestId("auth-screen")).toBeInTheDocument();
   });
 });

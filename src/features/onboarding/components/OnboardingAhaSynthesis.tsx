@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAegisMotion } from "@/hooks/useAegisMotion";
-import { useGuardianOptional } from "@/features/guardian";
 import { markProductTourDone } from "@/lib/productTour";
 import { finalizeOnboarding } from "@/services/onboardingService";
+import { useOnboardingStore } from "@/store/useOnboardingStore";
 import {
   ONBOARDING_CARD_CLASS,
   ONBOARDING_KICKER_CLASS,
@@ -15,8 +14,8 @@ import {
 } from "../onboardingPrimitives";
 
 interface OnboardingAhaSynthesisProps {
-  userId: string;
-  onFinalized: () => void;
+  userId: string | null;
+  onSynthesisReady: (clarityScore: number) => void;
   onReturnToSteps: () => void;
 }
 
@@ -28,25 +27,37 @@ function delay(ms: number): Promise<void> {
   });
 }
 
+function computeLocalSovereigntyScore(): number {
+  const responses = Object.values(
+    useOnboardingStore.getState().raw_dilemma_responses,
+  );
+  if (responses.length === 0) return 64;
+  const rawSum = responses.reduce(
+    (sum, item) => sum + (item.optionPosition || item.intensity || 2),
+    0,
+  );
+  return Math.min(
+    94,
+    Math.max(38, Math.round((rawSum / (responses.length * 3)) * 88)),
+  );
+}
+
 export default function OnboardingAhaSynthesis({
   userId,
-  onFinalized,
+  onSynthesisReady,
   onReturnToSteps,
 }: OnboardingAhaSynthesisProps) {
   const { t } = useLanguage();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const guardian = useGuardianOptional();
   const { reduceMotion } = useAegisMotion();
+  const fullName = useOnboardingStore((s) => s.full_name);
 
-  const [phase, setPhase] = useState<1 | 2 | 3>(1);
+  const [phase, setPhase] = useState<1 | 2 | 3 | 4>(1);
   const [attempt, setAttempt] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const guardianRef = useRef(guardian);
-  guardianRef.current = guardian;
-  const onFinalizedRef = useRef(onFinalized);
-  onFinalizedRef.current = onFinalized;
+  const onSynthesisReadyRef = useRef(onSynthesisReady);
+  onSynthesisReadyRef.current = onSynthesisReady;
 
   const runCalibration = useCallback(async () => {
     setErrorMsg(null);
@@ -61,41 +72,54 @@ export default function OnboardingAhaSynthesis({
 
     const t1 = setTimeout(() => {
       if (!cancelled) setPhase(2);
-    }, 1000);
+    }, 750);
     const t2 = setTimeout(() => {
       if (!cancelled) setPhase(3);
-    }, 2000);
+    }, 1500);
+    const t3 = setTimeout(() => {
+      if (!cancelled) setPhase(4);
+    }, 2250);
 
-    Promise.all([delay(SYNTHESIS_MIN_DURATION_MS), finalizeOnboarding(userId)])
-      .then(async () => {
+    const localScore = computeLocalSovereigntyScore();
+
+    const syncWork = userId
+      ? finalizeOnboarding(userId)
+      : Promise.resolve({ success: true, clarity_score: localScore });
+
+    Promise.all([delay(SYNTHESIS_MIN_DURATION_MS), syncWork])
+      .then(async ([, res]) => {
         if (cancelled) return;
-        guardianRef.current?.completeGuardian();
-        markProductTourDone(userId);
 
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["dashboard-mobile"] }),
-          queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] }),
-          queryClient.invalidateQueries({ queryKey: ["dashboard-digest"] }),
-          queryClient.invalidateQueries({ queryKey: ["dashboard-people"] }),
-          queryClient.invalidateQueries({ queryKey: ["decision-journal"] }),
-          queryClient.invalidateQueries({ queryKey: ["bio-executive-hero"] }),
-          queryClient.invalidateQueries({ queryKey: ["aegis-health"] }),
-          queryClient.invalidateQueries({ queryKey: ["persona-tracking-stats"] }),
-        ]);
-
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new Event("aegis:refresh"));
+        if (userId) {
+          markProductTourDone(userId);
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ["dashboard-mobile"] }),
+            queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] }),
+            queryClient.invalidateQueries({ queryKey: ["dashboard-digest"] }),
+            queryClient.invalidateQueries({ queryKey: ["dashboard-people"] }),
+            queryClient.invalidateQueries({ queryKey: ["decision-journal"] }),
+            queryClient.invalidateQueries({ queryKey: ["bio-executive-hero"] }),
+            queryClient.invalidateQueries({ queryKey: ["aegis-health"] }),
+            queryClient.invalidateQueries({ queryKey: ["persona-tracking-stats"] }),
+          ]);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("aegis:refresh"));
+          }
         }
 
         if (!cancelled) {
-          onFinalizedRef.current();
-          navigate("/dashboard", { replace: true });
+          const score =
+            typeof res.clarity_score === "number"
+              ? Math.round(res.clarity_score)
+              : localScore;
+          onSynthesisReadyRef.current(score);
         }
       })
       .catch((err: unknown) => {
         if (cancelled) return;
         clearTimeout(t1);
         clearTimeout(t2);
+        clearTimeout(t3);
         const msg =
           err instanceof Error && err.message
             ? err.message
@@ -107,25 +131,19 @@ export default function OnboardingAhaSynthesis({
       cancelled = true;
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
     };
-  }, [attempt, navigate, queryClient, userId]);
+  }, [attempt, queryClient, userId]);
 
-  const phaseMeta = {
-    1: {
-      title: t("execOnboarding.aha.phase1.title"),
-      detail: t("execOnboarding.aha.phase1.detail"),
-    },
-    2: {
-      title: t("execOnboarding.aha.phase2.title"),
-      detail: t("execOnboarding.aha.phase2.detail"),
-    },
-    3: {
-      title: t("execOnboarding.aha.phase3.title"),
-      detail: t("execOnboarding.aha.phase3.detail"),
-    },
+  const phaseTitles = {
+    1: t("execOnboarding.aha.phase1.title"),
+    2: t("execOnboarding.aha.phase2.title"),
+    3: t("execOnboarding.aha.phase3.title"),
+    4: t("execOnboarding.aha.phase4.title"),
   } as const;
 
-  const activeCopy = phaseMeta[phase];
+  const memberDisplayName =
+    fullName.trim() || t("execOnboarding.aha.defaultMember");
 
   if (errorMsg) {
     return (
@@ -175,7 +193,7 @@ export default function OnboardingAhaSynthesis({
         <div className="flex items-center justify-between gap-3">
           <p className={ONBOARDING_KICKER_CLASS}>{t("execOnboarding.aha.kicker")}</p>
           <span className="font-mono text-xs font-medium tabular-nums text-[#9e7828] dark:text-[#c9a24b]">
-            {`0${phase} / 03`}
+            {`0${phase} / 04`}
           </span>
         </div>
 
@@ -191,16 +209,16 @@ export default function OnboardingAhaSynthesis({
           </div>
           <div className="min-w-0 space-y-1">
             <h1 className="font-cormorant text-2xl sm:text-[28px] font-light leading-tight text-[#161614] dark:text-[#f5f2eb]">
-              {activeCopy.title}
+              {phaseTitles[phase]}
             </h1>
             <p className="text-sm text-[#161614]/70 dark:text-[#f5f2eb]/70">
-              {activeCopy.detail}
+              {t("execOnboarding.aha.subtitle", { name: memberDisplayName })}
             </p>
           </div>
         </div>
 
-        <ol className="space-y-3 border-t border-[#161614]/10 pt-5 dark:border-white/[0.08]">
-          {([1, 2, 3] as const).map((stepNumber) => {
+        <ol className="space-y-2.5 border-t border-[#161614]/10 pt-5 dark:border-white/[0.08]">
+          {([1, 2, 3, 4] as const).map((stepNumber) => {
             const done = phase > stepNumber;
             const current = phase === stepNumber;
             return (
@@ -224,7 +242,7 @@ export default function OnboardingAhaSynthesis({
                   aria-hidden
                 />
                 <span className="truncate font-medium">
-                  {phaseMeta[stepNumber].title}
+                  {phaseTitles[stepNumber]}
                 </span>
               </li>
             );
