@@ -1,4 +1,4 @@
-/** Lovable Cloud redeploy stamp: read_onboarding_drive_file_preview + Google Doc export redeploy 4 (2026-11-25d). */
+/** Lovable Cloud redeploy stamp: preview_onboarding_pack+drive_file_id (2026-11-25e). */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { collectDriveTree, ensureDriveFolder, withDriveRootFolder } from "./drive-sync.ts";
@@ -8,6 +8,23 @@ import { syncVoiceUsageForUser, utcMonthUnixBounds } from "./voice-usage-sync.ts
 import { buildOnboardingReportAgentBody } from "./onboarding-report-agent.ts";
 import { mayUseOnboardingDriveOverride, parseDriveFolderId } from "../_shared/onboarding-lab-drive.ts";
 import { fetchOnboardingDriveFilePreview, listOnboardingPackFromDrive } from "../_shared/voice-onboarding-kb.ts";
+
+const ONBOARDING_PREVIEW_EDGE_STAMP = "2026-11-25e";
+
+async function readOnboardingPackFilePreview(
+  folderId: string,
+  fileId: string,
+): Promise<{ file: Awaited<ReturnType<typeof fetchOnboardingDriveFilePreview>> }> {
+  const pack = await listOnboardingPackFromDrive(folderId);
+  if (!pack.files.some((f) => f.id === fileId)) {
+    throw new Error("Fichier hors du pack onboarding");
+  }
+  const file = await fetchOnboardingDriveFilePreview(fileId);
+  const meta = pack.files.find((f) => f.id === fileId);
+  file.relativePath = meta?.relativePath ?? file.relativePath;
+  file.name = meta?.name ?? file.name;
+  return { file };
+}
 
 const DRIVE = "https://connector-gateway.lovable.dev/google_drive/drive/v3";
 function driveHeaders(): HeadersInit {
@@ -437,43 +454,29 @@ Deno.serve(async (req) => {
       return json({ ok: true, agent_id: agentId, deployed: Boolean(agentId) });
     }
 
-    if (action === "preview_onboarding_pack") {
+    if (action === "preview_onboarding_pack" || action === "read_onboarding_drive_file_preview") {
       const raw = String(body?.drive_folder_id ?? body?.onboarding_drive_folder_id ?? "").trim();
       const folderId = parseDriveFolderId(raw);
       if (!folderId) return json({ error: "drive_folder_id requis" }, 400);
       if (!(await mayUseOnboardingDriveOverride(admin, u.user.id, folderId))) {
         return json({ error: "Forbidden" }, 403);
       }
-      try {
-        const pack = await listOnboardingPackFromDrive(folderId);
-        return json({ ok: true, drive_folder_id: folderId, ...pack });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.error("preview_onboarding_pack", e);
-        return json({ error: msg }, 422);
-      }
-    }
-
-    if (action === "read_onboarding_drive_file_preview") {
-      const rawFolder = String(body?.drive_folder_id ?? "").trim();
-      const folderId = parseDriveFolderId(rawFolder);
       const fileId = String(body?.drive_file_id ?? "").trim();
-      if (!folderId || !fileId) return json({ error: "drive_folder_id et drive_file_id requis" }, 400);
-      if (!(await mayUseOnboardingDriveOverride(admin, u.user.id, folderId))) {
-        return json({ error: "Forbidden" }, 403);
-      }
       try {
-        const pack = await listOnboardingPackFromDrive(folderId);
-        if (!pack.files.some((f) => f.id === fileId)) {
-          return json({ error: "Fichier hors du pack onboarding" }, 403);
+        if (fileId) {
+          const { file } = await readOnboardingPackFilePreview(folderId, fileId);
+          return json({ ok: true, edge_stamp: ONBOARDING_PREVIEW_EDGE_STAMP, drive_folder_id: folderId, file });
         }
-        const file = await fetchOnboardingDriveFilePreview(fileId);
-        file.relativePath = pack.files.find((f) => f.id === fileId)?.relativePath ?? file.relativePath;
-        file.name = pack.files.find((f) => f.id === fileId)?.name ?? file.name;
-        return json({ ok: true, file });
+        const pack = await listOnboardingPackFromDrive(folderId);
+        return json({
+          ok: true,
+          edge_stamp: ONBOARDING_PREVIEW_EDGE_STAMP,
+          drive_folder_id: folderId,
+          ...pack,
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        console.error("read_onboarding_drive_file_preview", e);
+        console.error(action, e);
         return json({ error: msg }, 422);
       }
     }

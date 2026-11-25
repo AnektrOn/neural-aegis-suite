@@ -8,6 +8,7 @@ import { LogosVoiceShell } from "@/features/logos/LogosVoiceShell";
 import { buildOnboardingReportLogosInjection } from "@/features/logos/logosSessionInjection";
 import {
   fetchOnboardingReportAgentId,
+  ONBOARDING_PREVIEW_EDGE_STAMP,
   previewOnboardingDrivePack,
 } from "@/features/logos/onboardingReportDevApi";
 import { OnboardingKbPreviewDialog } from "./OnboardingKbPreviewDialog";
@@ -124,8 +125,20 @@ export default function OnboardingReportDevPage() {
     if (!files.length) {
       return `${name} — ${isFR ? "aucun .md onboarding détecté" : "no onboarding .md found"}`;
     }
-    return `${name} — ${files.length} fichier(s) — ${isFR ? "ouvre l’aperçu" : "open preview"}`;
-  }, [driveError, driveFiles, isFR, packPreviewQuery.data?.folder_name, packPreviewQuery.isLoading]);
+    const stamp = packPreviewQuery.data?.edge_stamp;
+    const stampHint =
+      stamp === ONBOARDING_PREVIEW_EDGE_STAMP
+        ? ""
+        : ` — edge ${stamp ?? "?"} (attendu ${ONBOARDING_PREVIEW_EDGE_STAMP})`;
+    return `${name} — ${files.length} fichier(s) — ${isFR ? "ouvre l’aperçu" : "open preview"}${stampHint}`;
+  }, [
+    driveError,
+    driveFiles,
+    isFR,
+    packPreviewQuery.data?.edge_stamp,
+    packPreviewQuery.data?.folder_name,
+    packPreviewQuery.isLoading,
+  ]);
 
   const needsEdgeDeploy =
     (driveError?.includes("non à jour") ?? false) ||

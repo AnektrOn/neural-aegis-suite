@@ -10,7 +10,7 @@ export async function readEdgeFunctionError(error: FunctionsHttpError): Promise<
     /* ignore */
   }
   if (detail === "Action inconnue") {
-    return "Fonction Edge non à jour — sauvegarde elevenlabs-knowledge/index.ts sur Lovable (read_onboarding_drive_file_preview).";
+    return "Fonction Edge non à jour — sauvegarde elevenlabs-knowledge/index.ts sur Lovable (stamp 2026-11-25e, preview_onboarding_pack + drive_file_id).";
   }
   if (detail.includes("non-2xx")) {
     return "Fonction Edge non à jour ou erreur serveur — redéploie elevenlabs-knowledge.";
@@ -44,17 +44,35 @@ export type OnboardingDrivePreviewFile = OnboardingDrivePreviewFileMeta & {
   truncated: boolean;
 };
 
+export const ONBOARDING_PREVIEW_EDGE_STAMP = "2026-11-25e";
+
 export async function previewOnboardingDrivePack(driveFolderId: string): Promise<{
   folder_name?: string;
   files?: OnboardingDrivePreviewFileMeta[];
+  edge_stamp?: string;
 }> {
-  const { data, error } = await supabase.functions.invoke<{
-    ok?: boolean;
-    folder_name?: string;
-    files?: OnboardingDrivePreviewFileMeta[];
-    error?: string;
-  }>("elevenlabs-knowledge", {
-    body: { action: "preview_onboarding_pack", drive_folder_id: driveFolderId },
+  return invokeOnboardingPreviewPack(driveFolderId);
+}
+
+type PreviewPackResponse = {
+  ok?: boolean;
+  edge_stamp?: string;
+  folder_name?: string;
+  files?: (OnboardingDrivePreviewFileMeta & Partial<OnboardingDrivePreviewFile>)[];
+  file?: OnboardingDrivePreviewFile;
+  error?: string;
+};
+
+async function invokeOnboardingPreviewPack(
+  driveFolderId: string,
+  driveFileId?: string,
+): Promise<PreviewPackResponse> {
+  const { data, error } = await supabase.functions.invoke<PreviewPackResponse>("elevenlabs-knowledge", {
+    body: {
+      action: "preview_onboarding_pack",
+      drive_folder_id: driveFolderId,
+      ...(driveFileId ? { drive_file_id: driveFileId } : {}),
+    },
   });
   if (error instanceof FunctionsHttpError) {
     throw new Error(await readEdgeFunctionError(error));
@@ -64,26 +82,37 @@ export async function previewOnboardingDrivePack(driveFolderId: string): Promise
   return data ?? {};
 }
 
+function legacyEmbeddedFile(
+  files: PreviewPackResponse["files"],
+  driveFileId: string,
+): OnboardingDrivePreviewFile | null {
+  const hit = files?.find((f) => f.id === driveFileId);
+  if (!hit?.preview?.trim()) return null;
+  return {
+    id: hit.id,
+    name: hit.name,
+    relativePath: hit.relativePath,
+    char_count: hit.char_count ?? hit.preview.length,
+    preview: hit.preview,
+    truncated: Boolean(hit.truncated),
+  };
+}
+
 export async function fetchOnboardingDriveFilePreview(
   driveFolderId: string,
   driveFileId: string,
 ): Promise<OnboardingDrivePreviewFile> {
-  const { data, error } = await supabase.functions.invoke<{
-    ok?: boolean;
-    file?: OnboardingDrivePreviewFile;
-    error?: string;
-  }>("elevenlabs-knowledge", {
-    body: {
-      action: "read_onboarding_drive_file_preview",
-      drive_folder_id: driveFolderId,
-      drive_file_id: driveFileId,
-    },
-  });
-  if (error instanceof FunctionsHttpError) {
-    throw new Error(await readEdgeFunctionError(error));
+  const data = await invokeOnboardingPreviewPack(driveFolderId, driveFileId);
+  if (data.file) return data.file;
+
+  const legacy = legacyEmbeddedFile(data.files, driveFileId);
+  if (legacy) return legacy;
+
+  if (data.files?.length) {
+    throw new Error(
+      `Edge Lovable pas à jour (attendu stamp ${ONBOARDING_PREVIEW_EDGE_STAMP}) — sauvegarde supabase/functions/elevenlabs-knowledge/index.ts pour activer drive_file_id sur preview_onboarding_pack.`,
+    );
   }
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
-  if (!data?.file) throw new Error("Réponse sans contenu fichier");
-  return data.file;
+
+  throw new Error("Réponse sans contenu fichier");
 }

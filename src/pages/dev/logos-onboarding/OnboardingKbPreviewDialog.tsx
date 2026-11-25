@@ -172,7 +172,7 @@ export function OnboardingKbPreviewDialog({
                                   {isFR ? "Chargement…" : "Loading…"}
                                 </>
                               ) : state === "error" ? (
-                                <span className="text-destructive">{err ?? "erreur"}</span>
+                                <span className="text-destructive">{isFR ? "erreur — voir ci-dessous" : "error — see below"}</span>
                               ) : (
                                 <>
                                   {formatCharCount(file?.char_count, isFR)}
@@ -200,8 +200,8 @@ export function OnboardingKbPreviewDialog({
                                   {file?.preview?.trim()
                                     ? file.preview
                                     : isFR
-                                      ? "(vide — redeploy read_onboarding_drive_file_preview ou vérifie le fichier sur Drive)"
-                                      : "(empty — redeploy edge or check Drive file)"}
+                                      ? "(vide — sauvegarde edge stamp 2026-11-25e ou vérifie le fichier sur Drive)"
+                                      : "(empty — save edge stamp 2026-11-25e or check Drive file)"}
                                 </pre>
                               </ScrollArea>
                             )}
