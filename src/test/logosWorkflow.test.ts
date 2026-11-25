@@ -5,7 +5,7 @@ const template = templateJson as any;
 
 describe("LOGOS workflow", () => {
   it("does not strip agent KB on workflow nodes (no empty knowledge_base override)", () => {
-    const roles = Object.values(template.workflow.nodes).filter((n: any) => n.type === "override_agent");
+    const roles: any[] = Object.values(template.workflow.nodes as Record<string, any>).filter((n: any) => n.type === "override_agent");
     expect(roles.length).toBeGreaterThanOrEqual(11);
     for (const node of roles) {
       const kb =
