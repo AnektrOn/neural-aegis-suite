@@ -4754,6 +4754,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      notify_executive_onboarding_complete_async: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       notify_newsletter_edition_in_app: {
         Args: { p_edition_id: string }
         Returns: number
