@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createServer, type Plugin } from "vite";
+import type { ReactNode } from "react";
 import {
   buildHttp404PageRecords,
   buildNoindexPageRecords,
@@ -147,7 +148,7 @@ ${t.faq.map((f) => `<h3>${esc(f.question)}</h3><p>${esc(f.answer)}</p>`).join(""
           ogImage: "https://aegis.humancatalystbeacon.com/aegis-landing/hero-scene-1440.jpg",
           lastmod: a.publishedAt?.slice(0, 10),
           prerenderBody: `<article><h1>${esc(a.title.fr)}</h1><p>${esc(a.excerpt.fr)}</p>${renderToStaticMarkup(
-            createElement(StaticRouter, { location: a.path }, a.renderBody("fr")),
+            createElement(StaticRouter, { location: a.path }, a.renderBody("fr") as ReactNode),
           )}</article>`,
         });
       }

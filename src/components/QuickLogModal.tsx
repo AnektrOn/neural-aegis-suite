@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/i18n/LanguageContext";
 import RadialSlider from "@/components/RadialSlider";
 import type { TranslationKey } from "@/i18n/translations";
+import { cn } from "@/lib/utils";
 
 const frequencyKeys: TranslationKey[] = [
   "mood.exhausted",
@@ -78,13 +79,13 @@ export default function QuickLogModal({
     <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <Drawer.Portal>
         <Drawer.Overlay
-          className={overlayClassName ?? "fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"}
+          className={cn("fixed inset-0 z-40 bg-background/60 backdrop-blur-sm", overlayClassName)}
         />
         <Drawer.Content
-          className={
-            contentClassName ??
-            "fixed bottom-0 left-0 right-0 z-50 flex max-h-[90dvh] flex-col rounded-t-3xl border-t border-primary/10 bg-card focus:outline-none"
-          }
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-50 flex max-h-[90dvh] flex-col rounded-t-3xl border-t border-primary/10 bg-card focus:outline-none",
+            contentClassName,
+          )}
         >
           {/* Sticky header with handle + close */}
           <div className="shrink-0 relative pt-3 pb-2 px-5">

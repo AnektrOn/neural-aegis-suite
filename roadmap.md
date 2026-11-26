@@ -1,5 +1,10 @@
 # Monitoring fixes
 
+## Requested monitoring review — 26 November 2026
+- [x] Fix LOGOS quick mood drawer: signed-in desktop/mobile lab opens the real panel, viewport overlay and save control visible; dismissal resolves the tool. Nine existing regression tests pass; no mood records changed or actual voice call started.
+- [ ] Secure score/history repair awaits plan approval: current member writes are blocked; preserve security hardening and existing history.
+- [x] Clear the two pre-existing type errors preventing preview verification (synchronous onboarding storage and prerender React child); preview build OK.
+
 ## AppSumo confirmation retries — 24 November 2026
 - [ ] Sweep redemption, AppSumo alias, Pricing, Settings, signup redirects, sender/templates, database activation and distinct account alerts; verify persisted confirmation after navigation/reload.
 - [x] Fix confirmation delivery and authenticated code-free retries without changing lifetime access; deployed member-first SMTP with safe cleanup and private per-recipient delivery records.

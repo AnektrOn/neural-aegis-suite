@@ -221,7 +221,7 @@ export function getNativeColdStartPath(): "/start" | "/auth" {
   if (hasFinishedStartOnboardingLocal(null)) return "/auth";
   try {
     const raw = safeLocalStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!raw) return "/start";
+    if (typeof raw !== "string" || !raw) return "/start";
     const parsed = JSON.parse(raw) as {
       state?: {
         raw_dilemma_responses?: Record<string, RawDilemmaAnswer>;
